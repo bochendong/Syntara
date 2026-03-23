@@ -27,10 +27,12 @@ function MainShellNoRail({ children }: { children: ReactNode }) {
 export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLogin = pathname === '/login' || pathname?.startsWith('/login/');
+  const isRegister = pathname === '/register' || pathname?.startsWith('/register/');
+  const isLanding = pathname === '/';
   const isClassroom = pathname?.startsWith('/classroom/');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  if (isLogin) {
+  if (isLogin || isRegister || isLanding) {
     return <>{children}</>;
   }
 

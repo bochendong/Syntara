@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Github } from 'lucide-react';
+import { CheckCircle2, Github, Sparkles, WandSparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuthStore } from '@/lib/store/auth';
 
@@ -101,14 +102,59 @@ export default function LoginPage() {
         <div className="animate-orb-3 absolute top-1/3 right-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(255,55,95,0.08)_0%,transparent_70%)]" />
       </div>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-16 md:px-8 min-h-[100dvh]">
+      <main className="relative z-10 mx-auto grid min-h-[100dvh] w-full max-w-6xl items-center gap-8 px-4 py-16 md:px-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <motion.section
+          initial={{ opacity: 0, x: -28 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7 }}
+          className="hidden lg:block"
+        >
+          <div className="apple-glass relative overflow-hidden rounded-[32px] p-8">
+            <motion.div
+              className="pointer-events-none absolute -top-16 -left-16 size-44 rounded-full bg-[#007AFF]/20 blur-3xl"
+              animate={{ x: [0, 12, -8, 0], y: [0, -6, 10, 0] }}
+              transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="pointer-events-none absolute -right-20 -bottom-20 size-52 rounded-full bg-[#5856D6]/15 blur-3xl"
+              animate={{ x: [0, -10, 8, 0], y: [0, 10, -8, 0] }}
+              transition={{ duration: 8.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <div className="relative">
+              <p className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/75 px-3 py-1 text-xs text-slate-600 dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
+                <Sparkles className="size-3.5" /> Welcome back
+              </p>
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                登录后继续你的
+                <span className="bg-gradient-to-r from-[#007AFF] to-[#5856D6] bg-clip-text text-transparent">
+                  {' '}
+                  AI 互动课堂
+                </span>
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                在课程空间里继续生成内容、组织笔记本并与多智能体进行对话式学习。
+              </p>
+              <div className="mt-6 space-y-2.5 text-sm text-slate-600 dark:text-slate-300">
+                <p className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-[#007AFF]" /> 课程与笔记本统一管理
+                </p>
+                <p className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-[#007AFF]" /> 连续对话沉淀为知识资产
+                </p>
+                <p className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-[#007AFF]" /> 多 Agent 协同讲解与追问
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="w-full max-w-md"
         >
-          <div className="apple-glass rounded-[28px] p-8">
+          <div className="apple-glass rounded-[28px] border border-white/45 p-8 shadow-[0_18px_50px_rgba(30,41,59,0.12)] dark:border-white/12 dark:shadow-[0_20px_56px_rgba(0,0,0,0.45)]">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -120,6 +166,16 @@ export default function LoginPage() {
               </h1>
               <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
                 使用 Google 或 GitHub 账号登录；登录后默认进入「我的课程」，也可从侧栏前往商城。
+              </p>
+              <p className="text-xs text-[#8e8e93] dark:text-[#8f8f98]">
+                还没有账号？
+                <Link href="/register" className="ml-1 font-medium text-[#007AFF] hover:underline">
+                  去注册
+                </Link>
+                <span className="mx-1">·</span>
+                <Link href="/" className="font-medium text-[#007AFF] hover:underline">
+                  返回首页
+                </Link>
               </p>
             </motion.div>
 
@@ -157,7 +213,7 @@ export default function LoginPage() {
                           setOauthBusy('google');
                           void signIn('google', { callbackUrl: '/my-courses' });
                         }}
-                        className="apple-btn apple-btn-secondary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium disabled:opacity-60"
+                      className="apple-btn apple-btn-secondary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium disabled:opacity-60"
                       >
                         <span className="text-base font-semibold text-[#4285F4]">G</span>
                         使用 Google 登录
@@ -246,6 +302,10 @@ export default function LoginPage() {
                     {hasOauth ? '本地演示登录' : '登录并进入我的课程'}
                   </button>
                 </form>
+                <div className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/70 bg-white/60 px-3 py-2 text-[11px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                  <WandSparkles className="size-3.5" />
+                  登录后即可继续上次课程进度
+                </div>
               </motion.div>
             )}
           </div>
