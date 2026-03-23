@@ -5,6 +5,8 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 
 const createNotebookSchema = z.object({
+  /** 客户端生成（如 nanoid）的笔记本 id；不传则使用数据库默认 cuid */
+  id: z.string().trim().min(8).max(64).optional(),
   courseId: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(3000).optional(),
@@ -54,9 +56,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (payload.data.courseId) {
+    const { id: clientId, ...rest } = payload.data;
+
+    if (rest.courseId) {
       const ownCourse = await prisma.course.findFirst({
-        where: { id: payload.data.courseId, ownerId: userId },
+        where: { id: rest.courseId, ownerId: userId },
         select: { id: true },
       });
       if (!ownCourse) {
@@ -64,10 +68,28 @@ export async function POST(request: Request) {
       }
     }
 
+    if (clientId) {
+      const existing = await prisma.notebook.findFirst({
+        where: { id: clientId },
+        select: { id: true, ownerId: true },
+      });
+      if (existing) {
+        if (existing.ownerId !== userId) {
+          return NextResponse.json({ error: 'Notebook id already in use' }, { status: 409 });
+        }
+        const notebook = await prisma.notebook.update({
+          where: { id: clientId },
+          data: rest,
+        });
+        return NextResponse.json({ notebook });
+      }
+    }
+
     const notebook = await prisma.notebook.create({
       data: {
+        ...(clientId ? { id: clientId } : {}),
         ownerId: userId,
-        ...payload.data,
+        ...rest,
       },
     });
 

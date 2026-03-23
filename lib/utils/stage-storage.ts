@@ -1,7 +1,7 @@
 import type { Stage, Scene } from '../types/stage';
 import type { ChatSession } from '../types/chat';
 import { createLogger } from '@/lib/logger';
-import { backendJson } from '@/lib/utils/backend-api';
+import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
 import type { Slide } from '../types/slides';
 
@@ -68,6 +68,38 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
   };
 }
 
+/** 生成流程使用客户端 nanoid 作为 id，首次保存前数据库中尚无该行，需先 POST 创建 */
+async function ensureNotebookRow(stageId: string, data: StageStoreData): Promise<void> {
+  const getResp = await backendFetch(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'GET',
+  });
+  if (getResp.ok) return;
+
+  if (getResp.status !== 404) {
+    const ct = getResp.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      const err = (await getResp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(err.error?.trim() || `请求失败: HTTP ${getResp.status}`);
+    }
+    throw new Error(`请求失败: HTTP ${getResp.status}`);
+  }
+
+  await backendJson<{ notebook: NotebookApiRow }>('/api/notebooks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: stageId,
+      courseId: data.stage.courseId?.trim() || undefined,
+      name: data.stage.name,
+      description: data.stage.description,
+      tags: data.stage.tags ?? [],
+      avatarUrl: data.stage.avatarUrl,
+      language: data.stage.language,
+      style: data.stage.style,
+    }),
+  });
+}
+
 function mapScene(stageId: string, row: SceneApiRow): Scene {
   return {
     id: row.id,
@@ -85,6 +117,8 @@ function mapScene(stageId: string, row: SceneApiRow): Scene {
 
 export async function saveStageData(stageId: string, data: StageStoreData): Promise<void> {
   const sortedScenes = [...data.scenes].sort((a, b) => a.order - b.order);
+
+  await ensureNotebookRow(stageId, data);
 
   await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
     method: 'PATCH',

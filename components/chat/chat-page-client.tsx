@@ -4,10 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
-import { BookOpen, Loader2, Paperclip, SendHorizontal, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Loader2, Paperclip, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  ComposerInputShell,
+  composerTextareaClassName,
+} from '@/components/ui/composer-input-shell';
+import { GenerationModelSelector } from '@/components/generation/generation-toolbar';
+import { SpeechButton } from '@/components/audio/speech-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -16,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { USER_AVATAR } from '@/lib/types/roundtable';
@@ -30,6 +37,7 @@ import {
 } from '@/lib/utils/course-agents';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import type { Scene } from '@/lib/types/stage';
+import type { SettingsSection } from '@/lib/types/settings';
 import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import {
@@ -272,7 +280,15 @@ function formatTs(ts?: number): string {
 }
 
 export function ChatPageClient() {
+  const { t } = useI18n();
   const router = useRouter();
+  const openSettings = (section?: SettingsSection) => {
+    if (section) {
+      router.push(`/settings?section=${encodeURIComponent(section)}`);
+    } else {
+      router.push('/settings');
+    }
+  };
   const searchParams = useSearchParams();
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseName = useCurrentCourseStore((s) => s.name);
@@ -1340,65 +1356,30 @@ export function ChatPageClient() {
         ) : null}
       </div>
 
-      <footer className="shrink-0 border-t border-slate-900/[0.08] bg-white/70 p-4 backdrop-blur-md dark:border-white/[0.08] dark:bg-black/30">
-        {mode === 'notebook' ? (
-          <>
-            <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-              <Checkbox
-                checked={applyNotebookWrites}
-                onCheckedChange={(v) => setApplyNotebookWrites(v === true)}
-              />
-              允许根据回答写入笔记本（插入 / 更新 / 删除页）
-            </label>
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-lg text-xs"
-                onClick={openAttachmentPicker}
-                disabled={sending}
-              >
-                <Paperclip className="mr-1 size-3.5" />
-                添加附件
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  void onPickAttachments(e.target.files);
-                }}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                支持文本文件提取上下文；图片会随元数据一起发送。
-              </p>
-            </div>
-            {pendingAttachments.length > 0 ? (
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {pendingAttachments.map((a) => (
-                  <span
-                    key={a.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-700 dark:border-white/15 dark:bg-black/25 dark:text-slate-200"
+      <footer className="shrink-0 border-t border-slate-900/[0.06] px-4 pb-4 pt-3 dark:border-white/[0.06]">
+        <ComposerInputShell>
+          {mode === 'notebook' && pendingAttachments.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2">
+              {pendingAttachments.map((a) => (
+                <span
+                  key={a.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-white/70 px-2 py-0.5 text-[11px] text-foreground dark:bg-black/30"
+                >
+                  <Paperclip className="size-3" />
+                  <span className="max-w-[200px] truncate">{a.name}</span>
+                  <button
+                    type="button"
+                    className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+                    onClick={() => removePendingAttachment(a.id)}
+                    aria-label={`移除附件 ${a.name}`}
                   >
-                    <Paperclip className="size-3" />
-                    <span className="max-w-[200px] truncate">{a.name}</span>
-                    <button
-                      type="button"
-                      className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
-                      onClick={() => removePendingAttachment(a.id)}
-                      aria-label={`移除附件 ${a.name}`}
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : null}
-        <div className="flex gap-2">
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -1410,8 +1391,11 @@ export function ChatPageClient() {
                   : `与 ${selectedAgent?.name ?? 'Agent'} 对话…`
             }
             disabled={mode === 'none' || sending}
-            className="min-h-[52px] flex-1 resize-none rounded-xl text-sm"
-            rows={2}
+            className={cn(
+              composerTextareaClassName,
+              'min-h-[100px] max-h-[min(40vh,280px)] resize-y px-4 pt-1 pb-2 text-[13px] leading-relaxed md:text-[13px]',
+            )}
+            rows={4}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -1420,24 +1404,82 @@ export function ChatPageClient() {
               }
             }}
           />
-          <Button
-            type="button"
-            size="icon"
-            className="size-12 shrink-0 rounded-xl"
-            disabled={mode === 'none' || sending || !draft.trim()}
-            aria-label="发送"
-            onClick={() => {
-              if (mode === 'notebook') void handleSendNotebook();
-              else if (mode === 'agent') void handleSendAgent();
-            }}
-          >
-            {sending ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <SendHorizontal className="size-5" strokeWidth={1.75} />
-            )}
-          </Button>
-        </div>
+
+          {/* 与创建页一致的底栏：左侧工具区 · 语音 · 主按钮 */}
+          <div className="flex items-end gap-2 px-3 pb-3">
+            <div className="min-h-8 flex-1 min-w-0">
+              {mode === 'notebook' ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
+                    onClick={openAttachmentPicker}
+                    disabled={sending}
+                  >
+                    <Paperclip className="mr-1 size-3.5" />
+                    添加附件
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      void onPickAttachments(e.target.files);
+                    }}
+                  />
+                  <GenerationModelSelector onSettingsOpen={openSettings} />
+                  <label className="flex min-w-0 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox
+                      checked={applyNotebookWrites}
+                      onCheckedChange={(v) => setApplyNotebookWrites(v === true)}
+                    />
+                    <span className="leading-snug">
+                      允许根据回答写入笔记本（插入 / 更新 / 删除页）
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+            </div>
+
+            <SpeechButton
+              size="md"
+              disabled={mode === 'none' || sending}
+              onTranscription={(text) => {
+                setDraft((prev) => {
+                  const next = prev + (prev ? ' ' : '') + text;
+                  return next;
+                });
+              }}
+            />
+
+            <button
+              type="button"
+              disabled={mode === 'none' || sending || !draft.trim()}
+              onClick={() => {
+                if (mode === 'notebook') void handleSendNotebook();
+                else if (mode === 'agent') void handleSendAgent();
+              }}
+              className={cn(
+                'shrink-0 flex h-8 items-center justify-center gap-1.5 rounded-lg px-3 transition-all',
+                mode !== 'none' && !sending && draft.trim()
+                  ? 'cursor-pointer bg-primary text-primary-foreground shadow-sm hover:opacity-90'
+                  : 'cursor-not-allowed bg-muted text-muted-foreground/40',
+              )}
+            >
+              {sending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <>
+                  <span className="text-xs font-medium">{t('chat.send')}</span>
+                  <ArrowUp className="size-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+        </ComposerInputShell>
       </footer>
 
       <Dialog

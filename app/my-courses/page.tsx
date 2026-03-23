@@ -176,7 +176,7 @@ export default function MyCoursesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => router.push('/store')}
+                onClick={() => router.push('/store/courses')}
                 className="apple-btn apple-btn-secondary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
               >
                 <Store className="size-4" />

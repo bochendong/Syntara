@@ -53,7 +53,7 @@ export interface AppLeftRailProps {
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
-/** 商城需保留「当前课程」，以便将笔记本一键归入该课程 */
+/** 进入这些路由时清空「当前课程」。侧栏「商城」：未选课程 → `/store/courses`（课程商城）；已选课程 → `/store`（笔记本商城） */
 const COURSE_CONTEXT_CLEAR_PREFIXES = [
   '/my-courses',
   '/settings',
@@ -125,9 +125,16 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     key: string;
     href: string;
     label: string;
+    /** 收起侧栏时 Tooltip，默认与 label 相同 */
+    tooltip?: string;
     icon: typeof BookOpen;
     active: boolean;
   };
+
+  const storeHref = inCourseContext ? '/store' : '/store/courses';
+  const storeActive = inCourseContext
+    ? pathname === '/store'
+    : pathname === '/store/courses' || pathname?.startsWith('/store/courses/');
 
   const coreNavItems: CoreNavItem[] = [
     {
@@ -139,32 +146,37 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     },
     {
       key: 'store',
-      href: '/store',
+      href: storeHref,
       label: '商城',
+      tooltip: inCourseContext ? '笔记本商城' : '课程商城',
       icon: ShoppingBag,
-      active: pathname === '/store',
+      active: storeActive,
     },
-    {
-      key: 'agent-teams',
-      href: agentTeamsHref,
-      label: 'AgentTeams',
-      icon: UsersRound,
-      active: agentTeamsActive,
-    },
-    {
-      key: 'chat',
-      href: '/chat',
-      label: '聊天',
-      icon: MessageCircle,
-      active: chatActive,
-    },
-    {
-      key: 'notifications',
-      href: '/notifications',
-      label: '通知',
-      icon: Bell,
-      active: pathname === '/notifications' || pathname?.startsWith('/notifications/'),
-    },
+    ...(inCourseContext
+      ? ([
+          {
+            key: 'agent-teams',
+            href: agentTeamsHref,
+            label: 'Agent teams',
+            icon: UsersRound,
+            active: agentTeamsActive,
+          },
+          {
+            key: 'chat',
+            href: '/chat',
+            label: '聊天',
+            icon: MessageCircle,
+            active: chatActive,
+          },
+          {
+            key: 'notifications',
+            href: '/notifications',
+            label: '通知',
+            icon: Bell,
+            active: pathname === '/notifications' || pathname?.startsWith('/notifications/'),
+          },
+        ] satisfies CoreNavItem[])
+      : []),
   ];
 
   const createNavItem = {
@@ -174,6 +186,9 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     icon: NotebookPen,
     active: pathname === '/create',
   };
+
+  /** 「我的课程」以课程为主（页内已有新建课程）；此处不展示「创建笔记本」以免与课程流混淆 */
+  const showCreateNotebook = pathname !== '/my-courses';
 
   const expandIfCollapsed = () => {
     if (collapsed) onCollapsedChange(false);
@@ -199,7 +214,9 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               </TooltipTrigger>
-              {collapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
+              {collapsed && (
+                <TooltipContent side="right">{item.tooltip ?? item.label}</TooltipContent>
+              )}
             </Tooltip>
           </li>
         );
@@ -336,7 +353,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <ChatContactsRail courseId={courseId} collapsed={collapsed} />
                 </Suspense>
               </div>
-              {createNotebookBlock}
+              {showCreateNotebook ? createNotebookBlock : null}
             </nav>
           ) : (
             <nav
@@ -347,7 +364,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               aria-label="页面导航"
             >
               <div className={cn(scrollClass, 'px-0')}>{renderCoreNavList()}</div>
-              {createNotebookBlock}
+              {showCreateNotebook ? createNotebookBlock : null}
             </nav>
           )}
 

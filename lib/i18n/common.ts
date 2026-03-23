@@ -47,6 +47,10 @@ export const commonZhCN = {
     exporting: '正在导出...',
     exportSuccess: '导出成功',
     exportFailed: '导出失败',
+    waitGeneratingFollowUp: '正在生成后续场景…',
+    waitMedia: '媒体资源生成中…',
+    waitSceneGenerationFailed: '部分场景生成失败，请重试后再导出',
+    waitNoScenes: '暂无可导出的场景',
   },
 } as const;
 
@@ -99,5 +103,9 @@ export const commonEnUS = {
     exporting: 'Exporting...',
     exportSuccess: 'Export successful',
     exportFailed: 'Export failed',
+    waitGeneratingFollowUp: 'Generating remaining scenes…',
+    waitMedia: 'Generating media…',
+    waitSceneGenerationFailed: 'Some scenes failed — retry before exporting',
+    waitNoScenes: 'No scenes to export yet',
   },
 } as const;

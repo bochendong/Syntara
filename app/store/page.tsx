@@ -8,6 +8,7 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
   getFirstSlideByStages,
   listStages,
+  moveStageToCourse,
   type StageListItem,
 } from '@/lib/utils/stage-storage';
 import type { Slide } from '@/lib/types/slides';
@@ -15,6 +16,7 @@ import { listCourses } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import { notebookCourseContext } from '@/lib/utils/course-display';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString();
@@ -78,20 +80,32 @@ export default function StorePage() {
       router.replace('/login');
       return;
     }
+    if (!currentCourseId) {
+      router.replace('/store/courses');
+      return;
+    }
     void loadStoreData();
-  }, [isLoggedIn, router, loadStoreData]);
+  }, [isLoggedIn, currentCourseId, router, loadStoreData]);
 
   /** 从其他页签/课堂返回时刷新，避免列表与本地数据库不一致 */
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || !currentCourseId) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible') void loadStoreData({ silent: true });
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [isLoggedIn, loadStoreData]);
+  }, [isLoggedIn, currentCourseId, loadStoreData]);
 
   if (!isLoggedIn) return null;
+
+  if (!currentCourseId) {
+    return (
+      <div className="flex min-h-[40vh] w-full items-center justify-center text-sm text-muted-foreground">
+        正在前往课程商城…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full w-full apple-mesh-bg relative overflow-hidden">
@@ -105,26 +119,19 @@ export default function StorePage() {
             笔记本商城
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-            本页列出后端数据库中保存的全部互动笔记本（与课堂、我的课程使用同一数据）。卡片标签来自所属课程设置。将笔记本移入课程时，会归入你当前选中的课程（请先从「我的课程」进入一门课，或从课堂返回后保留侧栏课程上下文）。
+            浏览你账号下全部互动笔记本。当前已选课程为下方操作目标：可将未归属或其它课程的笔记本一键加入该课程，或直接进入课堂。
           </p>
           <div
             className={cn(
               'mt-4 rounded-xl border px-3 py-2 text-sm',
-              currentCourseId
-                ? 'border-violet-200/80 bg-violet-50/80 text-violet-950 dark:border-violet-500/25 dark:bg-violet-950/30 dark:text-violet-100'
-                : 'border-amber-200/80 bg-amber-50/70 text-amber-950 dark:border-amber-500/25 dark:bg-amber-950/25 dark:text-amber-100',
+              'border-violet-200/80 bg-violet-50/80 text-violet-950 dark:border-violet-500/25 dark:bg-violet-950/30 dark:text-violet-100',
             )}
           >
-            {currentCourseId ? (
-              <>
-                当前目标课程：<span className="font-medium">{currentCourseName || currentCourseId}</span>
-                <span className="text-muted-foreground"> — 点击「加入我的课程」将把笔记本移入该课程。</span>
-              </>
-            ) : (
-              <>
-                未选择课程：请打开「我的课程」并进入一门课程，或打开该课程下的任意笔记本，再回商城操作。
-              </>
-            )}
+            当前目标课程：<span className="font-medium">{currentCourseName || currentCourseId}</span>
+            <span className="text-muted-foreground">
+              {' '}
+              — 若笔记本尚不在该课程下，主按钮为「加入当前课程」；已在该课程下则进入课堂。
+            </span>
           </div>
         </section>
 
@@ -146,6 +153,10 @@ export default function StorePage() {
             {notebooks.map((nb, i) => {
               const tags = tagsForNotebook(nb, courseById);
               const { parentCourseName, schoolLine } = notebookCourseContext(nb, courseById);
+              const inCurrentCourse =
+                Boolean(currentCourseId) && nb.courseId === currentCourseId;
+              const needsJoin = Boolean(currentCourseId) && !inCurrentCourse;
+              const actionLabel = needsJoin ? '加入当前课程' : '进入笔记本';
               return (
                 <CourseGalleryCard
                   key={nb.id}
@@ -160,8 +171,18 @@ export default function StorePage() {
                   badge="我的笔记本"
                   subtitle={formatDate(nb.updatedAt)}
                   secondaryLabel="互动课件"
-                  actionLabel="进入笔记本"
+                  actionLabel={actionLabel}
                   onAction={async () => {
+                    if (needsJoin && currentCourseId) {
+                      try {
+                        await moveStageToCourse(nb.id, currentCourseId);
+                        toast.success('已将该笔记本加入当前课程');
+                        await loadStoreData({ silent: true });
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : '操作失败');
+                      }
+                      return;
+                    }
                     router.push(`/classroom/${nb.id}`);
                   }}
                 />

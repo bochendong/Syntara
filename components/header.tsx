@@ -1,12 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ArrowLeft, Loader2, Download, FileDown, Package } from 'lucide-react';
+import { ArrowLeft, Loader2, Download, FileDown, Package, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useStageStore } from '@/lib/store/stage';
+import { useStageStore } from '@/lib/store';
+import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useExportPPTX } from '@/lib/export/use-export-pptx';
 
@@ -22,6 +23,16 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
   const { t } = useI18n();
   const router = useRouter();
 
+  const stageCourseId = useStageStore((s) => s.stage?.courseId?.trim());
+  const contextCourseId = useCurrentCourseStore((s) => s.id);
+  const resolvedCourseId = stageCourseId || contextCourseId;
+  const backHref = resolvedCourseId
+    ? `/course/${encodeURIComponent(resolvedCourseId)}`
+    : '/my-courses';
+  const backTitle = resolvedCourseId
+    ? t('generation.backToCourseHome')
+    : t('generation.backToMyCourses');
+
   // Export
   const { exporting: isExporting, exportPPTX, exportResourcePack } = useExportPPTX();
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -36,6 +47,20 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
     generatingOutlines.length === 0 &&
     failedOutlines.length === 0 &&
     Object.values(mediaTasks).every((task) => task.status === 'done' || task.status === 'failed');
+
+  const mediaBusy = Object.values(mediaTasks).some(
+    (task) => task.status === 'pending' || task.status === 'generating',
+  );
+
+  const exportWaitMessage = (() => {
+    if (generatingOutlines.length > 0) return t('export.waitGeneratingFollowUp');
+    if (failedOutlines.length > 0) return t('export.waitSceneGenerationFailed');
+    if (mediaBusy) return t('export.waitMedia');
+    if (scenes.length === 0) return t('export.waitNoScenes');
+    return t('share.notReady');
+  })();
+
+  const exportWaitShowSpinner = generatingOutlines.length > 0 || mediaBusy;
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback(
@@ -60,9 +85,9 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
         <div className="flex items-center gap-3 min-w-0 flex-1 basis-0">
           <button
             type="button"
-            onClick={() => router.push('/')}
+            onClick={() => router.push(backHref)}
             className="shrink-0 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            title={t('generation.backToHome')}
+            title={backTitle}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -89,33 +114,48 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
               {centerSlot}
             </div>
           ) : null}
-          <div className="relative shrink-0" ref={exportRef}>
-            <button
-              onClick={() => {
-                if (canExport && !isExporting) setExportMenuOpen(!exportMenuOpen);
-              }}
-              disabled={!canExport || isExporting}
-              title={
-                canExport
-                  ? isExporting
-                    ? t('export.exporting')
-                    : t('export.pptx')
-                  : t('share.notReady')
-              }
-              className={cn(
-                'shrink-0 p-2 rounded-full transition-all',
-                canExport && !isExporting
-                  ? 'text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm'
-                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50',
-              )}
-            >
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-            </button>
-            {exportMenuOpen && (
+          <div className="relative shrink-0 min-w-0" ref={exportRef}>
+            {!canExport && !isExporting ? (
+              <div
+                className="flex max-w-[min(100vw-10rem,320px)] items-center gap-2 rounded-full border border-gray-200/90 bg-gray-50/90 px-3 py-1.5 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-300"
+                role="status"
+                title={exportWaitMessage}
+              >
+                {exportWaitShowSpinner ? (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-violet-500 dark:text-violet-400" />
+                ) : failedOutlines.length > 0 ? (
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-amber-400" />
+                ) : null}
+                <span className="min-w-0 truncate font-medium">{exportWaitMessage}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (canExport && !isExporting) setExportMenuOpen(!exportMenuOpen);
+                }}
+                disabled={!canExport || isExporting}
+                title={
+                  canExport
+                    ? isExporting
+                      ? t('export.exporting')
+                      : t('export.pptx')
+                    : t('share.notReady')
+                }
+                className={cn(
+                  'shrink-0 p-2 rounded-full transition-all',
+                  canExport && !isExporting
+                    ? 'text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm'
+                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50',
+                )}
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            {exportMenuOpen && canExport && !isExporting && (
               <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[200px]">
                 <button
                   onClick={() => {

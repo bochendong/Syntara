@@ -19,7 +19,7 @@ import type { PDFProviderId } from '@/lib/pdf/types';
 import { WEB_SEARCH_PROVIDERS } from '@/lib/web-search/constants';
 import type { WebSearchProviderId } from '@/lib/web-search/types';
 import type { ProviderId } from '@/lib/ai/providers';
-import type { SettingsSection } from '@/lib/types/settings';
+import type { ProvidersConfig, SettingsSection } from '@/lib/types/settings';
 import { MediaPopover } from '@/components/generation/media-popover';
 
 // ─── Constants ───────────────────────────────────────────────
@@ -37,6 +37,38 @@ export interface GenerationToolbarProps {
   pdfFile: File | null;
   onPdfFileChange: (file: File | null) => void;
   onPdfError: (error: string | null) => void;
+}
+
+// ─── LLM provider list (shared with chat composer model button) ─
+export interface ConfiguredProvider {
+  id: ProviderId;
+  name: string;
+  icon?: string;
+  isServerConfigured?: boolean;
+  models: { id: string; name: string }[];
+}
+
+export function buildConfiguredLLMProviders(
+  providersConfig: ProvidersConfig | undefined,
+): ConfiguredProvider[] {
+  if (!providersConfig) return [];
+  return Object.entries(providersConfig)
+    .filter(
+      ([, config]) =>
+        (!config.requiresApiKey || config.apiKey || config.isServerConfigured) &&
+        config.models.length >= 1 &&
+        (config.baseUrl || config.defaultBaseUrl || config.serverBaseUrl),
+    )
+    .map(([id, config]) => ({
+      id: id as ProviderId,
+      name: config.name,
+      icon: config.icon,
+      isServerConfigured: config.isServerConfigured,
+      models:
+        config.isServerConfigured && !config.apiKey && config.serverModels?.length
+          ? config.models.filter((m) => new Set(config.serverModels).has(m.id))
+          : config.models,
+    }));
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -73,26 +105,10 @@ export function GenerationToolbar({
       !!webSearchConfig?.isServerConfigured
     : false;
 
-  // Configured LLM providers (only those with valid credentials + models + endpoint)
-  const configuredProviders = providersConfig
-    ? Object.entries(providersConfig)
-        .filter(
-          ([, config]) =>
-            (!config.requiresApiKey || config.apiKey || config.isServerConfigured) &&
-            config.models.length >= 1 &&
-            (config.baseUrl || config.defaultBaseUrl || config.serverBaseUrl),
-        )
-        .map(([id, config]) => ({
-          id: id as ProviderId,
-          name: config.name,
-          icon: config.icon,
-          isServerConfigured: config.isServerConfigured,
-          models:
-            config.isServerConfigured && !config.apiKey && config.serverModels?.length
-              ? config.models.filter((m) => new Set(config.serverModels).has(m.id))
-              : config.models,
-        }))
-    : [];
+  const configuredProviders = useMemo(
+    () => buildConfiguredLLMProviders(providersConfig),
+    [providersConfig],
+  );
 
   const currentProviderConfig = providersConfig?.[currentProviderId];
 
@@ -381,15 +397,7 @@ export function GenerationToolbar({
 }
 
 // ─── ModelSelectorPopover (two-level: provider → model) ─────
-interface ConfiguredProvider {
-  id: ProviderId;
-  name: string;
-  icon?: string;
-  isServerConfigured?: boolean;
-  models: { id: string; name: string }[];
-}
-
-function ModelSelectorPopover({
+export function ModelSelectorPopover({
   configuredProviders,
   currentProviderId,
   currentModelId,
@@ -550,5 +558,59 @@ function ModelSelectorPopover({
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+const GEN_MODEL_CONFIGURE_PILL_CLS =
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap border';
+
+/** Same model picker as GenerationToolbar (circle + popover, or “configure provider” pill). */
+export function GenerationModelSelector({
+  onSettingsOpen,
+}: {
+  onSettingsOpen: (section?: SettingsSection) => void;
+}) {
+  const { t } = useI18n();
+  const currentProviderId = useSettingsStore((s) => s.providerId);
+  const currentModelId = useSettingsStore((s) => s.modelId);
+  const providersConfig = useSettingsStore((s) => s.providersConfig);
+  const setModel = useSettingsStore((s) => s.setModel);
+  const configuredProviders = useMemo(
+    () => buildConfiguredLLMProviders(providersConfig),
+    [providersConfig],
+  );
+  const currentProviderConfig = providersConfig?.[currentProviderId];
+
+  if (configuredProviders.length === 0) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => onSettingsOpen('providers')}
+            className={cn(
+              GEN_MODEL_CONFIGURE_PILL_CLS,
+              'text-amber-600 dark:text-amber-400 animate-pulse',
+              'bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/50',
+            )}
+          >
+            <Bot className="size-3.5" />
+            <span>{t('toolbar.configureProvider')}</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{t('toolbar.configureProviderHint')}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <ModelSelectorPopover
+      configuredProviders={configuredProviders}
+      currentProviderId={currentProviderId}
+      currentModelId={currentModelId}
+      currentProviderConfig={currentProviderConfig}
+      setModel={setModel}
+      t={t}
+    />
   );
 }

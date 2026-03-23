@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
 import { nanoid } from 'nanoid';
-import { storePdfBlob } from '@/lib/utils/image-storage';
+import { setSessionStorageJson, storePdfBlob } from '@/lib/utils/image-storage';
 import type { UserRequirements } from '@/lib/types/generation';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
@@ -33,6 +33,10 @@ import { SpeechButton } from '@/components/audio/speech-button';
 import Link from 'next/link';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
+import {
+  ComposerInputShell,
+  composerTextareaClassName,
+} from '@/components/ui/composer-input-shell';
 
 const log = createLogger('CreateNotebook');
 
@@ -120,7 +124,8 @@ function CreateNotebookPageInner() {
     })();
     return () => {
       alive = false;
-      useCurrentCourseStore.getState().clearCurrentCourse();
+      // 不在卸载时 clear：否则离开创建页去「聊天」等仍依赖课程上下文的页面时会被误清空。
+      // 无 courseId / 课程不存在时由上方分支与异步结果处理。
     };
   }, [courseId]);
 
@@ -254,7 +259,11 @@ function CreateNotebookPageInner() {
         sceneOutlines: null,
         currentStep: 'generating' as const,
       };
-      sessionStorage.setItem('generationSession', JSON.stringify(sessionState));
+      setSessionStorageJson(
+        'generationSession',
+        sessionState,
+        '保存「生成会话」到浏览器缓存（generationSession）时失败：',
+      );
 
       router.push('/generation-preview');
     } catch (err) {
@@ -374,7 +383,7 @@ function CreateNotebookPageInner() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          <div className="w-full rounded-2xl border border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl shadow-black/[0.03] dark:shadow-black/20 transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]">
+          <ComposerInputShell className="w-full">
             {/* ── Greeting + Profile + Agents ── */}
             <div className="relative z-20 flex items-start justify-between">
               <GreetingBar />
@@ -387,7 +396,10 @@ function CreateNotebookPageInner() {
             <textarea
               ref={textareaRef}
               placeholder={t('upload.requirementPlaceholder')}
-              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px]"
+              className={cn(
+                composerTextareaClassName,
+                'px-4 pt-1 pb-2 text-[13px] min-h-[140px] max-h-[300px]',
+              )}
               value={form.requirement}
               onChange={(e) => updateForm('requirement', e.target.value)}
               onKeyDown={handleKeyDown}
@@ -438,7 +450,7 @@ function CreateNotebookPageInner() {
                 <ArrowUp className="size-3.5" />
               </button>
             </div>
-          </div>
+          </ComposerInputShell>
         </motion.div>
 
         {/* ── Error ── */}
