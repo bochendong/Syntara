@@ -7,10 +7,28 @@
 
 import type { ChatSession, ChatMessageMetadata, SessionStatus } from '@/lib/types/chat';
 import type { UIMessage } from 'ai';
-import { db, type ChatSessionRecord } from './database';
+import type { ChatSessionRecord } from './database';
 
 /** Maximum messages per session to avoid IndexedDB bloat */
 const MAX_MESSAGES_PER_SESSION = 200;
+const KEY_PREFIX = 'openmaic-chat-sessions:';
+
+function readStageSessions(stageId: string): ChatSessionRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(`${KEY_PREFIX}${stageId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChatSessionRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStageSessions(stageId: string, records: ChatSessionRecord[]) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(`${KEY_PREFIX}${stageId}`, JSON.stringify(records));
+}
 
 /**
  * Save chat sessions for a stage to IndexedDB.
@@ -20,8 +38,7 @@ const MAX_MESSAGES_PER_SESSION = 200;
  */
 export async function saveChatSessions(stageId: string, sessions: ChatSession[]): Promise<void> {
   if (!sessions || sessions.length === 0) {
-    // Delete all sessions for this stage if empty
-    await db.chatSessions.where('stageId').equals(stageId).delete();
+    if (typeof window !== 'undefined') sessionStorage.removeItem(`${KEY_PREFIX}${stageId}`);
     return;
   }
 
@@ -43,11 +60,7 @@ export async function saveChatSessions(stageId: string, sessions: ChatSession[])
     lastActionIndex: session.lastActionIndex,
   }));
 
-  await db.transaction('rw', db.chatSessions, async () => {
-    // Delete old sessions for this stage, then bulk insert new ones
-    await db.chatSessions.where('stageId').equals(stageId).delete();
-    await db.chatSessions.bulkPut(records);
-  });
+  writeStageSessions(stageId, records);
 }
 
 /**
@@ -55,7 +68,7 @@ export async function saveChatSessions(stageId: string, sessions: ChatSession[])
  * Returns sessions sorted by createdAt.
  */
 export async function loadChatSessions(stageId: string): Promise<ChatSession[]> {
-  const records = await db.chatSessions.where('stageId').equals(stageId).sortBy('createdAt');
+  const records = readStageSessions(stageId).sort((a, b) => a.createdAt - b.createdAt);
 
   return records.map((record) => ({
     id: record.id,
@@ -77,5 +90,5 @@ export async function loadChatSessions(stageId: string): Promise<ChatSession[]> 
  * Delete all chat sessions for a stage.
  */
 export async function deleteChatSessions(stageId: string): Promise<void> {
-  await db.chatSessions.where('stageId').equals(stageId).delete();
+  if (typeof window !== 'undefined') sessionStorage.removeItem(`${KEY_PREFIX}${stageId}`);
 }

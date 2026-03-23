@@ -22,12 +22,15 @@ const log = createLogger('QuizView');
 import type { QuizQuestion } from '@/lib/types/stage';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { useStageStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store/auth';
+import { clearQuestionProgress, setQuestionProgress } from '@/lib/utils/quiz-question-progress';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Phase = 'not_started' | 'answering' | 'grading' | 'reviewing';
 
-interface QuestionResult {
+export interface QuestionResult {
   questionId: string;
   correct: boolean | null;
   status: 'correct' | 'incorrect';
@@ -35,9 +38,17 @@ interface QuestionResult {
   aiComment?: string;
 }
 
-interface QuizViewProps {
+export interface QuizViewProps {
   readonly questions: QuizQuestion[];
   readonly sceneId: string;
+  /** 测验页单题模式：无封面，提交后写入本地进度 */
+  readonly singleQuestionMode?: boolean;
+  readonly initialSnapshot?: {
+    phase: 'answering' | 'reviewing';
+    answers: Record<string, string | string[]>;
+    results: QuestionResult[];
+  };
+  readonly onAttemptFinished?: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -685,24 +696,45 @@ function ScoreBanner({
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export function QuizView({ questions, sceneId }: QuizViewProps) {
+export function QuizView({
+  questions,
+  sceneId,
+  singleQuestionMode = false,
+  initialSnapshot,
+  onAttemptFinished,
+}: QuizViewProps) {
   const { t, locale } = useI18n();
-  const [phase, setPhase] = useState<Phase>('not_started');
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [results, setResults] = useState<QuestionResult[]>([]);
+  const stageId = useStageStore((s) => s.stage?.id ?? '');
+  const userId = useAuthStore((s) => (s.userId?.trim() ? s.userId : 'user-anonymous'));
 
-  // Draft cache for quiz answers, keyed by sceneId to isolate across classrooms
+  const initialPhase: Phase = useMemo(() => {
+    if (initialSnapshot?.phase === 'reviewing') return 'reviewing';
+    if (initialSnapshot?.phase === 'answering') return 'answering';
+    return singleQuestionMode ? 'answering' : 'not_started';
+  }, [initialSnapshot, singleQuestionMode]);
+
+  const [phase, setPhase] = useState<Phase>(initialPhase);
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>(
+    () => initialSnapshot?.answers ?? {},
+  );
+  const [results, setResults] = useState<QuestionResult[]>(() => initialSnapshot?.results ?? []);
+
+  const draftKey =
+    singleQuestionMode && questions[0]
+      ? `quizDraft:${sceneId}:q:${questions[0].id}`
+      : `quizDraft:${sceneId}`;
+
   const {
     cachedValue: cachedAnswers,
     updateCache: updateAnswersCache,
     clearCache: clearAnswersCache,
   } = useDraftCache<Record<string, string | string[]>>({
-    key: `quizDraft:${sceneId}`,
+    key: draftKey,
   });
 
   // Restore cached answers during render (derived state pattern)
   const [prevCachedAnswers, setPrevCachedAnswers] = useState(cachedAnswers);
-  if (cachedAnswers !== prevCachedAnswers) {
+  if (!initialSnapshot && cachedAnswers !== prevCachedAnswers) {
     setPrevCachedAnswers(cachedAnswers);
     if (cachedAnswers && Object.keys(cachedAnswers).length > 0 && phase === 'not_started') {
       setAnswers(cachedAnswers);
@@ -776,12 +808,75 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
     };
   }, [phase, questions, answers, locale]);
 
+  const persistDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (singleQuestionMode && initialSnapshot?.phase === 'reviewing') {
+      persistDoneRef.current = true;
+    }
+  }, [singleQuestionMode, initialSnapshot]);
+
+  useEffect(() => {
+    if (phase !== 'reviewing') persistDoneRef.current = false;
+  }, [phase]);
+
+  useEffect(() => {
+    if (
+      phase !== 'reviewing' ||
+      !singleQuestionMode ||
+      questions.length !== 1 ||
+      !stageId ||
+      persistDoneRef.current
+    ) {
+      return;
+    }
+    const q = questions[0];
+    const r = results.find((x) => x.questionId === q.id);
+    if (!r) return;
+    persistDoneRef.current = true;
+    setQuestionProgress(stageId, userId, sceneId, q.id, {
+      status: r.status,
+      updatedAt: Date.now(),
+      userAnswer: answers[q.id] ?? null,
+      result: {
+        questionId: r.questionId,
+        correct: r.correct,
+        status: r.status,
+        earned: r.earned,
+        aiComment: r.aiComment,
+      },
+    });
+    onAttemptFinished?.();
+  }, [
+    phase,
+    singleQuestionMode,
+    questions,
+    results,
+    answers,
+    sceneId,
+    stageId,
+    userId,
+    onAttemptFinished,
+  ]);
+
   const handleRetry = useCallback(() => {
-    setPhase('not_started');
+    if (singleQuestionMode && questions.length === 1 && stageId) {
+      clearQuestionProgress(stageId, userId, sceneId, questions[0].id);
+    }
+    setPhase(singleQuestionMode ? 'answering' : 'not_started');
     setAnswers({});
     setResults([]);
     clearAnswersCache();
-  }, [clearAnswersCache]);
+    onAttemptFinished?.();
+  }, [
+    clearAnswersCache,
+    singleQuestionMode,
+    questions,
+    stageId,
+    userId,
+    sceneId,
+    onAttemptFinished,
+  ]);
 
   const earnedScore = useMemo(() => results.reduce((sum, r) => sum + r.earned, 0), [results]);
 
@@ -954,7 +1049,9 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
 
             {/* Results */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
+              {!(singleQuestionMode && questions.length === 1) && (
+                <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
+              )}
 
               {questions.map((q, i) => {
                 const r = resultMap[q.id];

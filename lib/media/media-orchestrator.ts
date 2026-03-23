@@ -3,12 +3,11 @@
  *
  * Dispatches media generation API calls for all mediaGenerations across outlines.
  * Runs entirely on the frontend — calls /api/generate/image and /api/generate/video,
- * fetches result blobs, stores in IndexedDB, and updates the Zustand store.
+ * fetches result blobs, and updates the Zustand store.
  */
 
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useSettingsStore } from '@/lib/store/settings';
-import { db, mediaFileKey } from '@/lib/utils/database';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
@@ -82,10 +81,6 @@ export async function retryMediaTask(elementId: string): Promise<void> {
     return;
   }
 
-  // Remove persisted failure record from DB so a fresh result can be written
-  const dbKey = mediaFileKey(task.stageId, elementId);
-  await db.mediaFiles.delete(dbKey).catch(() => {});
-
   store.markPendingForRetry(elementId);
   await generateSingleMedia(
     {
@@ -131,23 +126,6 @@ async function generateSingleMedia(
     const blob = await fetchAsBlob(resultUrl);
     const posterBlob = posterUrl ? await fetchAsBlob(posterUrl).catch(() => undefined) : undefined;
 
-    // Store in IndexedDB
-    await db.mediaFiles.put({
-      id: mediaFileKey(stageId, req.elementId),
-      stageId,
-      type: req.type,
-      blob,
-      mimeType,
-      size: blob.size,
-      poster: posterBlob,
-      prompt: req.prompt,
-      params: JSON.stringify({
-        aspectRatio: req.aspectRatio,
-        style: req.style,
-      }),
-      createdAt: Date.now(),
-    });
-
     // Update store with object URL
     const objectUrl = URL.createObjectURL(blob);
     const posterObjectUrl = posterBlob ? URL.createObjectURL(posterBlob) : undefined;
@@ -159,27 +137,8 @@ async function generateSingleMedia(
     log.error(`Failed ${req.elementId}:`, message);
     useMediaGenerationStore.getState().markFailed(req.elementId, message, errorCode);
 
-    // Persist non-retryable failures to IndexedDB so they survive page refresh
-    if (errorCode) {
-      await db.mediaFiles
-        .put({
-          id: mediaFileKey(stageId, req.elementId),
-          stageId,
-          type: req.type,
-          blob: new Blob(), // empty placeholder
-          mimeType: req.type === 'image' ? 'image/png' : 'video/mp4',
-          size: 0,
-          prompt: req.prompt,
-          params: JSON.stringify({
-            aspectRatio: req.aspectRatio,
-            style: req.style,
-          }),
-          error: message,
-          errorCode,
-          createdAt: Date.now(),
-        })
-        .catch(() => {}); // best-effort
-    }
+    void errorCode;
+    void stageId;
   }
 }
 

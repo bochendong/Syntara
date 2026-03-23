@@ -166,9 +166,16 @@ interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialSection?: SettingsSection;
+  /** 为 true 时不使用模态 Dialog，在主内容区以整页/嵌入式面板展示（用于 /settings 路由） */
+  embedded?: boolean;
 }
 
-export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsDialogProps) {
+export function SettingsDialog({
+  open,
+  onOpenChange,
+  initialSection,
+  embedded = false,
+}: SettingsDialogProps) {
   const { t } = useI18n();
 
   // Get settings from store
@@ -205,13 +212,14 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     useState<ImageProviderId>(imageProviderId);
   const [selectedVideoProviderId, setSelectedVideoProviderId] =
     useState<VideoProviderId>(videoProviderId);
-  // Navigate to initialSection when dialog opens
+  // Navigate to initialSection when dialog opens or embedded page loads / query changes
   useEffect(() => {
-    if (open && initialSection) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync section from prop when dialog opens
+    const active = embedded || open;
+    if (active && initialSection) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync section from prop
       setActiveSection(initialSection);
     }
-  }, [open, initialSection]);
+  }, [embedded, open, initialSection]);
 
   // Model editing state
   const [editingModel, setEditingModel] = useState<EditingModel | null>(null);
@@ -651,12 +659,14 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="h-[85vh] p-0 gap-0 block" showCloseButton={false}>
-        <DialogTitle className="sr-only">{t('settings.title')}</DialogTitle>
-        <DialogDescription className="sr-only">{t('settings.description')}</DialogDescription>
-        <div className="flex h-full overflow-hidden">
+  const mainColumn = (
+        <div
+          className={
+            embedded
+              ? 'flex min-h-0 w-full flex-1 overflow-hidden'
+              : 'flex h-full overflow-hidden'
+          }
+        >
           {/* Left Sidebar - Navigation */}
           <div className="flex-shrink-0 bg-muted/30 p-3 space-y-1" style={{ width: sidebarWidth }}>
             <button
@@ -1008,9 +1018,26 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             </div>
           </div>
         </div>
-      </DialogContent>
+  );
 
-      {/* Edit Model Dialog */}
+  return (
+    <>
+      {embedded ? (
+        <>
+          <h1 className="sr-only">{t('settings.title')}</h1>
+          <p className="sr-only">{t('settings.description')}</p>
+          {mainColumn}
+        </>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="h-[85vh] p-0 gap-0 block" showCloseButton={false}>
+            <DialogTitle className="sr-only">{t('settings.title')}</DialogTitle>
+            <DialogDescription className="sr-only">{t('settings.description')}</DialogDescription>
+            {mainColumn}
+          </DialogContent>
+        </Dialog>
+      )}
+
       <ModelEditDialog
         open={showModelDialog}
         onOpenChange={setShowModelDialog}
@@ -1025,17 +1052,15 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         requiresApiKey={providersConfig[selectedProviderId]?.requiresApiKey}
       />
 
-      {/* Add Provider Dialog */}
       <AddProviderDialog
         open={showAddProviderDialog}
         onOpenChange={setShowAddProviderDialog}
         onAdd={handleAddProvider}
       />
 
-      {/* Delete Provider Confirmation */}
       <AlertDialog
         open={providerToDelete !== null}
-        onOpenChange={(open) => !open && setProviderToDelete(null)}
+        onOpenChange={(o) => !o && setProviderToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1050,6 +1075,6 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 }

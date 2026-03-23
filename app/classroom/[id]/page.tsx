@@ -3,6 +3,8 @@
 import { Stage } from '@/components/stage';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
+import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { getCourse } from '@/lib/utils/course-storage';
 import { loadImageMapping } from '@/lib/utils/image-storage';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
@@ -20,6 +22,7 @@ export default function ClassroomDetailPage() {
   const classroomId = params?.id as string;
 
   const { loadFromStorage } = useStageStore();
+  const stage = useStageStore((s) => s.stage);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +103,32 @@ export default function ClassroomDetailPage() {
     };
   }, [classroomId, loadClassroom, stop]);
 
+  useEffect(() => {
+    if (loading || error) return;
+    const cid = stage?.courseId?.trim();
+    if (!cid) {
+      useCurrentCourseStore.getState().clearCurrentCourse();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const c = await getCourse(cid);
+      if (cancelled) return;
+      if (c) {
+        useCurrentCourseStore.getState().setCurrentCourse({
+          id: c.id,
+          name: c.name,
+          avatarUrl: c.avatarUrl,
+        });
+      } else {
+        useCurrentCourseStore.getState().clearCurrentCourse();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, error, stage?.courseId]);
+
   // Auto-resume generation for pending outlines
   useEffect(() => {
     if (loading || error || generationStartedRef.current) return;
@@ -135,6 +164,7 @@ export default function ClassroomDetailPage() {
           },
           agents: params.agents,
           userProfile: params.userProfile,
+          courseContext: params.courseContext,
         });
       });
     } else if (outlines.length > 0 && stage) {
@@ -151,7 +181,7 @@ export default function ClassroomDetailPage() {
   return (
     <ThemeProvider>
       <MediaStageProvider value={classroomId}>
-        <div className="h-screen flex flex-col overflow-hidden">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
           {loading ? (
             <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
               <div className="text-center text-muted-foreground">

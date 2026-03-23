@@ -14,6 +14,7 @@ import {
   buildVisionUserContent,
   type SceneGenerationContext,
   type AgentInfo,
+  type CoursePersonalizationContext,
 } from '@/lib/generation/generation-pipeline';
 import type { SceneOutline } from '@/lib/types/generation';
 import type {
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       agents?: AgentInfo[];
       previousSpeeches?: string[];
       userProfile?: string;
+      courseContext?: CoursePersonalizationContext;
     };
 
     // Validate required fields
@@ -128,7 +130,15 @@ export async function POST(req: NextRequest) {
     // ── Generate actions ──
     log.info(`Generating actions: "${outline.title}" (${outline.type}) [model=${modelString}]`);
 
-    const actions = await generateSceneActions(outline, content, aiCall, ctx, agents, userProfile);
+    const actions = await generateSceneActions(
+      outline,
+      content,
+      aiCall,
+      ctx,
+      agents,
+      userProfile,
+      body.courseContext,
+    );
 
     log.info(`Generated ${actions.length} actions for: "${outline.title}"`);
 

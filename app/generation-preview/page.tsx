@@ -19,17 +19,35 @@ import {
   storeImages,
 } from '@/lib/utils/image-storage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import { db } from '@/lib/utils/database';
 import { MAX_PDF_CONTENT_CHARS, MAX_VISION_IMAGES } from '@/lib/constants/generation';
+import { pickStableNotebookAgentAvatarUrl } from '@/lib/constants/notebook-agent-avatars';
 import { nanoid } from 'nanoid';
 import type { Stage } from '@/lib/types/stage';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
 import { AgentRevealModal } from '@/components/agent/agent-reveal-modal';
 import { createLogger } from '@/lib/logger';
+import { useAuthStore } from '@/lib/store/auth';
+import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
 import { type GenerationSessionState, ALL_STEPS, getActiveSteps } from './types';
 import { StepVisualizer } from './components/visualizers';
 
 const log = createLogger('GenerationPreview');
+
+type NotebookMetadata = {
+  name: string;
+  description: string;
+  tags: string[];
+};
+
+type CourseGenerationContext = {
+  name?: string;
+  description?: string;
+  tags?: string[];
+  purpose?: 'research' | 'university' | 'daily';
+  university?: string;
+  courseCode?: string;
+  language?: 'zh-CN' | 'en-US';
+};
 
 function GenerationPreviewContent() {
   const router = useRouter();
@@ -61,6 +79,65 @@ function GenerationPreviewContent() {
     }>
   >([]);
   const agentRevealResolveRef = useRef<(() => void) | null>(null);
+
+  const buildFallbackNotebookMetadata = (
+    requirement: string,
+    language: 'zh-CN' | 'en-US',
+  ): NotebookMetadata => {
+    const name = extractTopicFromRequirement(requirement);
+    const normalized = requirement.replace(/[，。、“”‘’！？;；,.!?()[\]{}<>]/g, ' ');
+    const words = normalized
+      .split(/\s+/)
+      .map((w) => w.trim())
+      .filter((w) => w.length >= 2);
+    const unique = Array.from(new Set(words)).slice(0, 5);
+    const defaultTags = language === 'en-US' ? ['learning', 'notebook', 'ai-generated'] : ['学习', '笔记本', 'AI生成'];
+    const tags = unique.length > 0 ? unique : defaultTags;
+    const description =
+      language === 'en-US'
+        ? `Includes: ${name}. Not included: Deep dives beyond the current requirement or unrelated topics.`
+        : `包含：${name}相关核心内容与关键知识点。不包含：超出当前需求范围的深度延展或无关主题。`;
+    return { name, description, tags };
+  };
+
+  const generateNotebookMetadata = async (
+    currentSession: GenerationSessionState,
+    courseContext: CourseGenerationContext | undefined,
+    signal: AbortSignal,
+  ): Promise<NotebookMetadata> => {
+    const language = currentSession.requirements.language || 'zh-CN';
+    try {
+      const resp = await fetch('/api/generate/notebook-metadata', {
+        method: 'POST',
+        headers: getApiHeaders(),
+        body: JSON.stringify({
+          requirements: currentSession.requirements,
+          pdfText: currentSession.pdfText || '',
+          courseContext,
+        }),
+        signal,
+      });
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      const data = await resp.json();
+      if (!data?.success || !data?.name || !data?.description) {
+        throw new Error('Invalid notebook metadata response');
+      }
+      return {
+        name: String(data.name),
+        description: String(data.description),
+        tags: Array.isArray(data.tags) ? data.tags.map((x: unknown) => String(x)).slice(0, 8) : [],
+      };
+    } catch (e) {
+      log.warn('[Generation] Notebook metadata generation failed, using fallback:', e);
+      const fallback = buildFallbackNotebookMetadata(currentSession.requirements.requirement, language);
+      if (courseContext?.tags?.length) {
+        fallback.tags = Array.from(new Set([...courseContext.tags, ...fallback.tags])).slice(0, 8);
+      }
+      return fallback;
+    }
+  };
 
   // Compute active steps based on session state
   const activeSteps = getActiveSteps(session);
@@ -361,12 +438,35 @@ function GenerationPreviewContent() {
         persona?: string;
       }> = [];
 
+      const { ensureLegacyCourseBucket, LEGACY_COURSE_ID, getCourse } = await import(
+        '@/lib/utils/course-storage'
+      );
+      await ensureLegacyCourseBucket();
+      const resolvedCourseId = currentSession.courseId || LEGACY_COURSE_ID;
+      const currentCourse = await getCourse(resolvedCourseId);
+      const coursePurpose = currentCourse?.purpose;
+      const courseContext: CourseGenerationContext | undefined = currentCourse
+        ? {
+            name: currentCourse.name,
+            description: currentCourse.description,
+            tags: currentCourse.tags,
+            purpose: currentCourse.purpose,
+            university: currentCourse.university,
+            courseCode: currentCourse.courseCode,
+            language: currentCourse.language,
+          }
+        : undefined;
+      const notebookMeta = await generateNotebookMetadata(currentSession, courseContext, signal);
+
       // Create stage client-side (needed for agent generation stageId)
       const stageId = nanoid(10);
       const stage: Stage = {
         id: stageId,
-        name: extractTopicFromRequirement(currentSession.requirements.requirement),
-        description: '',
+        courseId: resolvedCourseId,
+        avatarUrl: pickStableNotebookAgentAvatarUrl(stageId),
+        name: notebookMeta.name,
+        description: notebookMeta.description,
+        tags: notebookMeta.tags,
         language: currentSession.requirements.language || 'zh-CN',
         style: 'professional',
         createdAt: Date.now(),
@@ -401,6 +501,7 @@ function GenerationPreviewContent() {
               stageInfo: { name: stage.name, description: stage.description },
               language: currentSession.requirements.language || 'zh-CN',
               availableAvatars: allAvatars,
+              courseContext,
             }),
             signal,
           });
@@ -479,6 +580,8 @@ function GenerationPreviewContent() {
               imageMapping,
               researchContext: currentSession.researchContext,
               agents,
+              coursePurpose,
+              courseContext,
             }),
             signal,
           })
@@ -604,6 +707,7 @@ function GenerationPreviewContent() {
           stageInfo,
           stageId: stage.id,
           agents,
+          courseContext,
         }),
         signal,
       });
@@ -633,6 +737,7 @@ function GenerationPreviewContent() {
           agents,
           previousSpeeches: [],
           userProfile,
+          courseContext,
         }),
         signal,
       });
@@ -682,16 +787,7 @@ function GenerationPreviewContent() {
               ttsFailCount++;
               continue;
             }
-            const binary = atob(ttsData.base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const blob = new Blob([bytes], { type: `audio/${ttsData.format}` });
-            await db.audioFiles.put({
-              id: audioId,
-              blob,
-              format: ttsData.format,
-              createdAt: Date.now(),
-            });
+            action.audioUrl = `data:audio/${ttsData.format};base64,${ttsData.base64}`;
           } catch (err) {
             log.warn(`[TTS] Failed for ${audioId}:`, err);
             ttsFailCount++;
@@ -718,11 +814,16 @@ function GenerationPreviewContent() {
           pdfImages: currentSession.pdfImages,
           agents,
           userProfile,
+          courseContext,
         }),
       );
 
       sessionStorage.removeItem('generationSession');
       await store.saveToStorage();
+      const userId = useAuthStore.getState().userId;
+      if (userId) {
+        markCourseOwnedByUser(userId, resolvedCourseId);
+      }
       router.push(`/classroom/${stage.id}`);
     } catch (err) {
       // AbortError is expected when navigating away — don't show as error
@@ -736,10 +837,9 @@ function GenerationPreviewContent() {
 
   const extractTopicFromRequirement = (requirement: string): string => {
     const trimmed = requirement.trim();
-    if (trimmed.length <= 500) {
-      return trimmed;
-    }
-    return trimmed.substring(0, 500).trim() + '...';
+    if (!trimmed) return '未命名笔记本';
+    if (trimmed.length <= 28) return trimmed;
+    return trimmed.substring(0, 28).trim() + '...';
   };
 
   const goBackToHome = () => {
@@ -751,7 +851,7 @@ function GenerationPreviewContent() {
   // Still loading session from sessionStorage
   if (!sessionLoaded) {
     return (
-      <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+      <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
         <div className="text-center text-muted-foreground">
           <div className="size-8 border-2 border-current border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
@@ -762,7 +862,7 @@ function GenerationPreviewContent() {
   // No session found
   if (!session) {
     return (
-      <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+      <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
         <Card className="p-8 max-w-md w-full">
           <div className="text-center space-y-4">
             <AlertCircle className="size-12 text-muted-foreground mx-auto" />
@@ -784,9 +884,9 @@ function GenerationPreviewContent() {
       : ALL_STEPS[0];
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden text-center">
+    <div className="relative flex min-h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100 p-4 text-center dark:from-slate-950 dark:to-slate-900">
       {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <div
           className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
           style={{ animationDuration: '4s' }}
@@ -1018,7 +1118,7 @@ export default function GenerationPreviewPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
           <div className="animate-pulse space-y-4 text-center">
             <div className="h-8 w-48 bg-muted rounded mx-auto" />
             <div className="h-4 w-64 bg-muted rounded mx-auto" />

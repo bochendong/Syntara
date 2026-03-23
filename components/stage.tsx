@@ -6,8 +6,9 @@ import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { SceneSidebar } from './stage/scene-sidebar';
 import { Header } from './header';
+import { QuizCourseQuestionHub } from '@/components/scene-renderers/quiz-course-question-hub';
+import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
 import { CanvasArea } from '@/components/canvas/canvas-area';
 import { Roundtable } from '@/components/roundtable';
 import { PlaybackEngine, computePlaybackView } from '@/lib/playback';
@@ -15,6 +16,8 @@ import type { EngineMode, TriggerEvent, Effect } from '@/lib/playback';
 import { ActionEngine } from '@/lib/action/engine';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
 import type { Action, DiscussionAction, SpeechAction } from '@/lib/types/action';
+import type { Scene, SceneType } from '@/lib/types/stage';
+import type { SceneOutline } from '@/lib/types/generation';
 // Playback state persistence removed — refresh always starts from the beginning
 import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
@@ -29,6 +32,57 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AlertTriangle } from 'lucide-react';
 import { VisuallyHidden } from 'radix-ui';
+import { cn } from '@/lib/utils';
+
+/** Bottom Roundtable strip in playback classroom — off until we ship the layout again. */
+const SHOW_CLASSROOM_ROUNDTABLE = false;
+
+const RAW_DATA_BASE_TYPES: SceneType[] = ['slide', 'quiz', 'interactive'];
+
+function sceneTypeTabLabel(tr: (key: string) => string, type: SceneType): string {
+  const key = `stage.sceneType.${type}`;
+  const label = tr(key);
+  return label === key ? type : label;
+}
+
+/** 原始数据里折叠 slide 画布，避免 JSON 过大 */
+function serializeSceneForRawView(scene: Scene): unknown {
+  if (scene.content.type === 'slide') {
+    const canvas = scene.content.canvas;
+    const elements = canvas.elements ?? [];
+    const elementTypeCounts: Record<string, number> = {};
+    for (const el of elements) {
+      const k = el.type;
+      elementTypeCounts[k] = (elementTypeCounts[k] || 0) + 1;
+    }
+    return {
+      id: scene.id,
+      stageId: scene.stageId,
+      type: scene.type,
+      title: scene.title,
+      order: scene.order,
+      actions: scene.actions,
+      whiteboards: scene.whiteboards,
+      multiAgent: scene.multiAgent,
+      createdAt: scene.createdAt,
+      updatedAt: scene.updatedAt,
+      content: {
+        type: 'slide' as const,
+        canvas: {
+          _collapsed: true,
+          _note:
+            'Canvas omitted for size; summary below. Full slide data remains in classroom storage.',
+          id: canvas.id,
+          viewportSize: canvas.viewportSize,
+          viewportRatio: canvas.viewportRatio,
+          elementCount: elements.length,
+          elementTypeCounts,
+        },
+      },
+    };
+  }
+  return scene;
+}
 
 /**
  * Stage Component
@@ -46,6 +100,7 @@ export function Stage({
   const { mode, getCurrentScene, scenes, currentSceneId, setCurrentSceneId, generatingOutlines } =
     useStageStore();
   const failedOutlines = useStageStore.use.failedOutlines();
+  const outlines = useStageStore((s) => s.outlines);
 
   const currentScene = getCurrentScene();
 
@@ -93,6 +148,11 @@ export function Stage({
 
   // Scene switch confirmation dialog state
   const [pendingSceneId, setPendingSceneId] = useState<string | null>(null);
+
+  /** 主内容区：幻灯片画布 vs 原始 JSON */
+  const [mainClassroomView, setMainClassroomView] = useState<'ppt' | 'quiz' | 'raw'>('ppt');
+  /** 原始数据下的子 Tab：按场景类型（slide / quiz / interactive / …） */
+  const [rawDataSubTab, setRawDataSubTab] = useState<SceneType>('slide');
 
   // Whiteboard state (from canvas store so AI tools can open it)
   const whiteboardOpen = useCanvasStore.use.whiteboardOpen();
@@ -652,6 +712,14 @@ export function Stage({
     }
   })();
 
+  const playbackToolbarLiveSession =
+    chatIsStreaming || isTopicPending || engineMode === 'live';
+
+  const showPlaybackStopDiscussion =
+    engineMode === 'live' ||
+    chatSessionType === 'qa' ||
+    chatSessionType === 'discussion';
+
   // Build discussion request for Roundtable ProactiveCard from trigger
   const discussionRequest: DiscussionAction | null = discussionTrigger
     ? {
@@ -663,31 +731,131 @@ export function Stage({
       }
     : null;
 
-  // Calculate scene viewer height (subtract Header's 80px height)
+  const quizScenesInCourse = useMemo(
+    () => scenes.filter((s) => s.type === 'quiz' && s.content.type === 'quiz'),
+    [scenes],
+  );
+
+  const mergedOutlines = useMemo(() => {
+    const byId = new Map<string, SceneOutline>();
+    for (const o of outlines) byId.set(o.id, o);
+    for (const o of generatingOutlines) byId.set(o.id, o);
+    return Array.from(byId.values()).sort((a, b) => a.order - b.order);
+  }, [outlines, generatingOutlines]);
+
+  /** 子 Tab 顺序：固定 slide / quiz / interactive，再按字母序追加大纲或场景中出现的其它类型（如 pbl） */
+  const rawDataTabTypes = useMemo((): SceneType[] => {
+    const present = new Set<SceneType>();
+    for (const o of mergedOutlines) present.add(o.type);
+    for (const s of scenes) present.add(s.type);
+    const extras = [...present].filter((t) => !RAW_DATA_BASE_TYPES.includes(t)).sort();
+    return [...RAW_DATA_BASE_TYPES, ...extras];
+  }, [mergedOutlines, scenes]);
+
+  const rawTypePayloadJson = useMemo(() => {
+    try {
+      const type = rawDataSubTab;
+      const outlinesForType = mergedOutlines.filter((o) => o.type === type);
+      const scenesForType = scenes.filter((s) => s.type === type).map(serializeSceneForRawView);
+      return JSON.stringify({ type, outlines: outlinesForType, scenes: scenesForType }, null, 2);
+    } catch {
+      return '{"error":"serialize_failed"}';
+    }
+  }, [rawDataSubTab, mergedOutlines, scenes]);
+
+  useEffect(() => {
+    if (!rawDataTabTypes.includes(rawDataSubTab)) {
+      setRawDataSubTab(rawDataTabTypes[0] ?? 'slide');
+    }
+  }, [rawDataTabTypes, rawDataSubTab]);
+
+  const viewToggle = (
+    <div
+      className="flex items-center gap-0.5 rounded-full border border-gray-200/80 bg-white/70 p-0.5 shadow-sm backdrop-blur-md dark:border-gray-600/60 dark:bg-gray-800/70"
+      role="tablist"
+      aria-label={`${t('stage.viewPpt')} / ${t('stage.viewQuiz')} / ${t('stage.viewRawData')}`}
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mainClassroomView === 'ppt'}
+        onClick={() => setMainClassroomView('ppt')}
+        className={cn(
+          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          mainClassroomView === 'ppt'
+            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+        )}
+      >
+        {t('stage.viewPpt')}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mainClassroomView === 'quiz'}
+        onClick={() => setMainClassroomView('quiz')}
+        className={cn(
+          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          mainClassroomView === 'quiz'
+            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+        )}
+      >
+        {t('stage.viewQuiz')}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mainClassroomView === 'raw'}
+        onClick={() => setMainClassroomView('raw')}
+        className={cn(
+          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          mainClassroomView === 'raw'
+            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+        )}
+      >
+        {t('stage.viewRawData')}
+      </button>
+    </div>
+  );
+
+  // Calculate scene viewer height (subtract Header's 80px height; optional Roundtable reserve)
   const sceneViewerHeight = (() => {
     const headerHeight = 80; // Header h-20 = 80px
-    if (mode === 'playback') {
-      return `calc(100% - ${headerHeight + 192}px)`; // Header + Roundtable
-    }
-    return `calc(100% - ${headerHeight}px)`;
+    const roundtableReserve =
+      mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE ? 192 : 0;
+    return `calc(100% - ${headerHeight + roundtableReserve}px)`;
   })();
 
   return (
     <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* Scene Sidebar */}
-      <SceneSidebar
-        collapsed={sidebarCollapsed}
-        onCollapseChange={setSidebarCollapsed}
-        onSceneSelect={gatedSceneSwitch}
-        onRetryOutline={onRetryOutline}
-      />
-
-      {/* Main Content Area */}
+      {/* Main Content Area — scene list lives inside CanvasArea, left of the slide */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
         {/* Header */}
-        <Header currentSceneTitle={currentScene?.title || ''} />
+        <Header
+          currentSceneTitle={currentScene?.title || ''}
+          viewToggle={viewToggle}
+          centerSlot={
+            mode === 'playback' && mainClassroomView === 'ppt' ? (
+              <CanvasPlaybackPill
+                currentSceneIndex={currentSceneIndex}
+                scenesCount={totalScenesCount}
+                engineState={canvasEngineState}
+                isLiveSession={playbackToolbarLiveSession}
+                whiteboardOpen={whiteboardOpen}
+                onPrevSlide={handlePreviousScene}
+                onNextSlide={handleNextScene}
+                onPlayPause={handlePlayPause}
+                onWhiteboardClose={handleWhiteboardToggle}
+                showStopDiscussion={showPlaybackStopDiscussion}
+                onStopDiscussion={handleStopDiscussion}
+              />
+            ) : undefined
+          }
+        />
 
-        {/* Canvas Area */}
+        {/* Canvas Area — PPT 视图 / 原始数据 */}
         <div
           className="overflow-hidden relative flex-1 min-h-0 isolate"
           style={{
@@ -695,44 +863,84 @@ export function Stage({
           }}
           suppressHydrationWarning
         >
-          <CanvasArea
-            currentScene={currentScene}
-            currentSceneIndex={currentSceneIndex}
-            scenesCount={totalScenesCount}
-            mode={mode}
-            engineState={canvasEngineState}
-            isLiveSession={
-              chatIsStreaming || isTopicPending || engineMode === 'live' || !!chatSessionType
-            }
-            whiteboardOpen={whiteboardOpen}
-            sidebarCollapsed={sidebarCollapsed}
-            chatCollapsed={chatAreaCollapsed}
-            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-            onToggleChat={() => setChatAreaCollapsed(!chatAreaCollapsed)}
-            onPrevSlide={handlePreviousScene}
-            onNextSlide={handleNextScene}
-            onPlayPause={handlePlayPause}
-            onWhiteboardClose={handleWhiteboardToggle}
-            showStopDiscussion={
-              engineMode === 'live' ||
-              (chatIsStreaming && (chatSessionType === 'qa' || chatSessionType === 'discussion'))
-            }
-            onStopDiscussion={handleStopDiscussion}
-            hideToolbar={mode === 'playback'}
-            isPendingScene={isPendingScene}
-            isGenerationFailed={
-              isPendingScene && failedOutlines.some((f) => f.id === generatingOutlines[0]?.id)
-            }
-            onRetryGeneration={
-              onRetryOutline && generatingOutlines[0]
-                ? () => onRetryOutline(generatingOutlines[0].id)
-                : undefined
-            }
-          />
+          {mainClassroomView === 'raw' ? (
+            <div className="flex h-full min-h-0 flex-col bg-slate-950 text-slate-100">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
+                <div
+                  className="flex flex-wrap gap-0.5 rounded-lg bg-white/5 p-0.5"
+                  role="tablist"
+                  aria-label={t('stage.rawDataCaption')}
+                >
+                  {rawDataTabTypes.map((tabType) => (
+                    <button
+                      key={tabType}
+                      type="button"
+                      role="tab"
+                      aria-selected={rawDataSubTab === tabType}
+                      onClick={() => setRawDataSubTab(tabType)}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        rawDataSubTab === tabType
+                          ? 'bg-white/15 text-white'
+                          : 'text-slate-400 hover:text-slate-200',
+                      )}
+                    >
+                      {sceneTypeTabLabel(t, tabType)}
+                    </button>
+                  ))}
+                </div>
+                <p className="ml-auto min-w-0 text-[10px] text-slate-500">{t('stage.rawDataCaption')}</p>
+              </div>
+              <pre className="min-h-0 flex-1 overflow-auto p-4 text-[11px] leading-relaxed whitespace-pre-wrap break-words font-mono">
+                {rawTypePayloadJson}
+              </pre>
+            </div>
+          ) : mainClassroomView === 'quiz' ? (
+            <QuizCourseQuestionHub
+              quizScenes={quizScenesInCourse}
+              onSwitchScene={gatedSceneSwitch}
+            />
+          ) : (
+            <CanvasArea
+              currentScene={currentScene}
+              currentSceneIndex={currentSceneIndex}
+              scenesCount={totalScenesCount}
+              mode={mode}
+              engineState={canvasEngineState}
+              isLiveSession={playbackToolbarLiveSession || !!chatSessionType}
+              whiteboardOpen={whiteboardOpen}
+              sidebarCollapsed={sidebarCollapsed}
+              onSidebarCollapseChange={setSidebarCollapsed}
+              onSceneSelect={gatedSceneSwitch}
+              onRetryOutline={onRetryOutline}
+              chatCollapsed={chatAreaCollapsed}
+              onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onToggleChat={() => setChatAreaCollapsed(!chatAreaCollapsed)}
+              onPrevSlide={handlePreviousScene}
+              onNextSlide={handleNextScene}
+              onPlayPause={handlePlayPause}
+              onWhiteboardClose={handleWhiteboardToggle}
+              showStopDiscussion={
+                engineMode === 'live' ||
+                (chatIsStreaming && (chatSessionType === 'qa' || chatSessionType === 'discussion'))
+              }
+              onStopDiscussion={handleStopDiscussion}
+              hideToolbar={mode === 'playback'}
+              isPendingScene={isPendingScene}
+              isGenerationFailed={
+                isPendingScene && failedOutlines.some((f) => f.id === generatingOutlines[0]?.id)
+              }
+              onRetryGeneration={
+                onRetryOutline && generatingOutlines[0]
+                  ? () => onRetryOutline(generatingOutlines[0].id)
+                  : undefined
+              }
+            />
+          )}
         </div>
 
         {/* Roundtable Area */}
-        {mode === 'playback' && (
+        {mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE && (
           <Roundtable
             mode={mode}
             initialParticipants={participants}

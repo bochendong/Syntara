@@ -14,6 +14,7 @@ import {
   buildVisionUserContent,
 } from '@/lib/generation/generation-pipeline';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
+import type { CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       };
       stageId: string;
       agents?: AgentInfo[];
+      courseContext?: CoursePersonalizationContext;
     };
 
     // Validate required fields
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest) {
       hasVision,
       generatedMediaMapping,
       agents,
+      body.courseContext,
     );
 
     if (!content) {

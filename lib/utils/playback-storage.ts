@@ -5,7 +5,7 @@
  * position (sceneIndex + actionIndex) and consumed discussions.
  */
 
-import { db } from './database';
+const KEY_PREFIX = 'openmaic-playback:';
 
 export interface PlaybackSnapshot {
   sceneIndex: number;
@@ -22,15 +22,18 @@ export async function savePlaybackState(
   stageId: string,
   snapshot: PlaybackSnapshot,
 ): Promise<void> {
-  await db.playbackState.put({
-    stageId,
-    sceneIndex: snapshot.sceneIndex,
-    actionIndex: snapshot.actionIndex,
-    consumedDiscussions: snapshot.consumedDiscussions,
-    sceneId: snapshot.sceneId,
-    updatedAt: Date.now(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(
+    `${KEY_PREFIX}${stageId}`,
+    JSON.stringify({
+      stageId,
+      sceneIndex: snapshot.sceneIndex,
+      actionIndex: snapshot.actionIndex,
+      consumedDiscussions: snapshot.consumedDiscussions,
+      sceneId: snapshot.sceneId,
+      updatedAt: Date.now(),
+    }),
+  );
 }
 
 /**
@@ -38,7 +41,9 @@ export async function savePlaybackState(
  * Returns null if no saved state exists.
  */
 export async function loadPlaybackState(stageId: string): Promise<PlaybackSnapshot | null> {
-  const record = await db.playbackState.get(stageId);
+  if (typeof window === 'undefined') return null;
+  const raw = sessionStorage.getItem(`${KEY_PREFIX}${stageId}`);
+  const record = raw ? (JSON.parse(raw) as PlaybackSnapshot | null) : null;
   if (!record) return null;
 
   return {
@@ -54,5 +59,5 @@ export async function loadPlaybackState(stageId: string): Promise<PlaybackSnapsh
  * Clear playback state for a stage (e.g. on playback complete or stop).
  */
 export async function clearPlaybackState(stageId: string): Promise<void> {
-  await db.playbackState.delete(stageId);
+  if (typeof window !== 'undefined') sessionStorage.removeItem(`${KEY_PREFIX}${stageId}`);
 }

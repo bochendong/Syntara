@@ -3,15 +3,11 @@
  *
  * Tracks per-element media generation status (pending → generating → done/failed).
  * Drives skeleton loading in slide renderer components.
- * Persistence is handled by IndexedDB (mediaFiles table), not Zustand middleware.
+ * Persistence is in-memory for current tab.
  */
 
 import { create } from 'zustand';
 import type { MediaGenerationRequest } from '@/lib/media/types';
-import { db } from '@/lib/utils/database';
-import { createLogger } from '@/lib/logger';
-
-const log = createLogger('MediaGenerationStore');
 
 // ==================== Types ====================
 
@@ -53,7 +49,7 @@ interface MediaGenerationState {
   getTask: (elementId: string) => MediaTask | undefined;
   isReady: (elementId: string) => boolean;
 
-  // Restore from IndexedDB on page load
+  // Restore persisted tasks (no-op in server-storage mode)
   restoreFromDB: (stageId: string) => Promise<void>;
 
   // Cleanup
@@ -158,51 +154,8 @@ export const useMediaGenerationStore = create<MediaGenerationState>()((set, get)
   isReady: (elementId) => get().tasks[elementId]?.status === 'done',
 
   restoreFromDB: async (stageId) => {
-    try {
-      const records = await db.mediaFiles.where('stageId').equals(stageId).toArray();
-      const restored: Record<string, MediaTask> = {};
-      for (const rec of records) {
-        // Extract elementId from compound key (stageId:elementId)
-        const elementId = rec.id.includes(':') ? rec.id.split(':').slice(1).join(':') : rec.id;
-        const params = JSON.parse(rec.params || '{}');
-
-        if (rec.error) {
-          // Restore as failed task (persisted non-retryable error)
-          restored[elementId] = {
-            elementId,
-            type: rec.type,
-            status: 'failed',
-            prompt: rec.prompt,
-            params,
-            error: rec.error,
-            errorCode: rec.errorCode,
-            retryCount: 0,
-            stageId,
-          };
-        } else {
-          // Re-wrap blob with stored mimeType — IndexedDB may drop Blob.type
-          const blob = rec.blob.type ? rec.blob : new Blob([rec.blob], { type: rec.mimeType });
-          const objectUrl = URL.createObjectURL(blob);
-          const poster = rec.poster ? URL.createObjectURL(rec.poster) : undefined;
-          restored[elementId] = {
-            elementId,
-            type: rec.type,
-            status: 'done',
-            prompt: rec.prompt,
-            params,
-            objectUrl,
-            poster,
-            retryCount: 0,
-            stageId,
-          };
-        }
-      }
-      if (Object.keys(restored).length > 0) {
-        set((s) => ({ tasks: { ...s.tasks, ...restored } }));
-      }
-    } catch (err) {
-      log.error('Failed to restore from DB:', err);
-    }
+    void stageId;
+    // no-op: persistence moved away from IndexedDB
   },
 
   clearStage: (stageId) =>

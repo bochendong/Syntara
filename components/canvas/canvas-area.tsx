@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SceneRenderer } from '@/components/stage/scene-renderer';
+import { SceneSidebar } from '@/components/stage/scene-sidebar';
 import { SceneProvider } from '@/lib/contexts/scene-context';
 import { Whiteboard } from '@/components/whiteboard';
 import { CanvasToolbar } from '@/components/canvas/canvas-toolbar';
@@ -19,6 +20,9 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   readonly isPendingScene?: boolean;
   readonly isGenerationFailed?: boolean;
   readonly onRetryGeneration?: () => void;
+  readonly onSidebarCollapseChange: (collapsed: boolean) => void;
+  readonly onSceneSelect?: (sceneId: string) => void;
+  readonly onRetryOutline?: (outlineId: string) => Promise<void>;
 }
 
 export function CanvasArea({
@@ -30,6 +34,9 @@ export function CanvasArea({
   isLiveSession,
   whiteboardOpen,
   sidebarCollapsed,
+  onSidebarCollapseChange,
+  onSceneSelect,
+  onRetryOutline,
   chatCollapsed,
   onToggleSidebar,
   onToggleChat,
@@ -82,13 +89,20 @@ export function CanvasArea({
       {/* Slide area — takes remaining space */}
       <div
         className={cn(
-          'flex-1 min-h-0 relative overflow-hidden flex items-center justify-center p-2 transition-colors duration-500',
+          'flex-1 min-h-0 relative overflow-hidden flex flex-row items-stretch justify-center gap-2 p-2 transition-colors duration-500',
           currentScene?.type === 'interactive'
             ? 'bg-blue-50/30 dark:bg-blue-900/10'
             : 'bg-gray-50/30 dark:bg-gray-900/30',
         )}
       >
-        <div
+        <SceneSidebar
+          collapsed={sidebarCollapsed ?? false}
+          onCollapseChange={onSidebarCollapseChange}
+          onSceneSelect={onSceneSelect}
+          onRetryOutline={onRetryOutline}
+        />
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+          <div
           className={cn(
             'aspect-[16/9] h-full max-h-full max-w-full bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden relative transition-all duration-700',
             showControls && !isLiveSession && currentScene?.type === 'slide' && 'cursor-pointer',
@@ -222,6 +236,7 @@ export function CanvasArea({
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -229,7 +244,7 @@ export function CanvasArea({
       {!hideToolbar && (
         <CanvasToolbar
           className={cn(
-            'shrink-0 h-9 px-2',
+            'shrink-0 min-h-10 h-10 px-2',
             'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl',
             'border-t border-gray-200/40 dark:border-gray-700/40',
           )}

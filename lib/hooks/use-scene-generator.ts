@@ -4,9 +4,11 @@ import { useCallback, useRef } from 'react';
 import { useStageStore } from '@/lib/store/stage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { useSettingsStore } from '@/lib/store/settings';
-import { db } from '@/lib/utils/database';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
-import type { AgentInfo } from '@/lib/generation/generation-pipeline';
+import type {
+  AgentInfo,
+  CoursePersonalizationContext,
+} from '@/lib/generation/generation-pipeline';
 import type { Scene } from '@/lib/types/stage';
 import type { Action, SpeechAction } from '@/lib/types/action';
 import type { TTSProviderId } from '@/lib/audio/types';
@@ -74,6 +76,7 @@ async function fetchSceneContent(
       style?: string;
     };
     agents?: AgentInfo[];
+    courseContext?: CoursePersonalizationContext;
   },
   signal?: AbortSignal,
 ): Promise<SceneContentResult> {
@@ -102,6 +105,7 @@ async function fetchSceneActions(
     agents?: AgentInfo[];
     previousSpeeches?: string[];
     userProfile?: string;
+    courseContext?: CoursePersonalizationContext;
   },
   signal?: AbortSignal,
 ): Promise<SceneActionsResult> {
@@ -125,9 +129,9 @@ export async function generateAndStoreTTS(
   audioId: string,
   text: string,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<string> {
   const settings = useSettingsStore.getState();
-  if (settings.ttsProviderId === 'browser-native-tts') return;
+  if (settings.ttsProviderId === 'browser-native-tts') return '';
 
   const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
   const response = await fetch('/api/generate/tts', {
@@ -155,19 +159,7 @@ export async function generateAndStoreTTS(
     log.warn('TTS failed for', audioId, ':', err);
     throw err;
   }
-
-  const binary = atob(data.base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  const blob = new Blob([bytes], { type: `audio/${data.format}` });
-  await db.audioFiles.put({
-    id: audioId,
-    blob,
-    format: data.format,
-    createdAt: Date.now(),
-  });
+  return `data:audio/${data.format};base64,${data.base64}`;
 }
 
 /** Generate TTS for all speech actions in a scene. Returns result. */
@@ -189,7 +181,8 @@ async function generateTTSForScene(
     const audioId = `tts_${action.id}`;
     action.audioId = audioId;
     try {
-      await generateAndStoreTTS(audioId, action.text, signal);
+      const audioUrl = await generateAndStoreTTS(audioId, action.text, signal);
+      if (audioUrl) action.audioUrl = audioUrl;
     } catch (error) {
       failedCount++;
       lastError = error instanceof Error ? error.message : `TTS failed for action ${action.id}`;
@@ -227,6 +220,7 @@ export interface GenerationParams {
   };
   agents?: AgentInfo[];
   userProfile?: string;
+  courseContext?: CoursePersonalizationContext;
 }
 
 export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
@@ -320,6 +314,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               imageMapping: params.imageMapping,
               stageInfo: params.stageInfo,
               agents: params.agents,
+              courseContext: params.courseContext,
             },
             signal,
           );
@@ -353,6 +348,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               agents: params.agents,
               previousSpeeches,
               userProfile: params.userProfile,
+              courseContext: params.courseContext,
             },
             signal,
           );
@@ -469,6 +465,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             imageMapping: params.imageMapping,
             stageInfo: params.stageInfo,
             agents: params.agents,
+            courseContext: params.courseContext,
           },
           signal,
         );
@@ -496,6 +493,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             agents: params.agents,
             previousSpeeches,
             userProfile: params.userProfile,
+            courseContext: params.courseContext,
           },
           signal,
         );

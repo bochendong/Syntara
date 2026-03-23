@@ -13,16 +13,19 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useTheme } from '@/lib/hooks/use-theme';
 import { clearDatabase } from '@/lib/utils/database';
 import { toast } from 'sonner';
 import { createLogger } from '@/lib/logger';
+import { cn } from '@/lib/utils';
 
 const log = createLogger('GeneralSettings');
 
 export function GeneralSettings() {
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
+  const { theme, setTheme } = useTheme();
 
   // Clear cache state
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -63,6 +66,59 @@ export function GeneralSettings() {
 
   return (
     <div className="flex flex-col gap-8">
+      <div className="rounded-xl border border-border/80 bg-card/50 p-5 space-y-6">
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">{t('settings.language')}</Label>
+            <p className="text-xs text-muted-foreground mt-1">{t('settings.languageDesc')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['zh-CN', 'en-US'] as const).map((code) => (
+              <Button
+                key={code}
+                type="button"
+                variant={locale === code ? 'default' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => setLocale(code)}
+              >
+                {code === 'zh-CN' ? t('settings.languageOptions.zhCN') : t('settings.languageOptions.enUS')}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-px bg-border/60" />
+
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">{t('settings.theme')}</Label>
+            <p className="text-xs text-muted-foreground mt-1">{t('settings.themeDesc')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { id: 'light' as const, icon: Sun, label: t('settings.themeOptions.light') },
+                { id: 'dark' as const, icon: Moon, label: t('settings.themeOptions.dark') },
+                { id: 'system' as const, icon: Monitor, label: t('settings.themeOptions.system') },
+              ] as const
+            ).map(({ id, icon: Icon, label }) => (
+              <Button
+                key={id}
+                type="button"
+                variant={theme === id ? 'default' : 'outline'}
+                size="sm"
+                className={cn('h-9 gap-2', theme === id && 'shadow-sm')}
+                onClick={() => setTheme(id)}
+              >
+                <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Danger Zone - Clear Cache */}
       <div className="relative rounded-xl border border-destructive/30 bg-destructive/[0.03] dark:bg-destructive/[0.06] overflow-hidden">
         {/* Subtle diagonal stripe pattern for danger emphasis */}

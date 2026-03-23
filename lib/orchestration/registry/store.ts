@@ -324,14 +324,65 @@ export function agentsToParticipants(
   return participants;
 }
 
+const GENERATED_AGENTS_KEY_PREFIX = 'openmaic-generated-agents:';
+
+function readGeneratedAgents(stageId: string): Array<{
+  id: string;
+  name: string;
+  role: string;
+  persona: string;
+  avatar: string;
+  color: string;
+  priority: number;
+  stageId: string;
+  createdAt: number;
+}> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(`${GENERATED_AGENTS_KEY_PREFIX}${stageId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<{
+      id: string;
+      name: string;
+      role: string;
+      persona: string;
+      avatar: string;
+      color: string;
+      priority: number;
+      stageId: string;
+      createdAt: number;
+    }>;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGeneratedAgents(
+  stageId: string,
+  agents: Array<{
+    id: string;
+    name: string;
+    role: string;
+    persona: string;
+    avatar: string;
+    color: string;
+    priority: number;
+    stageId: string;
+    createdAt: number;
+  }>,
+) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(`${GENERATED_AGENTS_KEY_PREFIX}${stageId}`, JSON.stringify(agents));
+}
+
 /**
  * Load generated agents for a stage from IndexedDB into the registry.
  * Clears any previously loaded generated agents first.
  * Returns the loaded agent IDs.
  */
 export async function loadGeneratedAgentsForStage(stageId: string): Promise<string[]> {
-  const { getGeneratedAgentsByStageId } = await import('@/lib/utils/database');
-  const records = await getGeneratedAgentsByStageId(stageId);
+  const records = readGeneratedAgents(stageId);
 
   if (records.length === 0) return [];
 
@@ -379,20 +430,15 @@ export async function saveGeneratedAgents(
     priority: number;
   }>,
 ): Promise<string[]> {
-  const { db } = await import('@/lib/utils/database');
-
-  // Clear old generated agents for this stage
-  await db.generatedAgents.where('stageId').equals(stageId).delete();
-
   // Clear from registry
   const registry = useAgentRegistry.getState();
   for (const agent of registry.listAgents()) {
     if (agent.isGenerated) registry.deleteAgent(agent.id);
   }
 
-  // Write to IndexedDB
+  // Write to session storage
   const records = agents.map((a) => ({ ...a, stageId, createdAt: Date.now() }));
-  await db.generatedAgents.bulkPut(records);
+  writeGeneratedAgents(stageId, records);
 
   // Add to registry
   for (const record of records) {

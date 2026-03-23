@@ -9,6 +9,7 @@ Please perform scientific modeling for the following concept.
 **Concept Overview**: {{conceptOverview}}
 **Key Points for Mastery**: {{keyPoints}}
 **Design Idea**: {{designIdea}}
+{{coursePersonalization}}
 
 ---
 

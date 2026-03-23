@@ -36,6 +36,15 @@ interface RequestBody {
   sceneOutlines?: { title: string; description?: string }[];
   language: string;
   availableAvatars: string[];
+  courseContext?: {
+    name?: string;
+    description?: string;
+    tags?: string[];
+    purpose?: 'research' | 'university' | 'daily';
+    university?: string;
+    courseCode?: string;
+    language?: string;
+  };
 }
 
 function stripCodeFences(text: string): string {
@@ -50,7 +59,7 @@ function stripCodeFences(text: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as RequestBody;
-    const { stageInfo, sceneOutlines, language, availableAvatars } = body;
+    const { stageInfo, sceneOutlines, language, availableAvatars, courseContext } = body;
 
     // ── Validate required fields ──
     if (!stageInfo?.name) {
@@ -84,12 +93,21 @@ export async function POST(req: NextRequest) {
 Course name: ${stageInfo.name}
 ${stageInfo.description ? `Course description: ${stageInfo.description}` : ''}
 ${sceneSummary ? `\nScene outlines:\n${sceneSummary}\n` : ''}
+${courseContext ? `\nCourse personalization context:
+- name: ${courseContext.name || ''}
+- description: ${courseContext.description || ''}
+- tags: ${(courseContext.tags || []).join(', ')}
+- purpose: ${courseContext.purpose || ''}
+- university: ${courseContext.university || ''}
+- courseCode: ${courseContext.courseCode || ''}
+- language: ${courseContext.language || ''}` : ''}
 Requirements:
 - Decide the appropriate number of agents based on the course content (typically 3-5)
 - Exactly 1 agent must have role "teacher", the rest can be "assistant" or "student"
 - Priority values: teacher=10 (highest), assistant=7, student=4-6
 - Each agent needs: name, role, persona (2-3 sentences describing personality and teaching/learning style)
 - Names and personas must be in language: ${language}
+- Personas and examples should align with course personalization context when provided.
 - Each agent must be assigned one avatar from this list: ${JSON.stringify(availableAvatars)}
   - Try to use different avatars for each agent
 - Each agent must be assigned one color from this list: ${JSON.stringify(COLOR_PALETTE)}

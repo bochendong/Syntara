@@ -3,7 +3,11 @@
  */
 
 import type { PdfImage } from '@/lib/types/generation';
-import type { AgentInfo, SceneGenerationContext } from './pipeline-types';
+import type {
+  AgentInfo,
+  SceneGenerationContext,
+  CoursePersonalizationContext,
+} from './pipeline-types';
 
 /** Build a course context string for injection into action prompts */
 export function buildCourseContext(ctx?: SceneGenerationContext): string {
@@ -69,6 +73,39 @@ export function formatTeacherPersonaForPrompt(agents?: AgentInfo[]): string {
   if (!teacher?.persona) return '';
 
   return `Teacher Persona:\nName: ${teacher.name}\n${teacher.persona}\n\nAdapt the content style and tone to match this teacher's personality. IMPORTANT: The teacher's name and identity must NOT appear on the slides — no "Teacher ${teacher.name}'s tips", no "Teacher's message", etc. Slides should read as neutral, professional visual aids.`;
+}
+
+/** Format course-level personalization hints for content/action generation prompts */
+export function formatCoursePersonalizationForPrompt(
+  ctx?: CoursePersonalizationContext,
+  language: 'zh-CN' | 'en-US' = 'zh-CN',
+): string {
+  if (!ctx) return '';
+  const tags = (ctx.tags || []).filter(Boolean).join(', ');
+  if (language === 'zh-CN') {
+    return [
+      '课程个性化上下文：',
+      `- 课程名: ${ctx.name || ''}`,
+      `- 课程描述: ${ctx.description || ''}`,
+      `- 课程标签: ${tags || ''}`,
+      `- 用途: ${ctx.purpose || ''}`,
+      `- 学校: ${ctx.university || ''}`,
+      `- 课程代码: ${ctx.courseCode || ''}`,
+      `- 课程语言: ${ctx.language || ''}`,
+      '- 请以此调整术语、示例场景、难度和表达风格；不得偏离当前场景主题。',
+    ].join('\n');
+  }
+  return [
+    'Course personalization context:',
+    `- courseName: ${ctx.name || ''}`,
+    `- courseDescription: ${ctx.description || ''}`,
+    `- courseTags: ${tags || ''}`,
+    `- purpose: ${ctx.purpose || ''}`,
+    `- university: ${ctx.university || ''}`,
+    `- courseCode: ${ctx.courseCode || ''}`,
+    `- courseLanguage: ${ctx.language || ''}`,
+    '- Use this to tune terminology, examples, difficulty, and tone while staying on-scene.',
+  ].join('\n');
 }
 
 /**

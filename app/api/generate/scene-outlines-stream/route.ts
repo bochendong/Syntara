@@ -33,9 +33,36 @@ import type {
 import { apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import type { CoursePurpose } from '@/lib/utils/database';
 const log = createLogger('Outlines Stream');
 
 export const maxDuration = 300;
+
+function buildCourseContextForPrompt(args: {
+  language: 'zh-CN' | 'en-US';
+  courseContext?: {
+    name?: string;
+    description?: string;
+    tags?: string[];
+    purpose?: CoursePurpose;
+    university?: string;
+    courseCode?: string;
+    language?: 'zh-CN' | 'en-US';
+  };
+}): string {
+  const { language, courseContext } = args;
+  if (!courseContext) return language === 'zh-CN' ? '无' : 'N/A';
+  return [
+    `name: ${courseContext.name || ''}`,
+    `description: ${courseContext.description || ''}`,
+    `tags: ${(courseContext.tags || []).join(', ')}`,
+    `purpose: ${courseContext.purpose || ''}`,
+    `university: ${courseContext.university || ''}`,
+    `courseCode: ${courseContext.courseCode || ''}`,
+    `courseLanguage: ${courseContext.language || ''}`,
+    'Use this context to tune tone, prerequisites, and scenario examples.',
+  ].join('\n');
+}
 
 /**
  * Incremental JSON array parser.
@@ -114,6 +141,16 @@ export async function POST(req: NextRequest) {
       imageMapping?: ImageMapping;
       researchContext?: string;
       agents?: AgentInfo[];
+      coursePurpose?: CoursePurpose;
+      courseContext?: {
+        name?: string;
+        description?: string;
+        tags?: string[];
+        purpose?: CoursePurpose;
+        university?: string;
+        courseCode?: string;
+        language?: 'zh-CN' | 'en-US';
+      };
     };
 
     // Detect vision capability
@@ -171,6 +208,25 @@ export async function POST(req: NextRequest) {
 
     // Build teacher context from agents (if available)
     const teacherContext = formatTeacherPersonaForPrompt(agents);
+    const purposePolicy =
+      body.coursePurpose === 'research'
+        ? requirements.language === 'zh-CN'
+          ? '课程用途：科研。优先生成概念与方法论讲解，通常不插入测验（除非用户明确要求）。'
+          : 'Course purpose: research. Prefer concept/methodology explanations; avoid quizzes unless explicitly requested.'
+        : body.coursePurpose === 'daily'
+          ? requirements.language === 'zh-CN'
+            ? '课程用途：日常生活。优先口语化、风趣、易懂的表达，通常不插入测验（除非用户明确要求）。'
+            : 'Course purpose: daily life. Prefer conversational, friendly tone; avoid quizzes unless explicitly requested.'
+          : body.coursePurpose === 'university'
+            ? requirements.language === 'zh-CN'
+              ? '课程用途：大学课程。可适当加入作业/考试导向练习与测验；解题尽量基于课程已学前置知识，避免超纲。'
+              : 'Course purpose: university. Include homework/exam-oriented checks when suitable; keep solutions within in-syllabus prerequisites.'
+            : '';
+
+    const courseContext = buildCourseContextForPrompt({
+      language: requirements.language,
+      courseContext: body.courseContext,
+    });
 
     const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
       requirement: requirements.requirement,
@@ -184,6 +240,8 @@ export async function POST(req: NextRequest) {
       researchContext: researchContext || (requirements.language === 'zh-CN' ? '无' : 'None'),
       mediaGenerationPolicy,
       teacherContext,
+      purposePolicy,
+      courseContext,
     });
 
     if (!prompts) {

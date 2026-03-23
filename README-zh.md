@@ -140,14 +140,6 @@ pnpm build && pnpm start
 3. 配置环境变量（至少一个 LLM API Key）
 4. 部署
 
-### Docker 部署
-
-```bash
-cp .env.example .env.local
-# 编辑 .env.local 填入你的 API Key，然后：
-docker compose up --build
-```
-
 ### 可选：MinerU（增强文档解析）
 
 [MinerU](https://github.com/opendatalab/MinerU) 提供更强的表格、公式和 OCR 解析能力。你可以使用 [MinerU 官方 API](https://mineru.net/) 或[自行部署](https://opendatalab.github.io/MinerU/quick_start/docker_deployment/)。
@@ -283,7 +275,7 @@ cp -R /path/to/OpenMAIC/skills/openmaic ~/.openclaw/skills/openmaic
 | 阶段 | skill 会做什么 |
 |------|------|
 | **Clone** | 检测现有仓库，或在执行 clone / 安装依赖前征求确认 |
-| **启动** | 在 `pnpm dev`、`pnpm build && pnpm start`、Docker 之间选择 |
+| **启动** | 在 `pnpm dev` 与 `pnpm build && pnpm start` 之间选择 |
 | **Provider Key** | 推荐配置路径，引导你自己编辑 `.env.local` |
 | **生成** | 提交异步生成任务，轮询进度直到完成 |
 

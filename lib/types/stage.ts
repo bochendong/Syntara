@@ -10,12 +10,18 @@ export type StageMode = 'autonomous' | 'playback';
 export type Whiteboard = Omit<Slide, 'theme' | 'turningMode' | 'sectionTag' | 'type'>;
 
 /**
- * Stage - Represents the entire classroom/course
+ * Stage — 某一门课程（Course）下的一个「笔记本」/ 互动课件空间
  */
 export interface Stage {
   id: string;
+  /** 所属课程 ID（IndexedDB Course） */
+  courseId?: string;
+  /** 笔记本头像，如 `/avatars/notebook-agents/xxx.avif` */
+  avatarUrl?: string;
   name: string;
   description?: string;
+  /** 笔记本标签，用于课程内快速检索/识别 */
+  tags?: string[];
   createdAt: number;
   updatedAt: number;
   // Stage metadata

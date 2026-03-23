@@ -8,6 +8,7 @@
 // Types
 export type {
   AgentInfo,
+  CoursePersonalizationContext,
   SceneGenerationContext,
   GeneratedSlideData,
   GenerationResult,
@@ -18,6 +19,7 @@ export type {
 // Prompt formatters
 export {
   buildCourseContext,
+  formatCoursePersonalizationForPrompt,
   formatAgentsForPrompt,
   formatTeacherPersonaForPrompt,
   formatImageDescription,

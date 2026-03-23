@@ -11,6 +11,7 @@ import type {
 import type { SceneOutline } from '@/lib/types/generation';
 import type { UIMessage } from 'ai';
 import { createLogger } from '@/lib/logger';
+import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
 
 const log = createLogger('Database');
 
@@ -35,13 +36,37 @@ export interface Snapshot {
 
 // ==================== Database Table Type Definitions ====================
 
+/** 课程容器：其下可包含多个笔记本（原 Stage 一条记录 = 一个笔记本） */
+export type CoursePurpose = 'research' | 'university' | 'daily';
+
+export interface CourseRecord {
+  id: string;
+  name: string;
+  description?: string;
+  language: 'zh-CN' | 'en-US';
+  tags: string[];
+  purpose: CoursePurpose;
+  /** 用途为大学课程时可选 */
+  university?: string;
+  courseCode?: string;
+  /** 课程头像，如 `/avatars/notebook-agents/xxx.avif` */
+  avatarUrl?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /**
- * Stage table - Course basic info
+ * Stage table — 一个 Stage = 一门课程下的一个「笔记本」（互动课件）
  */
 export interface StageRecord {
   id: string; // Primary key
+  /** 所属课程（Course） */
+  courseId?: string;
+  /** 笔记本头像 */
+  avatarUrl?: string;
   name: string;
   description?: string;
+  tags?: string[];
   createdAt: number; // timestamp
   updatedAt: number; // timestamp
   language?: string;
@@ -111,6 +136,42 @@ export interface ChatSessionRecord {
 }
 
 /**
+ * ContactConversation table - course-level chat timelines
+ * Used by /chat (notebook + course-agent contacts)
+ */
+export type ContactConversationKind = 'notebook' | 'agent';
+
+export interface ContactConversationRecord {
+  /** PK: `${kind}:${targetId}` */
+  id: string;
+  courseId: string;
+  kind: ContactConversationKind;
+  targetId: string;
+  targetName: string;
+  /** JSON-safe message array; exact shape depends on contact kind */
+  messages: unknown[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type AgentTaskStatus = 'running' | 'waiting' | 'done' | 'failed';
+export type AgentTaskContactKind = 'notebook' | 'agent';
+
+export interface AgentTaskRecord {
+  id: string;
+  courseId: string;
+  parentTaskId?: string;
+  contactKind: AgentTaskContactKind;
+  contactId: string;
+  status: AgentTaskStatus;
+  title: string;
+  detail?: string;
+  lastEnvelope?: ProtocolMessageEnvelope;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
  * PlaybackState table - Playback state snapshot (at most one per stage)
  */
 export interface PlaybackStateRecord {
@@ -174,13 +235,14 @@ export function mediaFileKey(stageId: string, elementId: string): string {
 // ==================== Database Definition ====================
 
 const DATABASE_NAME = 'MAIC-Database';
-const _DATABASE_VERSION = 8;
+const _DATABASE_VERSION = 9;
 
 /**
  * MAIC Database Instance
  */
 class MAICDatabase extends Dexie {
   // Table definitions
+  courses!: EntityTable<CourseRecord, 'id'>;
   stages!: EntityTable<StageRecord, 'id'>;
   scenes!: EntityTable<SceneRecord, 'id'>;
   audioFiles!: EntityTable<AudioFileRecord, 'id'>;
@@ -191,6 +253,8 @@ class MAICDatabase extends Dexie {
   stageOutlines!: EntityTable<StageOutlinesRecord, 'stageId'>;
   mediaFiles!: EntityTable<MediaFileRecord, 'id'>;
   generatedAgents!: EntityTable<GeneratedAgentRecord, 'id'>;
+  contactConversations!: EntityTable<ContactConversationRecord, 'id'>;
+  agentTasks!: EntityTable<AgentTaskRecord, 'id'>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -308,6 +372,107 @@ class MAICDatabase extends Dexie {
       mediaFiles: 'id, stageId, [stageId+type]',
       generatedAgents: 'id, stageId',
     });
+
+    // Version 9: Courses as containers; stages (notebooks) link via courseId
+    this.version(9).stores({
+      courses: 'id, updatedAt',
+      stages: 'id, updatedAt, courseId',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+    });
+
+    // Version 10: Notebook (stage) avatarUrl — backfill stable avatar per stage id
+    this.version(10)
+      .stores({
+        courses: 'id, updatedAt',
+        stages: 'id, updatedAt, courseId',
+        scenes: 'id, stageId, order, [stageId+order]',
+        audioFiles: 'id, createdAt',
+        imageFiles: 'id, createdAt',
+        snapshots: '++id',
+        chatSessions: 'id, stageId, [stageId+createdAt]',
+        playbackState: 'stageId',
+        stageOutlines: 'stageId',
+        mediaFiles: 'id, stageId, [stageId+type]',
+        generatedAgents: 'id, stageId',
+      })
+      .upgrade(async (tx) => {
+        const { pickStableNotebookAgentAvatarUrl } = await import(
+          '@/lib/constants/notebook-agent-avatars'
+        );
+        const table = tx.table('stages');
+        const rows: Array<{ id: string; avatarUrl?: string }> = await table.toArray();
+        const now = Date.now();
+        for (const s of rows) {
+          if (s.avatarUrl?.trim()) continue;
+          await table.update(s.id, {
+            avatarUrl: pickStableNotebookAgentAvatarUrl(s.id),
+            updatedAt: now,
+          });
+        }
+      });
+
+    // Version 11: Add course-level contact conversations for /chat
+    this.version(11).stores({
+      courses: 'id, updatedAt',
+      stages: 'id, updatedAt, courseId',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      contactConversations:
+        'id, courseId, kind, targetId, updatedAt, [kind+targetId], [courseId+kind], [courseId+updatedAt]',
+    });
+
+    // Version 12: Add agent task table for /chat orchestration status
+    this.version(12).stores({
+      courses: 'id, updatedAt',
+      stages: 'id, updatedAt, courseId',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      contactConversations:
+        'id, courseId, kind, targetId, updatedAt, [kind+targetId], [courseId+kind], [courseId+updatedAt]',
+      agentTasks:
+        'id, courseId, status, contactKind, contactId, updatedAt, [courseId+status], [contactKind+contactId], [courseId+updatedAt]',
+    });
+
+    // Version 13: agentTasks parentTaskId + protocol envelope snapshot
+    this.version(13).stores({
+      courses: 'id, updatedAt',
+      stages: 'id, updatedAt, courseId',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      contactConversations:
+        'id, courseId, kind, targetId, updatedAt, [kind+targetId], [courseId+kind], [courseId+updatedAt]',
+      agentTasks:
+        'id, courseId, parentTaskId, status, contactKind, contactId, updatedAt, [courseId+status], [contactKind+contactId], [courseId+updatedAt], [parentTaskId+updatedAt]',
+    });
   }
 }
 
@@ -394,27 +559,28 @@ export async function getScenesByStageId(stageId: string): Promise<SceneRecord[]
  * Delete a course and all its related data
  */
 export async function deleteStageWithRelatedData(stageId: string): Promise<void> {
-  await db.transaction(
-    'rw',
-    [
-      db.stages,
-      db.scenes,
-      db.chatSessions,
-      db.playbackState,
-      db.stageOutlines,
-      db.mediaFiles,
-      db.generatedAgents,
-    ],
-    async () => {
-      await db.stages.delete(stageId);
-      await db.scenes.where('stageId').equals(stageId).delete();
-      await db.chatSessions.where('stageId').equals(stageId).delete();
-      await db.playbackState.delete(stageId);
-      await db.stageOutlines.delete(stageId);
-      await db.mediaFiles.where('stageId').equals(stageId).delete();
-      await db.generatedAgents.where('stageId').equals(stageId).delete();
-    },
-  );
+  const headers: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('openmaic-auth');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { state?: { userId?: string } };
+        const uid = parsed?.state?.userId?.trim();
+        if (uid) headers['x-user-id'] = uid;
+      }
+    } catch {
+      // ignore parse failures
+    }
+  }
+  const resp = await fetch(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers,
+  });
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({ error: '删除失败' }));
+    throw new Error(data.error || '删除失败');
+  }
 }
 
 /**
@@ -431,6 +597,7 @@ export async function getGeneratedAgentsByStageId(
  */
 export async function getDatabaseStats() {
   return {
+    courses: await db.courses.count(),
     stages: await db.stages.count(),
     scenes: await db.scenes.count(),
     audioFiles: await db.audioFiles.count(),
@@ -441,5 +608,7 @@ export async function getDatabaseStats() {
     stageOutlines: await db.stageOutlines.count(),
     mediaFiles: await db.mediaFiles.count(),
     generatedAgents: await db.generatedAgents.count(),
+    contactConversations: await db.contactConversations.count(),
+    agentTasks: await db.agentTasks.count(),
   };
 }

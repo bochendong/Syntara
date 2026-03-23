@@ -28,6 +28,7 @@ import { parseActionsFromStructuredOutput } from './action-parser';
 import { parseJsonResponse } from './json-repair';
 import {
   buildCourseContext,
+  formatCoursePersonalizationForPrompt,
   formatAgentsForPrompt,
   formatTeacherPersonaForPrompt,
   formatImageDescription,
@@ -38,6 +39,7 @@ import type { QuizQuestion } from '@/lib/types/stage';
 import type { Action } from '@/lib/types/action';
 import type {
   AgentInfo,
+  CoursePersonalizationContext,
   SceneGenerationContext,
   GeneratedSlideData,
   AICallFn,
@@ -155,6 +157,7 @@ export async function generateSceneContent(
   visionEnabled?: boolean,
   generatedMediaMapping?: ImageMapping,
   agents?: AgentInfo[],
+  courseContext?: CoursePersonalizationContext,
 ): Promise<
   | GeneratedSlideContent
   | GeneratedQuizContent
@@ -176,6 +179,7 @@ export async function generateSceneContent(
       visionEnabled,
       generatedMediaMapping,
       agents,
+      courseContext,
     );
   }
 
@@ -189,11 +193,12 @@ export async function generateSceneContent(
         visionEnabled,
         generatedMediaMapping,
         agents,
+        courseContext,
       );
     case 'quiz':
-      return generateQuizContent(outline, aiCall);
+      return generateQuizContent(outline, aiCall, courseContext);
     case 'interactive':
-      return generateInteractiveContent(outline, aiCall, outline.language);
+      return generateInteractiveContent(outline, aiCall, outline.language, courseContext);
     case 'pbl':
       return generatePBLSceneContent(outline, languageModel);
     default:
@@ -466,6 +471,7 @@ async function generateSlideContent(
   visionEnabled?: boolean,
   generatedMediaMapping?: ImageMapping,
   agents?: AgentInfo[],
+  courseContext?: CoursePersonalizationContext,
 ): Promise<GeneratedSlideContent | null> {
   const lang = outline.language || 'zh-CN';
 
@@ -534,6 +540,7 @@ async function generateSlideContent(
   const canvasHeight = 562.5;
 
   const teacherContext = formatTeacherPersonaForPrompt(agents);
+  const coursePersonalization = formatCoursePersonalizationForPrompt(courseContext, lang);
 
   const prompts = buildPrompt(PROMPT_IDS.SLIDE_CONTENT, {
     title: outline.title,
@@ -544,6 +551,7 @@ async function generateSlideContent(
     canvas_width: canvasWidth,
     canvas_height: canvasHeight,
     teacherContext,
+    coursePersonalization,
   });
 
   if (!prompts) {
@@ -632,6 +640,7 @@ async function generateSlideContent(
 async function generateQuizContent(
   outline: SceneOutline,
   aiCall: AICallFn,
+  courseContext?: CoursePersonalizationContext,
 ): Promise<GeneratedQuizContent | null> {
   const quizConfig = outline.quizConfig || {
     questionCount: 3,
@@ -646,6 +655,10 @@ async function generateQuizContent(
     questionCount: quizConfig.questionCount,
     difficulty: quizConfig.difficulty,
     questionTypes: quizConfig.questionTypes.join(', '),
+    coursePersonalization: formatCoursePersonalizationForPrompt(
+      courseContext,
+      outline.language || 'zh-CN',
+    ),
   });
 
   if (!prompts) {
@@ -736,6 +749,7 @@ async function generateInteractiveContent(
   outline: SceneOutline,
   aiCall: AICallFn,
   language: 'zh-CN' | 'en-US' = 'zh-CN',
+  courseContext?: CoursePersonalizationContext,
 ): Promise<GeneratedInteractiveContent | null> {
   const config = outline.interactiveConfig!;
 
@@ -748,6 +762,7 @@ async function generateInteractiveContent(
       conceptOverview: config.conceptOverview,
       keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
       designIdea: config.designIdea,
+      coursePersonalization: formatCoursePersonalizationForPrompt(courseContext, language),
     });
 
     if (modelPrompts) {
@@ -793,6 +808,7 @@ async function generateInteractiveContent(
     scientificConstraints,
     designIdea: config.designIdea,
     language,
+    coursePersonalization: formatCoursePersonalizationForPrompt(courseContext, language),
   });
 
   if (!htmlPrompts) {
@@ -916,8 +932,14 @@ export async function generateSceneActions(
   ctx?: SceneGenerationContext,
   agents?: AgentInfo[],
   userProfile?: string,
+  coursePersonalization?: CoursePersonalizationContext,
 ): Promise<Action[]> {
   const agentsText = formatAgentsForPrompt(agents);
+  const personalizationText = formatCoursePersonalizationForPrompt(
+    coursePersonalization,
+    outline.language || 'zh-CN',
+  );
+  const mergedCourseContext = [buildCourseContext(ctx), personalizationText].filter(Boolean).join('\n\n');
 
   if (outline.type === 'slide' && 'elements' in content) {
     // Format element list for AI to select from
@@ -928,7 +950,7 @@ export async function generateSceneActions(
       keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
       description: outline.description,
       elements: elementsText,
-      courseContext: buildCourseContext(ctx),
+      courseContext: mergedCourseContext,
       agents: agentsText,
       userProfile: userProfile || '',
     });
@@ -957,7 +979,7 @@ export async function generateSceneActions(
       keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
       description: outline.description,
       questions: questionsText,
-      courseContext: buildCourseContext(ctx),
+      courseContext: mergedCourseContext,
       agents: agentsText,
     });
 
@@ -984,7 +1006,7 @@ export async function generateSceneActions(
       description: outline.description,
       conceptName: config?.conceptName || outline.title,
       designIdea: config?.designIdea || '',
-      courseContext: buildCourseContext(ctx),
+      courseContext: mergedCourseContext,
       agents: agentsText,
     });
 
@@ -1011,7 +1033,7 @@ export async function generateSceneActions(
       description: outline.description,
       projectTopic: pblConfig?.projectTopic || outline.title,
       projectDescription: pblConfig?.projectDescription || outline.description,
-      courseContext: buildCourseContext(ctx),
+      courseContext: mergedCourseContext,
       agents: agentsText,
     });
 

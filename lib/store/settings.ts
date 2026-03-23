@@ -492,8 +492,8 @@ export const useSettingsStore = create<SettingsState>()(
         autoPlayLecture: false,
         playbackSpeed: 1,
 
-        // Layout preferences
-        sidebarCollapsed: true,
+        // Layout preferences（false = 场景列表侧栏展开）
+        sidebarCollapsed: false,
         chatAreaCollapsed: true,
         chatAreaWidth: 320,
 
@@ -989,10 +989,15 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 2,
+      version: 3,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
+
+        // v2 → v3: 课堂场景列表侧栏默认展开（此前默认为收起）
+        if (version < 3) {
+          state.sidebarCollapsed = false;
+        }
 
         // v0 → v1: clear hardcoded default model so user must actively select
         if (version === 0) {

@@ -1,16 +1,9 @@
-/**
- * Stage Storage Manager
- *
- * Manages multiple stage data in IndexedDB
- * Each stage has its own storage key based on stageId
- */
-
-import { Stage, Scene } from '../types/stage';
-import { ChatSession } from '../types/chat';
-import { db } from './database';
-import { saveChatSessions, loadChatSessions, deleteChatSessions } from './chat-storage';
-import { clearPlaybackState } from './playback-storage';
+import type { Stage, Scene } from '../types/stage';
+import type { ChatSession } from '../types/chat';
 import { createLogger } from '@/lib/logger';
+import { backendJson } from '@/lib/utils/backend-api';
+import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
+import type { Slide } from '../types/slides';
 
 const log = createLogger('StageStorage');
 
@@ -23,205 +16,209 @@ export interface StageStoreData {
 
 export interface StageListItem {
   id: string;
+  courseId?: string;
   name: string;
   description?: string;
+  tags?: string[];
+  avatarUrl?: string;
   sceneCount: number;
   createdAt: number;
   updatedAt: number;
 }
 
-/**
- * Save stage data to IndexedDB
- */
-export async function saveStageData(stageId: string, data: StageStoreData): Promise<void> {
-  try {
-    const now = Date.now();
+type NotebookApiRow = {
+  id: string;
+  ownerId: string;
+  courseId: string | null;
+  name: string;
+  description: string | null;
+  tags: string[];
+  avatarUrl: string | null;
+  language: string | null;
+  style: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { scenes: number };
+};
 
-    // Save to stages table
-    await db.stages.put({
-      id: stageId,
-      name: data.stage.name || 'Untitled Stage',
-      description: data.stage.description,
-      createdAt: data.stage.createdAt || now,
-      updatedAt: now,
-      language: data.stage.language,
-      style: data.stage.style,
-      currentSceneId: data.currentSceneId || undefined,
-    });
+type SceneApiRow = {
+  id: string;
+  notebookId: string;
+  title: string;
+  type: string;
+  order: number;
+  content: Scene['content'];
+  actions?: Scene['actions'];
+  whiteboards?: Scene['whiteboards'];
+  createdAt: string;
+  updatedAt: string;
+};
 
-    // Delete old scenes first to avoid orphaned data
-    await db.scenes.where('stageId').equals(stageId).delete();
-
-    // Save new scenes
-    if (data.scenes && data.scenes.length > 0) {
-      await db.scenes.bulkPut(
-        data.scenes.map((scene, index) => ({
-          ...scene,
-          stageId,
-          order: scene.order ?? index,
-          createdAt: scene.createdAt || now,
-          updatedAt: scene.updatedAt || now,
-        })),
-      );
-    }
-
-    // Save chat sessions to independent table
-    if (data.chats) {
-      await saveChatSessions(stageId, data.chats);
-    }
-
-    log.info(`Saved stage: ${stageId}`);
-  } catch (error) {
-    log.error('Failed to save stage:', error);
-    throw error;
-  }
+function mapNotebook(row: NotebookApiRow): StageListItem {
+  return {
+    id: row.id,
+    courseId: row.courseId || undefined,
+    name: row.name,
+    description: row.description || undefined,
+    tags: row.tags || [],
+    avatarUrl: row.avatarUrl || undefined,
+    sceneCount: row._count?.scenes ?? 0,
+    createdAt: Date.parse(row.createdAt),
+    updatedAt: Date.parse(row.updatedAt),
+  };
 }
 
-/**
- * Load stage data from IndexedDB
- */
+function mapScene(stageId: string, row: SceneApiRow): Scene {
+  return {
+    id: row.id,
+    stageId,
+    title: row.title,
+    type: row.type as Scene['type'],
+    order: row.order,
+    content: row.content,
+    actions: row.actions,
+    whiteboards: row.whiteboards,
+    createdAt: Date.parse(row.createdAt),
+    updatedAt: Date.parse(row.updatedAt),
+  };
+}
+
+export async function saveStageData(stageId: string, data: StageStoreData): Promise<void> {
+  const sortedScenes = [...data.scenes].sort((a, b) => a.order - b.order);
+
+  await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      courseId: data.stage.courseId ?? null,
+      name: data.stage.name,
+      description: data.stage.description,
+      tags: data.stage.tags ?? [],
+      avatarUrl: data.stage.avatarUrl,
+      language: data.stage.language,
+      style: data.stage.style,
+    }),
+  });
+
+  await backendJson<{ scenes: SceneApiRow[] }>(`/api/notebooks/${encodeURIComponent(stageId)}/scenes`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenes: sortedScenes.map((s, i) => ({
+        id: s.id,
+        title: s.title,
+        type: s.type,
+        order: Number.isFinite(s.order) ? s.order : i,
+        content: s.content,
+        actions: s.actions,
+        whiteboards: s.whiteboards,
+      })),
+    }),
+  });
+}
+
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
   try {
-    // Load stage
-    const stage = await db.stages.get(stageId);
-    if (!stage) {
-      log.info(`Stage not found: ${stageId}`);
-      return null;
-    }
+    const { notebook } = await backendJson<{ notebook: NotebookApiRow & { scenes: SceneApiRow[] } }>(
+      `/api/notebooks/${encodeURIComponent(stageId)}`,
+    );
 
-    // Load scenes
-    const scenes = await db.scenes.where('stageId').equals(stageId).sortBy('order');
+    const scenes = (notebook.scenes || [])
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((s) => mapScene(stageId, s));
+    const chats = await loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId).catch(
+      () => [],
+    );
 
-    // Load chat sessions from independent table
-    const chats = await loadChatSessions(stageId);
-
-    log.info(`Loaded stage: ${stageId}, scenes: ${scenes.length}, chats: ${chats.length}`);
+    const stage: Stage = {
+      id: notebook.id,
+      courseId: notebook.courseId || undefined,
+      avatarUrl: notebook.avatarUrl || undefined,
+      name: notebook.name,
+      description: notebook.description || undefined,
+      tags: notebook.tags || [],
+      createdAt: Date.parse(notebook.createdAt),
+      updatedAt: Date.parse(notebook.updatedAt),
+      language: notebook.language || undefined,
+      style: notebook.style || undefined,
+    };
 
     return {
       stage,
       scenes,
-      currentSceneId: stage.currentSceneId || scenes[0]?.id || null,
+      currentSceneId: scenes[0]?.id || null,
       chats,
     };
-  } catch (error) {
-    log.error('Failed to load stage:', error);
+  } catch {
     return null;
   }
 }
 
-/**
- * Delete stage and all related data
- */
 export async function deleteStageData(stageId: string): Promise<void> {
-  try {
-    // Delete stage
-    await db.stages.delete(stageId);
-
-    // Delete scenes
-    await db.scenes.where('stageId').equals(stageId).delete();
-
-    // Delete chat sessions and playback state
-    await deleteChatSessions(stageId);
-    await clearPlaybackState(stageId);
-
-    log.info(`Deleted stage: ${stageId}`);
-  } catch (error) {
-    log.error('Failed to delete stage:', error);
-    throw error;
-  }
+  await backendJson<{ ok: true }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'DELETE',
+  });
 }
 
-/**
- * List all stages
- */
+export async function moveStageToCourse(stageId: string, targetCourseId: string): Promise<void> {
+  await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ courseId: targetCourseId }),
+  });
+}
+
 export async function listStages(): Promise<StageListItem[]> {
   try {
-    const stages = await db.stages.orderBy('updatedAt').reverse().toArray();
-
-    const stageList: StageListItem[] = await Promise.all(
-      stages.map(async (stage) => {
-        const sceneCount = await db.scenes.where('stageId').equals(stage.id).count();
-
-        return {
-          id: stage.id,
-          name: stage.name,
-          description: stage.description,
-          sceneCount,
-          createdAt: stage.createdAt,
-          updatedAt: stage.updatedAt,
-        };
-      }),
-    );
-
-    return stageList;
+    const data = await backendJson<{ notebooks: NotebookApiRow[] }>('/api/notebooks');
+    return data.notebooks.map(mapNotebook);
   } catch (error) {
     log.error('Failed to list stages:', error);
     return [];
   }
 }
 
-/**
- * Get first slide scene's canvas data for each stage (for thumbnail preview).
- * Also resolves gen_img_* placeholders from mediaFiles so thumbnails show real images.
- * Returns a map of stageId -> Slide (canvas data with resolved images)
- */
-export async function getFirstSlideByStages(
-  stageIds: string[],
-): Promise<Record<string, import('../types/slides').Slide>> {
-  const result: Record<string, import('../types/slides').Slide> = {};
+export async function listStagesByCourse(courseId: string): Promise<StageListItem[]> {
   try {
-    await Promise.all(
-      stageIds.map(async (stageId) => {
-        const scenes = await db.scenes.where('stageId').equals(stageId).sortBy('order');
-        const firstSlide = scenes.find((s) => s.content?.type === 'slide');
-        if (firstSlide && firstSlide.content.type === 'slide') {
-          const slide = structuredClone(firstSlide.content.canvas);
-
-          // Resolve gen_img_* placeholders from mediaFiles
-          const placeholderEls = slide.elements.filter(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (el: any) => el.type === 'image' && /^gen_(img|vid)_[\w-]+$/i.test(el.src as string),
-          );
-          if (placeholderEls.length > 0) {
-            const mediaRecords = await db.mediaFiles.where('stageId').equals(stageId).toArray();
-            const mediaMap = new Map(
-              mediaRecords.map((r) => {
-                // Key format: stageId:elementId → extract elementId
-                const elementId = r.id.includes(':') ? r.id.split(':').slice(1).join(':') : r.id;
-                return [elementId, r.blob] as const;
-              }),
-            );
-            for (const el of placeholderEls as Array<{ src: string }>) {
-              const blob = mediaMap.get(el.src);
-              if (blob) {
-                el.src = URL.createObjectURL(blob);
-              } else {
-                // Clear unresolved placeholder so BaseImageElement won't subscribe
-                // to the global media store (which may have stale data from another course)
-                el.src = '';
-              }
-            }
-          }
-
-          result[stageId] = slide;
-        }
-      }),
+    const data = await backendJson<{ notebooks: NotebookApiRow[] }>(
+      `/api/notebooks?courseId=${encodeURIComponent(courseId)}`,
     );
+    return data.notebooks.map(mapNotebook);
   } catch (error) {
-    log.error('Failed to load thumbnails:', error);
+    log.error('Failed to list stages by course:', error);
+    return [];
   }
+}
+
+export async function getFirstSlideByStages(stageIds: string[]): Promise<Record<string, Slide>> {
+  const result: Record<string, Slide> = {};
+  await Promise.all(
+    stageIds.map(async (stageId) => {
+      try {
+        const data = await backendJson<{ scenes: SceneApiRow[] }>(
+          `/api/notebooks/${encodeURIComponent(stageId)}/scenes`,
+        );
+        const firstSlide = data.scenes
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .find((s) => s.content?.type === 'slide');
+        if (firstSlide && firstSlide.content.type === 'slide') {
+          result[stageId] = structuredClone(firstSlide.content.canvas);
+        }
+      } catch {
+        // ignore single notebook thumbnail errors
+      }
+    }),
+  );
   return result;
 }
 
-/**
- * Check if stage exists
- */
 export async function stageExists(stageId: string): Promise<boolean> {
   try {
-    const stage = await db.stages.get(stageId);
-    return !!stage;
-  } catch (error) {
-    log.error('Failed to check stage existence:', error);
+    await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`);
+    return true;
+  } catch {
     return false;
   }
 }

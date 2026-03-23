@@ -24,6 +24,17 @@ export interface SceneGenerationContext {
   previousSpeeches: string[]; // Speech texts from the previous page only
 }
 
+/** Course-level personalization context used by all generation stages */
+export interface CoursePersonalizationContext {
+  name?: string;
+  description?: string;
+  tags?: string[];
+  purpose?: 'research' | 'university' | 'daily';
+  university?: string;
+  courseCode?: string;
+  language?: 'zh-CN' | 'en-US';
+}
+
 // ==================== Generated Slide Data Interface ====================
 
 /**

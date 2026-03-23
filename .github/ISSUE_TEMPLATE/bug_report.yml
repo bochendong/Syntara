@@ -52,7 +52,6 @@ body:
       options:
         - Local development (npm run dev / pnpm dev / yarn dev)
         - Vercel deployment
-        - Docker
         - Other
     validations:
       required: true

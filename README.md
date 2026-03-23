@@ -140,14 +140,6 @@ Or manually:
 3. Set environment variables (at minimum one LLM API key)
 4. Deploy
 
-### Docker Deployment
-
-```bash
-cp .env.example .env.local
-# Edit .env.local with your API keys, then:
-docker compose up --build
-```
-
 ### Optional: MinerU (Advanced Document Parsing)
 
 [MinerU](https://github.com/opendatalab/MinerU) provides enhanced parsing for complex tables, formulas, and OCR. You can use the [MinerU official API](https://mineru.net/) or [self-host your own instance](https://opendatalab.github.io/MinerU/quick_start/docker_deployment/).
@@ -283,7 +275,7 @@ cp -R /path/to/OpenMAIC/skills/openmaic ~/.openclaw/skills/openmaic
 | Phase | What the skill does |
 |------|-------------|
 | **Clone** | Detect an existing checkout or ask before cloning/installing |
-| **Startup** | Choose between `pnpm dev`, `pnpm build && pnpm start`, or Docker |
+| **Startup** | Choose between `pnpm dev` and `pnpm build && pnpm start` |
 | **Provider Keys** | Recommend a provider path; you edit `.env.local` yourself |
 | **Generation** | Submit an async generation job and poll until it completes |
 

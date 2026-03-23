@@ -8,6 +8,7 @@ Create an interactive learning page for the following concept.
 **Subject**: {{subject}}
 **Concept Overview**: {{conceptOverview}}
 **Key Points**: {{keyPoints}}
+{{coursePersonalization}}
 
 ---
 

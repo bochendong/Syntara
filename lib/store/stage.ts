@@ -197,17 +197,10 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   setOutlines: (outlines) => {
     set({ outlines });
-    // Persist outlines to IndexedDB
+    // Persist outlines to sessionStorage (deprecated local fallback)
     const stageId = get().stage?.id;
-    if (stageId) {
-      import('@/lib/utils/database').then(({ db }) => {
-        db.stageOutlines.put({
-          stageId,
-          outlines,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-      });
+    if (stageId && typeof window !== 'undefined') {
+      sessionStorage.setItem(`stage-outlines:${stageId}`, JSON.stringify(outlines));
     }
   },
 
@@ -280,10 +273,11 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       const { loadStageData } = await import('@/lib/utils/stage-storage');
       const data = await loadStageData(stageId);
 
-      // Load outlines for resume-on-refresh
-      const { db } = await import('@/lib/utils/database');
-      const outlinesRecord = await db.stageOutlines.get(stageId);
-      const outlines = outlinesRecord?.outlines || [];
+      // Load outlines for resume-on-refresh (sessionStorage fallback)
+      const outlines =
+        typeof window !== 'undefined'
+          ? (JSON.parse(sessionStorage.getItem(`stage-outlines:${stageId}`) || '[]') as SceneOutline[])
+          : [];
 
       if (data) {
         set({

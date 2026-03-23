@@ -10,6 +10,8 @@ import type {
 // Session state stored in sessionStorage
 export interface GenerationSessionState {
   sessionId: string;
+  /** 笔记本所属课程 */
+  courseId?: string;
   requirements: UserRequirements;
   pdfText: string;
   pdfImages?: PdfImage[];

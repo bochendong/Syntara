@@ -11,6 +11,10 @@ export const settingsZhCN = {
       dark: '深色',
       system: '跟随系统',
     },
+    languageOptions: {
+      zhCN: '简体中文',
+      enUS: 'English',
+    },
     apiKey: 'API密钥',
     apiKeyDesc: '配置你的API密钥',
     apiBaseUrl: 'API端点地址',
@@ -591,6 +595,10 @@ export const settingsEnUS = {
       light: 'Light',
       dark: 'Dark',
       system: 'System',
+    },
+    languageOptions: {
+      zhCN: 'Simplified Chinese',
+      enUS: 'English',
     },
     apiKey: 'API Key',
     apiKeyDesc: 'Configure your API key',

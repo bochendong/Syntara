@@ -52,9 +52,19 @@ server-providers-*.yml
 *.tsbuildinfo
 next-env.d.ts
 
+# Prisma（schema 与 migrations 请提交；仅忽略若本地误用 SQLite）
+*.db
+*.db-journal
+
+# Turbopack / 构建缓存
+.turbo
+
 # IDE
 .idea
 .vscode
+
+# Cursor：机器本地会话/索引（规则若放在 .cursor/rules 可单独提交）
+.cursor/projects
 
 # worktrees
 .worktrees
@@ -65,3 +75,9 @@ next-env.d.ts
 
 # docs
 /docs
+
+# OS / 杂项
+Thumbs.db
+*.orig
+*.swp
+*~

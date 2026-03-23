@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import type { IndexableTypeArray } from 'dexie';
-import { db, type Snapshot } from '@/lib/utils/database';
+import type { Snapshot } from '@/lib/utils/database';
 import { useStageStore } from './stage';
 import type { Scene } from '@/lib/types/stage';
 
@@ -26,8 +25,10 @@ export interface SnapshotState {
  * Snapshot store for undo/redo functionality
  * Based on PPTist's snapshot store, migrated to Zustand
  *
- * Uses IndexedDB (via Dexie) to store snapshot history
+ * Uses in-memory snapshot history (per-tab)
  */
+let snapshotsMemory: Snapshot[] = [];
+
 export const useSnapshotStore = create<SnapshotState>((set, get) => ({
   // Initial state
   snapshotCursor: -1,
@@ -51,7 +52,7 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
       index: stageStore.getSceneIndex(stageStore.currentSceneId || ''),
       slides: JSON.parse(JSON.stringify(stageStore.scenes)),
     };
-    await db.snapshots.add(newFirstSnapshot);
+    snapshotsMemory = [newFirstSnapshot];
 
     set({
       snapshotCursor: 0,
@@ -67,15 +68,12 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     const stageStore = useStageStore.getState();
     const { snapshotCursor } = get();
 
-    // Get all snapshot IDs from IndexedDB
-    const allKeys = await db.snapshots.orderBy('id').keys();
-
-    let needDeleteKeys: IndexableTypeArray = [];
+    let next = snapshotsMemory.slice();
 
     // If cursor is not at the end, delete all snapshots after cursor
     // This happens when user undoes multiple times then performs a new action
-    if (snapshotCursor >= 0 && snapshotCursor < allKeys.length - 1) {
-      needDeleteKeys = allKeys.slice(snapshotCursor + 1);
+    if (snapshotCursor >= 0 && snapshotCursor < next.length - 1) {
+      next = next.slice(0, snapshotCursor + 1);
     }
 
     // Add new snapshot
@@ -83,29 +81,24 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
       index: stageStore.getSceneIndex(stageStore.currentSceneId || ''),
       slides: JSON.parse(JSON.stringify(stageStore.scenes)),
     };
-    await db.snapshots.add(snapshot);
+    next.push(snapshot);
 
     // Calculate new snapshot length
-    let snapshotLength = allKeys.length - needDeleteKeys.length + 1;
+    let snapshotLength = next.length;
 
     // Enforce snapshot length limit
     const snapshotLengthLimit = 20;
     if (snapshotLength > snapshotLengthLimit) {
-      needDeleteKeys.push(allKeys[0]);
+      next = next.slice(next.length - snapshotLengthLimit);
       snapshotLength--;
     }
 
-    // Maintain page focus after undo: set the second-to-last snapshot's index to current scene
-    // https://github.com/pipipi-pikachu/PPTist/issues/27
+    // Maintain page focus after undo
     if (snapshotLength >= 2) {
       const currentSceneIndex = stageStore.getSceneIndex(stageStore.currentSceneId || '');
-      await db.snapshots.update(allKeys[snapshotLength - 2] as number, {
-        index: currentSceneIndex,
-      });
+      next[snapshotLength - 2] = { ...next[snapshotLength - 2], index: currentSceneIndex };
     }
-
-    // Delete obsolete snapshots
-    await db.snapshots.bulkDelete(needDeleteKeys as number[]);
+    snapshotsMemory = next;
 
     set({
       snapshotCursor: snapshotLength - 1,
@@ -123,8 +116,7 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     const stageStore = useStageStore.getState();
 
     const newSnapshotCursor = snapshotCursor - 1;
-    const snapshots: Snapshot[] = await db.snapshots.orderBy('id').toArray();
-    const snapshot = snapshots[newSnapshotCursor];
+    const snapshot = snapshotsMemory[newSnapshotCursor];
     const { index, slides } = snapshot;
 
     const sceneIndex = index > slides.length - 1 ? slides.length - 1 : index;
@@ -148,8 +140,7 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     const stageStore = useStageStore.getState();
 
     const newSnapshotCursor = snapshotCursor + 1;
-    const snapshots: Snapshot[] = await db.snapshots.orderBy('id').toArray();
-    const snapshot = snapshots[newSnapshotCursor];
+    const snapshot = snapshotsMemory[newSnapshotCursor];
     const { index, slides } = snapshot;
 
     const sceneIndex = index > slides.length - 1 ? slides.length - 1 : index;

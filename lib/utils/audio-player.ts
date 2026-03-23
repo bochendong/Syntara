@@ -6,7 +6,6 @@
  *
  */
 
-import { db } from '@/lib/utils/database';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AudioPlayer');
@@ -22,7 +21,7 @@ export class AudioPlayer {
   private playbackRate: number = 1;
 
   /**
-   * Play audio (from URL or IndexedDB pre-generated cache)
+   * Play audio (from URL)
    * @param audioId Audio ID
    * @param audioUrl Optional server-generated audio URL (takes priority over IndexedDB)
    * @returns true if audio started playing, false if no audio (TTS disabled or not generated)
@@ -46,41 +45,9 @@ export class AudioPlayer {
         return true;
       }
 
-      // 2. Fall back to IndexedDB (client-generated TTS)
-      const audioRecord = await db.audioFiles.get(audioId);
-
-      if (!audioRecord) {
-        // Pre-generated audio does not exist (generation failed), skip silently
-        return false;
-      }
-
-      // Stop current playback
-      this.stop();
-
-      // Create audio element
-      this.audio = new Audio();
-
-      // Set audio source
-      const blobUrl = URL.createObjectURL(audioRecord.blob);
-      this.audio.src = blobUrl;
-      if (this.muted) this.audio.volume = 0;
-      else this.audio.volume = this.volume;
-
-      // Apply playback rate
-      this.audio.defaultPlaybackRate = this.playbackRate;
-      this.audio.playbackRate = this.playbackRate;
-
-      // Set ended callback
-      this.audio.addEventListener('ended', () => {
-        URL.revokeObjectURL(blobUrl);
-        this.onEndedCallback?.();
-      });
-
-      // Play
-      await this.audio.play();
-      // Re-apply after play() — some browsers reset during load
-      this.audio.playbackRate = this.playbackRate;
-      return true;
+      // No URL means no playable audio in server-storage mode
+      void audioId;
+      return false;
     } catch (error) {
       log.error('Failed to play audio:', error);
       throw error;
