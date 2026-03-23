@@ -18,9 +18,9 @@ export default function NotificationsPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="min-h-full w-full bg-[radial-gradient(circle_at_18%_0%,rgba(221,214,254,0.5),transparent_42%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] dark:bg-[radial-gradient(circle_at_22%_12%,rgba(91,33,182,0.2),transparent_48%),linear-gradient(180deg,#0a0f18_0%,#0f172a_100%)]">
+    <div className="min-h-full w-full apple-mesh-bg">
       <main className="mx-auto w-full max-w-3xl px-4 pb-12 pt-8 md:px-8">
-        <section className="mb-6 rounded-[28px] border border-white/60 bg-white/75 p-6 backdrop-blur-xl shadow-[0_18px_46px_rgba(15,23,42,0.1)] dark:border-white/10 dark:bg-black/25">
+        <section className="mb-6 apple-glass rounded-[28px] p-6">
           <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
             <Bell className="size-8 shrink-0 text-violet-600 dark:text-violet-400" strokeWidth={1.5} />
             通知

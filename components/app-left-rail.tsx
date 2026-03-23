@@ -24,12 +24,10 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
 
-/** 对齐 notebook-agent-sidebar `sidebarGlassStyles.js` */
+/** Apple-style glass navigation surface */
 const surfaceClass = cn(
-  'flex h-full flex-col overflow-hidden border shadow-[0_20px_50px_rgba(0,0,0,0.18)]',
-  'rounded-[20px] backdrop-blur-[18px] transition-[width,box-shadow] duration-300 ease-in-out',
-  'border-slate-900/[0.08] bg-gradient-to-b from-white/[0.94] to-[#f6f9ff]/[0.88]',
-  'dark:border-white/[0.08] dark:from-[#12151f]/90 dark:to-[#0b0d14]/[0.84]',
+  'flex h-full flex-col overflow-hidden apple-glass-heavy',
+  'rounded-[20px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
 );
 
 const scrollClass = cn(
@@ -42,11 +40,11 @@ const scrollClass = cn(
 
 function navItemClass(collapsed: boolean, active: boolean) {
   return cn(
-    'flex min-h-11 w-full items-center gap-3 rounded-[10px] py-2.5 text-left text-sm transition-all duration-200',
+    'flex min-h-11 w-full items-center gap-3 rounded-[12px] py-2.5 text-left text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
     collapsed ? 'justify-center px-2' : 'px-3',
     active
-      ? 'bg-violet-600/14 font-medium text-foreground dark:bg-violet-400/[0.18]'
-      : 'font-normal text-foreground/85 hover:-translate-y-px hover:bg-violet-600/[0.08] dark:hover:bg-white/[0.06]',
+      ? 'bg-[rgba(0,122,255,0.1)] font-medium text-[#007AFF] dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]'
+      : 'font-normal text-[#1d1d1f]/80 dark:text-white/75 hover:bg-black/[0.04] hover:translate-x-0.5 dark:hover:bg-white/[0.06]',
   );
 }
 

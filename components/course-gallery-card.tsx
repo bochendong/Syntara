@@ -344,8 +344,9 @@ export function CourseGalleryCard({
             onAction();
           }}
           className={cn(
-            'mt-5 w-full rounded-full py-2.5 text-sm font-medium text-white',
-            'bg-gradient-to-br from-[#7c5cff] to-[#21d4fd] transition-opacity hover:opacity-92',
+            'apple-btn mt-5 w-full rounded-full py-2.5 text-sm font-semibold text-white',
+            'bg-gradient-to-r from-[#007AFF] to-[#5856D6]',
+            'hover:from-[#0A84FF] hover:to-[#6360E0] hover:shadow-[0_4px_16px_rgba(0,122,255,0.35)]',
           )}
         >
           {actionLabel}

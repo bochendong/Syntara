@@ -29,7 +29,7 @@ function SettingsPageInner() {
   }, [sectionParam]);
 
   return (
-    <div className="flex min-h-full w-full flex-col bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-6 dark:from-slate-950 dark:to-slate-900 md:px-8">
+    <div className="flex min-h-full w-full flex-col apple-mesh-bg px-4 py-6 md:px-8">
       <SettingsDialog
         embedded
         open

@@ -49,9 +49,9 @@ export default function AgentTeamsPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="min-h-full w-full bg-[radial-gradient(circle_at_15%_0%,rgba(179,229,252,0.45),transparent_38%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.8),transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#edf2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0b0f16_0%,#111827_100%)]">
+    <div className="min-h-full w-full apple-mesh-bg">
       <main className="mx-auto w-full max-w-2xl px-4 pb-12 pt-8 md:px-8">
-        <section className="mb-6 rounded-[28px] border border-white/60 bg-white/70 p-6 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-black/25">
+        <section className="mb-6 apple-glass rounded-[28px] p-6">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
             AgentTeams
           </h1>
@@ -86,8 +86,8 @@ export default function AgentTeamsPage() {
                   <Link
                     href={href}
                     className={cn(
-                      'flex items-center gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm transition-colors',
-                      'hover:border-violet-200/80 hover:bg-white dark:border-white/10 dark:bg-black/20 dark:hover:border-violet-500/25 dark:hover:bg-black/30',
+                      'flex items-center gap-3 rounded-2xl apple-glass px-4 py-3 transition-all duration-300',
+                      'hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]',
                     )}
                   >
                     <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-white/5">

@@ -851,9 +851,9 @@ function GenerationPreviewContent() {
   // Still loading session from sessionStorage
   if (!sessionLoaded) {
     return (
-      <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
+      <div className="flex min-h-full w-full items-center justify-center apple-mesh-bg p-4">
         <div className="text-center text-muted-foreground">
-          <div className="size-8 border-2 border-current border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="size-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
     );
@@ -862,8 +862,8 @@ function GenerationPreviewContent() {
   // No session found
   if (!session) {
     return (
-      <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
-        <Card className="p-8 max-w-md w-full">
+      <div className="flex min-h-full w-full items-center justify-center apple-mesh-bg p-4">
+        <Card className="p-8 max-w-md w-full apple-glass rounded-[20px] border-0">
           <div className="text-center space-y-4">
             <AlertCircle className="size-12 text-muted-foreground mx-auto" />
             <h2 className="text-xl font-semibold">{t('generation.sessionNotFound')}</h2>
@@ -884,17 +884,12 @@ function GenerationPreviewContent() {
       : ALL_STEPS[0];
 
   return (
-    <div className="relative flex min-h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100 p-4 text-center dark:from-slate-950 dark:to-slate-900">
-      {/* Background Decor */}
+    <div className="relative flex min-h-full w-full flex-col items-center justify-center overflow-hidden apple-mesh-bg p-4 text-center">
+      {/* Animated Apple-style gradient orbs */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '4s' }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '6s' }}
-        />
+        <div className="animate-orb-1 absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,122,255,0.1)_0%,transparent_70%)]" />
+        <div className="animate-orb-2 absolute -bottom-32 right-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(88,86,214,0.08)_0%,transparent_70%)]" />
+        <div className="animate-orb-3 absolute top-1/2 left-1/2 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(255,55,95,0.05)_0%,transparent_70%)]" />
       </div>
 
       {/* Back button */}
@@ -916,7 +911,7 @@ function GenerationPreviewContent() {
           transition={{ duration: 0.5 }}
           className="w-full"
         >
-          <Card className="relative overflow-hidden border-muted/40 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl min-h-[400px] flex flex-col items-center justify-center p-8 md:p-12">
+          <Card className="relative overflow-hidden apple-glass min-h-[400px] flex flex-col items-center justify-center p-8 md:p-12 rounded-[24px] border-0">
             {/* Progress Dots */}
             <div className="absolute top-6 left-0 right-0 flex justify-center gap-2">
               {activeSteps.map((step, idx) => (
@@ -1118,7 +1113,7 @@ export default function GenerationPreviewPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="flex min-h-full w-full items-center justify-center apple-mesh-bg">
           <div className="animate-pulse space-y-4 text-center">
             <div className="h-8 w-48 bg-muted rounded mx-auto" />
             <div className="h-4 w-64 bg-muted rounded mx-auto" />

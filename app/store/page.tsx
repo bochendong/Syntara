@@ -94,9 +94,13 @@ export default function StorePage() {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="min-h-full w-full bg-[radial-gradient(circle_at_15%_0%,rgba(179,229,252,0.45),transparent_38%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.8),transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#edf2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0b0f16_0%,#111827_100%)]">
-      <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
-        <section className="mb-6 rounded-[28px] border border-white/60 bg-white/70 p-6 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-black/25">
+    <div className="min-h-full w-full apple-mesh-bg relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="animate-orb-2 absolute -top-40 right-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(88,86,214,0.06)_0%,transparent_70%)]" />
+        <div className="animate-orb-1 absolute bottom-0 left-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,122,255,0.05)_0%,transparent_70%)]" />
+      </div>
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
+        <section className="mb-6 apple-glass rounded-[28px] p-6">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
             笔记本商城
           </h1>

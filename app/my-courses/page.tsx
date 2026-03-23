@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Sparkles, Store } from 'lucide-react';
 import { CourseGalleryCard } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { useAuthStore } from '@/lib/store/auth';
@@ -86,98 +88,156 @@ export default function MyCoursesPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="min-h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(191,219,254,0.45),transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0a0f18_0%,#0f172a_100%)]">
-      <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
-        <section className="mb-6 rounded-[28px] border border-white/60 bg-white/75 p-6 backdrop-blur-xl shadow-[0_18px_46px_rgba(15,23,42,0.1)] dark:border-white/10 dark:bg-black/25">
+    <div className="min-h-full w-full apple-mesh-bg relative overflow-hidden">
+      {/* Animated background orbs */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="animate-orb-1 absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,122,255,0.07)_0%,transparent_70%)]" />
+        <div className="animate-orb-2 absolute bottom-0 right-1/4 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(88,86,214,0.06)_0%,transparent_70%)]" />
+      </div>
+
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
+        {/* Hero section with glass card */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="mb-8 apple-glass rounded-[28px] p-8"
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="min-w-0"
+            >
+              <h1 className="text-4xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">
                 我的课程
               </h1>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+              <p className="mt-3 text-[15px] leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
                 课程是容器；在课程下创建的生成内容会以「笔记本」形式展示，可随时继续学习。
               </p>
-            </div>
-            <Button
-              type="button"
-              onClick={openCreateDialog}
-              className="h-10 shrink-0 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:opacity-90 dark:bg-white dark:text-slate-900 sm:mt-0.5"
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
             >
-              新建课程
-            </Button>
+              <button
+                type="button"
+                onClick={openCreateDialog}
+                className="apple-btn apple-btn-primary flex h-11 shrink-0 items-center gap-2 rounded-xl px-5 text-sm sm:mt-0.5"
+              >
+                <Plus className="size-4" strokeWidth={2} />
+                新建课程
+              </button>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
+        {/* Course grid */}
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, idx) => (
-              <div
+              <motion.div
                 key={idx}
-                className="h-72 animate-pulse rounded-[26px] bg-white/60 dark:bg-white/5"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
+                className="h-72 rounded-[26px] bg-white/40 dark:bg-white/5 animate-pulse"
+                style={{ backdropFilter: 'blur(10px)' }}
               />
             ))}
           </div>
         ) : courses.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-white/20 dark:bg-white/5">
-            <p className="text-slate-600 dark:text-slate-200">你还没有课程。</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Button
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="apple-glass rounded-[28px] p-12 text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
+              className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10"
+            >
+              <Sparkles className="size-8 text-[#007AFF]" />
+            </motion.div>
+            <p className="text-lg font-medium text-[#1d1d1f] dark:text-white">你还没有课程</p>
+            <p className="mt-1 text-sm text-[#86868b]">创建你的第一个课程，开始 AI 互动学习之旅</p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button
                 type="button"
                 onClick={openCreateDialog}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:opacity-90 dark:bg-white dark:text-slate-900"
+                className="apple-btn apple-btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
               >
+                <Plus className="size-4" />
                 新建课程
-              </Button>
+              </button>
               <button
                 type="button"
                 onClick={() => router.push('/store')}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:border-white/20 dark:text-slate-200 dark:hover:bg-white/10"
+                className="apple-btn apple-btn-secondary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
               >
+                <Store className="size-4" />
                 去商城看看
               </button>
             </div>
-          </div>
+          </motion.div>
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map(({ course, notebookCount }, i) => {
-              const cardItem = {
-                id: course.id,
-                name: course.name,
-                description: course.description,
-                sceneCount: notebookCount,
-                createdAt: course.createdAt,
-                updatedAt: course.updatedAt,
-              };
-              return (
-                <CourseGalleryCard
-                  key={course.id}
-                  listIndex={i}
-                  course={cardItem}
-                  tags={course.tags.length > 0 ? course.tags : undefined}
-                  badge="我的课程"
-                  subtitle={formatDate(course.updatedAt)}
-                  secondaryLabel="课程空间"
-                  countUnit="个笔记本"
-                  actionLabel="进入课程"
-                  onAction={() => router.push(`/course/${course.id}`)}
-                  coverAvatarUrl={course.avatarUrl}
-                  onEdit={() => {
-                    setEditingCourse(course);
-                    setEditOpen(true);
-                  }}
-                  deleteDialogTitle="删除课程？"
-                  deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
-                  onDelete={() => handleDeleteCourse(course.id, course.name)}
-                />
-              );
-            })}
+            <AnimatePresence>
+              {courses.map(({ course, notebookCount }, i) => {
+                const cardItem = {
+                  id: course.id,
+                  name: course.name,
+                  description: course.description,
+                  sceneCount: notebookCount,
+                  createdAt: course.createdAt,
+                  updatedAt: course.updatedAt,
+                };
+                return (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: i * 0.08,
+                      duration: 0.5,
+                      ease: [0.25, 0.46, 0.45, 0.94],
+                    }}
+                    className="apple-card-hover"
+                  >
+                    <CourseGalleryCard
+                      listIndex={i}
+                      course={cardItem}
+                      tags={course.tags.length > 0 ? course.tags : undefined}
+                      badge="我的课程"
+                      subtitle={formatDate(course.updatedAt)}
+                      secondaryLabel="课程空间"
+                      countUnit="个笔记本"
+                      actionLabel="进入课程"
+                      onAction={() => router.push(`/course/${course.id}`)}
+                      coverAvatarUrl={course.avatarUrl}
+                      onEdit={() => {
+                        setEditingCourse(course);
+                        setEditOpen(true);
+                      }}
+                      deleteDialogTitle="删除课程？"
+                      deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
+                      onDelete={() => handleDeleteCourse(course.id, course.name)}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
       </main>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto p-6 sm:max-w-lg"
+          className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto rounded-[20px] border-0 p-6 apple-glass sm:max-w-lg"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">
@@ -208,7 +268,7 @@ export default function MyCoursesPage() {
         }}
       >
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto p-6 sm:max-w-lg"
+          className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto rounded-[20px] border-0 p-6 apple-glass sm:max-w-lg"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">

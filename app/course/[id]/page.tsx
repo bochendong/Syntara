@@ -130,7 +130,7 @@ export default function CourseDetailPage() {
 
   if (!loading && course === null) {
     return (
-      <div className="min-h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(191,219,254,0.45),transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0a0f18_0%,#0f172a_100%)]">
+      <div className="min-h-full w-full apple-mesh-bg">
         <main className="mx-auto max-w-6xl px-4 py-12 md:px-8">
           <p className="text-center text-slate-600 dark:text-slate-300">未找到该课程。</p>
           <div className="mt-6 flex justify-center">
@@ -144,20 +144,20 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(191,219,254,0.45),transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0a0f18_0%,#0f172a_100%)]">
+    <div className="min-h-full w-full apple-mesh-bg">
       <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
         {loading || !course ? (
           <div className="space-y-6">
-            <div className="h-40 animate-pulse rounded-[28px] bg-white/60 dark:bg-white/5" />
+            <div className="h-40 animate-pulse rounded-[28px] bg-white/40 dark:bg-white/5" style={{ backdropFilter: 'blur(10px)' }} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-72 animate-pulse rounded-[26px] bg-white/60 dark:bg-white/5" />
+                <div key={i} className="h-72 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5" style={{ backdropFilter: 'blur(10px)' }} />
               ))}
             </div>
           </div>
         ) : (
           <>
-            <section className="mb-6 rounded-[28px] border border-white/60 bg-white/75 p-6 backdrop-blur-xl shadow-[0_18px_46px_rgba(15,23,42,0.1)] dark:border-white/10 dark:bg-black/25">
+            <section className="mb-6 apple-glass rounded-[28px] p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="flex min-w-0 flex-1 gap-4">
                   {course.avatarUrl ? (
