@@ -10,6 +10,7 @@ import { persistGeneratedAgentsForStage, useAgentRegistry } from '@/lib/orchestr
 import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
+import { emitDebugLog } from '@/lib/debug/client-debug-log';
 
 type NotebookMetadata = {
   name: string;
@@ -400,148 +401,188 @@ export async function runNotebookGenerationTask(
 
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
-  input.onProgress?.({ stage: 'preparing', detail: '正在初始化创建任务…' });
-
-  await ensureLegacyCourseBucket();
-  const resolvedCourseId = input.courseId?.trim() || LEGACY_COURSE_ID;
-  const currentCourse = await getCourse(resolvedCourseId);
-  const courseContext: CoursePersonalizationContext | undefined = currentCourse
-    ? {
-        name: currentCourse.name,
-        description: currentCourse.description,
-        tags: currentCourse.tags,
-        purpose: currentCourse.purpose,
-        university: currentCourse.university,
-        courseCode: currentCourse.courseCode,
-        language: currentCourse.language,
-      }
-    : undefined;
-
-  let researchContext: string | undefined;
-  let researchSources: WebSearchSource[] = [];
-  if (webSearch) {
-    input.onProgress?.({ stage: 'research', detail: '正在补充联网研究资料…' });
-    const research = await maybeRunWebSearch({
-      requirement,
-      enabled: webSearch,
-      signal: input.signal,
-    });
-    researchContext = research.context;
-    researchSources = research.sources;
-    input.onProgress?.({
-      stage: 'research',
-      detail: research.sources.length > 0 ? `已整理 ${research.sources.length} 条外部资料` : '未找到可用外部资料，继续本地生成',
-      sources: research.sources,
-    });
-  }
-
-  input.onProgress?.({ stage: 'metadata', detail: '正在生成笔记本标题与简介…' });
-  const notebookMeta = await generateNotebookMetadata({
-    requirement,
-    language,
-    webSearch,
-    courseContext,
-    signal: input.signal,
-  });
-
-  const stageId = nanoid(10);
-  const stage: Stage = {
-    id: stageId,
-    courseId: resolvedCourseId,
-    avatarUrl: pickStableNotebookAgentAvatarUrl(stageId),
-    name: notebookMeta.name,
-    description: notebookMeta.description,
-    tags: notebookMeta.tags,
-    language,
-    style: 'professional',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
-  input.onProgress?.({ stage: 'agents', detail: '正在准备讲解角色…' });
-  const agents = await maybeGenerateAgents({
-    stage,
-    language,
-    courseContext,
-    signal: input.signal,
-  });
-
-  input.onProgress?.({ stage: 'outline', detail: '正在生成课程大纲…', completed: 0 });
-  const outlines = await generateOutlines({
-    requirement,
-    language,
-    researchContext,
-    agents,
-    coursePurpose: currentCourse?.purpose,
-    courseContext,
-    signal: input.signal,
-    onOutline: (count) => {
-      input.onProgress?.({
-        stage: 'outline',
-        detail: count > 0 ? `已生成 ${count} 个大纲节点…` : '正在重新整理课程结构…',
-        completed: count,
-      });
+  // #region agent log
+  emitDebugLog({
+    hypothesisId: 'D',
+    location: 'lib/create/run-notebook-generation-task.ts:402',
+    message: 'Notebook generation started',
+    data: {
+      courseId: input.courseId?.trim() || null,
+      language,
+      webSearch,
+      requirementPreview: requirement.slice(0, 80),
     },
   });
+  // #endregion
+  input.onProgress?.({ stage: 'preparing', detail: '正在初始化创建任务…' });
 
-  if (!outlines.length) throw new Error('未生成任何课程大纲');
-
-  const scenes: Scene[] = [];
-  let previousSpeeches: string[] = [];
-  const userProfile =
-    input.userNickname || input.userBio
-      ? `Student: ${input.userNickname || 'Unknown'}${input.userBio ? ` — ${input.userBio}` : ''}`
+  try {
+    await ensureLegacyCourseBucket();
+    const resolvedCourseId = input.courseId?.trim() || LEGACY_COURSE_ID;
+    const currentCourse = await getCourse(resolvedCourseId);
+    const courseContext: CoursePersonalizationContext | undefined = currentCourse
+      ? {
+          name: currentCourse.name,
+          description: currentCourse.description,
+          tags: currentCourse.tags,
+          purpose: currentCourse.purpose,
+          university: currentCourse.university,
+          courseCode: currentCourse.courseCode,
+          language: currentCourse.language,
+        }
       : undefined;
 
-  for (let i = 0; i < outlines.length; i += 1) {
-    const outline = outlines[i];
-    input.onProgress?.({
-      stage: 'scene',
-      detail: `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}`,
-      completed: i,
-      total: outlines.length,
-    });
-    const result = await generateSingleScene({
-      outline,
-      allOutlines: outlines,
-      stage,
-      agents,
-      previousSpeeches,
-      userProfile,
+    let researchContext: string | undefined;
+    let researchSources: WebSearchSource[] = [];
+    if (webSearch) {
+      input.onProgress?.({ stage: 'research', detail: '正在补充联网研究资料…' });
+      const research = await maybeRunWebSearch({
+        requirement,
+        enabled: webSearch,
+        signal: input.signal,
+      });
+      researchContext = research.context;
+      researchSources = research.sources;
+      input.onProgress?.({
+        stage: 'research',
+        detail: research.sources.length > 0 ? `已整理 ${research.sources.length} 条外部资料` : '未找到可用外部资料，继续本地生成',
+        sources: research.sources,
+      });
+    }
+
+    input.onProgress?.({ stage: 'metadata', detail: '正在生成笔记本标题与简介…' });
+    const notebookMeta = await generateNotebookMetadata({
+      requirement,
+      language,
+      webSearch,
       courseContext,
       signal: input.signal,
     });
-    scenes.push(result.scene);
-    previousSpeeches = result.previousSpeeches;
-  }
 
-  input.onProgress?.({ stage: 'saving', detail: '正在保存笔记本与页面…' });
-  await saveStageData(stage.id, {
-    stage: {
-      ...stage,
+    const stageId = nanoid(10);
+    const stage: Stage = {
+      id: stageId,
+      courseId: resolvedCourseId,
+      avatarUrl: pickStableNotebookAgentAvatarUrl(stageId),
+      name: notebookMeta.name,
+      description: notebookMeta.description,
+      tags: notebookMeta.tags,
+      language,
+      style: 'professional',
+      createdAt: Date.now(),
       updatedAt: Date.now(),
-    },
-    scenes,
-    currentSceneId: scenes[0]?.id || null,
-    chats: [],
-  });
+    };
 
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem(`stage-outlines:${stage.id}`, JSON.stringify(outlines));
+    input.onProgress?.({ stage: 'agents', detail: '正在准备讲解角色…' });
+    const agents = await maybeGenerateAgents({
+      stage,
+      language,
+      courseContext,
+      signal: input.signal,
+    });
+
+    input.onProgress?.({ stage: 'outline', detail: '正在生成课程大纲…', completed: 0 });
+    const outlines = await generateOutlines({
+      requirement,
+      language,
+      researchContext,
+      agents,
+      coursePurpose: currentCourse?.purpose,
+      courseContext,
+      signal: input.signal,
+      onOutline: (count) => {
+        input.onProgress?.({
+          stage: 'outline',
+          detail: count > 0 ? `已生成 ${count} 个大纲节点…` : '正在重新整理课程结构…',
+          completed: count,
+        });
+      },
+    });
+
+    if (!outlines.length) throw new Error('未生成任何课程大纲');
+
+    const scenes: Scene[] = [];
+    let previousSpeeches: string[] = [];
+    const userProfile =
+      input.userNickname || input.userBio
+        ? `Student: ${input.userNickname || 'Unknown'}${input.userBio ? ` — ${input.userBio}` : ''}`
+        : undefined;
+
+    for (let i = 0; i < outlines.length; i += 1) {
+      const outline = outlines[i];
+      input.onProgress?.({
+        stage: 'scene',
+        detail: `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}`,
+        completed: i,
+        total: outlines.length,
+      });
+      const result = await generateSingleScene({
+        outline,
+        allOutlines: outlines,
+        stage,
+        agents,
+        previousSpeeches,
+        userProfile,
+        courseContext,
+        signal: input.signal,
+      });
+      scenes.push(result.scene);
+      previousSpeeches = result.previousSpeeches;
+    }
+
+    input.onProgress?.({ stage: 'saving', detail: '正在保存笔记本与页面…' });
+    await saveStageData(stage.id, {
+      stage: {
+        ...stage,
+        updatedAt: Date.now(),
+      },
+      scenes,
+      currentSceneId: scenes[0]?.id || null,
+      chats: [],
+    });
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`stage-outlines:${stage.id}`, JSON.stringify(outlines));
+    }
+
+    input.onProgress?.({
+      stage: 'completed',
+      detail: `已完成，共生成 ${scenes.length} 页`,
+      notebookId: stage.id,
+      notebookName: stage.name,
+    });
+    // #region agent log
+    emitDebugLog({
+      hypothesisId: 'D',
+      location: 'lib/create/run-notebook-generation-task.ts:538',
+      message: 'Notebook generation completed',
+      data: {
+        stageId: stage.id,
+        stageName: stage.name,
+        outlineCount: outlines.length,
+        sceneCount: scenes.length,
+      },
+    });
+    // #endregion
+
+    return {
+      stage,
+      scenes,
+      outlines,
+      agents,
+      researchSources,
+    };
+  } catch (error) {
+    // #region agent log
+    emitDebugLog({
+      hypothesisId: 'D',
+      location: 'lib/create/run-notebook-generation-task.ts:551',
+      message: 'Notebook generation failed',
+      data: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    // #endregion
+    throw error;
   }
-
-  input.onProgress?.({
-    stage: 'completed',
-    detail: `已完成，共生成 ${scenes.length} 页`,
-    notebookId: stage.id,
-    notebookName: stage.name,
-  });
-
-  return {
-    stage,
-    scenes,
-    outlines,
-    agents,
-    researchSources,
-  };
 }

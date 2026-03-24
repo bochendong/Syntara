@@ -59,6 +59,7 @@ import {
 } from '@/lib/constants/course-chat';
 import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
 import { runNotebookGenerationTask } from '@/lib/create/run-notebook-generation-task';
+import { emitDebugLog } from '@/lib/debug/client-debug-log';
 
 type NotebookChatMessage =
   | {
@@ -489,6 +490,24 @@ export function ChatPageClient() {
   const isCourseOrchestrator = selectedAgent?.id === COURSE_ORCHESTRATOR_ID;
 
   const mode = notebookId ? ('notebook' as const) : agentId ? ('agent' as const) : ('none' as const);
+
+  useEffect(() => {
+    // #region agent log
+    emitDebugLog({
+      hypothesisId: 'A',
+      location: 'components/chat/chat-page-client.tsx:494',
+      message: 'Chat route resolved',
+      data: {
+        courseId: courseId || null,
+        notebookId: notebookId || null,
+        agentId: agentId || null,
+        mode,
+        selectedAgentId: selectedAgent?.id || null,
+        isCourseOrchestrator,
+      },
+    });
+    // #endregion
+  }, [agentId, courseId, isCourseOrchestrator, mode, notebookId, selectedAgent?.id]);
 
   useEffect(() => {
     if (!courseId) return;
@@ -1025,6 +1044,20 @@ export function ChatPageClient() {
   const handleSendAgent = async () => {
     const text = draft.trim();
     if (!text || !agentId || !selectedAgent || sending) return;
+    // #region agent log
+    emitDebugLog({
+      hypothesisId: 'A',
+      location: 'components/chat/chat-page-client.tsx:1043',
+      message: 'Agent send requested',
+      data: {
+        agentId,
+        selectedAgentId: selectedAgent.id,
+        mode,
+        isCourseOrchestrator,
+        textPreview: text.slice(0, 80),
+      },
+    });
+    // #endregion
     const mc = getCurrentModelConfig();
     if (!mc.isServerConfigured) {
       window.alert('系统模型尚未配置，请联系管理员。');
@@ -1068,6 +1101,25 @@ export function ChatPageClient() {
       try {
         const notebooks = courseId ? await listStagesByCourse(courseId) : [];
         const decision = decideNotebookRoute(text, notebooks);
+        // #region agent log
+        emitDebugLog({
+          hypothesisId: 'C',
+          location: 'components/chat/chat-page-client.tsx:1083',
+          message: 'Orchestrator route decision',
+          data: {
+            courseId: courseId || null,
+            notebookCount: notebooks.length,
+            decisionType: decision.type,
+            targetNotebookIds:
+              decision.type === 'single'
+                ? [decision.notebook.id]
+                : decision.type === 'multi'
+                  ? decision.notebooks.map((notebook) => notebook.id)
+                  : [],
+            textPreview: text.slice(0, 80),
+          },
+        });
+        // #endregion
 
         if (decision.type === 'create') {
           appendAgentMessage(
