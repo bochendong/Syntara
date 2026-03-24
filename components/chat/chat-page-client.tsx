@@ -59,7 +59,6 @@ import {
 } from '@/lib/constants/course-chat';
 import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
 import { runNotebookGenerationTask } from '@/lib/create/run-notebook-generation-task';
-import { emitDebugLog } from '@/lib/debug/client-debug-log';
 
 type NotebookChatMessage =
   | {
@@ -492,24 +491,6 @@ export function ChatPageClient() {
   const mode = notebookId ? ('notebook' as const) : agentId ? ('agent' as const) : ('none' as const);
 
   useEffect(() => {
-    // #region agent log
-    emitDebugLog({
-      hypothesisId: 'A',
-      location: 'components/chat/chat-page-client.tsx:494',
-      message: 'Chat route resolved',
-      data: {
-        courseId: courseId || null,
-        notebookId: notebookId || null,
-        agentId: agentId || null,
-        mode,
-        selectedAgentId: selectedAgent?.id || null,
-        isCourseOrchestrator,
-      },
-    });
-    // #endregion
-  }, [agentId, courseId, isCourseOrchestrator, mode, notebookId, selectedAgent?.id]);
-
-  useEffect(() => {
     if (!courseId) return;
     let alive = true;
     (async () => {
@@ -556,37 +537,10 @@ export function ChatPageClient() {
     let cancelled = false;
     setPickContactDone(false);
     (async () => {
-      const nbs = await listStagesByCourse(courseId);
-      const ags = await listAgentsForCourse(courseId);
+      await listStagesByCourse(courseId);
+      await listAgentsForCourse(courseId);
       if (cancelled) return;
-      const picked =
-        nbs[0]
-          ? { kind: 'notebook' as const, id: nbs[0].id }
-          : ags[0]
-            ? { kind: 'agent' as const, id: ags[0].id }
-            : { kind: 'agent' as const, id: COURSE_ORCHESTRATOR_ID };
-      // #region agent log
-      emitDebugLog({
-        hypothesisId: 'A',
-        location: 'components/chat/chat-page-client.tsx:559',
-        message: 'Default chat contact selected',
-        data: {
-          courseId,
-          notebookCount: nbs.length,
-          agentCount: ags.length,
-          pickedKind: picked.kind,
-          pickedId: picked.id,
-          pickedIsOrchestrator: picked.id === COURSE_ORCHESTRATOR_ID,
-        },
-      });
-      // #endregion
-      if (nbs[0]) {
-        router.replace(`/chat?notebook=${encodeURIComponent(nbs[0].id)}`);
-      } else if (ags[0]) {
-        router.replace(`/chat?agent=${encodeURIComponent(ags[0].id)}`);
-      } else {
-        router.replace(`/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}`);
-      }
+      router.replace(`/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}`);
       setPickContactDone(true);
     })();
     return () => {
@@ -1065,20 +1019,6 @@ export function ChatPageClient() {
   const handleSendAgent = async () => {
     const text = draft.trim();
     if (!text || !agentId || !selectedAgent || sending) return;
-    // #region agent log
-    emitDebugLog({
-      hypothesisId: 'A',
-      location: 'components/chat/chat-page-client.tsx:1043',
-      message: 'Agent send requested',
-      data: {
-        agentId,
-        selectedAgentId: selectedAgent.id,
-        mode,
-        isCourseOrchestrator,
-        textPreview: text.slice(0, 80),
-      },
-    });
-    // #endregion
     const mc = getCurrentModelConfig();
     if (!mc.isServerConfigured) {
       window.alert('系统模型尚未配置，请联系管理员。');
@@ -1105,19 +1045,6 @@ export function ChatPageClient() {
       setAgThread(nextThread);
     };
 
-    // #region agent log
-    emitDebugLog({
-      hypothesisId: 'A',
-      location: 'components/chat/chat-page-client.tsx:1087',
-      message: 'Agent branch selected',
-      data: {
-        selectedAgentId: selectedAgent.id,
-        isCourseOrchestrator,
-        nextThreadLength: nextThread.length,
-      },
-    });
-    // #endregion
-
     if (selectedAgent.id === COURSE_ORCHESTRATOR_ID) {
       let parentTaskId: string | null = null;
       if (courseId) {
@@ -1130,29 +1057,7 @@ export function ChatPageClient() {
             detail: '正在判断该需求应该走创建、单笔记本还是多笔记本协作流…',
             status: 'running',
           });
-          // #region agent log
-          emitDebugLog({
-            hypothesisId: 'E',
-            location: 'components/chat/chat-page-client.tsx:1090',
-            message: 'Orchestrator parent task created',
-            data: {
-              courseId,
-              parentTaskId,
-            },
-          });
-          // #endregion
         } catch (error) {
-          // #region agent log
-          emitDebugLog({
-            hypothesisId: 'E',
-            location: 'components/chat/chat-page-client.tsx:1090',
-            message: 'Orchestrator parent task creation failed',
-            data: {
-              courseId,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          });
-          // #endregion
           throw error;
         }
       }
@@ -1161,25 +1066,6 @@ export function ChatPageClient() {
       try {
         const notebooks = courseId ? await listStagesByCourse(courseId) : [];
         const decision = decideNotebookRoute(text, notebooks);
-        // #region agent log
-        emitDebugLog({
-          hypothesisId: 'C',
-          location: 'components/chat/chat-page-client.tsx:1083',
-          message: 'Orchestrator route decision',
-          data: {
-            courseId: courseId || null,
-            notebookCount: notebooks.length,
-            decisionType: decision.type,
-            targetNotebookIds:
-              decision.type === 'single'
-                ? [decision.notebook.id]
-                : decision.type === 'multi'
-                  ? decision.notebooks.map((notebook) => notebook.id)
-                  : [],
-            textPreview: text.slice(0, 80),
-          },
-        });
-        // #endregion
 
         if (decision.type === 'create') {
           appendAgentMessage(
@@ -1374,17 +1260,6 @@ export function ChatPageClient() {
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') return;
         const msg = e instanceof Error ? e.message : String(e);
-        // #region agent log
-        emitDebugLog({
-          hypothesisId: 'E',
-          location: 'components/chat/chat-page-client.tsx:1314',
-          message: 'Orchestrator branch failed',
-          data: {
-            parentTaskId,
-            error: msg,
-          },
-        });
-        // #endregion
         appendAgentMessage(
           buildChatMessage(`总控任务失败：${msg}`, {
             senderName: '系统',
@@ -1414,17 +1289,6 @@ export function ChatPageClient() {
     });
 
     try {
-      // #region agent log
-      emitDebugLog({
-        hypothesisId: 'B',
-        location: 'components/chat/chat-page-client.tsx:1345',
-        message: 'Generic agent SSE loop started',
-        data: {
-          agentId: selectedAgent.id,
-          isDefaultAgent: selectedAgent.id.startsWith('default-'),
-        },
-      });
-      // #endregion
       await runCourseSideChatLoop({
         initialMessages: nextThread,
         agentIds: [selectedAgent.id],

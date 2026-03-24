@@ -12,7 +12,6 @@ import type {
 } from '@/lib/types/chat';
 import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
-import { emitDebugLog } from '@/lib/debug/client-debug-log';
 
 const log = createLogger('CourseSideChat');
 
@@ -92,18 +91,6 @@ async function consumeOneResponse(
           case 'agent_start': {
             const { messageId, agentId, agentName, agentAvatar, agentColor } = event.data;
             currentMessageId = messageId;
-            // #region agent log
-            emitDebugLog({
-              hypothesisId: 'B',
-              location: 'lib/chat/run-course-side-chat-loop.ts:96',
-              message: 'SSE agent_start received',
-              data: {
-                messageId,
-                agentId,
-                agentName,
-              },
-            });
-            // #endregion
             working.push({
               id: messageId,
               role: 'assistant',
@@ -142,18 +129,6 @@ async function consumeOneResponse(
             break;
           }
           case 'done': {
-            // #region agent log
-            emitDebugLog({
-              hypothesisId: 'B',
-              location: 'lib/chat/run-course-side-chat-loop.ts:143',
-              message: 'SSE done received',
-              data: {
-                totalAgents: event.data.totalAgents,
-                agentHadContent: event.data.agentHadContent ?? null,
-                turnCount: event.data.directorState?.turnCount ?? null,
-              },
-            });
-            // #endregion
             doneData = {
               totalAgents: event.data.totalAgents,
               agentHadContent: event.data.agentHadContent,
@@ -198,7 +173,7 @@ export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Pr
 
   let directorState: DirectorState | undefined;
   let turnCount = 0;
-  let working = cloneMessages(initialMessages);
+  const working = cloneMessages(initialMessages);
   let consecutiveEmptyTurns = 0;
 
   while (turnCount < maxTurns && !signal.aborted) {

@@ -10,7 +10,6 @@ import { persistGeneratedAgentsForStage, useAgentRegistry } from '@/lib/orchestr
 import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
-import { emitDebugLog } from '@/lib/debug/client-debug-log';
 
 type NotebookMetadata = {
   name: string;
@@ -401,19 +400,6 @@ export async function runNotebookGenerationTask(
 
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
-  // #region agent log
-  emitDebugLog({
-    hypothesisId: 'D',
-    location: 'lib/create/run-notebook-generation-task.ts:402',
-    message: 'Notebook generation started',
-    data: {
-      courseId: input.courseId?.trim() || null,
-      language,
-      webSearch,
-      requirementPreview: requirement.slice(0, 80),
-    },
-  });
-  // #endregion
   input.onProgress?.({ stage: 'preparing', detail: '正在初始化创建任务…' });
 
   try {
@@ -551,20 +537,6 @@ export async function runNotebookGenerationTask(
       notebookId: stage.id,
       notebookName: stage.name,
     });
-    // #region agent log
-    emitDebugLog({
-      hypothesisId: 'D',
-      location: 'lib/create/run-notebook-generation-task.ts:538',
-      message: 'Notebook generation completed',
-      data: {
-        stageId: stage.id,
-        stageName: stage.name,
-        outlineCount: outlines.length,
-        sceneCount: scenes.length,
-      },
-    });
-    // #endregion
-
     return {
       stage,
       scenes,
@@ -573,16 +545,6 @@ export async function runNotebookGenerationTask(
       researchSources,
     };
   } catch (error) {
-    // #region agent log
-    emitDebugLog({
-      hypothesisId: 'D',
-      location: 'lib/create/run-notebook-generation-task.ts:551',
-      message: 'Notebook generation failed',
-      data: {
-        error: error instanceof Error ? error.message : String(error),
-      },
-    });
-    // #endregion
     throw error;
   }
 }
