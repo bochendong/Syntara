@@ -33,6 +33,7 @@ import type {
 import { apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 import type { CoursePurpose } from '@/lib/utils/database';
 const log = createLogger('Outlines Stream');
 
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Get API configuration from request headers
-    const { model: languageModel, modelInfo, modelString } = resolveModelFromHeaders(req);
+    const { model: languageModel, modelInfo, modelString } = await resolveModelFromHeaders(req);
 
     if (!body.requirements) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Requirements are required');
@@ -305,7 +306,12 @@ export async function POST(req: NextRequest) {
 
           for (let attempt = 1; attempt <= MAX_STREAM_RETRIES + 1; attempt++) {
             try {
-              const result = streamLLM(streamParams, 'scene-outlines-stream');
+              const result = await runWithRequestContext(
+                req,
+                '/api/generate/scene-outlines-stream',
+                () =>
+                Promise.resolve(streamLLM(streamParams, 'scene-outlines-stream')),
+              );
 
               let fullText = '';
               parsedOutlines = [];

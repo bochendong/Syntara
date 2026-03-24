@@ -7,7 +7,7 @@ const log = createLogger('Verify Model');
 
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey, baseUrl, model, providerType, requiresApiKey } = await req.json();
+    const { model } = await req.json();
 
     if (!model) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Model name is required');
@@ -16,12 +16,8 @@ export async function POST(req: NextRequest) {
     // Parse model string and resolve server-side fallback
     let languageModel;
     try {
-      const result = resolveModel({
+      const result = await resolveModel({
         modelString: model,
-        apiKey: apiKey || '',
-        baseUrl: baseUrl || undefined,
-        providerType,
-        requiresApiKey,
       });
       languageModel = result.model;
     } catch (error) {

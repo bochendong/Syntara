@@ -1,22 +1,40 @@
 'use client';
 
-function readUserIdFromPersistedAuth(): string {
-  if (typeof window === 'undefined') return '';
+type PersistedAuthState = {
+  state?: {
+    userId?: string;
+    email?: string;
+    name?: string;
+  };
+};
+
+function readAuthFromPersistedStore(): { userId: string; email: string; name: string } {
+  if (typeof window === 'undefined') return { userId: '', email: '', name: '' };
   try {
     const raw = localStorage.getItem('openmaic-auth');
-    if (!raw) return '';
-    const parsed = JSON.parse(raw) as { state?: { userId?: string } };
-    return parsed?.state?.userId?.trim() || '';
+    if (!raw) return { userId: '', email: '', name: '' };
+    const parsed = JSON.parse(raw) as PersistedAuthState;
+    return {
+      userId: parsed?.state?.userId?.trim() || '',
+      email: parsed?.state?.email?.trim().toLowerCase() || '',
+      name: parsed?.state?.name?.trim() || '',
+    };
   } catch {
-    return '';
+    return { userId: '', email: '', name: '' };
   }
 }
 
 export async function backendFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers || {});
-  const userId = readUserIdFromPersistedAuth();
-  if (userId && !headers.has('x-user-id')) {
-    headers.set('x-user-id', userId);
+  const auth = readAuthFromPersistedStore();
+  if (auth.userId && !headers.has('x-user-id')) {
+    headers.set('x-user-id', auth.userId);
+  }
+  if (auth.email && !headers.has('x-user-email')) {
+    headers.set('x-user-email', auth.email);
+  }
+  if (auth.name && !headers.has('x-user-name')) {
+    headers.set('x-user-name', auth.name);
   }
   return fetch(path, {
     credentials: 'include',

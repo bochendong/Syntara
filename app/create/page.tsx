@@ -76,6 +76,9 @@ function CreateNotebookPageInner() {
     useDraftCache<string>({ key: 'requirementDraft' });
 
   const currentModelId = useSettingsStore((s) => s.modelId);
+  const llmServerConfigured = useSettingsStore(
+    (s) => s.providersConfig?.openai?.isServerConfigured ?? false,
+  );
   const storeCourseId = useCurrentCourseStore((s) => s.id);
   const storeCourseName = useCurrentCourseStore((s) => s.name);
 
@@ -193,11 +196,11 @@ function CreateNotebookPageInner() {
 
   const handleGenerate = async () => {
     // Validate setup before proceeding
-    if (!currentModelId) {
+    if (!currentModelId || !llmServerConfigured) {
       showSetupToast(
         <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
-        t('settings.modelNotConfigured'),
-        t('settings.setupNeeded'),
+        '系统模型未配置',
+        '请联系管理员在后台配置系统 OpenAI Key 后再生成内容。',
       );
       openSettings();
       return;

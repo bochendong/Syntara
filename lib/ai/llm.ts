@@ -10,6 +10,8 @@ import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
 import type { ProviderType, ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
+import { getRequestContext } from '@/lib/server/request-context';
+import { recordLLMUsage } from '@/lib/server/llm-usage';
 const log = createLogger('LLM');
 
 // Re-export for external use
@@ -37,6 +39,49 @@ function getModelId(params: GenerateTextParams | StreamTextParams): string {
   if (typeof m === 'string') return m;
   if (m && typeof m === 'object' && 'modelId' in m) return (m as { modelId: string }).modelId;
   return 'unknown';
+}
+
+function inferProviderId(modelId: string): string {
+  for (const provider of Object.values(PROVIDERS)) {
+    if (provider.models.some((model) => model.id === modelId)) {
+      return provider.id;
+    }
+  }
+  return 'openai';
+}
+
+async function persistUsage(
+  source: string,
+  params: GenerateTextParams | StreamTextParams,
+  usage: {
+    inputTokens?: number;
+    outputTokens?: number;
+  },
+): Promise<void> {
+  const requestContext = getRequestContext();
+  const modelId = getModelId(params);
+  const providerId = inferProviderId(modelId);
+  const inputTokens = usage.inputTokens ?? 0;
+  const outputTokens = usage.outputTokens ?? 0;
+  const totalTokens = inputTokens + outputTokens;
+
+  if (totalTokens <= 0) {
+    return;
+  }
+
+  await recordLLMUsage({
+    userId: requestContext?.userId,
+    userEmail: requestContext?.userEmail,
+    userName: requestContext?.userName,
+    route: requestContext?.route || 'unknown',
+    source,
+    providerId,
+    modelId,
+    modelString: `${providerId}:${modelId}`,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +353,7 @@ export async function callLLM<T extends GenerateTextParams>(
       const result = await thinkingContext.run(effectiveThinking, () =>
         generateText(injectedParams),
       );
+      await persistUsage(source, injectedParams, result.usage);
 
       // Validate result (only when retries are configured)
       if (validate && !validate(result.text)) {
@@ -352,7 +398,14 @@ export function streamLLM<T extends StreamTextParams>(
   // Resolve effective thinking config and wrap in thinkingContext
   const effectiveThinking = thinking ?? getGlobalThinkingConfig();
   const injectedParams = injectProviderOptions(params, effectiveThinking);
-  const result = thinkingContext.run(effectiveThinking, () => streamText(injectedParams));
+  const result = thinkingContext.run(effectiveThinking, () =>
+    streamText({
+      ...injectedParams,
+      onFinish: async ({ totalUsage }) => {
+        await persistUsage(source, injectedParams, totalUsage);
+      },
+    }),
+  );
 
   return result;
 }

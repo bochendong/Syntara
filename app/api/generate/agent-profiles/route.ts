@@ -11,6 +11,7 @@ import { callLLM } from '@/lib/ai/llm';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 
 const log = createLogger('Agent Profiles API');
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Model resolution from request headers ──
-    const { model: languageModel, modelString } = resolveModelFromHeaders(req);
+    const { model: languageModel, modelString } = await resolveModelFromHeaders(req);
 
     // ── Build prompt ──
     const sceneSummary = sceneOutlines?.length
@@ -129,13 +130,15 @@ Return a JSON object with this exact structure:
 
     log.info(`Generating agent profiles for "${stageInfo.name}" [model=${modelString}]`);
 
-    const result = await callLLM(
-      {
-        model: languageModel,
-        system: systemPrompt,
-        prompt: userPrompt,
-      },
-      'agent-profiles',
+    const result = await runWithRequestContext(req, '/api/generate/agent-profiles', () =>
+      callLLM(
+        {
+          model: languageModel,
+          system: systemPrompt,
+          prompt: userPrompt,
+        },
+        'agent-profiles',
+      ),
     );
 
     // ── Parse LLM response ──

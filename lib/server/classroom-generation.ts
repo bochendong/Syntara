@@ -16,9 +16,9 @@ import type { AgentInfo } from '@/lib/generation/pipeline-types';
 import { formatTeacherPersonaForPrompt } from '@/lib/generation/prompt-formatters';
 import { getDefaultAgents } from '@/lib/orchestration/registry/store';
 import { createLogger } from '@/lib/logger';
-import { parseModelString } from '@/lib/ai/providers';
-import { resolveApiKey, resolveWebSearchApiKey } from '@/lib/server/provider-config';
+import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModel } from '@/lib/server/resolve-model';
+import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
 import { persistClassroom } from '@/lib/server/classroom-storage';
 import {
@@ -175,16 +175,14 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  const { model: languageModel, modelInfo, modelString } = resolveModel({});
+  const { model: languageModel, modelInfo, modelString } = await resolveModel({});
   log.info(`Using server-configured model: ${modelString}`);
 
-  // Fail fast if the resolved provider has no API key configured
-  const { providerId } = parseModelString(modelString);
-  const apiKey = resolveApiKey(providerId);
+  // Fail fast if the resolved system model has no API key configured
+  const apiKey = (await getSystemLLMRuntimeConfig()).apiKey;
   if (!apiKey) {
     throw new Error(
-      `No API key configured for provider "${providerId}". ` +
-        `Set the appropriate key in .env.local or server-providers.yml (e.g. ${providerId.toUpperCase()}_API_KEY).`,
+      'No system OpenAI API key configured. Configure it in the admin console or OPENAI_API_KEY.',
     );
   }
 

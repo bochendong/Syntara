@@ -11,6 +11,7 @@ import type {
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import type { CoursePurpose } from '@/lib/utils/database';
+import { runWithRequestContext } from '@/lib/server/request-context';
 
 const log = createLogger('NotebookSendMessage');
 
@@ -111,60 +112,65 @@ function buildPurposePolicy(purpose: CoursePurpose | undefined) {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = (await req.json()) as SendNotebookMessageRequest;
-    if (!body?.message?.trim()) {
-      return apiError('MISSING_REQUIRED_FIELD', 400, 'message is required');
-    }
-    if (!body?.notebook?.id || !Array.isArray(body?.notebook?.scenes)) {
-      return apiError('MISSING_REQUIRED_FIELD', 400, 'notebook.id and notebook.scenes are required');
-    }
-
-    const allowWrite = body.options?.allowWrite !== false;
-    const purpose = body.course?.purpose;
-    const purposePolicy = buildPurposePolicy(purpose);
-    const { model, modelString } = resolveModelFromHeaders(req);
-
-    let webSearchContext = '';
-    let webSearchUsed = false;
-    const mayNeedPrerequisiteSearch =
-      purpose === 'university' &&
-      /作业|考试|quiz|homework|exam|期末|期中|习题/i.test(body.message);
-    if (body.options?.preferWebSearch && mayNeedPrerequisiteSearch) {
-      try {
-        const apiKey = resolveWebSearchApiKey(body.options.webSearchApiKey);
-        if (apiKey) {
-          const q = `${body.course?.name || body.notebook.name} ${body.message} prerequisite syllabus`;
-          const ws = await searchWithTavily({ query: q, apiKey });
-          webSearchContext = formatSearchResultsAsContext(ws);
-          webSearchUsed = true;
-        }
-      } catch (e) {
-        log.warn('Prerequisite web search failed:', e);
+  return runWithRequestContext(req, '/api/notebooks/send-message', async () => {
+    try {
+      const body = (await req.json()) as SendNotebookMessageRequest;
+      if (!body?.message?.trim()) {
+        return apiError('MISSING_REQUIRED_FIELD', 400, 'message is required');
       }
-    }
+      if (!body?.notebook?.id || !Array.isArray(body?.notebook?.scenes)) {
+        return apiError(
+          'MISSING_REQUIRED_FIELD',
+          400,
+          'notebook.id and notebook.scenes are required',
+        );
+      }
 
-    const systemPrompt =
-      'You are a notebook copilot. Return ONLY strict JSON. No markdown, no prose outside JSON.';
-    const conversationContext = (body.conversation || [])
-      .slice(-12)
-      .map((m, idx) => {
-        const role = m.role === 'assistant' ? 'assistant' : 'user';
-        const content = String(m.content || '').replace(/\s+/g, ' ').trim().slice(0, 800);
-        return `  ${idx + 1}. [${role}] ${content}`;
-      })
-      .join('\n');
-    const attachmentContext = (body.attachments || [])
-      .slice(-6)
-      .map((a, idx) => {
-        const line1 = `  ${idx + 1}. ${a.name} (${a.mimeType}, ${a.size} bytes)`;
-        const line2 = a.textExcerpt
-          ? `     excerpt: ${String(a.textExcerpt).replace(/\s+/g, ' ').trim().slice(0, 800)}`
-          : '     excerpt: N/A';
-        return `${line1}\n${line2}`;
-      })
-      .join('\n');
-    const userPrompt = `User message:
+      const allowWrite = body.options?.allowWrite !== false;
+      const purpose = body.course?.purpose;
+      const purposePolicy = buildPurposePolicy(purpose);
+      const { model, modelString } = await resolveModelFromHeaders(req);
+
+      let webSearchContext = '';
+      let webSearchUsed = false;
+      const mayNeedPrerequisiteSearch =
+        purpose === 'university' &&
+        /作业|考试|quiz|homework|exam|期末|期中|习题/i.test(body.message);
+      if (body.options?.preferWebSearch && mayNeedPrerequisiteSearch) {
+        try {
+          const apiKey = resolveWebSearchApiKey(body.options.webSearchApiKey);
+          if (apiKey) {
+            const q = `${body.course?.name || body.notebook.name} ${body.message} prerequisite syllabus`;
+            const ws = await searchWithTavily({ query: q, apiKey });
+            webSearchContext = formatSearchResultsAsContext(ws);
+            webSearchUsed = true;
+          }
+        } catch (e) {
+          log.warn('Prerequisite web search failed:', e);
+        }
+      }
+
+      const systemPrompt =
+        'You are a notebook copilot. Return ONLY strict JSON. No markdown, no prose outside JSON.';
+      const conversationContext = (body.conversation || [])
+        .slice(-12)
+        .map((m, idx) => {
+          const role = m.role === 'assistant' ? 'assistant' : 'user';
+          const content = String(m.content || '').replace(/\s+/g, ' ').trim().slice(0, 800);
+          return `  ${idx + 1}. [${role}] ${content}`;
+        })
+        .join('\n');
+      const attachmentContext = (body.attachments || [])
+        .slice(-6)
+        .map((a, idx) => {
+          const line1 = `  ${idx + 1}. ${a.name} (${a.mimeType}, ${a.size} bytes)`;
+          const line2 = a.textExcerpt
+            ? `     excerpt: ${String(a.textExcerpt).replace(/\s+/g, ' ').trim().slice(0, 800)}`
+            : '     excerpt: N/A';
+          return `${line1}\n${line2}`;
+        })
+        .join('\n');
+      const userPrompt = `User message:
 ${body.message}
 
 Notebook:
@@ -219,39 +225,44 @@ Rules:
 - keep answer short and practical.
 `;
 
-    log.info(`Notebook send-message [model=${modelString}]`);
-    const llm = await callLLM(
-      {
-        model,
-        system: systemPrompt,
-        prompt: userPrompt,
-      },
-      'notebook-send-message',
-    );
+      log.info(`Notebook send-message [model=${modelString}]`);
+      const llm = await callLLM(
+        {
+          model,
+          system: systemPrompt,
+          prompt: userPrompt,
+        },
+        'notebook-send-message',
+      );
 
-    let parsedRaw: unknown;
-    try {
-      parsedRaw = JSON.parse(stripCodeFences(llm.text));
-    } catch {
-      return apiError('PARSE_FAILED', 500, 'Failed to parse notebook send-message result');
+      let parsedRaw: unknown;
+      try {
+        parsedRaw = JSON.parse(stripCodeFences(llm.text));
+      } catch {
+        return apiError('PARSE_FAILED', 500, 'Failed to parse notebook send-message result');
+      }
+
+      const plan = sanitizePlan(parsedRaw);
+      const response: SendNotebookMessageResponse = {
+        ...plan,
+        operations: allowWrite
+          ? plan.operations
+          : {
+              insert: [],
+              update: [],
+              delete: [],
+            },
+        webSearchUsed,
+        prerequisiteHints: webSearchUsed ? ['used_web_search_for_prerequisites'] : [],
+      };
+      return apiSuccess(response);
+    } catch (error) {
+      log.error('send-message route error:', error);
+      return apiError(
+        'INTERNAL_ERROR',
+        500,
+        error instanceof Error ? error.message : String(error),
+      );
     }
-
-    const plan = sanitizePlan(parsedRaw);
-    const response: SendNotebookMessageResponse = {
-      ...plan,
-      operations: allowWrite
-        ? plan.operations
-        : {
-            insert: [],
-            update: [],
-            delete: [],
-          },
-      webSearchUsed,
-      prerequisiteHints: webSearchUsed ? ['used_web_search_for_prerequisites'] : [],
-    };
-    return apiSuccess(response);
-  } catch (error) {
-    log.error('send-message route error:', error);
-    return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));
-  }
+  });
 }

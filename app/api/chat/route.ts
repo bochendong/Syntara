@@ -19,6 +19,7 @@ import type { ThinkingConfig } from '@/lib/types/provider';
 import { apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 import { resolveModel } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 const log = createLogger('Chat API');
 
 // Allow streaming responses up to 60 seconds
@@ -59,17 +60,7 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Missing required field: config.agentIds');
     }
 
-    const { model: languageModel } = resolveModel({
-      modelString: body.model,
-      apiKey: body.apiKey,
-      baseUrl: body.baseUrl,
-      providerType: body.providerType,
-      requiresApiKey: body.requiresApiKey,
-    });
-
-    if (!body.baseUrl && !body.apiKey && body.requiresApiKey !== false) {
-      return apiError('MISSING_API_KEY', 401, 'API Key is required');
-    }
+    const { model: languageModel } = await resolveModel({});
 
     log.info('Processing request');
     log.info(
@@ -109,14 +100,21 @@ export async function POST(req: NextRequest) {
       try {
         startHeartbeat();
 
-        const generator = statelessGenerate(
-          {
-            ...body,
-            apiKey: body.apiKey,
-          },
-          signal,
-          languageModel,
-          { enabled: false } satisfies ThinkingConfig,
+        const generator = await runWithRequestContext(req, '/api/chat', async () =>
+          Promise.resolve(
+            statelessGenerate(
+              {
+                ...body,
+                apiKey: '',
+                baseUrl: undefined,
+                providerType: undefined,
+                requiresApiKey: false,
+              },
+              signal,
+              languageModel,
+              { enabled: false } satisfies ThinkingConfig,
+            ),
+          ),
         );
 
         for await (const event of generator) {

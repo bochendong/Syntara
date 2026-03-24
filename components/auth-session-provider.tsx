@@ -18,6 +18,7 @@ function AuthSessionSync() {
         userId: session.user.id,
         name: session.user.name?.trim() ?? '',
         email: session.user.email?.trim().toLowerCase() ?? '',
+        role: session.user.role ?? 'USER',
       });
     } else if (status === 'unauthenticated' && authMode === 'oauth') {
       logout();

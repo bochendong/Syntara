@@ -10,10 +10,16 @@ interface AuthState {
   userId: string;
   name: string;
   email: string;
+  role: 'USER' | 'ADMIN';
   /** oauth：NextAuth 会话；local：昵称+邮箱演示登录 */
   authMode: AuthMode;
   login: (payload: { name: string; email: string }) => void;
-  syncFromOAuth: (payload: { userId: string; name: string; email: string }) => void;
+  syncFromOAuth: (payload: {
+    userId: string;
+    name: string;
+    email: string;
+    role?: 'USER' | 'ADMIN';
+  }) => void;
   logout: () => void;
 }
 
@@ -31,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
       userId: '',
       name: '',
       email: '',
+      role: 'USER',
       authMode: 'none',
       login: ({ name, email }) =>
         set({
@@ -38,14 +45,16 @@ export const useAuthStore = create<AuthState>()(
           userId: buildUserId(email),
           name: name.trim(),
           email: email.trim().toLowerCase(),
+          role: 'USER',
           authMode: 'local',
         }),
-      syncFromOAuth: ({ userId, name, email }) =>
+      syncFromOAuth: ({ userId, name, email, role }) =>
         set({
           isLoggedIn: true,
           userId: userId.trim(),
           name: name.trim(),
           email: email.trim().toLowerCase(),
+          role: role ?? 'USER',
           authMode: 'oauth',
         }),
       logout: () =>
@@ -54,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
           userId: '',
           name: '',
           email: '',
+          role: 'USER',
           authMode: 'none',
         }),
     }),
@@ -68,6 +78,7 @@ export const useAuthStore = create<AuthState>()(
             userId: p.userId ?? '',
             name: p.name ?? '',
             email: p.email ?? '',
+            role: p.role ?? 'USER',
             authMode: p.authMode ?? (p.isLoggedIn ? 'local' : 'none'),
           };
         }
@@ -78,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
         userId: s.userId,
         name: s.name,
         email: s.email,
+        role: s.role,
         authMode: s.authMode,
       }),
     },

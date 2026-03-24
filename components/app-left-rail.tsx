@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import {
+  Shield,
   Bell,
   BookOpen,
   ChevronLeft,
@@ -72,6 +73,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const authName = useAuthStore((s) => s.name);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const logout = useAuthStore((s) => s.logout);
+  const role = useAuthStore((s) => s.role);
 
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseName = useCurrentCourseStore((s) => s.name);
@@ -174,6 +176,18 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
             label: '通知',
             icon: Bell,
             active: pathname === '/notifications' || pathname?.startsWith('/notifications/'),
+          },
+        ] satisfies CoreNavItem[])
+      : []),
+    ...(role === 'ADMIN'
+      ? ([
+          {
+            key: 'admin-llm',
+            href: '/admin/llm',
+            label: '系统模型',
+            tooltip: '系统 OpenAI 配置',
+            icon: Shield,
+            active: pathname === '/admin/llm' || pathname?.startsWith('/admin/llm/'),
           },
         ] satisfies CoreNavItem[])
       : []),

@@ -11,6 +11,7 @@ import type { PBLAgent, PBLIssue } from '@/lib/pbl/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 const log = createLogger('PBL Chat');
 
 interface PBLChatRequest {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get model config from headers
-    const { model } = resolveModelFromHeaders(req);
+    const { model } = await resolveModelFromHeaders(req);
 
     // Build context for the agent, differentiating question vs judge
     let issueContext = '';
@@ -57,13 +58,15 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `${agent.system_prompt}${issueContext}${recentContext}${userRole ? `\n\nThe student's role is: ${userRole}` : ''}`;
 
-    const result = await callLLM(
-      {
-        model,
-        system: systemPrompt,
-        prompt: message,
-      },
-      'pbl-chat',
+    const result = await runWithRequestContext(req, '/api/pbl/chat', () =>
+        callLLM(
+          {
+            model,
+            system: systemPrompt,
+            prompt: message,
+          },
+          'pbl-chat',
+        ),
     );
 
     return apiSuccess({ message: result.text, agentName: agent.name });

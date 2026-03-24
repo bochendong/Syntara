@@ -9,13 +9,23 @@ import {
 } from '@/lib/server/provider-config';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
+import { getSystemLLMConfigView } from '@/lib/server/system-llm-config';
 
 const log = createLogger('ServerProviders');
 
 export async function GET() {
   try {
+    const systemLLM = await getSystemLLMConfigView();
+    const providers = getServerProviders();
     return apiSuccess({
-      providers: getServerProviders(),
+      providers: {
+        ...providers,
+        openai: {
+          ...(providers.openai || {}),
+          models: [systemLLM.modelId],
+          baseUrl: systemLLM.baseUrl,
+        },
+      },
       tts: getServerTTSProviders(),
       asr: getServerASRProviders(),
       pdf: getServerPDFProviders(),

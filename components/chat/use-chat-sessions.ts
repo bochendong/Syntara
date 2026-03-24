@@ -895,13 +895,9 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
 
       // Validate model configuration before sending
       const modelConfig = getCurrentModelConfig();
-      if (!modelConfig.modelId) {
-        toast.error(t('settings.modelNotConfigured'));
-        return;
-      }
-      if (modelConfig.requiresApiKey && !modelConfig.apiKey && !modelConfig.isServerConfigured) {
+      if (!modelConfig.isServerConfigured) {
         toast.error(t('settings.setupNeeded'), {
-          description: t('settings.apiKeyDesc'),
+          description: '系统 OpenAI 模型尚未配置，请联系管理员。',
         });
         return;
       }
@@ -1091,13 +1087,9 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
 
       // Validate model configuration before starting discussion
       const modelConfig = getCurrentModelConfig();
-      if (!modelConfig.modelId) {
-        toast.error(t('settings.modelNotConfigured'));
-        return;
-      }
-      if (modelConfig.requiresApiKey && !modelConfig.apiKey && !modelConfig.isServerConfigured) {
+      if (!modelConfig.isServerConfigured) {
         toast.error(t('settings.setupNeeded'), {
-          description: t('settings.apiKeyDesc'),
+          description: '系统 OpenAI 模型尚未配置，请联系管理员。',
         });
         return;
       }

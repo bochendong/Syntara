@@ -3,6 +3,7 @@ import { callLLM } from '@/lib/ai/llm';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 
 const log = createLogger('Notebook Metadata API');
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'requirements.requirement is required');
     }
 
-    const { model, modelString } = resolveModelFromHeaders(req);
+    const { model, modelString } = await resolveModelFromHeaders(req);
     const pdfHint = pdfText ? pdfText.slice(0, 4000) : '';
 
     const systemPrompt =
@@ -120,13 +121,15 @@ Rules:
 - Must align with requirement; do not invent unrelated scope`;
 
     log.info(`Generating notebook metadata [model=${modelString}]`);
-    const result = await callLLM(
-      {
-        model,
-        system: systemPrompt,
-        prompt: userPrompt,
-      },
-      'notebook-metadata',
+    const result = await runWithRequestContext(req, '/api/generate/notebook-metadata', () =>
+      callLLM(
+        {
+          model,
+          system: systemPrompt,
+          prompt: userPrompt,
+        },
+        'notebook-metadata',
+      ),
     );
 
     let parsed: ParsedMeta;

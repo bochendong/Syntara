@@ -27,6 +27,7 @@ import type { SpeechAction } from '@/lib/types/action';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 
 const log = createLogger('Scene Actions API');
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Model resolution from request headers ──
-    const { model: languageModel, modelInfo, modelString } = resolveModelFromHeaders(req);
+    const { model: languageModel, modelInfo, modelString } = await resolveModelFromHeaders(req);
 
     // Detect vision capability
     const hasVision = !!modelInfo?.capabilities?.vision;
@@ -89,30 +90,34 @@ export async function POST(req: NextRequest) {
       images?: Array<{ id: string; src: string }>,
     ): Promise<string> => {
       if (images?.length && hasVision) {
-        const result = await callLLM(
-          {
-            model: languageModel,
-            system: systemPrompt,
-            messages: [
-              {
-                role: 'user' as const,
-                content: buildVisionUserContent(userPrompt, images),
-              },
-            ],
-            maxOutputTokens: modelInfo?.outputWindow,
-          },
-          'scene-actions',
+        const result = await runWithRequestContext(req, '/api/generate/scene-actions', () =>
+          callLLM(
+            {
+              model: languageModel,
+              system: systemPrompt,
+              messages: [
+                {
+                  role: 'user' as const,
+                  content: buildVisionUserContent(userPrompt, images),
+                },
+              ],
+              maxOutputTokens: modelInfo?.outputWindow,
+            },
+            'scene-actions',
+          ),
         );
         return result.text;
       }
-      const result = await callLLM(
-        {
-          model: languageModel,
-          system: systemPrompt,
-          prompt: userPrompt,
-          maxOutputTokens: modelInfo?.outputWindow,
-        },
-        'scene-actions',
+      const result = await runWithRequestContext(req, '/api/generate/scene-actions', () =>
+        callLLM(
+          {
+            model: languageModel,
+            system: systemPrompt,
+            prompt: userPrompt,
+            maxOutputTokens: modelInfo?.outputWindow,
+          },
+          'scene-actions',
+        ),
       );
       return result.text;
     };

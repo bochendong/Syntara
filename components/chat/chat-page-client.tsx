@@ -575,8 +575,8 @@ export function ChatPageClient() {
     const text = draft.trim();
     if (!text || !notebookId || sending) return;
     const mc = getCurrentModelConfig();
-    if (!mc.apiKey?.trim() && !mc.isServerConfigured) {
-      window.alert('请先在设置中配置 API Key，或使用已配置的服务端模型。');
+    if (!mc.isServerConfigured) {
+      window.alert('系统模型尚未配置，请联系管理员。');
       return;
     }
 
@@ -662,8 +662,8 @@ export function ChatPageClient() {
     const text = draft.trim();
     if (!text || !agentId || !selectedAgent || sending) return;
     const mc = getCurrentModelConfig();
-    if (!mc.apiKey?.trim() && !mc.isServerConfigured) {
-      window.alert('请先在设置中配置 API Key，或使用已配置的服务端模型。');
+    if (!mc.isServerConfigured) {
+      window.alert('系统模型尚未配置，请联系管理员。');
       return;
     }
 

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import GitHubProvider from 'next-auth/providers/github';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from '@/lib/server/prisma';
+import { isDatabaseAvailable, getOptionalPrisma } from '@/lib/server/prisma-safe';
 
 function buildProviders() {
   const providers = [];
@@ -33,17 +33,20 @@ function buildProviders() {
   return providers;
 }
 
+const prismaClient = getOptionalPrisma();
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  ...(isDatabaseAvailable() && prismaClient ? { adapter: PrismaAdapter(prismaClient) } : {}),
   secret: process.env.NEXTAUTH_SECRET,
   providers: buildProviders(),
   session: {
-    strategy: 'database',
+    strategy: isDatabaseAvailable() ? 'database' : 'jwt',
   },
   callbacks: {
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        session.user.role = (user as { role?: 'USER' | 'ADMIN' }).role || 'USER';
       }
       return session;
     },

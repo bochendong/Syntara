@@ -10,6 +10,7 @@ import { callLLM } from '@/lib/ai/llm';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { runWithRequestContext } from '@/lib/server/request-context';
 const log = createLogger('Quiz Grade');
 
 interface GradeRequest {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve model from request headers
-    const { model: languageModel } = resolveModelFromHeaders(req);
+    const { model: languageModel } = await resolveModelFromHeaders(req);
 
     const isZh = language === 'zh-CN';
 
@@ -55,13 +56,15 @@ ${commentPrompt ? `评分要点：${commentPrompt}\n` : ''}学生答案：${user
 Full marks: ${points} points
 ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${userAnswer}`;
 
-    const result = await callLLM(
-      {
-        model: languageModel,
-        system: systemPrompt,
-        prompt: userPrompt,
-      },
-      'quiz-grade',
+    const result = await runWithRequestContext(req, '/api/quiz-grade', () =>
+      callLLM(
+        {
+          model: languageModel,
+          system: systemPrompt,
+          prompt: userPrompt,
+        },
+        'quiz-grade',
+      ),
     );
 
     // Parse the LLM response as JSON

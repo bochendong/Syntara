@@ -14,10 +14,10 @@ export function getCurrentModelConfig() {
     providerId,
     modelId,
     modelString,
-    apiKey: providerConfig?.apiKey || '',
-    baseUrl: providerConfig?.baseUrl || '',
-    providerType: providerConfig?.type,
-    requiresApiKey: providerConfig?.requiresApiKey,
-    isServerConfigured: providerConfig?.isServerConfigured,
+    apiKey: '',
+    baseUrl: '',
+    providerType: 'openai' as const,
+    requiresApiKey: false,
+    isServerConfigured: providerConfig?.isServerConfigured ?? true,
   };
 }
