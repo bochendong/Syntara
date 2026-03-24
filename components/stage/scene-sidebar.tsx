@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   PanelLeftClose,
+  PanelLeftOpen,
   PieChart,
   Cpu,
   MousePointer2,
@@ -96,7 +97,9 @@ export function SceneSidebar({
     return icons[type] || BookOpen;
   };
 
-  const displayWidth = collapsed ? 0 : sidebarWidth;
+  /** 收起时保留一条可点击区域，避免播放模式下底部工具栏隐藏后无法再打幻灯片列表 */
+  const STRIP_W = 44;
+  const displayWidth = collapsed ? STRIP_W : sidebarWidth;
 
   return (
     <div
@@ -104,24 +107,42 @@ export function SceneSidebar({
         width: displayWidth,
         transition: isDraggingRef.current ? 'none' : 'width 0.3s ease',
       }}
-      className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-100 dark:border-gray-800 shadow-[2px_0_24px_rgba(0,0,0,0.02)] flex flex-col shrink-0 z-20 relative overflow-visible"
+      className={cn(
+        'apple-glass relative z-20 flex shrink-0 flex-col overflow-hidden rounded-[20px]',
+        'shadow-[0_8px_32px_rgba(0,0,0,0.07),0_2px_8px_rgba(0,0,0,0.04)]',
+        'dark:shadow-[0_10px_40px_rgba(0,0,0,0.35),0_2px_10px_rgba(0,0,0,0.2)]',
+      )}
     >
+      {collapsed ? (
+        <div className="flex h-full min-h-0 w-full flex-col items-center bg-white/50 py-3 backdrop-blur-md dark:bg-[#0d0d10]/35">
+          <button
+            type="button"
+            onClick={() => onCollapseChange(false)}
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl text-[#007AFF] transition-colors hover:bg-[rgba(0,122,255,0.1)] dark:text-[#0A84FF] dark:hover:bg-[rgba(10,132,255,0.15)]"
+            aria-label={t('stage.openSceneList')}
+            title={t('stage.openSceneList')}
+          >
+            <PanelLeftOpen className="size-5" strokeWidth={1.75} />
+          </button>
+        </div>
+      ) : null}
+
       {/* Drag handle */}
       {!collapsed && (
         <div
           onMouseDown={handleDragStart}
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-50 group hover:bg-purple-400/30 dark:hover:bg-purple-600/30 active:bg-purple-500/40 dark:active:bg-purple-500/40 transition-colors"
+          className="group absolute bottom-0 right-0 top-0 z-50 w-1.5 cursor-col-resize transition-colors hover:bg-[#007AFF]/20 active:bg-[#007AFF]/30 dark:hover:bg-[#0A84FF]/25 dark:active:bg-[#0A84FF]/35"
         >
-          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-0.5 h-8 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-400 dark:group-hover:bg-purple-500 transition-colors" />
+          <div className="absolute right-0.5 top-1/2 h-8 w-0.5 -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-[#007AFF] dark:bg-slate-600 dark:group-hover:bg-[#0A84FF]" />
         </div>
       )}
 
-      <div className={cn('flex flex-col w-full h-full overflow-hidden', collapsed && 'hidden')}>
-        <div className="h-10 flex items-center justify-end shrink-0 relative mt-3 mb-1 px-3">
+      <div className={cn('flex h-full w-full min-h-0 flex-col overflow-hidden', collapsed && 'hidden')}>
+        <div className="relative mb-1 mt-3 flex h-10 shrink-0 items-center justify-start px-3">
           <button
             type="button"
             onClick={() => onCollapseChange(true)}
-            className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center bg-gray-100/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:bg-gray-200/90 dark:hover:bg-gray-700/90 hover:text-gray-700 dark:hover:text-gray-200 active:scale-90 transition-all duration-200"
+            className="flex size-7 shrink-0 items-center justify-center rounded-[10px] border border-slate-900/[0.1] bg-white/70 text-[#86868b] transition-all duration-200 hover:bg-black/[0.04] hover:text-[#1d1d1f] active:scale-90 dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-[#a1a1a6] dark:hover:bg-white/[0.1] dark:hover:text-white"
             aria-label="Collapse sidebar"
           >
             <PanelLeftClose className="w-4 h-4" />
@@ -139,6 +160,10 @@ export function SceneSidebar({
             return (
               <div
                 key={scene.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${index + 1}. ${scene.title}`}
+                aria-current={isActive ? 'true' : undefined}
                 onClick={() => {
                   if (onSceneSelect) {
                     onSceneSelect(scene.id);
@@ -146,41 +171,33 @@ export function SceneSidebar({
                     setCurrentSceneId(scene.id);
                   }
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (onSceneSelect) onSceneSelect(scene.id);
+                    else setCurrentSceneId(scene.id);
+                  }
+                }}
                 className={cn(
-                  'group relative rounded-lg transition-all duration-200 cursor-pointer flex flex-col gap-1 p-1.5',
+                  'group relative flex cursor-pointer flex-col rounded-[12px] p-1 transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
                   isActive
-                    ? 'bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-700'
-                    : 'hover:bg-gray-50/80 dark:hover:bg-gray-800/50',
+                    ? 'bg-[rgba(0,122,255,0.1)] ring-1 ring-[rgba(0,122,255,0.22)] dark:bg-[rgba(10,132,255,0.14)] dark:ring-[rgba(10,132,255,0.35)]'
+                    : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
                 )}
               >
-                {/* Scene Header */}
-                <div className="flex justify-between items-center px-2 pt-0.5">
-                  <div className="flex items-center gap-2 max-w-full">
-                    <span
-                      className={cn(
-                        'text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shrink-0',
-                        isActive
-                          ? 'bg-purple-600 dark:bg-purple-500 text-white shadow-sm shadow-purple-500/30'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
-                      )}
-                    >
-                      {index + 1}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-xs font-bold truncate transition-colors',
-                        isActive
-                          ? 'text-purple-700 dark:text-purple-300'
-                          : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100',
-                      )}
-                    >
-                      {scene.title}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Thumbnail */}
-                <div className="relative aspect-video w-full rounded overflow-hidden bg-gray-100 dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-slate-100/90 ring-1 ring-slate-900/[0.08] dark:bg-white/[0.06] dark:ring-white/[0.1]">
+                  <span
+                    className={cn(
+                      'pointer-events-none absolute left-1.5 top-1.5 z-[1] flex size-5 items-center justify-center rounded-md text-[10px] font-bold tabular-nums shadow-sm',
+                      isActive
+                        ? 'bg-[#007AFF] text-white dark:bg-[#0A84FF]'
+                        : 'bg-black/55 text-white dark:bg-black/50',
+                    )}
+                    aria-hidden
+                  >
+                    {index + 1}
+                  </span>
                   <div className="absolute inset-0 flex items-center justify-center">
                     {isSlide && slideContent ? (
                       <ThumbnailSlide
@@ -286,7 +303,7 @@ export function SceneSidebar({
                       </div>
                     ) : (
                       /* Fallback */
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-500">
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-slate-100/80 text-[#86868b] dark:bg-white/[0.05] dark:text-[#a1a1a6]">
                         <Icon className="w-4 h-4" />
                         <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">
                           {scene.type}
@@ -297,10 +314,8 @@ export function SceneSidebar({
                     {isSlide && (
                       <div
                         className={cn(
-                          'absolute inset-0 bg-purple-500/0 transition-colors',
-                          isActive
-                            ? 'bg-purple-500/0'
-                            : 'group-hover:bg-black/5 dark:group-hover:bg-white/5',
+                          'absolute inset-0 transition-colors',
+                          isActive ? 'bg-transparent' : 'group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.06]',
                         )}
                       />
                     )}
@@ -322,6 +337,14 @@ export function SceneSidebar({
               return (
                 <div
                   key={`generating-${outline.id}`}
+                  role="button"
+                  tabIndex={isFailed ? -1 : 0}
+                  aria-label={
+                    isFailed
+                      ? `${t('stage.generationFailed')}: ${outline.title}`
+                      : `${scenes.length + 1}. ${outline.title}`
+                  }
+                  aria-current={isActive && !isFailed ? 'true' : undefined}
                   onClick={() => {
                     if (isFailed) return;
                     if (onSceneSelect) {
@@ -330,54 +353,47 @@ export function SceneSidebar({
                       setCurrentSceneId(PENDING_SCENE_ID);
                     }
                   }}
+                  onKeyDown={(e) => {
+                    if (isFailed) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (onSceneSelect) onSceneSelect(PENDING_SCENE_ID);
+                      else setCurrentSceneId(PENDING_SCENE_ID);
+                    }
+                  }}
                   className={cn(
-                    'group relative rounded-lg flex flex-col gap-1 p-1.5 transition-all duration-200',
+                    'group relative flex flex-col rounded-[12px] p-1 transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
                     isFailed
-                      ? 'opacity-100 cursor-default'
-                      : 'cursor-pointer hover:bg-gray-50/80 dark:hover:bg-gray-800/50',
+                      ? 'cursor-default opacity-100'
+                      : 'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
                     !isFailed && !isActive && 'opacity-60',
                     isActive &&
                       !isFailed &&
-                      'bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-700 opacity-100',
+                      'bg-[rgba(0,122,255,0.1)] opacity-100 ring-1 ring-[rgba(0,122,255,0.22)] dark:bg-[rgba(10,132,255,0.14)] dark:ring-[rgba(10,132,255,0.35)]',
                   )}
                 >
-                  {/* Scene Header */}
-                  <div className="flex justify-between items-center px-2 pt-0.5">
-                    <div className="flex items-center gap-2 max-w-full">
-                      <span
-                        className={cn(
-                          'text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shrink-0',
-                          isActive && !isFailed
-                            ? 'bg-purple-600 dark:bg-purple-500 text-white shadow-sm shadow-purple-500/30'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
-                        )}
-                      >
-                        {scenes.length + 1}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-xs font-bold truncate transition-colors',
-                          isActive && !isFailed
-                            ? 'text-purple-700 dark:text-purple-300'
-                            : isFailed
-                              ? 'text-gray-700 dark:text-gray-200'
-                              : 'text-gray-400 dark:text-gray-500',
-                        )}
-                      >
-                        {outline.title}
-                      </span>
-                    </div>
-                  </div>
-
                   {/* Skeleton Thumbnail */}
                   <div
                     className={cn(
-                      'relative aspect-video w-full rounded overflow-hidden ring-1',
+                      'relative aspect-video w-full overflow-hidden rounded-[10px] ring-1',
                       isFailed
-                        ? 'bg-red-50/30 dark:bg-red-950/10 ring-red-100 dark:ring-red-900/20'
-                        : 'bg-gray-100 dark:bg-gray-800 ring-black/5 dark:ring-white/5',
+                        ? 'bg-red-50/40 ring-red-200/80 dark:bg-red-950/20 dark:ring-red-900/30'
+                        : 'bg-slate-100/90 ring-slate-900/[0.08] dark:bg-white/[0.06] dark:ring-white/[0.1]',
                     )}
                   >
+                    {!isFailed && (
+                      <span
+                        className={cn(
+                          'pointer-events-none absolute left-1.5 top-1.5 z-[1] flex size-5 items-center justify-center rounded-md text-[10px] font-bold tabular-nums shadow-sm',
+                          isActive
+                            ? 'bg-[#007AFF] text-white dark:bg-[#0A84FF]'
+                            : 'bg-black/55 text-white dark:bg-black/50',
+                        )}
+                        aria-hidden
+                      >
+                        {scenes.length + 1}
+                      </span>
+                    )}
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
                       {isFailed ? (
                         <div className="flex items-center gap-1 text-xs font-medium text-red-500/90 dark:text-red-400">
@@ -408,17 +424,17 @@ export function SceneSidebar({
                         <>
                           <div
                             className={cn(
-                              'h-2 w-3/5 bg-gray-200 dark:bg-gray-700 rounded',
+                              'h-2 w-3/5 rounded-md bg-slate-200/90 dark:bg-white/[0.12]',
                               !isPaused && 'animate-pulse',
                             )}
                           />
                           <div
                             className={cn(
-                              'h-1.5 w-2/5 bg-gray-200 dark:bg-gray-700 rounded',
+                              'h-1.5 w-2/5 rounded-md bg-slate-200/90 dark:bg-white/[0.12]',
                               !isPaused && 'animate-pulse',
                             )}
                           />
-                          <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500 mt-0.5">
+                          <span className="mt-0.5 text-[9px] font-medium text-[#86868b] dark:text-[#a1a1a6]">
                             {isPaused ? t('stage.paused') : t('stage.generating')}
                           </span>
                         </>

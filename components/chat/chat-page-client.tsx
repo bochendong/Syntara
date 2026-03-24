@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
@@ -37,9 +37,11 @@ import {
 } from '@/lib/utils/course-agents';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import type { Scene } from '@/lib/types/stage';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { SettingsSection } from '@/lib/types/settings';
 import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
-import { listStagesByCourse } from '@/lib/utils/stage-storage';
+import { listStagesByCourse, loadStageData } from '@/lib/utils/stage-storage';
 import {
   createAgentTask,
   listChildTasks,
@@ -51,13 +53,8 @@ import {
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
 } from '@/lib/constants/course-chat';
-import type {
-  ProtocolMessageEnvelope,
-  TaskDispatchPayload,
-  TaskErrorPayload,
-  TaskResultPayload,
-  TaskWaitPayload,
-} from '@/lib/types/agent-chat-protocol';
+import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
+import { CreateNotebookComposer } from '@/components/create/create-notebook-composer';
 
 type NotebookChatMessage =
   | {
@@ -251,32 +248,79 @@ async function extractTextExcerpt(file: File): Promise<string | undefined> {
   }
 }
 
-function makeProtocolEnvelope<TPayload>(args: {
-  conversationId: string;
-  courseId: string;
-  type: ProtocolMessageEnvelope<TPayload>['type'];
-  sender: ProtocolMessageEnvelope<TPayload>['sender'];
-  receiver: ProtocolMessageEnvelope<TPayload>['receiver'];
-  parentMessageId?: string;
-  payload: TPayload;
-}): ProtocolMessageEnvelope<TPayload> {
-  return {
-    protocol: 'openmaic.a2a.v1',
-    messageId: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    conversationId: args.conversationId,
-    parentMessageId: args.parentMessageId,
-    courseId: args.courseId,
-    sender: args.sender,
-    receiver: args.receiver,
-    type: args.type,
-    createdAt: Date.now(),
-    payload: args.payload,
-  };
-}
-
 function formatTs(ts?: number): string {
   if (!ts) return 'N/A';
   return new Date(ts).toLocaleString();
+}
+
+/** 与 send-message 中 toSceneBrief 一致：第 N 节 ↔ scene.order === N - 1 */
+function sceneForNotebookReferenceOrder(scenes: Scene[], refOrder: number): Scene | undefined {
+  return scenes.find((s) => s.order === refOrder - 1);
+}
+
+function NotebookReferencePreviewLi({
+  reference,
+  scenes,
+  scenesLoading,
+}: {
+  reference: NotebookKnowledgeReference;
+  scenes: Scene[];
+  scenesLoading: boolean;
+}) {
+  const scene = useMemo(
+    () => sceneForNotebookReferenceOrder(scenes, reference.order),
+    [scenes, reference.order],
+  );
+
+  return (
+    <li>
+      <HoverCard openDelay={280} closeDelay={80}>
+        <HoverCardTrigger asChild>
+          <span
+            className="cursor-help border-b border-dotted border-muted-foreground/45 transition-colors hover:border-foreground/35 hover:text-foreground"
+            tabIndex={0}
+          >
+            <span className="font-medium text-foreground">
+              第 {reference.order} 节 · {reference.title}
+            </span>
+            {reference.why ? <span> — {reference.why}</span> : null}
+          </span>
+        </HoverCardTrigger>
+        <HoverCardContent
+          side="right"
+          align="start"
+          className="z-[80] w-auto max-w-[min(92vw,320px)] border border-slate-900/[0.08] bg-white/95 p-2 text-xs shadow-lg dark:border-white/[0.12] dark:bg-[#1c1c1e]/95"
+        >
+          {scenesLoading ? (
+            <p className="px-1 py-2 text-muted-foreground">正在加载该页预览…</p>
+          ) : !scene ? (
+            <p className="px-1 py-2 text-muted-foreground">未找到第 {reference.order} 节（可能已调整页序）。</p>
+          ) : scene.content.type === 'slide' ? (
+            <div className="overflow-hidden rounded-[10px] ring-1 ring-black/[0.06] dark:ring-white/[0.1]">
+              <ThumbnailSlide
+                slide={scene.content.canvas}
+                size={240}
+                viewportSize={scene.content.canvas.viewportSize ?? 1000}
+                viewportRatio={scene.content.canvas.viewportRatio ?? 0.5625}
+              />
+            </div>
+          ) : (
+            <p className="max-w-[240px] px-1 py-2 text-muted-foreground">
+              该页为
+              {scene.type === 'quiz'
+                ? '测验'
+                : scene.type === 'interactive'
+                  ? '交互'
+                  : scene.type === 'pbl'
+                    ? '项目式学习'
+                    : '非幻灯片'}
+              ，暂无幻灯片缩略图。
+            </p>
+          )}
+        </HoverCardContent>
+      </HoverCard>
+    </li>
+  );
 }
 
 export function ChatPageClient() {
@@ -304,6 +348,8 @@ export function ChatPageClient() {
     name: string;
     avatarUrl?: string | null;
   } | null>(null);
+  const [notebookScenes, setNotebookScenes] = useState<Scene[]>([]);
+  const [notebookScenesLoading, setNotebookScenesLoading] = useState(false);
   const [agents, setAgents] = useState<CourseAgentListItem[]>([]);
   const [nbThread, setNbThread] = useState<NotebookChatMessage[]>([]);
   const [agThread, setAgThread] = useState<UIMessage<ChatMessageMetadata>[]>([]);
@@ -405,6 +451,13 @@ export function ChatPageClient() {
   }, [courseId, agentId, agents, router]);
 
   useEffect(() => {
+    if (!notebookId) {
+      setNotebookScenes([]);
+      setNotebookScenesLoading(false);
+    }
+  }, [notebookId]);
+
+  useEffect(() => {
     if (!notebookId || !courseId) {
       setStageMeta(null);
       return;
@@ -425,6 +478,25 @@ export function ChatPageClient() {
     };
   }, [notebookId, courseId, router]);
 
+  const reloadNotebookScenes = useCallback(async () => {
+    if (!notebookId) {
+      setNotebookScenes([]);
+      return;
+    }
+    setNotebookScenesLoading(true);
+    try {
+      const data = await loadStageData(notebookId);
+      const list = data?.scenes?.slice().sort((a, b) => a.order - b.order) ?? [];
+      setNotebookScenes(list);
+    } finally {
+      setNotebookScenesLoading(false);
+    }
+  }, [notebookId]);
+
+  useEffect(() => {
+    void reloadNotebookScenes();
+  }, [reloadNotebookScenes]);
+
   useEffect(() => {
     if (!notebookId || !courseId) {
       setNbThread([]);
@@ -442,13 +514,29 @@ export function ChatPageClient() {
 
   useEffect(() => {
     if (!notebookId || !courseId) return;
-    void saveContactMessages<NotebookChatMessage>({
-      courseId,
-      kind: 'notebook',
-      targetId: notebookId,
-      targetName: stageMeta?.name || '笔记本',
-      messages: nbThread,
-    });
+    let cancelled = false;
+    void (async () => {
+      try {
+        await saveContactMessages<NotebookChatMessage>({
+          courseId,
+          kind: 'notebook',
+          targetId: notebookId,
+          targetName: stageMeta?.name || '笔记本',
+          messages: nbThread,
+        });
+        if (cancelled) return;
+        window.dispatchEvent(
+          new CustomEvent('openmaic-notebook-chat-updated', {
+            detail: { courseId, notebookId },
+          }),
+        );
+      } catch {
+        /* 无 DB 或未登录时保存失败，侧栏仍依赖初次 load / visibility 刷新 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [notebookId, courseId, stageMeta?.name, nbThread]);
 
   useEffect(() => {
@@ -631,6 +719,7 @@ export function ChatPageClient() {
         at: Date.now(),
       };
       setNbThread((t) => [...t, assistantMsg]);
+      void reloadNotebookScenes();
       setPendingAttachments([]);
       if (taskId) {
         await updateAgentTask(taskId, {
@@ -661,419 +750,10 @@ export function ChatPageClient() {
   const handleSendAgent = async () => {
     const text = draft.trim();
     if (!text || !agentId || !selectedAgent || sending) return;
+    if (selectedAgent.id === COURSE_ORCHESTRATOR_ID) return;
     const mc = getCurrentModelConfig();
     if (!mc.isServerConfigured) {
       window.alert('系统模型尚未配置，请联系管理员。');
-      return;
-    }
-
-    if (selectedAgent.id === COURSE_ORCHESTRATOR_ID) {
-      const now = Date.now();
-      const userMessage: UIMessage<ChatMessageMetadata> = {
-        id: `user-${now}`,
-        role: 'user',
-        parts: [{ type: 'text', text }],
-        metadata: {
-          senderName: nickname.trim() || '我',
-          senderAvatar: userAvatar || USER_AVATAR,
-          originalRole: 'user',
-          createdAt: now,
-        },
-      };
-      const nextThread = [...agThread, userMessage];
-      setAgThread(nextThread);
-      setDraft('');
-      setSending(true);
-
-      const taskId = await createAgentTask({
-        courseId: courseId!,
-        contactKind: 'agent',
-        contactId: selectedAgent.id,
-        title: `调度课程笔记本：${text.slice(0, 36)}`,
-        detail: '正在收集课程笔记本列表…',
-        status: 'running',
-      });
-      setActiveOrchestratorTaskId(taskId);
-
-      try {
-        const orchestratorConversationId = `course:${courseId}:orchestrator:${taskId}`;
-        const stages = await listStagesByCourse(courseId!);
-        if (stages.length === 0) {
-          const assistantMsg: UIMessage<ChatMessageMetadata> = {
-            id: `assist-${Date.now()}`,
-            role: 'assistant',
-            parts: [{ type: 'text', text: '当前课程还没有笔记本，无法调度。请先创建至少一个笔记本。' }],
-            metadata: {
-              senderName: selectedAgent.name,
-              senderAvatar: selectedAgent.avatar,
-              originalRole: 'agent',
-              createdAt: Date.now(),
-            },
-          };
-          setAgThread((t) => [...t, assistantMsg]);
-          const errEnvelope = makeProtocolEnvelope<TaskErrorPayload>({
-            conversationId: orchestratorConversationId,
-            courseId: courseId!,
-            type: 'task.error',
-            sender: {
-              role: 'course_agent',
-              id: selectedAgent.id,
-              name: selectedAgent.name,
-            },
-            receiver: {
-              role: 'user',
-              id: 'user',
-              name: nickname.trim() || '我',
-            },
-            payload: {
-              taskId,
-              code: 'NO_NOTEBOOKS',
-              message: '当前课程没有可调度的笔记本',
-              retryable: true,
-            },
-          });
-          await updateAgentTask(taskId, {
-            status: 'failed',
-            detail: '无可调度笔记本',
-            lastEnvelope: errEnvelope,
-          });
-          return;
-        }
-
-        const rootWaitEnvelope = makeProtocolEnvelope<TaskWaitPayload>({
-          conversationId: orchestratorConversationId,
-          courseId: courseId!,
-          type: 'task.wait',
-          sender: {
-            role: 'course_agent',
-            id: selectedAgent.id,
-            name: selectedAgent.name,
-          },
-          receiver: {
-            role: 'user',
-            id: 'user',
-            name: nickname.trim() || '我',
-          },
-          payload: {
-            taskId,
-            waitingFor: 'subagent',
-            progressText: `已派发任务，等待 ${stages.length} 个笔记本回复…`,
-          },
-        });
-        await updateAgentTask(taskId, {
-          status: 'waiting',
-          detail: `已派发任务，等待 ${stages.length} 个笔记本回复…`,
-          lastEnvelope: rootWaitEnvelope,
-        });
-
-        const contextWindow = nextThread
-          .slice(-10)
-          .map((m) => ({
-            role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-            content: messageText(m),
-            at: m.metadata?.createdAt,
-          }))
-          .filter((x) => x.content.trim().length > 0);
-
-        let finished = 0;
-        let succeeded = 0;
-        let failed = 0;
-        const responses = await Promise.all(
-          stages.map(async (stage) => {
-            const dispatchPayload: TaskDispatchPayload = {
-              taskId,
-              intent: 'qa',
-              message: text,
-              contextWindow,
-              constraints: {
-                allowWrite: false,
-              },
-            };
-            const dispatchEnvelope = makeProtocolEnvelope<TaskDispatchPayload>({
-              conversationId: orchestratorConversationId,
-              courseId: courseId!,
-              type: 'task.dispatch',
-              sender: {
-                role: 'course_agent',
-                id: selectedAgent.id,
-                name: selectedAgent.name,
-              },
-              receiver: {
-                role: 'notebook_agent',
-                id: stage.id,
-                name: stage.name,
-              },
-              payload: dispatchPayload,
-            });
-
-            const childTaskId = await createAgentTask({
-              courseId: courseId!,
-              parentTaskId: taskId,
-              contactKind: 'notebook',
-              contactId: stage.id,
-              title: `子任务：${stage.name}`,
-              detail: 'task.dispatch 已发送',
-              status: 'running',
-              lastEnvelope: dispatchEnvelope,
-            });
-
-            const childWaitEnvelope = makeProtocolEnvelope<TaskWaitPayload>({
-              conversationId: orchestratorConversationId,
-              courseId: courseId!,
-              type: 'task.wait',
-              sender: {
-                role: 'notebook_agent',
-                id: stage.id,
-                name: stage.name,
-              },
-              receiver: {
-                role: 'course_agent',
-                id: selectedAgent.id,
-                name: selectedAgent.name,
-              },
-              parentMessageId: dispatchEnvelope.messageId,
-              payload: {
-                taskId,
-                waitingFor: 'tool',
-                progressText: '正在检索笔记本上下文并生成回答',
-              },
-            });
-            await updateAgentTask(childTaskId, {
-              status: 'waiting',
-              detail: '等待笔记本回答…',
-              lastEnvelope: childWaitEnvelope,
-            });
-
-            try {
-              const result = await sendMessageToNotebook(stage.id, text, {
-                applyChanges: false,
-                preferWebSearch: true,
-                conversation: contextWindow,
-              });
-              const childResultEnvelope = makeProtocolEnvelope<TaskResultPayload>({
-                conversationId: orchestratorConversationId,
-                courseId: courseId!,
-                type: 'task.result',
-                sender: {
-                  role: 'notebook_agent',
-                  id: stage.id,
-                  name: stage.name,
-                },
-                receiver: {
-                  role: 'course_agent',
-                  id: selectedAgent.id,
-                  name: selectedAgent.name,
-                },
-                parentMessageId: childWaitEnvelope.messageId,
-                payload: {
-                  taskId,
-                  summary: result.answer,
-                  references: (result.references || []).map((r) => ({
-                    page: r.order,
-                    title: r.title,
-                    why: r.why,
-                  })),
-                },
-              });
-              await updateAgentTask(childTaskId, {
-                status: 'done',
-                detail: '已收到回复',
-                lastEnvelope: childResultEnvelope,
-              });
-              finished += 1;
-              succeeded += 1;
-              const progressEnvelope = makeProtocolEnvelope<TaskWaitPayload>({
-                conversationId: orchestratorConversationId,
-                courseId: courseId!,
-                type: 'task.wait',
-                sender: {
-                  role: 'course_agent',
-                  id: selectedAgent.id,
-                  name: selectedAgent.name,
-                },
-                receiver: {
-                  role: 'user',
-                  id: 'user',
-                  name: nickname.trim() || '我',
-                },
-                payload: {
-                  taskId,
-                  waitingFor: 'subagent',
-                  progressText: `已完成 ${finished}/${stages.length}（成功 ${succeeded}，失败 ${failed}）`,
-                },
-              });
-              await updateAgentTask(taskId, {
-                status: finished < stages.length ? 'waiting' : 'running',
-                detail: `已完成 ${finished}/${stages.length}（成功 ${succeeded}，失败 ${failed}）`,
-                lastEnvelope: progressEnvelope,
-              });
-              return { stage, result, error: null as string | null };
-            } catch (error) {
-              const errMessage = error instanceof Error ? error.message : String(error);
-              const childErrorEnvelope = makeProtocolEnvelope<TaskErrorPayload>({
-                conversationId: orchestratorConversationId,
-                courseId: courseId!,
-                type: 'task.error',
-                sender: {
-                  role: 'notebook_agent',
-                  id: stage.id,
-                  name: stage.name,
-                },
-                receiver: {
-                  role: 'course_agent',
-                  id: selectedAgent.id,
-                  name: selectedAgent.name,
-                },
-                parentMessageId: childWaitEnvelope.messageId,
-                payload: {
-                  taskId,
-                  code: 'NOTEBOOK_SEND_FAILED',
-                  message: errMessage,
-                  retryable: true,
-                },
-              });
-              await updateAgentTask(childTaskId, {
-                status: 'failed',
-                detail: errMessage.slice(0, 200),
-                lastEnvelope: childErrorEnvelope,
-              });
-              finished += 1;
-              failed += 1;
-              const progressEnvelope = makeProtocolEnvelope<TaskWaitPayload>({
-                conversationId: orchestratorConversationId,
-                courseId: courseId!,
-                type: 'task.wait',
-                sender: {
-                  role: 'course_agent',
-                  id: selectedAgent.id,
-                  name: selectedAgent.name,
-                },
-                receiver: {
-                  role: 'user',
-                  id: 'user',
-                  name: nickname.trim() || '我',
-                },
-                payload: {
-                  taskId,
-                  waitingFor: 'subagent',
-                  progressText: `已完成 ${finished}/${stages.length}（成功 ${succeeded}，失败 ${failed}）`,
-                },
-              });
-              await updateAgentTask(taskId, {
-                status: finished < stages.length ? 'waiting' : 'running',
-                detail: `已完成 ${finished}/${stages.length}（成功 ${succeeded}，失败 ${failed}）`,
-                lastEnvelope: progressEnvelope,
-              });
-              return { stage, result: null as Awaited<ReturnType<typeof sendMessageToNotebook>> | null, error: errMessage };
-            }
-          }),
-        );
-
-        const blocks = responses.map(({ stage, result, error }) => {
-          if (error) {
-            return [`【${stage.name}】`, `失败：${error}`].join('\n');
-          }
-          if (!result) {
-            return [`【${stage.name}】`, '失败：无结果'].join('\n');
-          }
-          const refs = (result.references || [])
-            .slice(0, 3)
-            .map((r) => `第${r.order}页(${r.title})`)
-            .join('、');
-          return [
-            `【${stage.name}】`,
-            result.answer || '（无回答）',
-            refs ? `引用：${refs}` : '',
-            result.knowledgeGap ? '标记：存在知识缺口' : '',
-          ]
-            .filter(Boolean)
-            .join('\n');
-        });
-        const summaryText =
-          `我已调度 ${responses.length} 个笔记本并汇总（成功 ${succeeded}，失败 ${failed}）：\n\n${blocks.join('\n\n')}`;
-
-        const assistantMsg: UIMessage<ChatMessageMetadata> = {
-          id: `assist-${Date.now()}`,
-          role: 'assistant',
-          parts: [{ type: 'text', text: summaryText }],
-          metadata: {
-            senderName: selectedAgent.name,
-            senderAvatar: selectedAgent.avatar,
-            originalRole: 'agent',
-            createdAt: Date.now(),
-          },
-        };
-        setAgThread((t) => [...t, assistantMsg]);
-        const resultEnvelope = makeProtocolEnvelope<TaskResultPayload>({
-          conversationId: orchestratorConversationId,
-          courseId: courseId!,
-          type: 'task.result',
-          sender: {
-            role: 'course_agent',
-            id: selectedAgent.id,
-            name: selectedAgent.name,
-          },
-          receiver: {
-            role: 'user',
-            id: 'user',
-            name: nickname.trim() || '我',
-          },
-          payload: {
-            taskId,
-            summary: summaryText,
-          },
-        });
-        await updateAgentTask(taskId, {
-          status: failed > 0 ? 'failed' : 'done',
-          detail: `已完成：成功 ${succeeded}，失败 ${failed}`,
-          lastEnvelope: resultEnvelope,
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const errId = `err-${Date.now()}`;
-        setAgThread((t) => [
-          ...t,
-          {
-            id: errId,
-            role: 'assistant',
-            parts: [{ type: 'text', text: `总控调度失败：${msg}` }],
-            metadata: {
-              senderName: selectedAgent.name,
-              senderAvatar: selectedAgent.avatar,
-              originalRole: 'agent',
-              createdAt: Date.now(),
-            },
-          },
-        ]);
-        const errEnvelope = makeProtocolEnvelope<TaskErrorPayload>({
-          conversationId: `course:${courseId}:orchestrator:${taskId}`,
-          courseId: courseId!,
-          type: 'task.error',
-          sender: {
-            role: 'course_agent',
-            id: selectedAgent.id,
-            name: selectedAgent.name,
-          },
-          receiver: {
-            role: 'user',
-            id: 'user',
-            name: nickname.trim() || '我',
-          },
-          payload: {
-            taskId,
-            code: 'ORCHESTRATOR_FAILED',
-            message: msg,
-            retryable: true,
-          },
-        });
-        await updateAgentTask(taskId, {
-          status: 'failed',
-          detail: msg.slice(0, 300),
-          lastEnvelope: errEnvelope,
-        });
-      } finally {
-        setSending(false);
-      }
       return;
     }
 
@@ -1159,7 +839,7 @@ export function ChatPageClient() {
       ? '笔记本 · 问答与页引用'
       : mode === 'agent'
         ? isCourseOrchestrator
-          ? '课程总控 · 可并行调度本课程笔记本'
+          ? '课程总控 · 新建笔记本（与创建页相同流程）'
           : '课程 Agent'
         : '';
 
@@ -1189,11 +869,7 @@ export function ChatPageClient() {
       )}
     >
       <header className="shrink-0 border-b border-slate-900/[0.06] bg-white/60 px-5 py-4 backdrop-blur-md dark:border-white/[0.08] dark:bg-black/25">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {courseName || '当前课程'}
-        </p>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">{titleLine}</h1>
-        {subtitle ? <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p> : null}
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{titleLine}</h1>
         {mode === 'agent' && contactTaskHint ? (
           <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">任务状态：{contactTaskHint}</p>
         ) : null}
@@ -1241,6 +917,12 @@ export function ChatPageClient() {
           <p className="text-center text-sm text-muted-foreground">正在打开会话…</p>
         ) : null}
 
+        {mode === 'agent' && isCourseOrchestrator && agThread.length === 0 ? (
+          <p className="mx-auto max-w-md px-2 text-center text-sm leading-relaxed text-muted-foreground">
+            这里可直接创建笔记本：在底部填写创作需求并点击「{t('toolbar.enterClassroom')}」。流程与带课程参数的「创建笔记本」页一致（PDF、语言、联网与预览）。
+          </p>
+        ) : null}
+
         {mode === 'notebook'
           ? nbThread.map((m, i) =>
               m.role === 'user' ? (
@@ -1278,10 +960,12 @@ export function ChatPageClient() {
                         <p className="text-xs font-semibold text-muted-foreground">页码引用</p>
                         <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
                           {m.references.map((r, j) => (
-                            <li key={j}>
-                              <span className="font-medium text-foreground">第 {r.order} 节 · {r.title}</span>
-                              {r.why ? <span> — {r.why}</span> : null}
-                            </li>
+                            <NotebookReferencePreviewLi
+                              key={j}
+                              reference={r}
+                              scenes={notebookScenes}
+                              scenesLoading={notebookScenesLoading}
+                            />
                           ))}
                         </ul>
                       </div>
@@ -1357,6 +1041,9 @@ export function ChatPageClient() {
       </div>
 
       <footer className="shrink-0 border-t border-slate-900/[0.06] px-4 pb-4 pt-3 dark:border-white/[0.06]">
+        {mode === 'agent' && isCourseOrchestrator && courseId ? (
+          <CreateNotebookComposer courseId={courseId} compact />
+        ) : (
         <ComposerInputShell>
           {mode === 'notebook' && pendingAttachments.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2">
@@ -1480,6 +1167,7 @@ export function ChatPageClient() {
             </button>
           </div>
         </ComposerInputShell>
+        )}
       </footer>
 
       <Dialog

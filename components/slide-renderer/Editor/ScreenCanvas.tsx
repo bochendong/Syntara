@@ -12,18 +12,22 @@ import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, SlideBackground } from '@/lib/types/slides';
 import type { PercentageGeometry } from '@/lib/types/action';
 import { useViewportSize } from './Canvas/hooks/useViewportSize';
-import { useRef, useMemo } from 'react';
+import { useMemo, type RefObject } from 'react';
 import { AnimatePresence } from 'motion/react';
 
-export function ScreenCanvas() {
+export interface ScreenCanvasProps {
+  /** Fills the slide stage; used for viewport measurement and clipping (no extra wrapper inside). */
+  readonly containerRef: RefObject<HTMLDivElement | null>;
+}
+
+export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
   const elements = useSceneSelector<SlideContent, PPTElement[]>(
     (content) => content.canvas.elements,
   );
-  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Viewport size and positioning
-  const { viewportStyles } = useViewportSize(canvasRef);
+  const { viewportStyles } = useViewportSize(containerRef);
 
   // Get background style
   const background = useSceneSelector<SlideContent, SlideBackground | undefined>(
@@ -59,63 +63,54 @@ export function ScreenCanvas() {
   }, [zoomTarget, elements]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden select-none" ref={canvasRef}>
+    <div
+      className="absolute overflow-hidden transition-transform duration-700"
+      style={{
+        width: `${viewportStyles.width * canvasScale}px`,
+        height: `${viewportStyles.height * canvasScale}px`,
+        left: `${viewportStyles.left}px`,
+        top: `${viewportStyles.top}px`,
+        ...(zoomTarget && zoomGeometry
+          ? {
+              transform: `scale(${zoomTarget.scale})`,
+              transformOrigin: `${zoomGeometry.centerX}% ${zoomGeometry.centerY}%`,
+            }
+          : {}),
+      }}
+    >
+      {/* Background layer — chrome (shadow / 20px radius) lives on canvas-area parent */}
+      <div className="h-full w-full bg-position-center" style={{ ...backgroundStyle }} />
+
+      {/* Content layer - logical slide size, scaled to viewport */}
       <div
-        className="absolute shadow-[0_0_0_1px_rgba(0,0,0,0.01),0_0_12px_0_rgba(0,0,0,0.1)] rounded-lg overflow-hidden transition-transform duration-700"
+        className="absolute top-0 left-0 origin-top-left"
         style={{
-          width: `${viewportStyles.width * canvasScale}px`,
-          height: `${viewportStyles.height * canvasScale}px`,
-          left: `${viewportStyles.left}px`,
-          top: `${viewportStyles.top}px`,
-          ...(zoomTarget && zoomGeometry
-            ? {
-                transform: `scale(${zoomTarget.scale})`,
-                transformOrigin: `${zoomGeometry.centerX}% ${zoomGeometry.centerY}%`,
-              }
-            : {}),
+          width: `${viewportStyles.width}px`,
+          height: `${viewportStyles.height}px`,
+          transform: `scale(${canvasScale})`,
         }}
       >
-        {/* Background layer */}
-        <div
-          className="w-full h-full bg-position-center rounded-lg"
-          style={{ ...backgroundStyle }}
-        ></div>
+        {elements.map((element, index) => (
+          <ScreenElement key={element.id} elementInfo={element} elementIndex={index + 1} />
+        ))}
 
-        {/* Content layer - scaled */}
-        <div
-          className="absolute top-0 left-0 origin-top-left"
-          style={{
-            width: `${viewportStyles.width}px`,
-            height: `${viewportStyles.height}px`,
-            transform: `scale(${canvasScale})`,
-          }}
-        >
-          {elements.map((element, index) => (
-            <ScreenElement key={element.id} elementInfo={element} elementIndex={index + 1} />
-          ))}
+        <HighlightOverlay />
+      </div>
 
-          {/* Highlight overlay - stacked above elements */}
-          <HighlightOverlay />
-        </div>
+      <SpotlightOverlay />
 
-        {/* Spotlight overlay - covers the entire slide, positioned via DOM measurement */}
-        <SpotlightOverlay />
-
-        {/* Visual effects layer - outside the scale layer, using percentage coordinates */}
-        <div className="absolute inset-0 pointer-events-none" style={{ padding: '5%' }}>
-          <div className="relative w-full h-full">
-            {/* Laser pointer overlay */}
-            <AnimatePresence>
-              {laserElementId && laserGeometry && (
-                <LaserOverlay
-                  key={`laser-${laserElementId}`}
-                  geometry={laserGeometry}
-                  color={laserOptions?.color}
-                  duration={laserOptions?.duration}
-                />
-              )}
-            </AnimatePresence>
-          </div>
+      <div className="pointer-events-none absolute inset-0" style={{ padding: '5%' }}>
+        <div className="relative h-full w-full">
+          <AnimatePresence>
+            {laserElementId && laserGeometry && (
+              <LaserOverlay
+                key={`laser-${laserElementId}`}
+                geometry={laserGeometry}
+                color={laserOptions?.color}
+                duration={laserOptions?.duration}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

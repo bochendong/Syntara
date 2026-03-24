@@ -26,7 +26,7 @@ export function BaseLatexElement({ elementInfo }: BaseLatexElementProps) {
         className="rotate-wrapper w-full h-full"
         style={{ transform: `rotate(${elementInfo.rotate}deg)` }}
       >
-        <div className="element-content relative w-full h-full">
+        <div className="element-content subpixel-antialiased relative w-full h-full">
           {elementInfo.html ? (
             <KatexContent
               html={elementInfo.html}

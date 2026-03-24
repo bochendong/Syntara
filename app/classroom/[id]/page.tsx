@@ -183,22 +183,23 @@ export default function ClassroomDetailPage() {
       <MediaStageProvider value={classroomId}>
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           {loading ? (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-              <div className="text-center text-muted-foreground">
-                <p>Loading classroom...</p>
+            <div className="apple-mesh-bg flex flex-1 items-center justify-center">
+              <div className="apple-glass rounded-[20px] px-8 py-6 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">Loading classroom…</p>
               </div>
             </div>
           ) : error ? (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-              <div className="text-center">
-                <p className="text-destructive mb-4">Error: {error}</p>
+            <div className="apple-mesh-bg flex flex-1 items-center justify-center px-4">
+              <div className="apple-glass max-w-md rounded-[20px] px-8 py-6 text-center">
+                <p className="mb-4 text-sm text-red-600 dark:text-red-400">Error: {error}</p>
                 <button
+                  type="button"
                   onClick={() => {
                     setError(null);
                     setLoading(true);
                     loadClassroom();
                   }}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  className="apple-btn apple-btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold"
                 >
                   Retry
                 </button>

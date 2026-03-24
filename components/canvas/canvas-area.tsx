@@ -85,14 +85,15 @@ export function CanvasArea({
   );
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 group/canvas">
-      {/* Slide area — takes remaining space */}
+    <div className="group/canvas flex h-full w-full min-h-0 flex-col bg-transparent">
+      {/* Slide area — takes remaining space（与聊天区一致的轻渐变 + 毛玻璃语境） */}
       <div
         className={cn(
-          'flex-1 min-h-0 relative overflow-hidden flex flex-row items-stretch justify-center gap-2 p-2 transition-colors duration-500',
-          currentScene?.type === 'interactive'
-            ? 'bg-blue-50/30 dark:bg-blue-900/10'
-            : 'bg-gray-50/30 dark:bg-gray-900/30',
+          'relative flex min-h-0 flex-1 flex-row items-stretch justify-start gap-3 overflow-hidden p-3 transition-colors duration-500 md:p-4',
+          'bg-[radial-gradient(circle_at_15%_0%,rgba(179,229,252,0.28),transparent_40%),linear-gradient(180deg,rgba(248,250,252,0.92)_0%,rgba(238,242,247,0.85)_100%)]',
+          'dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.22),transparent_45%),linear-gradient(180deg,rgba(11,15,22,0.92)_0%,rgba(17,24,39,0.88)_100%)]',
+          currentScene?.type === 'interactive' &&
+            'bg-[radial-gradient(circle_at_15%_0%,rgba(147,197,253,0.35),transparent_42%),linear-gradient(180deg,rgba(239,246,255,0.95)_0%,rgba(224,231,255,0.85)_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(59,130,246,0.2),transparent_45%),linear-gradient(180deg,rgba(15,23,42,0.95)_0%,rgba(23,37,84,0.5)_100%)]',
         )}
       >
         <SceneSidebar
@@ -104,11 +105,11 @@ export function CanvasArea({
         <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
           <div
           className={cn(
-            'aspect-[16/9] h-full max-h-full max-w-full bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden relative transition-all duration-700',
+            'relative aspect-[16/9] h-full max-h-full max-w-full overflow-hidden rounded-[20px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-700 dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]',
             showControls && !isLiveSession && currentScene?.type === 'slide' && 'cursor-pointer',
             currentScene?.type === 'interactive'
-              ? 'shadow-blue-200/50 dark:shadow-blue-900/50 ring-1 ring-blue-900/5 dark:ring-blue-500/10'
-              : 'shadow-gray-200/50 dark:shadow-gray-800/50 ring-1 ring-gray-950/5 dark:ring-white/5',
+              ? 'ring-1 ring-blue-500/[0.12] dark:ring-blue-400/20'
+              : 'ring-1 ring-slate-900/[0.08] dark:ring-white/[0.1]',
           )}
           onClick={handleSlideClick}
         >
@@ -172,7 +173,7 @@ export function CanvasArea({
                     {/* Spinner */}
                     <div className="relative w-12 h-12">
                       <div className="absolute inset-0 rounded-full border-2 border-gray-100 dark:border-gray-700" />
-                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-500 dark:border-t-purple-400 animate-spin" />
+                      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#007AFF] dark:border-t-[#0A84FF]" />
                     </div>
                     {/* Text */}
                     <motion.span
@@ -227,10 +228,10 @@ export function CanvasArea({
                         ease: 'easeInOut',
                       },
                     }}
-                    className="w-20 h-20 rounded-full bg-white/95 dark:bg-gray-800/95 flex items-center justify-center shadow-[0_4px_30px_rgba(147,51,234,0.15),inset_0_0_0_1px_rgba(233,213,255,0.5)] dark:shadow-[0_4px_30px_rgba(147,51,234,0.3),inset_0_0_0_1px_rgba(126,34,206,0.3)]"
+                    className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-[0_6px_32px_rgba(0,122,255,0.2),inset_0_0_0_1px_rgba(255,255,255,0.8)] dark:bg-[#2c2c2e]/95 dark:shadow-[0_6px_36px_rgba(10,132,255,0.25),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                     style={{ willChange: 'transform' }}
                   >
-                    <Play className="w-7 h-7 text-purple-600 dark:text-purple-400 fill-purple-600/90 dark:fill-purple-400/90 ml-0.5" />
+                    <Play className="ml-0.5 h-7 w-7 fill-[#007AFF]/90 text-[#007AFF] dark:fill-[#0A84FF]/90 dark:text-[#0A84FF]" />
                   </motion.div>
                 </motion.div>
               </motion.div>
@@ -244,9 +245,7 @@ export function CanvasArea({
       {!hideToolbar && (
         <CanvasToolbar
           className={cn(
-            'shrink-0 min-h-10 h-10 px-2',
-            'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl',
-            'border-t border-gray-200/40 dark:border-gray-700/40',
+            'h-10 min-h-10 shrink-0 border-t border-slate-900/[0.08] bg-white/65 px-2 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0d0d10]/5',
           )}
           currentSceneIndex={currentSceneIndex}
           scenesCount={scenesCount}

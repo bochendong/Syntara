@@ -230,7 +230,7 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
           transition: isDragging ? 'none' : 'width 0.3s ease',
         }}
         className={cn(
-          'bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-l border-gray-100 dark:border-gray-800 shadow-[-2px_0_24px_rgba(0,0,0,0.02)] flex flex-col shrink-0 z-20 relative overflow-visible',
+          'apple-glass flex shrink-0 flex-col overflow-visible rounded-l-[18px] border-y border-r border-slate-900/[0.08] border-l-0 shadow-[-4px_0_24px_rgba(0,0,0,0.04)] dark:border-white/[0.08] dark:shadow-[-4px_0_28px_rgba(0,0,0,0.2)] z-20 relative backdrop-blur-xl',
           className,
         )}
       >
@@ -238,9 +238,9 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
         {!collapsed && (
           <div
             onMouseDown={handleDragStart}
-            className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize z-50 group hover:bg-purple-400/30 dark:hover:bg-purple-600/30 active:bg-purple-500/40 dark:active:bg-purple-500/40 transition-colors"
+            className="group absolute bottom-0 left-0 top-0 z-50 w-1.5 cursor-col-resize transition-colors hover:bg-[#007AFF]/20 active:bg-[#007AFF]/30 dark:hover:bg-[#0A84FF]/25 dark:active:bg-[#0A84FF]/35"
           >
-            <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-8 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-400 dark:group-hover:bg-purple-500 transition-colors" />
+            <div className="absolute left-0.5 top-1/2 h-8 w-0.5 -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-[#007AFF] dark:bg-slate-600 dark:group-hover:bg-[#0A84FF]" />
           </div>
         )}
 

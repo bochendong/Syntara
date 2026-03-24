@@ -775,7 +775,10 @@ export function Stage({
 
   const viewToggle = (
     <div
-      className="flex items-center gap-0.5 rounded-full border border-gray-200/80 bg-white/70 p-0.5 shadow-sm backdrop-blur-md dark:border-gray-600/60 dark:bg-gray-800/70"
+      className={cn(
+        'apple-glass flex items-center gap-0.5 rounded-[14px] p-0.5',
+        'shadow-[0_2px_16px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.25)]',
+      )}
       role="tablist"
       aria-label={`${t('stage.viewPpt')} / ${t('stage.viewQuiz')} / ${t('stage.viewRawData')}`}
     >
@@ -785,10 +788,10 @@ export function Stage({
         aria-selected={mainClassroomView === 'ppt'}
         onClick={() => setMainClassroomView('ppt')}
         className={cn(
-          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          'rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
           mainClassroomView === 'ppt'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+            ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
+            : 'text-[#1d1d1f]/65 hover:bg-black/[0.04] hover:text-[#1d1d1f] dark:text-white/70 dark:hover:bg-white/[0.06] dark:hover:text-white',
         )}
       >
         {t('stage.viewPpt')}
@@ -799,10 +802,10 @@ export function Stage({
         aria-selected={mainClassroomView === 'quiz'}
         onClick={() => setMainClassroomView('quiz')}
         className={cn(
-          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          'rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
           mainClassroomView === 'quiz'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+            ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
+            : 'text-[#1d1d1f]/65 hover:bg-black/[0.04] hover:text-[#1d1d1f] dark:text-white/70 dark:hover:bg-white/[0.06] dark:hover:text-white',
         )}
       >
         {t('stage.viewQuiz')}
@@ -813,10 +816,10 @@ export function Stage({
         aria-selected={mainClassroomView === 'raw'}
         onClick={() => setMainClassroomView('raw')}
         className={cn(
-          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+          'rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
           mainClassroomView === 'raw'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
+            ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
+            : 'text-[#1d1d1f]/65 hover:bg-black/[0.04] hover:text-[#1d1d1f] dark:text-white/70 dark:hover:bg-white/[0.06] dark:hover:text-white',
         )}
       >
         {t('stage.viewRawData')}
@@ -833,7 +836,7 @@ export function Stage({
   })();
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="apple-mesh-bg flex-1 flex min-h-0 overflow-hidden">
       {/* Main Content Area — scene list lives inside CanvasArea, left of the slide */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
         {/* Header */}

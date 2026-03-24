@@ -107,7 +107,7 @@ export function CanvasPlaybackPill({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-0.5 bg-gray-100/60 dark:bg-gray-800/60 rounded-lg px-1 h-9',
+        'apple-glass inline-flex h-9 items-center gap-0.5 rounded-xl px-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.25)]',
         className,
       )}
     >
@@ -162,10 +162,10 @@ export function CanvasPlaybackPill({
                 'bg-gray-200 dark:bg-gray-600',
                 '[writing-mode:vertical-lr] [direction:rtl]',
                 '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3',
-                '[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-violet-500 [&::-webkit-slider-thumb]:dark:bg-violet-400',
+                '[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#007AFF] [&::-webkit-slider-thumb]:dark:bg-[#0A84FF]',
                 '[&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer',
                 '[&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3',
-                '[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-violet-500 [&::-moz-range-thumb]:border-0',
+                '[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#007AFF]',
               )}
             />
           </div>
@@ -184,8 +184,8 @@ export function CanvasPlaybackPill({
                 'text-[11px] font-semibold tabular-nums leading-none',
                 'active:scale-90',
                 playbackSpeed !== 1
-                  ? 'text-violet-600 dark:text-violet-400 bg-violet-500/10 dark:bg-violet-400/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
+                  ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
+                  : 'text-[#86868b] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white',
               )}
               aria-label="Playback speed"
             >
@@ -243,8 +243,8 @@ export function CanvasPlaybackPill({
             ctrlBtn,
             'w-9 h-9',
             engineState === 'playing'
-              ? 'text-violet-600 dark:text-violet-400'
-              : 'text-gray-500 dark:text-gray-400',
+              ? 'text-[#007AFF] dark:text-[#0A84FF]'
+              : 'text-[#86868b] dark:text-[#a1a1a6]',
           )}
           aria-label={engineState === 'playing' ? 'Pause' : 'Play'}
         >

@@ -1,9 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
   ArrowRight,
@@ -21,6 +19,43 @@ import {
   TrendingUp,
   WandSparkles,
 } from 'lucide-react';
+
+const revealEase = [0.25, 0.46, 0.45, 0.94] as const;
+
+type RevealVariant = 'fade-up' | 'zoom-in-up' | 'fade-right' | 'fade-left' | 'flip-left' | 'zoom-in';
+
+function ScrollReveal({
+  children,
+  className,
+  delayMs = 0,
+  variant = 'fade-up',
+}: {
+  children: ReactNode;
+  className?: string;
+  delayMs?: number;
+  variant?: RevealVariant;
+}) {
+  const presets: Record<RevealVariant, { initial: Record<string, number>; animate: Record<string, number> }> = {
+    'fade-up': { initial: { opacity: 0, y: 28 }, animate: { opacity: 1, y: 0 } },
+    'zoom-in-up': { initial: { opacity: 0, y: 32, scale: 0.96 }, animate: { opacity: 1, y: 0, scale: 1 } },
+    'fade-right': { initial: { opacity: 0, x: -28 }, animate: { opacity: 1, x: 0 } },
+    'fade-left': { initial: { opacity: 0, x: 28 }, animate: { opacity: 1, x: 0 } },
+    'flip-left': { initial: { opacity: 0, x: -28 }, animate: { opacity: 1, x: 0 } },
+    'zoom-in': { initial: { opacity: 0, scale: 0.94 }, animate: { opacity: 1, scale: 1 } },
+  };
+  const { initial, animate } = presets[variant];
+  return (
+    <motion.div
+      className={className}
+      initial={initial}
+      whileInView={animate}
+      viewport={{ once: false, amount: 0.2 }}
+      transition={{ duration: 0.75, delay: delayMs / 1000, ease: revealEase }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const featureCards = [
   {
@@ -63,16 +98,6 @@ const scenes = [
 ];
 
 export default function HomePage() {
-  useEffect(() => {
-    AOS.init({
-      duration: 900,
-      easing: 'ease-out-cubic',
-      once: false,
-      offset: 80,
-      mirror: true,
-    });
-  }, []);
-
   return (
     <div className="relative min-h-dvh scroll-smooth overflow-x-hidden apple-mesh-bg">
       <header className="sticky top-0 z-40 border-b border-white/45 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-[#0d0d10]/65">
@@ -207,55 +232,57 @@ export default function HomePage() {
         </section>
 
         <section id="features" className="mx-auto min-h-screen w-full max-w-6xl px-4 py-16 md:px-8">
-          <div className="mb-10" data-aos="fade-up">
+          <ScrollReveal className="mb-10" variant="fade-up">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl">
               核心功能
             </h2>
             <p className="mt-3 text-slate-600 dark:text-slate-300">
               从生成内容到组织学习，再到协作互动，覆盖完整教学链路。
             </p>
-          </div>
+          </ScrollReveal>
           <div className="grid gap-5 md:grid-cols-3">
             {featureCards.map((item, idx) => {
               const Icon = item.icon;
               return (
-                <article
+                <ScrollReveal
                   key={item.title}
-                  data-aos="zoom-in-up"
-                  data-aos-delay={idx * 120}
+                  variant="zoom-in-up"
+                  delayMs={idx * 120}
                   className="apple-glass rounded-[24px] p-6 transition-transform duration-300 hover:-translate-y-1.5"
                 >
+                <article className="h-full">
                   <div className="mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#007AFF]/15 to-[#5856D6]/15 text-[#2365e7] dark:text-[#82adff]">
                     <Icon className="size-5" />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.desc}</p>
                 </article>
+                </ScrollReveal>
               );
             })}
           </div>
         </section>
 
         <section id="workflow" className="mx-auto min-h-screen w-full max-w-6xl px-4 py-16 md:px-8">
-          <div className="mb-10" data-aos="fade-right">
+          <ScrollReveal className="mb-10" variant="fade-right">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl">
               三步进入互动课堂
             </h2>
-          </div>
+          </ScrollReveal>
           <div className="grid gap-5 md:grid-cols-3">
             {steps.map((step, idx) => (
-              <div
+              <ScrollReveal
                 key={step.title}
-                data-aos="fade-up"
-                data-aos-delay={idx * 100}
+                variant="fade-up"
+                delayMs={idx * 100}
                 className="apple-glass rounded-[24px] p-6"
               >
                 <p className="text-xs font-medium text-[#007AFF] dark:text-[#82adff]">{step.title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{step.desc}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
-          <div className="mt-8 apple-glass rounded-[24px] p-6" data-aos="fade-left">
+          <ScrollReveal className="mt-8 apple-glass rounded-[24px] p-6" variant="fade-left">
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/75 px-3 py-1 dark:border-white/10 dark:bg-white/5">
                 <FileText className="size-4" /> 课程结构自动生成
@@ -267,32 +294,31 @@ export default function HomePage() {
                 <Blocks className="size-4" /> 课件与互动动作联动
               </span>
             </div>
-          </div>
+          </ScrollReveal>
         </section>
 
         <section id="scenes" className="mx-auto min-h-screen w-full max-w-6xl px-4 py-16 md:px-8">
-          <h2
-            className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl"
-            data-aos="fade-up"
-          >
-            适用场景
-          </h2>
+          <ScrollReveal variant="fade-up">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl">
+              适用场景
+            </h2>
+          </ScrollReveal>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {scenes.map((scene, idx) => (
-              <div
+              <ScrollReveal
                 key={scene}
-                data-aos="flip-left"
-                data-aos-delay={idx * 80}
+                variant="flip-left"
+                delayMs={idx * 80}
                 className="apple-glass rounded-[20px] p-5"
               >
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{scene}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </section>
 
         <section className="mx-auto min-h-screen w-full max-w-6xl px-4 py-16 md:px-8">
-          <div className="apple-glass rounded-[28px] p-8 md:p-10" data-aos="zoom-in">
+          <ScrollReveal className="apple-glass rounded-[28px] p-8 md:p-10" variant="zoom-in">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl">
               为什么团队选择 OpenMAIC
             </h2>
@@ -316,7 +342,7 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
         </section>
 
         <section id="cta" className="mx-auto min-h-screen w-full max-w-6xl px-4 py-16 md:px-8">

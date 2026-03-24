@@ -2,27 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Suspense, useEffect } from 'react';
-import {
-  Shield,
-  Bell,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  MessageCircle,
-  NotebookPen,
-  Settings,
-  ShoppingBag,
-  UsersRound,
-} from 'lucide-react';
+import { Suspense, useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, LogOut, NotebookPen, Search, Settings } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
 
 /** Apple-style glass navigation surface */
@@ -39,7 +29,7 @@ const scrollClass = cn(
   'hover:[&::-webkit-scrollbar-thumb]:bg-slate-900/25 dark:hover:[&::-webkit-scrollbar-thumb]:bg-white/30',
 );
 
-function navItemClass(collapsed: boolean, active: boolean) {
+function createNavItemClass(collapsed: boolean, active: boolean) {
   return cn(
     'flex min-h-11 w-full items-center gap-3 rounded-[12px] py-2.5 text-left text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
     collapsed ? 'justify-center px-2' : 'px-3',
@@ -73,7 +63,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const authName = useAuthStore((s) => s.name);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const logout = useAuthStore((s) => s.logout);
-  const role = useAuthStore((s) => s.role);
 
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseName = useCurrentCourseStore((s) => s.name);
@@ -95,6 +84,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
 
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
 
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!isChatPage) setContactSearchQuery('');
+  }, [isChatPage]);
+
   useEffect(() => {
     if (!pathname) return;
     const shouldClear = COURSE_CONTEXT_CLEAR_PREFIXES.some(
@@ -113,86 +108,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     ? `/create?courseId=${encodeURIComponent(courseId)}`
     : '/create';
 
-  /** 与「当前课程」一致：进入该课程空间，而非笔记本列表页 */
-  const agentTeamsHref = courseId
-    ? `/course/${encodeURIComponent(courseId)}`
-    : '/agent-teams';
-  const agentTeamsActive = courseId
-    ? pathname === `/course/${courseId}`
-    : pathname === '/agent-teams' || pathname?.startsWith('/agent-teams/');
-
-  const chatActive = isChatPage;
-
-  type CoreNavItem = {
-    key: string;
-    href: string;
-    label: string;
-    /** 收起侧栏时 Tooltip，默认与 label 相同 */
-    tooltip?: string;
-    icon: typeof BookOpen;
-    active: boolean;
-  };
-
-  const storeHref = inCourseContext ? '/store' : '/store/courses';
-  const storeActive = inCourseContext
-    ? pathname === '/store'
-    : pathname === '/store/courses' || pathname?.startsWith('/store/courses/');
-
-  const coreNavItems: CoreNavItem[] = [
-    {
-      key: 'courses',
-      href: '/my-courses',
-      label: '我的课程',
-      icon: BookOpen,
-      active: pathname === '/my-courses',
-    },
-    {
-      key: 'store',
-      href: storeHref,
-      label: '商城',
-      tooltip: inCourseContext ? '笔记本商城' : '课程商城',
-      icon: ShoppingBag,
-      active: storeActive,
-    },
-    ...(inCourseContext
-      ? ([
-          {
-            key: 'agent-teams',
-            href: agentTeamsHref,
-            label: 'Agent teams',
-            icon: UsersRound,
-            active: agentTeamsActive,
-          },
-          {
-            key: 'chat',
-            href: '/chat',
-            label: '聊天',
-            icon: MessageCircle,
-            active: chatActive,
-          },
-          {
-            key: 'notifications',
-            href: '/notifications',
-            label: '通知',
-            icon: Bell,
-            active: pathname === '/notifications' || pathname?.startsWith('/notifications/'),
-          },
-        ] satisfies CoreNavItem[])
-      : []),
-    ...(role === 'ADMIN'
-      ? ([
-          {
-            key: 'admin-llm',
-            href: '/admin/llm',
-            label: '系统模型',
-            tooltip: '系统 OpenAI 配置',
-            icon: Shield,
-            active: pathname === '/admin/llm' || pathname?.startsWith('/admin/llm/'),
-          },
-        ] satisfies CoreNavItem[])
-      : []),
-  ];
-
   const createNavItem = {
     key: 'create',
     href: createNotebookHref,
@@ -201,42 +116,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     active: pathname === '/create',
   };
 
-  /** 「我的课程」以课程为主（页内已有新建课程）；此处不展示「创建笔记本」以免与课程流混淆 */
+  /** 课程列表页以课程为主（页内已有新建课程）；此处不展示「创建笔记本」以免与课程流混淆 */
   const showCreateNotebook = pathname !== '/my-courses';
 
   const expandIfCollapsed = () => {
     if (collapsed) onCollapsedChange(false);
   };
-
-  const renderCoreNavList = () => (
-    <ul className="flex flex-col gap-0.5 p-0">
-      {coreNavItems.map((item) => {
-        const Icon = item.icon;
-        return (
-          <li key={item.key}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href={item.href}
-                  className={navItemClass(collapsed, item.active)}
-                  aria-current={item.active ? 'page' : undefined}
-                  onClick={() => {
-                    if (item.key === 'chat') expandIfCollapsed();
-                  }}
-                >
-                  <Icon className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </Link>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right">{item.tooltip ?? item.label}</TooltipContent>
-              )}
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
-  );
 
   const createNotebookBlock = (
     <div className="shrink-0 border-t border-slate-900/[0.08] pb-2 pt-2 dark:border-white/[0.08]">
@@ -245,7 +130,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
           <Link
             href={createNavItem.href}
             className={cn(
-              navItemClass(collapsed, createNavItem.active),
+              createNavItemClass(collapsed, createNavItem.active),
               'border border-slate-900/[0.12] dark:border-white/[0.1]',
             )}
             aria-current={createNavItem.active ? 'page' : undefined}
@@ -269,83 +154,122 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
         aria-label="主导航"
       >
         <div className={cn('pointer-events-auto h-full', surfaceClass)}>
-          <div
-            className={cn(
-              'relative shrink-0 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
-              collapsed
-                ? 'flex flex-col items-center px-2 py-3'
-                : 'flex flex-col items-center px-4 pb-3 pt-10',
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => onCollapsedChange(!collapsed)}
+          {isChatPage ? (
+            <div
               className={cn(
-                'flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground',
-                collapsed ? 'mb-2' : 'absolute left-2 top-2',
+                'relative flex shrink-0 items-center gap-2 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
+                collapsed ? 'justify-center px-2 py-2' : 'px-2 py-2',
               )}
-              aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
             >
-              {collapsed ? (
-                <ChevronRight className="size-4" strokeWidth={1.75} />
-              ) : (
-                <ChevronLeft className="size-4" strokeWidth={1.75} />
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(!collapsed)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground"
+                aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+              >
+                {collapsed ? (
+                  <ChevronRight className="size-4" strokeWidth={1.75} />
+                ) : (
+                  <ChevronLeft className="size-4" strokeWidth={1.75} />
+                )}
+              </button>
+              {!collapsed && (
+                <div className="relative min-w-0 flex-1">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <Input
+                    type="search"
+                    value={contactSearchQuery}
+                    onChange={(e) => setContactSearchQuery(e.target.value)}
+                    placeholder="搜索联系人…"
+                    aria-label="搜索联系人"
+                    className="h-8 border-slate-900/[0.12] bg-black/[0.03] pl-8 text-sm dark:border-white/[0.12] dark:bg-white/[0.06]"
+                  />
+                </div>
               )}
-            </button>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'relative shrink-0 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
+                collapsed
+                  ? 'flex flex-col items-center px-2 py-3'
+                  : 'flex flex-col items-center px-4 pb-3 pt-10',
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(!collapsed)}
+                className={cn(
+                  'flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground',
+                  collapsed ? 'mb-2' : 'absolute left-2 top-2',
+                )}
+                aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+              >
+                {collapsed ? (
+                  <ChevronRight className="size-4" strokeWidth={1.75} />
+                ) : (
+                  <ChevronLeft className="size-4" strokeWidth={1.75} />
+                )}
+              </button>
 
-            {!collapsed && (
-              <>
+              {!collapsed && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={railHref}
+                        className={cn(
+                          'block w-fit outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500',
+                          inCourseContext ? 'rounded-2xl' : 'rounded-full',
+                        )}
+                      >
+                        <img
+                          src={railAvatarSrc}
+                          alt=""
+                          className={cn(
+                            'size-[72px] object-cover ring-1 ring-black/5 dark:ring-white/10',
+                            inCourseContext ? 'rounded-2xl' : 'rounded-full',
+                          )}
+                        />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{railTooltip}</TooltipContent>
+                  </Tooltip>
+                  <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
+                    {railTitle}
+                  </p>
+                </>
+              )}
+
+              {collapsed && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
                       href={railHref}
                       className={cn(
                         'block w-fit outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500',
-                        inCourseContext ? 'rounded-2xl' : 'rounded-full',
+                        inCourseContext ? 'rounded-xl' : 'rounded-full',
                       )}
                     >
                       <img
                         src={railAvatarSrc}
                         alt=""
                         className={cn(
-                          'size-[72px] object-cover ring-1 ring-black/5 dark:ring-white/10',
-                          inCourseContext ? 'rounded-2xl' : 'rounded-full',
+                          'size-10 object-cover ring-1 ring-black/5 dark:ring-white/10',
+                          inCourseContext ? 'rounded-xl' : 'rounded-full',
                         )}
                       />
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right">{railTooltip}</TooltipContent>
                 </Tooltip>
-                <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
-                  {railTitle}
-                </p>
-              </>
-            )}
-
-            {collapsed && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={railHref}
-                    className={cn(
-                      'block w-fit outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500',
-                      inCourseContext ? 'rounded-xl' : 'rounded-full',
-                    )}
-                  >
-                    <img
-                      src={railAvatarSrc}
-                      alt=""
-                      className={cn(
-                        'size-10 object-cover ring-1 ring-black/5 dark:ring-white/10',
-                        inCourseContext ? 'rounded-xl' : 'rounded-full',
-                      )}
-                    />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{railTooltip}</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {isChatPage ? (
             <nav
@@ -355,16 +279,19 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               )}
               aria-label="聊天联系人"
             >
-              <div className="shrink-0 border-b border-slate-900/[0.08] py-2 dark:border-white/[0.08]">
-                {renderCoreNavList()}
-              </div>
               <div className={cn(scrollClass, 'min-h-0 flex-1 px-0')}>
                 <Suspense
                   fallback={
                     <div className="px-3 py-8 text-center text-xs text-muted-foreground">加载联系人…</div>
                   }
                 >
-                  <ChatContactsRail courseId={courseId} collapsed={collapsed} />
+                  <ChatContactsRail
+                    courseId={courseId}
+                    collapsed={collapsed}
+                    courseName={courseName}
+                    courseAvatarUrl={courseAvatarUrl}
+                    searchQuery={contactSearchQuery}
+                  />
                 </Suspense>
               </div>
               {showCreateNotebook ? createNotebookBlock : null}
@@ -377,7 +304,14 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               )}
               aria-label="页面导航"
             >
-              <div className={cn(scrollClass, 'px-0')}>{renderCoreNavList()}</div>
+              <div className={cn(scrollClass, 'px-0')}>
+                <AppCoreNavList
+                  collapsed={collapsed}
+                  onItemClick={(key) => {
+                    if (key === 'chat') expandIfCollapsed();
+                  }}
+                />
+              </div>
               {showCreateNotebook ? createNotebookBlock : null}
             </nav>
           )}
