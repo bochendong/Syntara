@@ -72,9 +72,12 @@ Then output a JSON array containing all scene outlines. Each scene must include:
    "quizConfig": {
      "questionCount": 2,
      "difficulty": "easy" | "medium" | "hard",
-     "questionTypes": ["single", "multiple"]
+     "questionTypes": ["single", "multiple_choice", "short_answer"]
    }
    ```
+   - Use `"code"` only for programming-oriented courses, coding research topics, or algorithm/data-structure content where running tests is meaningful.
+   - Use `"proof"` for theorem/proof-heavy math content.
+   - Use `"code_tracing"` for "read code and predict output/behavior" questions.
 2. **If images are available**, add `suggestedImageIds` to relevant slide scenes
 3. **Interactive scenes**: If a concept benefits from hands-on simulation/visualization, use `"type": "interactive"` with an `interactiveConfig` object containing `conceptName`, `conceptOverview`, `designIdea`, and `subject`. Limit to 1-2 per course.
 4. **Scene count**: Based on inferred duration, typically 1-2 scenes per minute

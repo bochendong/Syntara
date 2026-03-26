@@ -678,13 +678,32 @@ async function generateQuizContent(
 
   // Ensure each question has an ID and normalize options format
   const questions: QuizQuestion[] = generatedQuestions.map((q) => {
-    const isText = q.type === 'short_answer';
+    const normalizedType = normalizeQuizQuestionType(q.type);
+    const hasOptions =
+      normalizedType !== 'short_answer' && normalizedType !== 'proof' && normalizedType !== 'code';
+    const normalizedOptions = hasOptions ? normalizeQuizOptions(q.options) : undefined;
     return {
       ...q,
+      type: normalizedType,
       id: q.id || `q_${nanoid(8)}`,
-      options: isText ? undefined : normalizeQuizOptions(q.options),
-      answer: isText ? undefined : normalizeQuizAnswer(q as unknown as Record<string, unknown>),
-      hasAnswer: isText ? false : true,
+      language: q.type === 'code' || q.language === 'python' ? 'python' : undefined,
+      options: normalizedOptions,
+      answer: normalizeQuestionAnswer(
+        q as unknown as Record<string, unknown>,
+        normalizedType,
+        normalizedOptions,
+      ),
+      correctAnswer: normalizeCorrectAnswer(
+        q as unknown as Record<string, unknown>,
+        normalizedType,
+        normalizedOptions,
+      ),
+      hasAnswer: resolveQuestionHasAnswer(
+        q as unknown as Record<string, unknown>,
+        normalizedType,
+        normalizedOptions,
+      ),
+      testCases: normalizeQuizTestCases((q as { testCases?: unknown[] }).testCases),
     };
   });
 
@@ -721,22 +740,179 @@ function normalizeQuizOptions(
 }
 
 /**
- * Normalize quiz answer from AI response.
- * AI may generate correctAnswer as string or string[], under various field names.
- * This normalizes to string[] format matching option values.
+ * Normalize question type aliases from generators and imported data.
  */
-function normalizeQuizAnswer(question: Record<string, unknown>): string[] | undefined {
-  // AI might use "correctAnswer", "answer", or "correct_answer"
-  const raw =
-    question.answer ??
-    question.correctAnswer ??
-    (question as Record<string, unknown>).correct_answer;
-  if (!raw) return undefined;
+function normalizeQuizQuestionType(type: unknown): QuizQuestion['type'] {
+  const raw = typeof type === 'string' ? type : 'single';
+  if (raw === 'text') return 'short_answer';
+  if (raw === 'multiple_choice') return 'multiple_choice';
+  if (raw === 'proof') return 'proof';
+  if (raw === 'code_tracing') return 'code_tracing';
+  if (raw === 'code') return 'code';
+  if (raw === 'short_answer') return 'short_answer';
+  if (raw === 'multiple') return 'multiple';
+  return 'single';
+}
 
-  if (Array.isArray(raw)) {
-    return raw.map(String);
+/**
+ * Normalize quiz answer from AI response.
+ * Objective questions normalize to option letters, while text/code questions keep free text.
+ */
+function normalizeQuestionAnswer(
+  question: Record<string, unknown>,
+  type: QuizQuestion['type'],
+  options?: { value: string; label: string }[],
+): string | string[] | undefined {
+  const raw = question.answer ?? question.correctAnswer ?? question.correct_answer;
+  if (raw == null) return undefined;
+
+  if (type === 'short_answer' || type === 'proof') {
+    if (Array.isArray(raw)) {
+      return raw.map(String).join('\n');
+    }
+    return String(raw);
   }
-  return [String(raw)];
+
+  if (type === 'code') {
+    return typeof raw === 'string' ? raw : undefined;
+  }
+
+  if (type === 'code_tracing' && (!options || options.length === 0)) {
+    if (Array.isArray(raw)) {
+      return raw.map(String).join('\n');
+    }
+    return String(raw);
+  }
+
+  const normalized = normalizeChoiceAnswerValues(raw, options);
+  if (!normalized) return undefined;
+
+  if (type === 'single' || type === 'multiple_choice') {
+    return normalized[0];
+  }
+  return normalized;
+}
+
+function normalizeCorrectAnswer(
+  question: Record<string, unknown>,
+  type: QuizQuestion['type'],
+  options?: { value: string; label: string }[],
+): string | string[] | undefined {
+  const raw = question.correctAnswer ?? question.answer ?? question.correct_answer;
+  if (raw == null) return undefined;
+
+  if (type === 'short_answer' || type === 'proof' || type === 'code') {
+    if (Array.isArray(raw)) return raw.map(String).join('\n');
+    return String(raw);
+  }
+
+  if (type === 'code_tracing' && (!options || options.length === 0)) {
+    if (Array.isArray(raw)) return raw.map(String).join('\n');
+    return String(raw);
+  }
+
+  const normalized = normalizeChoiceAnswerValues(raw, options);
+  if (!normalized) return undefined;
+  if (type === 'single' || type === 'multiple_choice') return normalized[0];
+  return normalized;
+}
+
+function normalizeChoiceAnswerValues(
+  raw: unknown,
+  options?: { value: string; label: string }[],
+): string[] | undefined {
+  const list = Array.isArray(raw) ? raw : [raw];
+  const normalized = list
+    .map((entry) => normalizeChoiceAnswerValue(entry, options))
+    .filter((value): value is string => Boolean(value));
+
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : undefined;
+}
+
+function normalizeChoiceAnswerValue(
+  raw: unknown,
+  options?: { value: string; label: string }[],
+): string | null {
+  const optionValues = options?.map((opt) => String(opt.value).toUpperCase()) ?? [];
+  const optionLabels = options?.map((opt) => opt.label.trim()) ?? [];
+
+  if (typeof raw === 'number' && Number.isInteger(raw)) {
+    return optionValues[raw] ?? null;
+  }
+
+  const text = String(raw).trim();
+  if (!text) return null;
+
+  const upper = text.toUpperCase();
+  if (upper.length === 1 && optionValues.includes(upper)) {
+    return upper;
+  }
+
+  const directIndex = optionLabels.findIndex((label) => label === text);
+  if (directIndex >= 0) {
+    return optionValues[directIndex] ?? null;
+  }
+
+  const prefixedIndex = optionLabels.findIndex(
+    (label, idx) => `${optionValues[idx]}. ${label}` === text,
+  );
+  if (prefixedIndex >= 0) {
+    return optionValues[prefixedIndex] ?? null;
+  }
+
+  const letterMatch = upper.match(/\b([A-Z])\b/);
+  if (letterMatch && optionValues.includes(letterMatch[1])) {
+    return letterMatch[1];
+  }
+
+  return null;
+}
+
+function resolveQuestionHasAnswer(
+  question: Record<string, unknown>,
+  type: QuizQuestion['type'],
+  options?: { value: string; label: string }[],
+): boolean {
+  if (typeof question.hasAnswer === 'boolean') return question.hasAnswer;
+  if (type === 'short_answer' || type === 'proof') return false;
+  if (type === 'code') return true;
+  if (type === 'code_tracing') return !!options?.length;
+  return true;
+}
+
+function normalizeQuizTestCases(
+  testCases: unknown[] | undefined,
+): QuizQuestion['testCases'] | undefined {
+  if (!Array.isArray(testCases) || testCases.length === 0) return undefined;
+
+  return testCases
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') return null;
+      const obj = item as Record<string, unknown>;
+      const expression =
+        typeof obj.expression === 'string'
+          ? obj.expression
+          : typeof obj.input === 'string'
+            ? obj.input
+            : undefined;
+      const expected =
+        typeof obj.expected === 'string'
+          ? obj.expected
+          : obj.output != null
+            ? JSON.stringify(obj.output)
+            : undefined;
+
+      if (!expression || !expected) return null;
+
+      return {
+        id: typeof obj.id === 'string' ? obj.id : `case_${index + 1}`,
+        description: typeof obj.description === 'string' ? obj.description : undefined,
+        expression,
+        expected,
+        hidden: Boolean(obj.hidden),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 /**
@@ -939,7 +1115,9 @@ export async function generateSceneActions(
     coursePersonalization,
     outline.language || 'zh-CN',
   );
-  const mergedCourseContext = [buildCourseContext(ctx), personalizationText].filter(Boolean).join('\n\n');
+  const mergedCourseContext = [buildCourseContext(ctx), personalizationText]
+    .filter(Boolean)
+    .join('\n\n');
 
   if (outline.type === 'slide' && 'elements' in content) {
     // Format element list for AI to select from

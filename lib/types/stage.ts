@@ -89,16 +89,57 @@ export interface QuizOption {
   value: string; // Selection key: "A", "B", "C", "D"
 }
 
+export type QuizQuestionType =
+  | 'single'
+  | 'multiple'
+  | 'multiple_choice'
+  | 'short_answer'
+  | 'proof'
+  | 'code_tracing'
+  | 'code';
+
+export interface QuizTestCase {
+  id?: string;
+  description?: string;
+  expression: string; // Python expression to evaluate, e.g. solve([1,2,3])
+  expected: string; // JSON / Python literal string, e.g. "[0, 1]"
+  hidden?: boolean;
+}
+
+export interface QuizCodeCaseResult {
+  id: string;
+  description?: string;
+  expression: string;
+  expected: string;
+  actual?: string;
+  passed: boolean;
+  hidden?: boolean;
+  error?: string;
+}
+
+export interface QuizCodeReport {
+  passedCount: number;
+  totalCount: number;
+  cases: QuizCodeCaseResult[];
+}
+
 export interface QuizQuestion {
   id: string;
-  type: 'single' | 'multiple' | 'short_answer';
+  type: QuizQuestionType;
   question: string;
   options?: QuizOption[];
-  answer?: string[]; // Correct answer values: ["A"], ["A","C"], or undefined for text
+  answer?: string | string[]; // Choice answers or reference answer text
+  correctAnswer?: string | string[]; // Original answer format from generators / imported data
   analysis?: string; // Explanation shown after grading
+  explanation?: string; // Additional explanation / rationale
   commentPrompt?: string; // Grading guidance for text questions
   hasAnswer?: boolean; // Whether auto-grading is possible
   points?: number; // Points per question (default 1)
+  proof?: string; // Reference proof for proof questions
+  codeSnippet?: string; // Shared code snippet for code tracing
+  starterCode?: string; // Starter code for code questions
+  language?: 'python';
+  testCases?: QuizTestCase[];
 }
 
 /**

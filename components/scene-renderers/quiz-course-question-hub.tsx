@@ -72,6 +72,7 @@ export function QuizCourseQuestionHub({ quizScenes, onSwitchScene }: QuizCourseQ
         status: rec.result.status,
         earned: rec.result.earned,
         aiComment: rec.result.aiComment,
+        codeReport: rec.result.codeReport,
       },
     ];
     return { phase: 'reviewing' as const, answers, results };
@@ -157,7 +158,8 @@ export function QuizCourseQuestionHub({ quizScenes, onSwitchScene }: QuizCourseQ
                     'inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold',
                     st === 'correct' &&
                       'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
-                    st === 'incorrect' && 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+                    st === 'incorrect' &&
+                      'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
                     st === 'unanswered' &&
                       'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
                   )}

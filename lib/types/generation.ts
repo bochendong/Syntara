@@ -109,7 +109,16 @@ export interface SceneOutline {
   quizConfig?: {
     questionCount: number;
     difficulty: 'easy' | 'medium' | 'hard';
-    questionTypes: ('single' | 'multiple' | 'text')[];
+    questionTypes: (
+      | 'single'
+      | 'multiple'
+      | 'multiple_choice'
+      | 'text'
+      | 'short_answer'
+      | 'proof'
+      | 'code_tracing'
+      | 'code'
+    )[];
   };
   // Interactive-specific config
   interactiveConfig?: {
@@ -192,7 +201,14 @@ export interface SuggestedSlideElement {
 }
 
 export interface SuggestedQuizQuestion {
-  type: 'single' | 'multiple' | 'short_answer';
+  type:
+    | 'single'
+    | 'multiple'
+    | 'multiple_choice'
+    | 'short_answer'
+    | 'proof'
+    | 'code_tracing'
+    | 'code';
   questionOutline: string;
   suggestedOptions?: string[];
   targetConceptId?: string;

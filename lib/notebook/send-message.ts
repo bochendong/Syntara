@@ -89,7 +89,11 @@ function toSceneBrief(scene: Scene): NotebookSceneBrief {
   };
 }
 
-function buildSlideFromInsert(title: string, description: string, keyPoints: string[]): Scene['content'] {
+function buildSlideFromInsert(
+  title: string,
+  description: string,
+  keyPoints: string[],
+): Scene['content'] {
   const bullets = keyPoints.length > 0 ? keyPoints.map((p) => `- ${p}`).join('<br/>') : description;
   return {
     type: 'slide',
@@ -142,13 +146,36 @@ function buildSlideFromInsert(title: string, description: string, keyPoints: str
 function buildQuizFromInsert(title: string, keyPoints: string[]): Scene['content'] {
   return {
     type: 'quiz',
-    questions: keyPoints.slice(0, 3).map((k, i) => ({
-      id: `q_${nanoid(6)}`,
-      type: 'short_answer',
-      question: `${title} - 练习 ${i + 1}: ${k}`,
-      hasAnswer: false,
-      points: 1,
-    })),
+    questions: keyPoints.slice(0, 3).map((k, i) => {
+      if (i === 0) {
+        return {
+          id: `q_${nanoid(6)}`,
+          type: 'multiple_choice' as const,
+          question: `${title} - 练习 ${i + 1}: 关于“${k}”，以下哪项最符合本页内容？`,
+          options: [
+            { value: 'A', label: `${k} 是本页的核心概念之一` },
+            { value: 'B', label: `${k} 与主题无关，可忽略` },
+            { value: 'C', label: `${k} 只适用于与本页无关的其他场景` },
+          ],
+          answer: 'A',
+          correctAnswer: 'A',
+          analysis: `本题用于帮助学习者回顾“${k}”这一关键点。`,
+          points: 1,
+          hasAnswer: true,
+        };
+      }
+
+      return {
+        id: `q_${nanoid(6)}`,
+        type: 'short_answer' as const,
+        question: `${title} - 练习 ${i + 1}: 请简要说明 ${k}。`,
+        answer: `回答应覆盖 ${k} 的核心含义与本页中的作用。`,
+        analysis: `可从定义、作用和应用场景三个角度概述 ${k}。`,
+        commentPrompt: `请检查回答是否准确说明了 ${k} 的定义、作用，以及与当前主题的关系。`,
+        hasAnswer: false,
+        points: 1,
+      };
+    }),
   };
 }
 
@@ -259,9 +286,9 @@ export async function applyNotebookPlan(
   };
 
   // Delete first (from high to low order)
-  const deleteOrders = Array.from(new Set((plan.operations.delete || []).map((d) => d.order).filter((x) => x > 0))).sort(
-    (a, b) => b - a,
-  );
+  const deleteOrders = Array.from(
+    new Set((plan.operations.delete || []).map((d) => d.order).filter((x) => x > 0)),
+  ).sort((a, b) => b - a);
   for (const order1 of deleteOrders) {
     const scene = scenes.find((s) => s.order === order1 - 1);
     if (!scene) continue;
@@ -298,9 +325,7 @@ export async function applyNotebookPlan(
       } as Scene['content'];
     }
     currentScenes = currentScenes.map((s) =>
-      s.id === target.id
-        ? ({ ...s, ...patch, updatedAt: Date.now() } as Scene)
-        : s,
+      s.id === target.id ? ({ ...s, ...patch, updatedAt: Date.now() } as Scene) : s,
     );
     applied.updatedPages.push(upd.order);
   }

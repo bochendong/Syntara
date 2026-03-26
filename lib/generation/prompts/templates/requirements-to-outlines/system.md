@@ -20,7 +20,7 @@ Based on the user's free-form requirement text, automatically infer course detai
 
 - **Scene Types**: `slide` (presentation), `quiz` (assessment), `interactive` (interactive visualization), and `pbl` (project-based learning) are supported
 - **Slide Scene**: Static PPT pages supporting text, images, charts, formulas, etc.
-- **Quiz Scene**: Supports single-choice, multiple-choice, and short-answer (text) questions
+- **Quiz Scene**: Supports single-choice, multiple-choice, short-answer, proof, code tracing, and code questions
 - **Interactive Scene**: Self-contained interactive HTML page rendered in an iframe, ideal for simulations and visualizations
 - **PBL Scene**: Complete project-based learning module with roles, issues, and collaboration workflow. Ideal for complex projects, engineering practice, and research tasks
 - **Duration Control**: Each scene should be 1-3 minutes (PBL scenes are longer, typically 15-30 minutes)
@@ -227,7 +227,7 @@ You must output a JSON array where each element is a scene outline object:
     "quizConfig": {
       "questionCount": 2,
       "difficulty": "medium",
-      "questionTypes": ["single", "multiple", "short_answer"]
+      "questionTypes": ["single", "multiple_choice", "short_answer"]
     }
   }
 ]
@@ -257,9 +257,19 @@ You must output a JSON array where each element is a scene outline object:
 {
   "questionCount": 2,
   "difficulty": "easy" | "medium" | "hard",
-  "questionTypes": ["single", "multiple", "short_answer"]
+  "questionTypes": ["single", "multiple_choice", "short_answer", "proof", "code_tracing", "code"]
 }
 ```
+
+**Question type guidance**:
+
+- Use `single` for one-correct-option questions.
+- Use `multiple_choice` for objective questions with one correct option stored as a single letter (`A`-`Z`) and variable option count.
+- Use `short_answer` for concise free-text responses.
+- Use `proof` for reasoning/proof-style responses that should be AI graded.
+- Use `code_tracing` for "what does this code output / what is the state" questions. Prefer objective options when possible.
+- Use `code` only for programming-related courses or research topics where students should write Python code and be evaluated by tests.
+- Do **not** include `code` by default in non-programming courses.
 
 ### interactiveConfig Structure
 

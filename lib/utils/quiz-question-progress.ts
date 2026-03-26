@@ -1,3 +1,5 @@
+import type { QuizCodeReport } from '@/lib/types/stage';
+
 /**
  * Per-user, per-question quiz progress for a course (stage).
  * Keyed by localStorage: stageId + userId.
@@ -13,6 +15,7 @@ export interface QuizQuestionProgressResult {
   status: 'correct' | 'incorrect';
   earned: number;
   aiComment?: string;
+  codeReport?: QuizCodeReport;
 }
 
 export interface QuizQuestionProgressRecord {

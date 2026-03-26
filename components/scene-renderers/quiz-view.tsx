@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   PieChart,
@@ -12,23 +12,31 @@ import {
   BookOpenText,
   Loader2,
   Sparkles,
+  Code2,
+  FileCode2,
+  FlaskConical,
+  Sigma,
+  ScrollText,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { createLogger } from '@/lib/logger';
-
-const log = createLogger('QuizView');
-import type { QuizQuestion } from '@/lib/types/stage';
+import type { QuizCodeReport, QuizQuestion } from '@/lib/types/stage';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { useStageStore } from '@/lib/store';
 import { useAuthStore } from '@/lib/store/auth';
 import { clearQuestionProgress, setQuestionProgress } from '@/lib/utils/quiz-question-progress';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+const log = createLogger('QuizView');
 
 type Phase = 'not_started' | 'answering' | 'grading' | 'reviewing';
+type AnswerValue = string | string[];
 
 export interface QuestionResult {
   questionId: string;
@@ -36,22 +44,20 @@ export interface QuestionResult {
   status: 'correct' | 'incorrect';
   earned: number;
   aiComment?: string;
+  codeReport?: QuizCodeReport;
 }
 
 export interface QuizViewProps {
   readonly questions: QuizQuestion[];
   readonly sceneId: string;
-  /** 测验页单题模式：无封面，提交后写入本地进度 */
   readonly singleQuestionMode?: boolean;
   readonly initialSnapshot?: {
     phase: 'answering' | 'reviewing';
-    answers: Record<string, string | string[]>;
+    answers: Record<string, AnswerValue>;
     results: QuestionResult[];
   };
   readonly onAttemptFinished?: () => void;
 }
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function arraysEqual(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
@@ -60,43 +66,117 @@ function arraysEqual(a: string[], b: string[]): boolean {
   return sa.every((v, i) => v === sb[i]);
 }
 
-function toArray(v: string | string[] | undefined): string[] {
+function toArray(v: AnswerValue | undefined): string[] {
   if (!v) return [];
   return Array.isArray(v) ? v : [v];
 }
 
-function isShortAnswer(q: QuizQuestion): boolean {
-  return q.type === 'short_answer' || (!q.hasAnswer && (!q.answer || q.answer.length === 0));
+function isObjectiveQuestion(q: QuizQuestion): boolean {
+  return (
+    q.type === 'single' ||
+    q.type === 'multiple' ||
+    q.type === 'multiple_choice' ||
+    (q.type === 'code_tracing' && (q.options?.length ?? 0) > 0)
+  );
 }
 
-/** Grade choice questions locally. Returns results only for non-short-answer questions. */
-function gradeChoiceQuestions(
-  questions: QuizQuestion[],
-  answers: Record<string, string | string[]>,
-): QuestionResult[] {
-  return questions
-    .filter((q) => !isShortAnswer(q))
-    .map((q) => {
-      const pts = q.points ?? 1;
-      const userAnswer = toArray(answers[q.id]);
-      const correctAnswer = toArray(q.answer);
-      const correct = arraysEqual(userAnswer, correctAnswer);
-      return {
-        questionId: q.id,
-        correct,
-        status: correct ? ('correct' as const) : ('incorrect' as const),
-        earned: correct ? pts : 0,
-      };
-    });
+function isTextQuestion(q: QuizQuestion): boolean {
+  return q.type === 'short_answer' || q.type === 'proof' || q.type === 'code_tracing';
 }
 
-/** Call /api/quiz-grade for a single short-answer question. */
-async function gradeShortAnswerQuestion(
+function isCodeQuestion(q: QuizQuestion): boolean {
+  return q.type === 'code';
+}
+
+function getEffectiveAnswer(
   q: QuizQuestion,
+  answer: AnswerValue | undefined,
+): AnswerValue | undefined {
+  if (answer != null) return answer;
+  if (isCodeQuestion(q) && q.starterCode) return q.starterCode;
+  return answer;
+}
+
+function getEffectiveTextAnswer(q: QuizQuestion, answer: AnswerValue | undefined): string {
+  const effective = getEffectiveAnswer(q, answer);
+  if (Array.isArray(effective)) return effective.join(', ');
+  return effective ?? '';
+}
+
+function getQuestionTypeLabel(
+  question: QuizQuestion,
+  t: (key: string) => string,
+  locale: string,
+): string {
+  switch (question.type) {
+    case 'single':
+      return t('quiz.singleChoice');
+    case 'multiple':
+      return t('quiz.multipleChoice');
+    case 'multiple_choice':
+      return locale === 'zh-CN' ? '选择题' : 'Selection';
+    case 'short_answer':
+      return t('quiz.shortAnswer');
+    case 'proof':
+      return locale === 'zh-CN' ? '证明题' : 'Proof';
+    case 'code_tracing':
+      return locale === 'zh-CN' ? '代码追踪' : 'Code tracing';
+    case 'code':
+      return locale === 'zh-CN' ? '代码题' : 'Coding';
+    default:
+      return t('quiz.shortAnswer');
+  }
+}
+
+function getQuestionIcon(question: QuizQuestion) {
+  switch (question.type) {
+    case 'proof':
+      return <ScrollText className="w-3.5 h-3.5" />;
+    case 'code_tracing':
+      return <Sigma className="w-3.5 h-3.5" />;
+    case 'code':
+      return <Code2 className="w-3.5 h-3.5" />;
+    default:
+      return <ListChecks className="w-3.5 h-3.5" />;
+  }
+}
+
+function buildTextRubric(question: QuizQuestion): string | undefined {
+  const parts = [
+    question.commentPrompt,
+    typeof question.answer === 'string' ? `参考答案：${question.answer}` : undefined,
+    question.proof ? `参考证明：${question.proof}` : undefined,
+    question.analysis ? `解析：${question.analysis}` : undefined,
+    question.explanation ? `补充说明：${question.explanation}` : undefined,
+    question.codeSnippet ? `相关代码：\n${question.codeSnippet}` : undefined,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join('\n\n') : undefined;
+}
+
+function gradeObjectiveQuestions(
+  questions: QuizQuestion[],
+  answers: Record<string, AnswerValue>,
+): QuestionResult[] {
+  return questions.filter(isObjectiveQuestion).map((q) => {
+    const pts = q.points ?? 1;
+    const userAnswer = toArray(answers[q.id]);
+    const correctAnswer = toArray(q.answer);
+    const correct = arraysEqual(userAnswer, correctAnswer);
+    return {
+      questionId: q.id,
+      correct,
+      status: correct ? 'correct' : 'incorrect',
+      earned: correct ? pts : 0,
+    };
+  });
+}
+
+async function gradeTextQuestion(
+  question: QuizQuestion,
   userAnswer: string,
   language: string,
 ): Promise<QuestionResult> {
-  const pts = q.points ?? 1;
+  const pts = question.points ?? 1;
   try {
     const modelConfig = getCurrentModelConfig();
     const headers: Record<string, string> = {
@@ -112,11 +192,15 @@ async function gradeShortAnswerQuestion(
       method: 'POST',
       headers,
       body: JSON.stringify({
-        question: q.question,
+        question: question.question,
         userAnswer,
         points: pts,
-        commentPrompt: q.commentPrompt,
+        commentPrompt: buildTextRubric(question),
         language,
+        questionType: question.type,
+        referenceAnswer: typeof question.answer === 'string' ? question.answer : undefined,
+        proof: question.proof,
+        analysis: question.analysis,
       }),
     });
 
@@ -124,17 +208,16 @@ async function gradeShortAnswerQuestion(
     const data = (await res.json()) as { score: number; comment: string };
     const earned = Math.max(0, Math.min(pts, data.score));
     return {
-      questionId: q.id,
+      questionId: question.id,
       correct: earned >= pts * 0.8,
       status: earned >= pts * 0.8 ? 'correct' : 'incorrect',
       earned,
       aiComment: data.comment,
     };
-  } catch (err) {
-    log.error('[quiz-view] AI grading failed for', q.id, err);
-    // Fallback: give half credit
+  } catch (error) {
+    log.error('[quiz-view] AI grading failed', question.id, error);
     return {
-      questionId: q.id,
+      questionId: question.id,
       correct: null,
       status: 'incorrect',
       earned: Math.round(pts * 0.5),
@@ -146,7 +229,58 @@ async function gradeShortAnswerQuestion(
   }
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
+async function gradeCodeQuestion(
+  question: QuizQuestion,
+  userCode: string,
+  language: string,
+): Promise<QuestionResult> {
+  const pts = question.points ?? 1;
+  try {
+    const res = await fetch('/api/quiz-code-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        questionId: question.id,
+        userCode,
+        starterCode: question.starterCode,
+        language: question.language || 'python',
+        testCases: question.testCases ?? [],
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { report: QuizCodeReport };
+    const report = data.report;
+    const passed = report.totalCount > 0 && report.passedCount === report.totalCount;
+    return {
+      questionId: question.id,
+      correct: passed,
+      status: passed ? 'correct' : 'incorrect',
+      earned: passed ? pts : 0,
+      aiComment:
+        language === 'zh-CN'
+          ? `通过 ${report.passedCount}/${report.totalCount} 个测试用例。`
+          : `Passed ${report.passedCount}/${report.totalCount} test cases.`,
+      codeReport: report,
+    };
+  } catch (error) {
+    log.error('[quiz-view] Code grading failed', question.id, error);
+    return {
+      questionId: question.id,
+      correct: false,
+      status: 'incorrect',
+      earned: 0,
+      aiComment:
+        language === 'zh-CN'
+          ? '代码运行服务暂时不可用，请稍后重试。'
+          : 'Code runner unavailable. Please try again later.',
+      codeReport: {
+        passedCount: 0,
+        totalCount: question.testCases?.length ?? 0,
+        cases: [],
+      },
+    };
+  }
+}
 
 function QuizCover({
   questionCount,
@@ -161,7 +295,6 @@ function QuizCover({
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-4 relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute top-0 right-0 p-6 opacity-[0.03]">
         <PieChart className="w-52 h-52 text-violet-500" />
       </div>
@@ -228,119 +361,48 @@ function QuizCover({
   );
 }
 
-function SingleChoiceQuestion({
-  question,
-  index,
-  value,
-  onChange,
-  disabled,
-  result,
-}: {
-  question: QuizQuestion;
-  index: number;
-  value?: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  result?: QuestionResult;
-}) {
-  const isReview = !!result;
-
+function CodeBlock({ title, code }: { title: string; code?: string }) {
+  if (!code?.trim()) return null;
   return (
-    <QuestionCard question={question} index={index} result={result}>
-      <div className="grid gap-2">
-        {question.options?.map((opt) => {
-          const selected = value === opt.value;
-          const isCorrectOpt = isReview && question.answer?.includes(opt.value);
-          const isWrong = isReview && selected && result?.status === 'incorrect';
-
-          return (
-            <button
-              key={opt.value}
-              disabled={disabled}
-              onClick={() => !disabled && onChange(opt.value)}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all text-sm',
-                // Default state
-                !isReview &&
-                  !selected &&
-                  'border-gray-200 dark:border-gray-600 hover:border-violet-200 dark:hover:border-violet-700 hover:bg-violet-50/50 dark:hover:bg-violet-900/30',
-                !isReview &&
-                  selected &&
-                  'border-violet-400 bg-violet-50 dark:bg-violet-900/30 ring-1 ring-violet-200 dark:ring-violet-700',
-                // Review states
-                isReview &&
-                  isCorrectOpt &&
-                  'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30',
-                isReview &&
-                  isWrong &&
-                  !isCorrectOpt &&
-                  'border-red-300 bg-red-50 dark:bg-red-900/30',
-                isReview &&
-                  !isCorrectOpt &&
-                  !selected &&
-                  'border-gray-100 dark:border-gray-700 opacity-60',
-                disabled && !isReview && 'cursor-default',
-              )}
-            >
-              <span
-                className={cn(
-                  'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
-                  !isReview &&
-                    !selected &&
-                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
-                  !isReview && selected && 'bg-violet-500 text-white',
-                  isReview && isCorrectOpt && 'bg-emerald-500 text-white',
-                  isReview && isWrong && !isCorrectOpt && 'bg-red-400 text-white',
-                  isReview &&
-                    !isCorrectOpt &&
-                    !selected &&
-                    'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
-                )}
-              >
-                {opt.value}
-              </span>
-              <span
-                className={cn(
-                  'flex-1',
-                  isReview && !isCorrectOpt && !selected && 'text-gray-400 dark:text-gray-500',
-                )}
-              >
-                {opt.label}
-              </span>
-              {isReview && isCorrectOpt && (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-              )}
-              {isReview && isWrong && !isCorrectOpt && (
-                <XCircle className="w-5 h-5 text-red-400 shrink-0" />
-              )}
-            </button>
-          );
-        })}
+    <div className="rounded-xl border border-slate-200 bg-slate-950/95 overflow-hidden dark:border-slate-700">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 text-[11px] font-medium uppercase tracking-wide text-slate-300">
+        <span>{title}</span>
+        <FileCode2 className="w-3.5 h-3.5" />
       </div>
-    </QuestionCard>
+      <pre className="overflow-x-auto px-4 py-3 text-xs leading-6 text-slate-100">
+        <code>{code}</code>
+      </pre>
+    </div>
   );
 }
 
-function MultipleChoiceQuestion({
+function ChoiceQuestion({
   question,
   index,
   value,
   onChange,
   disabled,
   result,
+  multiSelect,
 }: {
   question: QuizQuestion;
   index: number;
-  value?: string[];
-  onChange: (value: string[]) => void;
+  value?: string | string[];
+  onChange: (value: string | string[]) => void;
   disabled?: boolean;
   result?: QuestionResult;
+  multiSelect: boolean;
 }) {
+  const { t } = useI18n();
+  const selected = toArray(value);
   const isReview = !!result;
-  const selected = value ?? [];
 
   const toggle = (optValue: string) => {
     if (disabled) return;
+    if (!multiSelect) {
+      onChange(optValue);
+      return;
+    }
     if (selected.includes(optValue)) {
       onChange(selected.filter((v) => v !== optValue));
     } else {
@@ -348,11 +410,17 @@ function MultipleChoiceQuestion({
     }
   };
 
-  const { t } = useI18n();
-
   return (
     <QuestionCard question={question} index={index} result={result}>
-      {!isReview && (
+      {question.codeSnippet && (
+        <div className="mb-3">
+          <CodeBlock
+            title={question.type === 'code_tracing' ? 'Code' : 'Snippet'}
+            code={question.codeSnippet}
+          />
+        </div>
+      )}
+      {!isReview && multiSelect && (
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
           {t('quiz.multipleChoiceHint')}
         </p>
@@ -360,9 +428,8 @@ function MultipleChoiceQuestion({
       <div className="grid gap-2">
         {question.options?.map((opt) => {
           const isSelected = selected.includes(opt.value);
-          const isCorrectOpt = isReview && question.answer?.includes(opt.value);
+          const isCorrectOpt = isReview && toArray(question.answer).includes(opt.value);
           const isWrong = isReview && isSelected && !isCorrectOpt;
-
           return (
             <button
               key={opt.value}
@@ -384,7 +451,6 @@ function MultipleChoiceQuestion({
                   !isCorrectOpt &&
                   !isSelected &&
                   'border-gray-100 dark:border-gray-700 opacity-60',
-                disabled && !isReview && 'cursor-default',
               )}
             >
               <span
@@ -402,7 +468,11 @@ function MultipleChoiceQuestion({
                     'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
                 )}
               >
-                {!isReview && isSelected ? <Check className="w-3.5 h-3.5" /> : opt.value}
+                {!isReview && multiSelect && isSelected ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  opt.value
+                )}
               </span>
               <span
                 className={cn(
@@ -424,13 +494,14 @@ function MultipleChoiceQuestion({
   );
 }
 
-function ShortAnswerQuestion({
+function TextQuestion({
   question,
   index,
   value,
   onChange,
   disabled,
   result,
+  locale,
 }: {
   question: QuizQuestion;
   index: number;
@@ -438,25 +509,52 @@ function ShortAnswerQuestion({
   onChange: (value: string) => void;
   disabled?: boolean;
   result?: QuestionResult;
+  locale: string;
 }) {
-  const isReview = !!result;
   const { t } = useI18n();
-  // Ref to track latest value for voice transcription append
+  const isReview = !!result;
   const valueRef = useRef(value);
+  const isProof = question.type === 'proof';
+  const referenceTitle = isProof
+    ? locale === 'zh-CN'
+      ? '参考证明'
+      : 'Reference proof'
+    : locale === 'zh-CN'
+      ? '参考答案'
+      : 'Reference answer';
+  const referenceContent =
+    question.proof ||
+    (typeof question.answer === 'string' ? question.answer : undefined) ||
+    question.explanation;
+
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
 
   return (
     <QuestionCard question={question} index={index} result={result}>
+      {question.codeSnippet && (
+        <div className="mb-3">
+          <CodeBlock
+            title={locale === 'zh-CN' ? '相关代码' : 'Related code'}
+            code={question.codeSnippet}
+          />
+        </div>
+      )}
       {!isReview ? (
         <div className="relative">
-          <textarea
+          <Textarea
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            placeholder={t('quiz.inputPlaceholder')}
-            className="w-full min-h-[100px] p-3 pb-10 rounded-xl border border-gray-200 dark:border-gray-600 text-sm resize-none focus:outline-none focus:border-violet-300 dark:focus:border-violet-600 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/50 transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:bg-gray-800/50 dark:text-gray-200 dark:placeholder:text-gray-500"
+            placeholder={
+              isProof
+                ? locale === 'zh-CN'
+                  ? '请写出你的证明过程...'
+                  : 'Write your proof here...'
+                : t('quiz.inputPlaceholder')
+            }
+            className={cn('w-full pb-10 rounded-xl', isProof ? 'min-h-[180px]' : 'min-h-[120px]')}
           />
           <SpeechButton
             size="sm"
@@ -484,7 +582,7 @@ function ShortAnswerQuestion({
           {result.aiComment && (
             <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800">
               <Sparkles className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-0.5">
                   {t('quiz.aiComment')}
                 </p>
@@ -498,8 +596,187 @@ function ShortAnswerQuestion({
               </span>
             </div>
           )}
+          {referenceContent && (
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
+              <p className="text-xs font-medium mb-1">{referenceTitle}</p>
+              <p className="whitespace-pre-wrap leading-6">{referenceContent}</p>
+            </div>
+          )}
         </div>
       )}
+    </QuestionCard>
+  );
+}
+
+function CodeQuestion({
+  question,
+  index,
+  value,
+  onChange,
+  disabled,
+  result,
+  locale,
+}: {
+  question: QuizQuestion;
+  index: number;
+  value?: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  result?: QuestionResult;
+  locale: string;
+}) {
+  const isReview = !!result;
+  const currentCode = value ?? question.starterCode ?? '';
+  const noCasesLabel = locale === 'zh-CN' ? '暂无测试用例' : 'No test cases';
+  const testsTitle = locale === 'zh-CN' ? '测试用例' : 'Test cases';
+  const resultTitle = locale === 'zh-CN' ? '运行结果' : 'Run result';
+  const editorTitle = locale === 'zh-CN' ? '代码编辑器' : 'Editor';
+
+  return (
+    <QuestionCard question={question} index={index} result={result}>
+      <Tabs defaultValue={isReview ? 'result' : 'editor'} className="gap-3">
+        <TabsList variant="line" className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="editor">{editorTitle}</TabsTrigger>
+          <TabsTrigger value="tests">{testsTitle}</TabsTrigger>
+          {isReview && <TabsTrigger value="result">{resultTitle}</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="editor" className="space-y-3">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <Code2 className="w-3.5 h-3.5" />
+                Python
+              </div>
+              {question.testCases?.length ? (
+                <Badge variant="outline">
+                  {question.testCases.length} {locale === 'zh-CN' ? '个测试' : 'tests'}
+                </Badge>
+              ) : null}
+            </div>
+            <Textarea
+              value={currentCode}
+              onChange={(e) => onChange(e.target.value)}
+              disabled={disabled}
+              placeholder={
+                locale === 'zh-CN'
+                  ? '# 在这里编写你的 Python 代码'
+                  : '# Write your Python solution here'
+              }
+              className="min-h-[320px] rounded-none border-0 shadow-none resize-y font-mono text-[13px] leading-6"
+            />
+          </div>
+          {question.explanation && (
+            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+              {question.explanation}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="tests">
+          <div className="space-y-2">
+            {question.testCases?.length ? (
+              question.testCases.map((testCase, idx) => (
+                <div
+                  key={testCase.id || `${question.id}-case-${idx}`}
+                  className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/50 p-3"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <FlaskConical className="w-3.5 h-3.5 text-violet-500" />
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {testCase.description ||
+                        (locale === 'zh-CN' ? `测试 ${idx + 1}` : `Case ${idx + 1}`)}
+                    </p>
+                    {testCase.hidden && (
+                      <Badge variant="outline">{locale === 'zh-CN' ? '隐藏测试' : 'Hidden'}</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                    {testCase.expression}
+                  </p>
+                  {!testCase.hidden && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {locale === 'zh-CN' ? '期望输出：' : 'Expected: '}
+                      <span className="font-mono">{testCase.expected}</span>
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-500 dark:text-gray-400">
+                {noCasesLabel}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {isReview && (
+          <TabsContent value="result">
+            <div className="space-y-2">
+              {result.aiComment && (
+                <div className="rounded-xl border border-violet-100 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-sm text-violet-700 dark:text-violet-300">
+                  {result.aiComment}
+                </div>
+              )}
+              {result.codeReport?.cases?.length ? (
+                result.codeReport.cases.map((testCase) => (
+                  <div
+                    key={testCase.id}
+                    className={cn(
+                      'rounded-xl border p-3',
+                      testCase.passed
+                        ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-900/20'
+                        : 'border-red-200 bg-red-50/70 dark:border-red-800 dark:bg-red-900/20',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                          {testCase.description ||
+                            (locale === 'zh-CN' ? `测试 ${testCase.id}` : `Case ${testCase.id}`)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">
+                          {testCase.hidden
+                            ? locale === 'zh-CN'
+                              ? '隐藏测试'
+                              : 'Hidden case'
+                            : testCase.expression}
+                        </p>
+                      </div>
+                      {testCase.passed ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+                      )}
+                    </div>
+                    {!testCase.hidden && (
+                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                        <p>
+                          {locale === 'zh-CN' ? '期望：' : 'Expected: '}
+                          <span className="font-mono">{testCase.expected}</span>
+                        </p>
+                        <p>
+                          {locale === 'zh-CN' ? '实际：' : 'Actual: '}
+                          <span className="font-mono">{testCase.actual ?? '-'}</span>
+                        </p>
+                      </div>
+                    )}
+                    {testCase.error && (
+                      <p className="mt-2 text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap">
+                        {testCase.error}
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-sm text-gray-500 dark:text-gray-400">
+                  {noCasesLabel}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
     </QuestionCard>
   );
 }
@@ -513,9 +790,9 @@ function QuestionCard({
   question: QuizQuestion;
   index: number;
   result?: QuestionResult;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const isReview = !!result;
   const pts = question.points ?? 1;
 
@@ -535,7 +812,6 @@ function QuestionCard({
           'border-red-200 dark:border-red-800 shadow-sm shadow-red-50 dark:shadow-red-900/20',
       )}
     >
-      {/* Left accent */}
       <div
         className={cn(
           'absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl',
@@ -545,9 +821,8 @@ function QuestionCard({
         )}
       />
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 min-w-0">
           <span
             className={cn(
               'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
@@ -563,19 +838,22 @@ function QuestionCard({
           >
             {index + 1}
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
               {question.question}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {question.type === 'single'
-                ? t('quiz.singleChoice')
-                : question.type === 'multiple'
-                  ? t('quiz.multipleChoice')
-                  : t('quiz.shortAnswer')}
-              {' · '}
-              {pts} {t('quiz.pointsSuffix')}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+              <Badge variant="outline" className="gap-1">
+                {getQuestionIcon(question)}
+                {getQuestionTypeLabel(question, t, locale)}
+              </Badge>
+              <span>
+                {pts} {t('quiz.pointsSuffix')}
+              </span>
+              {isCodeQuestion(question) && (
+                <span>{locale === 'zh-CN' ? 'Python 跑测' : 'Python judge'}</span>
+              )}
+            </div>
           </div>
         </div>
         {isReview && (
@@ -586,10 +864,8 @@ function QuestionCard({
         )}
       </div>
 
-      {/* Body */}
       {children}
 
-      {/* Analysis (review only) */}
       {isReview && question.analysis && (
         <div className="mt-3 p-3 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
           <span className="font-medium">{t('quiz.analysis')}</span>
@@ -613,25 +889,21 @@ function ScoreBanner({
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const correctCount = results.filter((r) => r.status === 'correct').length;
   const incorrectCount = results.filter((r) => r.status === 'incorrect').length;
-
   const color = pct >= 80 ? 'emerald' : pct >= 60 ? 'amber' : 'red';
   const colorMap = {
     emerald: {
       bg: 'from-emerald-500 to-teal-500',
       shadow: 'shadow-emerald-200/50 dark:shadow-emerald-900/50',
-      ring: 'bg-emerald-400/30',
       text: t('quiz.excellent'),
     },
     amber: {
       bg: 'from-amber-500 to-yellow-500',
       shadow: 'shadow-amber-200/50 dark:shadow-amber-900/50',
-      ring: 'bg-amber-400/30',
       text: t('quiz.keepGoing'),
     },
     red: {
       bg: 'from-red-500 to-rose-500',
       shadow: 'shadow-red-200/50 dark:shadow-red-900/50',
-      ring: 'bg-red-400/30',
       text: t('quiz.needsReview'),
     },
   };
@@ -659,8 +931,6 @@ function ScoreBanner({
             </span>
           </div>
         </div>
-
-        {/* Percentage ring */}
         <div className="relative w-20 h-20">
           <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
             <circle
@@ -694,7 +964,57 @@ function ScoreBanner({
   );
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+function renderQuestion(
+  question: QuizQuestion,
+  index: number,
+  answer: AnswerValue | undefined,
+  handleSetAnswer: (value: AnswerValue) => void,
+  result: QuestionResult | undefined,
+  locale: string,
+) {
+  if (isCodeQuestion(question)) {
+    return (
+      <CodeQuestion
+        key={question.id}
+        question={question}
+        index={index}
+        value={typeof answer === 'string' ? answer : undefined}
+        onChange={(value) => handleSetAnswer(value)}
+        disabled={!!result}
+        result={result}
+        locale={locale}
+      />
+    );
+  }
+
+  if (isObjectiveQuestion(question)) {
+    return (
+      <ChoiceQuestion
+        key={question.id}
+        question={question}
+        index={index}
+        value={answer}
+        onChange={(value) => handleSetAnswer(value)}
+        disabled={!!result}
+        result={result}
+        multiSelect={question.type === 'multiple'}
+      />
+    );
+  }
+
+  return (
+    <TextQuestion
+      key={question.id}
+      question={question}
+      index={index}
+      value={typeof answer === 'string' ? answer : undefined}
+      onChange={(value) => handleSetAnswer(value)}
+      disabled={!!result}
+      result={result}
+      locale={locale}
+    />
+  );
+}
 
 export function QuizView({
   questions,
@@ -714,7 +1034,7 @@ export function QuizView({
   }, [initialSnapshot, singleQuestionMode]);
 
   const [phase, setPhase] = useState<Phase>(initialPhase);
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>(
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>(
     () => initialSnapshot?.answers ?? {},
   );
   const [results, setResults] = useState<QuestionResult[]>(() => initialSnapshot?.results ?? []);
@@ -728,11 +1048,8 @@ export function QuizView({
     cachedValue: cachedAnswers,
     updateCache: updateAnswersCache,
     clearCache: clearAnswersCache,
-  } = useDraftCache<Record<string, string | string[]>>({
-    key: draftKey,
-  });
+  } = useDraftCache<Record<string, AnswerValue>>({ key: draftKey });
 
-  // Restore cached answers during render (derived state pattern)
   const [prevCachedAnswers, setPrevCachedAnswers] = useState(cachedAnswers);
   if (!initialSnapshot && cachedAnswers !== prevCachedAnswers) {
     setPrevCachedAnswers(cachedAnswers);
@@ -747,17 +1064,20 @@ export function QuizView({
     [questions],
   );
 
-  const allAnswered = useMemo(() => {
-    return questions.every((q) => {
-      const a = answers[q.id];
-      if (!a) return false;
-      if (Array.isArray(a)) return a.length > 0;
-      return (a as string).trim().length > 0;
-    });
-  }, [questions, answers]);
+  const answeredCount = useMemo(
+    () =>
+      questions.filter((question) => {
+        const answer = getEffectiveAnswer(question, answers[question.id]);
+        if (Array.isArray(answer)) return answer.length > 0;
+        return typeof answer === 'string' && answer.trim().length > 0;
+      }).length,
+    [questions, answers],
+  );
+
+  const allAnswered = answeredCount === questions.length;
 
   const handleSetAnswer = useCallback(
-    (questionId: string, value: string | string[]) => {
+    (questionId: string, value: AnswerValue) => {
       setAnswers((prev) => {
         const next = { ...prev, [questionId]: value };
         updateAnswersCache(next);
@@ -772,34 +1092,45 @@ export function QuizView({
     clearAnswersCache();
   }, [clearAnswersCache]);
 
-  // When entering grading phase, grade choice questions locally + call API for short-answer
   useEffect(() => {
     if (phase !== 'grading') return;
     let cancelled = false;
 
     (async () => {
-      // 1. Grade choice questions locally (instant)
-      const choiceResults = gradeChoiceQuestions(questions, answers);
-
-      // 2. Grade short-answer questions via AI API (parallel)
-      const shortAnswerQs = questions.filter(isShortAnswer);
-      const aiResults = await Promise.all(
-        shortAnswerQs.map((q) =>
-          gradeShortAnswerQuestion(q, (answers[q.id] as string) ?? '', locale),
-        ),
+      const objectiveResults = gradeObjectiveQuestions(questions, answers);
+      const textResults = await Promise.all(
+        questions
+          .filter((question) => isTextQuestion(question) && !isObjectiveQuestion(question))
+          .map((question) =>
+            gradeTextQuestion(
+              question,
+              getEffectiveTextAnswer(question, answers[question.id]),
+              locale,
+            ),
+          ),
+      );
+      const codeResults = await Promise.all(
+        questions
+          .filter(isCodeQuestion)
+          .map((question) =>
+            gradeCodeQuestion(
+              question,
+              getEffectiveTextAnswer(question, answers[question.id]),
+              locale,
+            ),
+          ),
       );
 
       if (cancelled) return;
 
-      // 3. Merge results in original question order
       const allResultsMap = new Map<string, QuestionResult>();
-      for (const r of [...choiceResults, ...aiResults]) {
-        allResultsMap.set(r.questionId, r);
-      }
-      const ordered = questions.map((q) => allResultsMap.get(q.id)!).filter(Boolean);
-
+      [...objectiveResults, ...textResults, ...codeResults].forEach((result) => {
+        allResultsMap.set(result.questionId, result);
+      });
+      const ordered = questions
+        .map((question) => allResultsMap.get(question.id))
+        .filter(Boolean) as QuestionResult[];
       setResults(ordered);
-
       setPhase('reviewing');
     })();
 
@@ -830,20 +1161,22 @@ export function QuizView({
     ) {
       return;
     }
-    const q = questions[0];
-    const r = results.find((x) => x.questionId === q.id);
-    if (!r) return;
+    const question = questions[0];
+    const result = results.find((entry) => entry.questionId === question.id);
+    if (!result) return;
     persistDoneRef.current = true;
-    setQuestionProgress(stageId, userId, sceneId, q.id, {
-      status: r.status,
+    setQuestionProgress(stageId, userId, sceneId, question.id, {
+      status: result.status,
       updatedAt: Date.now(),
-      userAnswer: answers[q.id] ?? null,
+      userAnswer:
+        (getEffectiveAnswer(question, answers[question.id]) as AnswerValue | undefined) ?? null,
       result: {
-        questionId: r.questionId,
-        correct: r.correct,
-        status: r.status,
-        earned: r.earned,
-        aiComment: r.aiComment,
+        questionId: result.questionId,
+        correct: result.correct,
+        status: result.status,
+        earned: result.earned,
+        aiComment: result.aiComment,
+        codeReport: result.codeReport,
       },
     });
     onAttemptFinished?.();
@@ -878,12 +1211,14 @@ export function QuizView({
     onAttemptFinished,
   ]);
 
-  const earnedScore = useMemo(() => results.reduce((sum, r) => sum + r.earned, 0), [results]);
-
+  const earnedScore = useMemo(
+    () => results.reduce((sum, result) => sum + result.earned, 0),
+    [results],
+  );
   const resultMap = useMemo(() => {
     const map: Record<string, QuestionResult> = {};
-    results.forEach((r) => {
-      map[r.questionId] = r;
+    results.forEach((result) => {
+      map[result.questionId] = result;
     });
     return map;
   }, [results]);
@@ -915,7 +1250,6 @@ export function QuizView({
             exit={{ opacity: 0, x: -20 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* Header bar */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur shrink-0">
               <div className="flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-violet-500" />
@@ -923,14 +1257,7 @@ export function QuizView({
                   {t('quiz.answering')}
                 </span>
                 <span className="text-xs text-gray-400 ml-1">
-                  {
-                    Object.keys(answers).filter((k) => {
-                      const a = answers[k];
-                      if (Array.isArray(a)) return a.length > 0;
-                      return typeof a === 'string' && a.trim().length > 0;
-                    }).length
-                  }{' '}
-                  / {questions.length}
+                  {answeredCount} / {questions.length}
                 </span>
               </div>
               <button
@@ -947,41 +1274,17 @@ export function QuizView({
               </button>
             </div>
 
-            {/* Questions */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {questions.map((q, i) => {
-                if (q.type === 'single') {
-                  return (
-                    <SingleChoiceQuestion
-                      key={q.id}
-                      question={q}
-                      index={i}
-                      value={answers[q.id] as string | undefined}
-                      onChange={(v) => handleSetAnswer(q.id, v)}
-                    />
-                  );
-                }
-                if (q.type === 'multiple') {
-                  return (
-                    <MultipleChoiceQuestion
-                      key={q.id}
-                      question={q}
-                      index={i}
-                      value={answers[q.id] as string[] | undefined}
-                      onChange={(v) => handleSetAnswer(q.id, v)}
-                    />
-                  );
-                }
-                return (
-                  <ShortAnswerQuestion
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    value={answers[q.id] as string | undefined}
-                    onChange={(v) => handleSetAnswer(q.id, v)}
-                  />
-                );
-              })}
+              {questions.map((question, index) =>
+                renderQuestion(
+                  question,
+                  index,
+                  getEffectiveAnswer(question, answers[question.id]),
+                  (value) => handleSetAnswer(question.id, value),
+                  undefined,
+                  locale,
+                ),
+              )}
             </div>
           </motion.div>
         )}
@@ -1007,16 +1310,12 @@ export function QuizView({
               <p className="text-sm text-gray-400 mt-1">{t('quiz.aiGradingWait')}</p>
             </div>
             <div className="flex gap-1 mt-2">
-              {[0, 1, 2].map((i) => (
+              {[0, 1, 2].map((idx) => (
                 <motion.div
-                  key={i}
+                  key={idx}
                   className="w-2 h-2 rounded-full bg-violet-400"
                   animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 1.2,
-                    delay: i * 0.2,
-                  }}
+                  transition={{ repeat: Infinity, duration: 1.2, delay: idx * 0.2 }}
                 />
               ))}
             </div>
@@ -1030,7 +1329,6 @@ export function QuizView({
             animate={{ opacity: 1, x: 0 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* Header bar */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur shrink-0">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -1047,52 +1345,20 @@ export function QuizView({
               </button>
             </div>
 
-            {/* Results */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {!(singleQuestionMode && questions.length === 1) && (
                 <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
               )}
-
-              {questions.map((q, i) => {
-                const r = resultMap[q.id];
-                if (q.type === 'single') {
-                  return (
-                    <SingleChoiceQuestion
-                      key={q.id}
-                      question={q}
-                      index={i}
-                      value={answers[q.id] as string | undefined}
-                      onChange={() => {}}
-                      disabled
-                      result={r}
-                    />
-                  );
-                }
-                if (q.type === 'multiple') {
-                  return (
-                    <MultipleChoiceQuestion
-                      key={q.id}
-                      question={q}
-                      index={i}
-                      value={answers[q.id] as string[] | undefined}
-                      onChange={() => {}}
-                      disabled
-                      result={r}
-                    />
-                  );
-                }
-                return (
-                  <ShortAnswerQuestion
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    value={answers[q.id] as string | undefined}
-                    onChange={() => {}}
-                    disabled
-                    result={r}
-                  />
-                );
-              })}
+              {questions.map((question, index) =>
+                renderQuestion(
+                  question,
+                  index,
+                  getEffectiveAnswer(question, answers[question.id]),
+                  () => {},
+                  resultMap[question.id],
+                  locale,
+                ),
+              )}
             </div>
           </motion.div>
         )}

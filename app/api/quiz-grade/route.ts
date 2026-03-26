@@ -19,6 +19,10 @@ interface GradeRequest {
   points: number;
   commentPrompt?: string;
   language?: string;
+  questionType?: 'short_answer' | 'proof' | 'code_tracing';
+  referenceAnswer?: string;
+  proof?: string;
+  analysis?: string;
 }
 
 interface GradeResponse {
@@ -29,7 +33,17 @@ interface GradeResponse {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as GradeRequest;
-    const { question, userAnswer, points, commentPrompt, language } = body;
+    const {
+      question,
+      userAnswer,
+      points,
+      commentPrompt,
+      language,
+      questionType,
+      referenceAnswer,
+      proof,
+      analysis,
+    } = body;
 
     if (!question || !userAnswer) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'question and userAnswer are required');
@@ -39,22 +53,36 @@ export async function POST(req: NextRequest) {
     const { model: languageModel } = await resolveModelFromHeaders(req);
 
     const isZh = language === 'zh-CN';
+    const questionTypeLabel =
+      questionType === 'proof'
+        ? isZh
+          ? '证明题'
+          : 'proof question'
+        : questionType === 'code_tracing'
+          ? isZh
+            ? '代码追踪题'
+            : 'code tracing question'
+          : isZh
+            ? '简答题'
+            : 'short-answer question';
 
     const systemPrompt = isZh
-      ? `你是一位专业的教育评估专家。请根据题目和学生答案进行评分并给出简短评语。
+      ? `你是一位专业的教育评估专家。你正在评分一道${questionTypeLabel}。请根据题目、参考信息和学生答案进行评分并给出简短评语。
 必须以如下 JSON 格式回复（不要包含其他内容）：
 {"score": <0到${points}的整数>, "comment": "<一两句评语>"}`
-      : `You are a professional educational assessor. Grade the student's answer and provide brief feedback.
+      : `You are a professional educational assessor. You are grading a ${questionTypeLabel}. Grade the student's answer using the question and reference material, then provide brief feedback.
 You must reply in the following JSON format only (no other content):
 {"score": <integer from 0 to ${points}>, "comment": "<one or two sentences of feedback>"}`;
 
     const userPrompt = isZh
       ? `题目：${question}
+题型：${questionTypeLabel}
 满分：${points}分
-${commentPrompt ? `评分要点：${commentPrompt}\n` : ''}学生答案：${userAnswer}`
+${commentPrompt ? `评分要点：${commentPrompt}\n` : ''}${referenceAnswer ? `参考答案：${referenceAnswer}\n` : ''}${proof ? `参考证明：${proof}\n` : ''}${analysis ? `解析：${analysis}\n` : ''}学生答案：${userAnswer}`
       : `Question: ${question}
+Question type: ${questionTypeLabel}
 Full marks: ${points} points
-${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${userAnswer}`;
+${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}${referenceAnswer ? `Reference answer: ${referenceAnswer}\n` : ''}${proof ? `Reference proof: ${proof}\n` : ''}${analysis ? `Analysis: ${analysis}\n` : ''}Student answer: ${userAnswer}`;
 
     const result = await runWithRequestContext(req, '/api/quiz-grade', () =>
       callLLM(
