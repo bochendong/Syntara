@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/server/prisma';
 import { createLogger } from '@/lib/logger';
+import { getOptionalPrisma } from '@/lib/server/prisma-safe';
 
 const log = createLogger('EnsureUser');
 
@@ -25,6 +25,9 @@ export async function ensureUserForApi(payload: string | EnsureUserPayload): Pro
 
   const id = normalized.userId.trim();
   if (!id) return;
+
+  const prisma = getOptionalPrisma();
+  if (!prisma) return;
 
   try {
     await prisma.user.upsert({

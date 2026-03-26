@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/server/prisma';
-
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
@@ -9,7 +7,10 @@ export function isDatabaseAvailable(): boolean {
 }
 
 export function getOptionalPrisma() {
-  return isDatabaseConfigured() ? prisma : null;
+  if (!isDatabaseConfigured()) return null;
+  const runtimeRequire = eval('require') as NodeRequire;
+  const { prisma } = runtimeRequire('@/lib/server/prisma') as typeof import('@/lib/server/prisma');
+  return prisma;
 }
 
 export function getPrismaOrNull() {
@@ -29,5 +30,3 @@ export async function withPrismaSafely<T>(fn: () => Promise<T>): Promise<T | nul
     return null;
   }
 }
-
-export { prisma };
