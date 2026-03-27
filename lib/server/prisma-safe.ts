@@ -1,3 +1,5 @@
+import { getOrCreatePrisma } from '@/lib/server/prisma-singleton';
+
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
@@ -6,11 +8,12 @@ export function isDatabaseAvailable(): boolean {
   return isDatabaseConfigured();
 }
 
+/**
+ * 仅 DATABASE_URL 已配置时创建客户端。不用 runtime require('@/…')，避免 Node 无法解析路径别名。
+ */
 export function getOptionalPrisma() {
   if (!isDatabaseConfigured()) return null;
-  const runtimeRequire = eval('require') as NodeRequire;
-  const { prisma } = runtimeRequire('@/lib/server/prisma') as typeof import('@/lib/server/prisma');
-  return prisma;
+  return getOrCreatePrisma();
 }
 
 export function getPrismaOrNull() {

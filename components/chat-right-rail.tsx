@@ -377,14 +377,17 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
             </div>
           </div>
 
-          {notebookStage.sceneCount != null ? (
-            <p className="mt-3 shrink-0 text-[11px] text-[#86868b] dark:text-[#a1a1a6]">
-              场景{' '}
-              <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-white/90">
-                {notebookStage.sceneCount}
-              </span>
-            </p>
-          ) : null}
+          <Link
+            href={`/classroom/${encodeURIComponent(notebookId)}`}
+            className={cn(
+              'mt-3 flex h-9 w-full shrink-0 items-center justify-center rounded-[10px] text-xs font-semibold transition-colors',
+              'bg-[#007AFF] text-white shadow-sm hover:opacity-[0.92] active:opacity-85',
+              'dark:bg-[#0A84FF] dark:hover:opacity-[0.92]',
+            )}
+            aria-label={`进入笔记本：${notebookStage.name}`}
+          >
+            进入笔记本
+          </Link>
         </div>
       );
     }

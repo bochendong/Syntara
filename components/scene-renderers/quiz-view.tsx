@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
+  ChevronLeft,
   ChevronRight,
   Check,
   BookOpenText,
@@ -32,6 +33,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useStageStore } from '@/lib/store';
 import { useAuthStore } from '@/lib/store/auth';
 import { clearQuestionProgress, setQuestionProgress } from '@/lib/utils/quiz-question-progress';
+import { code } from '@streamdown/code';
+import { Streamdown } from 'streamdown';
 
 const log = createLogger('QuizView');
 
@@ -138,6 +141,40 @@ function getQuestionIcon(question: QuizQuestion) {
       return <Code2 className="w-3.5 h-3.5" />;
     default:
       return <ListChecks className="w-3.5 h-3.5" />;
+  }
+}
+
+function getLanguageDisplayName(language?: string): string {
+  const normalized = (language ?? 'python').trim().toLowerCase();
+  switch (normalized) {
+    case 'c++':
+    case 'cpp':
+    case 'cc':
+      return 'C++';
+    case 'c':
+      return 'C';
+    case 'c#':
+    case 'csharp':
+      return 'C#';
+    case 'javascript':
+    case 'js':
+      return 'JavaScript';
+    case 'typescript':
+    case 'ts':
+      return 'TypeScript';
+    case 'python':
+    case 'py':
+      return 'Python';
+    case 'java':
+      return 'Java';
+    case 'racket':
+      return 'Racket';
+    case 'go':
+      return 'Go';
+    case 'rust':
+      return 'Rust';
+    default:
+      return language?.trim() || 'Code';
   }
 }
 
@@ -376,6 +413,144 @@ function CodeBlock({ title, code }: { title: string; code?: string }) {
   );
 }
 
+function mapHintToShikiLang(hint: string): string {
+  const h = hint.trim().toLowerCase();
+  if (h === 'cpp' || h === 'c++' || h === 'cc') return 'cpp';
+  if (h === 'c') return 'c';
+  if (h === 'py' || h === 'python') return 'python';
+  if (h === 'java') return 'java';
+  if (h === 'racket') return 'racket';
+  if (h === 'js' || h === 'javascript') return 'javascript';
+  if (h === 'ts' || h === 'typescript') return 'typescript';
+  if (h === 'go') return 'go';
+  if (h === 'rust' || h === 'rs') return 'rust';
+  if (h === 'cs' || h === 'csharp' || h === 'c#') return 'csharp';
+  return /^[a-z0-9#+-]{1,24}$/i.test(h) ? h : 'plaintext';
+}
+
+function guessShikiLanguageFromLines(lines: string[]): string {
+  const first = lines.map((l) => l.trim()).find(Boolean) ?? '';
+  if (/^#include\s*[<"]/.test(first)) return 'cpp';
+  if (/^#lang\s+racket\b/i.test(first) || /^\(\s*define\b/.test(first)) return 'racket';
+  if (/^package\s+\w+/.test(first) || /^public\s+class\b/.test(first) || /^import\s+java\./.test(first))
+    return 'java';
+  if (/^using\s+namespace\b|^int\s+main\s*\(/.test(first)) return 'cpp';
+  if (/^def\s+\w+\s*\(|^from\s+\S+\s+import\b|^import\s+\w+/.test(first)) return 'python';
+  return 'plaintext';
+}
+
+function expandSmushedStatements(code: string, languageHint?: string): string {
+  const l = (languageHint ?? '').trim().toLowerCase();
+  let out = code;
+  if (l === 'python' || l === 'py' || (!l && /\bimport\s+\w+\b/.test(out))) {
+    out = out.replace(/\b(import\s+[\w.]+)\s+(?=[a-zA-Z_][\w.]*\s*=)/g, '$1\n');
+    out = out.replace(/(?<=.)\s+(?=\bimport\b\s)/g, '\n');
+    out = out.replace(/(?<=.)\s+(?=\bfrom\s+\S+\s+import\b)/g, '\n');
+    out = out.replace(/(?<=.)\s+(?=\bdef\b\s)/g, '\n');
+    out = out.replace(/(?<=.)\s+(?=\bclass\b\s)/g, '\n');
+  }
+  if (l === 'java' || l === 'jav') {
+    out = out.replace(/;\s+(?=(?:public|private|protected|static|final|class|interface|enum|import|package)\b)/g, ';\n');
+  }
+  return out;
+}
+
+function looksLikeCodeLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  return (
+    /^\s*(\d+[.)]\s+)?(import\s|from\s+\S+\s+import\b|def\s|class\s|#include\s|using\s+namespace\b|namespace\s|public\s+(class|static|void|int)\b|private\s|protected\s|package\s+|#lang\b|\(\s*define\b|fun\s|fn\s|val\s|let\s|struct\s|enum\s|impl\s|\/\/|\/\*|\*\/)/.test(
+      t,
+    ) ||
+    (/(?:[{}();]|\breturn\b|\bif\b|\bfor\b|\bwhile\b)/.test(t) && /[=;{}\[\]]/.test(t))
+  );
+}
+
+function isProbablyCodeParagraph(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  const nonEmpty = t.split(/\r?\n/).filter((line) => line.trim() !== '');
+  if (nonEmpty.length === 0) return false;
+  if (nonEmpty.some((line) => /[\u3000-\u303f\u4e00-\u9fff]/.test(line))) {
+    return false;
+  }
+  if (nonEmpty.length === 1) {
+    const line = nonEmpty[0];
+    if (/[\u4e00-\u9fff]/.test(line)) return false;
+    return looksLikeCodeLine(line) || (/^\s*import\s+\w+/.test(line) && (/[=.]/.test(line) || /\s/.test(line)));
+  }
+  const hits = nonEmpty.filter(looksLikeCodeLine).length;
+  return hits >= Math.ceil(nonEmpty.length * 0.55);
+}
+
+function fenceStandaloneCodeParagraphs(markdown: string, languageHint?: string): string {
+  if (!markdown.trim() || markdown.includes('```')) return markdown;
+  return markdown
+    .split(/\n\n+/)
+    .map((part) => {
+      const trimmed = part.trim();
+      if (!trimmed || trimmed.startsWith('```')) return part;
+      if (!isProbablyCodeParagraph(trimmed)) return part;
+      const lines = trimmed.split(/\r?\n/);
+      const lang =
+        languageHint?.trim() !== ''
+          ? mapHintToShikiLang(languageHint!)
+          : guessShikiLanguageFromLines(lines);
+      const body = expandSmushedStatements(trimmed, languageHint);
+      return `\`\`\`${lang}\n${body}\n\`\`\``;
+    })
+    .join('\n\n');
+}
+
+function fenceTrailingCodeAfterProse(block: string, languageHint?: string): string {
+  if (!block.trim() || block.includes('```')) return block;
+  const anchor =
+    /\b(?:import\s+[\w.]+|from\s+\S+\s+import\b|def\s+\w+\s*\(|class\s+\w+|#include\s*[<"]|public\s+class\b|package\s+\w+|\(\s*define\b|#lang\s+\w+)/;
+  const m = anchor.exec(block);
+  if (!m || m.index === 0) return block;
+  const prose = block.slice(0, m.index).trimEnd();
+  if (prose.length < 2) return block;
+  let codePart = block.slice(m.index).trim();
+  codePart = expandSmushedStatements(codePart, languageHint);
+  const lang =
+    languageHint?.trim() !== ''
+      ? mapHintToShikiLang(languageHint!)
+      : guessShikiLanguageFromLines(codePart.split(/\r?\n/));
+  return `${prose}\n\n\`\`\`${lang}\n${codePart}\n\`\`\``;
+}
+
+function normalizeMarkdownForHighlightedCode(content: string, languageHint?: string): string {
+  let md = content;
+  md = fenceTrailingCodeAfterProse(md, languageHint);
+  md = fenceStandaloneCodeParagraphs(md, languageHint);
+  return md;
+}
+
+function RichText({
+  content,
+  className,
+  languageHint,
+}: {
+  content?: string;
+  className?: string;
+  languageHint?: string;
+}) {
+  if (!content?.trim()) return null;
+  const markdown = normalizeMarkdownForHighlightedCode(content, languageHint);
+  return (
+    <Streamdown
+      mode="static"
+      plugins={{ code }}
+      className={cn(
+        '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:whitespace-pre-wrap',
+        className,
+      )}
+    >
+      {markdown}
+    </Streamdown>
+  );
+}
+
 function ChoiceQuestion({
   question,
   index,
@@ -480,7 +655,7 @@ function ChoiceQuestion({
                   isReview && !isCorrectOpt && !isSelected && 'text-gray-400 dark:text-gray-500',
                 )}
               >
-                {opt.label}
+                <RichText content={opt.label} languageHint={question.language} className="text-inherit" />
               </span>
               {isReview && isCorrectOpt && (
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -599,7 +774,7 @@ function TextQuestion({
           {referenceContent && (
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
               <p className="text-xs font-medium mb-1">{referenceTitle}</p>
-              <p className="whitespace-pre-wrap leading-6">{referenceContent}</p>
+              <RichText content={referenceContent} languageHint={question.language} className="leading-6" />
             </div>
           )}
         </div>
@@ -631,6 +806,7 @@ function CodeQuestion({
   const testsTitle = locale === 'zh-CN' ? '测试用例' : 'Test cases';
   const resultTitle = locale === 'zh-CN' ? '运行结果' : 'Run result';
   const editorTitle = locale === 'zh-CN' ? '代码编辑器' : 'Editor';
+  const languageDisplayName = getLanguageDisplayName(question.language);
 
   return (
     <QuestionCard question={question} index={index} result={result}>
@@ -646,7 +822,7 @@ function CodeQuestion({
             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                 <Code2 className="w-3.5 h-3.5" />
-                Python
+                {languageDisplayName}
               </div>
               {question.testCases?.length ? (
                 <Badge variant="outline">
@@ -660,8 +836,8 @@ function CodeQuestion({
               disabled={disabled}
               placeholder={
                 locale === 'zh-CN'
-                  ? '# 在这里编写你的 Python 代码'
-                  : '# Write your Python solution here'
+                  ? `# 在这里编写你的 ${languageDisplayName} 代码`
+                  : `# Write your ${languageDisplayName} solution here`
               }
               className="min-h-[320px] rounded-none border-0 shadow-none resize-y font-mono text-[13px] leading-6"
             />
@@ -839,9 +1015,11 @@ function QuestionCard({
             {index + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
-              {question.question}
-            </p>
+            <RichText
+              content={question.question}
+              languageHint={question.language}
+              className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-relaxed"
+            />
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
               <Badge variant="outline" className="gap-1">
                 {getQuestionIcon(question)}
@@ -851,7 +1029,11 @@ function QuestionCard({
                 {pts} {t('quiz.pointsSuffix')}
               </span>
               {isCodeQuestion(question) && (
-                <span>{locale === 'zh-CN' ? 'Python 跑测' : 'Python judge'}</span>
+                <span>
+                  {locale === 'zh-CN'
+                    ? `${getLanguageDisplayName(question.language)} 跑测`
+                    : `${getLanguageDisplayName(question.language)} judge`}
+                </span>
               )}
             </div>
           </div>
@@ -869,7 +1051,7 @@ function QuestionCard({
       {isReview && question.analysis && (
         <div className="mt-3 p-3 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
           <span className="font-medium">{t('quiz.analysis')}</span>
-          {question.analysis}
+          <RichText content={question.analysis} languageHint={question.language} className="mt-1" />
         </div>
       )}
     </motion.div>
@@ -1038,6 +1220,7 @@ export function QuizView({
     () => initialSnapshot?.answers ?? {},
   );
   const [results, setResults] = useState<QuestionResult[]>(() => initialSnapshot?.results ?? []);
+  const [answeringQuestionIndex, setAnsweringQuestionIndex] = useState(0);
 
   const draftKey =
     singleQuestionMode && questions[0]
@@ -1075,6 +1258,11 @@ export function QuizView({
   );
 
   const allAnswered = answeredCount === questions.length;
+
+  useEffect(() => {
+    if (questions.length === 0) return;
+    setAnsweringQuestionIndex((idx) => Math.max(0, Math.min(idx, questions.length - 1)));
+  }, [questions.length]);
 
   const handleSetAnswer = useCallback(
     (questionId: string, value: AnswerValue) => {
@@ -1196,6 +1384,7 @@ export function QuizView({
     if (singleQuestionMode && questions.length === 1 && stageId) {
       clearQuestionProgress(stageId, userId, sceneId, questions[0].id);
     }
+    setAnsweringQuestionIndex(0);
     setPhase(singleQuestionMode ? 'answering' : 'not_started');
     setAnswers({});
     setResults([]);
@@ -1237,7 +1426,10 @@ export function QuizView({
             <QuizCover
               questionCount={questions.length}
               totalPoints={totalPoints}
-              onStart={() => setPhase('answering')}
+              onStart={() => {
+                setAnsweringQuestionIndex(0);
+                setPhase('answering');
+              }}
             />
           </motion.div>
         )}
@@ -1257,7 +1449,11 @@ export function QuizView({
                   {t('quiz.answering')}
                 </span>
                 <span className="text-xs text-gray-400 ml-1">
-                  {answeredCount} / {questions.length}
+                  {questions.length > 1
+                    ? locale === 'zh-CN'
+                      ? `第 ${answeringQuestionIndex + 1} / ${questions.length} 题 · 已答 ${answeredCount}`
+                      : `Q${answeringQuestionIndex + 1}/${questions.length} · ${answeredCount} answered`
+                    : `${answeredCount} / ${questions.length}`}
                 </span>
               </div>
               <button
@@ -1274,16 +1470,58 @@ export function QuizView({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {questions.map((question, index) =>
-                renderQuestion(
-                  question,
-                  index,
-                  getEffectiveAnswer(question, answers[question.id]),
-                  (value) => handleSetAnswer(question.id, value),
-                  undefined,
-                  locale,
-                ),
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
+                {(questions.length > 1
+                  ? [{ question: questions[answeringQuestionIndex], index: answeringQuestionIndex }]
+                  : questions.map((question, index) => ({ question, index }))
+                ).map(({ question, index }) =>
+                  renderQuestion(
+                    question,
+                    index,
+                    getEffectiveAnswer(question, answers[question.id]),
+                    (value) => handleSetAnswer(question.id, value),
+                    undefined,
+                    locale,
+                  ),
+                )}
+              </div>
+              {questions.length > 1 && (
+                <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-3 border-t border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur">
+                  <button
+                    type="button"
+                    disabled={answeringQuestionIndex <= 0}
+                    onClick={() => setAnsweringQuestionIndex((i) => Math.max(0, i - 1))}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                      answeringQuestionIndex <= 0
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30',
+                    )}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    {t('quiz.prevQuestion')}
+                  </button>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                    {answeringQuestionIndex + 1} / {questions.length}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={answeringQuestionIndex >= questions.length - 1}
+                    onClick={() =>
+                      setAnsweringQuestionIndex((i) => Math.min(questions.length - 1, i + 1))
+                    }
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                      answeringQuestionIndex >= questions.length - 1
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30',
+                    )}
+                  >
+                    {t('quiz.nextQuestion')}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>
