@@ -14,7 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, Sun, Moon, Monitor, LogOut } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { clearDatabase } from '@/lib/utils/database';
@@ -27,12 +27,16 @@ import {
 } from '@/lib/utils/notebook-write-preference';
 import { UserProfileCard } from '@/components/user-profile';
 import { useSettingsStore } from '@/lib/store/settings';
+import { useAuthStore } from '@/lib/store/auth';
+import { useAuthSignOut } from '@/lib/hooks/use-auth-sign-out';
 import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
 
 const log = createLogger('GeneralSettings');
 
 export function GeneralSettings() {
   const { t, locale, setLocale } = useI18n();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const signOutAndRedirect = useAuthSignOut();
   const { theme, setTheme } = useTheme();
   const live2dPresenterModelId = useSettingsStore((state) => state.live2dPresenterModelId);
   const setLive2DPresenterModelId = useSettingsStore((state) => state.setLive2DPresenterModelId);
@@ -87,6 +91,23 @@ export function GeneralSettings() {
         </h3>
         <p className="text-xs text-muted-foreground">{t('profile.avatarHint')}</p>
         <UserProfileCard />
+        {isLoggedIn ? (
+          <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">{t('auth.signOut')}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('auth.signOutDesc')}</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 w-full sm:w-auto"
+              onClick={() => void signOutAndRedirect()}
+            >
+              <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
+              {t('auth.signOut')}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-border/80 bg-card/50 p-5 space-y-6">

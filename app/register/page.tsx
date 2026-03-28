@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Bot, Github, Layers, Sparkles, WandSparkles } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const login = useAuthStore((s) => s.login);
+  const syncFromOAuth = useAuthStore((s) => s.syncFromOAuth);
 
   const [oauth, setOauth] = useState<OauthConfig | null>(null);
   const [name, setName] = useState('');
@@ -42,10 +43,20 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      router.replace('/my-courses');
+    if (status !== 'authenticated' || !session?.user) return;
+    const id = session.user.id?.trim();
+    if (!id) {
+      void signOut({ redirect: false });
+      return;
     }
-  }, [status, session, router]);
+    syncFromOAuth({
+      userId: id,
+      name: session.user.name?.trim() ?? '',
+      email: session.user.email?.trim().toLowerCase() ?? '',
+      role: session.user.role ?? 'USER',
+    });
+    router.replace('/my-courses');
+  }, [status, session, router, syncFromOAuth]);
 
   const hasOauth = useMemo(() => Boolean(oauth && (oauth.google || oauth.github)), [oauth]);
 

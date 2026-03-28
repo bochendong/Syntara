@@ -5,6 +5,10 @@ export const commonZhCN = {
     cancel: '取消',
     loading: '加载中...',
   },
+  auth: {
+    signOut: '退出登录',
+    signOutDesc: '结束当前会话（含第三方登录），并返回登录页。',
+  },
   home: {
     slogan: '课程、Notebook 与 Agent 同台协作的 AI 学习空间',
     greeting: '嗨，',
@@ -63,6 +67,10 @@ export const commonEnUS = {
     confirm: 'Confirm',
     cancel: 'Cancel',
     loading: 'Loading...',
+  },
+  auth: {
+    signOut: 'Sign out',
+    signOutDesc: 'End your session (including OAuth) and return to sign in.',
   },
   home: {
     slogan: 'AI learning space where courses, notebooks, and agents work together',

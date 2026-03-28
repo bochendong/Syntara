@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, LogOut, NotebookPen, Search, Settings } from 'lucide-react';
-import { signOut } from 'next-auth/react';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useAuthStore } from '@/lib/store/auth';
+import { useAuthSignOut } from '@/lib/hooks/use-auth-sign-out';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const nickname = useUserProfileStore((s) => s.nickname);
   const authName = useAuthStore((s) => s.name);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
-  const logout = useAuthStore((s) => s.logout);
+  const signOutAndRedirect = useAuthSignOut();
 
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseName = useCurrentCourseStore((s) => s.name);
@@ -100,12 +100,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     );
     if (shouldClear) clearCurrentCourse();
   }, [pathname, clearCurrentCourse]);
-
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    logout();
-    router.push('/login');
-  };
 
   const createNotebookHref = courseId ? courseOrchestratorChatHref('generate-notebook') : '/create';
 
@@ -349,7 +343,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => (isLoggedIn ? handleLogout() : router.push('/login'))}
+                      onClick={() => (isLoggedIn ? void signOutAndRedirect() : router.push('/login'))}
                       className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                       aria-label={isLoggedIn ? '退出登录' : '登录'}
                     >
@@ -382,7 +376,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => (isLoggedIn ? handleLogout() : router.push('/login'))}
+                      onClick={() => (isLoggedIn ? void signOutAndRedirect() : router.push('/login'))}
                       className="flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                       aria-label={isLoggedIn ? '退出登录' : '登录'}
                     >

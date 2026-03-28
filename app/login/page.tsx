@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Github, Sparkles, WandSparkles } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const login = useAuthStore((s) => s.login);
+  const syncFromOAuth = useAuthStore((s) => s.syncFromOAuth);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const currentName = useAuthStore((s) => s.name);
   const authMode = useAuthStore((s) => s.authMode);
@@ -41,10 +42,20 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      router.replace('/my-courses');
+    if (status !== 'authenticated' || !session?.user) return;
+    const id = session.user.id?.trim();
+    if (!id) {
+      void signOut({ redirect: false });
+      return;
     }
-  }, [status, session, router]);
+    syncFromOAuth({
+      userId: id,
+      name: session.user.name?.trim() ?? '',
+      email: session.user.email?.trim().toLowerCase() ?? '',
+      role: session.user.role ?? 'USER',
+    });
+    router.replace('/my-courses');
+  }, [status, session, router, syncFromOAuth]);
 
   const onSubmitLocal = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,7 +90,7 @@ export default function LoginPage() {
     );
   }
 
-  if (status === 'authenticated') {
+  if (status === 'authenticated' && session?.user?.id?.trim()) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center apple-mesh-bg">
         <motion.p
