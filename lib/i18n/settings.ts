@@ -6,6 +6,8 @@ export const settingsZhCN = {
     languageDesc: '选择界面语言',
     theme: '主题',
     themeDesc: '选择主题模式（浅色/深色/跟随系统）',
+    live2dPresenter: '讲课角色',
+    live2dPresenterDesc: '选择播放幻灯片时右上角显示的 Live2D 讲师模型，切换后立即生效。',
     notebookChatWrites: '允许根据回答写入笔记本',
     notebookChatWritesDesc: '在笔记本对话中，允许 AI 根据回答插入、更新或删除页面。默认开启。',
     themeOptions: {
@@ -16,6 +18,20 @@ export const settingsZhCN = {
     languageOptions: {
       zhCN: '简体中文',
       enUS: 'English',
+    },
+    live2dPresenterOptions: {
+      hiyori: {
+        label: 'Hiyori',
+        desc: '更像标准二次元老师，气质安静，适合讲解型课堂。',
+      },
+      haru: {
+        label: 'Haru',
+        desc: '更像接待员/主持人，动作存在感更强，适合活泼一点的课堂。',
+      },
+      mark: {
+        label: 'Mark',
+        desc: '男老师路线，形象更简洁，适合想要帅哥讲师的课堂。',
+      },
     },
     apiKey: 'API密钥',
     apiKeyDesc: '配置你的API密钥',
@@ -603,6 +619,9 @@ export const settingsEnUS = {
     languageDesc: 'Select interface language',
     theme: 'Theme',
     themeDesc: 'Select theme mode (Light/Dark/System)',
+    live2dPresenter: 'Lecture presenter',
+    live2dPresenterDesc:
+      'Choose the Live2D presenter shown in the top-right during slide playback. Changes apply immediately.',
     notebookChatWrites: 'Allow answer-based notebook writes',
     notebookChatWritesDesc:
       'In notebook chat, allow the AI to insert, update, or delete pages based on answers. On by default.',
@@ -614,6 +633,20 @@ export const settingsEnUS = {
     languageOptions: {
       zhCN: 'Simplified Chinese',
       enUS: 'English',
+    },
+    live2dPresenterOptions: {
+      hiyori: {
+        label: 'Hiyori',
+        desc: 'A calmer classroom-teacher look that fits explanation-heavy lessons.',
+      },
+      haru: {
+        label: 'Haru',
+        desc: 'A more hostess-like presenter with stronger visible motion while speaking.',
+      },
+      mark: {
+        label: 'Mark',
+        desc: 'A clean male-teacher option for a more straightforward handsome-host look.',
+      },
     },
     apiKey: 'API Key',
     apiKeyDesc: 'Configure your API key',

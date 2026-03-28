@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/lib/store/settings';
+import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
 
 export interface TalkingAvatarOverlayState {
   readonly speaking: boolean;
   readonly speechText?: string | null;
   readonly playbackRate?: number;
   readonly currentVisemeId?: number | null;
+  readonly cadence?: TalkingAvatarSpeechCadence;
 }
 
 interface TalkingAvatarOverlayProps extends TalkingAvatarOverlayState {
@@ -15,7 +18,7 @@ interface TalkingAvatarOverlayProps extends TalkingAvatarOverlayState {
 }
 
 const LIVE2D_CORE_SRC = '/live2d/live2dcubismcore.min.js';
-const HARU_MODEL_SRC = '/live2d/Haru/Haru.model3.json';
+export type TalkingAvatarSpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
 type MouthPose = {
   open: number;
@@ -41,21 +44,25 @@ declare global {
 
 /**
  * Replaces the static portrait experiment with a real Live2D presenter.
- * We use the Haru sample model bundled in the AzureOpenAILive2DChatbot demo
- * and drive the mouth with our existing Azure viseme timeline.
+ * We use an official Live2D sample model and drive the mouth with our
+ * existing Azure viseme timeline.
  */
 export function TalkingAvatarOverlay({
   speaking,
   speechText,
   playbackRate = 1,
   currentVisemeId,
+  cadence = speaking ? 'fallback' : 'idle',
   className,
 }: TalkingAvatarOverlayProps) {
+  const live2dPresenterModelId = useSettingsStore((state) => state.live2dPresenterModelId);
+  const modelConfig = LIVE2D_PRESENTER_MODELS[live2dPresenterModelId];
   const mountRef = useRef<HTMLDivElement | null>(null);
   const speechStateRef = useRef({
     speaking,
     playbackRate,
     currentVisemeId,
+    cadence,
   });
   const instanceRef = useRef<{
     app: import('pixi.js').Application;
@@ -64,22 +71,58 @@ export function TalkingAvatarOverlay({
     detachPoseHook: (() => void) | null;
   } | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const wasSpeakingRef = useRef(false);
 
   useEffect(() => {
-    speechStateRef.current = { speaking, playbackRate, currentVisemeId };
-  }, [speaking, playbackRate, currentVisemeId]);
+    speechStateRef.current = { speaking, playbackRate, currentVisemeId, cadence };
+  }, [cadence, speaking, playbackRate, currentVisemeId]);
+
+  useEffect(() => {
+    wasSpeakingRef.current = false;
+  }, [live2dPresenterModelId]);
 
   useEffect(() => {
     if (status !== 'ready') return;
     const model = instanceRef.current?.model;
     if (!model) return;
 
-    try {
-      void model.motion('Idle', speaking ? 1 : 0);
-    } catch {
-      // Motion playback is best-effort; the live mouth driver still works without it.
+    if (speaking && !wasSpeakingRef.current) {
+      void playPresenterMotion(model, modelConfig.speakMotionGroup, 140);
     }
-  }, [speaking, status]);
+
+    wasSpeakingRef.current = speaking;
+  }, [modelConfig.speakMotionGroup, speaking, status]);
+
+  useEffect(() => {
+    if (
+      status !== 'ready' ||
+      !speaking ||
+      modelConfig.speakMotionGroup === modelConfig.idleMotionGroup
+    ) {
+      return;
+    }
+
+    const model = instanceRef.current?.model;
+    if (!model) return;
+
+    let cancelled = false;
+    let timer = 0;
+
+    const schedule = (delayMs: number) => {
+      timer = window.setTimeout(() => {
+        if (cancelled || !speechStateRef.current.speaking) return;
+        void playPresenterMotion(model, modelConfig.speakMotionGroup);
+        schedule(randomRange(3600, 6200) / Math.max(0.8, playbackRate || 1));
+      }, delayMs);
+    };
+
+    schedule(randomRange(2600, 4200) / Math.max(0.8, playbackRate || 1));
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [modelConfig.idleMotionGroup, modelConfig.speakMotionGroup, playbackRate, speaking, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +138,15 @@ export function TalkingAvatarOverlay({
       const PIXI = await import('pixi.js');
       window.PIXI = PIXI;
 
-      const { Live2DModel } = (await import('pixi-live2d-display/cubism4')) as Live2DModule;
+      const live2dModule = (await import('pixi-live2d-display/cubism4')) as Live2DModule & {
+        config?: { sound?: boolean };
+        SoundManager?: { destroy?: () => void };
+      };
+      const { Live2DModel } = live2dModule;
+      if (live2dModule.config) {
+        live2dModule.config.sound = false;
+      }
+      live2dModule.SoundManager?.destroy?.();
 
       if (cancelled || !mountRef.current) return;
 
@@ -111,10 +162,10 @@ export function TalkingAvatarOverlay({
 
       mount.replaceChildren(app.view as HTMLCanvasElement);
 
-      const model = (await Live2DModel.from(HARU_MODEL_SRC, {
+      const model = (await Live2DModel.from(modelConfig.modelSrc, {
         autoFocus: false,
         autoHitTest: false,
-        idleMotionGroup: 'Idle',
+        idleMotionGroup: modelConfig.idleMotionGroup,
       })) as Live2DModelInstance;
 
       if (cancelled) {
@@ -143,7 +194,7 @@ export function TalkingAvatarOverlay({
       resizeObserver?.observe(mount);
 
       try {
-        void model.motion('Idle');
+        void model.motion(modelConfig.idleMotionGroup);
       } catch {
         // If the sample idle motion fails, the model still renders and blinks.
       }
@@ -171,21 +222,27 @@ export function TalkingAvatarOverlay({
       if (instance?.app) {
         instance.app.destroy(true, { children: true });
       }
+      void import('pixi-live2d-display/cubism4')
+        .then((live2dModule) => {
+          (live2dModule as { SoundManager?: { destroy?: () => void } }).SoundManager?.destroy?.();
+        })
+        .catch(() => {
+          // Ignore cleanup failures for optional motion audio.
+        });
       if (mountRef.current) {
         mountRef.current.replaceChildren();
       }
     };
-  }, []);
+  }, [modelConfig.idleMotionGroup, modelConfig.modelSrc]);
 
   return (
     <div
       aria-hidden="true"
       title={speechText || undefined}
-      className={cn('pointer-events-none absolute right-3 top-3 z-[108] w-52 sm:w-60', className)}
+      className={cn('pointer-events-none absolute right-3 top-3 z-[108] w-40 sm:w-48', className)}
     >
-      <div className="relative overflow-hidden rounded-[26px] border border-white/70 bg-white/55 shadow-[0_18px_42px_rgba(15,23,42,0.16)] backdrop-blur-md dark:border-white/10 dark:bg-slate-950/35 dark:shadow-[0_18px_44px_rgba(0,0,0,0.4)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(236,72,153,0.15),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_72%)] dark:bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.14),transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0)_72%)]" />
-        <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/75 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200">
+      <div className="relative overflow-hidden rounded-[20px] bg-transparent shadow-none">
+        <div className="absolute left-2 top-2 z-[1] inline-flex items-center gap-1 rounded-full bg-black/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_1px_6px_rgba(0,0,0,0.35)] backdrop-blur-[2px]">
           <span
             className={cn(
               'size-1.5 rounded-full transition-colors',
@@ -193,23 +250,19 @@ export function TalkingAvatarOverlay({
                 ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.65)]'
                 : status === 'error'
                   ? 'bg-rose-400'
-                  : 'bg-slate-300 dark:bg-slate-500',
+                  : 'bg-white/50',
             )}
           />
-          Live2D
+          {modelConfig.badgeLabel}
         </div>
 
         <div
           ref={mountRef}
-          className={cn(
-            'relative h-64 w-full overflow-hidden [mask-image:linear-gradient(180deg,black_80%,transparent_100%)] sm:h-72',
-            status === 'loading' &&
-              'bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.78),rgba(255,255,255,0.18)_38%,rgba(255,255,255,0)_70%)] dark:bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.1),rgba(255,255,255,0.02)_35%,rgba(255,255,255,0)_68%)]',
-          )}
+          className="relative h-52 w-full overflow-hidden bg-transparent [mask-image:linear-gradient(180deg,black_80%,transparent_100%)] sm:h-60"
         />
 
         {status === 'error' && (
-          <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-rose-200/80 bg-white/90 px-3 py-2 text-[11px] font-medium text-rose-600 dark:border-rose-400/30 dark:bg-slate-950/80 dark:text-rose-200">
+          <div className="absolute inset-x-2 bottom-2 rounded-xl border border-rose-400/50 bg-black/55 px-2 py-1.5 text-[10px] font-medium text-rose-200 backdrop-blur-sm">
             Live2D load failed
           </div>
         )}
@@ -228,7 +281,7 @@ function fitModelToFrame(
   if (!width || !height) return;
 
   model.anchor.set(0.5, 0);
-  const scale = Math.min((width * 1.04) / baseSize.width, (height * 1.12) / baseSize.height) * 1.3;
+  const scale = Math.min((width * 1.04) / baseSize.width, (height * 1.12) / baseSize.height) * 1.02;
   model.scale.set(scale);
   model.position.set(width * 0.52, -height * 0.02);
 }
@@ -239,6 +292,7 @@ function attachSpeechPose(
     speaking: boolean;
     playbackRate: number;
     currentVisemeId?: number | null;
+    cadence: TalkingAvatarSpeechCadence;
   }>,
 ) {
   const internalModel = (
@@ -261,50 +315,137 @@ function attachSpeechPose(
   }
 
   const mouthState = { open: 0, form: 0 };
+  const poseState = {
+    angleX: 0,
+    angleY: 0,
+    angleZ: 0,
+    bodyAngleX: 0,
+    eyeX: 0,
+    eyeY: 0,
+    talkEnergy: 0,
+    targetAngleX: 0,
+    targetAngleY: 0,
+    targetAngleZ: 0,
+    targetBodyAngleX: 0,
+    targetEyeX: 0,
+    targetEyeY: 0,
+    nextShiftAt: 0,
+  };
+  let lastTickAt = performance.now();
 
   const beforeModelUpdate = () => {
-    const { speaking, playbackRate, currentVisemeId } = speechStateRef.current;
+    const { speaking, playbackRate, currentVisemeId, cadence } = speechStateRef.current;
     const easedRate = Math.max(0.7, Math.min(1.8, playbackRate || 1));
     const now = performance.now();
-    const phase = now / (220 / easedRate);
-    const rhythmicOpen = (Math.sin(phase) + 1) / 2;
-    const baseTarget = resolveMouthPose(currentVisemeId, speaking);
-    const visemeBoost = currentVisemeId == null ? 0.32 : 0.14;
+    const dt = clamp((now - lastTickAt) / 16.7, 0.6, 2.2);
+    lastTickAt = now;
+
+    const mouthPhase = now / (210 / easedRate);
+    const gesturePhase = now / (620 / easedRate);
+    const breathPhase = now / 1100;
+    const baseTarget = resolveMouthPose(currentVisemeId, cadence);
+    const rhythmicOpen =
+      cadence === 'fallback'
+        ? ((Math.sin(mouthPhase) + 1) / 2) * 0.34
+        : cadence === 'active'
+          ? ((Math.sin(mouthPhase) + 1) / 2) * 0.08
+          : 0;
     const target = speaking
       ? {
-          open: clamp(baseTarget.open + rhythmicOpen * visemeBoost, 0, 1),
-          form: clamp(baseTarget.form + Math.sin(phase * 0.62) * 0.14, -1, 1),
+          open: clamp(baseTarget.open + rhythmicOpen, 0, 1),
+          form: clamp(
+            baseTarget.form +
+              (cadence === 'pause'
+                ? 0
+                : Math.sin(mouthPhase * 0.58) * (cadence === 'fallback' ? 0.1 : 0.04)),
+            -1,
+            1,
+          ),
         }
       : baseTarget;
 
-    mouthState.open += (target.open - mouthState.open) * (speaking ? 0.56 : 0.16);
-    mouthState.form += (target.form - mouthState.form) * (speaking ? 0.36 : 0.18);
+    const mouthEase = cadence === 'pause' || cadence === 'idle' ? 0.28 : 0.5;
+    mouthState.open = lerp(mouthState.open, target.open, 1 - Math.pow(1 - mouthEase, dt));
+    mouthState.form = lerp(mouthState.form, target.form, 1 - Math.pow(1 - 0.28, dt));
 
-    const lipSyncIds = internalModel.motionManager?.lipSyncIds ?? ['ParamMouthOpenY'];
+    const talkEnergyTarget =
+      cadence === 'active' ? 1 : cadence === 'fallback' ? 0.76 : cadence === 'pause' ? 0.14 : 0;
+    poseState.talkEnergy = lerp(
+      poseState.talkEnergy,
+      talkEnergyTarget,
+      1 - Math.pow(1 - (cadence === 'active' ? 0.14 : 0.22), dt),
+    );
+
+    if (cadence === 'active' && now >= poseState.nextShiftAt) {
+      poseState.targetAngleX = randomRange(-4.2, 4.6);
+      poseState.targetAngleY = randomRange(-1.8, 2.4);
+      poseState.targetAngleZ = randomRange(-1.4, 1.5);
+      poseState.targetBodyAngleX = randomRange(-2.6, 2.8);
+      poseState.targetEyeX = randomRange(-0.28, 0.28);
+      poseState.targetEyeY = randomRange(-0.12, 0.18);
+      poseState.nextShiftAt = now + randomRange(900, 1650) / easedRate;
+    } else if (cadence === 'pause' || cadence === 'idle') {
+      poseState.targetAngleX = 0;
+      poseState.targetAngleY = 0;
+      poseState.targetAngleZ = 0;
+      poseState.targetBodyAngleX = 0;
+      poseState.targetEyeX = 0;
+      poseState.targetEyeY = 0;
+    }
+
+    const activeMotionWeight =
+      cadence === 'active' ? poseState.talkEnergy : poseState.talkEnergy * 0.35;
+    const idleBreath = Math.sin(breathPhase) * 0.5;
+    const nodX = Math.sin(gesturePhase) * 2.5 * activeMotionWeight;
+    const nodY = Math.cos(gesturePhase * 0.72) * 1.2 * activeMotionWeight;
+    const tiltZ = Math.sin(gesturePhase * 0.88) * 0.95 * activeMotionWeight;
+    const bodyShift = Math.sin(gesturePhase * 0.44) * 1.8 * activeMotionWeight;
+
+    poseState.angleX = lerp(
+      poseState.angleX,
+      poseState.targetAngleX * poseState.talkEnergy + nodX + idleBreath * 0.9,
+      1 - Math.pow(1 - 0.15, dt),
+    );
+    poseState.angleY = lerp(
+      poseState.angleY,
+      poseState.targetAngleY * poseState.talkEnergy + nodY,
+      1 - Math.pow(1 - 0.14, dt),
+    );
+    poseState.angleZ = lerp(
+      poseState.angleZ,
+      poseState.targetAngleZ * poseState.talkEnergy + tiltZ,
+      1 - Math.pow(1 - 0.12, dt),
+    );
+    poseState.bodyAngleX = lerp(
+      poseState.bodyAngleX,
+      poseState.targetBodyAngleX * poseState.talkEnergy + bodyShift + idleBreath * 0.5,
+      1 - Math.pow(1 - 0.1, dt),
+    );
+    poseState.eyeX = lerp(
+      poseState.eyeX,
+      poseState.targetEyeX * (0.28 + poseState.talkEnergy * 0.72),
+      1 - Math.pow(1 - 0.16, dt),
+    );
+    poseState.eyeY = lerp(
+      poseState.eyeY,
+      poseState.targetEyeY * (0.18 + poseState.talkEnergy * 0.5),
+      1 - Math.pow(1 - 0.16, dt),
+    );
+
+    const lipSyncIds = internalModel.motionManager?.lipSyncIds?.length
+      ? internalModel.motionManager.lipSyncIds
+      : ['ParamMouthOpenY'];
     for (const id of lipSyncIds) {
       internalModel.coreModel?.addParameterValueById?.(id, mouthState.open, 1);
     }
 
-    internalModel.coreModel?.addParameterValueById?.('ParamMouthForm', mouthState.form, 0.55);
-
-    if (speaking) {
-      internalModel.coreModel?.addParameterValueById?.('ParamAngleX', Math.sin(phase) * 7.5, 0.22);
-      internalModel.coreModel?.addParameterValueById?.(
-        'ParamAngleY',
-        Math.cos(phase * 0.72) * 3,
-        0.2,
-      );
-      internalModel.coreModel?.addParameterValueById?.(
-        'ParamBodyAngleX',
-        Math.sin(phase * 0.48) * 4.4,
-        0.14,
-      );
-      internalModel.coreModel?.addParameterValueById?.(
-        'ParamAngleZ',
-        Math.sin(phase * 0.9) * 2.1,
-        0.14,
-      );
-    }
+    internalModel.coreModel?.addParameterValueById?.('ParamMouthForm', mouthState.form, 0.58);
+    internalModel.coreModel?.addParameterValueById?.('ParamAngleX', poseState.angleX, 0.24);
+    internalModel.coreModel?.addParameterValueById?.('ParamAngleY', poseState.angleY, 0.22);
+    internalModel.coreModel?.addParameterValueById?.('ParamAngleZ', poseState.angleZ, 0.18);
+    internalModel.coreModel?.addParameterValueById?.('ParamBodyAngleX', poseState.bodyAngleX, 0.16);
+    internalModel.coreModel?.addParameterValueById?.('ParamEyeBallX', poseState.eyeX, 0.12);
+    internalModel.coreModel?.addParameterValueById?.('ParamEyeBallY', poseState.eyeY, 0.12);
   };
 
   internalModel.on('beforeModelUpdate', beforeModelUpdate);
@@ -314,36 +455,59 @@ function attachSpeechPose(
   };
 }
 
-function resolveMouthPose(visemeId: number | null | undefined, speaking: boolean): MouthPose {
-  if (!speaking) {
+function resolveMouthPose(
+  visemeId: number | null | undefined,
+  cadence: TalkingAvatarSpeechCadence,
+): MouthPose {
+  if (cadence === 'idle' || cadence === 'pause') {
     return { open: 0, form: 0 };
   }
 
   if (visemeId == null) {
-    return { open: 0.22, form: 0.12 };
+    return cadence === 'fallback' ? { open: 0.12, form: 0.08 } : { open: 0.08, form: 0.04 };
   }
 
   if (visemeId === 0 || visemeId === 21) {
-    return { open: 0.06, form: -0.06 };
+    return { open: 0.02, form: -0.04 };
   }
 
   if (visemeId >= 1 && visemeId <= 7) {
-    return { open: 0.24, form: 0.04 };
+    return { open: 0.18, form: 0.04 };
   }
 
   if (visemeId >= 8 && visemeId <= 13) {
-    return { open: 0.4, form: 0.2 };
+    return { open: 0.34, form: 0.16 };
   }
 
   if (visemeId >= 14 && visemeId <= 17) {
-    return { open: 0.58, form: -0.28 };
+    return { open: 0.48, form: -0.24 };
   }
 
-  return { open: 0.72, form: 0.38 };
+  return { open: 0.64, form: 0.3 };
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function lerp(from: number, to: number, factor: number) {
+  return from + (to - from) * factor;
+}
+
+function randomRange(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+async function playPresenterMotion(model: Live2DModelInstance, motionGroup: string, delayMs = 0) {
+  if (delayMs > 0) {
+    await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+  }
+
+  try {
+    await model.motion(motionGroup);
+  } catch {
+    // Motion playback is best-effort; our parameter animation still runs.
+  }
 }
 
 async function ensureCubismCore() {

@@ -18,6 +18,10 @@ import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { WEB_SEARCH_PROVIDERS } from '@/lib/web-search/constants';
 import type { WebSearchProviderId } from '@/lib/web-search/types';
 import { createLogger } from '@/lib/logger';
+import {
+  DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
+  type Live2DPresenterModelId,
+} from '@/lib/live2d/presenter-models';
 
 const log = createLogger('Settings');
 
@@ -138,6 +142,9 @@ export interface SettingsState {
   ttsVolume: number; // 0-1, actual volume level
   autoPlayLecture: boolean;
   playbackSpeed: PlaybackSpeed;
+  live2dPresenterModelId: Live2DPresenterModelId;
+  /** 课堂幻灯片上是否显示 Live2D 虚拟讲师 */
+  live2dPresenterVisible: boolean;
 
   // Agent settings
   selectedAgentIds: string[];
@@ -159,6 +166,8 @@ export interface SettingsState {
   setTTSVolume: (volume: number) => void;
   setAutoPlayLecture: (autoPlay: boolean) => void;
   setPlaybackSpeed: (speed: PlaybackSpeed) => void;
+  setLive2DPresenterModelId: (modelId: Live2DPresenterModelId) => void;
+  setLive2DPresenterVisible: (visible: boolean) => void;
   setSelectedAgentIds: (ids: string[]) => void;
   setMaxTurns: (turns: string) => void;
   setAgentMode: (mode: 'preset' | 'auto') => void;
@@ -525,6 +534,8 @@ export const useSettingsStore = create<SettingsState>()(
         ttsVolume: 1,
         autoPlayLecture: false,
         playbackSpeed: 1,
+        live2dPresenterModelId: DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
+        live2dPresenterVisible: true,
 
         // Layout preferences（false = 场景列表侧栏展开）
         sidebarCollapsed: false,
@@ -581,6 +592,8 @@ export const useSettingsStore = create<SettingsState>()(
         setAutoPlayLecture: (autoPlay) => set({ autoPlayLecture: autoPlay }),
 
         setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
+        setLive2DPresenterModelId: (modelId) => set({ live2dPresenterModelId: modelId }),
+        setLive2DPresenterVisible: (visible) => set({ live2dPresenterVisible: visible }),
 
         setSelectedAgentIds: (ids) => set({ selectedAgentIds: ids }),
 
@@ -732,7 +745,10 @@ export const useSettingsStore = create<SettingsState>()(
                   const builtInModels = PROVIDERS[key]?.models;
                   newProvidersConfig[key] = {
                     ...newProvidersConfig[key],
-                    models: builtInModels && builtInModels.length > 0 ? builtInModels : newProvidersConfig[key].models,
+                    models:
+                      builtInModels && builtInModels.length > 0
+                        ? builtInModels
+                        : newProvidersConfig[key].models,
                     isServerConfigured: false,
                     serverModels: undefined,
                     serverBaseUrl: undefined,
@@ -1030,10 +1046,18 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 3,
+      version: 5,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
+
+        if (version < 5 || state.live2dPresenterVisible === undefined) {
+          state.live2dPresenterVisible = true;
+        }
+
+        if (version < 4 || !state.live2dPresenterModelId) {
+          state.live2dPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+        }
 
         // v2 → v3: 课堂场景列表侧栏默认展开（此前默认为收起）
         if (version < 3) {

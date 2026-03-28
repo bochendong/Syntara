@@ -11,8 +11,14 @@ export const stageZhCN = {
     viewQuiz: '测验',
     viewRawData: '原始数据',
     ttsVoiceLabel: '朗读音色',
-    ttsSpeechReadyBanner: '本页语音已就绪（已缓存或已保存），播放时不会重新请求合成。',
-    ttsSpeechPendingBanner: '本页尚有讲解语音未就绪，首次播放时将生成并写入本地缓存与笔记本。',
+    ttsSpeechReadyBanner: '语音已就绪，播放不重合成',
+    ttsSpeechReadyBannerTooltip:
+      '本页讲解语音已缓存或已保存；播放时直接使用，不会再次请求 TTS 合成。',
+    live2dPresenterToggle: '虚拟讲师',
+    live2dPresenterToggleTooltip: '在幻灯片页显示或隐藏 Live2D 虚拟讲师。',
+    ttsSpeechPendingBanner: '部分讲解未就绪',
+    ttsSpeechPendingBannerTooltip:
+      '本页尚有讲解语音未生成；首次播放时会请求 TTS 并写入本地缓存与笔记本。',
     ttsSpeechBrowserBanner: '当前使用浏览器实时朗读，无需预生成语音文件。',
     ttsSpeechOffBanner: 'TTS 已关闭，播放为静音或仅文字节奏。',
     openSceneList: '展开幻灯片列表',
@@ -196,10 +202,14 @@ export const stageEnUS = {
     viewQuiz: 'Quiz',
     viewRawData: 'Raw data',
     ttsVoiceLabel: 'Voice',
-    ttsSpeechReadyBanner:
-      'Speech for this page is ready (cached or saved). Playback will not call TTS again.',
-    ttsSpeechPendingBanner:
-      'Some speech for this page is not ready yet. It will be generated on first play and cached locally.',
+    ttsSpeechReadyBanner: 'Speech ready — uses cache on play',
+    ttsSpeechReadyBannerTooltip:
+      'Narration for this slide is cached or saved. Playback uses it directly without calling TTS again.',
+    live2dPresenterToggle: 'Presenter',
+    live2dPresenterToggleTooltip: 'Show or hide the Live2D presenter on slide pages.',
+    ttsSpeechPendingBanner: 'Some narration not ready',
+    ttsSpeechPendingBannerTooltip:
+      'Some speech lines for this slide are not generated yet. They will be synthesized on first play and saved to local cache.',
     ttsSpeechBrowserBanner: 'Browser speech is used — no pre-generated audio files.',
     ttsSpeechOffBanner: 'TTS is off; playback is silent or text-paced only.',
     openSceneList: 'Show slide list',

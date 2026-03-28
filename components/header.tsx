@@ -1,12 +1,22 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ArrowLeft, Loader2, Download, FileDown, Package, AlertCircle, Volume2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  Download,
+  FileDown,
+  Package,
+  AlertCircle,
+  Volume2,
+  Sparkles,
+} from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -33,6 +43,9 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
     () => getActiveVoiceDisplay(ttsProviderId, ttsVoice, t, locale),
     [ttsProviderId, ttsVoice, t, locale],
   );
+
+  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
+  const setLive2DPresenterVisible = useSettingsStore((s) => s.setLive2DPresenterVisible);
 
   const stageCourseId = useStageStore((s) => s.stage?.courseId?.trim());
   const contextCourseId = useCurrentCourseStore((s) => s.id);
@@ -124,6 +137,13 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
         : `${t('stage.ttsSpeechPendingBanner')} (${speechTtsBanner.ready}/${speechTtsBanner.total})`
       : '';
 
+  const speechPendingTooltipText =
+    speechTtsBanner.variant === 'pending'
+      ? locale === 'zh-CN'
+        ? `${t('stage.ttsSpeechPendingBannerTooltip')}（${speechTtsBanner.ready}/${speechTtsBanner.total}）`
+        : `${t('stage.ttsSpeechPendingBannerTooltip')} (${speechTtsBanner.ready}/${speechTtsBanner.total})`
+      : '';
+
   const stackedToolbar = Boolean(viewToggle || centerSlot);
 
   const metaChipsRow = (
@@ -169,7 +189,7 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm text-xs">
-              {t('stage.ttsSpeechReadyBanner')}
+              {t('stage.ttsSpeechReadyBannerTooltip')}
             </TooltipContent>
           </Tooltip>
         ) : speechTtsBanner.variant === 'pending' ? (
@@ -187,7 +207,7 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm text-xs">
-              {speechPendingText}
+              {speechPendingTooltipText}
             </TooltipContent>
           </Tooltip>
         ) : speechTtsBanner.variant === 'browser' ? (
@@ -205,6 +225,30 @@ export function Header({ currentSceneTitle, centerSlot, viewToggle }: HeaderProp
             {t('stage.ttsSpeechOffBanner')}
           </span>
         ) : null}
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <label
+              className={cn(
+                'inline-flex cursor-pointer select-none items-center gap-2 rounded-lg border px-2 py-1',
+                'border-slate-200/70 bg-slate-50/90 text-[11px] font-medium leading-tight',
+                'text-slate-700 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200',
+              )}
+            >
+              <Sparkles className="size-3 shrink-0 text-violet-500 opacity-90 dark:text-violet-400" />
+              <span className="whitespace-nowrap">{t('stage.live2dPresenterToggle')}</span>
+              <Switch
+                checked={live2dPresenterVisible}
+                onCheckedChange={setLive2DPresenterVisible}
+                className="scale-90"
+                aria-label={t('stage.live2dPresenterToggle')}
+              />
+            </label>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs text-xs">
+            {t('stage.live2dPresenterToggleTooltip')}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );

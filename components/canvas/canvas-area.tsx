@@ -141,6 +141,7 @@ export function CanvasArea({
                 speechText={talkingAvatar.speechText}
                 playbackRate={talkingAvatar.playbackRate}
                 currentVisemeId={talkingAvatar.currentVisemeId}
+                cadence={talkingAvatar.cadence}
               />
             )}
 
@@ -211,7 +212,7 @@ export function CanvasArea({
                 className={cn(
                   'absolute top-4 text-gray-200 dark:text-gray-700 font-black text-4xl opacity-50 pointer-events-none select-none mix-blend-multiply dark:mix-blend-screen',
                   currentScene?.type === 'slide' && talkingAvatar
-                    ? 'right-52 sm:right-60'
+                    ? 'right-44 sm:right-52'
                     : 'right-4',
                 )}
               >

@@ -41,6 +41,8 @@ import { cn } from '@/lib/utils';
 const SHOW_CLASSROOM_ROUNDTABLE = false;
 
 const RAW_DATA_BASE_TYPES: SceneType[] = ['slide', 'quiz', 'interactive'];
+type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
+const CLOSED_VISEME_IDS = new Set([0, 21]);
 
 function sceneTypeTabLabel(tr: (key: string) => string, type: SceneType): string {
   const key = `stage.sceneType.${type}`;
@@ -48,16 +50,49 @@ function sceneTypeTabLabel(tr: (key: string) => string, type: SceneType): string
   return label === key ? type : label;
 }
 
-function findCurrentViseme(visemes: SpeechAction['visemes'], currentTimeMs: number): number | null {
-  if (!visemes?.length) return null;
+function resolveCurrentVisemeFrame(
+  visemes: SpeechAction['visemes'],
+  currentTimeMs: number,
+): { visemeId: number | null; cadence: 'active' | 'pause' } {
+  if (!visemes?.length) {
+    return { visemeId: null, cadence: 'pause' };
+  }
 
-  for (let i = visemes.length - 1; i >= 0; i--) {
+  let currentIndex = -1;
+  for (let i = 0; i < visemes.length; i++) {
     if (currentTimeMs >= visemes[i].offsetMs) {
-      return visemes[i].visemeId;
+      currentIndex = i;
+    } else {
+      break;
     }
   }
 
-  return visemes[0]?.visemeId ?? null;
+  if (currentIndex < 0) {
+    return { visemeId: null, cadence: 'pause' };
+  }
+
+  const current = visemes[currentIndex];
+  const next = visemes[currentIndex + 1];
+  const isClosedCue = CLOSED_VISEME_IDS.has(current.visemeId);
+
+  if (!next) {
+    const tailHoldMs = isClosedCue ? 42 : 126;
+    return currentTimeMs - current.offsetMs > tailHoldMs
+      ? { visemeId: null, cadence: 'pause' }
+      : { visemeId: current.visemeId, cadence: 'active' };
+  }
+
+  const gapMs = Math.max(0, next.offsetMs - current.offsetMs);
+  const holdRatio = isClosedCue ? 0.12 : 0.44;
+  const holdMs = Math.min(isClosedCue ? 78 : 150, gapMs * holdRatio);
+  const pauseStartMs = current.offsetMs + holdMs;
+  const pauseWindowMs = next.offsetMs - pauseStartMs;
+
+  if (pauseWindowMs >= 88 && currentTimeMs >= pauseStartMs && currentTimeMs < next.offsetMs - 16) {
+    return { visemeId: null, cadence: 'pause' };
+  }
+
+  return { visemeId: current.visemeId, cadence: 'active' };
 }
 
 /** 原始数据里折叠 slide 画布，避免 JSON 过大 */
@@ -135,6 +170,7 @@ export function Stage({
   const [lectureSpeechActive, setLectureSpeechActive] = useState(false);
   const [currentSpeechAction, setCurrentSpeechAction] = useState<SpeechAction | null>(null);
   const [currentVisemeId, setCurrentVisemeId] = useState<number | null>(null);
+  const [speechCadence, setSpeechCadence] = useState<SpeechCadence>('idle');
   const [liveSpeech, setLiveSpeech] = useState<string | null>(null); // From buffer (discussion/QA)
   const [speechProgress, setSpeechProgress] = useState<number | null>(null); // StreamBuffer reveal progress (0–1)
   const [discussionTrigger, setDiscussionTrigger] = useState<TriggerEvent | null>(null);
@@ -278,6 +314,7 @@ export function Stage({
     setLectureSpeechActive(false);
     setCurrentSpeechAction(null);
     setCurrentVisemeId(null);
+    setSpeechCadence('idle');
     setSpeechProgress(null);
     setShowEndFlash(false);
     setActiveBubbleId(null);
@@ -359,6 +396,7 @@ export function Stage({
         setLectureSpeechActive(true);
         setCurrentSpeechAction(speech);
         setCurrentVisemeId(null);
+        setSpeechCadence(speech.visemes?.length ? 'pause' : 'fallback');
         // Add to lecture session with incrementing index for dedup
         // Chat area pacing is handled by the StreamBuffer (onTextReveal)
         if (lectureSessionIdRef.current) {
@@ -381,6 +419,7 @@ export function Stage({
         setLectureSpeechActive(false);
         setCurrentSpeechAction(null);
         setCurrentVisemeId(null);
+        setSpeechCadence('idle');
         setActiveBubbleId(null);
       },
       onEffectFire: (effect: Effect) => {
@@ -554,6 +593,7 @@ export function Stage({
   useEffect(() => {
     if (!lectureSpeechActive || !currentSpeechAction?.visemes?.length) {
       setCurrentVisemeId(null);
+      setSpeechCadence(lectureSpeechActive ? 'fallback' : 'idle');
       return;
     }
 
@@ -562,8 +602,9 @@ export function Stage({
 
     const tick = () => {
       const currentTimeMs = audioPlayerRef.current.getCurrentTime();
-      const nextCue = findCurrentViseme(visemes, currentTimeMs);
-      setCurrentVisemeId((prev) => (prev === nextCue ? prev : nextCue));
+      const frame = resolveCurrentVisemeFrame(visemes, currentTimeMs);
+      setCurrentVisemeId((prev) => (prev === frame.visemeId ? prev : frame.visemeId));
+      setSpeechCadence((prev) => (prev === frame.cadence ? prev : frame.cadence));
       frameId = window.requestAnimationFrame(tick);
     };
 
@@ -858,7 +899,9 @@ export function Stage({
 
   const playbackToolbarLiveSession = chatIsStreaming || isTopicPending || engineMode === 'live';
 
+  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
   const talkingAvatar =
+    live2dPresenterVisible &&
     mode === 'playback' &&
     currentScene?.type === 'slide' &&
     !isPendingScene &&
@@ -870,6 +913,7 @@ export function Stage({
           speechText: lectureSpeech,
           playbackRate: playbackSpeed,
           currentVisemeId,
+          cadence: speechCadence,
         }
       : null;
 

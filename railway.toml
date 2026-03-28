@@ -1,0 +1,11 @@
+# Railway config-as-code — https://docs.railway.com/guides/config-as-code
+# Ensures `next build` runs before `next start` (requires `.next` with BUILD_ID).
+
+[build]
+builder = "NIXPACKS"
+# Monorepo uses pnpm; install + build so the image always has a production `.next`.
+buildCommand = "pnpm install && pnpm run build"
+
+[deploy]
+startCommand = "pnpm run start"
+restartPolicyType = "ON_FAILURE"
