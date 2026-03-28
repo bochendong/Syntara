@@ -362,7 +362,7 @@ export function CourseGalleryCard({
           </span>
           <span className="inline-flex items-center gap-1 rounded-md border border-slate-200/80 bg-transparent px-2 py-0.5 text-[11px] text-slate-500 dark:border-white/10 dark:text-slate-400">
             <Network className="size-3.5 shrink-0 opacity-75" strokeWidth={1.75} />
-            OpenMAIC
+            Syntara
           </span>
         </div>
 

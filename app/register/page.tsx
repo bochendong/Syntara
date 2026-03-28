@@ -139,7 +139,7 @@ export default function RegisterPage() {
             <div className="apple-glass rounded-[28px] p-8">
               <div className="mb-6 text-center">
                 <h1 className="text-3xl font-semibold tracking-tight text-[#1d1d1f] dark:text-white">
-                  注册 OpenMAIC
+                  注册 Syntara
                 </h1>
                 <p className="mt-2 text-sm text-[#86868b] dark:text-[#a1a1a6]">
                   创建账号后即可开始搭建课程与笔记本。

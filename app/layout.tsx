@@ -20,9 +20,10 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'Syntara',
+  applicationName: 'Syntara',
   description:
-    'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
+    'AI learning space for courses, notebooks, and agents. Upload a PDF or describe a topic to generate an immersive, multi-agent classroom.',
 };
 
 export default function RootLayout({

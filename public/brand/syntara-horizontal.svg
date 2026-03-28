@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 40" fill="none" aria-label="Syntara">
+  <defs>
+    <linearGradient id="syntara-h-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#9333ea"/>
+    </linearGradient>
+    <style>
+      .syntara-word { font: 700 18px ui-sans-serif, system-ui, -apple-system, sans-serif; letter-spacing: -0.03em; fill: #0f172a; }
+      @media (prefers-color-scheme: dark) {
+        .syntara-word { fill: #f8fafc; }
+      }
+    </style>
+  </defs>
+  <rect x="0" y="4" width="32" height="32" rx="8" fill="url(#syntara-h-grad)"/>
+  <!-- Synapse-inspired S curve -->
+  <path
+    d="M9 12.5c2.5-2 6.5-2 9 0s6.5 2 9 0 6.5-2 9 0M9 23.5c2.5 2 6.5 2 9 0s6.5-2 9 0 6.5 2 9 0"
+    stroke="#fff"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="11" cy="12.5" r="2" fill="#fff"/>
+  <circle cx="21" cy="18" r="2" fill="#fff"/>
+  <circle cx="11" cy="23.5" r="2" fill="#fff"/>
+  <text x="42" y="26.5" class="syntara-word">Syntara</text>
+</svg>

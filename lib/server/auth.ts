@@ -43,10 +43,15 @@ export const authOptions: NextAuthOptions = {
     strategy: isDatabaseAvailable() ? 'database' : 'jwt',
   },
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user, token }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.role = (user as { role?: 'USER' | 'ADMIN' }).role || 'USER';
+        if (user) {
+          session.user.id = user.id;
+          session.user.role = (user as { role?: 'USER' | 'ADMIN' }).role || 'USER';
+        } else if (token?.sub) {
+          session.user.id = token.sub;
+          session.user.role = 'USER';
+        }
       }
       return session;
     },

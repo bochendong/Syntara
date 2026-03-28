@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '创建笔记本 · OpenMAIC',
+  title: '创建笔记本 · Syntara',
   description: '在某一门课程下描述学习需求并生成互动笔记本。',
 };
 

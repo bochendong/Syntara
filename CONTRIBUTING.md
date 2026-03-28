@@ -1,6 +1,6 @@
-# Contributing to OpenMAIC
+# Contributing to Syntara
 
-Thank you for your interest in contributing to OpenMAIC! This guide will help you get started and ensure a smooth collaboration.
+Thank you for your interest in contributing to Syntara! This guide will help you get started and ensure a smooth collaboration.
 
 ## How to Contribute
 
@@ -131,7 +131,7 @@ AI-assisted PRs are held to the same quality standard as any other PR. Community
 ## Project Structure
 
 ```
-OpenMAIC/
+Syntara/
 ├── app/              # Next.js app router pages and API routes
 ├── components/       # React components
 ├── lib/              # Shared utilities and core logic
@@ -160,4 +160,4 @@ Please report security vulnerabilities through [GitHub Security Advisories](http
 
 ## License
 
-By contributing to OpenMAIC, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).
+By contributing to Syntara, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).

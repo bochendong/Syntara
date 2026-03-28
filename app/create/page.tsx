@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import { CreateNotebookComposer } from '@/components/create/create-notebook-composer';
+import { SyntaraWordmark } from '@/components/brand/syntara-wordmark';
 
 function CreateNotebookPageInner() {
   const { t } = useI18n();
@@ -100,9 +101,7 @@ function CreateNotebookPageInner() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="relative z-20 flex min-h-0 w-full max-w-[800px] flex-1 flex-col items-center justify-center"
       >
-        <motion.img
-          src="/logo-horizontal.png"
-          alt="OpenMAIC"
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
@@ -111,8 +110,10 @@ function CreateNotebookPageInner() {
             stiffness: 200,
             damping: 20,
           }}
-          className="-ml-2 mb-2 h-12 md:-ml-3 md:h-16"
-        />
+          className="-ml-2 mb-2 md:-ml-3"
+        >
+          <SyntaraWordmark />
+        </motion.div>
 
         <motion.p
           initial={{ opacity: 0 }}
@@ -145,7 +146,7 @@ function CreateNotebookPageInner() {
       </motion.div>
 
       <div className="shrink-0 pb-1 pt-8 text-center text-xs text-muted-foreground/40 md:pt-10">
-        OpenMAIC Open Source Project
+        Syntara · open source
       </div>
     </div>
   );

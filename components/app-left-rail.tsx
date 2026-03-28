@@ -322,7 +322,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               <div className="flex items-center gap-0.5 px-3 py-3">
                 <div className="mr-auto min-w-0 flex-1">
                   <p className="truncate text-sm font-medium leading-tight" title={displayName}>
-                    {isLoggedIn ? displayName : 'OpenMAIC'}
+                    {isLoggedIn ? displayName : 'Syntara'}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {isLoggedIn ? '已登录' : '本地体验'}

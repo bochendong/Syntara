@@ -6,7 +6,7 @@ export const commonZhCN = {
     loading: '加载中...',
   },
   home: {
-    slogan: 'Generative Learning in Multi-Agent Interactive Classroom',
+    slogan: '课程、Notebook 与 Agent 同台协作的 AI 学习空间',
     greeting: '嗨，',
     dashboardTitle: '主页',
     dashboardWelcome: '欢迎回来',
@@ -65,7 +65,7 @@ export const commonEnUS = {
     loading: 'Loading...',
   },
   home: {
-    slogan: 'Generative Learning in Multi-Agent Interactive Classroom',
+    slogan: 'AI learning space where courses, notebooks, and agents work together',
     greeting: 'Hi, ',
     dashboardTitle: 'Home',
     dashboardWelcome: 'Welcome back',

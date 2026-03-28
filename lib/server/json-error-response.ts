@@ -8,7 +8,7 @@ export function jsonErrorFromUnknown(err: unknown, status = 500): NextResponse {
     message = err.message;
     if (/P1001|P1017|P2024|Can't reach database|ECONNREFUSED|ENOTFOUND|Server has closed the connection/i.test(message)) {
       message =
-        '无法连接数据库：请确认 PostgreSQL 已运行，.env.local 中 DATABASE_URL 正确，并在项目根目录执行 pnpm db:push。';
+        '无法连接数据库：请确认 PostgreSQL 可访问，部署环境已配置非空的 DATABASE_URL，并已对目标库执行 prisma db push（或 migrate deploy）。';
     }
   }
   return NextResponse.json({ error: message }, { status });

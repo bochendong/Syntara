@@ -1,9 +1,9 @@
 <!-- <p align="center">
-  <img src="assets/logo-horizontal.png" alt="OpenMAIC" width="420"/>
+  <img src="public/brand/syntara-horizontal.svg" alt="Syntara" width="420"/>
 </p> -->
 
 <p align="center">
-  <img src="assets/banner.png" alt="OpenMAIC Banner" width="680"/>
+  <img src="assets/banner.png" alt="Syntara Banner" width="680"/>
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 
 ## 📖 Overview
 
-**OpenMAIC** (Open Multi-Agent Interactive Classroom) is an open-source AI platform that turns any topic or document into a rich, interactive classroom experience. Powered by multi-agent orchestration, it generates slides, quizzes, interactive simulations, and project-based learning activities — all delivered by AI teachers and AI classmates who can speak, draw on a whiteboard, and engage in real-time discussions with you. With built-in [OpenClaw](https://github.com/openclaw/openclaw) integration, you can generate classrooms directly from messaging apps like Feishu, Slack, or Telegram.
+**Syntara** is an open-source AI platform that turns any topic or document into a rich, interactive classroom experience. Powered by multi-agent orchestration, it generates slides, quizzes, interactive simulations, and project-based learning activities — all delivered by AI teachers and AI classmates who can speak, draw on a whiteboard, and engage in real-time discussions with you. With built-in [OpenClaw](https://github.com/openclaw/openclaw) integration, you can generate classrooms directly from messaging apps like Feishu, Slack, or Telegram.
 
 https://github.com/user-attachments/assets/b4ab35ac-f994-46b1-8957-e82fe87ff0e9
 
@@ -54,11 +54,11 @@ https://github.com/user-attachments/assets/b4ab35ac-f994-46b1-8957-e82fe87ff0e9
 ---
 
 > [!TIP]
-> ### <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/openclaw.png" height="28" align="top"/> OpenClaw — Use OpenMAIC from your chat app, zero setup
+> ### <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/openclaw.png" height="28" align="top"/> OpenClaw — Use Syntara from your chat app, zero setup
 >
 > With [OpenClaw](https://github.com/openclaw/openclaw), you can generate classrooms directly from Feishu, Slack, Discord, Telegram, and 20+ messaging apps.
 >
-> 1. `clawhub install openmaic` or just ask your Claw *"install OpenMAIC skill"*
+> 1. `clawhub install openmaic` or just ask your Claw *"install Syntara skill"* (package id remains `openmaic` on ClawHub)
 > 2. Pick a mode:
 >    - **Hosted mode** — Get an access code at [open.maic.chat](https://open.maic.chat/), no local setup needed
 >    - **Self-hosted** — The skill walks you through clone, config, and startup step by step
@@ -114,7 +114,7 @@ Supported providers: **OpenAI**, **Anthropic**, **Google Gemini**, **DeepSeek**,
 
 > **Recommended model:** **Gemini 3 Flash** — best balance of quality and speed. For highest quality (at slower speed), try **Gemini 3.1 Pro**.
 >
-> If you want OpenMAIC server APIs to use Gemini by default, also set `DEFAULT_MODEL=google:gemini-3-flash-preview`.
+> If you want Syntara server APIs to use Gemini by default, also set `DEFAULT_MODEL=google:gemini-3-flash-preview`.
 
 ### 3. Run
 
@@ -153,7 +153,7 @@ Set `PDF_MINERU_BASE_URL` (and `PDF_MINERU_API_KEY` if needed) in `.env.local`.
 
 ### Lesson Generation
 
-Describe what you want to learn or attach reference materials. OpenMAIC's two-stage pipeline handles the rest:
+Describe what you want to learn or attach reference materials. Syntara's two-stage pipeline handles the rest:
 
 | Stage | What Happens |
 |-------|-------------|
@@ -234,7 +234,7 @@ Choose a role and collaborate with AI agents on structured projects with milesto
 <tr>
 <td valign="top">
 
-OpenMAIC integrates with [OpenClaw](https://github.com/openclaw/openclaw) — a personal AI assistant that connects to messaging platforms you already use (Feishu, Slack, Discord, Telegram, WhatsApp, etc.). With this integration, you can **generate and view interactive classrooms directly from your chat app** without ever touching a terminal.
+Syntara integrates with [OpenClaw](https://github.com/openclaw/openclaw) — a personal AI assistant that connects to messaging platforms you already use (Feishu, Slack, Discord, Telegram, WhatsApp, etc.). With this integration, you can **generate and view interactive classrooms directly from your chat app** without ever touching a terminal.
 
 </td>
 <td width="360" valign="top">
@@ -365,7 +365,7 @@ We welcome contributions from the community! Whether it's bug reports, feature i
 ### Project Structure
 
 ```
-OpenMAIC/
+Syntara/   # repository root (upstream clone path may still be `OpenMAIC`)
 ├── app/                        # Next.js App Router
 │   ├── api/                    #   Server API routes (~18 endpoints)
 │   │   ├── generate/           #     Scene generation pipeline (outlines, content, images, TTS …)
@@ -410,7 +410,7 @@ OpenMAIC/
 │   └── mathml2omml/            #   MathML → Office Math conversion
 │
 ├── skills/                     # OpenClaw / ClawHub skills
-│   └── openmaic/               #   Guided OpenMAIC setup & generation SOP
+│   └── openmaic/               #   Guided Syntara setup & generation SOP (ClawHub skill id)
 │       ├── SKILL.md            #   Thin router with confirmation rules
 │       └── references/         #   On-demand SOP sections
 │
@@ -443,7 +443,7 @@ This project is licensed under AGPL-3.0. For commercial licensing inquiries, ple
 
 ## 📝 Citation
 
-If you find OpenMAIC useful in your research, please consider citing:
+If you find Syntara useful in your research, please consider citing:
 
 ```bibtex
 @Article{JCST-2509-16000,

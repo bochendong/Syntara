@@ -162,7 +162,7 @@ export default function LoginPage() {
               className="mb-6 space-y-2 text-center"
             >
               <h1 className="text-3xl font-semibold tracking-tight text-[#1d1d1f] dark:text-white">
-                登录 OpenMAIC
+                登录 Syntara
               </h1>
               <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
                 使用 Google 或 GitHub 账号登录；登录后默认进入「我的课程」，也可从侧栏前往商城。

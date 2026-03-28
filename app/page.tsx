@@ -15,7 +15,6 @@ import {
   GraduationCap,
   Layers,
   MessageCircle,
-  Sparkles,
   Timer,
   TrendingUp,
   WandSparkles,
@@ -23,6 +22,7 @@ import {
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { SyntaraMark } from '@/components/brand/syntara-mark';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -82,7 +82,7 @@ export default function HomePage() {
     () =>
       isZh
         ? {
-            brand: 'OpenMAIC',
+            brand: 'Syntara',
             brandTag: 'Course, notebook, classroom',
             nav: {
               platform: '平台能力',
@@ -95,7 +95,7 @@ export default function HomePage() {
               titleTop: '让课程、Notebook 与 Agent',
               titleBottom: '协作在同一个学习系统里',
               description:
-                'OpenMAIC 把课程入口、Notebook 生成、AI 讲解、Agent 互动与复习回路放进一条连续工作流里，让知识不仅能展示，也能练习、追问与长期记住。',
+                'Syntara 把课程入口、Notebook 生成、AI 讲解、Agent 互动与复习回路放进一条连续工作流里，让知识不仅能展示，也能练习、追问与长期记住。',
               primaryCta: isLoggedIn ? '进入我的课程' : '立即登录',
               secondaryCta: '查看平台能力',
               chips: ['Course Space', 'Notebook Studio', 'Agent Classroom', 'Memory Loop'],
@@ -212,7 +212,7 @@ export default function HomePage() {
             },
           }
         : {
-            brand: 'OpenMAIC',
+            brand: 'Syntara',
             brandTag: 'Course, notebook, classroom',
             nav: {
               platform: 'Platform',
@@ -225,7 +225,7 @@ export default function HomePage() {
               titleTop: 'Bring courses, notebooks, and agents',
               titleBottom: 'into one learning system',
               description:
-                'OpenMAIC brings course context, notebook generation, AI teaching, agent interaction, and review loops into one continuous workflow, so knowledge can be explained, practiced, questioned, and remembered.',
+                'Syntara brings course context, notebook generation, AI teaching, agent interaction, and review loops into one continuous workflow, so knowledge can be explained, practiced, questioned, and remembered.',
               primaryCta: isLoggedIn ? 'Enter my courses' : 'Sign in now',
               secondaryCta: 'Explore the platform',
               chips: ['Course Space', 'Notebook Studio', 'Agent Classroom', 'Memory Loop'],
@@ -421,9 +421,7 @@ export default function HomePage() {
         <header className="sticky top-0 z-40 border-b border-white/8 bg-[#0b0b0c]/70 backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-8">
             <Link href="/" className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#7c5cff_0%,#27d7ff_100%)] text-white shadow-[0_8px_24px_rgba(39,215,255,0.2)]">
-                <Sparkles className="size-4" />
-              </span>
+              <SyntaraMark />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-tight text-white">
                   {copy.brand}

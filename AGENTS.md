@@ -4,7 +4,7 @@
 
 ### Overview
 
-OpenMAIC is a Next.js 16 monorepo (pnpm workspace) with two internal packages (`packages/mathml2omml`, `packages/pptxgenjs`). It runs in **local-first mode** (browser IndexedDB) by default — PostgreSQL is only needed for multi-user/auth features.
+Syntara is a Next.js 16 monorepo (pnpm workspace) with two internal packages (`packages/mathml2omml`, `packages/pptxgenjs`). It runs in **local-first mode** (browser IndexedDB) by default — PostgreSQL is only needed for multi-user/auth features.
 
 ### Prerequisites
 
