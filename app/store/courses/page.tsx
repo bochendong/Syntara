@@ -9,6 +9,7 @@ import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { COURSE_STORE_TEMPLATES } from '@/lib/constants/course-store-templates';
 import type { CourseRecord } from '@/lib/utils/database';
 import { toast } from 'sonner';
+import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString();
@@ -172,7 +173,7 @@ export default function CourseStorePage() {
                     countUnit="个笔记本"
                     actionLabel="进入课程"
                     onAction={() => router.push(`/course/${course.id}`)}
-                    coverAvatarUrl={course.avatarUrl}
+                    coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
                   />
                 );
               })}

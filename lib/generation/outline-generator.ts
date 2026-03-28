@@ -111,6 +111,8 @@ export async function generateSceneOutlinesFromRequirements(
       options?.researchContext || (requirements.language === 'zh-CN' ? '无' : 'None'),
     // Server-side generation populates this via options; client-side populates via formatTeacherPersonaForPrompt
     teacherContext: options?.teacherContext || '',
+    purposePolicy: '',
+    courseContext: requirements.language === 'zh-CN' ? '无' : 'N/A',
   });
 
   if (!prompts) {

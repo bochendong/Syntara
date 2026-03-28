@@ -5,17 +5,10 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_USER_PRESET_AVATAR, USER_AVATAR_PRESET_URLS } from '@/lib/constants/user-avatars';
 
-/** Predefined avatar options */
-export const AVATAR_OPTIONS = [
-  '/avatars/user.png',
-  '/avatars/teacher-2.png',
-  '/avatars/assist-2.png',
-  '/avatars/clown-2.png',
-  '/avatars/curious-2.png',
-  '/avatars/note-taker-2.png',
-  '/avatars/thinker-2.png',
-] as const;
+/** 设置里可选的预设头像（`public/avatars/user-avators/`） */
+export const AVATAR_OPTIONS = USER_AVATAR_PRESET_URLS;
 
 export interface UserProfileState {
   /** Local avatar path or data-URL (for custom uploads) */
@@ -30,7 +23,7 @@ export interface UserProfileState {
 export const useUserProfileStore = create<UserProfileState>()(
   persist(
     (set) => ({
-      avatar: AVATAR_OPTIONS[0],
+      avatar: DEFAULT_USER_PRESET_AVATAR,
       nickname: '',
       bio: '',
       setAvatar: (avatar) => set({ avatar }),

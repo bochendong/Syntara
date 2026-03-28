@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { pickStableCourseAvatarUrl } from '@/lib/constants/course-avatars';
 
 const updateCourseSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -28,9 +29,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    const course = await getCourseForUser(userId, id);
+    let course = await getCourseForUser(userId, id);
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+    if (!course.avatarUrl?.trim()) {
+      course = await prisma.course.update({
+        where: { id },
+        data: { avatarUrl: pickStableCourseAvatarUrl(id) },
+      });
     }
     return NextResponse.json({ course });
   });

@@ -7,6 +7,7 @@
 import type { Scene, SceneContent } from '@/lib/types/stage';
 import type { StageStore, APIResult, CreateSceneParams } from './stage-api-types';
 import { generateId, validateSceneId, getScene, createDefaultContent } from './stage-api-defaults';
+import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
 
 /**
  * Create the scene management API
@@ -127,7 +128,7 @@ export function createSceneAPI(store: StageStore) {
         }
 
         const newScenes = state.scenes.map((scene) =>
-          scene.id === sceneId ? { ...scene, ...updates, updatedAt: Date.now() } : scene,
+          scene.id === sceneId ? applySceneUpdatesWithSpeechTtsInvalidation(scene, updates) : scene,
         );
 
         store.setState({ scenes: newScenes });

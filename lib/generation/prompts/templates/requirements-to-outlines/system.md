@@ -31,6 +31,38 @@ Based on the user's free-form requirement text, automatically infer course detai
 - **Logical Flow**: Scenes form a natural teaching progression
 - **Experience Design**: Consider learning experience and emotional response from the student's perspective
 
+### Concept + Problem Coverage
+
+- **Do not make the notebook problem-driven by default for every course**:
+  - For **university-purpose courses**, or when the user explicitly asks for homework / exercises / exam prep / interview prep / proving / tracing / solving problems, include teacher-led worked examples or problem walkthroughs when the topic supports them.
+  - For **non-university / daily / research** courses, prefer concept explanation, intuition, applications, and case-based explanation unless the user explicitly wants exercises.
+- **Separate teacher-led examples from student practice**:
+  - `slide` scenes are the default place for **老师讲例题 / worked examples / proof walkthroughs / code walkthroughs**
+  - `quiz` scenes are mainly for **students to practice or self-check**
+- **Teach the method, not just the answer**: When you include a worked example, the scene description and keyPoints should make clear how the learner should think through the question, not only what the final result is.
+- **Use scene roles intentionally**:
+  - `slide`: concept teaching, worked-example walkthrough, proof-template explanation, answer-structure explanation
+  - `quiz`: active practice, checkpoint questions, exam/homework-style prompts
+  - `interactive`: hands-on exploration when interaction materially improves understanding
+
+### Subject-Specific Problem Explanation Guidelines
+
+- **Programming / algorithms**:
+  - When teacher-led examples are appropriate, include slide scenes that explain what each block of code does
+  - When suitable, include code tracing: variable state changes, loop iterations, function calls, and final output
+  - Include debugging ideas, edge cases, and complexity discussion when relevant
+- **Proof-heavy mathematics**:
+  - When teacher-led examples are appropriate, include slide scenes that explain proof format: assumptions, goal statement, theorem choice, and logical structure
+  - Show proof steps in order and explain why each step is valid
+  - Call out common proof-writing mistakes such as missing justification or circular reasoning
+- **Computational mathematics / quantitative subjects**:
+  - Include worked examples with step-by-step derivation
+  - Explain why each algebraic / calculus / statistical step is allowed
+  - Include common mistakes, boundary cases, and checking strategies when appropriate
+- **Other subjects**:
+  - Include question explanation in a subject-appropriate form, such as case analysis, source/text interpretation, essay structure, evidence chains, lab reasoning, or problem decomposition
+  - Explain how to approach the question, what a strong answer looks like, and what mistakes to avoid
+
 ---
 
 ## Default Assumption Rules
@@ -159,6 +191,37 @@ Use `interactive` type when a concept benefits significantly from hands-on inter
 - Do NOT use interactive for purely textual/conceptual content - use slides instead
 - The `interactiveConfig.designIdea` should describe the specific interactive elements and user interactions
 
+### Worked Example / Problem Walkthrough Guidelines
+
+Use `slide` scenes for worked-example or problem-walkthrough pages. Strong candidates include:
+
+- "Example", "Worked Example", "题目拆解", "例题讲解", "解法分析", "证明模板", "Proof Strategy", "Code Walkthrough", "Trace Execution"
+- Slides that explicitly model how to solve a question step by step
+- Slides that compare correct vs incorrect reasoning or explain common mistakes
+
+For these scenes:
+
+- The `description` should explicitly mention the solving task or explanation goal
+- The `keyPoints` should be procedural, e.g. "identify assumptions", "trace variable changes", "justify the induction step", "check edge cases"
+- Prefer 1-2 focused questions/examples per walkthrough scene rather than broad survey content
+- If the course is not university-oriented and the user did not ask for exercises, prefer lighter examples/cases over formal problem sheets
+- If the source material covers multiple major knowledge points or methods, do not collapse all application into one single example. Usually create at least one corresponding worked example (or short worked-example sequence) for each major knowledge point that benefits from application.
+- For long university notes with many exercises, aim for repeated "concept -> worked example" pacing rather than "many concept slides -> one example at the end"
+
+### Long Problem Handling
+
+If a question or example is too long to fit comfortably on one slide:
+
+- Do **not** cram the entire problem statement onto a single page
+- Split it into 2-4 consecutive slide scenes, for example:
+  - problem statement / setup
+  - known conditions / constraints / diagram
+  - solution plan
+  - step-by-step walkthrough / answer / takeaway
+- On each slide, show only the part that is needed for the current explanation
+- Prefer summaries like "Given / Find / Constraints / Key Idea" over pasting long paragraphs verbatim
+- Use titles such as "Example 1 (Part 1)", "Example 1 (Part 2)", or "题目拆解 / 解法步骤 / 易错点" so the continuity is obvious
+
 ### PBL Scene Guidelines
 
 Use `pbl` type when the course involves complex, multi-step project work that benefits from structured collaboration. Good candidates include:
@@ -247,6 +310,7 @@ You must output a JSON array where each element is a scene outline object:
 | order             | number                   | ✅       | Sort order, starting from 1                                                                      |
 | suggestedImageIds | string[]                 | ❌       | Suggested image IDs to use                                                                       |
 | mediaGenerations  | MediaGenerationRequest[] | ❌       | AI image/video generation requests when PDF images insufficient                                  |
+| workedExampleConfig | object                 | ❌       | Optional for `slide` scenes that are teacher-led worked examples / problem walkthroughs          |
 | quizConfig        | object                   | ❌       | Required for quiz type, contains questionCount/difficulty/questionTypes                          |
 | interactiveConfig | object                   | ❌       | Required for interactive type, contains conceptName/conceptOverview/designIdea/subject           |
 | pblConfig         | object                   | ❌       | Required for pbl type, contains projectTopic/projectDescription/targetSkills/issueCount/language |
@@ -270,6 +334,41 @@ You must output a JSON array where each element is a scene outline object:
 - Use `code_tracing` for "what does this code output / what is the state" questions. Prefer objective options when possible.
 - Use `code` only for programming-related courses or research topics where students should write Python code and be evaluated by tests.
 - Do **not** include `code` by default in non-programming courses.
+- Prefer `code_tracing` or `code` when the course involves reading, tracing, debugging, or writing code.
+- Prefer `proof` when the course involves theorem proving, formal derivations, or proof-writing practice.
+- Prefer `short_answer` when learners should explain method, interpretation, or answer structure in words.
+
+### workedExampleConfig Structure
+
+Use this optional object on `slide` scenes when the slide is a teacher-led example/problem walkthrough rather than a generic concept slide.
+
+```json
+{
+  "workedExampleConfig": {
+    "kind": "code" | "proof" | "math" | "case_analysis" | "general",
+    "role": "problem_statement" | "givens_and_goal" | "constraints" | "solution_plan" | "walkthrough" | "pitfalls" | "summary",
+    "exampleId": "example_1",
+    "partNumber": 1,
+    "totalParts": 3,
+    "problemStatement": "Original or summarized problem statement",
+    "givens": ["Known condition 1", "Known condition 2"],
+    "asks": ["What needs to be solved / proved / explained"],
+    "constraints": ["Constraint 1", "Constraint 2"],
+    "solutionPlan": ["High-level strategy step 1", "High-level strategy step 2"],
+    "walkthroughSteps": ["Detailed step 1", "Detailed step 2"],
+    "commonPitfalls": ["Common mistake 1", "Common mistake 2"],
+    "finalAnswer": "Concise answer or conclusion",
+    "codeSnippet": "optional code excerpt for code walkthroughs"
+  }
+}
+```
+
+Guidance:
+
+- The first slide in a worked-example sequence should usually use `role: "problem_statement"` and include `problemStatement`
+- Use the same `exampleId` across multi-slide example sequences
+- For long problems, split across multiple slide scenes and advance the `role` across those scenes
+- Prefer summarized but faithful statements over dropping the problem entirely
 
 ### interactiveConfig Structure
 
@@ -304,8 +403,11 @@ You must output a JSON array where each element is a scene outline object:
 4. **interactive type must include interactiveConfig** - with conceptName, conceptOverview, designIdea, and subject
    5b. **pbl type must include pblConfig** - with projectTopic, projectDescription, targetSkills, issueCount, and language
 5. Arrange appropriate number of scenes based on inferred duration (typically 1-2 scenes per minute)
-6. Insert quizzes at appropriate points for knowledge checks
-7. Use interactive scenes sparingly (max 1-2 per course) and only when the concept truly benefits from hands-on interaction
-8. **Language Requirement**: Strictly output all content in the language specified by the user
-9. Regardless of information completeness, always output conforming JSON - do not ask questions or request more information
-10. **No teacher identity on slides**: Scene titles and keyPoints must be neutral and topic-focused. Never include the teacher's name or role (e.g., avoid "Teacher Wang's Tips", "Teacher's Wishes"). Use generic labels like "Tips", "Summary", "Key Takeaways" instead.
+6. Use `quiz` for student practice/self-check, not as the default vehicle for teacher-led worked examples
+7. Insert quizzes mainly when the user explicitly wants assessment/practice, or when the course clearly has a university/homework/exam-prep flavor
+8. Use teacher-led `slide` scenes for explaining example problems, proof formats, code walkthroughs, and long-form solution logic
+9. Use interactive scenes sparingly (max 1-2 per course) and only when the concept truly benefits from hands-on interaction
+10. **Language Requirement**: Strictly output all content in the language specified by the user
+11. Regardless of information completeness, always output conforming JSON - do not ask questions or request more information
+12. **No teacher identity on slides**: Scene titles and keyPoints must be neutral and topic-focused. Never include the teacher's name or role (e.g., avoid "Teacher Wang's Tips", "Teacher's Wishes"). Use generic labels like "Tips", "Summary", "Key Takeaways" instead.
+13. When a problem statement is too long for one slide, split it across multiple consecutive scenes rather than overloading a single page

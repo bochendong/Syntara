@@ -75,12 +75,12 @@ export async function POST(req: NextRequest) {
     );
 
     // Generate audio
-    const { audio, format } = await generateTTS(config, text);
+    const { audio, format, visemes } = await generateTTS(config, text);
 
     // Convert to base64
     const base64 = Buffer.from(audio).toString('base64');
 
-    return apiSuccess({ audioId, base64, format });
+    return apiSuccess({ audioId, base64, format, visemes });
   } catch (error) {
     log.error('TTS generation error:', error);
     return apiError(

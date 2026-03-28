@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import {
+  pickRandomCourseAvatarUrl,
+  pickStableCourseAvatarUrl,
+} from '@/lib/constants/course-avatars';
 
 const createCourseSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -25,7 +29,22 @@ export async function GET() {
       where: { ownerId: userId },
       orderBy: { updatedAt: 'desc' },
     });
-    return NextResponse.json({ courses: rows });
+    const missingAvatar = rows.filter((r) => !r.avatarUrl?.trim());
+    if (missingAvatar.length > 0) {
+      await prisma.$transaction(
+        missingAvatar.map((c) =>
+          prisma.course.update({
+            where: { id: c.id },
+            data: { avatarUrl: pickStableCourseAvatarUrl(c.id) },
+          }),
+        ),
+      );
+    }
+    const courses = await prisma.course.findMany({
+      where: { ownerId: userId },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return NextResponse.json({ courses });
   });
 }
 
@@ -43,10 +62,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const avatarUrl =
+      payload.data.avatarUrl?.trim() || pickRandomCourseAvatarUrl();
+
     const course = await prisma.course.create({
       data: {
         ownerId: userId,
         ...payload.data,
+        avatarUrl,
       },
     });
 

@@ -9,6 +9,7 @@ import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement } from '@/lib/types/slides';
 import type { StageStore, APIResult, CreateElementParams } from './stage-api-types';
 import { generateId, getScene } from './stage-api-defaults';
+import { stripSpeechAudioFromActions } from '@/lib/audio/speech-tts-invalidation';
 
 /**
  * Create the element management API
@@ -58,6 +59,7 @@ export function createElementAPI(store: StageStore) {
                   elements: [...content.canvas.elements, newElement],
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -118,6 +120,7 @@ export function createElementAPI(store: StageStore) {
                   elements: [...content.canvas.elements, ...newElements],
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -165,6 +168,7 @@ export function createElementAPI(store: StageStore) {
                   elements: content.canvas.elements.filter((el) => el.id !== elementId),
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -214,6 +218,7 @@ export function createElementAPI(store: StageStore) {
                   elements: content.canvas.elements.filter((el) => !elementIdSet.has(el.id)),
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -264,6 +269,7 @@ export function createElementAPI(store: StageStore) {
                   ),
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -382,6 +388,7 @@ export function createElementAPI(store: StageStore) {
                   }),
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }

@@ -4,6 +4,7 @@ import { createSelectors } from '@/lib/utils/create-selectors';
 import type { ChatSession } from '@/lib/types/chat';
 import type { SceneOutline } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
+import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
 
 const log = createLogger('StageStore');
 
@@ -70,6 +71,8 @@ interface StageState {
   setScenes: (scenes: Scene[]) => void;
   addScene: (scene: Scene) => void;
   updateScene: (sceneId: string, updates: Partial<Scene>) => void;
+  /** Shallow-copy scenes array after in-place mutation (e.g. speech audioUrl) to trigger persist */
+  touchScenes: () => void;
   deleteScene: (sceneId: string) => void;
   setCurrentSceneId: (sceneId: string | null) => void;
   setChats: (chats: ChatSession[]) => void;
@@ -155,9 +158,14 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   updateScene: (sceneId, updates) => {
     const scenes = get().scenes.map((scene) =>
-      scene.id === sceneId ? { ...scene, ...updates } : scene,
+      scene.id === sceneId ? applySceneUpdatesWithSpeechTtsInvalidation(scene, updates) : scene,
     );
     set({ scenes });
+    debouncedSave();
+  },
+
+  touchScenes: () => {
+    set((s) => ({ scenes: [...s.scenes] }));
     debouncedSave();
   },
 

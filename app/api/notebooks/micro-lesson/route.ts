@@ -54,7 +54,11 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
         type: 'slide',
         title: 'Problem Understanding',
         description: 'Clarify inputs, outputs, constraints, and what is being asked.',
-        keyPoints: ['Extract key constraints', 'Define expected output', 'Identify hidden assumptions'],
+        keyPoints: [
+          'Extract key constraints',
+          'Define expected output',
+          'Identify hidden assumptions',
+        ],
         order: 0,
         language,
       },
@@ -109,15 +113,15 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
   ];
 }
 
-function normalizeOutlines(
-  outlines: SceneOutline[],
-  language: 'zh-CN' | 'en-US',
-): SceneOutline[] {
+function normalizeOutlines(outlines: SceneOutline[], language: 'zh-CN' | 'en-US'): SceneOutline[] {
   const normalized = outlines
     .filter((o) => (o.title || '').trim())
     .slice(0, 5)
     .map((o, i) => {
-      const keyPoints = (o.keyPoints || []).map((k) => String(k).trim()).filter(Boolean).slice(0, 6);
+      const keyPoints = (o.keyPoints || [])
+        .map((k) => String(k).trim())
+        .filter(Boolean)
+        .slice(0, 6);
       const safeKeyPoints =
         keyPoints.length >= 3
           ? keyPoints
@@ -170,8 +174,8 @@ export async function POST(req: NextRequest) {
         language,
         requirement:
           language === 'en-US'
-            ? `Create a temporary in-chat lesson deck from this student problem. Keep exactly 3-5 pages. Focus on: problem understanding, algorithm idea, complexity, direct answers to sub-questions, and common pitfalls.\n\nStudent problem:\n${question}`
-            : `根据以下学生题目生成一个聊天内临时讲解课件，控制在 3-5 页。重点覆盖：题意理解、算法思路、复杂度、逐问答案、常见误区。\n\n学生题目：\n${question}`,
+            ? `Create a temporary in-chat lesson deck from this student problem. Keep exactly 3-5 pages. Focus on: problem understanding, algorithm idea, direct answers to sub-questions, complexity, and common pitfalls. Also include problem-type-specific explanation when relevant: for code questions explain the code line by line and trace execution; for proof questions explain proof format and proof steps; for math questions show the derivation step by step; for other subjects explain the answering framework and evidence chain.\n\nStudent problem:\n${question}`
+            : `根据以下学生题目生成一个聊天内临时讲解课件，控制在 3-5 页。重点覆盖：题意理解、算法思路、逐问答案、复杂度、常见误区。同时要按题型补充讲解：代码题要逐行解释并 trace 执行过程；证明题要讲证明格式与证明步骤；数学题要分步推导；其他学科要讲清答题框架和证据链。\n\n学生题目：\n${question}`,
       };
 
       log.info(`Notebook micro-lesson (main pipeline) [model=${modelString}]`);
@@ -189,14 +193,22 @@ export async function POST(req: NextRequest) {
         },
       );
       if (!outlinesResult.success || !outlinesResult.data) {
-        return apiError('GENERATION_FAILED', 500, outlinesResult.error || 'Failed to generate outlines');
+        return apiError(
+          'GENERATION_FAILED',
+          500,
+          outlinesResult.error || 'Failed to generate outlines',
+        );
       }
 
       const outlines = normalizeOutlines(outlinesResult.data, language);
       const store = createInMemoryStore(`micro_stage_${nanoid(8)}`);
       const scenesResult = await generateFullScenes(outlines, store, aiCall);
       if (!scenesResult.success) {
-        return apiError('GENERATION_FAILED', 500, scenesResult.error || 'Failed to generate scenes');
+        return apiError(
+          'GENERATION_FAILED',
+          500,
+          scenesResult.error || 'Failed to generate scenes',
+        );
       }
       const scenes = [...store.getState().scenes].sort((a, b) => a.order - b.order).slice(0, 5);
       if (scenes.length === 0) {
@@ -205,8 +217,11 @@ export async function POST(req: NextRequest) {
       return apiSuccess({ scenes });
     } catch (error) {
       log.error('micro-lesson route error:', error);
-      return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : 'Unknown error');
+      return apiError(
+        'INTERNAL_ERROR',
+        500,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     }
   });
 }
-

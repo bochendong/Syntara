@@ -2,6 +2,7 @@
  * Playback Types - Types for lecture playback and live discussion engine
  */
 
+import type { SpeechAction } from '@/lib/types/action';
 import type { PlaybackSnapshot } from '@/lib/utils/playback-storage';
 
 export type { PlaybackSnapshot };
@@ -29,7 +30,7 @@ export interface TriggerEvent {
 export interface PlaybackEngineCallbacks {
   onModeChange?: (mode: EngineMode) => void;
   onSceneChange?: (sceneId: string) => void;
-  onSpeechStart?: (text: string) => void;
+  onSpeechStart?: (speech: SpeechAction) => void;
   onSpeechEnd?: () => void;
   onTextDelta?: (content: string) => void;
   onSpeakerChange?: (role: string) => void;

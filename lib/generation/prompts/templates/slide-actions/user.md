@@ -2,6 +2,7 @@ Elements: {{elements}}
 Title: {{title}}
 Key Points: {{keyPoints}}
 Description: {{description}}
+{{workedExampleContext}}
 {{courseContext}}
 {{agents}}
 {{userProfile}}

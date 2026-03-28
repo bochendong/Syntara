@@ -1,4 +1,7 @@
-export const USER_AVATAR = '/avatars/user.png';
+import { DEFAULT_USER_PRESET_AVATAR } from '@/lib/constants/user-avatars';
+
+/** 无个人头像时的占位（与设置默认预设一致） */
+export const USER_AVATAR = DEFAULT_USER_PRESET_AVATAR;
 
 export type ParticipantRole = 'teacher' | 'student' | 'user';
 

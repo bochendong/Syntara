@@ -36,11 +36,19 @@ export interface LaserAction extends ActionBase {
 // ==================== Synchronous actions ====================
 
 /** Speech — teacher narration (wait for TTS to finish) */
+export interface SpeechVisemeCue {
+  offsetMs: number;
+  visemeId: number;
+  animation?: string;
+}
+
+/** Speech — teacher narration (wait for TTS to finish) */
 export interface SpeechAction extends ActionBase {
   type: 'speech';
   text: string;
   audioId?: string;
   audioUrl?: string; // Server-generated TTS audio URL
+  visemes?: SpeechVisemeCue[];
   voice?: string;
   speed?: number; // default 1.0
 }

@@ -90,6 +90,8 @@
  * - URL-based: For providers returning audio URL (download in second step)
  */
 
+import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
+import type { SpeechVisemeCue } from '@/lib/types/action';
 import type { TTSModelConfig } from './types';
 import { TTS_PROVIDERS } from './constants';
 
@@ -99,6 +101,7 @@ import { TTS_PROVIDERS } from './constants';
 export interface TTSGenerationResult {
   audio: Uint8Array;
   format: string;
+  visemes?: SpeechVisemeCue[];
 }
 
 /**
@@ -187,37 +190,59 @@ async function generateAzureTTS(
   config: TTSModelConfig,
   text: string,
 ): Promise<TTSGenerationResult> {
-  const baseUrl = config.baseUrl || TTS_PROVIDERS['azure-tts'].defaultBaseUrl;
-
-  // Build SSML
-  const rate = config.speed ? `${((config.speed - 1) * 100).toFixed(0)}%` : '0%';
-  const ssml = `
-    <speak version='1.0' xml:lang='zh-CN'>
-      <voice xml:lang='zh-CN' name='${config.voice}'>
-        <prosody rate='${rate}'>${escapeXml(text)}</prosody>
-      </voice>
-    </speak>
-  `.trim();
-
-  const response = await fetch(`${baseUrl}/cognitiveservices/v1`, {
-    method: 'POST',
-    headers: {
-      'Ocp-Apim-Subscription-Key': config.apiKey!,
-      'Content-Type': 'application/ssml+xml; charset=utf-8',
-      'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
-    },
-    body: ssml,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Azure TTS API error: ${response.statusText}`);
+  const region = resolveAzureRegion(config.baseUrl);
+  if (!region) {
+    throw new Error(
+      'Azure TTS requires a region-aware base URL, for example https://eastus.tts.speech.microsoft.com',
+    );
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  return {
-    audio: new Uint8Array(arrayBuffer),
-    format: 'mp3',
+  const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.apiKey!, region);
+  speechConfig.speechSynthesisVoiceName = config.voice;
+  speechConfig.speechSynthesisOutputFormat =
+    SpeechSDK.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3;
+
+  const visemes: SpeechVisemeCue[] = [];
+  const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+  synthesizer.visemeReceived = (_sender, event) => {
+    visemes.push({
+      offsetMs: event.audioOffset / 10000,
+      visemeId: event.visemeId,
+      animation: typeof event.animation === 'string' ? event.animation : undefined,
+    });
   };
+
+  const ssml = buildAzureSsml(text, config.voice, config.speed ?? 1);
+
+  try {
+    const result = await new Promise<TTSGenerationResult>((resolve, reject) => {
+      synthesizer.speakSsmlAsync(
+        ssml,
+        (speechResult) => {
+          if (
+            speechResult.reason !== SpeechSDK.ResultReason.SynthesizingAudioCompleted ||
+            !speechResult.audioData
+          ) {
+            reject(new Error('Azure TTS synthesis did not return audio data.'));
+            return;
+          }
+
+          resolve({
+            audio: new Uint8Array(speechResult.audioData),
+            format: 'mp3',
+            visemes,
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+      );
+    });
+
+    return result;
+  } finally {
+    synthesizer.close();
+  }
 }
 
 /**
@@ -409,4 +434,35 @@ function escapeXml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+function resolveAzureRegion(baseUrl?: string): string | null {
+  if (!baseUrl) return null;
+  const trimmed = baseUrl.trim();
+  if (!trimmed) return null;
+  if (!trimmed.includes('://') && !trimmed.includes('/')) return trimmed;
+
+  try {
+    const hostname = new URL(trimmed).hostname;
+    const [region] = hostname.split('.');
+    return region || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildAzureSsml(text: string, voice: string, speed: number): string {
+  const locale = voice.split('-').slice(0, 2).join('-') || 'en-US';
+  const rate = `${((speed - 1) * 100).toFixed(0)}%`;
+  return `
+    <speak version='1.0'
+      xmlns='http://www.w3.org/2001/10/synthesis'
+      xmlns:mstts='https://www.w3.org/2001/mstts'
+      xml:lang='${locale}'>
+      <voice xml:lang='${locale}' name='${voice}'>
+        <mstts:viseme type='redlips_front'/>
+        <prosody rate='${rate}'>${escapeXml(text)}</prosody>
+      </voice>
+    </speak>
+  `.trim();
 }

@@ -11,6 +11,7 @@ import type { SlideTheme, SlideBackground } from '@/lib/types/slides';
 import { useCanvasStore } from '@/lib/store/canvas';
 import type { StageStore, APIResult, HighlightOptions, SpotlightOptions } from './stage-api-types';
 import { getScene } from './stage-api-defaults';
+import { stripSpeechAudioFromActions } from '@/lib/audio/speech-tts-invalidation';
 
 /**
  * Create the canvas operations API
@@ -49,6 +50,7 @@ export function createCanvasAPI(store: StageStore) {
                   background,
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }
@@ -95,6 +97,7 @@ export function createCanvasAPI(store: StageStore) {
                   },
                 },
               },
+              actions: stripSpeechAudioFromActions(s.actions),
               updatedAt: Date.now(),
             };
           }

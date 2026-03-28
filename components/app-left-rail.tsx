@@ -14,6 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
+import {
+  courseOrchestratorChatHref,
+  resolveCourseOrchestratorAvatar,
+} from '@/lib/constants/course-chat';
 
 /** Apple-style glass navigation surface */
 const surfaceClass = cn(
@@ -75,9 +79,8 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     nickname.trim() || authName.trim() || t('profile.defaultNickname');
 
   const inCourseContext = Boolean(courseId);
-  const railAvatarSrc = inCourseContext
-    ? courseAvatarUrl || '/avatars/assist-2.png'
-    : avatar;
+  const resolvedCourseAvatar = resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl);
+  const railAvatarSrc = inCourseContext ? resolvedCourseAvatar : avatar;
   const railTitle = inCourseContext ? courseName : displayName;
   const railHref = inCourseContext ? `/course/${courseId}` : '/';
   const railTooltip = inCourseContext ? '课程主页' : '首页';
@@ -104,9 +107,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     router.push('/login');
   };
 
-  const createNotebookHref = courseId
-    ? `/create?courseId=${encodeURIComponent(courseId)}`
-    : '/create';
+  const createNotebookHref = courseId ? courseOrchestratorChatHref('generate-notebook') : '/create';
 
   const createNavItem = {
     key: 'create',
@@ -289,7 +290,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     courseId={courseId}
                     collapsed={collapsed}
                     courseName={courseName}
-                    courseAvatarUrl={courseAvatarUrl}
+                    courseAvatarUrl={resolvedCourseAvatar}
                     searchQuery={contactSearchQuery}
                   />
                 </Suspense>

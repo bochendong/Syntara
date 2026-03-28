@@ -105,6 +105,30 @@ export interface SceneOutline {
   suggestedImageIds?: string[]; // e.g., ["img_1", "img_3"]
   // AI-generated media requests (when PDF images are insufficient)
   mediaGenerations?: MediaGenerationRequest[]; // e.g., [{ type: 'image', prompt: '...', elementId: 'gen_img_1' }]
+  // Worked-example / teacher-led problem explanation metadata for slide scenes
+  workedExampleConfig?: {
+    kind: 'code' | 'proof' | 'math' | 'case_analysis' | 'general';
+    role:
+      | 'problem_statement'
+      | 'givens_and_goal'
+      | 'constraints'
+      | 'solution_plan'
+      | 'walkthrough'
+      | 'pitfalls'
+      | 'summary';
+    exampleId?: string; // Shared ID across multiple scenes in the same example sequence
+    partNumber?: number; // Current part number if the example spans multiple slides
+    totalParts?: number; // Total parts in the example sequence
+    problemStatement?: string; // Full or summarized problem statement for display
+    givens?: string[]; // Known conditions / inputs / premises
+    asks?: string[]; // What students need to find / prove / explain
+    constraints?: string[]; // Constraints, assumptions, or scope limits
+    solutionPlan?: string[]; // High-level strategy before detailed steps
+    walkthroughSteps?: string[]; // Step-by-step solving or proof flow
+    commonPitfalls?: string[]; // Frequent mistakes or misconceptions
+    finalAnswer?: string; // Concise conclusion / answer if appropriate
+    codeSnippet?: string; // Optional code excerpt for code walkthrough slides
+  };
   // Quiz-specific config
   quizConfig?: {
     questionCount: number;

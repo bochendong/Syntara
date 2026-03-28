@@ -74,9 +74,9 @@ import {
   updateAgentTask,
 } from '@/lib/utils/agent-task-storage';
 import {
-  COURSE_ORCHESTRATOR_AVATAR,
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
+  resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
 import { runNotebookGenerationTask, type NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
@@ -1153,6 +1153,11 @@ export function ChatPageClient() {
   };
   const searchParams = useSearchParams();
   const courseId = useCurrentCourseStore((s) => s.id);
+  const courseAvatarUrlStored = useCurrentCourseStore((s) => s.avatarUrl);
+  const orchestratorAvatar = useMemo(
+    () => resolveCourseOrchestratorAvatar(courseId, courseAvatarUrlStored),
+    [courseId, courseAvatarUrlStored],
+  );
   const notebookId = searchParams.get('notebook');
   const agentId = searchParams.get('agent');
   const chatView = searchParams.get('view');
@@ -1203,6 +1208,13 @@ export function ChatPageClient() {
   const [orchestratorComposerMode, setOrchestratorComposerMode] =
     useState<OrchestratorComposerMode>('send-message');
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const comp = searchParams.get('composer');
+    if (comp !== 'generate-notebook' && comp !== 'send-message') return;
+    if (agentId !== COURSE_ORCHESTRATOR_ID) return;
+    setOrchestratorComposerMode(comp as OrchestratorComposerMode);
+  }, [searchParams, agentId]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** 总控「创建笔记本」任务 id，用于轮询检测完成并补发气泡 */
@@ -1241,7 +1253,7 @@ export function ChatPageClient() {
         {
           id: COURSE_ORCHESTRATOR_ID,
           name: COURSE_ORCHESTRATOR_NAME,
-          avatar: COURSE_ORCHESTRATOR_AVATAR,
+          avatar: orchestratorAvatar,
           role: 'teacher',
           persona: '课程总控，会并行调度本课程笔记本完成任务。',
           color: '#7c3aed',
@@ -1254,7 +1266,7 @@ export function ChatPageClient() {
     return () => {
       alive = false;
     };
-  }, [courseId]);
+  }, [courseId, orchestratorAvatar]);
 
   useEffect(() => {
     const nb = searchParams.get('notebook');
@@ -1281,7 +1293,13 @@ export function ChatPageClient() {
       await listStagesByCourse(courseId);
       await listAgentsForCourse(courseId);
       if (cancelled) return;
-      router.replace(`/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}`);
+      const next = new URLSearchParams();
+      next.set('agent', COURSE_ORCHESTRATOR_ID);
+      const v = searchParams.get('view');
+      if (v) next.set('view', v);
+      const comp = searchParams.get('composer');
+      if (comp === 'generate-notebook' || comp === 'send-message') next.set('composer', comp);
+      router.replace(`/chat?${next.toString()}`);
       setPickContactDone(true);
     })();
     return () => {
@@ -1725,7 +1743,7 @@ export function ChatPageClient() {
                   `笔记本「${name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`,
                   {
                     senderName: COURSE_ORCHESTRATOR_NAME,
-                    senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+                    senderAvatar: orchestratorAvatar,
                     originalRole: 'teacher',
                     actions: nid
                       ? [
@@ -1752,7 +1770,7 @@ export function ChatPageClient() {
                   `笔记本生成失败：${task.detail?.trim() || '请重试'}`,
                   {
                     senderName: COURSE_ORCHESTRATOR_NAME,
-                    senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+                    senderAvatar: orchestratorAvatar,
                     originalRole: 'teacher',
                   },
                 ),
@@ -2382,7 +2400,7 @@ export function ChatPageClient() {
           appendAgentMessage(
             buildChatMessage(`笔记本「${created.stage.name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`, {
               senderName: COURSE_ORCHESTRATOR_NAME,
-              senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+              senderAvatar: orchestratorAvatar,
               originalRole: 'teacher',
               actions: [
                 {
@@ -2416,7 +2434,7 @@ export function ChatPageClient() {
                 : `我已将这个需求路由给《${decision.notebook.name}》处理，稍后由我统一把结果回复给你。`,
               {
                 senderName: COURSE_ORCHESTRATOR_NAME,
-                senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+                senderAvatar: orchestratorAvatar,
                 originalRole: 'teacher',
               },
             ),
@@ -2441,7 +2459,7 @@ export function ChatPageClient() {
                 : `我已收到《${decision.notebook.name}》的处理结果。\n\n${result.answer}\n\n你也可以直接进入该笔记本继续追问。`,
               {
                 senderName: COURSE_ORCHESTRATOR_NAME,
-                senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+                senderAvatar: orchestratorAvatar,
                 originalRole: 'teacher',
                 actions: [
                   {
@@ -2467,7 +2485,7 @@ export function ChatPageClient() {
                 : `我会在后台发起多笔记本协作，并由我统一汇总结果回复给你。\n\n目标总结：${text || mergedPrompt.slice(0, 800)}\n\n参与笔记本：${decision.notebooks.map((n) => `《${n.name}》`).join('、')}`,
               {
                 senderName: COURSE_ORCHESTRATOR_NAME,
-                senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+                senderAvatar: orchestratorAvatar,
                 originalRole: 'teacher',
               },
             ),
@@ -2511,7 +2529,7 @@ export function ChatPageClient() {
                       : COURSE_ORCHESTRATOR_NAME,
                     senderAvatar: shouldRenderGroupReplies
                       ? notebook.avatarUrl
-                      : COURSE_ORCHESTRATOR_AVATAR,
+                      : orchestratorAvatar,
                     originalRole: shouldRenderGroupReplies ? 'agent' : 'teacher',
                   },
                 ),
@@ -2532,7 +2550,7 @@ export function ChatPageClient() {
           appendAgentMessage(
             buildChatMessage(mergedText, {
               senderName: COURSE_ORCHESTRATOR_NAME,
-              senderAvatar: COURSE_ORCHESTRATOR_AVATAR,
+              senderAvatar: orchestratorAvatar,
               originalRole: 'teacher',
               actions: results.map((result) => ({
                 id: `open-notebook:${result.notebook.id}`,

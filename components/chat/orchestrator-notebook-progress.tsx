@@ -8,10 +8,13 @@ import { cn } from '@/lib/utils';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
 import { StepVisualizer } from '@/app/generation-preview/components/visualizers';
 import { ALL_STEPS } from '@/app/generation-preview/types';
-import { COURSE_ORCHESTRATOR_AVATAR, COURSE_ORCHESTRATOR_NAME } from '@/lib/constants/course-chat';
+import { COURSE_ORCHESTRATOR_NAME, resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
+import { useCurrentCourseStore } from '@/lib/store/current-course';
 
 function OrchestratorProgressAvatar() {
-  const src = COURSE_ORCHESTRATOR_AVATAR?.trim() || '';
+  const courseId = useCurrentCourseStore((s) => s.id);
+  const courseAvatarUrl = useCurrentCourseStore((s) => s.avatarUrl);
+  const src = resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl).trim();
   const isImage =
     src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
   if (isImage) {

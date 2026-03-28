@@ -25,6 +25,7 @@ import {
   getStoredApplyNotebookWrites,
   setStoredApplyNotebookWrites,
 } from '@/lib/utils/notebook-write-preference';
+import { UserProfileCard } from '@/components/user-profile';
 
 const log = createLogger('GeneralSettings');
 
@@ -76,6 +77,12 @@ export function GeneralSettings() {
 
   return (
     <div className="flex flex-col gap-8">
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">{t('profile.title')}</h3>
+        <p className="text-xs text-muted-foreground">{t('profile.avatarHint')}</p>
+        <UserProfileCard />
+      </div>
+
       <div className="rounded-xl border border-border/80 bg-card/50 p-5 space-y-6">
         <div className="space-y-3">
           <div>

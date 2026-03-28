@@ -21,6 +21,9 @@ import type { Slide } from '@/lib/types/slides';
 import { cn } from '@/lib/utils';
 import { listCourses } from '@/lib/utils/course-storage';
 import { toast } from 'sonner';
+import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
+import { courseOrchestratorChatHref } from '@/lib/constants/course-chat';
+import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import {
   Dialog,
   DialogContent,
@@ -160,14 +163,12 @@ export default function CourseDetailPage() {
             <section className="mb-6 apple-glass rounded-[28px] p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="flex min-w-0 flex-1 gap-4">
-                  {course.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- public 静态资源
-                    <img
-                      src={course.avatarUrl}
-                      alt=""
-                      className="size-16 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-sm dark:border-white/15 dark:bg-slate-900 md:size-20"
-                    />
-                  ) : null}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- public 静态资源 */}
+                  <img
+                    src={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
+                    alt=""
+                    className="size-16 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-sm dark:border-white/15 dark:bg-slate-900 md:size-20"
+                  />
                   <div className="min-w-0 flex-1">
                   <Button variant="ghost" size="sm" className="-ml-2 mb-2 rounded-lg" asChild>
                     <Link href="/my-courses">← 我的课程</Link>
@@ -218,7 +219,7 @@ export default function CourseDetailPage() {
                     asChild
                     className="h-11 rounded-xl bg-slate-900 text-white hover:opacity-90 dark:bg-white dark:text-slate-900"
                   >
-                    <Link href={`/create?courseId=${encodeURIComponent(course.id)}`}>新建笔记本</Link>
+                    <Link href={courseOrchestratorChatHref('generate-notebook')}>新建笔记本</Link>
                   </Button>
                 </div>
               </div>
@@ -228,7 +229,7 @@ export default function CourseDetailPage() {
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-white/20 dark:bg-white/5">
                 <p className="text-slate-600 dark:text-slate-200">这门课下还没有笔记本。</p>
                 <Button asChild className="mt-4 rounded-xl">
-                  <Link href={`/create?courseId=${encodeURIComponent(course.id)}`}>创建第一个笔记本</Link>
+                  <Link href={courseOrchestratorChatHref('generate-notebook')}>创建第一个笔记本</Link>
                 </Button>
               </div>
             ) : (
@@ -239,7 +240,7 @@ export default function CourseDetailPage() {
                     listIndex={i}
                     course={nb}
                     tags={nb.tags}
-                    coverAvatarUrl={nb.avatarUrl}
+                    coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
                     slide={thumbnails[nb.id]}
                     subtitle={formatDate(nb.updatedAt)}
                     secondaryLabel="互动课件"

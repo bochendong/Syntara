@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Bot, ChevronLeft, ChevronRight, Loader2, NotebookPen, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
@@ -10,9 +10,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
-  COURSE_ORCHESTRATOR_AVATAR,
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
+  courseOrchestratorChatHref,
+  resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import { listAgentsForCourse, type CourseAgentListItem } from '@/lib/utils/course-agents';
 import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
@@ -77,17 +78,6 @@ function isImageAvatar(src: string) {
   );
 }
 
-const ORCHESTRATOR_AGENT: CourseAgentListItem = {
-  id: COURSE_ORCHESTRATOR_ID,
-  name: COURSE_ORCHESTRATOR_NAME,
-  avatar: COURSE_ORCHESTRATOR_AVATAR,
-  role: 'teacher',
-  persona: '课程总控，主要用于直接创建笔记本；也可并行调度本课程下的多个笔记本与子任务。',
-  color: '#007AFF',
-  priority: 100,
-  isGenerated: false,
-};
-
 /** 已绑定笔记本时进入互动教室；否则进入创建页；无课程时回退到聊天。 */
 function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecord): string {
   const nid = t.notebookId?.trim();
@@ -96,7 +86,7 @@ function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecor
   }
   const cid = courseId?.trim();
   if (cid) {
-    return `/create?courseId=${encodeURIComponent(cid)}`;
+    return courseOrchestratorChatHref('generate-notebook');
   }
   if (t.contactKind === 'notebook') {
     return `/chat?notebook=${encodeURIComponent(t.contactId)}`;
@@ -123,6 +113,19 @@ export interface ChatRightRailProps {
 export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailProps) {
   const searchParams = useSearchParams();
   const courseId = useCurrentCourseStore((s) => s.id);
+  const courseAvatarUrl = useCurrentCourseStore((s) => s.avatarUrl);
+  const orchestratorAgentLive = useMemo((): CourseAgentListItem => {
+    return {
+      id: COURSE_ORCHESTRATOR_ID,
+      name: COURSE_ORCHESTRATOR_NAME,
+      avatar: resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl),
+      role: 'teacher',
+      persona: '课程总控，主要用于直接创建笔记本；也可并行调度本课程下的多个笔记本与子任务。',
+      color: '#007AFF',
+      priority: 100,
+      isGenerated: false,
+    };
+  }, [courseId, courseAvatarUrl]);
   const notebookId = searchParams.get('notebook');
   const agentId = searchParams.get('agent');
 
@@ -136,9 +139,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
   const [notebookScenes, setNotebookScenes] = useState<Scene[]>([]);
   const [notebookScenesLoading, setNotebookScenesLoading] = useState(false);
 
-  const createHref = courseId
-    ? `/create?courseId=${encodeURIComponent(courseId)}`
-    : '/create';
+  const createHref = courseId ? courseOrchestratorChatHref('generate-notebook') : '/create';
 
   useEffect(() => {
     if (!courseId) {
@@ -166,7 +167,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
         }
         if (agentId) {
           if (agentId === COURSE_ORCHESTRATOR_ID) {
-            setResolvedAgent(ORCHESTRATOR_AGENT);
+            setResolvedAgent(orchestratorAgentLive);
           } else {
             setResolvedAgent(agents.find((a) => a.id === agentId) ?? null);
           }
@@ -180,7 +181,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
     return () => {
       alive = false;
     };
-  }, [courseId, notebookId, agentId]);
+  }, [courseId, notebookId, agentId, orchestratorAgentLive]);
 
   useEffect(() => {
     if (!notebookId) {
@@ -239,7 +240,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
     if (t.contactKind === 'agent') {
       const agent =
         t.contactId === COURSE_ORCHESTRATOR_ID
-          ? ORCHESTRATOR_AGENT
+          ? orchestratorAgentLive
           : courseAgents.find((a) => a.id === t.contactId);
       const src = agent?.avatar?.trim() || '';
       if (src && isImageAvatar(src)) {

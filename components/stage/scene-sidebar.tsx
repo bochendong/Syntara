@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from 'react';
 import {
-  PanelLeftClose,
   PanelLeftOpen,
   PieChart,
   Cpu,
@@ -13,6 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import { useStageStore, useCanvasStore } from '@/lib/store';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -138,15 +138,27 @@ export function SceneSidebar({
       )}
 
       <div className={cn('flex h-full w-full min-h-0 flex-col overflow-hidden', collapsed && 'hidden')}>
-        <div className="relative mb-1 mt-3 flex h-10 shrink-0 items-center justify-start px-3">
-          <button
-            type="button"
-            onClick={() => onCollapseChange(true)}
-            className="flex size-7 shrink-0 items-center justify-center rounded-[10px] border border-slate-900/[0.1] bg-white/70 text-[#86868b] transition-all duration-200 hover:bg-black/[0.04] hover:text-[#1d1d1f] active:scale-90 dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-[#a1a1a6] dark:hover:bg-white/[0.1] dark:hover:text-white"
-            aria-label="Collapse sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+        <div className="relative mb-1 mt-3 flex min-h-10 shrink-0 items-center px-3">
+          <Tabs defaultValue="nav" className="min-w-0 w-full gap-0">
+            <TabsList
+              variant="default"
+              className="grid h-9 min-h-9 min-w-0 flex-1 grid-cols-2 gap-0 p-[3px]"
+              aria-label={`${t('stage.sidebarTabNav')} / ${t('stage.sidebarTabAsk')}`}
+            >
+              <TabsTrigger value="nav" className="text-xs">
+                {t('stage.sidebarTabNav')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="ask"
+                disabled
+                className="text-xs"
+                title={t('stage.sidebarTabAskDisabledHint')}
+                aria-label={`${t('stage.sidebarTabAsk')} — ${t('stage.sidebarTabAskDisabledHint')}`}
+              >
+                {t('stage.sidebarTabAsk')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Scenes List */}

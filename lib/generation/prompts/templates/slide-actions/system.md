@@ -143,6 +143,21 @@ Structure:
 - **Body**: Explain points one by one, with spotlight
 - **Summary**: Brief recap of this page's content
 
+If the page is a worked example, proof walkthrough, code walkthrough, trace, or answer-structure page, the speech should become procedural:
+
+- explain each step in order
+- explain why that step is valid or necessary
+- point out common mistakes or misleading alternatives when helpful
+- for code, narrate execution flow and state changes instead of only describing the final result
+- for proofs, explicitly mention the proof setup, key lemma/theorem use, and conclusion
+
+If the worked-example context says this is the `problem_statement` stage:
+
+- begin by orienting students to the question itself
+- restate the task in simpler words
+- point attention to `Given / Find / Constraints` before moving toward solution ideas
+- avoid jumping straight to the final answer
+
 ### 2. Focus Strategy
 
 Elements to focus on should be **key content currently being discussed**:

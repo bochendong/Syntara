@@ -209,19 +209,23 @@ export async function POST(req: NextRequest) {
 
     // Build teacher context from agents (if available)
     const teacherContext = formatTeacherPersonaForPrompt(agents);
+    const userProfile =
+      requirements.userNickname || requirements.userBio
+        ? `## Student Profile\n\nStudent: ${requirements.userNickname || 'Unknown'}${requirements.userBio ? ` — ${requirements.userBio}` : ''}\n\nConsider this student's background when designing the course. Adapt difficulty, examples, and teaching approach accordingly.\n\n---`
+        : '';
     const purposePolicy =
       body.coursePurpose === 'research'
         ? requirements.language === 'zh-CN'
-          ? '课程用途：科研。优先生成概念与方法论讲解，通常不插入测验（除非用户明确要求）。'
-          : 'Course purpose: research. Prefer concept/methodology explanations; avoid quizzes unless explicitly requested.'
+          ? '课程用途：科研。优先生成概念、方法论与案例式说明；通常不插入测验或正式题目讲解（除非用户明确要求）。'
+          : 'Course purpose: research. Prefer concept, methodology, and case-based explanation; avoid quizzes or formal worked-problem teaching unless explicitly requested.'
         : body.coursePurpose === 'daily'
           ? requirements.language === 'zh-CN'
-            ? '课程用途：日常生活。优先口语化、风趣、易懂的表达，通常不插入测验（除非用户明确要求）。'
-            : 'Course purpose: daily life. Prefer conversational, friendly tone; avoid quizzes unless explicitly requested.'
+            ? '课程用途：日常生活。优先口语化、风趣、易懂的表达，通常不插入测验或正式题目讲解（除非用户明确要求）。'
+            : 'Course purpose: daily life. Prefer conversational, friendly tone; avoid quizzes or formal worked-problem teaching unless explicitly requested.'
           : body.coursePurpose === 'university'
             ? requirements.language === 'zh-CN'
-              ? '课程用途：大学课程。可适当加入作业/考试导向练习与测验；解题尽量基于课程已学前置知识，避免超纲。'
-              : 'Course purpose: university. Include homework/exam-oriented checks when suitable; keep solutions within in-syllabus prerequisites.'
+              ? '课程用途：大学课程。可适当加入作业/考试导向练习；需要老师讲题时，优先用 slide 场景做例题讲解，把 quiz 主要用于学生练习/自测。解题尽量基于课程已学前置知识，避免超纲。'
+              : 'Course purpose: university. Include homework/exam-oriented practice when suitable; when the teacher should explain a problem, prefer slide-based worked examples, while quizzes remain mainly for student practice/self-check. Keep solutions within in-syllabus prerequisites.'
             : '';
 
     const courseContext = buildCourseContextForPrompt({
@@ -238,6 +242,7 @@ export async function POST(req: NextRequest) {
           ? '无'
           : 'None',
       availableImages: availableImagesText,
+      userProfile,
       researchContext: researchContext || (requirements.language === 'zh-CN' ? '无' : 'None'),
       mediaGenerationPolicy,
       teacherContext,
@@ -309,8 +314,7 @@ export async function POST(req: NextRequest) {
               const result = await runWithRequestContext(
                 req,
                 '/api/generate/scene-outlines-stream',
-                () =>
-                Promise.resolve(streamLLM(streamParams, 'scene-outlines-stream')),
+                () => Promise.resolve(streamLLM(streamParams, 'scene-outlines-stream')),
               );
 
               let fullText = '';

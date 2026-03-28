@@ -2,7 +2,7 @@
  * Prompt and context building utilities for the generation pipeline.
  */
 
-import type { PdfImage } from '@/lib/types/generation';
+import type { PdfImage, SceneOutline } from '@/lib/types/generation';
 import type {
   AgentInfo,
   SceneGenerationContext,
@@ -106,6 +106,76 @@ export function formatCoursePersonalizationForPrompt(
     `- courseLanguage: ${ctx.language || ''}`,
     '- Use this to tune terminology, examples, difficulty, and tone while staying on-scene.',
   ].join('\n');
+}
+
+/** Format worked-example metadata for slide/content/action prompts */
+export function formatWorkedExampleForPrompt(
+  cfg?: SceneOutline['workedExampleConfig'],
+  language: 'zh-CN' | 'en-US' = 'zh-CN',
+): string {
+  if (!cfg) return '';
+
+  const lines: string[] = [
+    language === 'zh-CN' ? '例题讲解上下文：' : 'Worked Example Context:',
+    `${language === 'zh-CN' ? '- 题型' : '- kind'}: ${cfg.kind}`,
+    `${language === 'zh-CN' ? '- 当前页角色' : '- stageRole'}: ${cfg.role}`,
+  ];
+
+  if (cfg.exampleId) {
+    lines.push(`${language === 'zh-CN' ? '- 例题序列 ID' : '- exampleId'}: ${cfg.exampleId}`);
+  }
+  if (cfg.partNumber && cfg.totalParts) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 分页' : '- pagination'}: ${cfg.partNumber}/${cfg.totalParts}`,
+    );
+  }
+  if (cfg.problemStatement?.trim()) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 题目内容' : '- problemStatement'}:\n${cfg.problemStatement.trim()}`,
+    );
+  }
+  if (cfg.givens?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 已知' : '- givens'}:\n${cfg.givens.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.asks?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 所求 / 任务' : '- asks'}:\n${cfg.asks.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.constraints?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 约束 / 条件' : '- constraints'}:\n${cfg.constraints.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.solutionPlan?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 解题思路' : '- solutionPlan'}:\n${cfg.solutionPlan.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.walkthroughSteps?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 分步讲解' : '- walkthroughSteps'}:\n${cfg.walkthroughSteps.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.commonPitfalls?.length) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 易错点' : '- commonPitfalls'}:\n${cfg.commonPitfalls.map((item) => `  - ${item}`).join('\n')}`,
+    );
+  }
+  if (cfg.finalAnswer?.trim()) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 结论 / 答案' : '- finalAnswer'}: ${cfg.finalAnswer.trim()}`,
+    );
+  }
+  if (cfg.codeSnippet?.trim()) {
+    lines.push(
+      `${language === 'zh-CN' ? '- 代码片段' : '- codeSnippet'}:\n\`\`\`\n${cfg.codeSnippet.trim()}\n\`\`\``,
+    );
+  }
+
+  return lines.join('\n');
 }
 
 /**

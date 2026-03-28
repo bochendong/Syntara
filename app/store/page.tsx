@@ -17,6 +17,7 @@ import type { CourseRecord } from '@/lib/utils/database';
 import { notebookCourseContext } from '@/lib/utils/course-display';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString();
@@ -162,7 +163,7 @@ export default function StorePage() {
                   key={nb.id}
                   listIndex={i}
                   course={nb}
-                  coverAvatarUrl={nb.avatarUrl}
+                  coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
                   slide={thumbnails[nb.id]}
                   tags={tags}
                   showNotebookCourseMeta

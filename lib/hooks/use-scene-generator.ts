@@ -5,16 +5,18 @@ import { useStageStore } from '@/lib/store/stage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { useSettingsStore } from '@/lib/store/settings';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
-import type {
-  AgentInfo,
-  CoursePersonalizationContext,
-} from '@/lib/generation/generation-pipeline';
+import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
 import type { Scene } from '@/lib/types/stage';
-import type { Action, SpeechAction } from '@/lib/types/action';
+import type { Action, SpeechAction, SpeechVisemeCue } from '@/lib/types/action';
 import type { TTSProviderId } from '@/lib/audio/types';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
 import { createLogger } from '@/lib/logger';
+import {
+  buildTtsCacheKey,
+  getCachedTtsAudio,
+  setCachedTtsAudio,
+} from '@/lib/utils/tts-audio-cache';
 
 const log = createLogger('SceneGenerator');
 
@@ -124,14 +126,28 @@ async function fetchSceneActions(
   return response.json();
 }
 
-/** Generate TTS for one speech action and store in IndexedDB */
+/** Generate TTS for one speech action; uses local IndexedDB cache when possible. */
 export async function generateAndStoreTTS(
   audioId: string,
   text: string,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<{ audioUrl: string; visemes?: SpeechVisemeCue[] }> {
   const settings = useSettingsStore.getState();
-  if (settings.ttsProviderId === 'browser-native-tts') return '';
+  if (settings.ttsProviderId === 'browser-native-tts') return { audioUrl: '' };
+
+  const cacheKey = await buildTtsCacheKey(
+    settings.ttsProviderId,
+    settings.ttsVoice,
+    settings.ttsSpeed,
+    text,
+  );
+  const cached = await getCachedTtsAudio(cacheKey);
+  if (cached) {
+    return {
+      audioUrl: `data:audio/${cached.format};base64,${cached.base64}`,
+      visemes: cached.visemes,
+    };
+  }
 
   const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
   const response = await fetch('/api/generate/tts', {
@@ -159,7 +175,12 @@ export async function generateAndStoreTTS(
     log.warn('TTS failed for', audioId, ':', err);
     throw err;
   }
-  return `data:audio/${data.format};base64,${data.base64}`;
+  void audioId;
+  await setCachedTtsAudio(cacheKey, data.format, data.base64, data.visemes);
+  return {
+    audioUrl: `data:audio/${data.format};base64,${data.base64}`,
+    visemes: data.visemes,
+  };
 }
 
 /** Generate TTS for all speech actions in a scene. Returns result. */
@@ -181,8 +202,9 @@ async function generateTTSForScene(
     const audioId = `tts_${action.id}`;
     action.audioId = audioId;
     try {
-      const audioUrl = await generateAndStoreTTS(audioId, action.text, signal);
+      const { audioUrl, visemes } = await generateAndStoreTTS(audioId, action.text, signal);
       if (audioUrl) action.audioUrl = audioUrl;
+      if (visemes?.length) action.visemes = visemes;
     } catch (error) {
       failedCount++;
       lastError = error instanceof Error ? error.message : `TTS failed for action ${action.id}`;
@@ -200,6 +222,48 @@ async function generateTTSForScene(
     failedCount,
     error: lastError,
   };
+}
+
+/**
+ * Ensure every speech action on the current scene has audioUrl (non–browser-native TTS).
+ * Mutates the scene's actions in place so PlaybackEngine keeps the same object references.
+ */
+export async function ensureMissingSpeechAudioForScene(
+  scene: Scene,
+  signal?: AbortSignal,
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ ok: boolean; error?: string }> {
+  const settings = useSettingsStore.getState();
+  if (!settings.ttsEnabled || settings.ttsProviderId === 'browser-native-tts') {
+    return { ok: true };
+  }
+
+  const speechActions =
+    scene.actions?.filter((a): a is SpeechAction => a.type === 'speech' && Boolean(a.text)) ?? [];
+  const missing = speechActions.filter((a) => !a.audioUrl);
+  if (missing.length === 0) return { ok: true };
+
+  const total = missing.length;
+  onProgress?.(0, total);
+
+  let done = 0;
+  for (const action of missing) {
+    const audioId = action.audioId || `tts_${action.id}`;
+    action.audioId = audioId;
+    try {
+      const { audioUrl, visemes } = await generateAndStoreTTS(audioId, action.text, signal);
+      if (audioUrl) action.audioUrl = audioUrl;
+      if (visemes?.length) action.visemes = visemes;
+      done += 1;
+      onProgress?.(done, total);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : `TTS failed for speech action ${action.id}`;
+      return { ok: false, error: message };
+    }
+  }
+
+  return { ok: true };
 }
 
 export interface UseSceneGeneratorOptions {

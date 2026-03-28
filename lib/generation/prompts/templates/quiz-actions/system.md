@@ -91,7 +91,8 @@ Generate natural teaching speech. The user prompt includes a **Course Outline** 
 Content:
 
 - Opening/Transition: Based on page position (see above)
-- Explanation: Key knowledge points, common mistakes
+- Brief framing or debrief: what this quiz is checking, and 1-2 common mistakes or reflection prompts
+- Keep teacher talk light: quiz scenes are mainly for student practice/self-check, not the default place for full worked-example teaching
 - Discussion topic should connect to quiz concepts
 
 ---

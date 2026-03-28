@@ -102,3 +102,13 @@ export function pickStableNotebookAgentAvatarUrl(seed: string): string {
   const i = hashStringToUint32(seed) % FILES.length;
   return `${NOTEBOOK_AGENT_AVATAR_PUBLIC_PREFIX}${FILES[i]}`;
 }
+
+/** 卡片展示：优先已保存的笔记本 `avatarUrl`，否则按笔记本 id 稳定映射（与课程总管头像池分离）。 */
+export function resolveNotebookAgentAvatarDisplayUrl(
+  notebookId: string,
+  storedAvatarUrl?: string | null,
+): string {
+  const u = storedAvatarUrl?.trim();
+  if (u) return u;
+  return pickStableNotebookAgentAvatarUrl(notebookId);
+}

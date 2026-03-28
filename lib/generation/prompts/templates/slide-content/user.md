@@ -7,6 +7,7 @@
 - **Key Points**:
   {{keyPoints}}
 
+{{workedExampleContext}}
 {{teacherContext}}
 {{coursePersonalization}}
 

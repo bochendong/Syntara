@@ -22,16 +22,9 @@ export function PBLRenderer({ content, mode: _mode, sceneId }: PBLRendererProps)
 
   const updateConfig = useCallback(
     (updatedConfig: PBLProjectConfig) => {
-      const scenes = useStageStore.getState().scenes;
-      const updatedScenes = scenes.map((scene) =>
-        scene.id === sceneId
-          ? {
-              ...scene,
-              content: { type: 'pbl' as const, projectConfig: updatedConfig },
-            }
-          : scene,
-      );
-      useStageStore.setState({ scenes: updatedScenes });
+      useStageStore.getState().updateScene(sceneId, {
+        content: { type: 'pbl' as const, projectConfig: updatedConfig },
+      });
     },
     [sceneId],
   );

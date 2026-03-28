@@ -15,6 +15,7 @@ import {
 import { listStagesByCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { listActiveAgentTasksByCourse } from '@/lib/utils/agent-task-storage';
 import {
+  COURSE_ORCHESTRATOR_AVATAR,
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
 } from '@/lib/constants/course-chat';
@@ -46,7 +47,7 @@ function CourseAgentThumb({
   label: string;
 }) {
   const src =
-    avatarUrl && isImageAvatar(avatarUrl) ? avatarUrl : '/avatars/assist-2.png';
+    avatarUrl && isImageAvatar(avatarUrl) ? avatarUrl : COURSE_ORCHESTRATOR_AVATAR;
   return (
     <img
       src={src}

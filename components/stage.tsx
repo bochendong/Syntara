@@ -21,6 +21,8 @@ import type { SceneOutline } from '@/lib/types/generation';
 // Playback state persistence removed — refresh always starts from the beginning
 import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
+import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
+import { hydrateSpeechAudioFromTtsCache } from '@/lib/utils/tts-audio-cache';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import {
   AlertDialog,
@@ -32,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AlertTriangle } from 'lucide-react';
 import { VisuallyHidden } from 'radix-ui';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 /** Bottom Roundtable strip in playback classroom — off until we ship the layout again. */
@@ -43,6 +46,18 @@ function sceneTypeTabLabel(tr: (key: string) => string, type: SceneType): string
   const key = `stage.sceneType.${type}`;
   const label = tr(key);
   return label === key ? type : label;
+}
+
+function findCurrentViseme(visemes: SpeechAction['visemes'], currentTimeMs: number): number | null {
+  if (!visemes?.length) return null;
+
+  for (let i = visemes.length - 1; i >= 0; i--) {
+    if (currentTimeMs >= visemes[i].offsetMs) {
+      return visemes[i].visemeId;
+    }
+  }
+
+  return visemes[0]?.visemeId ?? null;
 }
 
 /** 原始数据里折叠 slide 画布，避免 JSON 过大 */
@@ -96,9 +111,10 @@ export function Stage({
 }: {
   onRetryOutline?: (outlineId: string) => Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { mode, getCurrentScene, scenes, currentSceneId, setCurrentSceneId, generatingOutlines } =
     useStageStore();
+  const touchScenes = useStageStore((s) => s.touchScenes);
   const failedOutlines = useStageStore.use.failedOutlines();
   const outlines = useStageStore((s) => s.outlines);
 
@@ -116,6 +132,9 @@ export function Stage({
   const [engineMode, setEngineMode] = useState<EngineMode>('idle');
   const [playbackCompleted, setPlaybackCompleted] = useState(false); // Distinguishes "never played" idle from "finished" idle
   const [lectureSpeech, setLectureSpeech] = useState<string | null>(null); // From PlaybackEngine (lecture)
+  const [lectureSpeechActive, setLectureSpeechActive] = useState(false);
+  const [currentSpeechAction, setCurrentSpeechAction] = useState<SpeechAction | null>(null);
+  const [currentVisemeId, setCurrentVisemeId] = useState<number | null>(null);
   const [liveSpeech, setLiveSpeech] = useState<string | null>(null); // From buffer (discussion/QA)
   const [speechProgress, setSpeechProgress] = useState<number | null>(null); // StreamBuffer reveal progress (0–1)
   const [discussionTrigger, setDiscussionTrigger] = useState<TriggerEvent | null>(null);
@@ -256,6 +275,9 @@ export function Stage({
     resetLiveState();
     setPlaybackCompleted(false);
     setLectureSpeech(null);
+    setLectureSpeechActive(false);
+    setCurrentSpeechAction(null);
+    setCurrentVisemeId(null);
     setSpeechProgress(null);
     setShowEndFlash(false);
     setActiveBubbleId(null);
@@ -332,8 +354,11 @@ export function Stage({
       onSceneChange: (_sceneId) => {
         // Scene change handled by engine
       },
-      onSpeechStart: (text) => {
-        setLectureSpeech(text);
+      onSpeechStart: (speech) => {
+        setLectureSpeech(speech.text);
+        setLectureSpeechActive(true);
+        setCurrentSpeechAction(speech);
+        setCurrentVisemeId(null);
         // Add to lecture session with incrementing index for dedup
         // Chat area pacing is handled by the StreamBuffer (onTextReveal)
         if (lectureSessionIdRef.current) {
@@ -341,7 +366,7 @@ export function Stage({
           const speechId = `speech-${Date.now()}`;
           chatAreaRef.current?.addLectureMessage(
             lectureSessionIdRef.current,
-            { id: speechId, type: 'speech', text } as Action,
+            { id: speechId, type: 'speech', text: speech.text } as Action,
             idx,
           );
           // Track active bubble for highlight (Issue 8)
@@ -353,6 +378,9 @@ export function Stage({
         // Don't clear lectureSpeech — let it persist until the next
         // onSpeechStart replaces it or the scene transitions.
         // Clearing here causes fallback to idleText (first sentence).
+        setLectureSpeechActive(false);
+        setCurrentSpeechAction(null);
+        setCurrentVisemeId(null);
         setActiveBubbleId(null);
       },
       onEffectFire: (effect: Effect) => {
@@ -422,6 +450,9 @@ export function Stage({
         // lectureSpeech intentionally NOT cleared — last sentence stays visible
         // until scene transition (auto-play) or user restarts. Scene change
         // effect handles the reset.
+        setLectureSpeechActive(false);
+        setCurrentSpeechAction(null);
+        setCurrentVisemeId(null);
         setPlaybackCompleted(true);
 
         // End lecture session on playback complete
@@ -519,6 +550,52 @@ export function Stage({
   useEffect(() => {
     audioPlayerRef.current.setPlaybackRate(playbackSpeed);
   }, [playbackSpeed]);
+
+  useEffect(() => {
+    if (!lectureSpeechActive || !currentSpeechAction?.visemes?.length) {
+      setCurrentVisemeId(null);
+      return;
+    }
+
+    let frameId = 0;
+    const visemes = currentSpeechAction.visemes;
+
+    const tick = () => {
+      const currentTimeMs = audioPlayerRef.current.getCurrentTime();
+      const nextCue = findCurrentViseme(visemes, currentTimeMs);
+      setCurrentVisemeId((prev) => (prev === nextCue ? prev : nextCue));
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [currentSpeechAction, lectureSpeechActive]);
+
+  const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
+  const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
+  const ttsVoice = useSettingsStore((s) => s.ttsVoice);
+  const ttsSpeed = useSettingsStore((s) => s.ttsSpeed);
+
+  /** Restore speech audioUrl from local TTS cache when scene has text but no URL (saves tokens on replay). */
+  useEffect(() => {
+    if (!currentScene || !ttsEnabled || ttsProviderId === 'browser-native-tts') return;
+    let cancelled = false;
+    void (async () => {
+      const touched = await hydrateSpeechAudioFromTtsCache(currentScene, {
+        providerId: ttsProviderId,
+        voice: ttsVoice,
+        speed: ttsSpeed,
+      });
+      if (!cancelled && touched) {
+        touchScenes();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentScene, ttsEnabled, ttsProviderId, ttsVoice, ttsSpeed, touchScenes]);
 
   /**
    * Handle discussion SSE — POST /api/chat and push events to engine
@@ -643,6 +720,69 @@ export function Stage({
       }
     } else {
       const wasCompleted = playbackCompleted;
+      const speechActions =
+        currentScene?.actions?.filter(
+          (action): action is SpeechAction => action.type === 'speech',
+        ) || [];
+      if (speechActions.length > 0) {
+        const settings = useSettingsStore.getState();
+        if (!settings.ttsEnabled) {
+          toast.info(
+            locale === 'zh-CN'
+              ? '当前会静音播放：TTS 已关闭，所以不会等待转换，也不会播语音。'
+              : 'Playback is currently silent: TTS is disabled, so there is no conversion or voice playback.',
+          );
+        } else if (settings.ttsMuted || settings.ttsVolume <= 0) {
+          toast.info(
+            locale === 'zh-CN'
+              ? '当前会静音播放：已静音或音量为 0。'
+              : 'Playback is currently silent because audio is muted or volume is 0.',
+          );
+        } else if (
+          settings.ttsProviderId === 'browser-native-tts' &&
+          speechActions.every((action) => !action.audioUrl)
+        ) {
+          toast.info(
+            locale === 'zh-CN'
+              ? '当前使用浏览器实时朗读，不需要等待语音转换完成。'
+              : 'Browser-native speech is being used, so there is no separate TTS conversion step to wait for.',
+          );
+        } else if (
+          settings.ttsProviderId !== 'browser-native-tts' &&
+          speechActions.some((action) => !action.audioUrl)
+        ) {
+          const sceneForTts = useStageStore.getState().getCurrentScene();
+          if (!sceneForTts) return;
+          const missingCount = speechActions.filter((a) => !a.audioUrl).length;
+          const loadingId = toast.loading(
+            locale === 'zh-CN'
+              ? `正在生成语音（0/${missingCount}）…`
+              : `Generating speech (0/${missingCount})…`,
+          );
+          const ttsReady = await ensureMissingSpeechAudioForScene(
+            sceneForTts,
+            undefined,
+            (done, total) => {
+              toast.loading(
+                locale === 'zh-CN'
+                  ? `正在生成语音（${done}/${total}）…`
+                  : `Generating speech (${done}/${total})…`,
+                { id: loadingId },
+              );
+            },
+          );
+          toast.dismiss(loadingId);
+          if (!ttsReady.ok) {
+            toast.error(
+              locale === 'zh-CN'
+                ? `语音生成失败，无法播放：${ttsReady.error ?? ''}`
+                : `Speech generation failed; playback was not started. ${ttsReady.error ?? ''}`,
+            );
+            return;
+          }
+          touchScenes();
+        }
+      }
       setPlaybackCompleted(false);
       // Starting playback - create/reuse lecture session
       if (currentScene && chatAreaRef.current) {
@@ -716,13 +856,25 @@ export function Stage({
     }
   })();
 
-  const playbackToolbarLiveSession =
-    chatIsStreaming || isTopicPending || engineMode === 'live';
+  const playbackToolbarLiveSession = chatIsStreaming || isTopicPending || engineMode === 'live';
+
+  const talkingAvatar =
+    mode === 'playback' &&
+    currentScene?.type === 'slide' &&
+    !isPendingScene &&
+    !whiteboardOpen &&
+    !playbackToolbarLiveSession &&
+    !chatSessionType
+      ? {
+          speaking: lectureSpeechActive && engineMode === 'playing',
+          speechText: lectureSpeech,
+          playbackRate: playbackSpeed,
+          currentVisemeId,
+        }
+      : null;
 
   const showPlaybackStopDiscussion =
-    engineMode === 'live' ||
-    chatSessionType === 'qa' ||
-    chatSessionType === 'discussion';
+    engineMode === 'live' || chatSessionType === 'qa' || chatSessionType === 'discussion';
 
   // Build discussion request for Roundtable ProactiveCard from trigger
   const discussionRequest: DiscussionAction | null = discussionTrigger
@@ -827,11 +979,10 @@ export function Stage({
     </div>
   );
 
-  // Calculate scene viewer height (subtract Header's 80px height; optional Roundtable reserve)
+  // Calculate scene viewer height (subtract Header: two-row toolbar ≈124px; optional Roundtable reserve)
   const sceneViewerHeight = (() => {
-    const headerHeight = 80; // Header h-20 = 80px
-    const roundtableReserve =
-      mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE ? 192 : 0;
+    const headerHeight = 124;
+    const roundtableReserve = mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE ? 192 : 0;
     return `calc(100% - ${headerHeight + roundtableReserve}px)`;
   })();
 
@@ -896,7 +1047,9 @@ export function Stage({
                     </button>
                   ))}
                 </div>
-                <p className="ml-auto min-w-0 text-[10px] text-slate-500">{t('stage.rawDataCaption')}</p>
+                <p className="ml-auto min-w-0 text-[10px] text-slate-500">
+                  {t('stage.rawDataCaption')}
+                </p>
               </div>
               <pre className="min-h-0 flex-1 overflow-auto p-4 text-[11px] leading-relaxed whitespace-pre-wrap break-words font-mono">
                 {rawTypePayloadJson}
@@ -934,6 +1087,7 @@ export function Stage({
               onStopDiscussion={handleStopDiscussion}
               hideToolbar={mode === 'playback'}
               isPendingScene={isPendingScene}
+              talkingAvatar={talkingAvatar}
               isGenerationFailed={
                 isPendingScene && failedOutlines.some((f) => f.id === generatingOutlines[0]?.id)
               }

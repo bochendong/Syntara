@@ -31,10 +31,20 @@ import {
   formatCoursePersonalizationForPrompt,
   formatAgentsForPrompt,
   formatTeacherPersonaForPrompt,
+  formatWorkedExampleForPrompt,
   formatImageDescription,
   formatImagePlaceholder,
 } from './prompt-formatters';
-import type { PPTElement, Slide, SlideBackground, SlideTheme } from '@/lib/types/slides';
+import type {
+  PPTElement,
+  PPTImageElement,
+  PPTLineElement,
+  PPTShapeElement,
+  PPTTextElement,
+  Slide,
+  SlideBackground,
+  SlideTheme,
+} from '@/lib/types/slides';
 import type { QuizQuestion } from '@/lib/types/stage';
 import type { Action } from '@/lib/types/action';
 import type {
@@ -460,6 +470,1285 @@ function processLatexElements(
     .filter((el): el is NonNullable<typeof el> => el !== null);
 }
 
+const RECT_PATH = 'M 0 0 L 1 0 L 1 1 L 0 1 Z';
+const CIRCLE_PATH = 'M 1 0.5 A 0.5 0.5 0 1 1 0 0.5 A 0.5 0.5 0 1 1 1 0.5 Z';
+const DEFAULT_FONT = 'Microsoft YaHei';
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function normalizeText(input?: string, maxLen = 240): string {
+  const raw = (input || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return '';
+  if (raw.length <= maxLen) return raw;
+  return `${raw.slice(0, maxLen - 1).trimEnd()}…`;
+}
+
+function normalizeList(
+  items: string[] | undefined,
+  fallback: string[] = [],
+  maxItems = 4,
+  maxLen = 120,
+): string[] {
+  const base = (items || []).map((item) => normalizeText(item, maxLen)).filter(Boolean);
+  const resolved = base.length > 0 ? base : fallback;
+  return resolved.slice(0, maxItems);
+}
+
+function splitIntoLines(text: string, maxChars = 90, maxLines = 6): string[] {
+  const normalized = text
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const source = normalized.length > 0 ? normalized : [text.trim()];
+  const lines: string[] = [];
+
+  for (const piece of source) {
+    let remaining = piece.replace(/\s+/g, ' ').trim();
+    while (remaining && lines.length < maxLines) {
+      if (remaining.length <= maxChars) {
+        lines.push(remaining);
+        remaining = '';
+        break;
+      }
+      let splitAt = remaining.lastIndexOf(' ', maxChars);
+      if (splitAt < Math.floor(maxChars * 0.55)) splitAt = maxChars;
+      lines.push(remaining.slice(0, splitAt).trim());
+      remaining = remaining.slice(splitAt).trim();
+    }
+    if (lines.length >= maxLines) break;
+  }
+
+  if (lines.length === maxLines) {
+    const last = lines[maxLines - 1];
+    if (!/[.。！？!?…]$/.test(last)) lines[maxLines - 1] = `${last}…`;
+  }
+
+  return lines;
+}
+
+function toTextHtml(
+  lines: string[],
+  opts?: {
+    fontSize?: number;
+    color?: string;
+    align?: 'left' | 'center' | 'right';
+    bold?: boolean;
+    fontFamily?: string;
+    lineHeight?: number;
+  },
+): string {
+  const fontSize = opts?.fontSize ?? 16;
+  const color = opts?.color ?? '#111827';
+  const align = opts?.align ?? 'left';
+  const fontWeight = opts?.bold ? '700' : '400';
+  const fontFamily = opts?.fontFamily ?? DEFAULT_FONT;
+  const lineHeight = opts?.lineHeight ?? 1.38;
+  return lines
+    .map(
+      (line) =>
+        `<p style="font-size:${fontSize}px;color:${color};text-align:${align};font-weight:${fontWeight};font-family:${fontFamily};line-height:${lineHeight};">${escapeHtml(line)}</p>`,
+    )
+    .join('');
+}
+
+function toBulletHtml(
+  items: string[],
+  opts?: {
+    fontSize?: number;
+    color?: string;
+    bulletColor?: string;
+    fontFamily?: string;
+    lineHeight?: number;
+  },
+): string {
+  const fontSize = opts?.fontSize ?? 16;
+  const color = opts?.color ?? '#111827';
+  const bulletColor = opts?.bulletColor ?? color;
+  const fontFamily = opts?.fontFamily ?? DEFAULT_FONT;
+  const lineHeight = opts?.lineHeight ?? 1.42;
+  return items
+    .map(
+      (item) =>
+        `<p style="font-size:${fontSize}px;color:${color};font-family:${fontFamily};line-height:${lineHeight};"><span style="color:${bulletColor};font-weight:700;">•</span> ${escapeHtml(item)}</p>`,
+    )
+    .join('');
+}
+
+function toCodeHtml(lines: string[]): string {
+  const safeLines = lines.length > 0 ? lines : ['# code excerpt'];
+  return safeLines
+    .map((line) => {
+      const escaped = escapeHtml(line).replace(/ /g, '&nbsp;');
+      return `<p style="font-size:14px;color:#e2e8f0;font-family:Menlo, Monaco, Consolas, monospace;line-height:1.42;">${escaped || '&nbsp;'}</p>`;
+    })
+    .join('');
+}
+
+function createTextElement(args: {
+  name: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  content: string;
+  defaultColor?: string;
+  defaultFontName?: string;
+  textType?: PPTTextElement['textType'];
+  fill?: string;
+}): PPTTextElement {
+  return {
+    id: `text_${nanoid(8)}`,
+    type: 'text',
+    name: args.name,
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    rotate: 0,
+    content: args.content,
+    defaultFontName: args.defaultFontName ?? DEFAULT_FONT,
+    defaultColor: args.defaultColor ?? '#111827',
+    textType: args.textType,
+    fill: args.fill,
+  };
+}
+
+function createRectElement(args: {
+  name: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  fill: string;
+  outlineColor?: string;
+  outlineWidth?: number;
+}): PPTShapeElement {
+  return {
+    id: `shape_${nanoid(8)}`,
+    type: 'shape',
+    name: args.name,
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    rotate: 0,
+    viewBox: [1, 1],
+    path: RECT_PATH,
+    fixedRatio: false,
+    fill: args.fill,
+    outline: args.outlineColor
+      ? {
+          color: args.outlineColor,
+          width: args.outlineWidth ?? 1,
+          style: 'solid',
+        }
+      : undefined,
+  };
+}
+
+function createCircleElement(args: {
+  name: string;
+  left: number;
+  top: number;
+  size: number;
+  fill: string;
+}): PPTShapeElement {
+  return {
+    id: `shape_${nanoid(8)}`,
+    type: 'shape',
+    name: args.name,
+    left: args.left,
+    top: args.top,
+    width: args.size,
+    height: args.size,
+    rotate: 0,
+    viewBox: [1, 1],
+    path: CIRCLE_PATH,
+    fixedRatio: false,
+    fill: args.fill,
+  };
+}
+
+function createLineElement(args: {
+  name: string;
+  start: [number, number];
+  end: [number, number];
+  color: string;
+  width?: number;
+}): PPTLineElement {
+  return {
+    id: `line_${nanoid(8)}`,
+    type: 'line',
+    name: args.name,
+    left: 0,
+    top: 0,
+    width: args.width ?? 2,
+    start: args.start,
+    end: args.end,
+    style: 'solid',
+    color: args.color,
+    points: ['', ''],
+  };
+}
+
+type WorkedExampleConfig = NonNullable<SceneOutline['workedExampleConfig']>;
+type WorkedExampleVisualAsset = {
+  src: string;
+  aspectRatio: number;
+  source: 'assigned' | 'generated';
+};
+
+function createImageElement(args: {
+  name: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  src: string;
+}): PPTImageElement {
+  return {
+    id: `image_${nanoid(8)}`,
+    type: 'image',
+    name: args.name,
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    rotate: 0,
+    fixedRatio: true,
+    src: args.src,
+    radius: 18,
+    imageType: 'itemFigure',
+    outline: {
+      color: '#e5e7eb',
+      width: 1,
+      style: 'solid',
+    },
+  };
+}
+
+function getWorkedExampleLabels(
+  language: 'zh-CN' | 'en-US',
+  role: WorkedExampleConfig['role'],
+): Record<string, string> {
+  const roleLabels =
+    language === 'zh-CN'
+      ? {
+          problem_statement: '题目展示',
+          givens_and_goal: '已知与目标',
+          constraints: '约束条件',
+          solution_plan: '解题思路',
+          walkthrough: '分步讲解',
+          pitfalls: '易错点',
+          summary: '总结收束',
+        }
+      : {
+          problem_statement: 'Problem Statement',
+          givens_and_goal: 'Givens and Goal',
+          constraints: 'Constraints',
+          solution_plan: 'Solution Plan',
+          walkthrough: 'Step-by-Step Walkthrough',
+          pitfalls: 'Common Pitfalls',
+          summary: 'Summary',
+        };
+
+  return language === 'zh-CN'
+    ? {
+        stage: roleLabels[role],
+        question: '题目',
+        givens: '已知',
+        asks: '所求',
+        constraints: '约束',
+        plan: '思路',
+        steps: '步骤',
+        pitfalls: '易错点',
+        answer: '结论',
+        reminder: '题目提醒',
+        keyIdea: '关键点',
+        correction: '提醒',
+        part: '第',
+        visual: '图示',
+        referenceVisual: '参考图',
+        generatedVisual: 'AI 图示',
+      }
+    : {
+        stage: roleLabels[role],
+        question: 'Question',
+        givens: 'Given',
+        asks: 'Find',
+        constraints: 'Constraints',
+        plan: 'Plan',
+        steps: 'Steps',
+        pitfalls: 'Pitfalls',
+        answer: 'Answer',
+        reminder: 'Problem Reminder',
+        keyIdea: 'Key Idea',
+        correction: 'Watch Out',
+        part: 'Part',
+        visual: 'Visual',
+        referenceVisual: 'Reference Visual',
+        generatedVisual: 'AI Visual',
+      };
+}
+
+function getRolePalette(role: WorkedExampleConfig['role']): {
+  accent: string;
+  accentSoft: string;
+  panel: string;
+  panelAlt: string;
+  codeBg: string;
+} {
+  switch (role) {
+    case 'problem_statement':
+      return {
+        accent: '#2563eb',
+        accentSoft: '#dbeafe',
+        panel: '#eff6ff',
+        panelAlt: '#f8fafc',
+        codeBg: '#0f172a',
+      };
+    case 'givens_and_goal':
+    case 'constraints':
+      return {
+        accent: '#0891b2',
+        accentSoft: '#cffafe',
+        panel: '#ecfeff',
+        panelAlt: '#f8fafc',
+        codeBg: '#0f172a',
+      };
+    case 'solution_plan':
+      return {
+        accent: '#7c3aed',
+        accentSoft: '#ede9fe',
+        panel: '#f5f3ff',
+        panelAlt: '#faf5ff',
+        codeBg: '#1f1335',
+      };
+    case 'pitfalls':
+      return {
+        accent: '#ea580c',
+        accentSoft: '#ffedd5',
+        panel: '#fff7ed',
+        panelAlt: '#fffbeb',
+        codeBg: '#431407',
+      };
+    case 'summary':
+      return {
+        accent: '#059669',
+        accentSoft: '#d1fae5',
+        panel: '#ecfdf5',
+        panelAlt: '#f0fdf4',
+        codeBg: '#052e16',
+      };
+    case 'walkthrough':
+    default:
+      return {
+        accent: '#4f46e5',
+        accentSoft: '#e0e7ff',
+        panel: '#eef2ff',
+        panelAlt: '#f8fafc',
+        codeBg: '#172554',
+      };
+  }
+}
+
+function buildInfoCard(
+  label: string,
+  items: string[],
+  layout: { left: number; top: number; width: number; height: number },
+  palette: ReturnType<typeof getRolePalette>,
+  name: string,
+): PPTElement[] {
+  const elements: PPTElement[] = [
+    createRectElement({
+      name: `${name}_card`,
+      left: layout.left,
+      top: layout.top,
+      width: layout.width,
+      height: layout.height,
+      fill: palette.panelAlt,
+      outlineColor: palette.accentSoft,
+    }),
+    createTextElement({
+      name: `${name}_label`,
+      left: layout.left + 16,
+      top: layout.top + 14,
+      width: layout.width - 32,
+      height: 24,
+      content: toTextHtml([label], {
+        fontSize: 16,
+        color: palette.accent,
+        bold: true,
+      }),
+      defaultColor: palette.accent,
+      textType: 'itemTitle',
+    }),
+  ];
+
+  elements.push(
+    createTextElement({
+      name: `${name}_content`,
+      left: layout.left + 16,
+      top: layout.top + 44,
+      width: layout.width - 32,
+      height: layout.height - 56,
+      content: toBulletHtml(items, {
+        fontSize: 15,
+        color: '#0f172a',
+        bulletColor: palette.accent,
+      }),
+      defaultColor: '#0f172a',
+      textType: 'content',
+    }),
+  );
+
+  return elements;
+}
+
+function getAspectRatioValue(ratio?: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9'): number {
+  switch (ratio) {
+    case '4:3':
+      return 4 / 3;
+    case '1:1':
+      return 1;
+    case '9:16':
+      return 9 / 16;
+    case '3:4':
+      return 3 / 4;
+    case '21:9':
+      return 21 / 9;
+    case '16:9':
+    default:
+      return 16 / 9;
+  }
+}
+
+function fitWithinBox(
+  maxWidth: number,
+  maxHeight: number,
+  aspectRatio: number,
+): { width: number; height: number } {
+  const safeAspectRatio =
+    Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : getAspectRatioValue('16:9');
+  const widthFromHeight = maxHeight * safeAspectRatio;
+
+  if (widthFromHeight <= maxWidth) {
+    return {
+      width: Math.round(widthFromHeight),
+      height: Math.round(maxHeight),
+    };
+  }
+
+  return {
+    width: Math.round(maxWidth),
+    height: Math.round(maxWidth / safeAspectRatio),
+  };
+}
+
+function selectWorkedExampleVisualAsset(
+  outline: SceneOutline,
+  assignedImages?: PdfImage[],
+  imageMapping?: ImageMapping,
+  generatedMediaMapping?: ImageMapping,
+): WorkedExampleVisualAsset | null {
+  for (const image of assignedImages || []) {
+    const resolvedSrc = imageMapping?.[image.id] || image.src;
+    if (!resolvedSrc) continue;
+
+    return {
+      src: resolvedSrc,
+      aspectRatio:
+        image.width && image.height && image.height > 0 ? image.width / image.height : 4 / 3,
+      source: 'assigned',
+    };
+  }
+
+  const generatedImage = outline.mediaGenerations?.find((media) => media.type === 'image');
+  if (!generatedImage) return null;
+
+  return {
+    src: generatedMediaMapping?.[generatedImage.elementId] || generatedImage.elementId,
+    aspectRatio: getAspectRatioValue(generatedImage.aspectRatio),
+    source: 'generated',
+  };
+}
+
+function buildWorkedExampleVisualPanel(
+  label: string,
+  asset: WorkedExampleVisualAsset,
+  layout: { left: number; top: number; width: number; height: number },
+  palette: ReturnType<typeof getRolePalette>,
+  name: string,
+): PPTElement[] {
+  const imageFrame = fitWithinBox(layout.width - 32, layout.height - 64, asset.aspectRatio);
+  const imageLeft = layout.left + 16 + Math.round((layout.width - 32 - imageFrame.width) / 2);
+  const imageTop = layout.top + 42 + Math.round((layout.height - 64 - imageFrame.height) / 2);
+
+  return [
+    createRectElement({
+      name: `${name}_panel`,
+      left: layout.left,
+      top: layout.top,
+      width: layout.width,
+      height: layout.height,
+      fill: '#ffffff',
+      outlineColor: palette.accentSoft,
+    }),
+    createTextElement({
+      name: `${name}_label`,
+      left: layout.left + 16,
+      top: layout.top + 12,
+      width: layout.width - 32,
+      height: 22,
+      content: toTextHtml([label], {
+        fontSize: 15,
+        color: palette.accent,
+        bold: true,
+      }),
+      defaultColor: palette.accent,
+      textType: 'itemTitle',
+    }),
+    createImageElement({
+      name: `${name}_image`,
+      left: imageLeft,
+      top: imageTop,
+      width: imageFrame.width,
+      height: imageFrame.height,
+      src: asset.src,
+    }),
+  ];
+}
+
+function looksLikeRichMathNotation(text: string): boolean {
+  const normalized = text.trim();
+  if (!normalized) return false;
+
+  return (
+    /\\(begin|end|frac|sqrt|sum|int|lim|alpha|beta|gamma|theta|pi|cdot|times|left|right|pmatrix|bmatrix|matrix|cases|infty)/.test(
+      normalized,
+    ) ||
+    /\^\{|\_\{/.test(normalized) ||
+    /[∑∫√∞≈≠≤≥→←↦∀∃∈∉⊂⊆∪∩]/.test(normalized)
+  );
+}
+
+function looksLikeStructuredCode(text: string): boolean {
+  const normalized = text.replace(/\r/g, '');
+  if (!normalized.trim()) return false;
+  if (/```/.test(normalized)) return true;
+
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 3) return false;
+
+  let signalCount = 0;
+  for (const line of lines.slice(0, 8)) {
+    if (
+      /\b(function|const|let|var|return|def|class|public|private|if|else|elif|for|while|switch|case|try|catch|import|from|print|console\.log)\b|=>|[{};]/.test(
+        line,
+      )
+    ) {
+      signalCount++;
+    }
+  }
+
+  return signalCount >= 2;
+}
+
+function shouldUseLocalWorkedExampleTemplate(cfg: WorkedExampleConfig): boolean {
+  const textBlocks = [
+    cfg.problemStatement,
+    ...(cfg.givens || []),
+    ...(cfg.asks || []),
+    ...(cfg.constraints || []),
+    ...(cfg.solutionPlan || []),
+    ...(cfg.walkthroughSteps || []),
+    ...(cfg.commonPitfalls || []),
+    cfg.finalAnswer,
+  ].filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+
+  if (textBlocks.some((text) => looksLikeRichMathNotation(text))) {
+    return false;
+  }
+
+  if (!cfg.codeSnippet?.trim() && textBlocks.some((text) => looksLikeStructuredCode(text))) {
+    return false;
+  }
+
+  return true;
+}
+
+function buildWorkedExampleSlideContent(
+  outline: SceneOutline,
+  options?: {
+    assignedImages?: PdfImage[];
+    imageMapping?: ImageMapping;
+    generatedMediaMapping?: ImageMapping;
+  },
+): GeneratedSlideContent | null {
+  const cfg = outline.workedExampleConfig;
+  if (!cfg) return null;
+
+  const lang = outline.language || 'zh-CN';
+  const labels = getWorkedExampleLabels(lang, cfg.role);
+  const palette = getRolePalette(cfg.role);
+
+  const problemText = normalizeText(
+    cfg.problemStatement || outline.description || outline.keyPoints.join(' '),
+    720,
+  );
+  const givens = normalizeList(cfg.givens, outline.keyPoints.slice(0, 3), 4, 90);
+  const asks = normalizeList(
+    cfg.asks,
+    [lang === 'zh-CN' ? '明确本题最终要求' : 'Clarify what must be solved or shown'],
+    3,
+    90,
+  );
+  const constraints = normalizeList(
+    cfg.constraints,
+    [lang === 'zh-CN' ? '关注题目中的关键条件' : 'Track the key constraints carefully'],
+    4,
+    90,
+  );
+  const solutionPlan = normalizeList(cfg.solutionPlan, outline.keyPoints, 4, 96);
+  const walkthroughSteps = normalizeList(
+    cfg.walkthroughSteps,
+    solutionPlan.length > 0
+      ? solutionPlan
+      : [
+          lang === 'zh-CN'
+            ? '按照题目条件逐步推进'
+            : 'Advance step by step from the given information',
+        ],
+    5,
+    108,
+  );
+  const commonPitfalls = normalizeList(
+    cfg.commonPitfalls,
+    [lang === 'zh-CN' ? '不要跳步或忽略关键条件' : 'Do not skip steps or ignore key conditions'],
+    4,
+    100,
+  );
+  const finalAnswer = normalizeText(cfg.finalAnswer || outline.description, 220);
+  const codeLines = cfg.codeSnippet?.trim()
+    ? cfg.codeSnippet
+        .replace(/\r/g, '')
+        .split('\n')
+        .slice(0, 11)
+        .map((line) => line.replace(/\t/g, '  '))
+    : [];
+  const visualAsset = selectWorkedExampleVisualAsset(
+    outline,
+    options?.assignedImages,
+    options?.imageMapping,
+    options?.generatedMediaMapping,
+  );
+
+  const badgeText =
+    cfg.partNumber && cfg.totalParts
+      ? lang === 'zh-CN'
+        ? `${labels.stage} · ${cfg.partNumber}/${cfg.totalParts}`
+        : `${labels.stage} · ${labels.part} ${cfg.partNumber}/${cfg.totalParts}`
+      : labels.stage;
+
+  const elements: PPTElement[] = [
+    createRectElement({
+      name: 'top_accent',
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 8,
+      fill: palette.accent,
+    }),
+    createTextElement({
+      name: 'slide_title',
+      left: 56,
+      top: 30,
+      width: 660,
+      height: 52,
+      content: toTextHtml(splitIntoLines(outline.title, 34, 2), {
+        fontSize: 30,
+        color: '#0f172a',
+        bold: true,
+      }),
+      defaultColor: '#0f172a',
+      textType: 'title',
+    }),
+    createRectElement({
+      name: 'stage_badge_bg',
+      left: 736,
+      top: 36,
+      width: 212,
+      height: 34,
+      fill: palette.accentSoft,
+    }),
+    createTextElement({
+      name: 'stage_badge_text',
+      left: 748,
+      top: 43,
+      width: 188,
+      height: 20,
+      content: toTextHtml([badgeText], {
+        fontSize: 13,
+        color: palette.accent,
+        align: 'center',
+        bold: true,
+      }),
+      defaultColor: palette.accent,
+      textType: 'notes',
+    }),
+    createLineElement({
+      name: 'header_rule',
+      start: [56, 86],
+      end: [944, 86],
+      color: '#e5e7eb',
+      width: 2,
+    }),
+  ];
+
+  if (cfg.role === 'problem_statement') {
+    const hasCode = codeLines.length > 0;
+    const showVisual = !hasCode && !!visualAsset;
+    const problemWidth = hasCode ? 472 : showVisual ? 544 : 896;
+    const cards = [
+      { label: labels.givens, items: givens },
+      { label: labels.asks, items: asks },
+      { label: labels.constraints, items: constraints },
+    ].filter((section) => section.items.length > 0);
+
+    elements.push(
+      createRectElement({
+        name: 'problem_statement_panel',
+        left: 52,
+        top: 108,
+        width: problemWidth,
+        height: hasCode ? 248 : 210,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'problem_statement_label',
+        left: 72,
+        top: 126,
+        width: problemWidth - 40,
+        height: 24,
+        content: toTextHtml([labels.question], {
+          fontSize: 17,
+          color: palette.accent,
+          bold: true,
+        }),
+        defaultColor: palette.accent,
+        textType: 'itemTitle',
+      }),
+      createTextElement({
+        name: 'problem_statement_text',
+        left: 72,
+        top: 158,
+        width: problemWidth - 40,
+        height: hasCode ? 176 : 150,
+        content: toTextHtml(splitIntoLines(problemText, hasCode ? 42 : 88, hasCode ? 8 : 7), {
+          fontSize: hasCode ? 16 : 17,
+          color: '#0f172a',
+          lineHeight: 1.42,
+        }),
+        defaultColor: '#0f172a',
+        textType: 'content',
+      }),
+    );
+
+    if (showVisual && visualAsset) {
+      elements.push(
+        ...buildWorkedExampleVisualPanel(
+          visualAsset.source === 'generated' ? labels.generatedVisual : labels.referenceVisual,
+          visualAsset,
+          { left: 620, top: 108, width: 328, height: 210 },
+          palette,
+          'problem_visual',
+        ),
+      );
+    }
+
+    if (hasCode) {
+      elements.push(
+        createRectElement({
+          name: 'code_excerpt_panel',
+          left: 544,
+          top: 108,
+          width: 404,
+          height: 248,
+          fill: palette.codeBg,
+        }),
+        createTextElement({
+          name: 'code_excerpt_label',
+          left: 562,
+          top: 126,
+          width: 368,
+          height: 22,
+          content: toTextHtml([lang === 'zh-CN' ? '代码片段' : 'Code Excerpt'], {
+            fontSize: 16,
+            color: '#c7d2fe',
+            bold: true,
+          }),
+          defaultColor: '#c7d2fe',
+          textType: 'itemTitle',
+        }),
+        createTextElement({
+          name: 'code_excerpt_text',
+          left: 562,
+          top: 156,
+          width: 368,
+          height: 178,
+          content: toCodeHtml(codeLines),
+          defaultColor: '#e2e8f0',
+          defaultFontName: 'Menlo, Monaco, Consolas, monospace',
+          textType: 'content',
+        }),
+      );
+    }
+
+    if (cards.length > 0) {
+      const widths = cards.length === 1 ? [896] : cards.length === 2 ? [436, 436] : [284, 284, 284];
+      const lefts = cards.length === 1 ? [52] : cards.length === 2 ? [52, 512] : [52, 360, 668];
+      cards.forEach((card, idx) => {
+        elements.push(
+          ...buildInfoCard(
+            card.label,
+            card.items,
+            {
+              left: lefts[idx],
+              top: hasCode ? 382 : 344,
+              width: widths[idx],
+              height: hasCode ? 130 : 162,
+            },
+            palette,
+            `${card.label.toLowerCase().replace(/\s+/g, '_')}_${idx}`,
+          ),
+        );
+      });
+    }
+  } else if (cfg.role === 'givens_and_goal' || cfg.role === 'constraints') {
+    const showVisual = !!visualAsset;
+    elements.push(
+      createRectElement({
+        name: 'problem_reminder_panel',
+        left: 52,
+        top: 108,
+        width: showVisual ? 560 : 896,
+        height: showVisual ? 94 : 82,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'problem_reminder_label',
+        left: 72,
+        top: 124,
+        width: 180,
+        height: 22,
+        content: toTextHtml([labels.reminder], {
+          fontSize: 16,
+          color: palette.accent,
+          bold: true,
+        }),
+        defaultColor: palette.accent,
+        textType: 'itemTitle',
+      }),
+      createTextElement({
+        name: 'problem_reminder_text',
+        left: 72,
+        top: 150,
+        width: showVisual ? 520 : 856,
+        height: showVisual ? 38 : 28,
+        content: toTextHtml(
+          splitIntoLines(problemText, showVisual ? 72 : 120, showVisual ? 2 : 1),
+          {
+            fontSize: 15,
+            color: '#334155',
+          },
+        ),
+        defaultColor: '#334155',
+        textType: 'content',
+      }),
+    );
+
+    if (showVisual && visualAsset) {
+      elements.push(
+        ...buildWorkedExampleVisualPanel(
+          visualAsset.source === 'generated' ? labels.generatedVisual : labels.referenceVisual,
+          visualAsset,
+          { left: 636, top: 108, width: 312, height: 170 },
+          palette,
+          'reminder_visual',
+        ),
+      );
+    }
+
+    const sections =
+      cfg.role === 'constraints'
+        ? [
+            { label: labels.givens, items: givens },
+            { label: labels.constraints, items: constraints },
+            { label: labels.asks, items: asks },
+          ]
+        : [
+            { label: labels.givens, items: givens },
+            { label: labels.asks, items: asks },
+            { label: labels.constraints, items: constraints },
+          ];
+    const lefts = [52, 360, 668];
+    sections.forEach((section, idx) => {
+      elements.push(
+        ...buildInfoCard(
+          section.label,
+          section.items,
+          {
+            left: lefts[idx],
+            top: showVisual ? 228 : 216,
+            width: 280,
+            height: showVisual ? 264 : 276,
+          },
+          palette,
+          `${section.label.toLowerCase().replace(/\s+/g, '_')}_${idx}`,
+        ),
+      );
+    });
+  } else if (cfg.role === 'solution_plan') {
+    elements.push(
+      createRectElement({
+        name: 'problem_reminder_panel',
+        left: 52,
+        top: 108,
+        width: 896,
+        height: 70,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'problem_reminder_text',
+        left: 72,
+        top: 128,
+        width: 856,
+        height: 26,
+        content: toTextHtml(splitIntoLines(problemText, 116, 1), {
+          fontSize: 15,
+          color: '#334155',
+        }),
+        defaultColor: '#334155',
+        textType: 'content',
+      }),
+    );
+
+    solutionPlan.slice(0, 4).forEach((step, idx) => {
+      const top = 198 + idx * 82;
+      elements.push(
+        createCircleElement({
+          name: `plan_step_number_${idx + 1}`,
+          left: 70,
+          top,
+          size: 36,
+          fill: palette.accent,
+        }),
+        createTextElement({
+          name: `plan_step_number_text_${idx + 1}`,
+          left: 78,
+          top: top + 6,
+          width: 20,
+          height: 20,
+          content: toTextHtml([String(idx + 1)], {
+            fontSize: 16,
+            color: '#ffffff',
+            align: 'center',
+            bold: true,
+          }),
+          defaultColor: '#ffffff',
+          textType: 'itemNumber',
+        }),
+        createRectElement({
+          name: `solution_plan_card_${idx + 1}`,
+          left: 124,
+          top: top - 6,
+          width: 804,
+          height: 56,
+          fill: idx % 2 === 0 ? palette.panel : palette.panelAlt,
+          outlineColor: palette.accentSoft,
+        }),
+        createTextElement({
+          name: `solution_plan_text_${idx + 1}`,
+          left: 146,
+          top: top + 8,
+          width: 760,
+          height: 28,
+          content: toTextHtml(splitIntoLines(step, 90, 2), {
+            fontSize: 17,
+            color: '#0f172a',
+            lineHeight: 1.36,
+          }),
+          defaultColor: '#0f172a',
+          textType: 'content',
+        }),
+      );
+    });
+  } else if (cfg.role === 'walkthrough') {
+    const hasCode = codeLines.length > 0;
+    elements.push(
+      createRectElement({
+        name: 'givens_goal_strip',
+        left: 52,
+        top: 108,
+        width: 896,
+        height: 70,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'givens_goal_strip_text',
+        left: 72,
+        top: 128,
+        width: 856,
+        height: 26,
+        content: toTextHtml(
+          [
+            lang === 'zh-CN'
+              ? `目标：${asks[0] || problemText}`
+              : `Goal: ${asks[0] || problemText}`,
+          ],
+          {
+            fontSize: 15,
+            color: '#334155',
+          },
+        ),
+        defaultColor: '#334155',
+        textType: 'content',
+      }),
+    );
+
+    if (hasCode) {
+      elements.push(
+        createRectElement({
+          name: 'walkthrough_steps_panel',
+          left: 52,
+          top: 198,
+          width: 392,
+          height: 300,
+          fill: palette.panelAlt,
+          outlineColor: palette.accentSoft,
+        }),
+        createTextElement({
+          name: 'walkthrough_steps_label',
+          left: 70,
+          top: 216,
+          width: 356,
+          height: 22,
+          content: toTextHtml([labels.steps], {
+            fontSize: 16,
+            color: palette.accent,
+            bold: true,
+          }),
+          defaultColor: palette.accent,
+          textType: 'itemTitle',
+        }),
+        createTextElement({
+          name: 'walkthrough_steps_text',
+          left: 70,
+          top: 244,
+          width: 356,
+          height: 230,
+          content: toBulletHtml(walkthroughSteps, {
+            fontSize: 15,
+            color: '#0f172a',
+            bulletColor: palette.accent,
+          }),
+          defaultColor: '#0f172a',
+          textType: 'content',
+        }),
+        createRectElement({
+          name: 'code_excerpt_panel',
+          left: 468,
+          top: 198,
+          width: 480,
+          height: 300,
+          fill: palette.codeBg,
+        }),
+        createTextElement({
+          name: 'code_excerpt_label',
+          left: 488,
+          top: 216,
+          width: 440,
+          height: 22,
+          content: toTextHtml([lang === 'zh-CN' ? '当前代码' : 'Current Code'], {
+            fontSize: 16,
+            color: '#c7d2fe',
+            bold: true,
+          }),
+          defaultColor: '#c7d2fe',
+          textType: 'itemTitle',
+        }),
+        createTextElement({
+          name: 'code_excerpt_text',
+          left: 488,
+          top: 246,
+          width: 440,
+          height: 226,
+          content: toCodeHtml(codeLines),
+          defaultColor: '#e2e8f0',
+          defaultFontName: 'Menlo, Monaco, Consolas, monospace',
+          textType: 'content',
+        }),
+      );
+    } else {
+      walkthroughSteps.slice(0, 4).forEach((step, idx) => {
+        const top = 198 + idx * 78;
+        elements.push(
+          createRectElement({
+            name: `walkthrough_step_card_${idx + 1}`,
+            left: 64,
+            top,
+            width: 872,
+            height: 58,
+            fill: idx % 2 === 0 ? palette.panelAlt : palette.panel,
+            outlineColor: palette.accentSoft,
+          }),
+          createTextElement({
+            name: `walkthrough_step_text_${idx + 1}`,
+            left: 84,
+            top: top + 15,
+            width: 832,
+            height: 28,
+            content: toTextHtml([`${lang === 'zh-CN' ? '步骤' : 'Step'} ${idx + 1}: ${step}`], {
+              fontSize: 16,
+              color: '#0f172a',
+              lineHeight: 1.36,
+            }),
+            defaultColor: '#0f172a',
+            textType: 'content',
+          }),
+        );
+      });
+    }
+  } else if (cfg.role === 'pitfalls') {
+    const leftItems = commonPitfalls.filter((_, idx) => idx % 2 === 0);
+    const rightItems = commonPitfalls.filter((_, idx) => idx % 2 === 1);
+    elements.push(
+      ...buildInfoCard(
+        labels.pitfalls,
+        leftItems.length > 0 ? leftItems : commonPitfalls.slice(0, 2),
+        { left: 52, top: 118, width: 428, height: 284 },
+        palette,
+        'pitfalls_left',
+      ),
+      ...buildInfoCard(
+        lang === 'zh-CN' ? '纠正提醒' : 'Corrections',
+        rightItems.length > 0
+          ? rightItems
+          : solutionPlan
+              .slice(0, 2)
+              .map((item) => (lang === 'zh-CN' ? `改进建议：${item}` : `Correction: ${item}`)),
+        { left: 520, top: 118, width: 428, height: 284 },
+        palette,
+        'pitfalls_right',
+      ),
+      createRectElement({
+        name: 'pitfalls_footer_panel',
+        left: 52,
+        top: 428,
+        width: 896,
+        height: 84,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'pitfalls_footer_text',
+        left: 72,
+        top: 450,
+        width: 856,
+        height: 40,
+        content: toTextHtml(
+          [
+            lang === 'zh-CN'
+              ? `讲题时重点提醒：${commonPitfalls[0] || '先核对条件，再推进步骤。'}`
+              : `Teaching focus: ${commonPitfalls[0] || 'Check the conditions before moving to the next step.'}`,
+          ],
+          {
+            fontSize: 16,
+            color: '#7c2d12',
+          },
+        ),
+        defaultColor: '#7c2d12',
+        textType: 'notes',
+      }),
+    );
+  } else {
+    elements.push(
+      createRectElement({
+        name: 'final_answer_panel',
+        left: 52,
+        top: 114,
+        width: 896,
+        height: 118,
+        fill: palette.panel,
+        outlineColor: palette.accentSoft,
+      }),
+      createTextElement({
+        name: 'final_answer_label',
+        left: 72,
+        top: 134,
+        width: 140,
+        height: 22,
+        content: toTextHtml([labels.answer], {
+          fontSize: 16,
+          color: palette.accent,
+          bold: true,
+        }),
+        defaultColor: palette.accent,
+        textType: 'itemTitle',
+      }),
+      createTextElement({
+        name: 'final_answer_text',
+        left: 72,
+        top: 166,
+        width: 856,
+        height: 44,
+        content: toTextHtml(splitIntoLines(finalAnswer, 110, 2), {
+          fontSize: 20,
+          color: '#0f172a',
+          bold: true,
+          lineHeight: 1.32,
+        }),
+        defaultColor: '#0f172a',
+        textType: 'content',
+      }),
+      ...buildInfoCard(
+        lang === 'zh-CN' ? '关键收获' : 'Key Takeaways',
+        solutionPlan.length > 0 ? solutionPlan : walkthroughSteps,
+        { left: 52, top: 264, width: 428, height: 236 },
+        palette,
+        'summary_takeaways',
+      ),
+      ...buildInfoCard(
+        labels.pitfalls,
+        commonPitfalls,
+        { left: 520, top: 264, width: 428, height: 236 },
+        palette,
+        'summary_pitfalls',
+      ),
+    );
+  }
+
+  return {
+    elements,
+    background: { type: 'solid', color: '#fcfcfd' },
+    remark: outline.description,
+  };
+}
+
 /**
  * Generate slide content
  */
@@ -474,6 +1763,25 @@ async function generateSlideContent(
   courseContext?: CoursePersonalizationContext,
 ): Promise<GeneratedSlideContent | null> {
   const lang = outline.language || 'zh-CN';
+
+  if (
+    outline.workedExampleConfig &&
+    shouldUseLocalWorkedExampleTemplate(outline.workedExampleConfig)
+  ) {
+    const localTemplate = buildWorkedExampleSlideContent(outline, {
+      assignedImages,
+      imageMapping,
+      generatedMediaMapping,
+    });
+    if (localTemplate) {
+      log.info(`Using local worked-example template for: ${outline.title}`);
+      return localTemplate;
+    }
+  } else if (outline.workedExampleConfig) {
+    log.info(
+      `Falling back to AI worked-example rendering for notation-rich scene: ${outline.title}`,
+    );
+  }
 
   // Build assigned images description for the prompt
   let assignedImagesText = '无可用图片，禁止插入任何 image 元素';
@@ -541,6 +1849,7 @@ async function generateSlideContent(
 
   const teacherContext = formatTeacherPersonaForPrompt(agents);
   const coursePersonalization = formatCoursePersonalizationForPrompt(courseContext, lang);
+  const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
 
   const prompts = buildPrompt(PROMPT_IDS.SLIDE_CONTENT, {
     title: outline.title,
@@ -552,6 +1861,7 @@ async function generateSlideContent(
     canvas_height: canvasHeight,
     teacherContext,
     coursePersonalization,
+    workedExampleContext,
   });
 
   if (!prompts) {
@@ -1122,6 +2432,10 @@ export async function generateSceneActions(
   if (outline.type === 'slide' && 'elements' in content) {
     // Format element list for AI to select from
     const elementsText = formatElementsForPrompt(content.elements);
+    const workedExampleContext = formatWorkedExampleForPrompt(
+      outline.workedExampleConfig,
+      outline.language || 'zh-CN',
+    );
 
     const prompts = buildPrompt(PROMPT_IDS.SLIDE_ACTIONS, {
       title: outline.title,
@@ -1131,6 +2445,7 @@ export async function generateSceneActions(
       courseContext: mergedCourseContext,
       agents: agentsText,
       userProfile: userProfile || '',
+      workedExampleContext,
     });
 
     if (!prompts) {
@@ -1253,6 +2568,7 @@ function formatElementsForPrompt(elements: PPTElement[]): string {
   return elements
     .map((el) => {
       let summary = '';
+      const nameHint = el.name ? `name: "${el.name}", ` : '';
       if (el.type === 'text' && 'content' in el) {
         // Extract text content summary (strip HTML tags)
         const textContent = ((el.content as string) || '').replace(/<[^>]*>/g, '').substring(0, 50);
@@ -1268,7 +2584,7 @@ function formatElementsForPrompt(elements: PPTElement[]): string {
       } else {
         summary = `${el.type} element`;
       }
-      return `- id: "${el.id}", type: "${el.type}", ${summary}`;
+      return `- id: "${el.id}", type: "${el.type}", ${nameHint}${summary}`;
     })
     .join('\n');
 }
@@ -1340,6 +2656,56 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
  * Generate default slide Actions (fallback)
  */
 function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement[]): Action[] {
+  if (outline.workedExampleConfig) {
+    const cfg = outline.workedExampleConfig;
+    const lang = outline.language || 'zh-CN';
+    const role = cfg.role;
+    const spotlightTarget =
+      elements.find((el) => el.name === 'problem_statement_text') ||
+      elements.find((el) => el.name === 'walkthrough_steps_text') ||
+      elements.find((el) => el.name === 'final_answer_text') ||
+      elements.find((el) => el.name?.includes('solution_plan_text')) ||
+      elements.find((el) => el.type === 'text');
+
+    const speechByRole =
+      lang === 'zh-CN'
+        ? {
+            problem_statement: `先把题目读清楚。${cfg.problemStatement || outline.description || '这一页先明确题目本身。'}${cfg.asks?.length ? `本题真正要完成的是：${cfg.asks.join('；')}。` : ''}${cfg.constraints?.length ? `同时别忽略这些条件：${cfg.constraints.slice(0, 2).join('；')}。` : ''}`,
+            givens_and_goal: `这一步先拆已知和目标。${cfg.givens?.length ? `已知信息包括：${cfg.givens.join('；')}。` : ''}${cfg.asks?.length ? `我们要解决的是：${cfg.asks.join('；')}。` : ''}`,
+            constraints: `先把限制条件看清楚。${cfg.constraints?.length ? `关键约束有：${cfg.constraints.join('；')}。` : ''}这些条件会直接决定后面能不能用对方法。`,
+            solution_plan: `先不要急着展开细节，我们先看解题路线。${cfg.solutionPlan?.length ? cfg.solutionPlan.join('；') + '。' : outline.description || '这一页先建立整体思路。'}`,
+            walkthrough: `现在进入正式推演。${cfg.walkthroughSteps?.length ? cfg.walkthroughSteps.join('；') + '。' : outline.keyPoints.join('；') + '。'}每一步都要对应题目条件，不能跳步。`,
+            pitfalls: `这里最容易出错。${cfg.commonPitfalls?.length ? `常见误区包括：${cfg.commonPitfalls.join('；')}。` : ''}讲题时要特别提醒学生这些地方为什么会错。`,
+            summary: `最后做一个收束。${cfg.finalAnswer ? `结论可以概括为：${cfg.finalAnswer}。` : ''}${cfg.commonPitfalls?.length ? `同时记住这些易错点：${cfg.commonPitfalls.slice(0, 2).join('；')}。` : ''}`,
+          }
+        : {
+            problem_statement: `Let us first make the problem itself clear. ${cfg.problemStatement || outline.description || 'This page is about understanding the question before solving it.'}${cfg.asks?.length ? ` The core task is: ${cfg.asks.join('; ')}.` : ''}${cfg.constraints?.length ? ` Keep these constraints in mind: ${cfg.constraints.slice(0, 2).join('; ')}.` : ''}`,
+            givens_and_goal: `This step separates the givens from the goal. ${cfg.givens?.length ? `We know: ${cfg.givens.join('; ')}.` : ''}${cfg.asks?.length ? `We need to determine: ${cfg.asks.join('; ')}.` : ''}`,
+            constraints: `Before solving, make the constraints explicit. ${cfg.constraints?.length ? `Key conditions are: ${cfg.constraints.join('; ')}.` : ''} These conditions shape the method we can use.`,
+            solution_plan: `Before diving into details, let us map out the strategy. ${cfg.solutionPlan?.length ? cfg.solutionPlan.join('; ') + '.' : outline.description || 'This page sets up the overall approach.'}`,
+            walkthrough: `Now we move through the solution step by step. ${cfg.walkthroughSteps?.length ? cfg.walkthroughSteps.join('; ') + '.' : outline.keyPoints.join('; ') + '.'} Each step should be justified by the problem conditions.`,
+            pitfalls: `This is where students commonly go wrong. ${cfg.commonPitfalls?.length ? `Typical pitfalls include: ${cfg.commonPitfalls.join('; ')}.` : ''} It is worth pausing to explain why these mistakes happen.`,
+            summary: `Let us close the example cleanly. ${cfg.finalAnswer ? `The conclusion is: ${cfg.finalAnswer}.` : ''}${cfg.commonPitfalls?.length ? ` Also remember these pitfalls: ${cfg.commonPitfalls.slice(0, 2).join('; ')}.` : ''}`,
+          };
+
+    const actions: Action[] = [];
+    if (spotlightTarget) {
+      actions.push({
+        id: `action_${nanoid(8)}`,
+        type: 'spotlight',
+        title: lang === 'zh-CN' ? '聚焦讲题核心区域' : 'Focus worked-example area',
+        elementId: spotlightTarget.id,
+      });
+    }
+    actions.push({
+      id: `action_${nanoid(8)}`,
+      type: 'speech',
+      title: lang === 'zh-CN' ? '例题讲解' : 'Worked example explanation',
+      text: speechByRole[role],
+    });
+    return actions;
+  }
+
   const actions: Action[] = [];
 
   // Add spotlight for text elements
