@@ -5,6 +5,13 @@ import type { PPTLatexElement } from '@/lib/types/slides';
 
 export { BaseLatexElement } from './BaseLatexElement';
 
+const MAX_KATEX_UPSCALE = 1.15;
+const ALIGN_MAP = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+} as const;
+
 export interface LatexElementProps {
   elementInfo: PPTLatexElement;
   selectElement?: (e: React.MouseEvent | React.TouchEvent, element: PPTLatexElement) => void;
@@ -47,6 +54,7 @@ export function LatexElement({ elementInfo, selectElement }: LatexElementProps) 
               html={elementInfo.html}
               width={elementInfo.width}
               height={elementInfo.height}
+              align={elementInfo.align}
             />
           ) : elementInfo.path && elementInfo.viewBox ? (
             <svg
@@ -75,7 +83,17 @@ export function LatexElement({ elementInfo, selectElement }: LatexElementProps) 
   );
 }
 
-function KatexContent({ html, width, height }: { html: string; width: number; height: number }) {
+function KatexContent({
+  html,
+  width,
+  height,
+  align = 'center',
+}: {
+  html: string;
+  width: number;
+  height: number;
+  align?: 'left' | 'center' | 'right';
+}) {
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -84,17 +102,31 @@ function KatexContent({ html, width, height }: { html: string; width: number; he
     const naturalW = innerRef.current.scrollWidth;
     const naturalH = innerRef.current.scrollHeight;
     if (naturalW > 0 && naturalH > 0) {
-      setScale(Math.min(width / naturalW, height / naturalH));
+      const fittedScale = Math.min(width / naturalW, height / naturalH);
+      setScale(Math.min(MAX_KATEX_UPSCALE, fittedScale));
     }
   }, [html, width, height]);
 
+  const justify = ALIGN_MAP[align];
+  const origin = align === 'left' ? 'left top' : align === 'right' ? 'right top' : 'center top';
+
   return (
-    <div style={{ width, height, overflow: 'hidden' }}>
+    <div
+      style={{
+        width,
+        height,
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: justify,
+      }}
+    >
       <div
         ref={innerRef}
         className="[&_.katex-display]:!m-0"
         style={{
-          transformOrigin: '0 0',
+          display: 'inline-block',
+          transformOrigin: origin,
           transform: `scale(${scale})`,
           whiteSpace: 'nowrap',
         }}

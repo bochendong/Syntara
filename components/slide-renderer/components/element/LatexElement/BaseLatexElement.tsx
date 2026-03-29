@@ -67,6 +67,10 @@ const ALIGN_MAP = {
   right: 'flex-end',
 } as const;
 
+// Formula boxes are often intentionally generous for layout safety.
+// Cap automatic upscaling so playback does not make equations look oversized.
+const MAX_KATEX_UPSCALE = 1.15;
+
 function KatexContent({
   html,
   width,
@@ -86,7 +90,8 @@ function KatexContent({
     const naturalW = innerRef.current.scrollWidth;
     const naturalH = innerRef.current.scrollHeight;
     if (naturalW > 0 && naturalH > 0) {
-      setScale(Math.min(width / naturalW, height / naturalH));
+      const fittedScale = Math.min(width / naturalW, height / naturalH);
+      setScale(Math.min(MAX_KATEX_UPSCALE, fittedScale));
     }
   }, [html, width, height]);
 
@@ -108,6 +113,7 @@ function KatexContent({
         ref={innerRef}
         className="[&_.katex-display]:!m-0"
         style={{
+          display: 'inline-block',
           transformOrigin: origin,
           transform: `scale(${scale})`,
           whiteSpace: 'nowrap',
