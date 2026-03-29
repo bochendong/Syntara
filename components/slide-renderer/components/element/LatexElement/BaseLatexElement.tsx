@@ -61,12 +61,6 @@ export function BaseLatexElement({ elementInfo }: BaseLatexElementProps) {
   );
 }
 
-const ALIGN_MAP = {
-  left: 'flex-start',
-  center: 'center',
-  right: 'flex-end',
-} as const;
-
 // Formula boxes are often intentionally generous for layout safety.
 // Cap automatic upscaling so playback does not make equations look oversized.
 const MAX_KATEX_UPSCALE = 1.15;
@@ -95,8 +89,9 @@ function KatexContent({
     }
   }, [html, width, height]);
 
-  const justify = ALIGN_MAP[align];
-  const origin = align === 'left' ? 'left top' : align === 'right' ? 'right top' : 'center top';
+  // Playback should present formulas like the editor preview: visually centered on the slide.
+  const justify = 'center';
+  const origin = 'center top';
 
   return (
     <div
