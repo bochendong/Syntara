@@ -23,6 +23,59 @@ function looksLikeMathText(text: string): boolean {
 const MATH_PATTERN =
   /\\\[((?:[\s\S]+?))\\\]|\\\(((?:[\s\S]+?))\\\)|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
 
+function repairSplitMathAcrossParagraphs(html: string): string {
+  const normalized = normalizeDelimiterEscapes(html);
+  let output = '';
+  let i = 0;
+  let inlineDepth = 0;
+  let displayDepth = 0;
+
+  while (i < normalized.length) {
+    if (normalized.startsWith('\\[', i)) {
+      displayDepth += 1;
+      output += '\\[';
+      i += 2;
+      continue;
+    }
+    if (normalized.startsWith('\\]', i)) {
+      displayDepth = Math.max(0, displayDepth - 1);
+      output += '\\]';
+      i += 2;
+      continue;
+    }
+    if (normalized.startsWith('\\(', i)) {
+      inlineDepth += 1;
+      output += '\\(';
+      i += 2;
+      continue;
+    }
+    if (normalized.startsWith('\\)', i)) {
+      inlineDepth = Math.max(0, inlineDepth - 1);
+      output += '\\)';
+      i += 2;
+      continue;
+    }
+
+    if ((inlineDepth > 0 || displayDepth > 0) && normalized.startsWith('</p>', i)) {
+      let j = i + 4;
+      while (j < normalized.length && /\s/.test(normalized[j])) j += 1;
+      if (normalized.startsWith('<p', j)) {
+        const openEnd = normalized.indexOf('>', j);
+        if (openEnd !== -1) {
+          output += ' ';
+          i = openEnd + 1;
+          continue;
+        }
+      }
+    }
+
+    output += normalized[i];
+    i += 1;
+  }
+
+  return output;
+}
+
 function renderMathFragment(raw: string, displayMode: boolean): string {
   const latex = normalizeMathSource(raw);
   if (!latex) return '';
@@ -79,8 +132,9 @@ function renderTextWithLatex(text: string): string | null {
 export function renderHtmlWithLatex(html: string): string {
   if (!html || !looksLikeMathText(html) || typeof document === 'undefined') return html;
 
+  const repairedHtml = repairSplitMathAcrossParagraphs(html);
   const root = document.createElement('div');
-  root.innerHTML = html;
+  root.innerHTML = repairedHtml;
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];

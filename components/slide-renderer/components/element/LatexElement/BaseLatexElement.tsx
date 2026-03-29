@@ -91,8 +91,7 @@ function KatexContent({
   }, [html, width, height]);
 
   const justify = ALIGN_MAP[align];
-  const origin =
-    align === 'left' ? 'left center' : align === 'right' ? 'right center' : 'center center';
+  const origin = align === 'left' ? 'left top' : align === 'right' ? 'right top' : 'center top';
 
   return (
     <div
@@ -101,7 +100,7 @@ function KatexContent({
         height,
         overflow: 'hidden',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: justify,
       }}
     >
