@@ -61,6 +61,11 @@ export interface Scene {
   // Metadata
   createdAt?: number;
   updatedAt?: number;
+  repairSnapshot?: {
+    title: string;
+    content: SlideContent;
+    savedAt: number;
+  };
 }
 
 /**

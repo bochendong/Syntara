@@ -60,6 +60,13 @@ type SlideRepairSummaryItem =
   | SlideRepairShapeTextSummaryItem
   | SlideRepairLatexSummaryItem;
 
+function splitMeaningfulLines(text: string): string[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function decodeHtmlEntities(text: string): string {
   return text
     .replaceAll('&nbsp;', ' ')
@@ -126,6 +133,124 @@ function summarizeElements(elements: PPTElement[]): SlideRepairSummaryItem[] {
     });
 }
 
+function buildFallbackDocumentFromSlideContent(args: {
+  sceneTitle: string;
+  language: 'zh-CN' | 'en-US';
+  content: SlideContent;
+}): NotebookContentDocument {
+  const blocks: NotebookContentDocument['blocks'] = [];
+  const items = summarizeElements(args.content.canvas.elements);
+
+  for (const item of items) {
+    if (item.type === 'latex') {
+      blocks.push({ type: 'equation', latex: item.latex, display: true });
+      continue;
+    }
+
+    const lines = splitMeaningfulLines(item.text);
+    if (lines.length === 0) continue;
+
+    const bulletItems = lines
+      .filter((line) => /^[-•·▪◦]/.test(line))
+      .map((line) => line.replace(/^[-•·▪◦]\s*/, '').trim())
+      .filter(Boolean);
+
+    if (item.type === 'text' && (item.textType === 'title' || item.textType === 'subtitle')) {
+      blocks.push({
+        type: 'heading',
+        level: item.textType === 'title' ? 1 : 2,
+        text: lines.join(' '),
+      });
+      continue;
+    }
+
+    if (
+      item.type === 'text' &&
+      (item.textType === 'itemTitle' || item.textType === 'header') &&
+      lines.length <= 2
+    ) {
+      blocks.push({
+        type: 'heading',
+        level: 3,
+        text: lines.join(' '),
+      });
+      continue;
+    }
+
+    if (bulletItems.length >= Math.max(2, lines.length - 1)) {
+      blocks.push({ type: 'bullet_list', items: bulletItems });
+      continue;
+    }
+
+    blocks.push({ type: 'paragraph', text: lines.join('\n') });
+  }
+
+  return {
+    version: 1,
+    language: args.language,
+    title: args.sceneTitle,
+    blocks:
+      blocks.length > 0
+        ? blocks
+        : [
+            {
+              type: 'paragraph',
+              text:
+                args.language === 'zh-CN'
+                  ? '请保留当前页内容，仅修复数学符号。'
+                  : 'Keep the current page content and only repair mathematical notation.',
+            },
+          ],
+  };
+}
+
+function estimateDocumentSignal(doc: NotebookContentDocument): number {
+  return doc.blocks.reduce((sum, block) => {
+    switch (block.type) {
+      case 'heading':
+        return sum + block.text.length;
+      case 'paragraph':
+        return sum + block.text.length;
+      case 'bullet_list':
+        return sum + block.items.join('').length;
+      case 'equation':
+        return sum + block.latex.length;
+      case 'derivation_steps':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.steps.reduce(
+            (inner, step) => inner + step.expression.length + (step.explanation?.length || 0),
+            0,
+          )
+        );
+      case 'code_block':
+        return sum + block.code.length + (block.caption?.length || 0);
+      case 'table':
+        return sum + (block.caption?.length || 0) + block.rows.flat().join('').length;
+      case 'callout':
+        return sum + (block.title?.length || 0) + block.text.length;
+      case 'example':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.problem.length +
+          block.givens.join('').length +
+          (block.goal?.length || 0) +
+          block.steps.join('').length +
+          (block.answer?.length || 0) +
+          block.pitfalls.join('').length
+        );
+      case 'chem_formula':
+        return sum + block.formula.length + (block.caption?.length || 0);
+      case 'chem_equation':
+        return sum + block.equation.length + (block.caption?.length || 0);
+      default:
+        return sum;
+    }
+  }, 0);
+}
+
 function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
   if (language === 'zh-CN') {
     return `你是一个“课堂单页数学排版修复器”。
@@ -135,6 +260,9 @@ function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
 要求：
 - 只修复当前这一页，不要扩写成多页。
 - 保留原页主题、结论、层次和大致信息量，不要引入新的知识点。
+- 不要删掉题解、步骤、结论、已知条件、易错点、答案或推导过程；如果拿不准，保留原内容。
+- 优先在原有内容上做最小修改，而不是重写整页。
+- 尽量保持原有 block 顺序与数量；除非某一块明显应该拆成“说明 + 公式”，否则不要合并或删减。
 - 重点修复数学对象、映射、集合、等式、核、像、同余类、下标、上标等表达。
 - 把真正的数学表达放进结构化公式块：
   - 单个或独立公式用 {"type":"equation","latex":"...","display":true}
@@ -184,6 +312,9 @@ function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
 Requirements:
 - Repair this page only. Do not expand it into multiple pages.
 - Preserve the original topic, meaning, and rough information density.
+- Do not remove solution steps, givens, conclusions, or answer content. If unsure, keep it.
+- Prefer minimal edits to the existing blocks instead of rewriting the page.
+- Keep the original block order and roughly the same number of blocks whenever possible.
 - Convert malformed mathematical notation into structured math blocks.
 - Use equation blocks for standalone math and derivation_steps for multi-line reasoning.
 - Keep prose as heading / paragraph / bullet_list.
@@ -215,22 +346,27 @@ function buildUserPrompt(args: {
   content: SlideContent;
 }): string {
   const elementsSummary = summarizeElements(args.content.canvas.elements);
-  const semanticDocumentJson = args.semanticDocument
-    ? JSON.stringify(args.semanticDocument, null, 2)
-    : 'N/A';
+  const sourceDocument =
+    args.semanticDocument ||
+    buildFallbackDocumentFromSlideContent({
+      sceneTitle: args.sceneTitle,
+      language: args.language,
+      content: args.content,
+    });
 
   return [
     `Language: ${args.language}`,
     `Current page title: ${args.sceneTitle}`,
     '',
-    'Existing semantic document (prefer repairing this when available):',
-    semanticDocumentJson,
+    'Current page source document (edit this conservatively and preserve content):',
+    JSON.stringify(sourceDocument, null, 2),
     '',
-    'Current slide element summary (ordered top-to-bottom):',
+    'Current slide element summary (ordered top-to-bottom, for reference only):',
     JSON.stringify(elementsSummary, null, 2),
     '',
     'Return a repaired NotebookContentDocument for this same page.',
     'Keep the page focused. Do not add unrelated examples or sections.',
+    'Do not shorten the worked solution. Preserve all meaningful steps and conclusions.',
   ].join('\n');
 }
 
@@ -246,6 +382,13 @@ export async function POST(req: NextRequest) {
       const sceneTitle = body.sceneTitle?.trim() || 'Slide';
       const language = body.language === 'en-US' ? 'en-US' : 'zh-CN';
       const semanticDocument = parseNotebookContentDocument(content.semanticDocument);
+      const sourceDocument =
+        semanticDocument ||
+        buildFallbackDocumentFromSlideContent({
+          sceneTitle,
+          language,
+          content,
+        });
 
       const { model, modelInfo, modelString } = await resolveModelFromHeaders(req, {
         allowOpenAIModelOverride: true,
@@ -281,6 +424,24 @@ export async function POST(req: NextRequest) {
           'PARSE_FAILED',
           500,
           'Model did not return a valid notebook content document',
+        );
+      }
+
+      const sourceBlockCount = sourceDocument.blocks.length;
+      const repairedBlockCount = document.blocks.length;
+      const sourceSignal = estimateDocumentSignal(sourceDocument);
+      const repairedSignal = estimateDocumentSignal(document);
+
+      if (
+        repairedBlockCount < Math.max(2, Math.ceil(sourceBlockCount * 0.6)) ||
+        repairedSignal < Math.max(40, Math.floor(sourceSignal * 0.55))
+      ) {
+        return apiError(
+          'GENERATION_FAILED',
+          409,
+          language === 'zh-CN'
+            ? '修复结果疑似删掉了题解内容，已保留原页不做修改'
+            : 'Repair result looked destructive, so the original slide was kept',
         );
       }
 

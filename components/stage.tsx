@@ -1009,9 +1009,18 @@ export function Stage({
         throw new Error(data.error?.trim() || 'AI 修复失败');
       }
 
+      const repairSnapshot =
+        currentScene.repairSnapshot ||
+        ({
+          title: currentScene.title,
+          content: JSON.parse(JSON.stringify(currentScene.content)) as SlideContent,
+          savedAt: Date.now(),
+        } satisfies NonNullable<Scene['repairSnapshot']>);
+
       updateScene(currentScene.id, {
         title: data.sceneTitle?.trim() || currentScene.title,
         content: data.content,
+        repairSnapshot,
         updatedAt: Date.now(),
       });
       toast.success('当前页的数学符号已修复');
@@ -1021,6 +1030,25 @@ export function Stage({
       setMathRepairPending(false);
     }
   }, [currentScene, mathRepairPending, stageLanguage, updateScene]);
+
+  const handleRestorePreRepairSlide = useCallback(() => {
+    if (
+      !currentScene ||
+      currentScene.type !== 'slide' ||
+      currentScene.content.type !== 'slide' ||
+      !currentScene.repairSnapshot
+    ) {
+      return;
+    }
+
+    updateScene(currentScene.id, {
+      title: currentScene.repairSnapshot.title,
+      content: currentScene.repairSnapshot.content,
+      repairSnapshot: undefined,
+      updatedAt: Date.now(),
+    });
+    toast.success('已恢复到修复前的版本');
+  }, [currentScene, updateScene]);
 
   // Map engine mode to the CanvasArea's expected engine state
   const canvasEngineState = (() => {
@@ -1229,10 +1257,29 @@ export function Stage({
 
   const canRepairCurrentSlide =
     !isPendingScene && currentScene?.type === 'slide' && currentScene.content.type === 'slide';
+  const canRestoreCurrentSlide =
+    currentScene?.type === 'slide' &&
+    currentScene.content.type === 'slide' &&
+    Boolean(currentScene.repairSnapshot);
 
   const titleActions =
-    canEditCurrentSlide || slideEditorOpen || canRepairCurrentSlide ? (
+    canEditCurrentSlide || slideEditorOpen || canRepairCurrentSlide || canRestoreCurrentSlide ? (
       <div className="flex items-center gap-2">
+        {canRestoreCurrentSlide ? (
+          <button
+            type="button"
+            onClick={handleRestorePreRepairSlide}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+              'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-950/35 dark:text-amber-100 dark:hover:bg-amber-950/55',
+            )}
+            title="恢复到 AI 修复前的版本"
+          >
+            <AlertTriangle className="size-3.5" />
+            恢复修复前
+          </button>
+        ) : null}
+
         {canRepairCurrentSlide ? (
           <button
             type="button"
