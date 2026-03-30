@@ -84,10 +84,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
 
   useEffect(() => {
-    if (!isChatPage) setContactSearchQuery('');
-  }, [isChatPage]);
-
-  useEffect(() => {
     if (!pathname) return;
     const shouldClear = COURSE_CONTEXT_CLEAR_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -260,7 +256,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     collapsed={collapsed}
                     courseName={courseName}
                     courseAvatarUrl={resolvedCourseAvatar}
-                    searchQuery={contactSearchQuery}
+                    searchQuery={isChatPage ? contactSearchQuery : ''}
                   />
                 </Suspense>
               </div>

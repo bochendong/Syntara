@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Star } from 'lucide-react';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { backendJson } from '@/lib/utils/backend-api';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
+import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { listStagesByCourse } from '@/lib/utils/stage-storage';
 
 type StoreNotebook = {
   id: string;
@@ -58,14 +60,16 @@ export default function StoreCourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
+  const currentCourseId = useCurrentCourseStore((s) => s.id);
   const [data, setData] = useState<StoreCourseDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [ownedNotebookMap, setOwnedNotebookMap] = useState<Record<string, string>>({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -74,11 +78,36 @@ export default function StoreCourseDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     void load();
-  }, [id]);
+  }, [load]);
+
+  useEffect(() => {
+    if (!currentCourseId) {
+      setOwnedNotebookMap({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const notebooks = await listStagesByCourse(currentCourseId);
+      if (cancelled) return;
+
+      const nextMap: Record<string, string> = {};
+      for (const notebook of notebooks) {
+        const sourceNotebookId = notebook.sourceNotebookId?.trim();
+        if (!sourceNotebookId) continue;
+        nextMap[sourceNotebookId] = notebook.id;
+      }
+      setOwnedNotebookMap(nextMap);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentCourseId]);
 
   const priceLabel = useMemo(() => {
     const cents = data?.course.coursePriceCents ?? 0;
@@ -208,45 +237,54 @@ export default function StoreCourseDetailPage() {
           <div className="rounded-[24px] border border-border/70 bg-card/55 p-6 backdrop-blur-sm">
             <h2 className="text-lg font-semibold">包含的笔记本</h2>
             <div className="mt-4 space-y-3">
-              {course.notebooks.map((notebook) => (
-                <div
-                  key={notebook.id}
-                  className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-white">{notebook.name}</p>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        {notebook.description || '该笔记本暂无描述。'}
-                      </p>
+              {course.notebooks.map((notebook) =>
+                (() => {
+                  const ownedNotebookId = ownedNotebookMap[notebook.id] ?? null;
+                  const notebookAlreadyOwned = Boolean(notebook.purchased || ownedNotebookId);
+
+                  return (
+                    <div
+                      key={notebook.id}
+                      className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {notebook.name}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {notebook.description || '该笔记本暂无描述。'}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-slate-200/80 px-2.5 py-1 text-xs dark:border-white/10">
+                          {notebook._count.scenes} 页
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="text-xs text-muted-foreground">
+                          单本价格 ¥{(notebook.notebookPriceCents / 100).toFixed(2)}
+                        </div>
+                        {notebook.listedInNotebookStore && !course.purchased ? (
+                          notebookAlreadyOwned ? (
+                            <Button size="sm" variant="outline" className="rounded-xl" disabled>
+                              已拥有
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl"
+                              onClick={() => void handleBuyNotebook(notebook.id)}
+                            >
+                              购买单本
+                            </Button>
+                          )
+                        ) : null}
+                      </div>
                     </div>
-                    <span className="rounded-full border border-slate-200/80 px-2.5 py-1 text-xs dark:border-white/10">
-                      {notebook._count.scenes} 页
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <div className="text-xs text-muted-foreground">
-                      单本价格 ¥{(notebook.notebookPriceCents / 100).toFixed(2)}
-                    </div>
-                    {notebook.listedInNotebookStore && !course.purchased ? (
-                      notebook.purchased && notebook.clonedNotebookId ? (
-                        <Button size="sm" variant="outline" className="rounded-xl" asChild>
-                          <Link href={`/classroom/${notebook.clonedNotebookId}`}>打开已购副本</Link>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl"
-                          onClick={() => void handleBuyNotebook(notebook.id)}
-                        >
-                          购买单本
-                        </Button>
-                      )
-                    ) : null}
-                  </div>
-                </div>
-              ))}
+                  );
+                })(),
+              )}
             </div>
           </div>
 

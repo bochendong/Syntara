@@ -494,7 +494,7 @@ export function CreateCourseForm({
           </div>
         </div>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
-          {COURSE_AVATAR_PRESET_URLS.slice(0, 21).map((url) => {
+          {COURSE_AVATAR_PRESET_URLS.map((url) => {
             const active = avatarUrl === url;
             return (
               <button

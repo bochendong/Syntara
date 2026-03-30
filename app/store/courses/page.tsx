@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CourseGalleryCard } from '@/components/course-gallery-card';
 import { useAuthStore } from '@/lib/store/auth';
-import { cloneCourseFromStore, listCommunityStoreCourses, listCourses } from '@/lib/utils/course-storage';
+import {
+  cloneCourseFromStore,
+  listCommunityStoreCourses,
+  listCourses,
+} from '@/lib/utils/course-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import type { CommunityCourseListItem, CourseRecord } from '@/lib/utils/database';
 import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
@@ -27,10 +31,10 @@ export default function CourseStorePage() {
   const userId = useAuthStore((s) => s.userId);
   const creatorDisplay = useAuthStore((s) => {
     const n = s.name.trim();
-    if (n) return n;
+    if (n) return '你';
     const e = s.email.trim();
-    if (e) return e.split('@')[0] ?? e;
-    return '我';
+    if (e) return '你';
+    return '你';
   });
   const [mine, setMine] = useState<Array<{ course: CourseRecord; notebookCount: number }>>([]);
   const [community, setCommunity] = useState<CommunityCourseListItem[]>([]);
@@ -118,7 +122,7 @@ export default function CourseStorePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {community.map((item, i) => {
+              {community.map((item) => {
                 const cardItem = {
                   id: item.id,
                   name: item.name,
@@ -136,19 +140,23 @@ export default function CourseStorePage() {
                 return (
                   <CourseGalleryCard
                     key={item.id}
-                    listIndex={i}
                     course={cardItem}
                     tags={item.tags.length > 0 ? item.tags : undefined}
                     badge="社区课程"
                     subtitle={formatDate(item.updatedAt)}
                     creatorName={item.ownerName}
+                    courseMetaChips={{
+                      school: item.university?.trim() || undefined,
+                      purposeType: purposeLabel(item.purpose),
+                      courseCode: item.courseCode?.trim() || undefined,
+                    }}
                     countUnit="个笔记本"
                     priceLabel={`¥${((item.coursePriceCents ?? 0) / 100).toFixed(2)}`}
                     ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
                     actionLabel="查看详情"
                     onAction={() => router.push(`/store/courses/${item.id}`)}
                     secondaryActionLabel={
-                      addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已购买' : '购买'
+                      addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已拥有' : '购买'
                     }
                     onSecondaryAction={
                       item.purchased || addingId === `c:${item.id}`

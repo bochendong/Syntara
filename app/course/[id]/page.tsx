@@ -244,7 +244,7 @@ export default function CourseDetailPage() {
           <>
             <section className="mb-6 apple-glass rounded-[28px] p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex min-w-0 flex-1 gap-4">
+                <div className="flex min-w-0 flex-1 items-center gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element -- public 静态资源 */}
                   <img
                     src={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
@@ -343,7 +343,7 @@ export default function CourseDetailPage() {
                     coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
                     slide={thumbnails[nb.id]}
                     subtitle={formatDate(nb.updatedAt)}
-                    secondaryLabel="互动课件"
+                    secondaryLabel=""
                     priceLabel={`¥${((nb.notebookPriceCents ?? 0) / 100).toFixed(2)}`}
                     actionLabel="打开笔记本"
                     onAction={() => router.push(`/classroom/${nb.id}`)}

@@ -171,7 +171,7 @@ export default function StorePage() {
                   schoolLine={schoolLine}
                   badge="我的笔记本"
                   subtitle={formatDate(nb.updatedAt)}
-                  secondaryLabel="互动课件"
+                  secondaryLabel=""
                   actionLabel={actionLabel}
                   onAction={async () => {
                     if (needsJoin && currentCourseId) {

@@ -38,10 +38,10 @@ export default function MyCoursesPage() {
   const userId = useAuthStore((s) => s.userId);
   const creatorDisplay = useAuthStore((s) => {
     const n = s.name.trim();
-    if (n) return n;
+    if (n) return '你';
     const e = s.email.trim();
-    if (e) return e.split('@')[0] ?? e;
-    return '我';
+    if (e) return '你';
+    return '你';
   });
   const [courses, setCourses] = useState<Array<{ course: CourseRecord; notebookCount: number }>>(
     [],

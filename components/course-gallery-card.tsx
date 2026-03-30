@@ -193,6 +193,22 @@ export function CourseGalleryCard({
 
   const resolvedCoverUrl = coverImgSrc ?? preferredCoverUrl;
 
+  /** 无「创建者」行时（如笔记本卡片），把节数/数量芯片放在标题下第二行，避免与底部 meta 重复 */
+  const showCountInSecondaryRow = !creatorName?.trim();
+  const showCountInMetaRow = !showCountInSecondaryRow;
+
+  const countChip = (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+      <School className="size-3.5 shrink-0 opacity-80" strokeWidth={1.75} />
+      {course.sceneCount} {countUnit}
+    </span>
+  );
+
+  const hasCourseMetaChips =
+    Boolean(courseMetaChips?.school?.trim()) ||
+    Boolean(courseMetaChips?.purposeType?.trim()) ||
+    Boolean(courseMetaChips?.courseCode?.trim());
+
   return (
     <article
       className={cn(
@@ -352,24 +368,44 @@ export function CourseGalleryCard({
                   ) : null}
                 </div>
               ) : null}
-              <p
-                className={cn(
-                  'truncate text-[13px] text-slate-500 dark:text-slate-400',
-                  showNotebookCourseMeta && (parentCourseName?.trim() || schoolLine?.trim())
-                    ? 'mt-1.5'
-                    : 'mt-1',
-                )}
-                title={
-                  creatorName?.trim()
-                    ? `创建者 · ${creatorName.trim()}`
-                    : String(secondaryLabel)
-                }
-              >
-                {creatorName?.trim()
-                  ? `创建者 · ${creatorName.trim()}`
-                  : secondaryLabel}
-              </p>
-              {priceLabel ? (
+              {creatorName?.trim() ? (
+                <p
+                  className={cn(
+                    'truncate text-[13px] text-slate-500 dark:text-slate-400',
+                    showNotebookCourseMeta && (parentCourseName?.trim() || schoolLine?.trim())
+                      ? 'mt-1.5'
+                      : 'mt-1',
+                  )}
+                  title={`创建者 · ${creatorName.trim()}`}
+                >
+                  {`创建者 · ${creatorName.trim()}`}
+                </p>
+              ) : (
+                <div
+                  className={cn(
+                    'flex min-w-0 flex-wrap items-center gap-2',
+                    showNotebookCourseMeta && (parentCourseName?.trim() || schoolLine?.trim())
+                      ? 'mt-1.5'
+                      : 'mt-1',
+                  )}
+                >
+                  {secondaryLabel?.trim() ? (
+                    <p
+                      className="min-w-0 max-w-full flex-1 truncate text-[13px] text-slate-500 dark:text-slate-400"
+                      title={secondaryLabel.trim()}
+                    >
+                      {secondaryLabel.trim()}
+                    </p>
+                  ) : null}
+                  {countChip}
+                  {priceLabel ? (
+                    <span className="inline-flex shrink-0 items-center rounded-full border border-emerald-200/90 bg-emerald-50/80 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-950/30 dark:text-emerald-200">
+                      {priceLabel}
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              {creatorName?.trim() && priceLabel ? (
                 <div className="mt-2">
                   <span className="inline-flex items-center rounded-full border border-emerald-200/90 bg-emerald-50/80 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-950/30 dark:text-emerald-200">
                     {priceLabel}
@@ -415,13 +451,18 @@ export function CourseGalleryCard({
         </div>
 
         <p
-          className="line-clamp-3 min-h-[4.875rem] text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300"
+          className="line-clamp-4 min-h-[6.25rem] text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300"
           title={description}
         >
           {description}
         </p>
 
-        <div className="mt-3 min-h-[3.25rem]">
+        <div
+          className={cn(
+            'mt-3',
+            tags && tags.length > 0 ? 'space-y-2' : undefined,
+          )}
+        >
           {tags && tags.length > 0 ? (
             <div className="flex flex-wrap content-start gap-1.5">
               {tags.slice(0, 8).map((tag, i) => (
@@ -439,30 +480,28 @@ export function CourseGalleryCard({
               ) : null}
             </div>
           ) : null}
-        </div>
-
-        <div className="mt-4 min-h-[2.1rem]">
-          <div className="flex flex-wrap content-start gap-2">
-          {courseMetaChips?.school?.trim() ? (
-            <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-              {courseMetaChips.school.trim()}
-            </span>
+          {hasCourseMetaChips || showCountInMetaRow ? (
+            <div className="min-h-[2.1rem]">
+              <div className="flex flex-wrap content-start gap-2">
+                {courseMetaChips?.school?.trim() ? (
+                  <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+                    {courseMetaChips.school.trim()}
+                  </span>
+                ) : null}
+                {courseMetaChips?.purposeType?.trim() ? (
+                  <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+                    {courseMetaChips.purposeType.trim()}
+                  </span>
+                ) : null}
+                {courseMetaChips?.courseCode?.trim() ? (
+                  <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+                    {courseMetaChips.courseCode.trim()}
+                  </span>
+                ) : null}
+                {showCountInMetaRow ? countChip : null}
+              </div>
+            </div>
           ) : null}
-          {courseMetaChips?.purposeType?.trim() ? (
-            <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-              {courseMetaChips.purposeType.trim()}
-            </span>
-          ) : null}
-          {courseMetaChips?.courseCode?.trim() ? (
-            <span className="inline-flex items-center rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-              {courseMetaChips.courseCode.trim()}
-            </span>
-          ) : null}
-          <span className="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white/80 px-2 py-0.5 text-[11px] text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-            <School className="size-3.5 shrink-0 opacity-80" strokeWidth={1.75} />
-            {course.sceneCount} {countUnit}
-          </span>
-          </div>
         </div>
 
         <div className="mt-auto flex gap-2 pt-5">
