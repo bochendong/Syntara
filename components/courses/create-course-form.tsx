@@ -153,6 +153,7 @@ export function CreateCourseForm({
   const [university, setUniversity] = useState('');
   const [courseCode, setCourseCode] = useState('');
   const [listedInCourseStore, setListedInCourseStore] = useState(false);
+  const [coursePrice, setCoursePrice] = useState('0');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -166,6 +167,7 @@ export function CreateCourseForm({
     setUniversity(editCourse.university ?? '');
     setCourseCode(editCourse.courseCode ?? '');
     setListedInCourseStore(Boolean(editCourse.listedInCourseStore));
+    setCoursePrice(String(editCourse.coursePriceCents ?? 0));
     setError(null);
   }, [editCourse]);
 
@@ -226,6 +228,8 @@ export function CreateCourseForm({
     }
   };
 
+  const coursePriceCents = Math.max(0, Number.parseInt(coursePrice || '0', 10) || 0);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -246,6 +250,7 @@ export function CreateCourseForm({
           university: purpose === 'university' ? university : undefined,
           courseCode: purpose === 'university' ? courseCode : undefined,
           listedInCourseStore,
+          coursePriceCents,
         });
         onSuccess(editCourse.id);
       } else {
@@ -257,6 +262,7 @@ export function CreateCourseForm({
           purpose,
           university: purpose === 'university' ? university : undefined,
           courseCode: purpose === 'university' ? courseCode : undefined,
+          coursePriceCents,
         });
         if (userId) markCourseOwnedByUser(userId, course.id);
         onSuccess(course.id);
@@ -322,7 +328,10 @@ export function CreateCourseForm({
       </div>
 
       <div ref={tagFieldRef} className="relative">
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="course-tags-input">
+        <label
+          className="text-sm font-medium text-slate-700 dark:text-slate-200"
+          htmlFor="course-tags-input"
+        >
           Tag
         </label>
         <input
@@ -465,7 +474,7 @@ export function CreateCourseForm({
           <div className="min-w-0 flex-1 space-y-1">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-100">在课程商城展示</p>
             <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              开启后，其他登录用户可在课程商城「社区课程」中看到本课程，并可将课程信息复制到自己的空间（不会复制笔记本内容）。
+              开启后，其他登录用户可在课程商城看到本课程；发布课程时会默认发布该课程下的全部笔记本。用户购买后会复制整门课程和全部笔记本到自己的空间。
             </p>
           </div>
           <Switch
@@ -474,6 +483,25 @@ export function CreateCourseForm({
             className="shrink-0"
             aria-label="在课程商城展示"
           />
+        </div>
+      ) : null}
+
+      {editCourse ? (
+        <div>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">课程价格</label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              value={coursePrice}
+              onChange={(e) => setCoursePrice(e.target.value.replace(/[^\d]/g, ''))}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-violet-500/0 transition-[box-shadow,border-color] focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20 dark:border-white/15 dark:bg-white/5 dark:text-white"
+              placeholder="0"
+              inputMode="numeric"
+            />
+            <span className="shrink-0 text-sm text-slate-500 dark:text-slate-400">积分</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            设为 0 表示免费。课程价格用于整门课购买；发布课程会连带发布其下笔记本。
+          </p>
         </div>
       ) : null}
 

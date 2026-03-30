@@ -16,12 +16,6 @@ import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 
-/** Apple-style glass navigation surface */
-const surfaceClass = cn(
-  'flex h-full flex-col overflow-hidden apple-glass-heavy',
-  'rounded-[20px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
-);
-
 const scrollClass = cn(
   'min-h-0 flex-1 overflow-y-auto py-2',
   '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent',
@@ -38,6 +32,7 @@ export interface AppLeftRailProps {
 /** 进入这些路由时清空「当前课程」。侧栏「商城」：未选课程 → `/store/courses`（课程商城）；已选课程 → `/store`（笔记本商城） */
 const COURSE_CONTEXT_CLEAR_PREFIXES = [
   '/my-courses',
+  '/profile',
   '/settings',
   '/live2d',
   '/login',
@@ -61,17 +56,28 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const courseAvatarUrl = useCurrentCourseStore((s) => s.avatarUrl);
   const clearCurrentCourse = useCurrentCourseStore((s) => s.clearCurrentCourse);
 
-  const displayName =
-    nickname.trim() || authName.trim() || t('profile.defaultNickname');
+  const displayName = nickname.trim() || authName.trim() || t('profile.defaultNickname');
 
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
 
   const inCourseContext = Boolean(courseId);
+  const notebookSidebar =
+    inCourseContext || pathname === '/store' || pathname?.startsWith('/store/');
   const resolvedCourseAvatar = resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl);
   const railAvatarSrc = inCourseContext ? resolvedCourseAvatar : avatar;
   const railTitle = inCourseContext ? courseName : displayName;
   const railHref = inCourseContext ? `/course/${courseId}` : '/';
   const railTooltip = inCourseContext ? '课程主页' : '首页';
+  const railSurfaceClass = cn(
+    'flex h-full flex-col overflow-hidden rounded-[20px] transition-[width,box-shadow,background,border-color] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+    notebookSidebar
+      ? [
+          'border border-slate-900/[0.08] bg-[linear-gradient(180deg,rgba(236,244,255,0.96)_0%,rgba(244,247,255,0.92)_30%,rgba(255,255,255,0.92)_100%)] shadow-[0_24px_48px_rgba(60,92,154,0.12)]',
+          'dark:border-white/[0.08] dark:bg-[linear-gradient(180deg,rgba(11,19,40,0.96)_0%,rgba(19,28,52,0.94)_34%,rgba(14,18,31,0.95)_100%)] dark:shadow-[0_24px_48px_rgba(2,6,23,0.42)]',
+        ]
+      : 'apple-glass-heavy',
+  );
+  const contextBadge = notebookSidebar ? 'Notebook 工作区' : '课程主页';
 
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
 
@@ -102,7 +108,10 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
         )}
         aria-label="主导航"
       >
-        <div className={cn('pointer-events-auto h-full', surfaceClass)}>
+        <div className={cn('pointer-events-auto h-full', railSurfaceClass)}>
+          {notebookSidebar ? (
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(76,110,245,0.16),transparent_72%)] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_70%)]" />
+          ) : null}
           {isChatPage ? (
             <div
               className={cn(
@@ -191,6 +200,16 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
                     {railTitle}
                   </p>
+                  <div
+                    className={cn(
+                      'mt-1 rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.14em]',
+                      notebookSidebar
+                        ? 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200'
+                        : 'bg-black/[0.04] text-muted-foreground dark:bg-white/[0.05]',
+                    )}
+                  >
+                    {contextBadge}
+                  </div>
                 </>
               )}
 
@@ -231,7 +250,9 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               <div className={cn(scrollClass, 'min-h-0 flex-1 px-0')}>
                 <Suspense
                   fallback={
-                    <div className="px-3 py-8 text-center text-xs text-muted-foreground">加载联系人…</div>
+                    <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      加载联系人…
+                    </div>
                   }
                 >
                   <ChatContactsRail
@@ -255,6 +276,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               <div className={cn(scrollClass, 'px-0')}>
                 <AppCoreNavList
                   collapsed={collapsed}
+                  variant={notebookSidebar ? 'notebook' : 'home'}
                   onItemClick={(key) => {
                     if (key === 'chat') expandIfCollapsed();
                   }}
@@ -265,47 +287,48 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
 
           <div className="shrink-0 border-t border-slate-900/[0.08] dark:border-white/[0.08]">
             {!collapsed ? (
-              <div className="flex items-center gap-0.5 px-3 py-3">
-                <div className="mr-auto min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium leading-tight" title={displayName}>
-                    {isLoggedIn ? displayName : 'Syntara'}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {isLoggedIn ? '已登录' : '本地体验'}
-                  </p>
-                </div>
-                {isChatPage ? (
+              <div className="px-3 py-3">
+                <div className="flex items-center gap-0.5">
+                  <div className="mr-auto min-w-0 flex-1 pl-1">
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {isLoggedIn ? '账户已连接' : '本地体验模式'}
+                    </p>
+                  </div>
+                  {isChatPage ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => router.push('/settings')}
+                          className={cn(
+                            'flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
+                            settingsActive &&
+                              'bg-violet-600/14 text-foreground dark:bg-violet-400/[0.18]',
+                          )}
+                          aria-label="设置"
+                        >
+                          <Settings className="size-[18px]" strokeWidth={1.75} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">设置</TooltipContent>
+                    </Tooltip>
+                  ) : null}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => router.push('/settings')}
-                        className={cn(
-                          'flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
-                          settingsActive &&
-                            'bg-violet-600/14 text-foreground dark:bg-violet-400/[0.18]',
-                        )}
-                        aria-label="设置"
+                        onClick={() =>
+                          isLoggedIn ? void signOutAndRedirect() : router.push('/login')
+                        }
+                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+                        aria-label={isLoggedIn ? '退出登录' : '登录'}
                       >
-                        <Settings className="size-[18px]" strokeWidth={1.75} />
+                        <LogOut className="size-[18px]" strokeWidth={1.75} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">设置</TooltipContent>
+                    <TooltipContent side="right">{isLoggedIn ? '退出登录' : '登录'}</TooltipContent>
                   </Tooltip>
-                ) : null}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => (isLoggedIn ? void signOutAndRedirect() : router.push('/login'))}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
-                      aria-label={isLoggedIn ? '退出登录' : '登录'}
-                    >
-                      <LogOut className="size-[18px]" strokeWidth={1.75} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">{isLoggedIn ? '退出登录' : '登录'}</TooltipContent>
-                </Tooltip>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 px-2 py-3">
@@ -332,7 +355,9 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => (isLoggedIn ? void signOutAndRedirect() : router.push('/login'))}
+                      onClick={() =>
+                        isLoggedIn ? void signOutAndRedirect() : router.push('/login')
+                      }
                       className="flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                       aria-label={isLoggedIn ? '退出登录' : '登录'}
                     >

@@ -31,14 +31,14 @@ const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled';
 const LANGUAGE_STORAGE_KEY = 'generationLanguage';
 
 interface FormState {
-  pdfFile: File | null;
+  sourceFile: File | null;
   requirement: string;
   language: 'zh-CN' | 'en-US';
   webSearch: boolean;
 }
 
 const initialFormState: FormState = {
-  pdfFile: null,
+  sourceFile: null,
   requirement: '',
   language: 'zh-CN',
   webSearch: false,
@@ -54,7 +54,11 @@ export interface CreateNotebookComposerProps {
 /**
  * 与 `/create?courseId=` 相同的底部输入区与生成逻辑（写入 generationSession 并跳转预览页）。
  */
-export function CreateNotebookComposer({ courseId, compact, className }: CreateNotebookComposerProps) {
+export function CreateNotebookComposer({
+  courseId,
+  compact,
+  className,
+}: CreateNotebookComposerProps) {
   const { t } = useI18n();
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialFormState);
@@ -198,7 +202,7 @@ export function CreateNotebookComposer({ courseId, compact, className }: CreateN
         requirement: form.requirement,
         language: form.language,
         webSearch: form.webSearch,
-        pdfFile: form.pdfFile,
+        sourceFile: form.sourceFile,
         userNickname: userProfile.nickname || undefined,
         userBio: userProfile.bio || undefined,
         pdfProviderId,
@@ -257,9 +261,9 @@ export function CreateNotebookComposer({ courseId, compact, className }: CreateN
               onSettingsOpen={(section) => {
                 openSettings(section);
               }}
-              pdfFile={form.pdfFile}
-              onPdfFileChange={(f) => updateForm('pdfFile', f)}
-              onPdfError={setError}
+              sourceFile={form.sourceFile}
+              onSourceFileChange={(f) => updateForm('sourceFile', f)}
+              onSourceFileError={setError}
             />
           </div>
 

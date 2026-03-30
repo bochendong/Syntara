@@ -26,7 +26,7 @@ export function BaseTableElement({ elementInfo, target }: BaseTableElementProps)
         className="rotate-wrapper w-full h-full"
         style={{ transform: `rotate(${elementInfo.rotate}deg)` }}
       >
-        <div className="element-content w-full h-full">
+        <div className="element-content relative w-full h-full overflow-hidden">
           <StaticTable elementInfo={elementInfo} />
         </div>
       </div>

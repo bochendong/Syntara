@@ -9,19 +9,24 @@ import {
   Settings,
   ShoppingBag,
   Sparkles,
+  UserRound,
   UsersRound,
 } from 'lucide-react';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-function navItemClass(collapsed: boolean, active: boolean) {
+function navItemClass(collapsed: boolean, active: boolean, variant: 'home' | 'notebook') {
   return cn(
     'flex min-h-11 w-full items-center gap-3 rounded-[12px] py-2.5 text-left text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
     collapsed ? 'justify-center px-2' : 'px-3',
     active
-      ? 'bg-[rgba(0,122,255,0.1)] font-medium text-[#007AFF] dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]'
-      : 'font-normal text-[#1d1d1f]/80 dark:text-white/75 hover:bg-black/[0.04] hover:translate-x-0.5 dark:hover:bg-white/[0.06]',
+      ? variant === 'notebook'
+        ? 'bg-[linear-gradient(135deg,rgba(76,110,245,0.16),rgba(14,165,233,0.12))] font-medium text-[#3155D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] dark:bg-[linear-gradient(135deg,rgba(99,102,241,0.24),rgba(59,130,246,0.18))] dark:text-sky-100'
+        : 'bg-[rgba(0,122,255,0.1)] font-medium text-[#007AFF] dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]'
+      : variant === 'notebook'
+        ? 'font-normal text-slate-700/90 dark:text-white/78 hover:bg-slate-900/[0.05] hover:translate-x-0.5 dark:hover:bg-white/[0.07]'
+        : 'font-normal text-[#1d1d1f]/80 dark:text-white/75 hover:bg-black/[0.04] hover:translate-x-0.5 dark:hover:bg-white/[0.06]',
   );
 }
 
@@ -36,6 +41,7 @@ type CoreNavItem = {
 
 export interface AppCoreNavListProps {
   collapsed: boolean;
+  variant?: 'home' | 'notebook';
   /** 收起时 Tooltip 弹出方向；左侧栏用 right，右侧栏用 left */
   tooltipSide?: 'left' | 'right';
   /** 点击某项时（在导航之前调用），例如聊天页左侧栏点击「聊天」时展开侧栏 */
@@ -47,6 +53,7 @@ export interface AppCoreNavListProps {
  */
 export function AppCoreNavList({
   collapsed,
+  variant = 'home',
   tooltipSide = 'right',
   onItemClick,
 }: AppCoreNavListProps) {
@@ -56,9 +63,7 @@ export function AppCoreNavList({
   const inCourseContext = Boolean(courseId);
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
 
-  const agentTeamsHref = courseId
-    ? `/course/${encodeURIComponent(courseId)}`
-    : '/agent-teams';
+  const agentTeamsHref = courseId ? `/course/${encodeURIComponent(courseId)}` : '/agent-teams';
   const agentTeamsActive = courseId
     ? pathname === `/course/${courseId}`
     : pathname === '/agent-teams' || pathname?.startsWith('/agent-teams/');
@@ -70,7 +75,9 @@ export function AppCoreNavList({
   const storeLabel = inCourseContext ? '笔记本商城' : '课程商城';
 
   const live2dActive = pathname === '/live2d' || pathname?.startsWith('/live2d/');
+  const profileActive = pathname === '/profile' || pathname?.startsWith('/profile/');
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
+  const isCourseHomeSidebar = pathname === '/my-courses';
 
   const coreNavItems: CoreNavItem[] = [
     {
@@ -98,6 +105,18 @@ export function AppCoreNavList({
             tooltip: '选择虚拟讲师形象',
             icon: Sparkles,
             active: live2dActive,
+          },
+        ] satisfies CoreNavItem[])
+      : []),
+    ...(isCourseHomeSidebar
+      ? ([
+          {
+            key: 'profile',
+            href: '/profile',
+            label: '个人中心',
+            tooltip: '个人中心',
+            icon: UserRound,
+            active: profileActive,
           },
         ] satisfies CoreNavItem[])
       : []),
@@ -150,7 +169,7 @@ export function AppCoreNavList({
               <TooltipTrigger asChild>
                 <Link
                   href={item.href}
-                  className={navItemClass(collapsed, item.active)}
+                  className={navItemClass(collapsed, item.active, variant)}
                   aria-current={item.active ? 'page' : undefined}
                   onClick={() => onItemClick?.(item.key)}
                 >

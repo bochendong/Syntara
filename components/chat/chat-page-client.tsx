@@ -4,7 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
-import { ArrowUp, BookOpen, FileText, Loader2, Paperclip, Presentation, Sparkles, X } from 'lucide-react';
+import {
+  ArrowUp,
+  BookOpen,
+  FileText,
+  Loader2,
+  Paperclip,
+  Presentation,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { ChatAttachmentBubble } from '@/components/chat/chat-attachment-bubble';
 import { cn } from '@/lib/utils';
 import {
@@ -22,7 +31,10 @@ import {
   ComposerInputShell,
   composerTextareaClassName,
 } from '@/components/ui/composer-input-shell';
-import { ComposerVoiceSelector, GenerationModelSelector } from '@/components/generation/generation-toolbar';
+import {
+  ComposerVoiceSelector,
+  GenerationModelSelector,
+} from '@/components/generation/generation-toolbar';
 import { SpeechButton } from '@/components/audio/speech-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -46,7 +58,11 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { USER_AVATAR } from '@/lib/types/roundtable';
 import type { ChatMessageMetadata, MessageAction } from '@/lib/types/chat';
 import type { NotebookKnowledgeReference } from '@/lib/types/notebook-message';
-import { applyNotebookPlan, planNotebookMessage, type NotebookPlanResult } from '@/lib/notebook/send-message';
+import {
+  applyNotebookPlan,
+  planNotebookMessage,
+  type NotebookPlanResult,
+} from '@/lib/notebook/send-message';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import {
   listAgentsForCourse,
@@ -79,14 +95,20 @@ import {
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
-import { runNotebookGenerationTask, type NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
+import {
+  runNotebookGenerationTask,
+  type NotebookGenerationProgress,
+} from '@/lib/create/run-notebook-generation-task';
 import { useOrchestratorNotebookGenStore } from '@/lib/store/orchestrator-notebook-generation';
 import {
   OrchestratorNotebookProgressPanel,
   OrchestratorRemoteTaskBanner,
 } from '@/components/chat/orchestrator-notebook-progress';
 import { NotebookContentView } from '@/components/notebook-content/notebook-content-view';
-import { buildNotebookContentDocumentFromText, type NotebookContentDocument } from '@/lib/notebook-content';
+import {
+  buildNotebookContentDocumentFromText,
+  type NotebookContentDocument,
+} from '@/lib/notebook-content';
 
 type NotebookChatMessage =
   | {
@@ -117,7 +139,7 @@ type NotebookAttachmentInput = {
   mimeType: string;
   size: number;
   textExcerpt?: string;
-  /** 原始文件；PDF 可走与创建页一致的 `/api/parse-pdf` 管线 */
+  /** 原始文件；PDF / Markdown 可在总控创建时进入完整笔记本生成管线 */
   file?: File;
 };
 
@@ -135,7 +157,8 @@ function shouldOfferMicroLessonButton(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   if (t.length >= 700) return true;
-  if (/```|def\s+\w+\(|class\s+\w+|big\s*o|复杂度|quicksort|quick sort|递归|算法/i.test(t)) return true;
+  if (/```|def\s+\w+\(|class\s+\w+|big\s*o|复杂度|quicksort|quick sort|递归|算法/i.test(t))
+    return true;
   const lines = t.split(/\r?\n/).filter((l) => l.trim() !== '');
   return lines.length >= 18;
 }
@@ -167,13 +190,11 @@ function messageText(m: UIMessage<ChatMessageMetadata>) {
 }
 
 function formatAppliedSummary(result: {
-  applied?:
-    | {
-        insertedPageRange?: string;
-        updatedPages?: number[];
-        deletedPages?: number[];
-      }
-    | null;
+  applied?: {
+    insertedPageRange?: string;
+    updatedPages?: number[];
+    deletedPages?: number[];
+  } | null;
 }) {
   const a = result.applied;
   if (!a) return '';
@@ -201,11 +222,18 @@ function mergeOrchestratorPrompt(
   const t = text.trim();
   const useAttach = skipPdfExcerptForFullPipeline
     ? attachments.filter(
-        (a) => !(a.mimeType === 'application/pdf' || a.name.toLowerCase().endsWith('.pdf')),
+        (a) =>
+          !(
+            a.mimeType === 'application/pdf' ||
+            a.name.toLowerCase().endsWith('.pdf') ||
+            a.mimeType === 'text/markdown' ||
+            a.mimeType === 'text/x-markdown' ||
+            a.name.toLowerCase().endsWith('.md')
+          ),
       )
     : attachments;
   if (useAttach.length === 0) {
-    return t || (skipPdfExcerptForFullPipeline ? '请根据上传的 PDF 创建笔记本。' : '');
+    return t || (skipPdfExcerptForFullPipeline ? '请根据上传的文档创建笔记本。' : '');
   }
   const blocks = useAttach.map((a) => {
     const excerpt = a.textExcerpt?.trim();
@@ -286,7 +314,9 @@ function stripAttachmentUrlsFromAgentMessages(
   });
 }
 
-function stripAttachmentUrlsFromNotebookMessages(messages: NotebookChatMessage[]): NotebookChatMessage[] {
+function stripAttachmentUrlsFromNotebookMessages(
+  messages: NotebookChatMessage[],
+): NotebookChatMessage[] {
   return messages.map((m) => {
     if (m.role !== 'user' || !m.attachments?.length) return m;
     return {
@@ -296,7 +326,9 @@ function stripAttachmentUrlsFromNotebookMessages(messages: NotebookChatMessage[]
   });
 }
 
-async function hydrateNotebookThread(messages: NotebookChatMessage[]): Promise<NotebookChatMessage[]> {
+async function hydrateNotebookThread(
+  messages: NotebookChatMessage[],
+): Promise<NotebookChatMessage[]> {
   const out: NotebookChatMessage[] = [];
   for (const m of messages) {
     if (m.role !== 'user' || !m.attachments?.length) {
@@ -555,53 +587,55 @@ function InlineLessonDeck({
           topBar={
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-medium text-muted-foreground">临时讲解PPT · {idx + 1}/{total}</p>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-[11px]"
-                  onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                  disabled={idx <= 0}
-                >
-                  上一页
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-[11px]"
-                  onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
-                  disabled={idx >= total - 1}
-                >
-                  下一页
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-[11px]"
-                  onClick={() => {
-                    playbackRequestRef.current += 1;
-                    if (audioRef.current) {
-                      audioRef.current.pause();
-                      audioRef.current = null;
-                    }
-                    if (audioUrlRef.current) {
-                      URL.revokeObjectURL(audioUrlRef.current);
-                      audioUrlRef.current = null;
-                    }
-                    if (playing && typeof window !== 'undefined' && window.speechSynthesis) {
-                      window.speechSynthesis.cancel();
-                    }
-                    setPlaying((v) => !v);
-                  }}
-                  disabled={!ttsEnabled || ttsMuted || ttsVolume <= 0}
-                >
-                  {playing ? '暂停' : '播放'}
-                </Button>
-              </div>
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  临时讲解PPT · {idx + 1}/{total}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                    disabled={idx <= 0}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
+                    disabled={idx >= total - 1}
+                  >
+                    下一页
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => {
+                      playbackRequestRef.current += 1;
+                      if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current = null;
+                      }
+                      if (audioUrlRef.current) {
+                        URL.revokeObjectURL(audioUrlRef.current);
+                        audioUrlRef.current = null;
+                      }
+                      if (playing && typeof window !== 'undefined' && window.speechSynthesis) {
+                        window.speechSynthesis.cancel();
+                      }
+                      setPlaying((v) => !v);
+                    }}
+                    disabled={!ttsEnabled || ttsMuted || ttsVolume <= 0}
+                  >
+                    {playing ? '暂停' : '播放'}
+                  </Button>
+                </div>
               </div>
               {ttsGenerating ? (
                 <div
@@ -619,10 +653,14 @@ function InlineLessonDeck({
             <div>
               <p className="truncate text-[11px] text-muted-foreground">{current.title}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                {narrationMode === 'script' ? '按讲解脚本播放' : '当前页缺少讲解脚本，已回退为页面摘要朗读'}
+                {narrationMode === 'script'
+                  ? '按讲解脚本播放'
+                  : '当前页缺少讲解脚本，已回退为页面摘要朗读'}
               </p>
               {narrationError ? (
-                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">{narrationError}</p>
+                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+                  {narrationError}
+                </p>
               ) : null}
             </div>
           }
@@ -656,7 +694,9 @@ function InlineLessonDeck({
           {savedLabel ? '已保存到笔记本' : saving ? '保存中…' : '保存到笔记本'}
         </Button>
       </div>
-      {savedLabel ? <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">{savedLabel}</p> : null}
+      {savedLabel ? (
+        <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">{savedLabel}</p>
+      ) : null}
     </div>
   );
 }
@@ -682,7 +722,10 @@ function scoreNotebookMatch(message: string, notebook: StageListItem): number {
 }
 
 function stripHtmlTags(input: string): string {
-  return input.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return input
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function sceneSearchText(scene: Scene): string {
@@ -731,10 +774,14 @@ function summarizeQuestionForContext(input?: string): string {
 function attachQuestionContextToFirstScene(scene: Scene, questionSummary: string): Scene {
   if (!questionSummary) return scene;
   const titleBase = (scene.title || '临时讲解').trim();
-  const title = titleBase.includes('题目：') ? titleBase : `${titleBase}（题目：${questionSummary}）`;
+  const title = titleBase.includes('题目：')
+    ? titleBase
+    : `${titleBase}（题目：${questionSummary}）`;
   const intro = `本组讲解对应题目：${questionSummary}。`;
   const actions = scene.actions || [];
-  const firstSpeechIndex = actions.findIndex((action) => action.type === 'speech' && !!action.text?.trim());
+  const firstSpeechIndex = actions.findIndex(
+    (action) => action.type === 'speech' && !!action.text?.trim(),
+  );
 
   if (firstSpeechIndex >= 0) {
     const nextActions = actions.map((action, index) => {
@@ -826,7 +873,8 @@ async function pickInsertIndexWithAI(args: {
       insertAfterOrder?: number;
       reason?: string;
     };
-    if (!resp.ok || data.success === false || typeof data.insertAfterOrder !== 'number') return null;
+    if (!resp.ok || data.success === false || typeof data.insertAfterOrder !== 'number')
+      return null;
     const insertAfter = Math.round(data.insertAfterOrder);
     const insertAt = Math.max(0, Math.min(args.currentScenes.length, insertAfter + 1));
     return { insertAt, reason: data.reason?.trim() || undefined };
@@ -846,13 +894,14 @@ function decideNotebookRoute(
   const explicitNotebookIntent = /(笔记本|notebook|讲义|课件|slides?)/i.test(text);
   const explicitCreateIntent =
     notebooks.length === 0 ||
-    /(创建|新建|生成|做一个|搭一个|帮我做|帮我建|准备一套|给我一套|做成课件|生成笔记本)/i.test(text);
+    /(创建|新建|生成|做一个|搭一个|帮我做|帮我建|准备一套|给我一套|做成课件|生成笔记本)/i.test(
+      text,
+    );
   const genericCreateIntent =
     hasAttachments ||
     (!explicitNotebookIntent &&
       /(总结|总结一下|概述|梳理|提炼|归纳|整理|读一下|看一下|解读|帮我看|帮我总结)/i.test(text));
-  const createIntent =
-    explicitCreateIntent || (mode === 'private' && genericCreateIntent);
+  const createIntent = explicitCreateIntent || (mode === 'private' && genericCreateIntent);
   if (createIntent) return { type: 'create' };
 
   const ranked = notebooks
@@ -864,10 +913,12 @@ function decideNotebookRoute(
 
   if (
     broadIntent ||
-    (positive.length >= 2 &&
-      (positive[1].score >= positive[0].score || positive[0].score <= 2))
+    (positive.length >= 2 && (positive[1].score >= positive[0].score || positive[0].score <= 2))
   ) {
-    return { type: 'multi', notebooks: (positive.length ? positive : ranked).slice(0, 3).map((x) => x.notebook) };
+    return {
+      type: 'multi',
+      notebooks: (positive.length ? positive : ranked).slice(0, 3).map((x) => x.notebook),
+    };
   }
 
   return { type: 'single', notebook: (positive[0] || ranked[0]).notebook };
@@ -985,7 +1036,6 @@ function AgentPeerAvatar({
   );
 }
 
-
 const TEXT_LIKE_MIME_PREFIXES = ['text/', 'application/json', 'application/xml'];
 const TEXT_LIKE_FILE_EXT = [
   '.md',
@@ -1011,6 +1061,17 @@ function isTextLikeFile(file: File): boolean {
   return TEXT_LIKE_FILE_EXT.some((ext) => lower.endsWith(ext));
 }
 
+function isNotebookPipelineSourceFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  const lower = file.name.toLowerCase();
+  return (
+    mime === 'application/pdf' ||
+    lower.endsWith('.pdf') ||
+    mime === 'text/markdown' ||
+    mime === 'text/x-markdown' ||
+    lower.endsWith('.md')
+  );
+}
 
 async function extractTextExcerpt(file: File): Promise<string | undefined> {
   if (!isTextLikeFile(file)) return undefined;
@@ -1089,7 +1150,9 @@ function NotebookReferencePreviewLi({
           {scenesLoading ? (
             <p className="px-1 py-2 text-muted-foreground">正在加载该页预览…</p>
           ) : !scene ? (
-            <p className="px-1 py-2 text-muted-foreground">未找到第 {reference.order} 节（可能已调整页序）。</p>
+            <p className="px-1 py-2 text-muted-foreground">
+              未找到第 {reference.order} 节（可能已调整页序）。
+            </p>
           ) : scene.content.type === 'slide' ? (
             <div className="overflow-hidden rounded-[10px] ring-1 ring-black/[0.06] dark:ring-white/[0.1]">
               <ThumbnailSlide
@@ -1225,7 +1288,9 @@ export function ChatPageClient() {
   const [pickContactDone, setPickContactDone] = useState(false);
   const [contactTaskHint, setContactTaskHint] = useState<string | null>(null);
   const [activeOrchestratorTaskId, setActiveOrchestratorTaskId] = useState<string | null>(null);
-  const [orchestratorChildTasks, setOrchestratorChildTasks] = useState<OrchestratorChildTaskView[]>([]);
+  const [orchestratorChildTasks, setOrchestratorChildTasks] = useState<OrchestratorChildTaskView[]>(
+    [],
+  );
   const [selectedChildTaskId, setSelectedChildTaskId] = useState<string | null>(null);
   /** 总控创建笔记本：与右侧「进行中」任务同步的进度文案 */
   const [orchestratorPipelineProgress, setOrchestratorPipelineProgress] =
@@ -1262,8 +1327,7 @@ export function ChatPageClient() {
   const isCourseOrchestrator = agentId === COURSE_ORCHESTRATOR_ID;
   const orchestratorViewMode: OrchestratorViewMode =
     isCourseOrchestrator && chatView === 'group' ? 'group' : 'private';
-  const shouldRenderGroupReplies =
-    isCourseOrchestrator && orchestratorViewMode === 'group';
+  const shouldRenderGroupReplies = isCourseOrchestrator && orchestratorViewMode === 'group';
   const agentConversationTargetId =
     isCourseOrchestrator && agentId
       ? orchestratorViewMode === 'group'
@@ -1271,7 +1335,11 @@ export function ChatPageClient() {
         : `${agentId}::private`
       : agentId;
 
-  const mode = notebookId ? ('notebook' as const) : agentId ? ('agent' as const) : ('none' as const);
+  const mode = notebookId
+    ? ('notebook' as const)
+    : agentId
+      ? ('agent' as const)
+      : ('none' as const);
 
   useEffect(() => {
     if (!courseId) return;
@@ -1512,7 +1580,8 @@ export function ChatPageClient() {
           currentScenes: current,
           lessonScenes: lessonScenesForSave,
         });
-        const insertAt = aiPlacement?.insertAt ?? pickSmartInsertIndex(current, lessonScenesForSave);
+        const insertAt =
+          aiPlacement?.insertAt ?? pickSmartInsertIndex(current, lessonScenesForSave);
         const now = Date.now();
         const inserted = lessonScenesForSave.map((scene, idx) => ({
           ...scene,
@@ -1522,11 +1591,13 @@ export function ChatPageClient() {
           createdAt: now,
           updatedAt: now,
         }));
-        const merged = [...current.slice(0, insertAt), ...inserted, ...current.slice(insertAt)].map((s, idx) => ({
-          ...s,
-          order: idx,
-          updatedAt: s.updatedAt ?? now,
-        }));
+        const merged = [...current.slice(0, insertAt), ...inserted, ...current.slice(insertAt)].map(
+          (s, idx) => ({
+            ...s,
+            order: idx,
+            updatedAt: s.updatedAt ?? now,
+          }),
+        );
         await saveStageData(notebookId, {
           ...data,
           scenes: merged,
@@ -1559,7 +1630,9 @@ export function ChatPageClient() {
         const message = error instanceof Error ? error.message : '保存失败';
         setNbThread((prev) =>
           prev.map((m) =>
-            m.role === 'assistant' && m.at === targetAt ? { ...m, lessonError: `保存到笔记本失败：${message}` } : m,
+            m.role === 'assistant' && m.at === targetAt
+              ? { ...m, lessonError: `保存到笔记本失败：${message}` }
+              : m,
           ),
         );
         if (taskId) {
@@ -1639,17 +1712,19 @@ export function ChatPageClient() {
       return;
     }
     let cancelled = false;
-    loadContactMessages<UIMessage<ChatMessageMetadata>>(courseId, 'agent', agentConversationTargetId).then(
-      async (messages) => {
-        const filtered = messages.filter((m) => !isMockAgentMessage(m));
-        const hydrated = await hydrateAgentThread(filtered);
-        if (cancelled) {
-          revokeAgentAttachmentUrls(hydrated);
-          return;
-        }
-        setAgThread(hydrated);
-      },
-    );
+    loadContactMessages<UIMessage<ChatMessageMetadata>>(
+      courseId,
+      'agent',
+      agentConversationTargetId,
+    ).then(async (messages) => {
+      const filtered = messages.filter((m) => !isMockAgentMessage(m));
+      const hydrated = await hydrateAgentThread(filtered);
+      if (cancelled) {
+        revokeAgentAttachmentUrls(hydrated);
+        return;
+      }
+      setAgThread(hydrated);
+    });
     return () => {
       cancelled = true;
       revokeAgentAttachmentUrls(agThreadRef.current);
@@ -1666,7 +1741,9 @@ export function ChatPageClient() {
         isCourseOrchestrator && orchestratorViewMode === 'group'
           ? `${selectedAgent.name} · 群聊`
           : selectedAgent.name,
-      messages: stripAttachmentUrlsFromAgentMessages(agThread.filter((m) => !isMockAgentMessage(m))),
+      messages: stripAttachmentUrlsFromAgentMessages(
+        agThread.filter((m) => !isMockAgentMessage(m)),
+      ),
     });
   }, [
     agentConversationTargetId,
@@ -1796,14 +1873,11 @@ export function ChatPageClient() {
             setAgThread((prev) => [
               ...prev,
               {
-                ...buildChatMessage(
-                  `笔记本生成失败：${task.detail?.trim() || '请重试'}`,
-                  {
-                    senderName: COURSE_ORCHESTRATOR_NAME,
-                    senderAvatar: orchestratorAvatar,
-                    originalRole: 'teacher',
-                  },
-                ),
+                ...buildChatMessage(`笔记本生成失败：${task.detail?.trim() || '请重试'}`, {
+                  senderName: COURSE_ORCHESTRATOR_NAME,
+                  senderAvatar: orchestratorAvatar,
+                  originalRole: 'teacher',
+                }),
                 id: `orch-create-failed-${tid}`,
               },
             ]);
@@ -1855,8 +1929,7 @@ export function ChatPageClient() {
       try {
         const tasks = await listTasksForContact('agent', COURSE_ORCHESTRATOR_ID);
         const staleMockTasks = tasks.filter(
-          (t) =>
-            isMockTaskLike(t) && (t.status === 'running' || t.status === 'waiting'),
+          (t) => isMockTaskLike(t) && (t.status === 'running' || t.status === 'waiting'),
         );
         for (const t of staleMockTasks) {
           if (cancelled) return;
@@ -1983,7 +2056,11 @@ export function ChatPageClient() {
     ) => {
       if (!courseId) return;
       try {
-        const existing = await loadContactMessages<NotebookChatMessage>(courseId, 'notebook', notebook.id);
+        const existing = await loadContactMessages<NotebookChatMessage>(
+          courseId,
+          'notebook',
+          notebook.id,
+        );
         const next: NotebookChatMessage[] = [
           ...existing,
           { role: 'user', text: question, at: Date.now() },
@@ -2040,10 +2117,13 @@ export function ChatPageClient() {
 
         if (shouldGenerateSlides) {
           appendAgentMessage?.(
-            buildChatMessage(`我发现《${notebook.name}》里还缺少这部分知识点，已开始生成补充 slides。`, {
-              senderName: notebook.name,
-              senderAvatar: notebook.avatarUrl,
-            }),
+            buildChatMessage(
+              `我发现《${notebook.name}》里还缺少这部分知识点，已开始生成补充 slides。`,
+              {
+                senderName: notebook.name,
+                senderAvatar: notebook.avatarUrl,
+              },
+            ),
           );
           if (childTaskId) {
             await updateAgentTask(childTaskId, {
@@ -2089,7 +2169,9 @@ export function ChatPageClient() {
 
         if (childTaskId) {
           await updateAgentTask(childTaskId, {
-            detail: shouldGenerateSlides ? `已完成并补充内容：${appliedLabel || '新增 slides'}` : '已完成现有内容解答',
+            detail: shouldGenerateSlides
+              ? `已完成并补充内容：${appliedLabel || '新增 slides'}`
+              : '已完成现有内容解答',
             status: 'done',
           });
         }
@@ -2292,17 +2374,14 @@ export function ChatPageClient() {
 
     const orchAttachments =
       selectedAgent.id === COURSE_ORCHESTRATOR_ID ? [...pendingAttachments] : [];
-    const pdfFileForPipeline =
+    const sourceFileForPipeline =
       selectedAgent.id === COURSE_ORCHESTRATOR_ID
-        ? orchAttachments.find(
-            (a) =>
-              a.file &&
-              (a.mimeType === 'application/pdf' || a.name.toLowerCase().endsWith('.pdf')),
-          )?.file ?? null
+        ? (orchAttachments.find((a) => a.file && isNotebookPipelineSourceFile(a.file))?.file ??
+          null)
         : null;
     const mergedPrompt =
       selectedAgent.id === COURSE_ORCHESTRATOR_ID
-        ? mergeOrchestratorPrompt(text, orchAttachments, Boolean(pdfFileForPipeline))
+        ? mergeOrchestratorPrompt(text, orchAttachments, Boolean(sourceFileForPipeline))
         : text;
 
     abortRef.current?.abort();
@@ -2444,7 +2523,7 @@ export function ChatPageClient() {
             webSearch: orchGen.webSearch,
             userNickname: nickname.trim() || undefined,
             signal: controller.signal,
-            pdfFile: pdfFileForPipeline,
+            sourceFile: sourceFileForPipeline,
             imageGenerationEnabledOverride: orchGen.useAiImages,
             outlinePreferences: {
               length: orchGen.outlineLength,
@@ -2469,18 +2548,21 @@ export function ChatPageClient() {
           });
 
           appendAgentMessage(
-            buildChatMessage(`笔记本「${created.stage.name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`, {
-              senderName: COURSE_ORCHESTRATOR_NAME,
-              senderAvatar: orchestratorAvatar,
-              originalRole: 'teacher',
-              actions: [
-                {
-                  id: `open-notebook:${created.stage.id}`,
-                  label: '打开笔记本',
-                  variant: 'highlight',
-                },
-              ],
-            }),
+            buildChatMessage(
+              `笔记本「${created.stage.name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`,
+              {
+                senderName: COURSE_ORCHESTRATOR_NAME,
+                senderAvatar: orchestratorAvatar,
+                originalRole: 'teacher',
+                actions: [
+                  {
+                    id: `open-notebook:${created.stage.id}`,
+                    label: '打开笔记本',
+                    variant: 'highlight',
+                  },
+                ],
+              },
+            ),
           );
           if (courseId) {
             window.dispatchEvent(
@@ -2595,9 +2677,7 @@ export function ChatPageClient() {
                     ? `《${notebook.name}》暂时未能完成：${message}`
                     : `协作笔记本《${notebook.name}》暂时未能完成：${message}`,
                   {
-                    senderName: shouldRenderGroupReplies
-                      ? notebook.name
-                      : COURSE_ORCHESTRATOR_NAME,
+                    senderName: shouldRenderGroupReplies ? notebook.name : COURSE_ORCHESTRATOR_NAME,
                     senderAvatar: shouldRenderGroupReplies
                       ? notebook.avatarUrl
                       : orchestratorAvatar,
@@ -2748,7 +2828,9 @@ export function ChatPageClient() {
       <header className="shrink-0 border-b border-slate-900/[0.06] bg-white/60 px-5 py-4 backdrop-blur-md dark:border-white/[0.08] dark:bg-black/25">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">{titleLine}</h1>
         {mode === 'agent' && contactTaskHint ? (
-          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">任务状态：{contactTaskHint}</p>
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            任务状态：{contactTaskHint}
+          </p>
         ) : null}
         {mode === 'agent' && isCourseOrchestrator && orchestratorChildTasks.length > 0 ? (
           <div className="mt-2 max-h-24 overflow-y-auto rounded-lg border border-slate-900/[0.08] bg-white/70 px-2 py-1 text-[11px] dark:border-white/[0.1] dark:bg-black/30">
@@ -2781,10 +2863,7 @@ export function ChatPageClient() {
         ) : null}
       </header>
 
-      <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4"
-      >
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {mode === 'none' && courseId && pickContactDone ? (
           <p className="text-center text-sm text-muted-foreground">
             本课程下还没有笔记本或 Agent。请先创建笔记本，或从生成流程创建课程角色。
@@ -2804,7 +2883,7 @@ export function ChatPageClient() {
               ? '这里是课程内协作群聊，会显示课程总控与被调度笔记本的协作过程。'
               : orchestratorComposerMode === 'send-message'
                 ? '在此直接向课程总控提问：课程安排、概念解释、与笔记本无关的答疑等。不会自动创建笔记本或调度多笔记本协作。'
-                : `生成笔记本：在下方选择「生成笔记本」，填写需求、可添加 PDF 或其它附件后发送。将走创建管线（与「${t('toolbar.enterClassroom')}」一致），进度在输入区上方与右侧「进行中」同步。`}
+                : `生成笔记本：在下方选择「生成笔记本」，填写需求、可添加 PDF、Markdown 或其它附件后发送。将走创建管线（与「${t('toolbar.enterClassroom')}」一致），进度在输入区上方与右侧「进行中」同步。`}
           </p>
         ) : null}
 
@@ -2844,10 +2923,7 @@ export function ChatPageClient() {
                       </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
-                  <ChatUserAvatar
-                    src={userAvatar}
-                    displayName={nickname.trim() || '我'}
-                  />
+                  <ChatUserAvatar src={userAvatar} displayName={nickname.trim() || '我'} />
                 </div>
               ) : (
                 <div key={`a-${m.at}-${i}`} className="flex items-start justify-start gap-2">
@@ -2861,7 +2937,9 @@ export function ChatPageClient() {
                         {m.answerDocument ? (
                           <NotebookContentView document={m.answerDocument} />
                         ) : (
-                          <p className="whitespace-pre-wrap break-words text-foreground">{m.answer}</p>
+                          <p className="whitespace-pre-wrap break-words text-foreground">
+                            {m.answer}
+                          </p>
                         )}
                         {m.references.length > 0 ? (
                           <div className="mt-3 border-t border-slate-900/[0.06] pt-3 dark:border-white/[0.08]">
@@ -2884,13 +2962,17 @@ export function ChatPageClient() {
                           </p>
                         ) : null}
                         {m.knowledgeGap ? (
-                          <p className="mt-2 text-xs text-muted-foreground">模型判断存在知识缺口，可能已尝试补充内容。</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            模型判断存在知识缺口，可能已尝试补充内容。
+                          </p>
                         ) : null}
                         {m.webSearchUsed ? (
                           <p className="mt-1 text-[11px] text-muted-foreground">已使用联网检索</p>
                         ) : null}
                         {m.appliedLabel ? (
-                          <p className="mt-2 text-[11px] text-emerald-700 dark:text-emerald-400">{m.appliedLabel}</p>
+                          <p className="mt-2 text-[11px] text-emerald-700 dark:text-emerald-400">
+                            {m.appliedLabel}
+                          </p>
                         ) : null}
                         {m.lessonSourceQuestion && !m.lessonDeckScenes?.length ? (
                           <div className="mt-3 rounded-xl border border-violet-200/70 bg-gradient-to-r from-violet-50/90 via-fuchsia-50/80 to-white/80 p-2.5 dark:border-violet-700/40 dark:from-violet-950/35 dark:via-fuchsia-950/20 dark:to-black/20">
@@ -2901,7 +2983,8 @@ export function ChatPageClient() {
                                   快速讲解
                                 </p>
                                 <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                                  需要的话，我可以把这道题自动整理成 3-5 页临时PPT，便于翻页讲解与复习。
+                                  需要的话，我可以把这道题自动整理成 3-5
+                                  页临时PPT，便于翻页讲解与复习。
                                 </p>
                               </div>
                               <Button
@@ -2935,7 +3018,9 @@ export function ChatPageClient() {
                           />
                         ) : null}
                         {m.lessonError ? (
-                          <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-400">{m.lessonError}</p>
+                          <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-400">
+                            {m.lessonError}
+                          </p>
                         ) : null}
                       </div>
                     </ContextMenuTrigger>
@@ -2996,7 +3081,9 @@ export function ChatPageClient() {
                         )}
                       >
                         {!isUser && meta?.senderName ? (
-                          <p className="mb-1 text-[10px] font-medium opacity-70">{meta.senderName}</p>
+                          <p className="mb-1 text-[10px] font-medium opacity-70">
+                            {meta.senderName}
+                          </p>
                         ) : null}
                         {!hideAttachmentOnlyText ? (
                           <p className="whitespace-pre-wrap break-words">{text}</p>
@@ -3085,7 +3172,10 @@ export function ChatPageClient() {
             }}
             className="mb-2 w-full"
           >
-            <TabsList variant="default" className="grid min-h-9 w-full min-w-0 grid-cols-2 gap-0 p-[3px]">
+            <TabsList
+              variant="default"
+              className="grid min-h-9 w-full min-w-0 grid-cols-2 gap-0 p-[3px]"
+            >
               <TabsTrigger value="send-message" className="text-xs">
                 发送消息
               </TabsTrigger>
@@ -3134,7 +3224,7 @@ export function ChatPageClient() {
                       ? '在课程协作群聊中发起多方协作…'
                       : orchestratorComposerMode === 'send-message'
                         ? '向课程总控提问：概念、安排、答疑等（不自动创建笔记本）…'
-                        : '描述要生成的笔记本主题与要求，可添加 PDF 等附件…'
+                        : '描述要生成的笔记本主题与要求，可添加 PDF、Markdown 等附件…'
                     : `与 ${selectedAgent?.name ?? 'Agent'} 对话…`
             }
             disabled={mode === 'none' || sending}
@@ -3323,13 +3413,15 @@ export function ChatPageClient() {
                       <div>
                         <span className="text-muted-foreground">sender</span>
                         <p>
-                          {selectedChildTask.lastEnvelope.sender.name} ({selectedChildTask.lastEnvelope.sender.role})
+                          {selectedChildTask.lastEnvelope.sender.name} (
+                          {selectedChildTask.lastEnvelope.sender.role})
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">receiver</span>
                         <p>
-                          {selectedChildTask.lastEnvelope.receiver.name} ({selectedChildTask.lastEnvelope.receiver.role})
+                          {selectedChildTask.lastEnvelope.receiver.name} (
+                          {selectedChildTask.lastEnvelope.receiver.role})
                         </p>
                       </div>
                       <div className="col-span-2">

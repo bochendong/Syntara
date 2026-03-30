@@ -6,7 +6,10 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { ensureLegacyCourseBucket, getCourse, LEGACY_COURSE_ID } from '@/lib/utils/course-storage';
 import { pickStableNotebookAgentAvatarUrl } from '@/lib/constants/notebook-agent-avatars';
 import { saveStageData } from '@/lib/utils/stage-storage';
-import { persistGeneratedAgentsForStage, useAgentRegistry } from '@/lib/orchestration/registry/store';
+import {
+  persistGeneratedAgentsForStage,
+  useAgentRegistry,
+} from '@/lib/orchestration/registry/store';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
@@ -72,7 +75,8 @@ export type NotebookGenerationTaskInput = {
   userBio?: string;
   signal?: AbortSignal;
   onProgress?: (progress: NotebookGenerationProgress) => void;
-  /** 与 `/create` + `generation-preview` 一致：整份 PDF 走 `/api/parse-pdf` */
+  /** 上传的源文档，支持 PDF / Markdown；`pdfFile` 保留兼容旧调用方 */
+  sourceFile?: File | null;
   pdfFile?: File | null;
   /** 覆盖设置里的「AI 配图」开关；不传则沿用全局设置 */
   imageGenerationEnabledOverride?: boolean;
@@ -125,6 +129,38 @@ function getApiHeaders(overrides?: {
     'x-image-generation-enabled': String(imageGenEnabled),
     'x-video-generation-enabled': String(settings.videoGenerationEnabled ?? false),
   };
+}
+
+function isPdfSourceFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  const lowerName = file.name.toLowerCase();
+  return mime === 'application/pdf' || lowerName.endsWith('.pdf');
+}
+
+function isMarkdownSourceFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  const lowerName = file.name.toLowerCase();
+  return mime === 'text/markdown' || mime === 'text/x-markdown' || lowerName.endsWith('.md');
+}
+
+async function parseMarkdownLikeGenerationInput(args: {
+  file: File;
+}): Promise<{ pdfText: string; truncationWarnings: string[] }> {
+  const file = args.file;
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error('Markdown 文件无效或为空');
+  }
+  const raw = (await file.text()).replace(/\u0000/g, '').trim();
+  if (!raw) {
+    throw new Error('Markdown 文件为空，无法用于生成');
+  }
+  const truncationWarnings: string[] = [];
+  let pdfText = raw;
+  if (pdfText.length > MAX_PDF_CONTENT_CHARS) {
+    pdfText = pdfText.substring(0, MAX_PDF_CONTENT_CHARS);
+    truncationWarnings.push(`正文已截断至前 ${MAX_PDF_CONTENT_CHARS} 字符`);
+  }
+  return { pdfText, truncationWarnings };
 }
 
 /** 与 `app/generation-preview/page.tsx` 中 PDF 解析步骤一致（FormData → /api/parse-pdf → storeImages） */
@@ -261,10 +297,9 @@ function buildFallbackNotebookMetadata(
   const unique = Array.from(new Set(words)).slice(0, 5);
   const defaultTags =
     language === 'en-US' ? ['learning', 'notebook', 'ai-generated'] : ['学习', '笔记本', 'AI生成'];
-  const tags = Array.from(new Set([...(courseContext?.tags || []), ...(unique.length > 0 ? unique : defaultTags)])).slice(
-    0,
-    8,
-  );
+  const tags = Array.from(
+    new Set([...(courseContext?.tags || []), ...(unique.length > 0 ? unique : defaultTags)]),
+  ).slice(0, 8);
   const description =
     language === 'en-US'
       ? `Includes: ${name}. Not included: Deep dives beyond the current requirement or unrelated topics.`
@@ -297,7 +332,11 @@ async function generateNotebookMetadata(args: {
   });
 
   if (!resp.ok) {
-    const fallback = buildFallbackNotebookMetadata(args.requirement, args.language, args.courseContext);
+    const fallback = buildFallbackNotebookMetadata(
+      args.requirement,
+      args.language,
+      args.courseContext,
+    );
     return fallback;
   }
 
@@ -426,10 +465,7 @@ function countWorkedExampleSequences(outlines: SceneOutline[]): number {
   return seenExampleIds.size + contiguousFallbackSequences;
 }
 
-function collectWorkedExampleCandidateTopics(
-  outlines: SceneOutline[],
-  limit = 6,
-): string[] {
+function collectWorkedExampleCandidateTopics(outlines: SceneOutline[], limit = 6): string[] {
   const topics: string[] = [];
   const seen = new Set<string>();
 
@@ -500,12 +536,7 @@ function normalizeOutlineCollection(outlines: SceneOutline[]): SceneOutline[] {
 function buildOutlineDedupSignature(outline: SceneOutline): string {
   const normalizedTitle = outline.title.trim().toLowerCase().replace(/\s+/g, ' ');
   const cfg = outline.workedExampleConfig;
-  return [
-    outline.type,
-    normalizedTitle,
-    cfg?.exampleId?.trim() || '',
-    cfg?.role || '',
-  ].join('|');
+  return [outline.type, normalizedTitle, cfg?.exampleId?.trim() || '', cfg?.role || ''].join('|');
 }
 
 function mergeSupplementalOutlines(
@@ -946,9 +977,12 @@ export async function runNotebookGenerationTask(
   input: NotebookGenerationTaskInput,
 ): Promise<NotebookGenerationTaskResult> {
   let requirement = input.requirement.trim();
-  if (!requirement && !input.pdfFile) throw new Error('缺少笔记本创建需求或 PDF');
-  if (!requirement && input.pdfFile) {
-    requirement = '请根据上传的 PDF 创建笔记本。';
+  const sourceFile = input.sourceFile ?? input.pdfFile ?? null;
+  if (!requirement && !sourceFile) throw new Error('缺少笔记本创建需求或上传文档');
+  if (!requirement && sourceFile) {
+    requirement = isMarkdownSourceFile(sourceFile)
+      ? '请根据上传的 Markdown 文档创建笔记本。'
+      : '请根据上传的 PDF 创建笔记本。';
   }
 
   const language = input.language || 'zh-CN';
@@ -991,22 +1025,37 @@ export async function runNotebookGenerationTask(
     let pdfImages: PdfImage[] | undefined;
     let imageMapping: ImageMapping | undefined;
 
-    if (input.pdfFile) {
-      input.onProgress?.({ stage: 'pdf-analysis', detail: '正在解析 PDF（与创建页相同流程）…' });
-      const parsed = await parsePdfLikeGenerationPreview({
-        pdfFile: input.pdfFile,
-        signal: input.signal,
-      });
-      pdfText = parsed.pdfText;
-      pdfImages = parsed.pdfImages;
-      imageMapping = parsed.imageMapping;
-      input.onProgress?.({
-        stage: 'pdf-analysis',
-        detail:
-          parsed.truncationWarnings.length > 0
-            ? `PDF 已解析。${parsed.truncationWarnings.join(' ')}`
-            : 'PDF 已解析，已提取文本与配图信息。',
-      });
+    if (sourceFile) {
+      if (isPdfSourceFile(sourceFile)) {
+        input.onProgress?.({ stage: 'pdf-analysis', detail: '正在解析 PDF（与创建页相同流程）…' });
+        const parsed = await parsePdfLikeGenerationPreview({
+          pdfFile: sourceFile,
+          signal: input.signal,
+        });
+        pdfText = parsed.pdfText;
+        pdfImages = parsed.pdfImages;
+        imageMapping = parsed.imageMapping;
+        input.onProgress?.({
+          stage: 'pdf-analysis',
+          detail:
+            parsed.truncationWarnings.length > 0
+              ? `PDF 已解析。${parsed.truncationWarnings.join(' ')}`
+              : 'PDF 已解析，已提取文本与配图信息。',
+        });
+      } else if (isMarkdownSourceFile(sourceFile)) {
+        input.onProgress?.({ stage: 'pdf-analysis', detail: '正在读取 Markdown 文档…' });
+        const parsed = await parseMarkdownLikeGenerationInput({ file: sourceFile });
+        pdfText = parsed.pdfText;
+        input.onProgress?.({
+          stage: 'pdf-analysis',
+          detail:
+            parsed.truncationWarnings.length > 0
+              ? `Markdown 已读取。${parsed.truncationWarnings.join(' ')}`
+              : 'Markdown 已读取，已提取正文内容。',
+        });
+      } else {
+        throw new Error('目前只支持 PDF 或 Markdown（.md）文件用于创建笔记本。');
+      }
     }
 
     let researchContext: string | undefined;
@@ -1022,7 +1071,10 @@ export async function runNotebookGenerationTask(
       researchSources = research.sources;
       input.onProgress?.({
         stage: 'research',
-        detail: research.sources.length > 0 ? `已整理 ${research.sources.length} 条外部资料` : '未找到可用外部资料，继续本地生成',
+        detail:
+          research.sources.length > 0
+            ? `已整理 ${research.sources.length} 条外部资料`
+            : '未找到可用外部资料，继续本地生成',
         sources: research.sources,
       });
     }

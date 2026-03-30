@@ -123,7 +123,7 @@ export default function CourseStorePage() {
             课程商城
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-            浏览推荐模板与社区课程：模板与社区课均可加入「我的课程」。社区课程由其他用户在「编辑课程」中开启「在课程商城展示」后出现；复制后仅保留课程信息，不含对方笔记本内容。
+            浏览推荐模板与社区课程。创作者可为课程定价并发布到商城；用户购买课程后，会把整门课程连同全部笔记本深拷贝到自己的空间。
           </p>
           <div className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-950/25 dark:text-emerald-100">
             侧栏在未选择课程时，「课程商城」即本页。选择课程后，侧栏「商城」将打开笔记本商城。
@@ -213,8 +213,18 @@ export default function CourseStorePage() {
                     subtitle={formatDate(item.updatedAt)}
                     secondaryLabel={`创作者 · ${item.ownerName}`}
                     countUnit="个笔记本"
-                    actionLabel={addingId === `c:${item.id}` ? '复制中…' : '复制到我的课程'}
-                    onAction={() => handleCloneCommunityCourse(item)}
+                    priceLabel={`¥${((item.coursePriceCents ?? 0) / 100).toFixed(2)}`}
+                    ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
+                    actionLabel="查看详情"
+                    onAction={() => router.push(`/store/courses/${item.id}`)}
+                    secondaryActionLabel={
+                      addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已购买' : '购买'
+                    }
+                    onSecondaryAction={
+                      item.purchased || addingId === `c:${item.id}`
+                        ? undefined
+                        : () => void handleCloneCommunityCourse(item)
+                    }
                     coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
                   />
                 );
@@ -224,7 +234,9 @@ export default function CourseStorePage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">我已有的课程</h2>
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+            我已有的课程
+          </h2>
           {loading ? null : mine.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-8 text-center text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-slate-300">
               暂无课程。可在上方从模板添加，或前往「我的课程」新建空白课程。

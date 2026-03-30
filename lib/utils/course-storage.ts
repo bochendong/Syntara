@@ -19,6 +19,7 @@ export interface CreateCourseInput {
   university?: string;
   courseCode?: string;
   listedInCourseStore?: boolean;
+  coursePriceCents?: number;
 }
 
 export async function createCourse(input: CreateCourseInput): Promise<CourseRecord> {
@@ -34,7 +35,10 @@ export async function createCourse(input: CreateCourseInput): Promise<CourseReco
       purpose: input.purpose,
       university: isUni ? input.university?.trim() || undefined : undefined,
       courseCode: isUni ? input.courseCode?.trim() || undefined : undefined,
-      ...(input.listedInCourseStore !== undefined ? { listedInCourseStore: input.listedInCourseStore } : {}),
+      coursePriceCents: input.coursePriceCents ?? 0,
+      ...(input.listedInCourseStore !== undefined
+        ? { listedInCourseStore: input.listedInCourseStore }
+        : {}),
     }),
   });
   return data.course;
@@ -44,20 +48,26 @@ export type UpdateCourseInput = CreateCourseInput;
 
 export async function updateCourse(id: string, input: UpdateCourseInput): Promise<CourseRecord> {
   const isUni = input.purpose === 'university';
-  const data = await backendJson<{ course: CourseRecord }>(`/api/courses/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: input.name.trim() || '未命名课程',
-      description: input.description.trim() || undefined,
-      language: input.language,
-      tags: input.tags,
-      purpose: input.purpose,
-      university: isUni ? input.university?.trim() || undefined : undefined,
-      courseCode: isUni ? input.courseCode?.trim() || undefined : undefined,
-      ...(input.listedInCourseStore !== undefined ? { listedInCourseStore: input.listedInCourseStore } : {}),
-    }),
-  });
+  const data = await backendJson<{ course: CourseRecord }>(
+    `/api/courses/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: input.name.trim() || '未命名课程',
+        description: input.description.trim() || undefined,
+        language: input.language,
+        tags: input.tags,
+        purpose: input.purpose,
+        university: isUni ? input.university?.trim() || undefined : undefined,
+        courseCode: isUni ? input.courseCode?.trim() || undefined : undefined,
+        coursePriceCents: input.coursePriceCents ?? 0,
+        ...(input.listedInCourseStore !== undefined
+          ? { listedInCourseStore: input.listedInCourseStore }
+          : {}),
+      }),
+    },
+  );
   return data.course;
 }
 
@@ -82,7 +92,9 @@ export async function listCourses(): Promise<CourseRecord[]> {
 
 export async function getCourse(id: string): Promise<CourseRecord | undefined> {
   try {
-    const data = await backendJson<{ course: CourseRecord }>(`/api/courses/${encodeURIComponent(id)}`);
+    const data = await backendJson<{ course: CourseRecord }>(
+      `/api/courses/${encodeURIComponent(id)}`,
+    );
     return data.course;
   } catch {
     return undefined;

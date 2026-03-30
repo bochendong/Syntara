@@ -15,6 +15,7 @@ const updateCourseSchema = z.object({
   courseCode: z.string().trim().max(60).optional(),
   avatarUrl: z.string().trim().max(2048).optional(),
   listedInCourseStore: z.boolean().optional(),
+  coursePriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
 async function getCourseForUser(userId: string, id: string) {
@@ -64,10 +65,28 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
+    const shouldPublishCourse = payload.data.listedInCourseStore === true;
+    const shouldUnpublishCourse = payload.data.listedInCourseStore === false;
     const course = await prisma.course.update({
       where: { id },
-      data: payload.data,
+      data: {
+        ...payload.data,
+        ...(shouldPublishCourse ? { storePublishedAt: new Date() } : {}),
+        ...(shouldUnpublishCourse ? { storePublishedAt: null } : {}),
+      },
     });
+
+    if (payload.data.listedInCourseStore !== undefined) {
+      await prisma.notebook.updateMany({
+        where: { courseId: id, ownerId: userId },
+        data: {
+          listedInNotebookStore: payload.data.listedInCourseStore,
+          ...(payload.data.listedInCourseStore
+            ? { storePublishedAt: new Date() }
+            : { storePublishedAt: null }),
+        },
+      });
+    }
     return NextResponse.json({ course });
   });
 }

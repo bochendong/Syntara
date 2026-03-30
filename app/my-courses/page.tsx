@@ -7,7 +7,7 @@ import { Plus, Sparkles, Store } from 'lucide-react';
 import { CourseGalleryCard } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { useAuthStore } from '@/lib/store/auth';
-import { deleteCourseAndNotebooks, listCourses } from '@/lib/utils/course-storage';
+import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { toast } from 'sonner';
@@ -43,9 +43,9 @@ export default function MyCoursesPage() {
   const router = useRouter();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const userId = useAuthStore((s) => s.userId);
-  const [courses, setCourses] = useState<
-    Array<{ course: CourseRecord; notebookCount: number }>
-  >([]);
+  const [courses, setCourses] = useState<Array<{ course: CourseRecord; notebookCount: number }>>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -96,6 +96,26 @@ export default function MyCoursesPage() {
       toast.success(`已删除「${courseName}」`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败');
+    }
+  };
+
+  const handleTogglePublishCourse = async (course: CourseRecord) => {
+    try {
+      await updateCourse(course.id, {
+        name: course.name,
+        description: course.description ?? '',
+        language: course.language,
+        tags: course.tags,
+        purpose: course.purpose,
+        university: course.university,
+        courseCode: course.courseCode,
+        listedInCourseStore: !course.listedInCourseStore,
+        coursePriceCents: course.coursePriceCents ?? 0,
+      });
+      await loadMyCourses();
+      toast.success(course.listedInCourseStore ? '已取消发布课程' : '已发布课程到商城');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '发布失败');
     }
   };
 
@@ -258,8 +278,11 @@ export default function MyCoursesPage() {
                       subtitle={formatDate(course.updatedAt)}
                       secondaryLabel={courseSecondaryLabel(course)}
                       countUnit="个笔记本"
+                      priceLabel={`¥${((course.coursePriceCents ?? 0) / 100).toFixed(2)}`}
                       actionLabel="进入课程"
                       onAction={() => router.push(`/course/${course.id}`)}
+                      secondaryActionLabel={course.listedInCourseStore ? '取消发布' : '发布'}
+                      onSecondaryAction={() => void handleTogglePublishCourse(course)}
                       coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
                       onEdit={() => {
                         setEditingCourse(course);
@@ -284,9 +307,7 @@ export default function MyCoursesPage() {
         >
           <DialogHeader className="pr-8 text-left">
             <DialogTitle className="text-lg font-semibold">新建课程</DialogTitle>
-            <DialogDescription>
-              填写课程信息；创建后可进入课程页添加笔记本。
-            </DialogDescription>
+            <DialogDescription>填写课程信息；创建后可进入课程页添加笔记本。</DialogDescription>
           </DialogHeader>
           <CreateCourseForm
             key={formKey}

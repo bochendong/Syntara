@@ -21,6 +21,10 @@ export interface StageListItem {
   description?: string;
   tags?: string[];
   avatarUrl?: string;
+  listedInNotebookStore?: boolean;
+  notebookPriceCents?: number;
+  storePublishedAt?: number;
+  sourceNotebookId?: string;
   sceneCount: number;
   createdAt: number;
   updatedAt: number;
@@ -36,6 +40,10 @@ type NotebookApiRow = {
   avatarUrl: string | null;
   language: string | null;
   style: string | null;
+  listedInNotebookStore?: boolean;
+  notebookPriceCents?: number;
+  storePublishedAt?: string | null;
+  sourceNotebookId?: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: { scenes: number };
@@ -62,6 +70,10 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
     description: row.description || undefined,
     tags: row.tags || [],
     avatarUrl: row.avatarUrl || undefined,
+    listedInNotebookStore: Boolean(row.listedInNotebookStore),
+    notebookPriceCents: row.notebookPriceCents ?? 0,
+    storePublishedAt: row.storePublishedAt ? Date.parse(row.storePublishedAt) : undefined,
+    sourceNotebookId: row.sourceNotebookId || undefined,
     sceneCount: row._count?.scenes ?? 0,
     createdAt: Date.parse(row.createdAt),
     updatedAt: Date.parse(row.updatedAt),
@@ -134,36 +146,41 @@ export async function saveStageData(stageId: string, data: StageStoreData): Prom
     }),
   });
 
-  await backendJson<{ scenes: SceneApiRow[] }>(`/api/notebooks/${encodeURIComponent(stageId)}/scenes`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      scenes: sortedScenes.map((s, i) => ({
-        id: s.id,
-        title: s.title,
-        type: s.type,
-        order: Number.isFinite(s.order) ? s.order : i,
-        content: s.content,
-        actions: s.actions,
-        whiteboards: s.whiteboards,
-      })),
-    }),
-  });
+  await backendJson<{ scenes: SceneApiRow[] }>(
+    `/api/notebooks/${encodeURIComponent(stageId)}/scenes`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenes: sortedScenes.map((s, i) => ({
+          id: s.id,
+          title: s.title,
+          type: s.type,
+          order: Number.isFinite(s.order) ? s.order : i,
+          content: s.content,
+          actions: s.actions,
+          whiteboards: s.whiteboards,
+        })),
+      }),
+    },
+  );
 }
 
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
   try {
-    const { notebook } = await backendJson<{ notebook: NotebookApiRow & { scenes: SceneApiRow[] } }>(
-      `/api/notebooks/${encodeURIComponent(stageId)}`,
-    );
+    const { notebook } = await backendJson<{
+      notebook: NotebookApiRow & { scenes: SceneApiRow[] };
+    }>(`/api/notebooks/${encodeURIComponent(stageId)}`);
 
     const scenes = (notebook.scenes || [])
       .slice()
       .sort((a, b) => a.order - b.order)
       .map((s) => mapScene(stageId, s));
-    const chats = await loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId).catch(
-      () => [],
-    );
+    const chats = await loadContactMessages<ChatSession>(
+      notebook.courseId || '',
+      'notebook',
+      stageId,
+    ).catch(() => []);
 
     const stage: Stage = {
       id: notebook.id,
@@ -200,6 +217,23 @@ export async function moveStageToCourse(stageId: string, targetCourseId: string)
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ courseId: targetCourseId }),
+  });
+}
+
+export async function updateStageStoreMeta(
+  stageId: string,
+  payload: {
+    listedInNotebookStore?: boolean;
+    notebookPriceCents?: number;
+    name?: string;
+    description?: string;
+    tags?: string[];
+  },
+): Promise<void> {
+  await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 }
 
@@ -250,7 +284,9 @@ export async function getFirstSlideByStages(stageIds: string[]): Promise<Record<
 
 export async function stageExists(stageId: string): Promise<boolean> {
   try {
-    await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`);
+    await backendJson<{ notebook: NotebookApiRow }>(
+      `/api/notebooks/${encodeURIComponent(stageId)}`,
+    );
     return true;
   } catch {
     return false;

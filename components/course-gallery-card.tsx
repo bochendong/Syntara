@@ -29,7 +29,12 @@ import {
 function isImageUrl(src: string | null | undefined): src is string {
   const s = src?.trim();
   if (!s) return false;
-  return s.startsWith('/') || s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:');
+  return (
+    s.startsWith('/') ||
+    s.startsWith('http://') ||
+    s.startsWith('https://') ||
+    s.startsWith('data:')
+  );
 }
 
 /** 对齐 notebook-agent-sidebar `notebookCardStyles.notebookCardSx` + `NotebookCard.js` 布局 */
@@ -68,6 +73,10 @@ interface CourseGalleryCardProps {
   deleteDialogTitle?: string;
   /** 删除确认说明；有 onDelete 时建议传入具体文案 */
   deleteDialogDescription?: string;
+  priceLabel?: string;
+  ratingLabel?: string;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
 }
 
 export function CourseGalleryCard({
@@ -91,6 +100,10 @@ export function CourseGalleryCard({
   onDelete,
   deleteDialogTitle = '确定删除？',
   deleteDialogDescription = '此操作不可恢复。',
+  priceLabel,
+  ratingLabel,
+  secondaryActionLabel,
+  onSecondaryAction,
 }: CourseGalleryCardProps) {
   const thumbRef = useRef<HTMLDivElement>(null);
   const [thumbWidth, setThumbWidth] = useState(0);
@@ -364,18 +377,45 @@ export function CourseGalleryCard({
             <Network className="size-3.5 shrink-0 opacity-75" strokeWidth={1.75} />
             Syntara
           </span>
+          {priceLabel ? (
+            <span className="inline-flex items-center rounded-md border border-emerald-200/90 bg-emerald-50/80 px-2 py-0.5 text-[11px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-950/30 dark:text-emerald-200">
+              {priceLabel}
+            </span>
+          ) : null}
+          {ratingLabel ? (
+            <span className="inline-flex items-center rounded-md border border-amber-200/90 bg-amber-50/80 px-2 py-0.5 text-[11px] text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/30 dark:text-amber-200">
+              {ratingLabel}
+            </span>
+          ) : null}
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAction();
-          }}
-          className="apple-btn apple-btn-primary mt-5 w-full rounded-full py-2.5 text-sm font-semibold"
-        >
-          {actionLabel}
-        </button>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction();
+            }}
+            className={cn(
+              'apple-btn apple-btn-primary rounded-full py-2.5 text-sm font-semibold',
+              onSecondaryAction && secondaryActionLabel ? 'flex-1' : 'w-full',
+            )}
+          >
+            {actionLabel}
+          </button>
+          {onSecondaryAction && secondaryActionLabel ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSecondaryAction();
+              }}
+              className="apple-btn apple-btn-secondary shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold"
+            >
+              {secondaryActionLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {onDelete ? (

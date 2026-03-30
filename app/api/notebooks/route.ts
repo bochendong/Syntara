@@ -14,6 +14,8 @@ const createNotebookSchema = z.object({
   avatarUrl: z.string().trim().max(2048).optional(),
   language: z.string().trim().max(24).optional(),
   style: z.string().trim().max(80).optional(),
+  listedInNotebookStore: z.boolean().optional(),
+  notebookPriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
 export async function GET(request: Request) {

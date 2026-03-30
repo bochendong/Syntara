@@ -8,13 +8,14 @@ import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
-import { getCourse, touchCourseUpdatedAt } from '@/lib/utils/course-storage';
+import { getCourse, touchCourseUpdatedAt, updateCourse } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import {
   deleteStageData,
   getFirstSlideByStages,
   listStagesByCourse,
   moveStageToCourse,
+  updateStageStoreMeta,
   type StageListItem,
 } from '@/lib/utils/stage-storage';
 import type { Slide } from '@/lib/types/slides';
@@ -131,6 +132,55 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleTogglePublishCourse = async () => {
+    if (!course) return;
+    try {
+      await updateCourse(course.id, {
+        name: course.name,
+        description: course.description ?? '',
+        language: course.language,
+        tags: course.tags,
+        purpose: course.purpose,
+        university: course.university,
+        courseCode: course.courseCode,
+        listedInCourseStore: !course.listedInCourseStore,
+        coursePriceCents: course.coursePriceCents ?? 0,
+      });
+      const next = await getCourse(course.id);
+      if (next) setCourse(next);
+      const list = await listStagesByCourse(id);
+      setNotebooks(list);
+      toast.success(course.listedInCourseStore ? '已取消发布课程' : '已发布课程和全部笔记本');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '发布失败');
+    }
+  };
+
+  const handleTogglePublishNotebook = async (notebook: StageListItem) => {
+    try {
+      let notebookPriceCents = notebook.notebookPriceCents ?? 0;
+      if (!notebook.listedInNotebookStore) {
+        const nextPrice = window.prompt(
+          '设置该笔记本价格（单位：分，0 表示免费）',
+          String(notebookPriceCents),
+        );
+        if (nextPrice === null) return;
+        notebookPriceCents = Math.max(0, Number.parseInt(nextPrice.replace(/[^\d]/g, ''), 10) || 0);
+      }
+      await updateStageStoreMeta(notebook.id, {
+        listedInNotebookStore: !notebook.listedInNotebookStore,
+        notebookPriceCents,
+      });
+      const list = await listStagesByCourse(id);
+      setNotebooks(list);
+      toast.success(
+        notebook.listedInNotebookStore ? '已取消发布笔记本' : `已发布笔记本「${notebook.name}」`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '操作失败');
+    }
+  };
+
   if (!loading && course === null) {
     return (
       <div className="min-h-full w-full apple-mesh-bg">
@@ -151,10 +201,17 @@ export default function CourseDetailPage() {
       <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
         {loading || !course ? (
           <div className="space-y-6">
-            <div className="h-40 animate-pulse rounded-[28px] bg-white/40 dark:bg-white/5" style={{ backdropFilter: 'blur(10px)' }} />
+            <div
+              className="h-40 animate-pulse rounded-[28px] bg-white/40 dark:bg-white/5"
+              style={{ backdropFilter: 'blur(10px)' }}
+            />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-72 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5" style={{ backdropFilter: 'blur(10px)' }} />
+                <div
+                  key={i}
+                  className="h-72 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5"
+                  style={{ backdropFilter: 'blur(10px)' }}
+                />
               ))}
             </div>
           </div>
@@ -170,40 +227,43 @@ export default function CourseDetailPage() {
                     className="size-16 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-sm dark:border-white/15 dark:bg-slate-900 md:size-20"
                   />
                   <div className="min-w-0 flex-1">
-                  <Button variant="ghost" size="sm" className="-ml-2 mb-2 rounded-lg" asChild>
-                    <Link href="/my-courses">← 我的课程</Link>
-                  </Button>
-                  <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
-                    {course.name}
-                  </h1>
-                  {course.description ? (
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{course.description}</p>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span
-                      className={cn(
-                        'rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5',
-                      )}
-                    >
-                      {course.language === 'zh-CN' ? '中文' : 'English'}
-                    </span>
-                    <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
-                      {purposeLabel(course.purpose)}
-                    </span>
-                    {course.purpose === 'university' && (course.university || course.courseCode) ? (
-                      <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
-                        {[course.university, course.courseCode].filter(Boolean).join(' · ')}
-                      </span>
+                    <Button variant="ghost" size="sm" className="-ml-2 mb-2 rounded-lg" asChild>
+                      <Link href="/my-courses">← 我的课程</Link>
+                    </Button>
+                    <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                      {course.name}
+                    </h1>
+                    {course.description ? (
+                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                        {course.description}
+                      </p>
                     ) : null}
-                    {course.tags.map((tag) => (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <span
-                        key={tag}
-                        className="rounded-full border border-violet-200/60 bg-violet-50/80 px-2.5 py-0.5 text-[11px] text-violet-900 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200"
+                        className={cn(
+                          'rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5',
+                        )}
                       >
-                        {tag}
+                        {course.language === 'zh-CN' ? '中文' : 'English'}
                       </span>
-                    ))}
-                  </div>
+                      <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
+                        {purposeLabel(course.purpose)}
+                      </span>
+                      {course.purpose === 'university' &&
+                      (course.university || course.courseCode) ? (
+                        <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
+                          {[course.university, course.courseCode].filter(Boolean).join(' · ')}
+                        </span>
+                      ) : null}
+                      {course.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-violet-200/60 bg-violet-50/80 px-2.5 py-0.5 text-[11px] text-violet-900 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
@@ -214,6 +274,14 @@ export default function CourseDetailPage() {
                     onClick={() => setEditCourseOpen(true)}
                   >
                     编辑课程
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-xl border-slate-200 bg-white/80 dark:border-white/20 dark:bg-white/5"
+                    onClick={() => void handleTogglePublishCourse()}
+                  >
+                    {course.listedInCourseStore ? '取消发布课程' : '发布课程'}
                   </Button>
                   <Button
                     asChild
@@ -229,7 +297,9 @@ export default function CourseDetailPage() {
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-white/20 dark:bg-white/5">
                 <p className="text-slate-600 dark:text-slate-200">这门课下还没有笔记本。</p>
                 <Button asChild className="mt-4 rounded-xl">
-                  <Link href={courseOrchestratorChatHref('generate-notebook')}>创建第一个笔记本</Link>
+                  <Link href={courseOrchestratorChatHref('generate-notebook')}>
+                    创建第一个笔记本
+                  </Link>
                 </Button>
               </div>
             ) : (
@@ -244,8 +314,11 @@ export default function CourseDetailPage() {
                     slide={thumbnails[nb.id]}
                     subtitle={formatDate(nb.updatedAt)}
                     secondaryLabel="互动课件"
+                    priceLabel={`¥${((nb.notebookPriceCents ?? 0) / 100).toFixed(2)}`}
                     actionLabel="打开笔记本"
                     onAction={() => router.push(`/classroom/${nb.id}`)}
+                    secondaryActionLabel={nb.listedInNotebookStore ? '取消发布' : '发布'}
+                    onSecondaryAction={() => void handleTogglePublishNotebook(nb)}
                     moveToCourseTargets={moveTargets}
                     onMoveToCourse={(targetCourseId) => handleMoveNotebook(nb.id, targetCourseId)}
                     deleteDialogTitle="删除笔记本？"
@@ -262,7 +335,9 @@ export default function CourseDetailPage() {
               >
                 <DialogHeader className="pr-8 text-left">
                   <DialogTitle className="text-lg font-semibold">编辑课程</DialogTitle>
-                  <DialogDescription>修改名称、描述、标签与用途；保存后立即生效。</DialogDescription>
+                  <DialogDescription>
+                    修改名称、描述、标签与用途；保存后立即生效。
+                  </DialogDescription>
                 </DialogHeader>
                 <CreateCourseForm
                   key={course.id}

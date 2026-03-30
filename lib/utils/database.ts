@@ -53,6 +53,9 @@ export interface CourseRecord {
   avatarUrl?: string;
   /** 是否在课程商城对其他人可见（仅服务端课程） */
   listedInCourseStore?: boolean;
+  coursePriceCents?: number;
+  storePublishedAt?: number | string;
+  sourceCourseId?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -61,6 +64,9 @@ export interface CourseRecord {
 export type CommunityCourseListItem = CourseRecord & {
   ownerName: string;
   notebookCount: number;
+  averageRating?: number;
+  reviewCount?: number;
+  purchased?: boolean;
 };
 
 /**
@@ -414,9 +420,8 @@ class MAICDatabase extends Dexie {
         generatedAgents: 'id, stageId',
       })
       .upgrade(async (tx) => {
-        const { pickStableNotebookAgentAvatarUrl } = await import(
-          '@/lib/constants/notebook-agent-avatars'
-        );
+        const { pickStableNotebookAgentAvatarUrl } =
+          await import('@/lib/constants/notebook-agent-avatars');
         const table = tx.table('stages');
         const rows: Array<{ id: string; avatarUrl?: string }> = await table.toArray();
         const now = Date.now();

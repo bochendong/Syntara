@@ -32,12 +32,37 @@ export async function GET() {
       },
     });
 
+    const courseIds = rows.map((row) => row.id);
+    const [reviews, purchases] = await Promise.all([
+      prisma.courseReview.findMany({
+        where: { courseId: { in: courseIds } },
+        select: { courseId: true, rating: true },
+      }),
+      prisma.coursePurchase.findMany({
+        where: { buyerId: userId, sourceCourseId: { in: courseIds } },
+        select: { sourceCourseId: true },
+      }),
+    ]);
+
+    const reviewMap = new Map<string, { sum: number; count: number }>();
+    for (const review of reviews) {
+      const current = reviewMap.get(review.courseId) ?? { sum: 0, count: 0 };
+      current.sum += review.rating;
+      current.count += 1;
+      reviewMap.set(review.courseId, current);
+    }
+    const purchasedSet = new Set(purchases.map((purchase) => purchase.sourceCourseId));
+
     const courses = rows.map((row) => {
       const { owner, _count, ...course } = row;
+      const reviewStats = reviewMap.get(row.id);
       return {
         ...course,
         ownerName: ownerDisplayName(owner),
         notebookCount: _count.notebooks,
+        averageRating: reviewStats ? reviewStats.sum / reviewStats.count : 0,
+        reviewCount: reviewStats?.count ?? 0,
+        purchased: purchasedSet.has(row.id),
       };
     });
 

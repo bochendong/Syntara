@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PPTTableElement } from '@/lib/types/slides';
 import { getTableSubThemeColor } from '@/lib/utils/element';
-import { getTextStyle, formatText, getHiddenCells } from './tableUtils';
+import { formatPlainText, formatText, getHiddenCells, getTextStyle } from './tableUtils';
 
 interface StaticTableProps {
   elementInfo: PPTTableElement;
@@ -113,8 +113,9 @@ export function StaticTable({ elementInfo }: StaticTableProps) {
                     wordBreak: 'break-word',
                     ...textStyle,
                   }}
-                  dangerouslySetInnerHTML={{ __html: formatText(cell.text) }}
-                />
+                >
+                  <TableCellHtml text={cell.text} />
+                </td>
               );
             })}
           </tr>
@@ -122,4 +123,14 @@ export function StaticTable({ elementInfo }: StaticTableProps) {
       </tbody>
     </table>
   );
+}
+
+function TableCellHtml({ text }: { text: string }) {
+  const [renderedHtml, setRenderedHtml] = useState(() => formatPlainText(text));
+
+  useEffect(() => {
+    setRenderedHtml(formatText(text));
+  }, [text]);
+
+  return <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />;
 }

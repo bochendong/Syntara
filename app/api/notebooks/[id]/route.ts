@@ -12,6 +12,8 @@ const updateNotebookSchema = z.object({
   avatarUrl: z.string().trim().max(2048).optional(),
   language: z.string().trim().max(24).optional(),
   style: z.string().trim().max(80).optional(),
+  listedInNotebookStore: z.boolean().optional(),
+  notebookPriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
 async function getNotebookForUser(userId: string, id: string) {
@@ -74,11 +76,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       }
     }
 
+    const shouldPublishNotebook = payload.data.listedInNotebookStore === true;
+    const shouldUnpublishNotebook = payload.data.listedInNotebookStore === false;
     const notebook = await prisma.notebook.update({
       where: { id },
       data: {
         ...payload.data,
         ...(payload.data.courseId === null ? { courseId: null } : {}),
+        ...(shouldPublishNotebook ? { storePublishedAt: new Date() } : {}),
+        ...(shouldUnpublishNotebook ? { storePublishedAt: null } : {}),
       },
     });
     return NextResponse.json({ notebook });
