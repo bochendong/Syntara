@@ -5,7 +5,7 @@
 
 import { nanoid } from 'nanoid';
 
-type MemoryEntry = { kind: 'image' | 'pdf'; value: string | Blob; createdAt: number };
+type MemoryEntry = { kind: 'image' | 'source'; value: string | Blob; createdAt: number };
 const memoryStore = new Map<string, MemoryEntry>();
 const SESSION_PREFIX = 'openmaic-image-storage:';
 
@@ -126,23 +126,31 @@ export async function getImageStorageSize(): Promise<number> {
   return total;
 }
 
-export async function storePdfBlob(file: File): Promise<string> {
-  const key = `pdf_${nanoid(10)}`;
-  const blob = new Blob([await file.arrayBuffer()], { type: file.type || 'application/pdf' });
-  memoryStore.set(key, { kind: 'pdf', value: blob, createdAt: Date.now() });
+export async function storeSourceBlob(file: File): Promise<string> {
+  const key = `source_${nanoid(10)}`;
+  const blob = new Blob([await file.arrayBuffer()], { type: file.type || 'application/octet-stream' });
+  memoryStore.set(key, { kind: 'source', value: blob, createdAt: Date.now() });
   return key;
 }
 
-export async function loadPdfBlob(key: string): Promise<Blob | null> {
+export async function loadSourceBlob(key: string): Promise<Blob | null> {
   const mem = memoryStore.get(key);
-  if (mem?.kind === 'pdf' && mem.value instanceof Blob) return mem.value;
-  const session = getSessionItem<{ kind: 'pdf'; value: string }>(key);
+  if (mem?.kind === 'source' && mem.value instanceof Blob) return mem.value;
+  const session = getSessionItem<{ kind: 'source'; value: string }>(key);
   if (!session?.value) return null;
   const [meta, data] = session.value.split(',');
   if (!meta || !data) return null;
-  const mime = meta.match(/data:(.*?);base64/)?.[1] || 'application/pdf';
+  const mime = meta.match(/data:(.*?);base64/)?.[1] || 'application/octet-stream';
   const byteString = atob(data);
   const bytes = new Uint8Array(byteString.length);
   for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
   return new Blob([bytes], { type: mime });
+}
+
+export async function storePdfBlob(file: File): Promise<string> {
+  return storeSourceBlob(file);
+}
+
+export async function loadPdfBlob(key: string): Promise<Blob | null> {
+  return loadSourceBlob(key);
 }

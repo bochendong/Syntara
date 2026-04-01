@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
   ADMIN_SESSION_COOKIE,
+  isAdminLoginConfigured,
   issueAdminSessionCookie,
   requireAdmin,
   validateAdminLogin,
@@ -20,6 +21,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isAdminLoginConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          '管理员登录尚未配置。请在 Railway 环境变量中设置 ADMIN_LOGIN_EMAIL、ADMIN_LOGIN_PASSWORD 和 ADMIN_LOGIN_SECRET。',
+      },
+      { status: 503 },
+    );
+  }
+
   let body: { email?: string; password?: string };
   try {
     body = (await request.json()) as typeof body;

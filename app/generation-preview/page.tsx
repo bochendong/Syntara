@@ -14,7 +14,7 @@ import { useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import {
   loadImageMapping,
-  loadPdfBlob,
+  loadSourceBlob,
   cleanupOldImages,
   storeImages,
 } from '@/lib/utils/image-storage';
@@ -234,43 +234,56 @@ function GenerationPreviewContent() {
       // Step 0: Parse PDF if needed
       if (hasPdfToAnalyze) {
         log.debug('=== Generation Preview: Parsing PDF ===');
-        const pdfBlob = await loadPdfBlob(currentSession.pdfStorageKey!);
-        if (!pdfBlob) {
+        const sourceBlob = await loadSourceBlob(currentSession.pdfStorageKey!);
+        if (!sourceBlob) {
           throw new Error(t('generation.pdfLoadFailed'));
         }
 
-        // Ensure pdfBlob is a valid Blob with content
-        if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
-          log.error('Invalid PDF blob:', {
-            type: typeof pdfBlob,
-            size: pdfBlob instanceof Blob ? pdfBlob.size : 'N/A',
+        // Ensure sourceBlob is a valid Blob with content
+        if (!(sourceBlob instanceof Blob) || sourceBlob.size === 0) {
+          log.error('Invalid source blob:', {
+            type: typeof sourceBlob,
+            size: sourceBlob instanceof Blob ? sourceBlob.size : 'N/A',
           });
           throw new Error(t('generation.pdfLoadFailed'));
         }
 
-        // Wrap as a File to guarantee multipart/form-data with correct content-type
-        const pdfFile = new File([pdfBlob], currentSession.pdfFileName || 'document.pdf', {
-          type: 'application/pdf',
-        });
-
+        const sourceType = currentSession.sourceFileType || 'pdf';
         const parseFormData = new FormData();
-        parseFormData.append('pdf', pdfFile);
+        let parseResponse: Response;
 
-        if (currentSession.pdfProviderId) {
-          parseFormData.append('providerId', currentSession.pdfProviderId);
-        }
-        if (currentSession.pdfProviderConfig?.apiKey?.trim()) {
-          parseFormData.append('apiKey', currentSession.pdfProviderConfig.apiKey);
-        }
-        if (currentSession.pdfProviderConfig?.baseUrl?.trim()) {
-          parseFormData.append('baseUrl', currentSession.pdfProviderConfig.baseUrl);
-        }
+        if (sourceType === 'pptx') {
+          const pptxFile = new File([sourceBlob], currentSession.pdfFileName || 'document.pptx', {
+            type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          });
+          parseFormData.append('pptx', pptxFile);
+          parseResponse = await fetch('/api/parse-pptx', {
+            method: 'POST',
+            body: parseFormData,
+            signal,
+          });
+        } else {
+          const pdfFile = new File([sourceBlob], currentSession.pdfFileName || 'document.pdf', {
+            type: 'application/pdf',
+          });
+          parseFormData.append('pdf', pdfFile);
 
-        const parseResponse = await fetch('/api/parse-pdf', {
-          method: 'POST',
-          body: parseFormData,
-          signal,
-        });
+          if (currentSession.pdfProviderId) {
+            parseFormData.append('providerId', currentSession.pdfProviderId);
+          }
+          if (currentSession.pdfProviderConfig?.apiKey?.trim()) {
+            parseFormData.append('apiKey', currentSession.pdfProviderConfig.apiKey);
+          }
+          if (currentSession.pdfProviderConfig?.baseUrl?.trim()) {
+            parseFormData.append('baseUrl', currentSession.pdfProviderConfig.baseUrl);
+          }
+
+          parseResponse = await fetch('/api/parse-pdf', {
+            method: 'POST',
+            body: parseFormData,
+            signal,
+          });
+        }
 
         if (!parseResponse.ok) {
           const errorData = await parseResponse.json();
@@ -340,7 +353,7 @@ function GenerationPreviewContent() {
           }),
         );
 
-        // Update session with parsed PDF data
+        // Update session with parsed source data
         const updatedSession = {
           ...currentSession,
           pdfText,

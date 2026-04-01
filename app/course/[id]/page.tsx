@@ -35,7 +35,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { creditsFromPriceCents, formatCreditsLabel } from '@/lib/utils/credits';
+import {
+  creditsFromPriceCents,
+  formatCreditsLabel,
+  priceCentsFromCredits,
+} from '@/lib/utils/credits';
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString();
@@ -175,11 +179,13 @@ export default function CourseDetailPage() {
       let notebookPriceCents = notebook.notebookPriceCents ?? 0;
       if (!notebook.listedInNotebookStore) {
         const nextPrice = window.prompt(
-          '设置该笔记本价格（单位：分，0 表示免费）',
-          String(notebookPriceCents),
+          '设置该笔记本价格（单位：credits，0 表示免费）',
+          String(creditsFromPriceCents(notebookPriceCents)),
         );
         if (nextPrice === null) return;
-        notebookPriceCents = Math.max(0, Number.parseInt(nextPrice.replace(/[^\d]/g, ''), 10) || 0);
+        notebookPriceCents = priceCentsFromCredits(
+          Math.max(0, Number.parseInt(nextPrice.replace(/[^\d]/g, ''), 10) || 0),
+        );
       }
       await updateStageStoreMeta(notebook.id, {
         listedInNotebookStore: !notebook.listedInNotebookStore,

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { setSessionStorageJson, storePdfBlob } from '@/lib/utils/image-storage';
+import { setSessionStorageJson, storeSourceBlob } from '@/lib/utils/image-storage';
 import { MAX_PDF_CONTENT_CHARS } from '@/lib/constants/generation';
 import type { UserRequirements } from '@/lib/types/generation';
 
@@ -13,6 +13,7 @@ export type GenerationSessionState = {
   imageStorageIds: unknown[];
   pdfStorageKey?: string;
   pdfFileName?: string;
+  sourceFileType?: 'pdf' | 'pptx';
   pdfProviderId?: string;
   pdfProviderConfig?: { apiKey?: string; baseUrl?: string };
   sceneOutlines: null;
@@ -52,6 +53,7 @@ export async function buildGenerationSessionState(options: {
 
   let pdfStorageKey: string | undefined;
   let pdfFileName: string | undefined;
+  let sourceFileType: 'pdf' | 'pptx' | undefined;
   let pdfText = '';
   let pdfProvId = pdfProviderId;
   let pdfProvCfg = pdfProviderConfig;
@@ -60,12 +62,20 @@ export async function buildGenerationSessionState(options: {
     const lowerName = sourceFile.name.toLowerCase();
     const mime = (sourceFile.type || '').toLowerCase();
     const isPdf = mime === 'application/pdf' || lowerName.endsWith('.pdf');
+    const isPptx =
+      mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+      lowerName.endsWith('.pptx');
     const isMarkdown =
       mime === 'text/markdown' || mime === 'text/x-markdown' || lowerName.endsWith('.md');
 
     if (isPdf) {
-      pdfStorageKey = await storePdfBlob(sourceFile);
+      pdfStorageKey = await storeSourceBlob(sourceFile);
       pdfFileName = sourceFile.name;
+      sourceFileType = 'pdf';
+    } else if (isPptx) {
+      pdfStorageKey = await storeSourceBlob(sourceFile);
+      pdfFileName = sourceFile.name;
+      sourceFileType = 'pptx';
     } else if (isMarkdown) {
       const raw = (await sourceFile.text()).replace(/\u0000/g, '').trim();
       if (!raw) {
@@ -75,7 +85,7 @@ export async function buildGenerationSessionState(options: {
       pdfProvId = undefined;
       pdfProvCfg = undefined;
     } else {
-      throw new Error('目前只支持 PDF 或 Markdown（.md）文件。');
+      throw new Error('目前只支持 PDF、PPTX 或 Markdown（.md）文件。');
     }
   }
 
@@ -88,6 +98,7 @@ export async function buildGenerationSessionState(options: {
     imageStorageIds: [],
     pdfStorageKey,
     pdfFileName,
+    sourceFileType,
     pdfProviderId: pdfProvId,
     pdfProviderConfig: pdfProvCfg,
     sceneOutlines: null,

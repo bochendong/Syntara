@@ -35,6 +35,10 @@ function getAdminLoginConfig() {
   };
 }
 
+export function isAdminLoginConfigured(): boolean {
+  return getAdminLoginConfig().enabled;
+}
+
 function safeEqualStrings(a: string, b: string): boolean {
   const aBuffer = Buffer.from(a);
   const bBuffer = Buffer.from(b);

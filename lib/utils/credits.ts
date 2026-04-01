@@ -12,6 +12,12 @@ export function creditsFromPriceCents(priceCents: number | null | undefined): nu
   return Math.max(1, Math.ceil(cents / 100));
 }
 
+export function priceCentsFromCredits(credits: number | null | undefined): number {
+  const safeCredits = toSafeInt(credits);
+  if (safeCredits <= 0) return 0;
+  return safeCredits * 100;
+}
+
 export function creditsFromTokenUsage(totalTokens: number | null | undefined): number {
   const tokens = toSafeInt(totalTokens);
   if (tokens <= 0) return 0;

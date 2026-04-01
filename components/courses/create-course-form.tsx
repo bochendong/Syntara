@@ -9,6 +9,7 @@ import {
   COURSE_AVATAR_PRESET_URLS,
   resolveCourseAvatarDisplayUrl,
 } from '@/lib/constants/course-avatars';
+import { creditsFromPriceCents, priceCentsFromCredits } from '@/lib/utils/credits';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -171,7 +172,7 @@ export function CreateCourseForm({
     setUniversity(editCourse.university ?? '');
     setCourseCode(editCourse.courseCode ?? '');
     setAvatarUrl(editCourse.avatarUrl ?? '');
-    setCoursePrice(String(editCourse.coursePriceCents ?? 0));
+    setCoursePrice(String(creditsFromPriceCents(editCourse.coursePriceCents ?? 0)));
     setError(null);
   }, [editCourse]);
 
@@ -237,7 +238,9 @@ export function CreateCourseForm({
     }
   };
 
-  const coursePriceCents = Math.max(0, Number.parseInt(coursePrice || '0', 10) || 0);
+  const coursePriceCents = priceCentsFromCredits(
+    Math.max(0, Number.parseInt(coursePrice || '0', 10) || 0),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

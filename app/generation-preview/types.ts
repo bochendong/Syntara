@@ -22,6 +22,7 @@ export interface GenerationSessionState {
   // PDF deferred parsing fields
   pdfStorageKey?: string;
   pdfFileName?: string;
+  sourceFileType?: 'pdf' | 'pptx';
   pdfProviderId?: string;
   pdfProviderConfig?: { apiKey?: string; baseUrl?: string };
   // Web search context

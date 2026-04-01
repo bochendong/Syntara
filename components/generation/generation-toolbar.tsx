@@ -42,6 +42,15 @@ function isMarkdownSourceFile(file: File): boolean {
   return mime === 'text/markdown' || mime === 'text/x-markdown' || lower.endsWith('.md');
 }
 
+function isPptxSourceFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  const lower = file.name.toLowerCase();
+  return (
+    mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    lower.endsWith('.pptx')
+  );
+}
+
 // ─── Types ───────────────────────────────────────────────────
 export interface GenerationToolbarProps {
   language: 'zh-CN' | 'en-US';
@@ -90,19 +99,24 @@ export function GenerationToolbar({
     : false;
 
   const documentLabel = language === 'zh-CN' ? '文档' : 'Document';
-  const uploadLabel = language === 'zh-CN' ? '上传 PDF 或 Markdown' : 'Upload PDF or Markdown';
+  const uploadLabel =
+    language === 'zh-CN' ? '上传 PDF、PPTX 或 Markdown' : 'Upload PDF, PPTX or Markdown';
   const markdownHint =
     language === 'zh-CN'
       ? 'Markdown 文件会直接读取正文，不经过 PDF 解析器。'
       : 'Markdown files are read as plain text and skip the PDF parser.';
+  const pptxHint =
+    language === 'zh-CN'
+      ? 'PPTX 文件会提取每页文字、备注和图片，用作笔记本生成上下文。'
+      : 'PPTX files will extract slide text, notes, and images for notebook generation.';
 
   // Source file handler
   const handleFileSelect = (file: File) => {
-    if (!isPdfSourceFile(file) && !isMarkdownSourceFile(file)) {
+    if (!isPdfSourceFile(file) && !isMarkdownSourceFile(file) && !isPptxSourceFile(file)) {
       onSourceFileError(
         language === 'zh-CN'
-          ? '目前只支持 PDF 或 Markdown（.md）文件。'
-          : 'Only PDF or Markdown (.md) files are supported.',
+          ? '目前只支持 PDF、PPTX 或 Markdown（.md）文件。'
+          : 'Only PDF, PPTX or Markdown (.md) files are supported.',
       );
       return;
     }
@@ -195,6 +209,10 @@ export function GenerationToolbar({
                 </SelectContent>
               </Select>
             </div>
+          ) : isPptxSourceFile(sourceFile) ? (
+            <div className="px-3 pt-3 pb-2 text-[11px] leading-relaxed text-muted-foreground">
+              {pptxHint}
+            </div>
           ) : (
             <div className="px-3 pt-3 pb-2 text-[11px] leading-relaxed text-muted-foreground">
               {markdownHint}
@@ -207,7 +225,7 @@ export function GenerationToolbar({
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept=".pdf,.md,text/markdown,text/x-markdown"
+              accept=".pdf,.pptx,.md,text/markdown,text/x-markdown,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleFileSelect(f);
