@@ -14,6 +14,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { useNotificationStore } from '@/lib/store/notifications';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
@@ -83,6 +84,8 @@ export interface AppCoreNavListProps {
   grouped?: boolean;
   /** 与 grouped=false 联用：聊天右侧栏将入口排为 课程主页 → Dashboard → 商城 → … */
   chatRightRailOrder?: boolean;
+  /** 按 item.key 排除入口（例如右侧栏不展示充值、商城） */
+  excludeKeys?: string[];
 }
 
 /**
@@ -95,9 +98,11 @@ export function AppCoreNavList({
   onItemClick,
   grouped = true,
   chatRightRailOrder = false,
+  excludeKeys,
 }: AppCoreNavListProps) {
   const pathname = usePathname();
   const courseId = useCurrentCourseStore((s) => s.id);
+  const unreadNotificationCount = useNotificationStore((s) => s.unreadCount);
 
   const inCourseContext = Boolean(courseId);
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
@@ -117,6 +122,8 @@ export function AppCoreNavList({
   const topUpActive = pathname === '/top-up' || pathname?.startsWith('/top-up/');
   const profileActive = pathname === '/profile' || pathname?.startsWith('/profile/');
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
+  const notificationsActive =
+    pathname === '/notifications' || pathname?.startsWith('/notifications/');
 
   const courseStoreActive =
     pathname === '/store/courses' || pathname?.startsWith('/store/courses/');
@@ -172,6 +179,14 @@ export function AppCoreNavList({
           tooltip: '个人中心',
           icon: UserRound,
           active: profileActive,
+        },
+        {
+          key: 'notifications',
+          href: '/notifications',
+          label: '通知',
+          tooltip: '通知',
+          icon: Bell,
+          active: notificationsActive,
         },
         {
           key: 'settings',
@@ -233,42 +248,49 @@ export function AppCoreNavList({
         },
         {
           key: 'course-tools',
-          label: '课程内协作',
-          items: inCourseContext
-            ? [
-                {
-                  key: 'agent-teams',
-                  href: agentTeamsHref,
-                  label: '课程主页',
-                  tooltip: '课程主页',
-                  icon: UsersRound,
-                  active: agentTeamsActive,
-                },
-                ...(isChatPage
-                  ? []
-                  : ([
-                      {
-                        key: 'chat',
-                        href: '/chat',
-                        label: '聊天',
-                        icon: MessageCircle,
-                        active: false,
-                      },
-                    ] satisfies CoreNavItem[])),
-                {
-                  key: 'notifications',
-                  href: '/notifications',
-                  label: '通知',
-                  icon: Bell,
-                  active: pathname === '/notifications' || pathname?.startsWith('/notifications/'),
-                },
-              ]
-            : [],
+          label: inCourseContext ? '课程内协作' : '消息与提醒',
+          items: [
+            ...(inCourseContext
+              ? [
+                  {
+                    key: 'agent-teams',
+                    href: agentTeamsHref,
+                    label: '课程主页',
+                    tooltip: '课程主页',
+                    icon: UsersRound,
+                    active: agentTeamsActive,
+                  },
+                  ...(isChatPage
+                    ? []
+                    : ([
+                        {
+                          key: 'chat',
+                          href: '/chat',
+                          label: '聊天',
+                          icon: MessageCircle,
+                          active: false,
+                        },
+                      ] satisfies CoreNavItem[])),
+                ]
+              : []),
+            {
+              key: 'notifications',
+              href: '/notifications',
+              label: '通知',
+              tooltip: '通知',
+              icon: Bell,
+              active: notificationsActive,
+            },
+          ],
         },
       ].filter((section) => section.items.length > 0);
 
   const renderItem = (item: CoreNavItem) => {
     const Icon = item.icon;
+    const isNotificationsItem = item.key === 'notifications';
+    const showUnreadBadge = isNotificationsItem && unreadNotificationCount > 0;
+    const unreadLabel = unreadNotificationCount > 99 ? '99+' : String(unreadNotificationCount);
+
     return (
       <li key={item.key}>
         <Tooltip>
@@ -279,12 +301,32 @@ export function AppCoreNavList({
               aria-current={item.active ? 'page' : undefined}
               onClick={() => onItemClick?.(item.key)}
             >
-              <Icon className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
+              <span className="relative shrink-0">
+                <Icon className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
+                {showUnreadBadge ? (
+                  <span className="absolute -right-2 -top-2 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white shadow-[0_6px_16px_rgba(244,63,94,0.38)]">
+                    {collapsed
+                      ? unreadNotificationCount > 9
+                        ? '9+'
+                        : unreadNotificationCount
+                      : unreadLabel}
+                  </span>
+                ) : null}
+              </span>
               {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && showUnreadBadge ? (
+                <span className="ml-auto inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                  {unreadLabel}
+                </span>
+              ) : null}
             </Link>
           </TooltipTrigger>
           {collapsed && (
-            <TooltipContent side={tooltipSide}>{item.tooltip ?? item.label}</TooltipContent>
+            <TooltipContent side={tooltipSide}>
+              {showUnreadBadge
+                ? `${item.tooltip ?? item.label} · ${unreadNotificationCount} 条未读`
+                : (item.tooltip ?? item.label)}
+            </TooltipContent>
           )}
         </Tooltip>
       </li>
@@ -293,7 +335,9 @@ export function AppCoreNavList({
 
   if (!grouped) {
     const rawFlat = coreNavSections.flatMap((s) => s.items);
-    const flatItems = chatRightRailOrder ? sortChatRightRailItems(rawFlat) : rawFlat;
+    const ordered = chatRightRailOrder ? sortChatRightRailItems(rawFlat) : rawFlat;
+    const omit = excludeKeys?.length ? new Set(excludeKeys) : null;
+    const flatItems = omit ? ordered.filter((item) => !omit.has(item.key)) : ordered;
     return (
       <div className="flex flex-col p-0">
         <ul className="flex flex-col gap-0.5 p-0">{flatItems.map(renderItem)}</ul>

@@ -319,7 +319,7 @@ export default function MyCoursesPage() {
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 p-6 apple-glass sm:max-w-2xl"
+          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 bg-background p-6 shadow-xl sm:max-w-2xl"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">
@@ -348,7 +348,7 @@ export default function MyCoursesPage() {
         }}
       >
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 p-6 apple-glass sm:max-w-2xl"
+          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 bg-background p-6 shadow-xl sm:max-w-2xl"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">

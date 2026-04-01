@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PurchaseConfirmDialog } from '@/components/courses/purchase-confirm-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { backendJson } from '@/lib/utils/backend-api';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { useNotificationStore } from '@/lib/store/notifications';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { creditsFromPriceCents, formatCreditsLabel } from '@/lib/utils/credits';
 
@@ -104,6 +106,7 @@ export default function StoreCourseDetailPage() {
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
   const currentCourseId = useCurrentCourseStore((s) => s.id);
+  const refreshNotifications = useNotificationStore((s) => s.refreshNotifications);
   const [data, setData] = useState<StoreCourseDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
@@ -111,7 +114,11 @@ export default function StoreCourseDetailPage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [ownedNotebookMap, setOwnedNotebookMap] = useState<Record<string, string>>({});
+  const [coursePurchaseOpen, setCoursePurchaseOpen] = useState(false);
   const [buyingNotebookId, setBuyingNotebookId] = useState<string | null>(null);
+  const [pendingNotebookPurchase, setPendingNotebookPurchase] = useState<StoreNotebook | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -164,8 +171,8 @@ export default function StoreCourseDetailPage() {
 
   const highlights = useMemo(() => (data ? buildHighlights(data.course) : []), [data]);
 
-  const handleBuy = async () => {
-    if (!id) return;
+  const handleBuy = async (): Promise<boolean> => {
+    if (!id) return false;
     setBuying(true);
     try {
       const response = await backendJson<{ course: { id: string; name: string } }>(
@@ -176,10 +183,13 @@ export default function StoreCourseDetailPage() {
           body: JSON.stringify({ sourceCourseId: id }),
         },
       );
+      await refreshNotifications({ silent: true });
       toast.success(`已购买并复制课程「${response.course.name}」`);
       router.push(`/course/${response.course.id}`);
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '购买失败');
+      return false;
     } finally {
       setBuying(false);
     }
@@ -204,7 +214,7 @@ export default function StoreCourseDetailPage() {
     }
   };
 
-  const handleBuyNotebook = async (notebookId: string) => {
+  const handleBuyNotebook = async (notebookId: string): Promise<boolean> => {
     setBuyingNotebookId(notebookId);
     try {
       const response = await backendJson<{ notebook: { id: string; name: string } }>(
@@ -215,10 +225,13 @@ export default function StoreCourseDetailPage() {
           body: JSON.stringify({ sourceNotebookId: notebookId }),
         },
       );
+      await refreshNotifications({ silent: true });
       toast.success(`已购买笔记本「${response.notebook.name}」`);
       router.push(`/classroom/${response.notebook.id}`);
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '购买笔记本失败');
+      return false;
     } finally {
       setBuyingNotebookId(null);
     }
@@ -297,7 +310,7 @@ export default function StoreCourseDetailPage() {
                     type="button"
                     className="store-cta-primary w-full rounded-full px-5 py-3 text-sm font-semibold"
                     disabled={buying || course.purchased}
-                    onClick={() => void handleBuy()}
+                    onClick={() => setCoursePurchaseOpen(true)}
                   >
                     {course.purchased ? '已购买' : buying ? '购买中…' : '购买整门课程'}
                   </button>
@@ -414,7 +427,7 @@ export default function StoreCourseDetailPage() {
                             variant="outline"
                             className="rounded-full"
                             disabled={buyingNotebookId === notebook.id}
-                            onClick={() => void handleBuyNotebook(notebook.id)}
+                            onClick={() => setPendingNotebookPurchase(notebook)}
                           >
                             {buyingNotebookId === notebook.id ? '购买中…' : '购买单本'}
                           </Button>
@@ -547,6 +560,39 @@ export default function StoreCourseDetailPage() {
             </button>
           </div>
         </section>
+
+        <PurchaseConfirmDialog
+          open={coursePurchaseOpen}
+          onOpenChange={setCoursePurchaseOpen}
+          itemTypeLabel="课程"
+          itemName={course.name}
+          creditsCost={creditsFromPriceCents(course.coursePriceCents)}
+          countSummary={`将复制 ${course.notebooks.length} 本笔记本，共 ${totalScenes} 页内容到你的个人空间。`}
+          note="确认后会立即扣除对应 credits，并生成你自己的课程副本。"
+          busy={buying}
+          confirmLabel="确认购买课程"
+          onConfirm={handleBuy}
+        />
+        <PurchaseConfirmDialog
+          open={Boolean(pendingNotebookPurchase)}
+          onOpenChange={(open) => {
+            if (!open) setPendingNotebookPurchase(null);
+          }}
+          itemTypeLabel="笔记本"
+          itemName={pendingNotebookPurchase?.name ?? ''}
+          creditsCost={creditsFromPriceCents(pendingNotebookPurchase?.notebookPriceCents ?? 0)}
+          countSummary={
+            pendingNotebookPurchase
+              ? `将复制这本笔记本到你的空间，包含 ${pendingNotebookPurchase._count.scenes} 页内容。`
+              : undefined
+          }
+          note="确认后会立即扣除对应 credits，并生成你自己的笔记本副本。"
+          busy={buyingNotebookId != null}
+          confirmLabel="确认购买笔记本"
+          onConfirm={() =>
+            pendingNotebookPurchase ? handleBuyNotebook(pendingNotebookPurchase.id) : false
+          }
+        />
       </main>
     </div>
   );

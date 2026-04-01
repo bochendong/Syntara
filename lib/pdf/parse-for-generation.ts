@@ -8,13 +8,15 @@ import type { ParsedPdfContent } from '@/lib/types/pdf';
 import { loadImageMapping, storeImages } from '@/lib/utils/image-storage';
 import {
   getPdfSourceFileSignature,
+  pdfDataUrlByteLength,
+  rawPdfExtractedImageToDataUrl,
+  PDF_SELECTION_SCREENSHOT_WIDTH,
   type PdfSourceSelection,
 } from '@/lib/pdf/page-selection';
 
 const log = createLogger('PDFGenerationParse');
 
 const SERVERLESS_BODY_LIMIT_BYTES = Math.floor(4.5 * 1024 * 1024);
-const BROWSER_FALLBACK_SCREENSHOT_WIDTH = 1280;
 
 type Language = 'zh-CN' | 'en-US';
 
@@ -57,50 +59,6 @@ function buildSelectionTooLargeMessage(language: Language): string {
 
 function utf8Bytes(text: string): number {
   return new TextEncoder().encode(text).length;
-}
-
-function dataUrlBytes(src: string): number {
-  const base64 = src.split(',')[1] || '';
-  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
-  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
-}
-
-function rawImageToDataUrl(image: {
-  data: Uint8ClampedArray;
-  width: number;
-  height: number;
-  channels: 1 | 3 | 4;
-}): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const context = canvas.getContext('2d');
-  if (!context) {
-    throw new Error('Canvas 2D context is unavailable.');
-  }
-
-  const rgba = new Uint8ClampedArray(image.width * image.height * 4);
-  if (image.channels === 4) {
-    rgba.set(image.data);
-  } else if (image.channels === 3) {
-    for (let src = 0, dst = 0; src < image.data.length; src += 3, dst += 4) {
-      rgba[dst] = image.data[src];
-      rgba[dst + 1] = image.data[src + 1];
-      rgba[dst + 2] = image.data[src + 2];
-      rgba[dst + 3] = 255;
-    }
-  } else {
-    for (let src = 0, dst = 0; src < image.data.length; src += 1, dst += 4) {
-      const value = image.data[src];
-      rgba[dst] = value;
-      rgba[dst + 1] = value;
-      rgba[dst + 2] = value;
-      rgba[dst + 3] = 255;
-    }
-  }
-
-  context.putImageData(new ImageData(rgba, image.width, image.height), 0, 0);
-  return canvas.toDataURL('image/png');
 }
 
 async function readServerErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -169,7 +127,7 @@ async function parsePdfLocallyInBrowser(
       const aspectRatio = viewport.width > 0 && viewport.height > 0 ? viewport.width / viewport.height : 1.7778;
       const src = await renderPageAsImage(pdf, pageNumber, {
         toDataURL: true,
-        width: BROWSER_FALLBACK_SCREENSHOT_WIDTH,
+        width: PDF_SELECTION_SCREENSHOT_WIDTH,
       });
       pdfImagesMeta.push({
         id: `img_${pdfImagesMeta.length + 1}`,
@@ -179,8 +137,8 @@ async function parsePdfLocallyInBrowser(
           language === 'en-US'
             ? `Full-page screenshot of PDF page ${pageNumber}, captured because this page contains embedded images.`
             : `PDF 第 ${pageNumber} 页整页截图，因为这一页包含嵌入图片。`,
-        width: BROWSER_FALLBACK_SCREENSHOT_WIDTH,
-        height: Math.round(BROWSER_FALLBACK_SCREENSHOT_WIDTH / Math.max(aspectRatio, 0.1)),
+        width: PDF_SELECTION_SCREENSHOT_WIDTH,
+        height: Math.round(PDF_SELECTION_SCREENSHOT_WIDTH / Math.max(aspectRatio, 0.1)),
       });
     } catch (error) {
       log.warn('Failed to capture PDF page screenshot during browser fallback', {
@@ -254,7 +212,7 @@ async function parsePdfLocallyWithSelection(
     width?: number;
     height?: number;
   }) => {
-    payloadBytes += dataUrlBytes(asset.src);
+    payloadBytes += pdfDataUrlByteLength(asset.src);
     if (payloadBytes > selection.maxContentBytes) {
       throw new Error(buildSelectionTooLargeMessage(language));
     }
@@ -280,8 +238,13 @@ async function parsePdfLocallyWithSelection(
 
     if (entry.imageMode === 'direct') {
       const rawImages = await extractImages(pdf, entry.pageNumber);
+      const allowedKeys =
+        entry.keptImageKeys === undefined
+          ? new Set(rawImages.map((r) => r.key))
+          : new Set(entry.keptImageKeys);
       for (const rawImage of rawImages) {
-        const src = rawImageToDataUrl(rawImage);
+        if (!allowedKeys.has(rawImage.key)) continue;
+        const src = rawPdfExtractedImageToDataUrl(rawImage);
         pushAsset({
           src,
           pageNumber: entry.pageNumber,
@@ -300,7 +263,7 @@ async function parsePdfLocallyWithSelection(
     const viewport = page.getViewport({ scale: 1 });
     const src = await renderPageAsImage(pdf, entry.pageNumber, {
       toDataURL: true,
-      width: BROWSER_FALLBACK_SCREENSHOT_WIDTH,
+      width: PDF_SELECTION_SCREENSHOT_WIDTH,
     });
     pushAsset({
       src,
@@ -309,9 +272,9 @@ async function parsePdfLocallyWithSelection(
         language === 'en-US'
           ? `Full-page screenshot of PDF page ${entry.pageNumber}, kept because this page contains visual content.`
           : `PDF 第 ${entry.pageNumber} 页整页截图，因为这一页包含视觉内容。`,
-      width: BROWSER_FALLBACK_SCREENSHOT_WIDTH,
+      width: PDF_SELECTION_SCREENSHOT_WIDTH,
       height: Math.round(
-        BROWSER_FALLBACK_SCREENSHOT_WIDTH / Math.max(viewport.width / viewport.height, 0.1),
+        PDF_SELECTION_SCREENSHOT_WIDTH / Math.max(viewport.width / viewport.height, 0.1),
       ),
     });
   }

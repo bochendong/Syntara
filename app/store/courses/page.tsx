@@ -1,9 +1,17 @@
 'use client';
 
-import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { ArrowRight, Compass, Library, Search, Star, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CourseGalleryCard } from '@/components/course-gallery-card';
+import { PurchaseConfirmDialog } from '@/components/courses/purchase-confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/lib/store/auth';
 import {
@@ -49,6 +57,8 @@ export default function CourseStorePage() {
   const [community, setCommunity] = useState<CommunityCourseListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [pendingPurchaseCourse, setPendingPurchaseCourse] =
+    useState<CommunityCourseListItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
@@ -80,7 +90,7 @@ export default function CourseStorePage() {
     void load();
   }, [isLoggedIn, router, load]);
 
-  const handleCloneCommunityCourse = async (item: CommunityCourseListItem) => {
+  const handleCloneCommunityCourse = async (item: CommunityCourseListItem): Promise<boolean> => {
     setAddingId(`c:${item.id}`);
     try {
       const course = await cloneCourseFromStore(item.id);
@@ -88,8 +98,10 @@ export default function CourseStorePage() {
       toast.success(`已复制课程「${course.name}」到我的课程`);
       await load();
       router.push(`/course/${course.id}`);
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '复制失败');
+      return false;
     } finally {
       setAddingId(null);
     }
@@ -150,10 +162,7 @@ export default function CourseStorePage() {
   const recentCourses = useMemo(
     () =>
       [...filteredCommunity]
-        .sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
         .slice(0, 6),
     [filteredCommunity],
   );
@@ -229,7 +238,9 @@ export default function CourseStorePage() {
                       : `共 ${community.length} 门社区课程`}
                   </span>
                   <span className="store-chip text-xs">
-                    {searchActive ? `我的课程匹配 ${filteredMine.length} 门` : `我的课程 ${mine.length} 门`}
+                    {searchActive
+                      ? `我的课程匹配 ${filteredMine.length} 门`
+                      : `我的课程 ${mine.length} 门`}
                   </span>
                 </div>
               </div>
@@ -289,16 +300,16 @@ export default function CourseStorePage() {
         </section>
 
         <section className="mt-12">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                  {searchActive ? 'Search Result Spotlight' : 'Editor&apos;s Pick'}
-                </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                  {searchActive ? '搜索结果中的推荐课程' : '编辑精选'}
-                </h2>
-              </div>
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                {searchActive ? 'Search Result Spotlight' : 'Editor&apos;s Pick'}
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                {searchActive ? '搜索结果中的推荐课程' : '编辑精选'}
+              </h2>
             </div>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -316,7 +327,8 @@ export default function CourseStorePage() {
                   course={{
                     id: featuredCourse.id,
                     name: featuredCourse.name,
-                    description: `${summaryCopy(featuredCourse)} ${featuredCourse.description || ''}`.trim(),
+                    description:
+                      `${summaryCopy(featuredCourse)} ${featuredCourse.description || ''}`.trim(),
                     sceneCount: featuredCourse.notebookCount,
                     createdAt:
                       typeof featuredCourse.createdAt === 'number'
@@ -339,7 +351,9 @@ export default function CourseStorePage() {
                     courseCode: featuredCourse.courseCode?.trim() || undefined,
                   }}
                   countUnit="个笔记本"
-                  priceLabel={formatCreditsLabel(creditsFromPriceCents(featuredCourse.coursePriceCents))}
+                  priceLabel={formatCreditsLabel(
+                    creditsFromPriceCents(featuredCourse.coursePriceCents),
+                  )}
                   ratingLabel={`★ ${(featuredCourse.averageRating ?? 0).toFixed(1)} · ${featuredCourse.reviewCount ?? 0} 条`}
                   secondaryActionLabel={
                     addingId === `c:${featuredCourse.id}`
@@ -351,7 +365,7 @@ export default function CourseStorePage() {
                   onSecondaryAction={
                     featuredCourse.purchased || addingId === `c:${featuredCourse.id}`
                       ? undefined
-                      : () => void handleCloneCommunityCourse(featuredCourse)
+                      : () => setPendingPurchaseCourse(featuredCourse)
                   }
                   coverAvatarUrl={resolveCourseAvatarDisplayUrl(
                     featuredCourse.id,
@@ -361,34 +375,37 @@ export default function CourseStorePage() {
               </div>
 
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-1">
-                {recentCourses.filter((item) => item.id !== featuredCourse.id).slice(0, 2).map((item) => (
-                  <div key={item.id} className="store-section-panel rounded-[30px] p-5">
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {featuredReason(item)}
-                    </p>
-                    <h3 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
-                      {item.name}
-                    </h3>
-                    <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                      {summaryCopy(item)}
-                    </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      <span className="store-chip text-xs">{purposeLabel(item.purpose)}</span>
-                      <span className="store-chip text-xs">{item.notebookCount} 个笔记本</span>
-                      <span className="store-chip text-xs">
-                        {formatCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
-                      </span>
+                {recentCourses
+                  .filter((item) => item.id !== featuredCourse.id)
+                  .slice(0, 2)
+                  .map((item) => (
+                    <div key={item.id} className="store-section-panel rounded-[30px] p-5">
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {featuredReason(item)}
+                      </p>
+                      <h3 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
+                        {item.name}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        {summaryCopy(item)}
+                      </p>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <span className="store-chip text-xs">{purposeLabel(item.purpose)}</span>
+                        <span className="store-chip text-xs">{item.notebookCount} 个笔记本</span>
+                        <span className="store-chip text-xs">
+                          {formatCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/store/courses/${item.id}`)}
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sky-600 transition-colors hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200"
+                      >
+                        查看详情
+                        <ArrowRight className="size-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/store/courses/${item.id}`)}
-                      className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sky-600 transition-colors hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200"
-                    >
-                      查看详情
-                      <ArrowRight className="size-4" />
-                    </button>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           ) : (
@@ -420,7 +437,10 @@ export default function CourseStorePage() {
           {loading ? (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="h-[31rem] animate-pulse rounded-[32px] bg-white/70 dark:bg-white/6" />
+                <div
+                  key={idx}
+                  className="h-[31rem] animate-pulse rounded-[32px] bg-white/70 dark:bg-white/6"
+                />
               ))}
             </div>
           ) : filteredCommunity.length === 0 ? null : (
@@ -463,7 +483,7 @@ export default function CourseStorePage() {
                   onSecondaryAction={
                     item.purchased || addingId === `c:${item.id}`
                       ? undefined
-                      : () => void handleCloneCommunityCourse(item)
+                      : () => setPendingPurchaseCourse(item)
                   }
                   coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
                 />
@@ -474,66 +494,66 @@ export default function CourseStorePage() {
 
         {!searchActive
           ? purposeShelves.map((shelf) => (
-          <section key={shelf.title} className="mt-14">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                  Browse by Intent
-                </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                  {shelf.title}
-                </h2>
-                <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  {shelf.subtitle}
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-              {shelf.items.map((item) => (
-                <CourseGalleryCard
-                  key={item.id}
-                  variant="store-course"
-                  course={{
-                    id: item.id,
-                    name: item.name,
-                    description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
-                    sceneCount: item.notebookCount,
-                    createdAt:
-                      typeof item.createdAt === 'number'
-                        ? item.createdAt
-                        : new Date(item.createdAt).getTime(),
-                    updatedAt:
-                      typeof item.updatedAt === 'number'
-                        ? item.updatedAt
-                        : new Date(item.updatedAt).getTime(),
-                  }}
-                  tags={item.tags.length > 0 ? item.tags : undefined}
-                  badge={purposeLabel(item.purpose)}
-                  subtitle={`更新于 ${formatDate(item.updatedAt)}`}
-                  creatorName={item.ownerName}
-                  courseMetaChips={{
-                    school: item.university?.trim() || undefined,
-                    purposeType: purposeLabel(item.purpose),
-                    courseCode: item.courseCode?.trim() || undefined,
-                  }}
-                  countUnit="个笔记本"
-                  priceLabel={formatCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
-                  ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
-                  actionLabel="查看详情"
-                  onAction={() => router.push(`/store/courses/${item.id}`)}
-                  secondaryActionLabel={
-                    addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已拥有' : '购买'
-                  }
-                  onSecondaryAction={
-                    item.purchased || addingId === `c:${item.id}`
-                      ? undefined
-                      : () => void handleCloneCommunityCourse(item)
-                  }
-                  coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
-                />
-              ))}
-            </div>
-          </section>
+              <section key={shelf.title} className="mt-14">
+                <div className="mb-6 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                      Browse by Intent
+                    </p>
+                    <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                      {shelf.title}
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                      {shelf.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                  {shelf.items.map((item) => (
+                    <CourseGalleryCard
+                      key={item.id}
+                      variant="store-course"
+                      course={{
+                        id: item.id,
+                        name: item.name,
+                        description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
+                        sceneCount: item.notebookCount,
+                        createdAt:
+                          typeof item.createdAt === 'number'
+                            ? item.createdAt
+                            : new Date(item.createdAt).getTime(),
+                        updatedAt:
+                          typeof item.updatedAt === 'number'
+                            ? item.updatedAt
+                            : new Date(item.updatedAt).getTime(),
+                      }}
+                      tags={item.tags.length > 0 ? item.tags : undefined}
+                      badge={purposeLabel(item.purpose)}
+                      subtitle={`更新于 ${formatDate(item.updatedAt)}`}
+                      creatorName={item.ownerName}
+                      courseMetaChips={{
+                        school: item.university?.trim() || undefined,
+                        purposeType: purposeLabel(item.purpose),
+                        courseCode: item.courseCode?.trim() || undefined,
+                      }}
+                      countUnit="个笔记本"
+                      priceLabel={formatCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
+                      ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
+                      actionLabel="查看详情"
+                      onAction={() => router.push(`/store/courses/${item.id}`)}
+                      secondaryActionLabel={
+                        addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已拥有' : '购买'
+                      }
+                      onSecondaryAction={
+                        item.purchased || addingId === `c:${item.id}`
+                          ? undefined
+                          : () => setPendingPurchaseCourse(item)
+                      }
+                      coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
+                    />
+                  ))}
+                </div>
+              </section>
             ))
           : null}
 
@@ -580,7 +600,8 @@ export default function CourseStorePage() {
                   course={{
                     id: course.id,
                     name: course.name,
-                    description: course.description || '你可以继续在此课程下扩充笔记本、组织课堂与发布内容。',
+                    description:
+                      course.description || '你可以继续在此课程下扩充笔记本、组织课堂与发布内容。',
                     sceneCount: notebookCount,
                     createdAt: course.createdAt,
                     updatedAt: course.updatedAt,
@@ -625,6 +646,27 @@ export default function CourseStorePage() {
             </div>
           </section>
         ) : null}
+
+        <PurchaseConfirmDialog
+          open={Boolean(pendingPurchaseCourse)}
+          onOpenChange={(open) => {
+            if (!open) setPendingPurchaseCourse(null);
+          }}
+          itemTypeLabel="课程"
+          itemName={pendingPurchaseCourse?.name ?? ''}
+          creditsCost={creditsFromPriceCents(pendingPurchaseCourse?.coursePriceCents ?? 0)}
+          countSummary={
+            pendingPurchaseCourse
+              ? `将复制整门课程到你的个人空间，包含 ${pendingPurchaseCourse.notebookCount} 本笔记本。`
+              : undefined
+          }
+          note="确认后会立即扣除对应 credits，并把整门课程复制到你的课程库。"
+          busy={pendingPurchaseCourse ? addingId === `c:${pendingPurchaseCourse.id}` : false}
+          confirmLabel="确认购买课程"
+          onConfirm={() =>
+            pendingPurchaseCourse ? handleCloneCommunityCourse(pendingPurchaseCourse) : false
+          }
+        />
       </main>
     </div>
   );

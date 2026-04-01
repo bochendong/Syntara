@@ -706,6 +706,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   tooltipSide="left"
                   grouped={false}
                   chatRightRailOrder
+                  excludeKeys={['top-up', 'store']}
                 />
               </div>
             </div>
@@ -797,6 +798,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   tooltipSide="left"
                   grouped={false}
                   chatRightRailOrder
+                  excludeKeys={['top-up', 'store']}
                 />
               </div>
             ) : null}

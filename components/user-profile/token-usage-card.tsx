@@ -1,12 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/lib/store/auth';
 import { backendJson } from '@/lib/utils/backend-api';
+
+const USAGE_RECORDS_PAGE_SIZE = 8;
+
+type UsageRecordRow = {
+  id: string;
+  route: string;
+  source: string;
+  providerId: string;
+  modelId: string;
+  modelString: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  createdAt: string;
+};
 
 type ProfileUsageResponse = {
   success: true;
@@ -24,18 +39,15 @@ type ProfileUsageResponse = {
     outputTokens: number;
     totalTokens: number;
   }>;
-  usageRecords: Array<{
-    id: string;
-    route: string;
-    source: string;
-    providerId: string;
-    modelId: string;
-    modelString: string;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-    createdAt: string;
-  }>;
+  usageRecords: UsageRecordRow[];
+  /** 全量最新一条（与明细表当前页无关） */
+  latestRecord: UsageRecordRow | null;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 };
 
 function formatNumber(value: number) {
@@ -58,13 +70,19 @@ export function TokenUsageCard() {
   const [usage, setUsage] = useState<ProfileUsageResponse | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
+  const [recordsPage, setRecordsPage] = useState(1);
 
-  const loadUsage = useCallback(async () => {
+  const loadUsage = useCallback(async (page: number) => {
     setUsageLoading(true);
     setUsageError(null);
     try {
-      const response = await backendJson<ProfileUsageResponse>('/api/profile/llm-usage');
+      const qs = new URLSearchParams({
+        page: String(page),
+        pageSize: String(USAGE_RECORDS_PAGE_SIZE),
+      });
+      const response = await backendJson<ProfileUsageResponse>(`/api/profile/llm-usage?${qs.toString()}`);
       setUsage(response);
+      setRecordsPage(response.pagination.page);
     } catch (error) {
       setUsageError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -73,7 +91,7 @@ export function TokenUsageCard() {
   }, []);
 
   useEffect(() => {
-    void loadUsage();
+    void loadUsage(1);
   }, [loadUsage]);
 
   return (
@@ -87,7 +105,7 @@ export function TokenUsageCard() {
           type="button"
           size="sm"
           variant="outline"
-          onClick={() => void loadUsage()}
+          onClick={() => void loadUsage(recordsPage)}
           disabled={usageLoading}
           className="h-8 gap-1.5 text-xs"
         >
@@ -141,7 +159,7 @@ export function TokenUsageCard() {
             最近一次使用
           </div>
           <p className="mt-1 text-sm font-medium text-foreground">
-            {usage?.usageRecords[0]?.modelString || '暂无记录'}
+            {usage?.latestRecord?.modelString || '暂无记录'}
           </p>
         </div>
 
@@ -182,9 +200,47 @@ export function TokenUsageCard() {
         </div>
 
         <div className="space-y-2">
-          <div>
-            <p className="text-sm font-semibold text-foreground">每次使用记录</p>
-            <p className="text-xs text-muted-foreground">逐条记录每次调用用了什么模型，以及对应 token 明细</p>
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-foreground">每次使用记录</p>
+              <p className="text-xs text-muted-foreground">
+                逐条记录每次调用用了什么模型，以及对应 token 明细
+                {usage?.databaseEnabled
+                  ? `，共 ${usage.pagination.totalCount} 条${usage.pagination.totalPages > 1 ? '，使用右侧按钮翻页。' : '。'}`
+                  : '。'}
+              </p>
+            </div>
+            {usage?.databaseEnabled && usage.pagination.totalPages > 1 ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  disabled={usageLoading || recordsPage <= 1}
+                  onClick={() => void loadUsage(recordsPage - 1)}
+                  aria-label="上一页"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <span className="min-w-[7.5rem] text-center text-[11px] text-muted-foreground tabular-nums">
+                  {usage.pagination.totalCount === 0
+                    ? '—'
+                    : `第 ${usage.pagination.page} / ${usage.pagination.totalPages} 页`}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  disabled={usageLoading || recordsPage >= usage.pagination.totalPages}
+                  onClick={() => void loadUsage(recordsPage + 1)}
+                  aria-label="下一页"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            ) : null}
           </div>
           <div className="overflow-x-auto rounded-xl border">
             <table className="min-w-full text-left text-xs">

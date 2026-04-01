@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ServerProvidersInit } from '@/components/server-providers-init';
 import { AppLayoutChrome } from '@/components/app-layout-chrome';
 import { AuthSessionProvider } from '@/components/auth-session-provider';
+import { NotificationCenterProvider } from '@/components/notifications/notification-center-provider';
 
 const inter = localFont({
   src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
@@ -42,6 +43,7 @@ export default function RootLayout({
             <ServerProvidersInit />
             <AuthSessionProvider>
               <AppLayoutChrome>{children}</AppLayoutChrome>
+              <NotificationCenterProvider />
             </AuthSessionProvider>
             <Toaster position="top-center" />
           </I18nProvider>

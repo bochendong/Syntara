@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import {
   analyzePdfForSelection,
   buildInitialPdfSourceSelection,
+  computePdfPageItemBytes,
   computePdfSourceSelectionEstimateBytes,
   getPdfSourceFileSignature,
   PDF_PAGE_SELECTION_MAX_BYTES,
@@ -142,7 +143,10 @@ export function PdfPageSelectionDialog({
   );
   const overLimit = selectedBytes > PDF_PAGE_SELECTION_MAX_BYTES;
 
-  const updateSelection = (pageNumber: number, patch: Partial<{ keep: boolean; imageMode: PdfPageImageMode }>) => {
+  const updateSelection = (
+    pageNumber: number,
+    patch: Partial<{ keep: boolean; imageMode: PdfPageImageMode; keptImageKeys: string[] }>,
+  ) => {
     setSelection((current) => {
       if (!current) return current;
       return {
@@ -150,20 +154,57 @@ export function PdfPageSelectionDialog({
         pages: current.pages.map((page) => {
           if (page.pageNumber !== pageNumber) return page;
           const preview = pages.find((item) => item.pageNumber === pageNumber);
-          const nextImageMode = patch.imageMode ?? page.imageMode;
-          const estimatedBytes =
-            (preview?.textBytesEstimate || 0) +
-            (preview?.hasImages
-              ? nextImageMode === 'direct'
-                ? preview.directBytesEstimate
-                : preview.screenshotBytesEstimate
-              : 0);
+          if (!preview) return { ...page, ...patch };
+
+          const merged = { ...page, ...patch };
+          let nextMode = merged.imageMode;
+          let nextKeys = [...merged.keptImageKeys];
+
+          if (preview.requiresScreenshotFallback) {
+            nextMode = 'screenshot';
+            nextKeys = [];
+          } else if (patch.imageMode === 'direct' && patch.keptImageKeys === undefined) {
+            if (page.imageMode === 'screenshot' || page.keptImageKeys.length === 0) {
+              nextKeys = preview.images.map((im) => im.key);
+            }
+          }
+
+          const estimatedBytes = computePdfPageItemBytes(preview, {
+            hasImages: preview.hasImages,
+            imageMode: nextMode,
+            keptImageKeys: nextKeys,
+          });
+
           return {
             ...page,
             ...patch,
-            imageMode: nextImageMode,
+            imageMode: nextMode,
+            keptImageKeys: nextKeys,
             estimatedBytes,
           };
+        }),
+      };
+    });
+  };
+
+  const togglePageImageKey = (pageNumber: number, imageKey: string, checked: boolean) => {
+    setSelection((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        pages: current.pages.map((page) => {
+          if (page.pageNumber !== pageNumber) return page;
+          const preview = pages.find((item) => item.pageNumber === pageNumber);
+          if (!preview) return page;
+          const nextKeys = checked
+            ? Array.from(new Set([...page.keptImageKeys, imageKey]))
+            : page.keptImageKeys.filter((k) => k !== imageKey);
+          const estimatedBytes = computePdfPageItemBytes(preview, {
+            hasImages: preview.hasImages,
+            imageMode: page.imageMode,
+            keptImageKeys: nextKeys,
+          });
+          return { ...page, keptImageKeys: nextKeys, estimatedBytes };
         }),
       };
     });
@@ -178,19 +219,19 @@ export function PdfPageSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[1200px] overflow-hidden p-0">
-        <DialogHeader className="border-b px-6 py-5">
+      <DialogContent className="flex max-h-[90vh] min-h-0 max-w-[1200px] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-5">
           <DialogTitle className="text-lg">
             {language === 'en-US' ? 'Keep Only the Pages You Need' : '先挑出你真正想保留的页面'}
           </DialogTitle>
           <DialogDescription>
             {language === 'en-US'
-              ? 'For large PDFs, choose which pages to keep before generation. Pages with embedded images can use either direct image upload or a full-page screenshot.'
-              : '大 PDF 在进入生成流程前，先挑出你要保留的页面。带图片的页可以选择“直接上传图片”或“上传整页截图”。'}
+              ? 'For large PDFs, choose which pages to keep before generation. Embedded images can be picked individually; otherwise use a full-page screenshot. Sizes shown match the actual upload payload.'
+              : '大 PDF 在进入生成流程前，先挑出要保留的页面。可逐张勾选嵌入图，或改用整页截图；所示体积为实际上传数据大小，非估算。'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 [scrollbar-gutter:stable]">
           <div className="mb-4 rounded-2xl border bg-slate-50/70 p-4 dark:bg-slate-900/40">
             <div className="flex flex-wrap items-center gap-3">
               <Badge variant={overLimit ? 'destructive' : 'secondary'}>
@@ -233,8 +274,8 @@ export function PdfPageSelectionDialog({
                       ? `Page ${analysisProgress.current} / ${analysisProgress.total}`
                       : `第 ${analysisProgress.current} / ${analysisProgress.total} 页`
                     : language === 'en-US'
-                      ? 'Generating thumbnails and estimating image size.'
-                      : '正在生成缩略图并估算图片体积。'}
+                      ? 'Generating thumbnails and measuring actual payload sizes.'
+                      : '正在生成缩略图并测量各页实际上传体积。'}
                 </p>
               </div>
             </div>
@@ -247,17 +288,24 @@ export function PdfPageSelectionDialog({
               <p className="mt-1 text-xs leading-6 text-rose-700 dark:text-rose-200">{analysisError}</p>
             </div>
           ) : (
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 pr-1 sm:grid-cols-2 lg:grid-cols-4">
               {pages.map((preview) => {
                 const selected = selection?.pages.find((page) => page.pageNumber === preview.pageNumber);
                 const currentMode = selected?.imageMode || preview.recommendedImageMode;
-                const currentBytes =
-                  preview.textBytesEstimate +
-                  (preview.hasImages
-                    ? currentMode === 'direct'
-                      ? preview.directBytesEstimate
-                      : preview.screenshotBytesEstimate
-                    : 0);
+                const currentBytes = selected
+                  ? computePdfPageItemBytes(preview, {
+                      hasImages: preview.hasImages,
+                      imageMode: currentMode,
+                      keptImageKeys: selected.keptImageKeys,
+                    })
+                  : computePdfPageItemBytes(preview, {
+                      hasImages: preview.hasImages,
+                      imageMode: preview.recommendedImageMode,
+                      keptImageKeys:
+                        preview.recommendedImageMode === 'screenshot'
+                          ? []
+                          : preview.images.map((im) => im.key),
+                    });
 
                 return (
                   <div
@@ -286,9 +334,13 @@ export function PdfPageSelectionDialog({
                             {preview.hasImages ? (
                               <Badge variant="secondary" className="gap-1 text-[10px]">
                                 <FileImage className="size-3" />
-                                {language === 'en-US'
-                                  ? `${preview.imageCount} image${preview.imageCount > 1 ? 's' : ''}`
-                                  : `${preview.imageCount} 张图`}
+                                {preview.requiresScreenshotFallback
+                                  ? language === 'en-US'
+                                    ? 'Screenshot page'
+                                    : '整页截图'
+                                  : language === 'en-US'
+                                    ? `${preview.imageCount} image${preview.imageCount > 1 ? 's' : ''}`
+                                    : `${preview.imageCount} 张嵌入图`}
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="text-[10px]">
@@ -297,21 +349,23 @@ export function PdfPageSelectionDialog({
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                            {language === 'en-US' ? 'Estimated retained size' : '预估保留大小'}: {formatBytes(currentBytes)}
+                            {language === 'en-US' ? 'Retained payload size' : '保留体积（实测）'}:{' '}
+                            {formatBytes(currentBytes)}
                           </p>
                         </div>
                       </label>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border bg-slate-100 dark:bg-slate-900/60">
+                    {/* ISO A4 竖版 210×297mm，与常见 PDF 页面宽高比一致 */}
+                    <div className="relative w-full overflow-hidden rounded-xl border bg-slate-100 aspect-[210/297] dark:bg-slate-900/60">
                       {preview.thumbnailSrc ? (
                         <img
                           src={preview.thumbnailSrc}
                           alt={language === 'en-US' ? `Preview of page ${preview.pageNumber}` : `第 ${preview.pageNumber} 页预览`}
-                          className="h-[180px] w-full object-cover object-top"
+                          className="size-full object-cover object-top"
                         />
                       ) : (
-                        <div className="flex h-[180px] items-center justify-center text-xs text-slate-500">
+                        <div className="flex size-full items-center justify-center text-xs text-slate-500">
                           {language === 'en-US' ? 'Thumbnail unavailable' : '暂时无法生成缩略图'}
                         </div>
                       )}
@@ -321,7 +375,15 @@ export function PdfPageSelectionDialog({
                       {preview.textPreview}
                     </p>
 
-                    {preview.hasImages ? (
+                    {preview.hasImages && preview.requiresScreenshotFallback ? (
+                      <div className="mt-3 rounded-xl border border-amber-200/70 bg-amber-50/50 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-500/25 dark:bg-amber-950/25 dark:text-amber-100">
+                        {language === 'en-US'
+                          ? 'This page uses inline or masked images. Only a full-page screenshot can be sent (size shown above).'
+                          : '本页为内联图或遮罩贴图等，无法单独抽出文件，将只发送整页截图（体积见上）。'}
+                      </div>
+                    ) : null}
+
+                    {preview.hasImages && !preview.requiresScreenshotFallback ? (
                       <div className="mt-3 space-y-2">
                         <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                           {language === 'en-US' ? 'Image handling for this page' : '这一页的图片处理方式'}
@@ -340,10 +402,13 @@ export function PdfPageSelectionDialog({
                             )}
                           >
                             <div className="font-medium">
-                              {language === 'en-US' ? 'Direct images' : '直接上传图片'}
+                              {language === 'en-US' ? 'Embedded images' : '嵌入图（可逐张勾选）'}
                             </div>
                             <div className="mt-1 text-[10px] opacity-70">
-                              {formatBytes(preview.textBytesEstimate + preview.directBytesEstimate)}
+                              {formatBytes(
+                                preview.textBytes +
+                                  preview.images.reduce((s, im) => s + im.payloadBytes, 0),
+                              )}
                             </div>
                           </button>
                           <button
@@ -359,13 +424,43 @@ export function PdfPageSelectionDialog({
                             )}
                           >
                             <div className="font-medium">
-                              {language === 'en-US' ? 'Page screenshot' : '上传整页截图'}
+                              {language === 'en-US' ? 'Page screenshot' : '整页截图'}
                             </div>
                             <div className="mt-1 text-[10px] opacity-70">
-                              {formatBytes(preview.textBytesEstimate + preview.screenshotBytesEstimate)}
+                              {formatBytes(preview.textBytes + preview.screenshotPayloadBytes)}
                             </div>
                           </button>
                         </div>
+
+                        {preview.images.length > 0 && currentMode === 'direct' && selected ? (
+                          <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/60 p-2 dark:border-white/10 dark:bg-white/[0.04]">
+                            <p className="px-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                              {language === 'en-US' ? 'Keep which images' : '保留哪些图'}
+                            </p>
+                            {preview.images.map((im, idx) => {
+                              const checked = selected.keptImageKeys.includes(im.key);
+                              return (
+                                <label
+                                  key={im.key}
+                                  className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-white/80 dark:hover:bg-white/[0.06]"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(v) =>
+                                      togglePageImageKey(preview.pageNumber, im.key, v === true)
+                                    }
+                                  />
+                                  <span className="min-w-0 flex-1 text-[10px] text-slate-700 dark:text-slate-200">
+                                    #{idx + 1} · {im.width}×{im.height}
+                                  </span>
+                                  <span className="shrink-0 text-[10px] text-slate-500">
+                                    {formatBytes(im.payloadBytes)}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -375,7 +470,7 @@ export function PdfPageSelectionDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t px-6 py-4">
+        <DialogFooter className="shrink-0 border-t px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {language === 'en-US' ? 'Cancel' : '取消'}
           </Button>
