@@ -252,11 +252,71 @@ function estimateDocumentSignal(doc: NotebookContentDocument): number {
   }, 0);
 }
 
+function normalizeCompactText(text: string): string {
+  return text.replace(/\s+/g, '').trim();
+}
+
+function isPlaceholderLikeText(text: string): boolean {
+  const normalized = normalizeCompactText(text).replace(/[：:]+$/g, '');
+  return [
+    '已知',
+    '证明',
+    '思路',
+    '题目',
+    '解',
+    '解答',
+    '结论',
+    '目标',
+    '分析',
+    '证明过程',
+  ].includes(normalized);
+}
+
+function countSuspiciousPlaceholderBlocks(doc: NotebookContentDocument): number {
+  let suspicious = 0;
+  for (let i = 0; i < doc.blocks.length; i += 1) {
+    const block = doc.blocks[i];
+    if (block.type !== 'heading' && block.type !== 'paragraph' && block.type !== 'callout') continue;
+
+    const text =
+      block.type === 'heading' ? block.text : block.type === 'paragraph' ? block.text : block.text;
+    if (!isPlaceholderLikeText(text)) continue;
+
+    const next = doc.blocks[i + 1];
+    const nextLooksSubstantive = Boolean(
+      next &&
+        ((next.type === 'paragraph' && normalizeCompactText(next.text).length >= 12) ||
+          (next.type === 'bullet_list' && next.items.join('').trim().length >= 12) ||
+          next.type === 'equation' ||
+          next.type === 'derivation_steps' ||
+          next.type === 'example' ||
+          next.type === 'table' ||
+          next.type === 'code_block' ||
+          next.type === 'chem_formula' ||
+          next.type === 'chem_equation' ||
+          next.type === 'callout'),
+    );
+
+    if (!nextLooksSubstantive) suspicious += 1;
+  }
+  return suspicious;
+}
+
+function countReasoningBlocks(doc: NotebookContentDocument): number {
+  return doc.blocks.filter((block) => {
+    if (block.type === 'derivation_steps' || block.type === 'example') return true;
+    if (block.type === 'equation') return true;
+    if (block.type === 'bullet_list') return block.items.length >= 2;
+    if (block.type === 'paragraph') return normalizeCompactText(block.text).length >= 30;
+    return false;
+  }).length;
+}
+
 function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
   if (language === 'zh-CN') {
-    return `你是一个“课堂单页数学排版修复器”。
+    return `你是一个“课堂单页数学内容与排版修复器”。
 
-你的任务是修复一页课堂幻灯片里的数学记号与公式表达，让它们适合被结构化渲染。
+你的任务是修复一页课堂幻灯片里的数学记号、公式表达，以及讲解结构，让它适合被结构化渲染并且真正便于学生理解。
 
 要求：
 - 只修复当前这一页，不要扩写成多页。
@@ -264,6 +324,9 @@ function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
 - 不要删掉题解、步骤、结论、已知条件、易错点、答案或推导过程；如果拿不准，保留原内容。
 - 优先在原有内容上做最小修改，而不是重写整页。
 - 尽量保持原有 block 顺序与数量；除非某一块明显应该拆成“说明 + 公式”，否则不要合并或删减。
+- 如果原页是“例题 / 证明 / 推导”页，必须把关键推导链明确写出来，不能只保留题目、标题和空占位。
+- 不要输出空标题、空小节或占位块，例如“已知：”“证明：”“思路：”后面没有实质内容的结构。
+- 如果原页里有两个结论，优先按“结论 1 -> 推导 -> 结论 2 -> 推导”或“已知 -> 推导 -> 结论”的方式整理清楚。
 - 重点修复数学对象、映射、集合、等式、核、像、同余类、下标、上标等表达。
 - 把真正的数学表达放进结构化公式块：
   - 单个或独立公式用 {"type":"equation","latex":"...","display":true}
@@ -308,7 +371,7 @@ function buildSystemPrompt(language: 'zh-CN' | 'en-US') {
 }`;
   }
 
-  return `You repair the mathematical notation of a single classroom slide.
+  return `You repair the mathematical notation, content structure, and teaching clarity of a single classroom slide.
 
 Requirements:
 - Repair this page only. Do not expand it into multiple pages.
@@ -316,6 +379,8 @@ Requirements:
 - Do not remove solution steps, givens, conclusions, or answer content. If unsure, keep it.
 - Prefer minimal edits to the existing blocks instead of rewriting the page.
 - Keep the original block order and roughly the same number of blocks whenever possible.
+- If this is a proof / derivation / worked-example slide, keep the reasoning explicit. Do not collapse it into headings plus placeholders.
+- Do not output empty section headers or placeholder blocks such as "Given:", "Proof:", or "Idea:" without substantive content after them.
 - Convert malformed mathematical notation into structured math blocks.
 - Use equation blocks for standalone math and derivation_steps for multi-line reasoning.
 - Keep prose as heading / paragraph / bullet_list.
@@ -437,10 +502,15 @@ export async function POST(req: NextRequest) {
       const repairedBlockCount = document.blocks.length;
       const sourceSignal = estimateDocumentSignal(sourceDocument);
       const repairedSignal = estimateDocumentSignal(document);
+      const placeholderCount = countSuspiciousPlaceholderBlocks(document);
+      const sourceReasoningBlocks = countReasoningBlocks(sourceDocument);
+      const repairedReasoningBlocks = countReasoningBlocks(document);
 
       if (
         repairedBlockCount < Math.max(2, Math.ceil(sourceBlockCount * 0.6)) ||
-        repairedSignal < Math.max(40, Math.floor(sourceSignal * 0.55))
+        repairedSignal < Math.max(40, Math.floor(sourceSignal * 0.55)) ||
+        placeholderCount > 0 ||
+        (sourceReasoningBlocks >= 2 && repairedReasoningBlocks < Math.max(2, sourceReasoningBlocks - 1))
       ) {
         return apiError(
           'GENERATION_FAILED',
