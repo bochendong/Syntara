@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { AdminConsole } from '@/components/admin/admin-console';
+import { AdminEntry } from '@/components/admin/admin-entry';
 
 export default function AdminPage() {
   return (
@@ -10,7 +10,7 @@ export default function AdminPage() {
         </div>
       }
     >
-      <AdminConsole />
+      <AdminEntry />
     </Suspense>
   );
 }

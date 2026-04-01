@@ -223,25 +223,27 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
                     {railTitle}
                   </p>
-                  <div
-                    className={cn(
-                      'mt-1 rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.14em]',
-                      notebookSidebar
-                        ? 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200'
-                        : 'bg-black/[0.04] text-muted-foreground dark:bg-white/[0.05]',
-                    )}
-                  >
-                    {contextBadge}
-                  </div>
-                  {creditsBalance != null ? (
-                    <Link
-                      href="/top-up"
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-50/80 px-2.5 py-1 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100 dark:hover:bg-amber-400/15"
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                    <div
+                      className={cn(
+                        'rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.14em]',
+                        notebookSidebar
+                          ? 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200'
+                          : 'bg-black/[0.04] text-muted-foreground dark:bg-white/[0.05]',
+                      )}
                     >
-                      <Coins className="size-3.5" />
-                      <span>{creditsBalance} credits</span>
-                    </Link>
-                  ) : null}
+                      {contextBadge}
+                    </div>
+                    {creditsBalance != null ? (
+                      <Link
+                        href="/top-up"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-50/80 px-2.5 py-1 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100 dark:hover:bg-amber-400/15"
+                      >
+                        <Coins className="size-3.5" />
+                        <span>{creditsBalance} credits</span>
+                      </Link>
+                    ) : null}
+                  </div>
                 </>
               )}
 
