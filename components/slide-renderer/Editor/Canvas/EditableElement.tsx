@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { ElementTypes, type PPTElement } from '@/lib/types/slides';
 import { ImageElement } from '../../components/element/ImageElement';
-import { TextElement } from '../../components/element/TextElement';
 import { LineElement } from '../../components/element/LineElement';
-import { ShapeElement } from '../../components/element/ShapeElement';
 import { ChartElement } from '../../components/element/ChartElement';
-import { LatexElement } from '../../components/element/LatexElement';
 import { TableElement } from '../../components/element/TableElement';
 import { VideoElement } from '../../components/element/VideoElement';
+import { BaseTextElement } from '../../components/element/TextElement/BaseTextElement';
+import { BaseShapeElement } from '../../components/element/ShapeElement/BaseShapeElement';
+import { BaseLatexElement } from '../../components/element/LatexElement/BaseLatexElement';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -51,21 +51,21 @@ export function EditableElement({
   selectElement,
   openLinkDialog,
 }: EditableElementProps) {
-  const CurrentElementComponent = useMemo(() => {
+  const { CurrentElementComponent, readonlyPreview } = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- element components have varying prop signatures
-    const elementTypeMap: Record<string, any> = {
-      [ElementTypes.IMAGE]: ImageElement,
-      [ElementTypes.TEXT]: TextElement,
-      [ElementTypes.SHAPE]: ShapeElement,
-      [ElementTypes.LINE]: LineElement,
-      [ElementTypes.CHART]: ChartElement,
-      [ElementTypes.LATEX]: LatexElement,
-      [ElementTypes.TABLE]: TableElement,
-      [ElementTypes.VIDEO]: VideoElement,
+    const elementTypeMap: Record<string, { component: any; readonlyPreview?: boolean }> = {
+      [ElementTypes.IMAGE]: { component: ImageElement },
+      [ElementTypes.TEXT]: { component: BaseTextElement, readonlyPreview: true },
+      [ElementTypes.SHAPE]: { component: BaseShapeElement, readonlyPreview: true },
+      [ElementTypes.LINE]: { component: LineElement },
+      [ElementTypes.CHART]: { component: ChartElement },
+      [ElementTypes.LATEX]: { component: BaseLatexElement, readonlyPreview: true },
+      [ElementTypes.TABLE]: { component: TableElement },
+      [ElementTypes.VIDEO]: { component: VideoElement },
       // TODO: Add other element types
       // [ElementTypes.AUDIO]: AudioElement,
     };
-    return elementTypeMap[elementInfo.type] || null;
+    return elementTypeMap[elementInfo.type] || { component: null, readonlyPreview: false };
   }, [elementInfo.type]);
 
   const {
@@ -214,6 +214,12 @@ export function EditableElement({
     ];
   };
 
+  const handleReadonlyPreviewSelect = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!readonlyPreview || elementInfo.lock) return;
+    e.stopPropagation();
+    selectElement(e, elementInfo);
+  };
+
   if (!CurrentElementComponent) {
     return (
       <div
@@ -242,8 +248,16 @@ export function EditableElement({
       }}
     >
       <ContextMenu>
-        <ContextMenuTrigger>
-          <CurrentElementComponent elementInfo={elementInfo} selectElement={selectElement} />
+        <ContextMenuTrigger asChild>
+          <div
+            onMouseDownCapture={readonlyPreview ? handleReadonlyPreviewSelect : undefined}
+            onTouchStartCapture={readonlyPreview ? handleReadonlyPreviewSelect : undefined}
+          >
+            <CurrentElementComponent
+              elementInfo={elementInfo}
+              selectElement={readonlyPreview ? undefined : selectElement}
+            />
+          </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
           {contextmenus().map((item, index) => {

@@ -1,5 +1,6 @@
 'use client';
 
+import katex from 'katex';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import type {
   PPTAudioElement,
   PPTLatexElement,
 } from '@/lib/types/slides';
+import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 import { ArrowUp, ImagePlus, Loader2, PlusSquare, Trash2, Upload, X } from 'lucide-react';
@@ -176,6 +178,85 @@ function extractFontSizeFromHtml(html: string, fallback = DEFAULT_TEXT_FONT_SIZE
   const rawSize = firstTextBlock instanceof HTMLElement ? firstTextBlock.style.fontSize : '';
   const parsed = Number.parseInt(rawSize || '', 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeMeasuredHtml(root: HTMLElement, paragraphSpacePx: number) {
+  const paragraphs = Array.from(root.querySelectorAll('p'));
+  paragraphs.forEach((paragraph, index) => {
+    const paragraphNode = paragraph as HTMLElement;
+    paragraphNode.style.margin = '0';
+    paragraphNode.style.marginBottom = index < paragraphs.length - 1 ? `${paragraphSpacePx}px` : '0';
+  });
+
+  root.querySelectorAll('ol, ul').forEach((listNode) => {
+    const list = listNode as HTMLElement;
+    list.style.margin = '0';
+  });
+}
+
+function measureTextElementContentBox(element: PPTTextElement) {
+  if (typeof document === 'undefined') {
+    return {
+      width: element.width,
+      height: element.height,
+    };
+  }
+
+  const measurementRoot = document.createElement('div');
+  measurementRoot.style.position = 'absolute';
+  measurementRoot.style.left = '-100000px';
+  measurementRoot.style.top = '0';
+  measurementRoot.style.visibility = 'hidden';
+  measurementRoot.style.pointerEvents = 'none';
+  measurementRoot.style.boxSizing = 'border-box';
+  measurementRoot.style.padding = '10px';
+  measurementRoot.style.width = element.vertical ? 'auto' : `${element.width}px`;
+  measurementRoot.style.height = element.vertical ? `${element.height}px` : 'auto';
+  measurementRoot.style.lineHeight = `${element.lineHeight ?? 1.5}`;
+  measurementRoot.style.letterSpacing = `${element.wordSpace || 0}px`;
+  measurementRoot.style.color = element.defaultColor;
+  measurementRoot.style.fontFamily = element.defaultFontName;
+  measurementRoot.style.writingMode = element.vertical ? 'vertical-rl' : 'horizontal-tb';
+  measurementRoot.style.wordBreak = 'break-word';
+
+  const renderedRoot = document.createElement('div');
+  renderedRoot.innerHTML = renderHtmlWithLatex(element.content || '<p>&nbsp;</p>');
+  normalizeMeasuredHtml(renderedRoot, element.paragraphSpace ?? 5);
+
+  measurementRoot.appendChild(renderedRoot);
+  document.body.appendChild(measurementRoot);
+
+  const measured = {
+    width: Math.max(40, Math.ceil(measurementRoot.scrollWidth)),
+    height: Math.max(40, Math.ceil(measurementRoot.scrollHeight)),
+  };
+
+  document.body.removeChild(measurementRoot);
+  return measured;
+}
+
+function buildAutoSizedTextProps(
+  element: PPTTextElement,
+  overrides: Partial<PPTTextElement>,
+): Partial<PPTTextElement> {
+  const nextElement = { ...element, ...overrides };
+  const measured = measureTextElementContentBox(nextElement);
+
+  return nextElement.vertical
+    ? { ...overrides, width: measured.width }
+    : { ...overrides, height: measured.height };
+}
+
+function renderLatexElementHtml(latex: string) {
+  try {
+    return katex.renderToString(latex, {
+      throwOnError: false,
+      displayMode: true,
+      output: 'html',
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 function fitSizeWithinBox(
@@ -386,7 +467,7 @@ export function SlideElementInspector({
     );
     const { left, top } = getNextInsertPosition(DEFAULT_TEXT_BOX_WIDTH, DEFAULT_TEXT_BOX_HEIGHT);
 
-    addElement({
+    const nextTextElement: PPTTextElement = {
       id: `text_${nanoid(8)}`,
       type: 'text',
       name: getNextElementName('text'),
@@ -402,6 +483,11 @@ export function SlideElementInspector({
       fill: 'transparent',
       lineHeight: 1.5,
       paragraphSpace: 5,
+    };
+
+    addElement({
+      ...nextTextElement,
+      ...buildAutoSizedTextProps(nextTextElement, {}),
     });
     void addHistorySnapshot();
   }, [
@@ -559,7 +645,7 @@ export function SlideElementInspector({
 
   const renderTextEditor = (element: PPTTextElement) => (
     <div className="space-y-3">
-      {sectionTitle('文本内容', '右侧可直接改标题、正文和列表内容，左侧画布会实时同步。')}
+      {sectionTitle('文本内容', '左侧画布只负责预览和选中，文本内容统一在右侧编辑。')}
       <div className="rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
         <ProsemirrorEditor
           elementId={`${element.id}__inspector`}
@@ -568,7 +654,7 @@ export function SlideElementInspector({
           value={element.content}
           editable
           onUpdate={({ value, ignore }) => {
-            updateCurrentElement({ content: value });
+            updateCurrentElement(buildAutoSizedTextProps(element, { content: value }));
             if (!ignore) void addHistorySnapshot();
           }}
           onBlur={() => void addHistorySnapshot()}
@@ -580,10 +666,10 @@ export function SlideElementInspector({
           value={element.defaultFontName || DEFAULT_TEXT_FONT}
           onChange={(e) =>
             updateCurrentElement(
-              {
+              buildAutoSizedTextProps(element, {
                 defaultFontName: e.target.value,
                 content: applyTypographyToHtml(element.content, { fontFamily: e.target.value }),
-              },
+              }),
               true,
             )
           }
@@ -606,9 +692,11 @@ export function SlideElementInspector({
           onChange={(e) => {
             const next = Number(e.target.value);
             if (!Number.isFinite(next)) return;
-            updateCurrentElement({
-              content: applyTypographyToHtml(element.content, { fontSizePx: next }),
-            });
+            updateCurrentElement(
+              buildAutoSizedTextProps(element, {
+                content: applyTypographyToHtml(element.content, { fontSizePx: next }),
+              }),
+            );
           }}
           onBlur={() => void addHistorySnapshot()}
         />
@@ -767,7 +855,13 @@ export function SlideElementInspector({
       {sectionTitle('公式内容', '这里直接编辑 LaTeX，左侧公式会同步刷新。')}
       <Textarea
         value={element.latex}
-        onChange={(e) => updateCurrentElement({ latex: e.target.value })}
+        onChange={(e) =>
+          updateCurrentElement({
+            latex: e.target.value,
+            html: renderLatexElementHtml(e.target.value),
+            fixedRatio: true,
+          })
+        }
         onBlur={() => void addHistorySnapshot()}
         className="min-h-[140px] font-mono text-sm"
       />
@@ -1061,7 +1155,7 @@ export function SlideElementInspector({
               </Badge>
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              点击左侧 slide 上的组件，右侧会切到对应属性。当前以单元素内容编辑为主。
+              点击左侧 slide 上的组件，右侧会切到对应属性。左侧以预览、选中和排版为主，文字内容统一在右侧修改。
             </p>
           </div>
           {onClose ? (
