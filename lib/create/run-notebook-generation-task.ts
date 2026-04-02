@@ -464,6 +464,45 @@ function filterOutlineMediaGenerations(
   });
 }
 
+function applyOutlinePreferenceHardConstraints(
+  outlines: SceneOutline[],
+  args: {
+    coursePurpose?: 'research' | 'university' | 'daily';
+    outlinePreferences?: {
+      length: OrchestratorOutlineLength;
+      includeQuizScenes: boolean;
+      workedExampleLevel?: OrchestratorWorkedExampleLevel;
+    } | null;
+  },
+): SceneOutline[] {
+  const prefs = args.outlinePreferences;
+  const disallowInteractive = args.coursePurpose === 'research';
+
+  if ((!prefs || prefs.includeQuizScenes) && !disallowInteractive) return outlines;
+
+  return outlines.map((outline) => {
+    if (!prefs?.includeQuizScenes && outline.type === 'quiz') {
+      const nextOutline: SceneOutline = {
+        ...outline,
+        type: 'slide',
+      };
+      delete nextOutline.quizConfig;
+      return nextOutline;
+    }
+
+    if (disallowInteractive && outline.type === 'interactive') {
+      const nextOutline: SceneOutline = {
+        ...outline,
+        type: 'slide',
+      };
+      delete nextOutline.interactiveConfig;
+      return nextOutline;
+    }
+
+    return outline;
+  });
+}
+
 function getMinimumSceneCount(length: OrchestratorOutlineLength): number {
   switch (length) {
     case 'compact':
@@ -910,10 +949,20 @@ async function repairOutlinesIfNeeded(args: {
   getHeaders?: () => HeadersInit;
 }): Promise<SceneOutline[]> {
   if (!args.outlinePreferences) {
-    return normalizeOutlineCollection(args.outlines);
+    return normalizeOutlineCollection(
+      applyOutlinePreferenceHardConstraints(args.outlines, {
+        coursePurpose: args.coursePurpose,
+        outlinePreferences: args.outlinePreferences,
+      }),
+    );
   }
 
-  let currentOutlines = normalizeOutlineCollection(args.outlines);
+  let currentOutlines = normalizeOutlineCollection(
+    applyOutlinePreferenceHardConstraints(args.outlines, {
+      coursePurpose: args.coursePurpose,
+      outlinePreferences: args.outlinePreferences,
+    }),
+  );
   const maxRepairPasses = 2;
 
   for (let pass = 1; pass <= maxRepairPasses; pass += 1) {
@@ -970,9 +1019,12 @@ async function repairOutlinesIfNeeded(args: {
       getHeaders: args.getHeaders,
     });
 
-    const supplementalOutlines = filterOutlineMediaGenerations(
-      supplementalRawOutlines,
-      args.effectiveMediaFlags,
+    const supplementalOutlines = applyOutlinePreferenceHardConstraints(
+      filterOutlineMediaGenerations(supplementalRawOutlines, args.effectiveMediaFlags),
+      {
+        coursePurpose: args.coursePurpose,
+        outlinePreferences: args.outlinePreferences,
+      },
     );
     const mergedOutlines = mergeSupplementalOutlines(currentOutlines, supplementalOutlines);
 
@@ -1297,7 +1349,13 @@ export async function runNotebookGenerationTask(
       getHeaders,
     });
 
-    const filteredOutlines = filterOutlineMediaGenerations(rawOutlines, effectiveMediaFlags);
+    const filteredOutlines = applyOutlinePreferenceHardConstraints(
+      filterOutlineMediaGenerations(rawOutlines, effectiveMediaFlags),
+      {
+        coursePurpose: currentCourse?.purpose,
+        outlinePreferences: input.outlinePreferences ?? null,
+      },
+    );
 
     input.onProgress?.({
       stage: 'outline',

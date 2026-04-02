@@ -316,8 +316,8 @@ export async function POST(req: NextRequest) {
     const purposePolicy =
       body.coursePurpose === 'research'
         ? requirements.language === 'zh-CN'
-          ? '课程用途：科研。优先生成概念、方法论与案例式说明；通常不插入测验或正式题目讲解（除非用户明确要求）。'
-          : 'Course purpose: research. Prefer concept, methodology, and case-based explanation; avoid quizzes or formal worked-problem teaching unless explicitly requested.'
+          ? '课程用途：科研。优先生成概念、方法论与案例式说明；通常不插入测验、正式题目讲解或独立 interactive 交互页面（除非用户明确要求做交互式模拟/可视化）。'
+          : 'Course purpose: research. Prefer concept, methodology, and case-based explanation; avoid quizzes, formal worked-problem teaching, or standalone interactive pages unless the user explicitly asks for an interactive simulation or visualization.'
         : body.coursePurpose === 'daily'
           ? requirements.language === 'zh-CN'
             ? '课程用途：日常生活。优先口语化、风趣、易懂的表达，通常不插入测验或正式题目讲解（除非用户明确要求）。'

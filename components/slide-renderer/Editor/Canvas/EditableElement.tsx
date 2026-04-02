@@ -51,7 +51,7 @@ export function EditableElement({
   selectElement,
   openLinkDialog,
 }: EditableElementProps) {
-  const { CurrentElementComponent, readonlyPreview } = useMemo(() => {
+  const { component: CurrentElementComponent, readonlyPreview = false } = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- element components have varying prop signatures
     const elementTypeMap: Record<string, { component: any; readonlyPreview?: boolean }> = {
       [ElementTypes.IMAGE]: { component: ImageElement },

@@ -30,8 +30,13 @@ function defaultWorkedExampleLevelForPurpose(purpose: CoursePurpose | null): Orc
   return 'moderate';
 }
 
-/** 仅在新进入某门课程时写入例题默认档，避免每次展开侧栏覆盖用户手选 */
-let lastWorkedExampleDefaultCourseId: string | null = null;
+function defaultIncludeQuizScenesForPurpose(purpose: CoursePurpose | null): boolean {
+  if (purpose === 'research' || purpose === 'daily') return false;
+  return true;
+}
+
+/** 仅在新进入某门课程时写入用途相关默认档，避免每次展开侧栏覆盖用户手选 */
+let lastPurposeDefaultsCourseId: string | null = null;
 
 /** 与 `SelectTrigger`（sm / h-8）一致：侧栏内模型、语言、篇幅、音色同一套「表单行」样式 */
 const SIDEBAR_CHOICE_TRIGGER =
@@ -84,14 +89,16 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
     let alive = true;
     void getCourse(cid).then((c) => {
       if (!alive) return;
-      if (lastWorkedExampleDefaultCourseId === cid) return;
-      lastWorkedExampleDefaultCourseId = cid;
-      setWorkedExampleLevel(defaultWorkedExampleLevelForPurpose(c?.purpose ?? null));
+      if (lastPurposeDefaultsCourseId === cid) return;
+      lastPurposeDefaultsCourseId = cid;
+      const purpose = c?.purpose ?? null;
+      setWorkedExampleLevel(defaultWorkedExampleLevelForPurpose(purpose));
+      setIncludeQuizScenes(defaultIncludeQuizScenesForPurpose(purpose));
     });
     return () => {
       alive = false;
     };
-  }, [courseId, setWorkedExampleLevel]);
+  }, [courseId, setIncludeQuizScenes, setWorkedExampleLevel]);
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto px-0.5 pb-2', className)}>
