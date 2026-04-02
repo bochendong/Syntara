@@ -10,6 +10,7 @@ import { NextRequest } from 'next/server';
 import { callLLM } from '@/lib/ai/llm';
 import {
   generateSceneActions,
+  buildFallbackSceneActions,
   buildCompleteScene,
   buildVisionUserContent,
   type SceneGenerationContext,
@@ -137,15 +138,37 @@ export async function POST(req: NextRequest) {
     // ── Generate actions ──
     log.info(`Generating actions: "${outline.title}" (${outline.type}) [model=${modelString}]`);
 
-    const actions = await generateSceneActions(
-      outline,
-      content,
-      aiCall,
-      ctx,
-      agents,
-      userProfile,
-      body.courseContext,
-    );
+    let actions = null;
+    let generationError: unknown = null;
+    try {
+      actions = await generateSceneActions(
+        outline,
+        content,
+        aiCall,
+        ctx,
+        agents,
+        userProfile,
+        body.courseContext,
+      );
+    } catch (error) {
+      generationError = error;
+      log.error(`Scene actions generation threw for: "${outline.title}"`, error);
+    }
+
+    if (!actions) {
+      actions = buildFallbackSceneActions(outline, content, agents);
+      log.warn(`Falling back to default actions for: "${outline.title}"`, {
+        stageId,
+        outlineId: outline.id,
+        outlineType: outline.type,
+        error:
+          generationError instanceof Error
+            ? generationError.message
+            : generationError
+              ? String(generationError)
+              : 'unknown-actions-error',
+      });
+    }
 
     log.info(`Generated ${actions.length} actions for: "${outline.title}"`);
 
@@ -167,7 +190,11 @@ export async function POST(req: NextRequest) {
       `Scene assembled successfully: "${outline.title}" — ${scene.actions?.length ?? 0} actions`,
     );
 
-    return apiSuccess({ scene, previousSpeeches: outputPreviousSpeeches });
+    return apiSuccess({
+      scene,
+      previousSpeeches: outputPreviousSpeeches,
+      fallbackUsed: Boolean(generationError),
+    });
   } catch (error) {
     log.error('Scene actions generation error:', error);
     return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));

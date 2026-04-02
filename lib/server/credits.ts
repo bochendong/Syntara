@@ -1,9 +1,11 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { CreditTransactionKind } from '@prisma/client';
+import { createLogger } from '@/lib/logger';
 import { getOptionalPrisma } from '@/lib/server/prisma-safe';
 import { DEFAULT_USER_CREDITS, creditsFromTokenUsage } from '@/lib/utils/credits';
 
 type CreditDbClient = PrismaClient | Prisma.TransactionClient;
+const log = createLogger('Credits');
 
 interface ApplyCreditDeltaArgs {
   userId: string;
@@ -125,10 +127,30 @@ export async function chargeCreditsForTokenUsage(args: {
   modelString?: string | null;
 }): Promise<void> {
   const userId = args.userId?.trim();
-  if (!userId) return;
+  if (!userId) {
+    if (args.route?.startsWith('/api/generate/')) {
+      log.warn('Skipped generation credits charge because request had no userId', {
+        route: args.route ?? null,
+        source: args.source ?? null,
+        modelString: args.modelString ?? null,
+        totalTokens: args.totalTokens ?? 0,
+      });
+    }
+    return;
+  }
 
   const requestedCreditsCost = creditsFromTokenUsage(args.totalTokens);
-  if (requestedCreditsCost <= 0) return;
+  if (requestedCreditsCost <= 0) {
+    if (args.route?.startsWith('/api/generate/')) {
+      log.info('Skipped generation credits charge because token usage was zero', {
+        userId,
+        route: args.route ?? null,
+        source: args.source ?? null,
+        totalTokens: args.totalTokens ?? 0,
+      });
+    }
+    return;
+  }
 
   const prisma = getOptionalPrisma();
   if (!prisma) return;
@@ -136,7 +158,19 @@ export async function chargeCreditsForTokenUsage(args: {
   await prisma.$transaction(async (tx) => {
     const currentBalance = await ensureUserCreditsInitialized(tx, userId);
     const creditsCost = Math.min(currentBalance, requestedCreditsCost);
-    if (creditsCost <= 0) return;
+    if (creditsCost <= 0) {
+      if (args.route?.startsWith('/api/generate/')) {
+        log.warn('Generation credits charge resolved to zero because balance is empty', {
+          userId,
+          route: args.route ?? null,
+          source: args.source ?? null,
+          totalTokens: args.totalTokens ?? 0,
+          requestedCreditsCost,
+          currentBalance,
+        });
+      }
+      return;
+    }
 
     await applyCreditDelta(tx, {
       userId,
@@ -152,5 +186,19 @@ export async function chargeCreditsForTokenUsage(args: {
         modelString: args.modelString ?? null,
       },
     });
+
+    if (args.route?.startsWith('/api/generate/')) {
+      log.info('Charged credits for generation usage', {
+        userId,
+        route: args.route ?? null,
+        source: args.source ?? null,
+        modelString: args.modelString ?? null,
+        totalTokens: args.totalTokens ?? 0,
+        requestedCreditsCost,
+        chargedCredits: creditsCost,
+        previousBalance: currentBalance,
+        nextBalance: currentBalance - creditsCost,
+      });
+    }
   });
 }

@@ -25,6 +25,7 @@ import type {
 } from '@/lib/store/orchestrator-notebook-generation';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import type { PdfSourceSelection } from '@/lib/pdf/page-selection';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 type NotebookMetadata = {
   name: string;
@@ -368,7 +369,7 @@ async function generateNotebookMetadata(args: {
   pdfText?: string;
   getHeaders?: () => HeadersInit;
 }): Promise<NotebookMetadata> {
-  const resp = await fetch('/api/generate/notebook-metadata', {
+  const resp = await backendFetch('/api/generate/notebook-metadata', {
     method: 'POST',
     headers: (args.getHeaders ?? (() => getApiHeaders()))(),
     body: JSON.stringify({
@@ -738,7 +739,7 @@ async function maybeGenerateAgents(args: {
     '/avatars/thinker-2.png',
   ];
 
-  const resp = await fetch('/api/generate/agent-profiles', {
+  const resp = await backendFetch('/api/generate/agent-profiles', {
     method: 'POST',
     headers: (args.getHeaders ?? (() => getApiHeaders()))(),
     body: JSON.stringify({
@@ -816,7 +817,7 @@ async function generateOutlines(args: {
 
   const headers = (args.getHeaders ?? (() => getApiHeaders()))();
   const sendOutlineRequest = (payload: Record<string, unknown>) =>
-    fetch('/api/generate/scene-outlines-stream', {
+    backendFetch('/api/generate/scene-outlines-stream', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -1026,7 +1027,7 @@ async function generateSingleScene(args: {
 
   const headers = (args.getHeaders ?? (() => getApiHeaders()))();
   const sendSceneContentRequest = (payload: Record<string, unknown>) =>
-    fetch('/api/generate/scene-content', {
+    backendFetch('/api/generate/scene-content', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -1069,7 +1070,7 @@ async function generateSingleScene(args: {
     throw new Error(contentData?.error || '页面内容生成失败');
   }
 
-  const actionsResp = await fetch('/api/generate/scene-actions', {
+  const actionsResp = await backendFetch('/api/generate/scene-actions', {
     method: 'POST',
     headers: (args.getHeaders ?? (() => getApiHeaders()))(),
     body: JSON.stringify({

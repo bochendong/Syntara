@@ -40,6 +40,7 @@ export {
   generateSceneContent,
   buildFallbackSlideContentFromOutline,
   generateSceneActions,
+  buildFallbackSceneActions,
   createSceneWithActions,
 } from './scene-generator';
 

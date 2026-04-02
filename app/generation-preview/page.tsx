@@ -28,6 +28,7 @@ import { AgentRevealModal } from '@/components/agent/agent-reveal-modal';
 import { createLogger } from '@/lib/logger';
 import { useAuthStore } from '@/lib/store/auth';
 import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
+import { backendFetch } from '@/lib/utils/backend-api';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import {
   buildBudgetedGenerationMedia,
@@ -138,7 +139,7 @@ function GenerationPreviewContent() {
   ): Promise<NotebookMetadata> => {
     const language = currentSession.requirements.language || 'zh-CN';
     try {
-      const resp = await fetch('/api/generate/notebook-metadata', {
+      const resp = await backendFetch('/api/generate/notebook-metadata', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -529,7 +530,7 @@ function GenerationPreviewContent() {
           ];
 
           // No outlines yet — agent generation uses only stage name + description
-          const agentResp = await fetch('/api/generate/agent-profiles', {
+          const agentResp = await backendFetch('/api/generate/agent-profiles', {
             method: 'POST',
             headers: getApiHeaders(),
             body: JSON.stringify({
@@ -636,7 +637,7 @@ function GenerationPreviewContent() {
         outlines = await new Promise<SceneOutline[]>((resolve, reject) => {
           const collected: SceneOutline[] = [];
           const fetchOutlineResponse = async () => {
-            let response = await fetch('/api/generate/scene-outlines-stream', {
+            let response = await backendFetch('/api/generate/scene-outlines-stream', {
               method: 'POST',
               headers: getApiHeaders(),
               body: JSON.stringify(primaryOutlinePayload),
@@ -644,7 +645,7 @@ function GenerationPreviewContent() {
             });
             if (response.status === 413 && outlineMedia.imageMapping) {
               log.warn('[GenerationPreview] Outline request still too large, retrying without vision images');
-              response = await fetch('/api/generate/scene-outlines-stream', {
+              response = await backendFetch('/api/generate/scene-outlines-stream', {
                 method: 'POST',
                 headers: getApiHeaders(),
                 body: JSON.stringify(fallbackOutlinePayload),
@@ -792,7 +793,7 @@ function GenerationPreviewContent() {
 
       // Step 2: Generate content (currentStepIndex is already 2)
       const sendSceneContentRequest = (payload: Record<string, unknown>) =>
-        fetch('/api/generate/scene-content', {
+        backendFetch('/api/generate/scene-content', {
           method: 'POST',
           headers: getApiHeaders(),
           body: JSON.stringify(payload),
@@ -833,7 +834,7 @@ function GenerationPreviewContent() {
       const actionsStepIdx = activeSteps.findIndex((s) => s.id === 'actions');
       setCurrentStepIndex(actionsStepIdx >= 0 ? actionsStepIdx : currentStepIndex + 1);
 
-      const actionsResp = await fetch('/api/generate/scene-actions', {
+      const actionsResp = await backendFetch('/api/generate/scene-actions', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({

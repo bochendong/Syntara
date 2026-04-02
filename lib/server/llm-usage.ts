@@ -33,6 +33,24 @@ export async function recordLLMUsage(payload: LLMUsagePayload): Promise<void> {
         ? toInt(payload.totalTokens)
         : toInt(payload.inputTokens) + toInt(payload.outputTokens);
 
+    if (!payload.userId?.trim()) {
+      log.warn('Recording LLM usage without userId; credits charging will be skipped', {
+        route: payload.route,
+        source: payload.source,
+        modelString: payload.modelString,
+        totalTokens,
+        userEmail: payload.userEmail ?? null,
+      });
+    } else if (payload.route.startsWith('/api/generate/')) {
+      log.info('Recording generation LLM usage', {
+        route: payload.route,
+        source: payload.source,
+        modelString: payload.modelString,
+        totalTokens,
+        userId: payload.userId,
+      });
+    }
+
     await prisma.lLMUsageLog.create({
       data: {
         userId: payload.userId || null,

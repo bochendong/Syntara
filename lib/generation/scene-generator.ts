@@ -2935,6 +2935,34 @@ export async function generateSceneActions(
   return [];
 }
 
+export function buildFallbackSceneActions(
+  outline: SceneOutline,
+  content:
+    | GeneratedSlideContent
+    | GeneratedQuizContent
+    | GeneratedInteractiveContent
+    | GeneratedPBLContent,
+  agents?: AgentInfo[],
+): Action[] {
+  if (outline.type === 'slide' && 'elements' in content) {
+    return generateDefaultSlideActions(outline, content.elements);
+  }
+
+  if (outline.type === 'quiz' && 'questions' in content) {
+    return generateDefaultQuizActions(outline);
+  }
+
+  if (outline.type === 'interactive' && 'html' in content) {
+    return generateDefaultInteractiveActions(outline);
+  }
+
+  if (outline.type === 'pbl' && 'projectConfig' in content) {
+    return generateDefaultPBLActions(outline);
+  }
+
+  return processActions([], [], agents);
+}
+
 /**
  * Generate default PBL Actions (fallback)
  */

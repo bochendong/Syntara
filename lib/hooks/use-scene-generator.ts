@@ -20,6 +20,7 @@ import {
   buildBudgetedGenerationMedia,
   SAFE_GENERATION_REQUEST_BYTES,
 } from '@/lib/generation/request-payload-budget';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('SceneGenerator');
 
@@ -125,7 +126,7 @@ async function fetchSceneContent(
 
   const headers = getApiHeaders();
   const sendRequest = (payload: Record<string, unknown>) =>
-    fetch('/api/generate/scene-content', {
+    backendFetch('/api/generate/scene-content', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -183,7 +184,7 @@ async function fetchSceneActions(
   },
   signal?: AbortSignal,
 ): Promise<SceneActionsResult> {
-  const response = await fetch('/api/generate/scene-actions', {
+  const response = await backendFetch('/api/generate/scene-actions', {
     method: 'POST',
     headers: getApiHeaders(),
     body: JSON.stringify(params),
@@ -192,7 +193,15 @@ async function fetchSceneActions(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({ error: 'Request failed' }));
-    return { success: false, error: data.error || `HTTP ${response.status}` };
+    const message = data.details || data.error || `HTTP ${response.status}`;
+    log.error('[SceneGenerator] Scene actions request failed', {
+      outlineId: params.outline.id,
+      outlineTitle: params.outline.title,
+      stageId: params.stageId,
+      status: response.status,
+      error: message,
+    });
+    return { success: false, error: message };
   }
 
   return response.json();
