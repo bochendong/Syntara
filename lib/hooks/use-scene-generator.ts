@@ -16,6 +16,10 @@ import {
   getCachedTtsAudio,
   setCachedTtsAudio,
 } from '@/lib/utils/tts-audio-cache';
+import {
+  buildBudgetedGenerationMedia,
+  SAFE_GENERATION_REQUEST_BYTES,
+} from '@/lib/generation/request-payload-budget';
 
 const log = createLogger('SceneGenerator');
 
@@ -62,6 +66,23 @@ function getApiHeaders(): HeadersInit {
   };
 }
 
+async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (data?.error?.trim()) return data.error.trim();
+  }
+
+  const text = await response.text().catch(() => '');
+  return text.trim() || fallback;
+}
+
+function buildPayloadTooLargeMessage(language: 'zh-CN' | 'en-US'): string {
+  return language === 'en-US'
+    ? 'This page still carries too much source-document context for the current deployment platform. Keep fewer image-heavy pages or switch them to screenshots.'
+    : '当前这一页携带的源文档上下文仍然过大，请继续减少重图片页面，或把它们改成整页截图。';
+}
+
 /** Call POST /api/generate/scene-content (step 1) */
 async function fetchSceneContent(
   params: {
@@ -81,16 +102,61 @@ async function fetchSceneContent(
   },
   signal?: AbortSignal,
 ): Promise<SceneContentResult> {
-  const response = await fetch('/api/generate/scene-content', {
-    method: 'POST',
-    headers: getApiHeaders(),
-    body: JSON.stringify(params),
-    signal,
+  const preferredImageIds = params.outline.suggestedImageIds || [];
+  const filteredPdfImages =
+    preferredImageIds.length > 0
+      ? (params.pdfImages || []).filter((image) => preferredImageIds.includes(image.id))
+      : undefined;
+  const basePayload = {
+    outline: params.outline,
+    allOutlines: params.allOutlines,
+    stageId: params.stageId,
+    stageInfo: params.stageInfo,
+    agents: params.agents,
+    courseContext: params.courseContext,
+  };
+  const budgetedMedia = buildBudgetedGenerationMedia({
+    basePayload,
+    pdfImages: filteredPdfImages,
+    imageMapping: params.imageMapping,
+    preferredImageIds,
+    maxRequestBytes: SAFE_GENERATION_REQUEST_BYTES,
   });
 
+  const headers = getApiHeaders();
+  const sendRequest = (payload: Record<string, unknown>) =>
+    fetch('/api/generate/scene-content', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal,
+    });
+
+  let response = await sendRequest({
+    ...basePayload,
+    ...(budgetedMedia.pdfImages ? { pdfImages: budgetedMedia.pdfImages } : {}),
+    ...(budgetedMedia.imageMapping ? { imageMapping: budgetedMedia.imageMapping } : {}),
+  });
+
+  if (response.status === 413 && budgetedMedia.imageMapping) {
+    log.warn('[SceneGenerator] Scene payload still too large, retrying without vision images', {
+      outlineId: params.outline.id,
+      outlineTitle: params.outline.title,
+    });
+    response = await sendRequest({
+      ...basePayload,
+      ...(budgetedMedia.pdfImages ? { pdfImages: budgetedMedia.pdfImages } : {}),
+    });
+  }
+
   if (!response.ok) {
-    const data = await response.json().catch(() => ({ error: 'Request failed' }));
-    return { success: false, error: data.error || `HTTP ${response.status}` };
+    const language: 'zh-CN' | 'en-US' = params.stageInfo.language === 'en-US' ? 'en-US' : 'zh-CN';
+    const fallback =
+      response.status === 413
+        ? buildPayloadTooLargeMessage(language)
+        : `HTTP ${response.status}`;
+    const message = await readApiErrorMessage(response, fallback);
+    return { success: false, error: message || fallback };
   }
 
   return response.json();

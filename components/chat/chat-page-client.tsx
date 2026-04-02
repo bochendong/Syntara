@@ -1305,7 +1305,6 @@ export function ChatPageClient() {
   /** 本地进度丢失时，与右侧「进行中」同步的总控创建任务（轮询 API） */
   const [orchestratorRemoteTask, setOrchestratorRemoteTask] = useState<{
     detail: string;
-    notebookId?: string;
   } | null>(null);
   const [orchestratorTaskCancelling, setOrchestratorTaskCancelling] = useState(false);
   const [orchestratorComposerMode, setOrchestratorComposerMode] =
@@ -1876,7 +1875,6 @@ export function ChatPageClient() {
               detail:
                 createActive.detail?.trim() ||
                 '笔记本正在生成中，请稍候。进度与右侧「进行中」同步。',
-              notebookId: createActive.notebookId?.trim(),
             });
           } else {
             setOrchestratorRemoteTask(null);
@@ -1967,6 +1965,7 @@ export function ChatPageClient() {
   }, [
     courseId,
     isCourseOrchestrator,
+    orchestratorAvatar,
     orchestratorViewMode,
     orchestratorPipelineProgress,
     sending,
@@ -2667,9 +2666,6 @@ export function ChatPageClient() {
                 void updateAgentTask(parentTaskId, {
                   detail: progress.detail,
                   status: 'running',
-                  ...(progress.stage === 'notebook-ready' && progress.notebookId
-                    ? { notebookId: progress.notebookId }
-                    : {}),
                 });
               }
             },
@@ -3281,7 +3277,6 @@ export function ChatPageClient() {
         ) : mode === 'agent' && isCourseOrchestrator && orchestratorRemoteTask ? (
           <OrchestratorRemoteTaskBanner
             detail={orchestratorRemoteTask.detail}
-            notebookId={orchestratorRemoteTask.notebookId}
             onCancel={handleCancelOrchestratorTask}
             cancelPending={orchestratorTaskCancelling}
           />

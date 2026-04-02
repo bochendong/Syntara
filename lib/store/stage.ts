@@ -347,10 +347,16 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
           : [];
 
       if (data) {
+        const pendingOutlines = outlines.filter((o) => !data.scenes.some((s) => s.order === o.order));
+        const resolvedCurrentSceneId =
+          data.currentSceneId && data.scenes.some((scene) => scene.id === data.currentSceneId)
+            ? data.currentSceneId
+            : data.scenes[0]?.id ||
+              (pendingOutlines.length > 0 ? PENDING_SCENE_ID : null);
         set({
           stage: data.stage,
           scenes: data.scenes,
-          currentSceneId: data.currentSceneId,
+          currentSceneId: resolvedCurrentSceneId,
           chats: data.chats,
           outlines,
           storageSaveState: 'idle',
@@ -358,7 +364,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
           storageSavedAt: null,
           storageSaveError: null,
           // Compute generatingOutlines from persisted outlines minus completed scenes
-          generatingOutlines: outlines.filter((o) => !data.scenes.some((s) => s.order === o.order)),
+          generatingOutlines: pendingOutlines,
         });
         log.info('Loaded from storage:', stageId);
       } else {

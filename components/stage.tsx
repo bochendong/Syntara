@@ -1090,6 +1090,7 @@ export function Stage({
   // get scene information
   const isPendingScene = currentSceneId === PENDING_SCENE_ID;
   const hasNextPending = generatingOutlines.length > 0;
+  const pendingSceneTitle = isPendingScene ? generatingOutlines[0]?.title || '' : '';
   const currentSceneIndex = isPendingScene
     ? scenes.length
     : scenes.findIndex((s) => s.id === currentSceneId);
@@ -1717,7 +1718,10 @@ export function Stage({
       {/* Main Content Area — scene list lives inside CanvasArea, left of the slide */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
         {/* Header */}
-        <Header currentSceneTitle={currentScene?.title || ''} titleActions={titleActions} />
+        <Header
+          currentSceneTitle={currentScene?.title || pendingSceneTitle}
+          titleActions={titleActions}
+        />
 
         {/* Canvas Area — PPT 视图 / 原始数据 */}
         <div className="overflow-hidden relative flex-1 min-h-0 isolate" suppressHydrationWarning>

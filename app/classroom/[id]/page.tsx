@@ -14,6 +14,7 @@ import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
 import { createLogger } from '@/lib/logger';
 import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
 import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
+import { PENDING_SCENE_ID } from '@/lib/store/stage';
 
 const log = createLogger('Classroom');
 
@@ -183,6 +184,10 @@ export default function ClassroomDetailPage() {
 
     if (hasPending && stage) {
       generationStartedRef.current = true;
+
+      if (scenes.length === 0 && state.currentSceneId !== PENDING_SCENE_ID) {
+        useStageStore.getState().setCurrentSceneId(PENDING_SCENE_ID);
+      }
 
       // Load generation params from sessionStorage (stored by generation-preview before navigating)
       const genParamsStr = sessionStorage.getItem('generationParams');

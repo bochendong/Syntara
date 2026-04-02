@@ -82,7 +82,7 @@ function isImageAvatar(src: string) {
 /** 已绑定笔记本时进入互动教室；否则进入创建页；无课程时回退到聊天。 */
 function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecord): string {
   const nid = t.notebookId?.trim();
-  if (nid) {
+  if (nid && t.status === 'done') {
     return `/classroom/${encodeURIComponent(nid)}`;
   }
   const cid = courseId?.trim();
@@ -527,7 +527,9 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                     </p>
                   ) : null}
                   <p className="mt-1.5 text-[10px] text-muted-foreground/90">
-                    {t.notebookId?.trim() ? '点击进入互动教室' : '点击进入创建页（生成开始后可进教室）'}
+                    {t.status === 'done' && t.notebookId?.trim()
+                      ? '点击进入互动教室'
+                      : '点击查看当前生成进度'}
                   </p>
                 </div>
               </div>

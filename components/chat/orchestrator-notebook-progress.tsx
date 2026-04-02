@@ -92,10 +92,7 @@ export function OrchestratorNotebookProgressPanel({
     progress.stage === 'research' && progress.sources?.length
       ? progress.sources.map((s) => ({ title: s.title, url: s.url }))
       : undefined;
-  const notebookLinkId =
-    progress.stage === 'completed' || progress.stage === 'notebook-ready'
-      ? progress.notebookId?.trim()
-      : undefined;
+  const notebookLinkId = progress.stage === 'completed' ? progress.notebookId?.trim() : undefined;
 
   return (
     <div className={cn('flex items-start gap-2', className)} role="status" aria-live="polite">
@@ -156,13 +153,11 @@ export function OrchestratorNotebookProgressPanel({
 /** 本地进度状态丢失时，用任务 API 上的 detail 与侧栏「进行中」对齐 */
 export function OrchestratorRemoteTaskBanner({
   detail,
-  notebookId,
   className,
   onCancel,
   cancelPending = false,
 }: {
   detail: string;
-  notebookId?: string;
   className?: string;
   onCancel?: () => void;
   cancelPending?: boolean;
@@ -176,14 +171,9 @@ export function OrchestratorRemoteTaskBanner({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-foreground">笔记本生成进行中</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{detail}</p>
-            {notebookId?.trim() ? (
-              <Link
-                href={`/classroom/${encodeURIComponent(notebookId.trim())}`}
-                className="mt-2 inline-flex text-xs font-medium text-violet-700 underline-offset-4 hover:underline dark:text-violet-300"
-              >
-                进入互动教室查看页面生成
-              </Link>
-            ) : null}
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              还在后台生成中。完成后，这里会自动出现“查看笔记本”入口。
+            </p>
             {onCancel ? (
               <div className="mt-2">
                 <button

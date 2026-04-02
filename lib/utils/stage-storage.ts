@@ -311,7 +311,38 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       chats,
     };
 
+    const remoteSceneUpdatedAt = scenes.reduce(
+      (latest, scene) => Math.max(latest, scene.updatedAt || 0),
+      0,
+    );
+    const remoteFreshness = Math.max(remoteData.stage.updatedAt, remoteSceneUpdatedAt);
+
     if (draftSnapshot?.remoteSynced === false) {
+      const draftSceneUpdatedAt = draftSnapshot.scenes.reduce(
+        (latest, scene) => Math.max(latest, scene.updatedAt || 0),
+        0,
+      );
+      const draftFreshness = Math.max(
+        draftSnapshot.savedAt,
+        draftSnapshot.stage.updatedAt || 0,
+        draftSceneUpdatedAt,
+      );
+      const remoteHasMoreScenes = remoteData.scenes.length > draftSnapshot.scenes.length;
+      const remoteIsNewer = remoteFreshness > draftFreshness;
+
+      if (remoteHasMoreScenes || remoteIsNewer) {
+        writeStageDraftSnapshot(
+          stageId,
+          {
+            stage: remoteData.stage,
+            scenes: remoteData.scenes,
+            currentSceneId: remoteData.currentSceneId,
+          },
+          true,
+        );
+        return remoteData;
+      }
+
       return {
         stage: draftSnapshot.stage,
         scenes: draftSnapshot.scenes,
@@ -319,12 +350,6 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
         chats,
       };
     }
-
-    const remoteSceneUpdatedAt = scenes.reduce(
-      (latest, scene) => Math.max(latest, scene.updatedAt || 0),
-      0,
-    );
-    const remoteFreshness = Math.max(remoteData.stage.updatedAt, remoteSceneUpdatedAt);
 
     if (draftSnapshot && draftSnapshot.savedAt >= remoteFreshness) {
       return {

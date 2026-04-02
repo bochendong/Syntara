@@ -301,9 +301,10 @@ export function ChatContactsRail({
   const needle = searchQuery.trim().toLowerCase();
   const filteredNotebooks = useMemo(() => {
     if (!courseId) return [];
+    const visible = notebooks.filter((nb) => nb.sceneCount > 0);
     return needle
-      ? notebooks.filter((nb) => matchesContactSearch(needle, nb, notebookLastPreview[nb.id]))
-      : notebooks;
+      ? visible.filter((nb) => matchesContactSearch(needle, nb, notebookLastPreview[nb.id]))
+      : visible;
   }, [courseId, needle, notebooks, notebookLastPreview]);
 
   /** 最近有聊天的在上；无聊天记录时用笔记本 updatedAt */
