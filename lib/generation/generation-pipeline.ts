@@ -38,6 +38,7 @@ export { generateSceneOutlinesFromRequirements, applyOutlineFallbacks } from './
 export {
   generateFullScenes,
   generateSceneContent,
+  buildFallbackSlideContentFromOutline,
   generateSceneActions,
   createSceneWithActions,
 } from './scene-generator';

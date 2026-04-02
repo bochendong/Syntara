@@ -11,6 +11,7 @@ import { callLLM } from '@/lib/ai/llm';
 import {
   applyOutlineFallbacks,
   generateSceneContent,
+  buildFallbackSlideContentFromOutline,
   buildVisionUserContent,
 } from '@/lib/generation/generation-pipeline';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
@@ -146,26 +147,52 @@ export async function POST(req: NextRequest) {
       `Generating content: "${effectiveOutline.title}" (${effectiveOutline.type}) [model=${modelString}]`,
     );
 
-    const content = await generateSceneContent(
-      effectiveOutline,
-      aiCall,
-      assignedImages,
-      imageMapping,
-      effectiveOutline.type === 'pbl' ? languageModel : undefined,
-      hasVision,
-      generatedMediaMapping,
-      agents,
-      body.courseContext,
-      body.rewriteReason,
-    );
+    let content = null;
+    let generationError: unknown = null;
+    try {
+      content = await generateSceneContent(
+        effectiveOutline,
+        aiCall,
+        assignedImages,
+        imageMapping,
+        effectiveOutline.type === 'pbl' ? languageModel : undefined,
+        hasVision,
+        generatedMediaMapping,
+        agents,
+        body.courseContext,
+        body.rewriteReason,
+      );
+    } catch (error) {
+      generationError = error;
+      log.error(`Scene content generation threw for: "${effectiveOutline.title}"`, error);
+    }
 
     if (!content) {
+      if (effectiveOutline.type === 'slide') {
+        log.warn(`Falling back to deterministic slide content for: "${effectiveOutline.title}"`, {
+          stageId,
+          outlineId: effectiveOutline.id,
+          error:
+            generationError instanceof Error
+              ? generationError.message
+              : generationError
+                ? String(generationError)
+                : 'parse-failed-or-empty',
+        });
+        return apiSuccess({
+          content: buildFallbackSlideContentFromOutline(effectiveOutline),
+          effectiveOutline,
+          fallbackUsed: true,
+        });
+      }
+
       log.error(`Failed to generate content for: "${effectiveOutline.title}"`);
 
       return apiError(
         'GENERATION_FAILED',
         500,
         `Failed to generate content: ${effectiveOutline.title}`,
+        generationError instanceof Error ? generationError.message : undefined,
       );
     }
 

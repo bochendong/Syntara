@@ -224,6 +224,149 @@ export async function generateSceneContent(
   }
 }
 
+export function buildFallbackSlideContentFromOutline(
+  outline: SceneOutline,
+): GeneratedSlideContent {
+  const lang = outline.language || 'zh-CN';
+  const summary = normalizeText(
+    outline.description || outline.keyPoints.join(' ') || outline.title,
+    360,
+  );
+  const keyPoints = normalizeList(
+    outline.keyPoints,
+    summary
+      ? [summary]
+      : [
+          lang === 'zh-CN'
+            ? '根据当前大纲整理这一页的核心信息'
+            : 'Summarize the main idea from the current outline',
+        ],
+    6,
+    110,
+  );
+  const takeaway = normalizeList(
+    [],
+    lang === 'zh-CN'
+      ? [
+          '先理解这一页的核心概念与结论',
+          '讲解时可根据上下文继续补充细节与例子',
+        ]
+      : [
+          'Focus on the main concept and conclusion first',
+          'Add examples and detail during narration if needed',
+        ],
+    3,
+    96,
+  );
+
+  const accent = '#4f46e5';
+  const accentSoft = '#e0e7ff';
+  const panel = '#eef2ff';
+  const panelAlt = '#f8fafc';
+
+  const elements: PPTElement[] = [
+    createRectElement({
+      name: 'top_accent',
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 8,
+      fill: accent,
+    }),
+    createRectElement({
+      name: 'title_marker',
+      left: 44,
+      top: 34,
+      width: 10,
+      height: 46,
+      fill: accent,
+    }),
+    createTextElement({
+      name: 'slide_title',
+      left: 72,
+      top: 28,
+      width: 860,
+      height: 56,
+      content: toTextHtml(splitIntoLines(outline.title || '未命名页面', 30, 2), {
+        fontSize: 30,
+        color: '#0f172a',
+        bold: true,
+      }),
+      defaultColor: '#0f172a',
+      textType: 'title',
+    }),
+    createRectElement({
+      name: 'summary_panel',
+      left: 44,
+      top: 106,
+      width: 912,
+      height: 118,
+      fill: panel,
+      outlineColor: accentSoft,
+    }),
+    createTextElement({
+      name: 'summary_label',
+      left: 64,
+      top: 124,
+      width: 120,
+      height: 24,
+      content: toTextHtml([lang === 'zh-CN' ? '内容概览' : 'Overview'], {
+        fontSize: 16,
+        color: accent,
+        bold: true,
+      }),
+      defaultColor: accent,
+      textType: 'itemTitle',
+    }),
+    createTextElement({
+      name: 'summary_text',
+      left: 64,
+      top: 154,
+      width: 872,
+      height: 50,
+      content: toTextHtml(splitIntoLines(summary, 78, 2), {
+        fontSize: 17,
+        color: '#334155',
+        lineHeight: 1.42,
+      }),
+      defaultColor: '#334155',
+      textType: 'content',
+    }),
+    ...buildInfoCard(
+      lang === 'zh-CN' ? '核心要点' : 'Key Points',
+      keyPoints,
+      { left: 44, top: 252, width: 566, height: 258 },
+      {
+        accent,
+        accentSoft,
+        panel,
+        panelAlt,
+        codeBg: '#172554',
+      },
+      'fallback_keypoints',
+    ),
+    ...buildInfoCard(
+      lang === 'zh-CN' ? '讲解提示' : 'Teaching Notes',
+      takeaway,
+      { left: 636, top: 252, width: 320, height: 258 },
+      {
+        accent: '#0891b2',
+        accentSoft: '#bae6fd',
+        panel: '#ecfeff',
+        panelAlt: '#f8fafc',
+        codeBg: '#0f172a',
+      },
+      'fallback_takeaway',
+    ),
+  ];
+
+  return {
+    elements,
+    background: { type: 'solid', color: '#fcfcfd' },
+    remark: outline.description,
+  };
+}
+
 /**
  * Check if a string looks like an image ID (e.g., "img_1", "img_2")
  * rather than a base64 data URL or actual URL

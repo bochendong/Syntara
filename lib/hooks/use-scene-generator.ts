@@ -156,6 +156,13 @@ async function fetchSceneContent(
         ? buildPayloadTooLargeMessage(language)
         : `HTTP ${response.status}`;
     const message = await readApiErrorMessage(response, fallback);
+    log.error('[SceneGenerator] Scene content request failed', {
+      outlineId: params.outline.id,
+      outlineTitle: params.outline.title,
+      stageId: params.stageId,
+      status: response.status,
+      error: message || fallback,
+    });
     return { success: false, error: message || fallback };
   }
 
@@ -471,6 +478,12 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           );
 
           if (!contentResult.success || !contentResult.content) {
+            log.warn('[SceneGenerator] Scene content generation failed; pausing remaining generation', {
+              outlineId: outline.id,
+              outlineTitle: outline.title,
+              stageId: stage.id,
+              error: contentResult.error || 'Content generation failed',
+            });
             if (abortRef.current || store.getState().generationEpoch !== startEpoch) {
               pausedByFailureOrAbort = true;
               break;
@@ -650,6 +663,12 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
         );
 
         if (!contentResult.success || !contentResult.content) {
+          log.warn('[SceneGenerator] Single outline retry content generation failed', {
+            outlineId,
+            outlineTitle: outline.title,
+            stageId: state.stage.id,
+            error: contentResult.error || 'Content generation failed',
+          });
           store.getState().addFailedOutline(outline);
           return;
         }
