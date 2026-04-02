@@ -4,10 +4,14 @@ import { createLogger } from '@/lib/logger';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
 import type { Slide } from '../types/slides';
+import {
+  clearStageDraftSnapshot,
+  readStageDraftSnapshot,
+  sanitizeScenesForPersistence,
+  writeStageDraftSnapshot,
+} from '@/lib/utils/stage-draft-snapshot';
 
 const log = createLogger('StageStorage');
-const STAGE_DRAFT_KEY_PREFIX = 'openmaic-stage-draft:';
-const STAGE_DRAFT_PERSISTENT_KEY_PREFIX = 'openmaic-stage-draft-persistent:';
 
 export interface StageStoreData {
   stage: Stage;
@@ -17,14 +21,6 @@ export interface StageStoreData {
 }
 
 export interface SaveStageDataResult {
-  remoteSynced: boolean;
-}
-
-interface StageDraftSnapshot {
-  savedAt: number;
-  stage: Stage;
-  scenes: Scene[];
-  currentSceneId: string | null;
   remoteSynced: boolean;
 }
 
@@ -141,87 +137,22 @@ function mapScene(stageId: string, row: SceneApiRow): Scene {
   };
 }
 
-function readDraftSnapshotValue(raw: string | null): StageDraftSnapshot | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<StageDraftSnapshot>;
-    if (
-      !parsed ||
-      typeof parsed !== 'object' ||
-      typeof parsed.savedAt !== 'number' ||
-      !parsed.stage ||
-      !Array.isArray(parsed.scenes)
-    ) {
-      return null;
-    }
-    return {
-      savedAt: parsed.savedAt,
-      stage: parsed.stage as Stage,
-      scenes: parsed.scenes as Scene[],
-      currentSceneId:
-        typeof parsed.currentSceneId === 'string' || parsed.currentSceneId === null
-          ? parsed.currentSceneId
-          : null,
-      remoteSynced: parsed.remoteSynced !== false,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function readStageDraftSnapshot(stageId: string): StageDraftSnapshot | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const sessionSnapshot = readDraftSnapshotValue(
-      sessionStorage.getItem(`${STAGE_DRAFT_KEY_PREFIX}${stageId}`),
-    );
-    const persistentSnapshot = readDraftSnapshotValue(
-      localStorage.getItem(`${STAGE_DRAFT_PERSISTENT_KEY_PREFIX}${stageId}`),
-    );
-
-    if (!sessionSnapshot) return persistentSnapshot;
-    if (!persistentSnapshot) return sessionSnapshot;
-    return sessionSnapshot.savedAt >= persistentSnapshot.savedAt
-      ? sessionSnapshot
-      : persistentSnapshot;
-  } catch {
-    return null;
-  }
-}
-
-function writeStageDraftSnapshot(
-  stageId: string,
-  data: Pick<StageStoreData, 'stage' | 'scenes' | 'currentSceneId'>,
-  remoteSynced: boolean,
-) {
-  if (typeof window === 'undefined') return;
-  try {
-    const snapshot: StageDraftSnapshot = {
-      savedAt: Date.now(),
-      stage: data.stage,
-      scenes: data.scenes,
-      currentSceneId: data.currentSceneId,
-      remoteSynced,
-    };
-    const serialized = JSON.stringify(snapshot);
-    sessionStorage.setItem(`${STAGE_DRAFT_KEY_PREFIX}${stageId}`, serialized);
-    localStorage.setItem(`${STAGE_DRAFT_PERSISTENT_KEY_PREFIX}${stageId}`, serialized);
-  } catch (error) {
-    log.warn('Failed to write stage draft snapshot:', error);
-  }
-}
-
 export async function saveStageData(
   stageId: string,
   data: StageStoreData,
 ): Promise<SaveStageDataResult> {
   const sortedScenes = [...data.scenes].sort((a, b) => a.order - b.order);
+  const persistedScenes = sanitizeScenesForPersistence(sortedScenes);
 
-  writeStageDraftSnapshot(stageId, {
-    stage: data.stage,
-    scenes: sortedScenes,
-    currentSceneId: data.currentSceneId,
-  }, false);
+  await writeStageDraftSnapshot(
+    stageId,
+    {
+      stage: data.stage,
+      scenes: persistedScenes,
+      currentSceneId: data.currentSceneId,
+    },
+    false,
+  );
 
   try {
     await ensureNotebookRow(stageId, data);
@@ -246,7 +177,7 @@ export async function saveStageData(
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scenes: sortedScenes.map((s, i) => ({
+          scenes: persistedScenes.map((s, i) => ({
             id: s.id,
             title: s.title,
             type: s.type,
@@ -258,11 +189,11 @@ export async function saveStageData(
         }),
       },
     );
-    writeStageDraftSnapshot(
+    await writeStageDraftSnapshot(
       stageId,
       {
         stage: data.stage,
-        scenes: sortedScenes,
+        scenes: persistedScenes,
         currentSceneId: data.currentSceneId,
       },
       true,
@@ -275,7 +206,7 @@ export async function saveStageData(
 }
 
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
-  const draftSnapshot = readStageDraftSnapshot(stageId);
+  const draftSnapshot = await readStageDraftSnapshot(stageId);
   try {
     const { notebook } = await backendJson<{
       notebook: NotebookApiRow & { scenes: SceneApiRow[] };
@@ -331,7 +262,7 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       const remoteIsNewer = remoteFreshness > draftFreshness;
 
       if (remoteHasMoreScenes || remoteIsNewer) {
-        writeStageDraftSnapshot(
+        void writeStageDraftSnapshot(
           stageId,
           {
             stage: remoteData.stage,
@@ -378,6 +309,7 @@ export async function deleteStageData(stageId: string): Promise<void> {
   await backendJson<{ ok: true }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
     method: 'DELETE',
   });
+  await clearStageDraftSnapshot(stageId);
 }
 
 export async function moveStageToCourse(stageId: string, targetCourseId: string): Promise<void> {

@@ -5,13 +5,12 @@ import type { ChatSession } from '@/lib/types/chat';
 import type { SceneOutline } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
 import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
+import { queueWriteStageDraftSnapshot } from '@/lib/utils/stage-draft-snapshot';
 
 const log = createLogger('StageStore');
 
 /** Virtual scene ID used when the user navigates to a page still being generated */
 export const PENDING_SCENE_ID = '__pending__';
-const STAGE_DRAFT_KEY_PREFIX = 'openmaic-stage-draft:';
-const STAGE_DRAFT_PERSISTENT_KEY_PREFIX = 'openmaic-stage-draft-persistent:';
 
 // ==================== Debounce Helper ====================
 
@@ -37,40 +36,21 @@ function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
   };
 }
 
-function writeDraftSnapshotImmediately(args: {
-  stageId: string;
-  stage: Stage;
-  scenes: Scene[];
-  currentSceneId: string | null;
-}) {
-  if (typeof window === 'undefined') return;
-  try {
-    const snapshot = JSON.stringify({
-      savedAt: Date.now(),
-      stage: args.stage,
-      scenes: [...args.scenes].sort((a, b) => a.order - b.order),
-      currentSceneId: args.currentSceneId,
-      remoteSynced: false,
-    });
-    sessionStorage.setItem(`${STAGE_DRAFT_KEY_PREFIX}${args.stageId}`, snapshot);
-    localStorage.setItem(`${STAGE_DRAFT_PERSISTENT_KEY_PREFIX}${args.stageId}`, snapshot);
-  } catch (error) {
-    log.warn('Failed to eagerly write stage draft snapshot:', error);
-  }
-}
-
 function writeDraftSnapshotForState(
   stage: Stage | null,
   scenes: Scene[],
   currentSceneId: string | null,
 ) {
   if (!stage?.id) return;
-  writeDraftSnapshotImmediately({
-    stageId: stage.id,
-    stage,
-    scenes,
-    currentSceneId,
-  });
+  queueWriteStageDraftSnapshot(
+    stage.id,
+    {
+      stage,
+      scenes,
+      currentSceneId,
+    },
+    false,
+  );
 }
 
 type ToolbarState = 'design' | 'ai';
@@ -258,10 +238,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   },
 
   setChats: (chats) => {
-    set({ chats, storageSaveState: 'saving', storageSaveError: null });
-    const state = get();
-    writeDraftSnapshotForState(state.stage, state.scenes, state.currentSceneId);
-    debouncedSave();
+    set({ chats });
   },
 
   setMode: (mode) => set({ mode }),
@@ -323,12 +300,6 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     }
 
     try {
-      writeDraftSnapshotImmediately({
-        stageId: stage.id,
-        stage,
-        scenes,
-        currentSceneId,
-      });
       const { saveStageData } = await import('@/lib/utils/stage-storage');
       set({ storageSaveState: 'saving', storageSaveError: null });
       const result = await saveStageData(stage.id, {
