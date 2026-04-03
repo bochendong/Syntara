@@ -36,6 +36,8 @@ export interface ProsemirrorEditorProps {
   value: string;
   editable?: boolean;
   autoFocus?: boolean;
+  /** 侧栏编辑：固定舒适阅读字号/系统字体，不跟幻灯片上的 defaultFont/内联字号同步显示；画布上仍按数据渲染 */
+  inspectorSurface?: boolean;
   onUpdate?: (payload: { value: string; ignore: boolean }) => void;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -59,6 +61,7 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
       value,
       editable = false,
       autoFocus = false,
+      inspectorSurface = false,
       onUpdate,
       onFocus,
       onBlur,
@@ -448,8 +451,8 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
       <div
         ref={editorViewRef}
         className={`prosemirror-editor cursor-text [&_ol]:my-0 [&_p]:m-0 [&_p:not(:last-child)]:mb-[var(--paragraphSpace)] [&_ul]:my-0 ${
-          textFormatPainter ? 'format-painter' : ''
-        }`}
+          inspectorSurface ? 'prosemirror-editor--inspector-surface' : ''
+        } ${textFormatPainter ? 'format-painter' : ''}`}
         onMouseDown={(e) => onMouseDown?.(e)}
       />
     );

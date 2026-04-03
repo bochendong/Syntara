@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -290,12 +290,10 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
               {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <Button
-            variant="outline"
+          <SettingsButton
             size="sm"
             onClick={handleTest}
             disabled={testLoading || (!currentConfig?.apiKey && !isServerConfigured)}
-            className="gap-1.5"
           >
             {testLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -305,7 +303,7 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
                 {t('settings.testConnection')}
               </>
             )}
-          </Button>
+          </SettingsButton>
         </div>
         {testMessage && (
           <div
@@ -364,10 +362,10 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
       {!systemManaged && <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <Label className="text-base">{t('settings.models')}</Label>
-          <Button variant="outline" size="sm" onClick={handleOpenAddModel} className="gap-1.5">
+          <SettingsButton variant="secondary" size="sm" onClick={handleOpenAddModel}>
             <Plus className="h-3.5 w-3.5" />
             {t('settings.addNewModel')}
-          </Button>
+          </SettingsButton>
         </div>
 
         <div className="space-y-1.5">
@@ -395,24 +393,23 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
                 <div className="text-xs text-muted-foreground font-mono mt-0.5">{model.id}</div>
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
+                <SettingsButton
+                  variant="secondary"
+                  size="iconSm"
                   onClick={() => handleOpenEditModel(index)}
                   title={t('settings.editModel')}
                 >
                   <Settings2 className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                </SettingsButton>
+                <SettingsButton
+                  variant="destructive"
+                  size="iconSm"
+                  className="border-destructive/25"
                   onClick={() => handleDeleteModel(index)}
                   title={t('settings.deleteModel')}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                </SettingsButton>
               </div>
             </div>
           ))}
@@ -448,12 +445,12 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowModelDialog(false)}>
+              <SettingsButton variant="secondary" size="sm" onClick={() => setShowModelDialog(false)}>
                 {t('common.cancel')}
-              </Button>
-              <Button size="sm" onClick={handleSaveModel} disabled={!modelForm.id.trim()}>
+              </SettingsButton>
+              <SettingsButton size="sm" onClick={handleSaveModel} disabled={!modelForm.id.trim()}>
                 {t('common.save')}
-              </Button>
+              </SettingsButton>
             </div>
           </div>
         </DialogContent>

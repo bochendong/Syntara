@@ -35,6 +35,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+/**
+ * 课程/笔记本画廊列表：`auto-fill` 保留空列轨，少量卡片不会像 `auto-fit` 那样被 1fr 拉满整行；
+ * `minmax(min(100%,20rem),1fr)` 在宽度不足时自动减列，避免三列硬挤成细条。
+ */
+export const courseGalleryListGridClassName =
+  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] gap-5 p-0';
+
 function isImageUrl(src: string | null | undefined): src is string {
   const s = src?.trim();
   if (!s) return false;
@@ -194,7 +201,7 @@ export function CourseGalleryCard({
   return (
     <article
       className={cn(
-        'apple-glass relative flex h-full flex-col overflow-hidden border shadow-[0_20px_60px_rgba(15,23,42,0.08)] transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_26px_80px_rgba(15,23,42,0.12)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.28)] dark:hover:shadow-[0_30px_90px_rgba(0,0,0,0.38)]',
+        'apple-glass relative flex h-full min-w-0 w-full max-w-full flex-col overflow-hidden border shadow-[0_20px_60px_rgba(15,23,42,0.08)] transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_26px_80px_rgba(15,23,42,0.12)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.28)] dark:hover:shadow-[0_30px_90px_rgba(0,0,0,0.38)]',
         cfg.article,
       )}
     >

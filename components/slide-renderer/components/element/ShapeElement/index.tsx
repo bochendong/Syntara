@@ -11,6 +11,7 @@ import { useElementFill } from '../hooks/useElementFill';
 import { useElementOutline } from '../hooks/useElementOutline';
 import { GradientDefs } from './GradientDefs';
 import { PatternDefs } from './PatternDefs';
+import { ShapeTextSurface } from './ShapeTextSurface';
 import { ProsemirrorEditor } from '../ProsemirrorEditor';
 
 export { BaseShapeElement } from './BaseShapeElement';
@@ -162,16 +163,9 @@ export function ShapeElement({ elementInfo, selectElement }: ShapeElementProps) 
             </g>
           </svg>
 
-          <div
-            className={`shape-text absolute inset-0 flex flex-col p-[10px] leading-[1.5] break-words pointer-events-none ${
-              editable || text.content ? 'pointer-events-auto' : ''
-            } ${
-              text.align === 'top'
-                ? 'justify-start'
-                : text.align === 'bottom'
-                  ? 'justify-end'
-                  : 'justify-center'
-            }`}
+          <ShapeTextSurface
+            align={text.align}
+            className={editable || text.content ? 'pointer-events-auto' : 'pointer-events-none'}
             style={{
               lineHeight: text.lineHeight,
               letterSpacing: `${text.wordSpace || 0}px`,
@@ -191,7 +185,7 @@ export function ShapeElement({ elementInfo, selectElement }: ShapeElementProps) 
                 onMouseDown={(e) => handleSelectElement(e as React.MouseEvent, false)}
               />
             )}
-          </div>
+          </ShapeTextSurface>
         </div>
       </div>
     </div>

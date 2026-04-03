@@ -48,6 +48,7 @@ import { VisuallyHidden } from 'radix-ui';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ClassroomFooter } from '@/components/stage/classroom-footer';
+import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-voice-chip';
 import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
 import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
 
@@ -1741,9 +1742,11 @@ export function Stage({
             onClick={openRepairSidebar}
             className={cn(
               'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-              'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-500/30 dark:bg-sky-950/35 dark:text-sky-200 dark:hover:bg-sky-950/55',
+              slideEditorOpen && slideEditorSidebarTab === 'ai'
+                ? 'border-sky-400 bg-sky-100 text-sky-900 shadow-sm dark:border-sky-400/45 dark:bg-sky-950/55 dark:text-sky-50'
+                : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-500/30 dark:bg-sky-950/35 dark:text-sky-200 dark:hover:bg-sky-950/55',
             )}
-            title="打开右侧栏，输入你希望 AI 重写这一页的原因"
+            title="打开 AI 重写侧栏；与「编辑当前页」互斥，可在顶栏切换"
           >
             <Sparkles className="size-3.5" />
             AI 重写
@@ -1754,21 +1757,26 @@ export function Stage({
           <button
             type="button"
             onClick={() => {
-              if (slideEditorOpen) {
+              if (!slideEditorOpen) {
+                setSlideEditorSidebarTab('manual');
+                handleOpenSlideEditor();
+                return;
+              }
+              if (slideEditorSidebarTab === 'manual') {
                 handleCloseSlideEditor();
               } else {
-                handleOpenSlideEditor();
+                setSlideEditorSidebarTab('manual');
               }
             }}
             className={cn(
               'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-              slideEditorOpen
+              slideEditorOpen && slideEditorSidebarTab === 'manual'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-950/35 dark:text-emerald-200 dark:hover:bg-emerald-950/55'
                 : 'border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200 dark:hover:bg-white/[0.08]',
             )}
           >
             <SquarePen className="size-3.5" />
-            {slideEditorOpen ? '完成编辑' : '编辑当前页'}
+            {slideEditorOpen && slideEditorSidebarTab === 'manual' ? '完成编辑' : '编辑当前页'}
           </button>
         ) : null}
       </>
@@ -1869,8 +1877,7 @@ export function Stage({
             <ClassroomSlideCanvasEditor
               currentScene={currentScene}
               currentSceneIndex={currentSceneIndex}
-              activeSidebarTab={slideEditorSidebarTab}
-              onActiveSidebarTabChange={setSlideEditorSidebarTab}
+              sidebarPanel={slideEditorSidebarTab}
               repairDraft={repairInstructions}
               onRepairDraftChange={setCurrentSlideRepairDraft}
               repairConversation={repairConversation}
@@ -1923,7 +1930,11 @@ export function Stage({
           )}
         </div>
 
-        <ClassroomFooter leadingSlot={viewToggle} trailingSlot={footerCenterSlot} />
+        <ClassroomFooter
+          leadingSlot={viewToggle}
+          centerSlot={footerCenterSlot}
+          trailingSlot={<ClassroomFooterVoiceChip />}
+        />
 
         {/* Roundtable Area */}
         {mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE && (

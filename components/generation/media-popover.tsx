@@ -495,7 +495,9 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
           <button
             onClick={() => {
               setOpen(false);
-              onSettingsOpen(activeTab);
+              const section: SettingsSection =
+                activeTab === 'video' ? 'image' : activeTab;
+              onSettingsOpen(section);
             }}
             className="w-full flex items-center justify-between px-3.5 py-2.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
           >

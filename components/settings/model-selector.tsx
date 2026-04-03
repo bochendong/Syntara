@@ -14,7 +14,7 @@ import {
   FileText,
   Send,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -207,7 +207,9 @@ export function ModelSelector({
                 onClick={() => setActiveProvider(provider.id)}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors border-b',
-                  isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50',
+                  isActive
+                    ? 'bg-[#007AFF] text-white dark:bg-[#0A84FF]'
+                    : 'hover:bg-muted/50',
                 )}
               >
                 {provider.icon ? (
@@ -230,7 +232,7 @@ export function ModelSelector({
                         className={cn(
                           'text-[10px] px-1 py-0 h-4 leading-4 rounded shrink-0 inline-block',
                           isActive
-                            ? 'bg-white/20 text-primary-foreground'
+                            ? 'bg-white/20 text-white'
                             : 'bg-muted text-muted-foreground',
                         )}
                       >
@@ -266,18 +268,18 @@ export function ModelSelector({
                       setSearchExpanded(false);
                     }
                   }}
-                  className="pl-9 h-9 pr-3 shadow-lg border-primary/20 bg-card dark:bg-card"
+                  className="h-9 border-[#007AFF]/20 bg-card pl-9 pr-3 shadow-lg dark:border-[#0A84FF]/25 dark:bg-card"
                 />
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 w-10 rounded-full p-0 shadow-md hover:shadow-lg transition-shadow bg-card hover:bg-card dark:bg-card dark:hover:bg-card"
+              <SettingsButton
+                variant="secondary"
+                size="icon"
+                className="h-10 w-10 rounded-full p-0 shadow-md transition-shadow hover:shadow-lg"
                 onClick={() => setSearchExpanded(true)}
               >
                 <Search className="h-4 w-4" />
-              </Button>
+              </SettingsButton>
             )}
           </div>
 
@@ -298,7 +300,9 @@ export function ModelSelector({
                     key={model.id}
                     className={cn(
                       'border-b transition-colors',
-                      isSelected ? 'bg-primary/5' : 'hover:bg-muted/50',
+                      isSelected
+                        ? 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/12'
+                        : 'hover:bg-muted/50',
                     )}
                   >
                     <div className="flex items-center gap-2 px-3 py-2.5">
@@ -352,10 +356,12 @@ export function ModelSelector({
                             </div>
                           )}
                         </div>
-                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                        {isSelected && (
+                          <Check className="h-4 w-4 shrink-0 text-[#007AFF] dark:text-[#5AC8FA]" />
+                        )}
                       </button>
 
-                      <Button
+                      <SettingsButton
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
@@ -364,7 +370,7 @@ export function ModelSelector({
                         }}
                         disabled={testStatus === 'testing' && isTesting}
                         className={cn(
-                          'h-7 px-2 shrink-0',
+                          'h-7 shrink-0 px-2',
                           isTesting && testStatus === 'success' && 'text-green-600',
                           isTesting && testStatus === 'error' && 'text-red-600',
                         )}
@@ -378,7 +384,7 @@ export function ModelSelector({
                         ) : (
                           <Zap className="h-3.5 w-3.5" />
                         )}
-                      </Button>
+                      </SettingsButton>
                     </div>
 
                     {showTestResult && (

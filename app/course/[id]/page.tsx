@@ -3,8 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { CourseGalleryCard } from '@/components/course-gallery-card';
+import {
+  CourseGalleryCard,
+  courseGalleryListGridClassName,
+} from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
+import { EditNotebookForm } from '@/components/courses/edit-notebook-form';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
@@ -24,10 +28,7 @@ import { listCourses } from '@/lib/utils/course-storage';
 import { toast } from 'sonner';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { courseOrchestratorChatHref } from '@/lib/constants/course-chat';
-import {
-  NOTEBOOK_AGENT_AVATAR_PRESET_URLS,
-  resolveNotebookAgentAvatarDisplayUrl,
-} from '@/lib/constants/notebook-agent-avatars';
+import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import {
   Dialog,
   DialogContent,
@@ -63,7 +64,7 @@ export default function CourseDetailPage() {
   const [moveTargets, setMoveTargets] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
-  const [editingNotebookAvatar, setEditingNotebookAvatar] = useState<StageListItem | null>(null);
+  const [editingNotebook, setEditingNotebook] = useState<StageListItem | null>(null);
   const coursePublishLocked = Boolean(course?.sourceCourseId);
 
   useEffect(() => {
@@ -201,16 +202,12 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleUpdateNotebookAvatar = async (notebookId: string, avatarUrl: string) => {
-    try {
-      await updateStageStoreMeta(notebookId, { avatarUrl });
-      const list = await listStagesByCourse(id);
-      setNotebooks(list);
-      toast.success('已更新笔记本头像');
-      setEditingNotebookAvatar(null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : '更新头像失败');
-    }
+  const handleNotebookEditSaved = async () => {
+    const list = await listStagesByCourse(id);
+    setNotebooks(list);
+    setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+    toast.success('已更新笔记本信息');
+    setEditingNotebook(null);
   };
 
   if (!loading && course === null) {
@@ -237,11 +234,11 @@ export default function CourseDetailPage() {
               className="h-40 animate-pulse rounded-[28px] bg-white/40 dark:bg-white/5"
               style={{ backdropFilter: 'blur(10px)' }}
             />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className={courseGalleryListGridClassName}>
               {Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-72 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5"
+                  className="h-72 min-w-0 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5"
                   style={{ backdropFilter: 'blur(10px)' }}
                 />
               ))}
@@ -261,7 +258,10 @@ export default function CourseDetailPage() {
                     <Button variant="ghost" size="sm" className="-ml-2 mb-2 rounded-lg" asChild>
                       <Link href="/my-courses">← 我的课程</Link>
                     </Button>
-                    <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                    <h1
+                      id="course-detail-title"
+                      className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white"
+                    >
                       {course.name}
                     </h1>
                     {course.description ? (
@@ -339,44 +339,50 @@ export default function CourseDetailPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {notebooks.map((nb, i) => (
-                  <CourseGalleryCard
-                    key={nb.id}
-                    listIndex={i}
-                    course={nb}
-                    tags={nb.tags}
-                    coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
-                    slide={thumbnails[nb.id]}
-                    subtitle={formatDate(nb.updatedAt)}
-                    secondaryLabel=""
-                    priceLabel={formatCreditsUsdCompactLabel(
-                      creditsFromPriceCents(nb.notebookPriceCents),
-                    )}
-                    actionLabel="打开笔记本"
-                    onAction={() => router.push(`/classroom/${nb.id}`)}
-                    onEdit={() => setEditingNotebookAvatar(nb)}
-                    secondaryActionLabel={
-                      nb.sourceNotebookId
-                        ? '已购副本不可发布'
-                        : nb.listedInNotebookStore
-                          ? '取消发布'
-                          : '发布'
-                    }
-                    secondaryActionDisabled={Boolean(nb.sourceNotebookId)}
-                    onSecondaryAction={() => void handleTogglePublishNotebook(nb)}
-                    moveToCourseTargets={moveTargets}
-                    onMoveToCourse={(targetCourseId) => handleMoveNotebook(nb.id, targetCourseId)}
-                    deleteDialogTitle="删除笔记本？"
-                    deleteDialogDescription={`将永久删除「${nb.name}」及其课件与对话记录，不可恢复。`}
-                    onDelete={() => handleDeleteNotebook(nb.id, nb.name)}
-                  />
-                ))}
-              </div>
+              <section aria-labelledby="course-notebooks-heading">
+                <h2 id="course-notebooks-heading" className="sr-only">
+                  笔记本列表
+                </h2>
+                <ul className={courseGalleryListGridClassName}>
+                  {notebooks.map((nb, i) => (
+                    <li key={nb.id} className="min-w-0">
+                      <CourseGalleryCard
+                        listIndex={i}
+                        course={nb}
+                        tags={nb.tags}
+                        coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
+                        slide={thumbnails[nb.id]}
+                        subtitle={formatDate(nb.updatedAt)}
+                        secondaryLabel=""
+                        priceLabel={formatCreditsUsdCompactLabel(
+                          creditsFromPriceCents(nb.notebookPriceCents),
+                        )}
+                        actionLabel="打开笔记本"
+                        onAction={() => router.push(`/classroom/${nb.id}`)}
+                        onEdit={() => setEditingNotebook(nb)}
+                        secondaryActionLabel={
+                          nb.sourceNotebookId
+                            ? '已购副本不可发布'
+                            : nb.listedInNotebookStore
+                              ? '取消发布'
+                              : '发布'
+                        }
+                        secondaryActionDisabled={Boolean(nb.sourceNotebookId)}
+                        onSecondaryAction={() => void handleTogglePublishNotebook(nb)}
+                        moveToCourseTargets={moveTargets}
+                        onMoveToCourse={(targetCourseId) => handleMoveNotebook(nb.id, targetCourseId)}
+                        deleteDialogTitle="删除笔记本？"
+                        deleteDialogDescription={`将永久删除「${nb.name}」及其课件与对话记录，不可恢复。`}
+                        onDelete={() => handleDeleteNotebook(nb.id, nb.name)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
             <Dialog open={editCourseOpen} onOpenChange={setEditCourseOpen}>
               <DialogContent
-                className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto p-6 sm:max-w-lg"
+                className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto p-6 sm:max-w-2xl"
                 showCloseButton
               >
                 <DialogHeader className="pr-8 text-left">
@@ -398,63 +404,28 @@ export default function CourseDetailPage() {
               </DialogContent>
             </Dialog>
             <Dialog
-              open={Boolean(editingNotebookAvatar)}
+              open={Boolean(editingNotebook)}
               onOpenChange={(open) => {
-                if (!open) setEditingNotebookAvatar(null);
+                if (!open) setEditingNotebook(null);
               }}
             >
               <DialogContent
-                className="max-h-[min(90dvh,720px)] w-full max-w-lg gap-0 overflow-y-auto p-6 sm:max-w-lg"
+                className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto p-6 sm:max-w-2xl"
                 showCloseButton
               >
                 <DialogHeader className="pr-8 text-left">
-                  <DialogTitle className="text-lg font-semibold">更换笔记本头像</DialogTitle>
+                  <DialogTitle className="text-lg font-semibold">编辑笔记本</DialogTitle>
                   <DialogDescription>
-                    这张头像会显示在笔记本卡片、聊天联系人和课堂相关入口中。
+                    修改名称、描述、头像与价格；保存后立即生效。
                   </DialogDescription>
                 </DialogHeader>
-                {editingNotebookAvatar ? (
-                  <div className="mt-6 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={resolveNotebookAgentAvatarDisplayUrl(
-                          editingNotebookAvatar.id,
-                          editingNotebookAvatar.avatarUrl,
-                        )}
-                        alt=""
-                        className="size-16 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-sm dark:border-white/15 dark:bg-slate-900"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">
-                          {editingNotebookAvatar.name}
-                        </p>
-                        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                          选择一张新的笔记本头像。
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
-                      {NOTEBOOK_AGENT_AVATAR_PRESET_URLS.slice(0, 28).map((url) => {
-                        const active = editingNotebookAvatar.avatarUrl === url;
-                        return (
-                          <button
-                            key={url}
-                            type="button"
-                            onClick={() => void handleUpdateNotebookAvatar(editingNotebookAvatar.id, url)}
-                            className={cn(
-                              'overflow-hidden rounded-2xl border-2 bg-white transition-all dark:bg-slate-900',
-                              active
-                                ? 'border-violet-500 ring-2 ring-violet-200 dark:ring-violet-500/30'
-                                : 'border-transparent hover:border-slate-200 dark:hover:border-white/15',
-                            )}
-                            aria-label="选择笔记本头像"
-                          >
-                            <img src={url} alt="" className="aspect-square w-full object-cover" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                {editingNotebook ? (
+                  <EditNotebookForm
+                    key={editingNotebook.id}
+                    className="mt-6"
+                    notebook={editingNotebook}
+                    onSuccess={() => void handleNotebookEditSaved()}
+                  />
                 ) : null}
               </DialogContent>
             </Dialog>

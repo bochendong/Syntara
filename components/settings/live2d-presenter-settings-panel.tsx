@@ -1,7 +1,6 @@
 'use client';
 
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
@@ -22,13 +21,14 @@ export function Live2dPresenterSettingsPanel({ className }: { className?: string
         {Object.values(LIVE2D_PRESENTER_MODELS).map((model) => {
           const selected = live2dPresenterModelId === model.id;
           return (
-            <Button
+            <button
               key={model.id}
               type="button"
-              variant={selected ? 'default' : 'outline'}
               className={cn(
-                'h-auto overflow-hidden p-0 text-left',
-                selected && 'shadow-sm ring-2 ring-primary/30',
+                'apple-btn h-auto w-full overflow-hidden border-0 p-0 text-left transition-all',
+                selected
+                  ? 'apple-btn-primary shadow-md ring-2 ring-[#007AFF]/35'
+                  : 'apple-btn-secondary',
               )}
               onClick={() => setLive2DPresenterModelId(model.id)}
             >
@@ -46,20 +46,20 @@ export function Live2dPresenterSettingsPanel({ className }: { className?: string
                   </span>
                 </span>
                 <span className="flex flex-col items-start gap-1 px-4 py-3">
-                  <span className="text-sm font-medium">
+                  <span className={cn('text-sm font-medium', selected && 'text-white')}>
                     {t(`settings.live2dPresenterOptions.${model.id}.label`)}
                   </span>
                   <span
                     className={cn(
                       'text-xs leading-relaxed',
-                      selected ? 'text-primary-foreground/85' : 'text-muted-foreground',
+                      selected ? 'text-white/85' : 'text-muted-foreground',
                     )}
                   >
                     {t(`settings.live2dPresenterOptions.${model.id}.desc`)}
                   </span>
                 </span>
               </span>
-            </Button>
+            </button>
           );
         })}
       </div>

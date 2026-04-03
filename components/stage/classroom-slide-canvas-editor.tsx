@@ -10,8 +10,7 @@ import { SlideElementInspector } from '@/components/stage/slide-element-inspecto
 interface ClassroomSlideCanvasEditorProps {
   readonly currentScene: Scene;
   readonly currentSceneIndex: number;
-  readonly activeSidebarTab: 'ai' | 'manual';
-  readonly onActiveSidebarTabChange: (value: 'ai' | 'manual') => void;
+  readonly sidebarPanel: 'ai' | 'manual';
   readonly repairDraft: string;
   readonly onRepairDraftChange: (value: string) => void;
   readonly repairConversation: SlideRepairChatMessage[];
@@ -24,8 +23,7 @@ interface ClassroomSlideCanvasEditorProps {
 export function ClassroomSlideCanvasEditor({
   currentSceneIndex,
   currentScene: _currentScene,
-  activeSidebarTab,
-  onActiveSidebarTabChange,
+  sidebarPanel,
   repairDraft,
   onRepairDraftChange,
   repairConversation,
@@ -54,8 +52,7 @@ export function ClassroomSlideCanvasEditor({
           </div>
 
           <SlideElementInspector
-            activeTab={activeSidebarTab}
-            onActiveTabChange={onActiveSidebarTabChange}
+            sidebarPanel={sidebarPanel}
             repairDraft={repairDraft}
             onRepairDraftChange={onRepairDraftChange}
             repairConversation={repairConversation}

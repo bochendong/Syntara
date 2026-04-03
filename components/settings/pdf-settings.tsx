@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { PDF_PROVIDERS } from '@/lib/pdf/constants';
@@ -118,12 +118,11 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
                   }
                   className="text-sm"
                 />
-                <Button
-                  variant="outline"
+                <SettingsButton
                   size="sm"
                   onClick={handleTestConnection}
                   disabled={testStatus === 'testing' || !hasBaseUrl}
-                  className="gap-1.5 shrink-0"
+                  className="shrink-0"
                 >
                   {testStatus === 'testing' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -133,7 +132,7 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
                       {t('settings.testConnection')}
                     </>
                   )}
-                </Button>
+                </SettingsButton>
               </div>
             </div>
 
@@ -206,6 +205,37 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
           })()}
         </>
       )}
+
+      {/* Documented flows: PDF / MD / PPTX */}
+      <div className="rounded-xl border border-slate-900/[0.06] bg-slate-50/60 p-4 dark:border-white/[0.08] dark:bg-white/[0.04]">
+        <p className="text-sm font-medium text-slate-900 dark:text-white">
+          {t('settings.fileParseDocTitle')}
+        </p>
+
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {t('settings.fileParsePdfHeading')}
+        </p>
+        <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          <li>{t('settings.fileParseFlow1')}</li>
+          <li>{t('settings.fileParseFlow2')}</li>
+          <li>{t('settings.fileParseFlow3')}</li>
+          <li>{t('settings.fileParseFlow4')}</li>
+        </ol>
+
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {t('settings.fileParseMarkdownHeading')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          {t('settings.fileParseMarkdownDetail')}
+        </p>
+
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {t('settings.fileParsePptxHeading')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          {t('settings.fileParsePptxDetail')}
+        </p>
+      </div>
 
       {/* Features List */}
       <div className="space-y-2">

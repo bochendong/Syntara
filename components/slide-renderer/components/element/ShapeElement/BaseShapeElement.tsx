@@ -9,6 +9,7 @@ import { useElementFlip } from '../hooks/useElementFlip';
 import { useElementFill } from '../hooks/useElementFill';
 import { GradientDefs } from './GradientDefs';
 import { PatternDefs } from './PatternDefs';
+import { ShapeTextSurface } from './ShapeTextSurface';
 
 export interface BaseShapeElementProps {
   elementInfo: PPTShapeElement;
@@ -92,28 +93,20 @@ export function BaseShapeElement({ elementInfo }: BaseShapeElementProps) {
             </g>
           </svg>
 
-          <div
-            className={`shape-text subpixel-antialiased flex flex-col px-2.5 py-2.5 leading-relaxed break-words absolute inset-0 ${
-              text.align === 'top'
-                ? 'justify-start'
-                : text.align === 'bottom'
-                  ? 'justify-end'
-                  : 'justify-center'
-            }`}
+          <ShapeTextSurface
+            align={text.align}
             style={{
               lineHeight: text.lineHeight,
               letterSpacing: `${text.wordSpace || 0}px`,
+              // @ts-expect-error CSS custom properties
+              '--paragraphSpace': `${text.paragraphSpace === undefined ? 5 : text.paragraphSpace}px`,
             }}
           >
             <div
               className="ProseMirror-static [&_ol]:my-0 [&_p]:m-0 [&_p:not(:last-child)]:mb-[var(--paragraphSpace)] [&_ul]:my-0"
-              style={{
-                // @ts-expect-error CSS custom properties
-                '--paragraphSpace': `${text.paragraphSpace === undefined ? 5 : text.paragraphSpace}px`,
-              }}
               dangerouslySetInnerHTML={{ __html: renderedTextContent }}
             />
-          </div>
+          </ShapeTextSurface>
         </div>
       </div>
     </div>

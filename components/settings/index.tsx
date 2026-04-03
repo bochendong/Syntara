@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { SettingsSection } from '@/lib/types/settings';
-import { Settings, FileText, Image as ImageIcon, Film, Search, Volume2, Mic, X } from 'lucide-react';
+import { Settings, FileText, Image as ImageIcon, Search, Volume2, Mic } from 'lucide-react';
 import { GeneralSettings } from './general-settings';
 import { PDFSettings } from './pdf-settings';
 import { ImageSettings } from './image-settings';
-import { VideoSettings } from './video-settings';
 import { TTSSettings } from './tts-settings';
 import { ASRSettings } from './asr-settings';
 import { WebSearchSettings } from './web-search-settings';
@@ -35,28 +34,8 @@ export function SettingsDialog({
   const pdfProviderId = useSettingsStore((state) => state.pdfProviderId);
   const webSearchProviderId = useSettingsStore((state) => state.webSearchProviderId);
   const imageProviderId = useSettingsStore((state) => state.imageProviderId);
-  const videoProviderId = useSettingsStore((state) => state.videoProviderId);
   const ttsProviderId = useSettingsStore((state) => state.ttsProviderId);
   const asrProviderId = useSettingsStore((state) => state.asrProviderId);
-
-  const serverBadgeImage = useSettingsStore((s) =>
-    Object.values(s.imageProvidersConfig).some((c) => c?.isServerConfigured),
-  );
-  const serverBadgeVideo = useSettingsStore((s) =>
-    Object.values(s.videoProvidersConfig).some((c) => c?.isServerConfigured),
-  );
-  const serverBadgeTts = useSettingsStore((s) =>
-    Object.values(s.ttsProvidersConfig).some((c) => c?.isServerConfigured),
-  );
-  const serverBadgeAsr = useSettingsStore((s) =>
-    Object.values(s.asrProvidersConfig).some((c) => c?.isServerConfigured),
-  );
-  const serverBadgePdf = useSettingsStore((s) =>
-    Object.values(s.pdfProvidersConfig).some((c) => c?.isServerConfigured),
-  );
-  const serverBadgeWebSearch = useSettingsStore((s) =>
-    Object.values(s.webSearchProvidersConfig).some((c) => c?.isServerConfigured),
-  );
 
   // Navigation
   const [activeSection, setActiveSection] = useState<SettingsSection>('providers');
@@ -69,38 +48,49 @@ export function SettingsDialog({
     }
   }, [embedded, open, initialSection]);
 
-  const getHeaderTitle = () => {
-    switch (activeSection) {
-      case 'providers':
-        return 'OpenAI';
-      case 'image':
-        return t('settings.imageSettings');
-      case 'video':
-        return t('settings.videoSettings');
-      case 'tts':
-        return t('settings.ttsSettings');
-      case 'asr':
-        return t('settings.asrSettings');
-      case 'pdf':
-        return t('settings.pdfSettings');
-      case 'web-search':
-        return t('settings.webSearchSettings');
-      case 'general':
-      default:
-        return t('settings.systemSettings');
-    }
-  };
-
   const mainColumn = (
     <div
-      className={embedded ? 'flex min-h-0 w-full flex-1 overflow-hidden' : 'flex h-full overflow-hidden'}
+      className={cn('flex overflow-hidden', embedded ? 'min-h-0 w-full flex-1' : 'h-full')}
     >
-      <div className="w-56 shrink-0 bg-muted/30 p-3 space-y-1">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5">
+          <div className="min-h-0 min-w-0 flex-1 basis-0 shrink" aria-hidden />
+          <div className="w-[min(100%,72rem)] max-w-6xl shrink-0">
+            {activeSection === 'providers' && <SystemLLMPanel />}
+            {activeSection === 'general' && <GeneralSettings />}
+            {activeSection === 'pdf' && <PDFSettings selectedProviderId={pdfProviderId} />}
+            {activeSection === 'web-search' && (
+              <WebSearchSettings selectedProviderId={webSearchProviderId} />
+            )}
+            {activeSection === 'image' && <ImageSettings selectedProviderId={imageProviderId} />}
+            {activeSection === 'tts' && <TTSSettings selectedProviderId={ttsProviderId} />}
+            {activeSection === 'asr' && <ASRSettings selectedProviderId={asrProviderId} />}
+          </div>
+          <div className="min-h-0 min-w-0 flex-1 basis-0 shrink" aria-hidden />
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-slate-900/[0.06] bg-slate-50/40 px-5 py-3 dark:border-white/[0.08] dark:bg-white/[0.03]">
+          <SettingsButton
+            variant="secondary"
+            size="sm"
+            className="rounded-full px-4"
+            onClick={() => onOpenChange(false)}
+          >
+            {t('settings.close')}
+          </SettingsButton>
+        </div>
+      </div>
+
+      <div
+        className="w-56 shrink-0 space-y-1 border-l border-slate-900/[0.06] bg-slate-50/45 p-3 dark:border-white/[0.08] dark:bg-white/[0.03]"
+        role="navigation"
+        aria-label={t('settings.title')}
+      >
         <button
           onClick={() => setActiveSection('providers')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'providers' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'providers' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <Settings className="h-4 w-4 shrink-0" />
@@ -109,133 +99,63 @@ export function SettingsDialog({
         <button
           onClick={() => setActiveSection('image')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'image' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'image' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <ImageIcon className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.imageSettings')}</span>
-          {serverBadgeImage && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveSection('video')}
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'video' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
-          )}
-        >
-          <Film className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.videoSettings')}</span>
-          {serverBadgeVideo && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
+          <span className="truncate">{t('settings.imageSettings')}</span>
         </button>
         <button
           onClick={() => setActiveSection('tts')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'tts' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'tts' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <Volume2 className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.ttsSettings')}</span>
-          {serverBadgeTts && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
+          <span className="truncate">{t('settings.ttsSettings')}</span>
         </button>
         <button
           onClick={() => setActiveSection('asr')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'asr' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'asr' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <Mic className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.asrSettings')}</span>
-          {serverBadgeAsr && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
+          <span className="truncate">{t('settings.asrSettings')}</span>
         </button>
         <button
           onClick={() => setActiveSection('pdf')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'pdf' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'pdf' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <FileText className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.pdfSettings')}</span>
-          {serverBadgePdf && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
+          <span className="truncate">{t('settings.pdfSettings')}</span>
         </button>
         <button
           onClick={() => setActiveSection('web-search')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'web-search'
-              ? 'bg-primary/10 text-primary font-medium'
-              : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'web-search' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <Search className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('settings.webSearchSettings')}</span>
-          {serverBadgeWebSearch && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {t('settings.serverConfigured')}
-            </span>
-          )}
+          <span className="truncate">{t('settings.webSearchSettings')}</span>
         </button>
         <button
           onClick={() => setActiveSection('general')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-            activeSection === 'general' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted',
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'general' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
           )}
         >
           <Settings className="h-4 w-4 shrink-0" />
           <span className="truncate">{t('settings.systemSettings')}</span>
         </button>
-      </div>
-
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-lg font-semibold">{getHeaderTitle()}</h2>
-          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
-          {activeSection === 'providers' && <SystemLLMPanel />}
-          {activeSection === 'general' && <GeneralSettings />}
-          {activeSection === 'pdf' && <PDFSettings selectedProviderId={pdfProviderId} />}
-          {activeSection === 'web-search' && (
-            <WebSearchSettings selectedProviderId={webSearchProviderId} />
-          )}
-          {activeSection === 'image' && <ImageSettings selectedProviderId={imageProviderId} />}
-          {activeSection === 'video' && <VideoSettings selectedProviderId={videoProviderId} />}
-          {activeSection === 'tts' && <TTSSettings selectedProviderId={ttsProviderId} />}
-          {activeSection === 'asr' && <ASRSettings selectedProviderId={asrProviderId} />}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t bg-muted/30">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            {t('settings.close')}
-          </Button>
-        </div>
       </div>
     </div>
   );
@@ -250,7 +170,7 @@ export function SettingsDialog({
         </>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="h-[85vh] p-0 gap-0 block" showCloseButton={false}>
+          <DialogContent className="h-[85vh] p-0 gap-0 block">
             <DialogTitle className="sr-only">{t('settings.title')}</DialogTitle>
             <DialogDescription className="sr-only">{t('settings.description')}</DialogDescription>
             {mainColumn}

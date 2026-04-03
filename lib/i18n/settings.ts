@@ -16,6 +16,8 @@ export const settingsZhCN = {
       dark: '深色',
       system: '跟随系统',
     },
+    themeSwitchToDark: '切换到深色模式',
+    themeSwitchToLight: '切换到浅色模式',
     languageOptions: {
       zhCN: '简体中文',
       enUS: 'English',
@@ -469,12 +471,29 @@ export const settingsZhCN = {
     'lang_fil-PH': 'Filipino (Pilipinas)',
     'lang_af-ZA': 'Afrikaans (Suid-Afrika)',
     'lang_uk-UA': 'Українська (Україна)',
-    // PDF settings
-    pdfSettings: 'PDF 解析',
-    pdfParsingSettings: 'PDF 解析设置',
-    pdfDescription: '选择 PDF 解析引擎，支持文本提取、图片处理和表格识别',
-    pdfProvider: 'PDF 解析器',
-    pdfFeatures: '支持功能',
+    // File / PDF parsing settings (UI: 文件解析)
+    pdfSettings: '文件解析',
+    pdfParsingSettings: '文件解析设置',
+    pdfDescription:
+      '为上传的 PDF 源文档选择解析引擎（unpdf 内置或自建 MinerU），用于抽取正文与图片等供生成使用',
+    pdfProvider: '解析器',
+    pdfFeatures: '当前解析器支持',
+    fileParseDocTitle: '源文件如何解析',
+    fileParsePdfHeading: 'PDF',
+    fileParseFlow1:
+      '上传 PDF 时，前端将文件与当前选中的解析器（unpdf 或 MinerU）以及可选的 Base URL、API Key 一并提交到 POST /api/parse-pdf。',
+    fileParseFlow2:
+      '服务端根据解析器调用 parsePDF：unpdf 在 Node 环境抽取文本与内嵌图片；MinerU 则向你配置的地址请求 POST /file_parse，完成表格、公式、版式等增强解析。',
+    fileParseFlow3:
+      '解析结果统一为结构化内容（正文、图片、页数等元数据），进入笔记本 / 幻灯片生成管线。',
+    fileParseFlow4:
+      '若 PDF 超过当前环境发往 /api/parse-pdf 的体积上限（约 4.5MB），会自动改用浏览器内解析兜底：保留文本，并在可能时用整页截图辅助图像类内容。',
+    fileParseMarkdownHeading: 'Markdown（.md）',
+    fileParseMarkdownDetail:
+      '在浏览器内用 File API 直接读取 UTF-8 正文（会去掉 NUL 空字符），整段作为生成上下文；超长时按与 PDF 相同的全局字符上限截断。不调用服务端解析接口，也不使用本页选择的 PDF 解析器。',
+    fileParsePptxHeading: 'PowerPoint（.pptx）',
+    fileParsePptxDetail:
+      '上传到 POST /api/parse-pptx，服务端用 pptxtojson 解析：抽取每页可见文字、演讲者备注，以及幻灯片中的图片，拼成合并文本并附带图片资源，之后走与 PDF 类似的图片存储与生成管线。',
     pdfApiKey: 'API Key',
     pdfBaseUrl: 'Base URL',
     mineruDescription:
@@ -632,6 +651,8 @@ export const settingsEnUS = {
       dark: 'Dark',
       system: 'System',
     },
+    themeSwitchToDark: 'Switch to dark mode',
+    themeSwitchToLight: 'Switch to light mode',
     languageOptions: {
       zhCN: 'Simplified Chinese',
       enUS: 'English',
@@ -1090,13 +1111,29 @@ export const settingsEnUS = {
     'lang_fil-PH': 'Filipino (Pilipinas)',
     'lang_af-ZA': 'Afrikaans (Suid-Afrika)',
     'lang_uk-UA': 'Українська (Україна)',
-    // PDF settings
-    pdfSettings: 'PDF Parsing',
-    pdfParsingSettings: 'PDF Parsing Settings',
+    // File / PDF parsing settings
+    pdfSettings: 'File parsing',
+    pdfParsingSettings: 'File parsing settings',
     pdfDescription:
-      'Choose PDF parsing engine with support for text extraction, image processing, and table recognition',
-    pdfProvider: 'PDF Parser',
-    pdfFeatures: 'Supported Features',
+      'Choose a parser for uploaded PDF sources (built-in unpdf or self-hosted MinerU) to extract text and images for generation',
+    pdfProvider: 'Parser',
+    pdfFeatures: 'What this parser supports',
+    fileParseDocTitle: 'How source files are parsed',
+    fileParsePdfHeading: 'PDF',
+    fileParseFlow1:
+      'For PDF uploads, the client sends the file with the selected parser (unpdf or MinerU) and optional Base URL / API key to POST /api/parse-pdf.',
+    fileParseFlow2:
+      'The server runs parsePDF: unpdf extracts text and embedded images in Node; MinerU calls your host at POST /file_parse for tables, formulas, and layout-aware output.',
+    fileParseFlow3:
+      'Output is normalized (text, images, page metadata) and passed into the notebook / slide generation pipeline.',
+    fileParseFlow4:
+      'If the PDF exceeds the /api/parse-pdf size budget in this environment (about 4.5MB), the client falls back to in-browser parsing: text is kept, and full-page screenshots may cover image-heavy pages.',
+    fileParseMarkdownHeading: 'Markdown (.md)',
+    fileParseMarkdownDetail:
+      'The browser reads UTF-8 text via the File API (NUL bytes stripped) and uses the full document as context, truncating to the same global character limit as PDF when needed. No server parse endpoint and no PDF parser from this page is used.',
+    fileParsePptxHeading: 'PowerPoint (.pptx)',
+    fileParsePptxDetail:
+      'Files go to POST /api/parse-pptx; the server parses with pptxtojson—slide text, speaker notes, and embedded images are collected into combined text plus image assets, then follow the same image storage and generation path as PDF sources.',
     pdfApiKey: 'API Key',
     pdfBaseUrl: 'Base URL',
     mineruDescription:

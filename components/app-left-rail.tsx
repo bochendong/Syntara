@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Coins, LogOut, Search, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Coins, LogOut, Moon, Search, Settings, Sun } from 'lucide-react';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useAuthStore } from '@/lib/store/auth';
 import { useAuthSignOut } from '@/lib/hooks/use-auth-sign-out';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useTheme } from '@/lib/hooks/use-theme';
 import { cn } from '@/lib/utils';
 import { backendJson } from '@/lib/utils/backend-api';
 import { formatCreditsUsdCompactLabel, formatCreditsUsdLabel } from '@/lib/utils/credits';
@@ -49,6 +50,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const avatar = useUserProfileStore((s) => s.avatar);
   const nickname = useUserProfileStore((s) => s.nickname);
@@ -346,6 +348,33 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       {isLoggedIn ? '账户已连接' : '本地体验模式'}
                     </p>
                   </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTheme(resolvedTheme === 'light' ? 'dark' : 'light')
+                        }
+                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                        aria-label={
+                          resolvedTheme === 'light'
+                            ? t('settings.themeSwitchToDark')
+                            : t('settings.themeSwitchToLight')
+                        }
+                      >
+                        {resolvedTheme === 'light' ? (
+                          <Moon className="size-[18px]" strokeWidth={1.75} />
+                        ) : (
+                          <Sun className="size-[18px]" strokeWidth={1.75} />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {resolvedTheme === 'light'
+                        ? t('settings.themeSwitchToDark')
+                        : t('settings.themeSwitchToLight')}
+                    </TooltipContent>
+                  </Tooltip>
                   {isChatPage ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -384,6 +413,33 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 px-2 py-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTheme(resolvedTheme === 'light' ? 'dark' : 'light')
+                      }
+                      className="flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                      aria-label={
+                        resolvedTheme === 'light'
+                          ? t('settings.themeSwitchToDark')
+                          : t('settings.themeSwitchToLight')
+                      }
+                    >
+                      {resolvedTheme === 'light' ? (
+                        <Moon className="size-[18px]" strokeWidth={1.75} />
+                      ) : (
+                        <Sun className="size-[18px]" strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {resolvedTheme === 'light'
+                      ? t('settings.themeSwitchToDark')
+                      : t('settings.themeSwitchToLight')}
+                  </TooltipContent>
+                </Tooltip>
                 {isChatPage ? (
                   <Tooltip>
                     <TooltipTrigger asChild>

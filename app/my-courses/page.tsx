@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Sparkles, Store } from 'lucide-react';
-import { CourseGalleryCard } from '@/components/course-gallery-card';
+import {
+  CourseGalleryCard,
+  courseGalleryListGridClassName,
+} from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { useAuthStore } from '@/lib/store/auth';
 import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
@@ -177,7 +180,10 @@ export default function MyCoursesPage() {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="min-w-0"
             >
-              <h1 className="text-4xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">
+              <h1
+                id="my-courses-title"
+                className="text-4xl font-bold tracking-tight text-[#1d1d1f] dark:text-white"
+              >
                 我的课程
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
@@ -201,20 +207,23 @@ export default function MyCoursesPage() {
           </div>
         </motion.section>
 
-        {/* Course grid */}
+        {/* Course list: semantic section + list for layout and a11y */}
         {loading ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1, duration: 0.5 }}
-                className="h-72 rounded-[26px] bg-white/40 dark:bg-white/5 animate-pulse"
-                style={{ backdropFilter: 'blur(10px)' }}
-              />
-            ))}
-          </div>
+          <section aria-busy="true" aria-label="正在加载课程列表">
+            <ul className={courseGalleryListGridClassName}>
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <li key={idx} className="min-w-0" aria-hidden="true">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1, duration: 0.5 }}
+                    className="h-72 rounded-[26px] bg-white/40 animate-pulse dark:bg-white/5"
+                    style={{ backdropFilter: 'blur(10px)' }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : courses.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -252,29 +261,31 @@ export default function MyCoursesPage() {
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence>
-              {courses.map(({ course, notebookCount }, i) => {
-                const cardItem = {
-                  id: course.id,
-                  name: course.name,
-                  description: course.description,
-                  sceneCount: notebookCount,
-                  createdAt: course.createdAt,
-                  updatedAt: course.updatedAt,
-                };
-                return (
-                  <motion.div
-                    key={course.id}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: i * 0.08,
-                      duration: 0.5,
-                      ease: [0.25, 0.46, 0.45, 0.94],
-                    }}
-                  >
-                    <CourseGalleryCard
+          <section aria-labelledby="my-courses-title">
+            <ul className={courseGalleryListGridClassName}>
+              <AnimatePresence>
+                {courses.map(({ course, notebookCount }, i) => {
+                  const cardItem = {
+                    id: course.id,
+                    name: course.name,
+                    description: course.description,
+                    sceneCount: notebookCount,
+                    createdAt: course.createdAt,
+                    updatedAt: course.updatedAt,
+                  };
+                  return (
+                    <motion.li
+                      key={course.id}
+                      className="min-w-0"
+                      initial={{ opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: i * 0.08,
+                        duration: 0.5,
+                        ease: [0.25, 0.46, 0.45, 0.94],
+                      }}
+                    >
+                      <CourseGalleryCard
                       course={cardItem}
                       tags={course.tags.length > 0 ? course.tags : undefined}
                       badge={purposeLabel(course.purpose)}
@@ -309,11 +320,12 @@ export default function MyCoursesPage() {
                       deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
                       onDelete={() => handleDeleteCourse(course.id, course.name)}
                     />
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
+          </section>
         )}
       </main>
 

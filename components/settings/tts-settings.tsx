@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -337,7 +337,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
                   step={0.1}
                   className="flex-1"
                 />
-                <span className="min-w-[3rem] text-right text-xs text-muted-foreground">
+                <span className="min-w-[3rem] text-right text-xs font-medium tabular-nums text-[#007AFF] dark:text-[#5AC8FA]">
                   {effectiveSpeed.toFixed(1)}x
                 </span>
               </div>
@@ -356,7 +356,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
             onChange={(e) => setTestText(e.target.value)}
             className="flex-1"
           />
-          <Button
+          <SettingsButton
             onClick={handleTestTTS}
             disabled={
               testingTTS ||
@@ -365,8 +365,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
                 !ttsProvidersConfig[selectedProviderId]?.apiKey?.trim() &&
                 !isServerConfigured)
             }
-            size="default"
-            className="gap-2 w-32"
+            className="w-32 gap-2"
           >
             {testingTTS ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -374,7 +373,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
               <Volume2 className="h-4 w-4" />
             )}
             {t('settings.testTTS')}
-          </Button>
+          </SettingsButton>
         </div>
       </div>
 

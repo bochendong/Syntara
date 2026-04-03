@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -189,14 +189,12 @@ export function ProviderConfigPanel({
               {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <Button
-            variant="outline"
+          <SettingsButton
             size="sm"
             onClick={handleTestApi}
             disabled={
               testStatus === 'testing' || (requiresApiKey && !apiKey && !isServerConfigured)
             }
-            className="gap-1.5"
           >
             {testStatus === 'testing' ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -206,7 +204,7 @@ export function ProviderConfigPanel({
                 {t('settings.testConnection')}
               </>
             )}
-          </Button>
+          </SettingsButton>
         </div>
         {testMessage && (
           <div
@@ -293,20 +291,19 @@ export function ProviderConfigPanel({
           <Label className="text-base">{t('settings.models')}</Label>
           <div className="flex items-center gap-2 flex-wrap">
             {isBuiltIn && onResetToDefault && (
-              <Button
-                variant="outline"
+              <SettingsButton
+                variant="secondary"
                 size="sm"
                 onClick={() => setShowResetDialog(true)}
-                className="gap-1.5"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 {t('settings.reset')}
-              </Button>
+              </SettingsButton>
             )}
-            <Button variant="outline" size="sm" onClick={onAddModel} className="gap-1.5">
+            <SettingsButton variant="secondary" size="sm" onClick={onAddModel}>
               <Plus className="h-3.5 w-3.5" />
               {t('settings.addNewModel')}
-            </Button>
+            </SettingsButton>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">{t('settings.modelsManagementDescription')}</p>
@@ -362,24 +359,23 @@ export function ProviderConfigPanel({
 
                 {/* Edit/Delete Buttons */}
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-2"
+                  <SettingsButton
+                    variant="secondary"
+                    size="iconSm"
                     onClick={() => onEditModel(index)}
                     title={t('settings.editModel')}
                   >
                     <Settings2 className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  </SettingsButton>
+                  <SettingsButton
+                    variant="destructive"
+                    size="iconSm"
+                    className="border-destructive/25"
                     onClick={() => onDeleteModel(index)}
                     title={t('settings.deleteModel')}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  </SettingsButton>
                 </div>
               </div>
             );

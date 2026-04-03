@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -14,13 +14,11 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, AlertTriangle, Sun, Moon, Monitor, LogOut } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, LogOut } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { useTheme } from '@/lib/hooks/use-theme';
 import { clearDatabase } from '@/lib/utils/database';
 import { toast } from 'sonner';
 import { createLogger } from '@/lib/logger';
-import { cn } from '@/lib/utils';
 import {
   getStoredApplyNotebookWrites,
   setStoredApplyNotebookWrites,
@@ -34,8 +32,6 @@ export function GeneralSettings() {
   const { t, locale, setLocale } = useI18n();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const signOutAndRedirect = useAuthSignOut();
-  const { theme, setTheme } = useTheme();
-
   const [applyNotebookWrites, setApplyNotebookWrites] = useState(true);
   useEffect(() => {
     setApplyNotebookWrites(getStoredApplyNotebookWrites());
@@ -86,15 +82,15 @@ export function GeneralSettings() {
             <p className="text-sm font-medium text-foreground">{t('auth.signOut')}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">{t('auth.signOutDesc')}</p>
           </div>
-          <Button
+          <SettingsButton
             type="button"
-            variant="outline"
-            className="gap-2 w-full sm:w-auto"
+            variant="secondary"
+            className="w-full gap-2 sm:w-auto"
             onClick={() => void signOutAndRedirect()}
           >
             <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
             {t('auth.signOut')}
-          </Button>
+          </SettingsButton>
         </div>
       ) : null}
 
@@ -106,48 +102,18 @@ export function GeneralSettings() {
           </div>
           <div className="flex flex-wrap gap-2">
             {(['zh-CN', 'en-US'] as const).map((code) => (
-              <Button
+              <SettingsButton
                 key={code}
                 type="button"
-                variant={locale === code ? 'default' : 'outline'}
+                variant={locale === code ? 'primary' : 'secondary'}
                 size="sm"
-                className="h-9"
+                className="h-9 min-w-[5.5rem]"
                 onClick={() => setLocale(code)}
               >
                 {code === 'zh-CN'
                   ? t('settings.languageOptions.zhCN')
                   : t('settings.languageOptions.enUS')}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="h-px bg-border/60" />
-
-        <div className="space-y-3">
-          <div>
-            <Label className="text-sm font-medium">{t('settings.theme')}</Label>
-            <p className="text-xs text-muted-foreground mt-1">{t('settings.themeDesc')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                { id: 'light' as const, icon: Sun, label: t('settings.themeOptions.light') },
-                { id: 'dark' as const, icon: Moon, label: t('settings.themeOptions.dark') },
-                { id: 'system' as const, icon: Monitor, label: t('settings.themeOptions.system') },
-              ] as const
-            ).map(({ id, icon: Icon, label }) => (
-              <Button
-                key={id}
-                type="button"
-                variant={theme === id ? 'default' : 'outline'}
-                size="sm"
-                className={cn('h-9 gap-2', theme === id && 'shadow-sm')}
-                onClick={() => setTheme(id)}
-              >
-                <Icon className="size-3.5 shrink-0" strokeWidth={1.75} />
-                {label}
-              </Button>
+              </SettingsButton>
             ))}
           </div>
         </div>
@@ -207,7 +173,7 @@ export function GeneralSettings() {
                 {t('settings.clearCacheDescription')}
               </p>
             </div>
-            <Button
+            <SettingsButton
               variant="destructive"
               size="sm"
               className="shrink-0"
@@ -216,9 +182,9 @@ export function GeneralSettings() {
                 setShowClearDialog(true);
               }}
             >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
               {t('settings.clearCache')}
-            </Button>
+            </SettingsButton>
           </div>
         </div>
       </div>
@@ -272,18 +238,18 @@ export function GeneralSettings() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={clearing}>{t('common.cancel')}</AlertDialogCancel>
-            <Button
+            <SettingsButton
               variant="destructive"
               disabled={!isConfirmValid || clearing}
               onClick={handleClearCache}
             >
               {clearing ? (
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               ) : (
-                <Trash2 className="w-4 h-4 mr-1.5" />
+                <Trash2 className="mr-1.5 h-4 w-4" />
               )}
               {t('settings.clearCacheButton')}
-            </Button>
+            </SettingsButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

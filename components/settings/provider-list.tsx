@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Box, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -44,8 +44,8 @@ export function ProviderList({
             onClick={() => onSelect(provider.id)}
             className={cn(
               'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all border text-left',
-              selectedProviderId === provider.id
-                ? 'bg-primary/5 border-primary/50 shadow-sm'
+                selectedProviderId === provider.id
+                ? 'border-[#007AFF]/45 bg-[#007AFF]/8 shadow-sm dark:border-[#0A84FF]/45 dark:bg-[#0A84FF]/12'
                 : 'border-transparent hover:bg-muted/50',
             )}
           >
@@ -75,10 +75,10 @@ export function ProviderList({
 
       {/* Add Provider Button */}
       <div className="p-3 border-t">
-        <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={onAddProvider}>
+        <SettingsButton variant="secondary" size="sm" className="w-full" onClick={onAddProvider}>
           <Plus className="h-3.5 w-3.5" />
           {t('settings.addProviderButton')}
-        </Button>
+        </SettingsButton>
       </div>
     </div>
   );

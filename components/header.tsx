@@ -9,7 +9,6 @@ import {
   Package,
   AlertCircle,
   Volume2,
-  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -17,12 +16,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Switch } from '@/components/ui/switch';
 import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useExportPPTX } from '@/lib/export/use-export-pptx';
 import { useSettingsStore } from '@/lib/store/settings';
-import { getActiveVoiceDisplay } from '@/lib/audio/voice-display';
 import { getSceneSpeechTtsBanner } from '@/lib/audio/speech-audio-readiness';
 import { renderPlainTitleWithOptionalLatex } from '@/lib/render-html-with-latex';
 import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
@@ -40,14 +37,6 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   const router = useRouter();
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
-  const ttsVoice = useSettingsStore((s) => s.ttsVoice);
-  const voiceDisplay = useMemo(
-    () => getActiveVoiceDisplay(ttsProviderId, ttsVoice, t, locale),
-    [ttsProviderId, ttsVoice, t, locale],
-  );
-
-  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
-  const setLive2DPresenterVisible = useSettingsStore((s) => s.setLive2DPresenterVisible);
 
   const stageCourseId = useStageStore((s) => s.stage?.courseId?.trim());
   const contextCourseId = useCurrentCourseStore((s) => s.id);
@@ -121,6 +110,37 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     };
   }, [scenes, ttsProviderId]);
 
+  /** 仅统计「幻灯片」中含讲解语音的页：用于「几页已就绪 / 哪几页未就绪」 */
+  const speechPagesBreakdown = useMemo(() => {
+    const ordered = [...scenes].sort((a, b) => a.order - b.order);
+    const pages: Array<{
+      displayIndex: number;
+      title: string;
+      fullyReady: boolean;
+    }> = [];
+    let slideOrdinal = 0;
+    for (const scene of ordered) {
+      if (scene.type !== 'slide') continue;
+      const speechActions =
+        splitLongSpeechActions(scene.actions || [], ttsProviderId).filter(
+          (action): action is SpeechAction => action.type === 'speech' && Boolean(action.text?.trim()),
+        ) ?? [];
+      if (speechActions.length === 0) continue;
+      slideOrdinal += 1;
+      const readyLines = speechActions.filter((a) => Boolean(a.audioUrl)).length;
+      const rawTitle = scene.title?.trim() || '';
+      pages.push({
+        displayIndex: slideOrdinal,
+        title: rawTitle || (locale === 'zh-CN' ? `第 ${slideOrdinal} 页` : `Slide ${slideOrdinal}`),
+        fullyReady: readyLines === speechActions.length,
+      });
+    }
+    const totalPagesWithSpeech = pages.length;
+    const readyPages = pages.filter((p) => p.fullyReady).length;
+    const pendingPages = pages.filter((p) => !p.fullyReady);
+    return { totalPagesWithSpeech, readyPages, pendingPages, pages };
+  }, [scenes, ttsProviderId, locale]);
+
   const showSynthesizeAllSpeechButton =
     ttsEnabled &&
     ttsProviderId !== 'browser-native-tts' &&
@@ -152,17 +172,8 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     }
   }, [exportMenuOpen, handleClickOutside]);
 
-  const voiceTitle =
-    voiceDisplay.blurb != null && voiceDisplay.blurb !== ''
-      ? `${t('stage.ttsVoiceLabel')}：${voiceDisplay.name} — ${voiceDisplay.blurb}`
-      : `${t('stage.ttsVoiceLabel')}：${voiceDisplay.name}`;
-
   const speechPendingText =
-    speechTtsBanner.variant === 'pending'
-      ? locale === 'zh-CN'
-        ? `${t('stage.ttsSpeechPendingBanner')}（${speechTtsBanner.ready}/${speechTtsBanner.total}）`
-        : `${t('stage.ttsSpeechPendingBanner')} (${speechTtsBanner.ready}/${speechTtsBanner.total})`
-      : '';
+    speechTtsBanner.variant === 'pending' ? t('stage.ttsSpeechPendingBanner') : '';
 
   const speechPendingTooltipText =
     speechTtsBanner.variant === 'pending'
@@ -176,12 +187,55 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     [currentSceneTitle, t],
   );
 
-  const synthAllSpeechStatusText =
-    synthAllSpeechProgress != null
-      ? locale === 'zh-CN'
-        ? `合成语音 ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`
-        : `Speech ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`
-      : t('stage.ttsSynthesizeAllButton');
+  const synthAllSpeechStatusText = (() => {
+    if (synthAllSpeechProgress != null) {
+      return locale === 'zh-CN'
+        ? `合成中 ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total} 条`
+        : `Generating ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`;
+    }
+    if (speechPagesBreakdown.totalPagesWithSpeech > 0) {
+      const { readyPages, totalPagesWithSpeech } = speechPagesBreakdown;
+      return locale === 'zh-CN'
+        ? `合成全部语音（${readyPages}/${totalPagesWithSpeech} 页已就绪）`
+        : `Synth all speech (${readyPages}/${totalPagesWithSpeech} slides ready)`;
+    }
+    return locale === 'zh-CN'
+      ? `合成全部语音（${allSpeechStats.ready}/${allSpeechStats.total} 条已就绪）`
+      : `Synth all speech (${allSpeechStats.ready}/${allSpeechStats.total} lines ready)`;
+  })();
+
+  const synthAllSpeechTooltipBody = useMemo(() => {
+    const baseHint = t('stage.ttsSynthesizeAllButtonTooltip');
+    if (speechPagesBreakdown.totalPagesWithSpeech === 0) {
+      if (allSpeechStats.total === 0) return baseHint;
+      return locale === 'zh-CN'
+        ? `共 ${allSpeechStats.total} 条讲解语音，${allSpeechStats.ready} 条已合成。\n${baseHint}`
+        : `${allSpeechStats.total} narration line(s); ${allSpeechStats.ready} ready.\n${baseHint}`;
+    }
+    const { readyPages, totalPagesWithSpeech, pendingPages } = speechPagesBreakdown;
+    const head =
+      locale === 'zh-CN'
+        ? `共 ${totalPagesWithSpeech} 页幻灯片含讲解语音，${readyPages} 页已全部合成。`
+        : `${totalPagesWithSpeech} slide(s) include narration; ${readyPages} fully synthesized.`;
+    if (pendingPages.length === 0) {
+      return `${head}\n${baseHint}`;
+    }
+    const maxLines = 14;
+    const trunc = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n)}…`);
+    const lines = pendingPages.slice(0, maxLines).map((p) =>
+      locale === 'zh-CN'
+        ? `· 第 ${p.displayIndex} 页：${trunc(p.title, 36)}`
+        : `· Slide ${p.displayIndex}: ${trunc(p.title, 40)}`,
+    );
+    const more =
+      pendingPages.length > maxLines
+        ? locale === 'zh-CN'
+          ? `\n…还有 ${pendingPages.length - maxLines} 页未列全`
+          : `\n…+${pendingPages.length - maxLines} more`
+        : '';
+    const pendingHead = locale === 'zh-CN' ? '未就绪页面：' : 'Not ready:';
+    return `${head}\n${pendingHead}\n${lines.join('\n')}${more}\n\n${baseHint}`;
+  }, [allSpeechStats.ready, allSpeechStats.total, locale, speechPagesBreakdown, t]);
 
   const handleSynthesizeAllSpeech = useCallback(async () => {
     if (isSynthesizingAllSpeech) return;
@@ -275,31 +329,6 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   const metaChipsRow = (
     <TooltipProvider delayDuration={250}>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={cn(
-                'inline-flex max-w-full cursor-default items-center gap-1.5 rounded-lg border px-2 py-1',
-                'border-slate-200/70 bg-slate-50/90 text-[11px] leading-tight',
-                'dark:border-white/[0.1] dark:bg-white/[0.05]',
-              )}
-            >
-              <Volume2 className="size-3 shrink-0 text-slate-500 opacity-80 dark:text-slate-400" aria-hidden />
-              <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">
-                <span className="text-slate-500 dark:text-slate-400">{t('stage.ttsVoiceLabel')}</span>
-                <span className="mx-1 text-slate-400 dark:text-slate-500">·</span>
-                <span className="font-medium text-slate-800 dark:text-slate-100">{voiceDisplay.name}</span>
-                {voiceDisplay.blurb ? (
-                  <span className="text-slate-500 dark:text-slate-400"> · {voiceDisplay.blurb}</span>
-                ) : null}
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs text-xs">
-            {voiceTitle}
-          </TooltipContent>
-        </Tooltip>
-
         {speechTtsBanner.variant === 'ready' ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -360,7 +389,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
                 onClick={handleSynthesizeAllSpeech}
                 disabled={isSynthesizingAllSpeech}
                 className={cn(
-                  'inline-flex max-w-[min(100%,280px)] items-center gap-1.5 rounded-lg px-2 py-1',
+                  'inline-flex max-w-[min(100%,420px)] items-center gap-1.5 rounded-lg px-2 py-1',
                   'border border-sky-200/80 bg-sky-50/90 text-[11px] font-medium leading-tight',
                   'text-sky-900 transition-colors hover:bg-sky-100/90',
                   'disabled:cursor-wait disabled:opacity-80',
@@ -375,35 +404,11 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
                 <span className="min-w-0 truncate">{synthAllSpeechStatusText}</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-sm text-xs">
-              {t('stage.ttsSynthesizeAllButtonTooltip')}
+            <TooltipContent side="bottom" className="max-w-md whitespace-pre-line text-xs leading-relaxed">
+              {synthAllSpeechTooltipBody}
             </TooltipContent>
           </Tooltip>
         ) : null}
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <label
-              className={cn(
-                'inline-flex cursor-pointer select-none items-center gap-2 rounded-lg border px-2 py-1',
-                'border-slate-200/70 bg-slate-50/90 text-[11px] font-medium leading-tight',
-                'text-slate-700 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200',
-              )}
-            >
-              <Sparkles className="size-3 shrink-0 text-violet-500 opacity-90 dark:text-violet-400" />
-              <span className="whitespace-nowrap">{t('stage.live2dPresenterToggle')}</span>
-              <Switch
-                checked={live2dPresenterVisible}
-                onCheckedChange={setLive2DPresenterVisible}
-                className="scale-90"
-                aria-label={t('stage.live2dPresenterToggle')}
-              />
-            </label>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs text-xs">
-            {t('stage.live2dPresenterToggleTooltip')}
-          </TooltipContent>
-        </Tooltip>
       </div>
     </TooltipProvider>
   );

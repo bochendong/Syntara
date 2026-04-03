@@ -16,9 +16,9 @@ export const stageZhCN = {
       '本页讲解语音已缓存或已保存；播放时直接使用，不会再次请求 TTS 合成。',
     live2dPresenterToggle: '虚拟讲师',
     live2dPresenterToggleTooltip: '在左侧栏「虚拟讲师」标签页显示或隐藏虚拟讲师形象。',
-    ttsSpeechPendingBanner: '部分讲解未就绪',
+    ttsSpeechPendingBanner: '本页语音未就绪',
     ttsSpeechPendingBannerTooltip:
-      '本页尚有讲解语音未生成；首次播放时会请求 TTS 并写入本地缓存与笔记本。',
+      '本页尚有语音未生成；首次播放时会请求 TTS 并写入本地缓存与笔记本。',
     ttsSpeechBrowserBanner: '当前使用浏览器实时朗读，无需预生成语音文件。',
     ttsSpeechOffBanner: 'TTS 已关闭，播放为静音或仅文字节奏。',
     ttsSynthesizeAllButton: '合成全部语音',
@@ -218,7 +218,7 @@ export const stageEnUS = {
       'Narration for this slide is cached or saved. Playback uses it directly without calling TTS again.',
     live2dPresenterToggle: 'Presenter',
     live2dPresenterToggleTooltip: 'Show or hide the virtual presenter in the left sidebar (Presenter tab).',
-    ttsSpeechPendingBanner: 'Some narration not ready',
+    ttsSpeechPendingBanner: 'Slide speech not ready',
     ttsSpeechPendingBannerTooltip:
       'Some speech lines for this slide are not generated yet. They will be synthesized on first play and saved to local cache.',
     ttsSpeechBrowserBanner: 'Browser speech is used — no pre-generated audio files.',

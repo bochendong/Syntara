@@ -98,8 +98,8 @@ export function AgentSettings({
                   className={cn(
                     'flex items-center space-x-3 p-3 rounded-lg border transition-all cursor-pointer',
                     selectedAgentIds.includes(agent.id)
-                      ? 'bg-primary/10 border-primary/50 shadow-sm'
-                      : 'bg-background hover:bg-muted/50 border-transparent',
+                      ? 'border-[#007AFF]/45 bg-[#007AFF]/10 shadow-sm dark:border-[#0A84FF]/45 dark:bg-[#0A84FF]/12'
+                      : 'border-transparent bg-background hover:bg-muted/50',
                   )}
                   onClick={() => onToggleAgent(agent.id)}
                 >

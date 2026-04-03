@@ -5,7 +5,9 @@ import { usePathname } from 'next/navigation';
 import {
   Bell,
   BookOpen,
+  Bug,
   Coins,
+  LifeBuoy,
   MessageCircle,
   Settings,
   ShoppingBag,
@@ -18,6 +20,7 @@ import { useNotificationStore } from '@/lib/store/notifications';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
+import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 
 function navItemClass(collapsed: boolean, active: boolean, variant: 'home' | 'notebook') {
   return cn(
@@ -40,6 +43,8 @@ type CoreNavItem = {
   tooltip?: string;
   icon: typeof BookOpen;
   active: boolean;
+  /** 外链：新标签页打开 */
+  external?: boolean;
 };
 
 type CoreNavSection = {
@@ -59,6 +64,8 @@ const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   live2d: 6,
   profile: 7,
   settings: 8,
+  'contact-support': 9,
+  'report-issue': 10,
 };
 
 function sortChatRightRailItems(items: CoreNavItem[]): CoreNavItem[] {
@@ -198,6 +205,30 @@ export function AppCoreNavList({
         },
       ],
     },
+    {
+      key: 'support',
+      label: '帮助与支持',
+      items: [
+        {
+          key: 'contact-support',
+          href: CONTACT_SUPPORT_NAV_URL,
+          label: '联系客服',
+          tooltip: '联系客服',
+          icon: LifeBuoy,
+          active: false,
+          external: true,
+        },
+        {
+          key: 'report-issue',
+          href: REPORT_ISSUE_NAV_URL,
+          label: '报告问题',
+          tooltip: '报告问题',
+          icon: Bug,
+          active: false,
+          external: true,
+        },
+      ],
+    },
   ];
 
   const coreNavSections: CoreNavSection[] = isDashboardRoute(pathname)
@@ -283,6 +314,30 @@ export function AppCoreNavList({
             },
           ],
         },
+        {
+          key: 'support',
+          label: '帮助与支持',
+          items: [
+            {
+              key: 'contact-support',
+              href: CONTACT_SUPPORT_NAV_URL,
+              label: '联系客服',
+              tooltip: '联系客服',
+              icon: LifeBuoy,
+              active: false,
+              external: true,
+            },
+            {
+              key: 'report-issue',
+              href: REPORT_ISSUE_NAV_URL,
+              label: '报告问题',
+              tooltip: '报告问题',
+              icon: Bug,
+              active: false,
+              external: true,
+            },
+          ],
+        },
       ].filter((section) => section.items.length > 0);
 
   const renderItem = (item: CoreNavItem) => {
@@ -300,6 +355,9 @@ export function AppCoreNavList({
               className={navItemClass(collapsed, item.active, variant)}
               aria-current={item.active ? 'page' : undefined}
               onClick={() => onItemClick?.(item.key)}
+              {...(item.external
+                ? { target: '_blank' as const, rel: 'noopener noreferrer' as const }
+                : {})}
             >
               <span className="relative shrink-0">
                 <Icon className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />

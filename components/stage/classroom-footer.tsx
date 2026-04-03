@@ -5,16 +5,19 @@ import { cn } from '@/lib/utils';
 
 interface ClassroomFooterProps {
   readonly leadingSlot?: ReactNode;
+  /** 底栏正中（如播放控制条）；与左右两栏用三列网格对齐 */
+  readonly centerSlot?: ReactNode;
   readonly trailingSlot?: ReactNode;
   readonly className?: string;
 }
 
 export function ClassroomFooter({
   leadingSlot,
+  centerSlot,
   trailingSlot,
   className,
 }: ClassroomFooterProps) {
-  if (!leadingSlot && !trailingSlot) return null;
+  if (!leadingSlot && !centerSlot && !trailingSlot) return null;
 
   return (
     <footer
@@ -24,17 +27,16 @@ export function ClassroomFooter({
         className,
       )}
     >
-      <div className="flex flex-col gap-2 px-3 py-2 md:flex-row md:items-center md:justify-between md:px-4">
-        {leadingSlot ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">{leadingSlot}</div>
-        ) : (
-          <div />
-        )}
-        {trailingSlot ? (
-          <div className="flex min-w-0 items-center justify-start overflow-x-auto md:justify-end">
-            {trailingSlot}
-          </div>
-        ) : null}
+      <div className="flex flex-col items-stretch gap-2 px-3 py-2 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-3 md:px-4">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 md:justify-self-start">
+          {leadingSlot}
+        </div>
+        <div className="flex min-w-0 justify-center overflow-x-auto md:justify-self-center">
+          {centerSlot}
+        </div>
+        <div className="flex min-w-0 shrink-0 items-center justify-end justify-self-end overflow-x-auto">
+          {trailingSlot}
+        </div>
       </div>
     </footer>
   );

@@ -103,8 +103,8 @@ export function GenerationToolbar({
     language === 'zh-CN' ? '上传 PDF、PPTX 或 Markdown' : 'Upload PDF, PPTX or Markdown';
   const markdownHint =
     language === 'zh-CN'
-      ? 'Markdown 文件会直接读取正文，不经过 PDF 解析器。'
-      : 'Markdown files are read as plain text and skip the PDF parser.';
+      ? 'Markdown 文件会直接读取正文，不经过 PDF 文件解析流程。'
+      : 'Markdown files are read as plain text and skip the PDF file parsing flow.';
   const pptxHint =
     language === 'zh-CN'
       ? 'PPTX 文件会提取每页文字、备注和图片，用作笔记本生成上下文。'

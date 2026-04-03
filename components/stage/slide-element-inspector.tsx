@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ProsemirrorEditor } from '@/components/slide-renderer/components/element/ProsemirrorEditor';
 import { useSceneSelector } from '@/lib/contexts/scene-context';
@@ -342,10 +341,18 @@ function colorInput(value: string | undefined, onChange: (next: string) => void)
   );
 }
 
+type ManualInspectorTab = 'add' | 'position' | 'text';
+
+const MANUAL_INSPECTOR_TABS: { id: ManualInspectorTab; label: string }[] = [
+  { id: 'add', label: '添加组件' },
+  { id: 'position', label: '调整位置' },
+  { id: 'text', label: '调整文本' },
+];
+
 interface SlideElementInspectorProps {
   readonly className?: string;
-  readonly activeTab: 'ai' | 'manual';
-  readonly onActiveTabChange: (value: 'ai' | 'manual') => void;
+  /** 由顶栏「AI 重写 / 编辑当前页」切换，侧栏内不再使用 Tab 切换 */
+  readonly sidebarPanel: 'ai' | 'manual';
   readonly repairDraft: string;
   readonly onRepairDraftChange: (value: string) => void;
   readonly repairConversation: SlideRepairChatMessage[];
@@ -357,8 +364,7 @@ interface SlideElementInspectorProps {
 
 export function SlideElementInspector({
   className,
-  activeTab,
-  onActiveTabChange,
+  sidebarPanel,
   repairDraft,
   onRepairDraftChange,
   repairConversation,
@@ -376,11 +382,13 @@ export function SlideElementInspector({
   const repairInputRef = useRef<HTMLTextAreaElement | null>(null);
   const repairConversationRef = useRef<HTMLDivElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const prevSidebarPanelRef = useRef(sidebarPanel);
   const [newTextContent, setNewTextContent] = useState('请输入文本');
   const [newTextFontFamily, setNewTextFontFamily] = useState<string>(DEFAULT_TEXT_FONT);
   const [newTextFontSize, setNewTextFontSize] = useState<number>(DEFAULT_TEXT_FONT_SIZE);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [addingImage, setAddingImage] = useState(false);
+  const [manualTab, setManualTab] = useState<ManualInspectorTab>('add');
 
   const selectedElements = useMemo(
     () => elements.filter((element) => activeElementIdList.includes(element.id)),
@@ -390,10 +398,16 @@ export function SlideElementInspector({
   const hasSelection = selectedElements.length > 0;
 
   useEffect(() => {
-    if (!repairInputFocusNonce) return;
+    if (!repairInputFocusNonce || sidebarPanel !== 'ai') return;
     repairInputRef.current?.focus();
     repairInputRef.current?.select();
-  }, [repairInputFocusNonce]);
+  }, [repairInputFocusNonce, sidebarPanel]);
+
+  useEffect(() => {
+    const prev = prevSidebarPanelRef.current;
+    prevSidebarPanelRef.current = sidebarPanel;
+    if (prev === 'ai' && sidebarPanel === 'manual') setManualTab('add');
+  }, [sidebarPanel]);
 
   useEffect(() => {
     const container = repairConversationRef.current;
@@ -653,6 +667,7 @@ export function SlideElementInspector({
           defaultFontName={element.defaultFontName}
           value={element.content}
           editable
+          inspectorSurface
           onUpdate={({ value, ignore }) => {
             updateCurrentElement(buildAutoSizedTextProps(element, { content: value }));
             if (!ignore) void addHistorySnapshot();
@@ -706,7 +721,25 @@ export function SlideElementInspector({
         {colorInput(element.defaultColor, (next) => updateCurrentElement({ defaultColor: next }))}
       </div>
       <div className="space-y-1.5">
-        {fieldLabel('背景填充')}
+        <div className="flex items-center justify-between gap-2">
+          {fieldLabel('背景填充')}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={cn(
+              'h-8 shrink-0 rounded-lg px-2.5 text-xs font-medium',
+              (!element.fill || element.fill === 'transparent') &&
+                'border-[#007AFF]/40 bg-[rgba(0,122,255,0.08)] text-[#007AFF] dark:border-[#0A84FF]/45 dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]',
+            )}
+            onClick={() => {
+              updateCurrentElement({ fill: 'transparent' });
+              void addHistorySnapshot();
+            }}
+          >
+            无填充
+          </Button>
+        </div>
         {colorInput(element.fill, (next) => updateCurrentElement({ fill: next }))}
       </div>
     </div>
@@ -746,6 +779,7 @@ export function SlideElementInspector({
                 defaultFontName={text.defaultFontName}
                 value={text.content}
                 editable
+                inspectorSurface
                 onUpdate={({ value, ignore }) => {
                   updateCurrentElement({
                     text: {
@@ -1140,46 +1174,65 @@ export function SlideElementInspector({
 
   return (
     <aside
+      aria-label={sidebarPanel === 'ai' ? 'AI 重写侧栏' : '手动编辑侧栏'}
       className={cn(
         'flex h-full min-h-0 w-[360px] shrink-0 flex-col border-l border-slate-900/[0.08] bg-white/76 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0f1115]/78 xl:w-[400px]',
         className,
       )}
     >
-      <div className="border-b border-slate-900/[0.06] px-4 py-4 dark:border-white/[0.06]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">页面编辑区</h2>
-              <Badge variant="secondary" className="text-[10px]">
-                {elements.length} 个组件
-              </Badge>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              点击左侧 slide 上的组件，右侧会切到对应属性。左侧以预览、选中和排版为主，文字内容统一在右侧修改。
-            </p>
+      {sidebarPanel === 'manual' ? (
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-900/[0.06] px-3 py-2 dark:border-white/[0.06]">
+          <div
+            role="tablist"
+            aria-label="手动编辑分区"
+            className="grid min-w-0 flex-1 grid-cols-3 gap-0.5 rounded-xl bg-slate-100/90 p-[3px] dark:bg-white/[0.06]"
+          >
+            {MANUAL_INSPECTOR_TABS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={manualTab === id}
+                onClick={() => setManualTab(id)}
+                className={cn(
+                  'min-w-0 truncate rounded-[10px] px-1.5 py-1.5 text-center text-[11px] font-semibold leading-tight transition-all',
+                  manualTab === id
+                    ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
+                    : 'text-slate-600 hover:bg-black/[0.04] dark:text-slate-400 dark:hover:bg-white/[0.06]',
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           {onClose ? (
             <button
               type="button"
               onClick={onClose}
-              className="mt-0.5 shrink-0 rounded-[10px] p-1.5 text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100"
+              className="shrink-0 rounded-[10px] p-1.5 text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100"
               aria-label="关闭编辑"
             >
               <X className="size-4" strokeWidth={2} />
             </button>
           ) : null}
         </div>
-      </div>
+      ) : onClose ? (
+        <div className="flex justify-end border-b border-slate-900/[0.06] px-4 py-2 dark:border-white/[0.06]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-[10px] p-1.5 text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100"
+            aria-label="关闭编辑"
+          >
+            <X className="size-4" strokeWidth={2} />
+          </button>
+        </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-6 px-4 py-4">
-          <Tabs value={activeTab} onValueChange={(value) => onActiveTabChange(value as 'ai' | 'manual')}>
-            <TabsList className="grid w-full grid-cols-2 rounded-xl bg-slate-100/90 dark:bg-white/[0.06]">
-              <TabsTrigger value="ai">AI 重写</TabsTrigger>
-              <TabsTrigger value="manual">手动编辑</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="ai" className="mt-4 space-y-3">
+          {sidebarPanel === 'ai' ? (
+            <div className="space-y-3">
               {sectionTitle(
                 'AI 重写对话',
                 '像聊天一样告诉 AI 为什么这页需要重写；它会按主生成流程重写当前页，并把你的要求带进去。',
@@ -1277,13 +1330,12 @@ export function SlideElementInspector({
                   </div>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent value="manual" className="mt-4 space-y-6">
-              <section className="space-y-4">
-                {sectionTitle('快速添加组件', '可以直接插入文本或图片，插入后会自动选中，方便继续编辑。')}
-                <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
-                  <div className="grid gap-4">
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {manualTab === 'add' ? (
+                <section className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
                         <PlusSquare className="size-4" />
@@ -1330,109 +1382,137 @@ export function SlideElementInspector({
                         添加文本组件
                       </Button>
                     </div>
+                  </div>
 
-                    <div className="h-px bg-slate-200/80 dark:bg-white/10" />
+                  <div
+                    className="flex items-center gap-3 py-0.5"
+                    role="separator"
+                    aria-orientation="horizontal"
+                  >
+                    <div className="h-px flex-1 bg-slate-200/90 dark:bg-white/12" />
+                    <span className="shrink-0 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                      或
+                    </span>
+                    <div className="h-px flex-1 bg-slate-200/90 dark:bg-white/12" />
+                  </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
-                        <ImagePlus className="size-4" />
-                        添加图片
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => imageFileInputRef.current?.click()}
-                          disabled={addingImage}
-                        >
-                          <Upload className="size-4" />
-                          {addingImage ? '处理中…' : '上传本地图片'}
-                        </Button>
-                        <input
-                          ref={imageFileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageFileChange}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        {fieldLabel('图片地址')}
-                        <Input
-                          value={newImageUrl}
-                          onChange={(e) => setNewImageUrl(e.target.value)}
-                          placeholder="https://example.com/image.png"
-                        />
-                      </div>
+                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <ImagePlus className="size-4" />
+                      添加图片
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => void handleAddImageFromUrl()}
+                        onClick={() => imageFileInputRef.current?.click()}
                         disabled={addingImage}
                       >
-                        <ImagePlus className="size-4" />
-                        {addingImage ? '处理中…' : '通过地址添加图片'}
+                        <Upload className="size-4" />
+                        {addingImage ? '处理中…' : '上传本地图片'}
                       </Button>
+                      <input
+                        ref={imageFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageFileChange}
+                      />
                     </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                {selectedElement ? (
-                  <>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {getElementDisplayName(
-                            selectedElement,
-                            elements.findIndex((item) => item.id === selectedElement.id),
-                          )}
-                        </h3>
-                        <Badge variant="outline" className="text-[10px]">
-                          {getElementTypeLabel(selectedElement.type)}
-                        </Badge>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleDeleteSelected}
-                          className="ml-auto"
-                        >
-                          <Trash2 className="size-4" />
-                          删除组件
-                        </Button>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        当前选中了 1 个组件。内容修改会直接同步到左侧页面，按 `Delete` 也可以直接删除。
-                      </p>
+                    <div className="space-y-1.5">
+                      {fieldLabel('图片地址')}
+                      <Input
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.png"
+                      />
                     </div>
-
-                    <div className="space-y-3">
-                      {sectionTitle('基础布局')}
-                      {renderCommonGeometry(selectedElement)}
-                    </div>
-
-                    {renderElementEditor(selectedElement)}
-                  </>
-                ) : selectedElements.length > 1 ? (
-                  <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-                    <p>
-                      当前选中了 {selectedElements.length} 个组件。右侧暂时先支持单个组件的内容与属性编辑，请在左侧画布里单选一个元素。
-                    </p>
-                    <Button type="button" variant="destructive" size="sm" onClick={handleDeleteSelected}>
-                      <Trash2 className="size-4" />
-                      删除所选组件
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleAddImageFromUrl()}
+                      disabled={addingImage}
+                    >
+                      <ImagePlus className="size-4" />
+                      {addingImage ? '处理中…' : '通过地址添加图片'}
                     </Button>
                   </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
-                    还没有选中组件。可以直接点左侧 slide 上的标题、正文、公式、表格等元素，右侧就会出现对应的编辑项。
-                  </div>
-                )}
-              </section>
-            </TabsContent>
-          </Tabs>
+                </section>
+              ) : null}
+
+              {manualTab === 'position' ? (
+                <section className="space-y-4">
+                  {sectionTitle(
+                    '调整位置',
+                    '在左侧画布选中一个组件后，可在此修改坐标、宽高、旋转与层级；多选时仅支持批量删除。',
+                  )}
+                  {selectedElement ? (
+                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {getElementDisplayName(
+                              selectedElement,
+                              elements.findIndex((item) => item.id === selectedElement.id),
+                            )}
+                          </h3>
+                          <Badge variant="outline" className="text-[10px]">
+                            {getElementTypeLabel(selectedElement.type)}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleDeleteSelected}
+                            className="ml-auto"
+                          >
+                            <Trash2 className="size-4" />
+                            删除
+                          </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          改动会同步到左侧画布；也可在画布上按 Delete 删除选中项。
+                        </p>
+                      </div>
+                      {renderCommonGeometry(selectedElement)}
+                    </div>
+                  ) : selectedElements.length > 1 ? (
+                    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                      <p>
+                        当前选中了 {selectedElements.length} 个组件。位置与内容编辑需单选；可先批量删除或再在画布上点选其中一个。
+                      </p>
+                      <Button type="button" variant="destructive" size="sm" onClick={handleDeleteSelected}>
+                        <Trash2 className="size-4" />
+                        删除所选组件
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                      尚未选中组件。请在左侧幻灯片上点击标题、正文、图片等元素，再在此区调整位置与尺寸。
+                    </div>
+                  )}
+                </section>
+              ) : null}
+
+              {manualTab === 'text' ? (
+                <section className="space-y-4">
+                  {selectedElement ? (
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+                      {renderElementEditor(selectedElement)}
+                    </div>
+                  ) : selectedElements.length > 1 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                      多选状态下无法编辑具体内容。请在画布上单选一个组件后再使用本区。
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                      选中单个组件后，本区会出现对应的文字与属性编辑项。
+                    </div>
+                  )}
+                </section>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </aside>

@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { ASR_PROVIDERS } from '@/lib/audio/constants';
@@ -240,14 +240,14 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
             placeholder={t('settings.asrResultPlaceholder')}
             className="flex-1 bg-muted/50"
           />
-          <Button
+          <SettingsButton
             onClick={handleToggleASRRecording}
             disabled={
               asrProvider.requiresApiKey &&
               !asrProvidersConfig[selectedProviderId]?.apiKey?.trim() &&
               !isServerConfigured
             }
-            className="gap-2 w-[140px]"
+            className="w-[140px] gap-2"
           >
             {isRecording ? (
               <>
@@ -260,7 +260,7 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
                 {t('settings.startRecording')}
               </>
             )}
-          </Button>
+          </SettingsButton>
         </div>
       </div>
 

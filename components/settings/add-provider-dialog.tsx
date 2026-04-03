@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -92,7 +92,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                 className={cn(
                   'p-2 rounded-lg border text-left text-sm transition-colors',
                   type === 'openai'
-                    ? 'bg-primary/5 border-primary/50'
+                    ? 'border-[#007AFF]/45 bg-[#007AFF]/8 dark:border-[#0A84FF]/45 dark:bg-[#0A84FF]/12'
                     : 'hover:bg-muted/50 border-transparent',
                 )}
               >
@@ -103,7 +103,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                 className={cn(
                   'p-2 rounded-lg border text-left text-sm transition-colors',
                   type === 'anthropic'
-                    ? 'bg-primary/5 border-primary/50'
+                    ? 'border-[#007AFF]/45 bg-[#007AFF]/8 dark:border-[#0A84FF]/45 dark:bg-[#0A84FF]/12'
                     : 'hover:bg-muted/50 border-transparent',
                 )}
               >
@@ -114,7 +114,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                 className={cn(
                   'p-2 rounded-lg border text-left text-sm transition-colors',
                   type === 'google'
-                    ? 'bg-primary/5 border-primary/50'
+                    ? 'border-[#007AFF]/45 bg-[#007AFF]/8 dark:border-[#0A84FF]/45 dark:bg-[#0A84FF]/12'
                     : 'hover:bg-muted/50 border-transparent',
                 )}
               >
@@ -159,13 +159,13 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-2 pt-3 border-t">
-            <Button variant="outline" size="sm" onClick={handleClose}>
+            <SettingsButton variant="secondary" size="sm" onClick={handleClose}>
               {t('settings.cancelEdit')}
-            </Button>
-            <Button size="sm" onClick={handleAdd} className="gap-1.5">
+            </SettingsButton>
+            <SettingsButton size="sm" onClick={handleAdd}>
               <Plus className="h-3.5 w-3.5" />
               {t('settings.addProviderButton')}
-            </Button>
+            </SettingsButton>
           </div>
         </div>
       </DialogContent>

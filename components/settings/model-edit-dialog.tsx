@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -301,21 +301,21 @@ export function ModelEditDialog({
           <div className="space-y-3 pt-3 border-t">
             <div className="flex items-center justify-between">
               <Label className="text-base">{t('settings.testModel')}</Label>
-              <Button
-                variant="outline"
+              <SettingsButton
+                variant="secondary"
                 size="sm"
                 onClick={handleTestModel}
                 disabled={!editingModel.model.id || testStatus === 'testing'}
                 className={cn(
-                  testStatus === 'success' && 'border-green-600 text-green-600 hover:bg-green-50',
-                  testStatus === 'error' && 'border-red-600 text-red-600 hover:bg-red-50',
+                  testStatus === 'success' && 'border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30',
+                  testStatus === 'error' && 'border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30',
                 )}
               >
                 {testStatus === 'testing' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {testStatus === 'success' && <CheckCircle className="mr-2 h-4 w-4" />}
                 {testStatus === 'error' && <XCircle className="mr-2 h-4 w-4" />}
                 {testStatus === 'testing' ? t('settings.testing') : t('settings.testConnection')}
-              </Button>
+              </SettingsButton>
             </div>
             {testMessage && (
               <div
@@ -336,12 +336,12 @@ export function ModelEditDialog({
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-2 pt-3 border-t">
-            <Button variant="outline" size="sm" onClick={handleClose}>
+            <SettingsButton variant="secondary" size="sm" onClick={handleClose}>
               {t('settings.cancelEdit')}
-            </Button>
-            <Button size="sm" onClick={onSave}>
+            </SettingsButton>
+            <SettingsButton size="sm" onClick={onSave}>
               {t('settings.saveModel')}
-            </Button>
+            </SettingsButton>
           </div>
         </div>
       </DialogContent>

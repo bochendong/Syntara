@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import {
@@ -534,13 +534,15 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
           <div
             className={cn(
               'absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-full transition-colors duration-300',
-              ttsEnabled ? 'bg-primary' : 'bg-muted-foreground/20',
+              ttsEnabled ? 'bg-[#007AFF] dark:bg-[#0A84FF]' : 'bg-muted-foreground/20',
             )}
           />
           <div
             className={cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors duration-300',
-              ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+              ttsEnabled
+                ? 'bg-[#007AFF]/12 text-[#007AFF] dark:bg-[#0A84FF]/15 dark:text-[#5AC8FA]'
+                : 'bg-muted text-muted-foreground',
             )}
           >
             <Volume2 className="h-4 w-4" />
@@ -831,7 +833,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                     step={0.1}
                     className="flex-1"
                   />
-                  <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
+                  <span className="min-w-[3rem] text-right text-xs font-medium tabular-nums text-[#007AFF] dark:text-[#5AC8FA]">
                     {ttsSpeed.toFixed(1)}x
                   </span>
                 </div>
@@ -849,7 +851,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                 onChange={(e) => setTestText(e.target.value)}
                 className="flex-1"
               />
-              <Button
+              <SettingsButton
                 onClick={handleTestTTS}
                 disabled={
                   testingTTS ||
@@ -858,8 +860,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                     !ttsProvidersConfig[ttsProviderId]?.apiKey?.trim() &&
                     !ttsProvidersConfig[ttsProviderId]?.isServerConfigured)
                 }
-                size="default"
-                className="gap-2 w-32"
+                className="w-32 gap-2"
               >
                 {testingTTS ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -867,7 +868,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                   <Volume2 className="h-4 w-4" />
                 )}
                 {t('settings.testTTS')}
-              </Button>
+              </SettingsButton>
             </div>
           </div>
 
@@ -906,13 +907,15 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
           <div
             className={cn(
               'absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-full transition-colors duration-300',
-              asrEnabled ? 'bg-primary' : 'bg-muted-foreground/20',
+              asrEnabled ? 'bg-[#007AFF] dark:bg-[#0A84FF]' : 'bg-muted-foreground/20',
             )}
           />
           <div
             className={cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors duration-300',
-              asrEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+              asrEnabled
+                ? 'bg-[#007AFF]/12 text-[#007AFF] dark:bg-[#0A84FF]/15 dark:text-[#5AC8FA]'
+                : 'bg-muted text-muted-foreground',
             )}
           >
             <Mic className="h-4 w-4" />
@@ -1085,14 +1088,14 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                       placeholder={t('settings.asrResultPlaceholder')}
                       className="flex-1 bg-muted/50"
                     />
-                    <Button
+                    <SettingsButton
                       onClick={handleToggleASRRecording}
                       disabled={
                         asrProvider.requiresApiKey &&
                         !asrProvidersConfig[asrProviderId]?.apiKey?.trim() &&
                         !asrProvidersConfig[asrProviderId]?.isServerConfigured
                       }
-                      className="gap-2 w-[140px]"
+                      className="w-[140px] gap-2"
                     >
                       {isRecording ? (
                         <>
@@ -1105,7 +1108,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
                           {t('settings.startRecording')}
                         </>
                       )}
-                    </Button>
+                    </SettingsButton>
                   </div>
                 </div>
               </div>

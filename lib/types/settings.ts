@@ -8,7 +8,6 @@ export type SettingsSection =
   | 'asr'
   | 'pdf'
   | 'image'
-  | 'video'
   | 'web-search';
 
 /**
