@@ -20,7 +20,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Switch } from '@/components/ui/switch';
 import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
-import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useExportPPTX } from '@/lib/export/use-export-pptx';
 import { useSettingsStore } from '@/lib/store/settings';
 import { getActiveVoiceDisplay } from '@/lib/audio/voice-display';
@@ -73,7 +72,6 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   const currentSceneId = useStageStore((s) => s.currentSceneId);
   const outlines = useStageStore((s) => s.outlines);
   const failedOutlines = useStageStore((s) => s.failedOutlines);
-  const mediaTasks = useMediaGenerationStore((s) => s.tasks);
 
   /** 与 use-scene-generator 一致：按 order 对比大纲与已生成页，避免 generatingOutlines 残留导致顶栏误判 */
   const completedOrders = useMemo(() => new Set(scenes.map((s) => s.order)), [scenes]);
@@ -87,12 +85,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   const canExport =
     scenes.length > 0 &&
     pendingOutlines.length === 0 &&
-    failedOutlines.length === 0 &&
-    Object.values(mediaTasks).every((task) => task.status === 'done' || task.status === 'failed');
-
-  const mediaBusy = Object.values(mediaTasks).some(
-    (task) => task.status === 'pending' || task.status === 'generating',
-  );
+    failedOutlines.length === 0;
 
   const headerCurrentScene = useMemo(
     () => (currentSceneId ? scenes.find((s) => s.id === currentSceneId) : undefined),
@@ -136,12 +129,11 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   const exportWaitMessage = (() => {
     if (failedOutlines.length > 0) return t('export.waitSceneGenerationFailed');
     if (pendingOutlines.length > 0) return t('export.waitGeneratingFollowUp');
-    if (mediaBusy) return t('export.waitMedia');
     if (scenes.length === 0) return t('export.waitNoScenes');
     return t('share.notReady');
   })();
 
-  const exportWaitShowSpinner = pendingOutlines.length > 0 || mediaBusy;
+  const exportWaitShowSpinner = pendingOutlines.length > 0;
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback(

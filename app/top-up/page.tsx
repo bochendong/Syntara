@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Coins, Loader2, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +13,7 @@ import {
   APPROX_USD_TO_CAD,
   APPROX_USD_TO_CNY,
   formatTopUpPackPrice,
+  STRIPE_TOP_UP_CHECKOUT_CURRENCY,
   TOP_UP_PACKS,
   TOP_UP_CREDITS_PER_USD,
   type TopUpCurrency,
@@ -22,35 +25,153 @@ type CreditsResponse = {
   databaseEnabled: boolean;
 };
 
+type CheckoutSessionResponse = {
+  success: true;
+  url: string;
+  sessionId: string;
+  orderId: string;
+};
+
+type CheckoutStatusResponse = {
+  success: true;
+  order: {
+    id: string;
+    packId: string;
+    packTitle: string;
+    credits: number;
+    currency: string;
+    amountTotal: number;
+    status: string;
+    fulfilledAt: string | null;
+  };
+};
+
 const CURRENCY_META: Record<TopUpCurrency, { note: string }> = {
-  USD: { note: '全球统一锚点' },
-  CAD: { note: `按 1 USD ≈ ${APPROX_USD_TO_CAD} CAD 粗略换算` },
-  CNY: { note: `按 1 USD ≈ ${APPROX_USD_TO_CNY} CNY 粗略换算` },
+  USD: { note: `全球统一锚点；Stripe Checkout 当前仅支持 ${STRIPE_TOP_UP_CHECKOUT_CURRENCY}` },
+  CAD: {
+    note: `Stripe Checkout 当前以 CAD 实际结算；展示锚点约为 1 USD ≈ ${APPROX_USD_TO_CAD} CAD`,
+  },
+  CNY: {
+    note: `按 1 USD ≈ ${APPROX_USD_TO_CNY} CNY 粗略换算；Stripe Checkout 当前仅支持 ${STRIPE_TOP_UP_CHECKOUT_CURRENCY}`,
+  },
 };
 
 export default function TopUpPage() {
-  const [currency, setCurrency] = useState<TopUpCurrency>('USD');
+  const router = useRouter();
+  const [currency, setCurrency] = useState<TopUpCurrency>(STRIPE_TOP_UP_CHECKOUT_CURRENCY);
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [submittingPackId, setSubmittingPackId] = useState<string | null>(null);
+  const handledCheckoutStateRef = useRef('');
+
+  const loadBalance = useCallback(async () => {
+    setLoadingBalance(true);
+    try {
+      const response = await backendJson<CreditsResponse>('/api/profile/credits');
+      setBalance(response.balance);
+    } catch {
+      setBalance(null);
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, []);
+
+  const handleCheckout = useCallback(
+    async (packId: string) => {
+      if (currency !== STRIPE_TOP_UP_CHECKOUT_CURRENCY) {
+        toast.message(`Stripe Checkout 当前仅支持 ${STRIPE_TOP_UP_CHECKOUT_CURRENCY} 结账。`);
+        return;
+      }
+
+      setSubmittingPackId(packId);
+      try {
+        const response = await backendJson<CheckoutSessionResponse>(
+          '/api/top-up/checkout-session',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              packId,
+              currency,
+            }),
+          },
+        );
+        window.location.assign(response.url);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '创建 Stripe Checkout 失败。');
+        setSubmittingPackId(null);
+      }
+    },
+    [currency],
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    void loadBalance();
+  }, [loadBalance]);
 
-    void backendJson<CreditsResponse>('/api/profile/credits')
-      .then((response) => {
-        if (!cancelled) setBalance(response.balance);
-      })
-      .catch(() => {
-        if (!cancelled) setBalance(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingBalance(false);
-      });
+  useEffect(() => {
+    const params =
+      typeof window === 'undefined'
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search);
+    const checkoutState = params.get('checkout')?.trim() || '';
+    const sessionId = params.get('session_id')?.trim() || '';
+    const key = `${checkoutState}:${sessionId}`;
+
+    if (!checkoutState || handledCheckoutStateRef.current === key) {
+      return;
+    }
+    handledCheckoutStateRef.current = key;
+
+    if (checkoutState === 'cancelled') {
+      toast.message('已取消 Stripe 结账。');
+      router.replace('/top-up');
+      return;
+    }
+
+    if (checkoutState !== 'success' || !sessionId) {
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async (attempt: number) => {
+      try {
+        const response = await backendJson<CheckoutStatusResponse>(
+          `/api/top-up/checkout-status?sessionId=${encodeURIComponent(sessionId)}`,
+        );
+        if (cancelled) return;
+
+        if (response.order.status === 'fulfilled') {
+          await loadBalance();
+          toast.success(`${response.order.credits} credits 已到账。`);
+          router.replace('/top-up');
+          return;
+        }
+
+        if (attempt < 5) {
+          window.setTimeout(() => {
+            void poll(attempt + 1);
+          }, 1500);
+          return;
+        }
+
+        toast.message('支付已完成，credits 通常会在几秒内到账。');
+        router.replace('/top-up');
+      } catch (error) {
+        if (cancelled) return;
+        toast.message(error instanceof Error ? error.message : '正在等待支付状态同步。');
+        router.replace('/top-up');
+      }
+    };
+
+    void poll(0);
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadBalance, router]);
 
   return (
     <div className="min-h-full w-full apple-mesh-bg relative overflow-hidden">
@@ -71,13 +192,18 @@ export default function TopUpPage() {
                 多充一点，课就能再多做几步
               </h1>
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#5b6270] dark:text-slate-300">
-                积分会在你用 AI 的时候慢慢消耗：跟它聊天追问、生成或改一版课件、整理讲义和练习，都会算在内。
-                现在积分和真实美元强绑定，按 <span className="font-medium text-[#1d1d1f] dark:text-slate-100">{`${TOP_UP_CREDITS_PER_USD} credits = ${formatUsdLabel(1)}`}</span>{' '}
+                积分会在你用 AI
+                的时候慢慢消耗：跟它聊天追问、生成或改一版课件、整理讲义和练习，都会算在内。
+                现在积分和真实美元强绑定，按{' '}
+                <span className="font-medium text-[#1d1d1f] dark:text-slate-100">{`${TOP_UP_CREDITS_PER_USD} credits = ${formatUsdLabel(1)}`}</span>{' '}
                 来算；模型消耗则按 GPT 公开价上浮 50% 扣分，所以平台会保留服务毛利。
               </p>
               <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[#5b6270] dark:text-slate-400">
-                <span className="font-medium text-[#1d1d1f] dark:text-slate-200">500 积分大概啥概念？</span>
-                500 credits 现在就是 {formatUsdLabel(usdFromCredits(500))}。如果你主要在用 GPT-5.4 mini / nano
+                <span className="font-medium text-[#1d1d1f] dark:text-slate-200">
+                  500 积分大概啥概念？
+                </span>
+                500 credits 现在就是 {formatUsdLabel(usdFromCredits(500))}。如果你主要在用 GPT-5.4
+                mini / nano
                 做日常对话、改讲义、微调课件，通常足够把主要流程跑熟一遍；更重的长文本或高质量输出会消耗更快。
               </p>
               <div className="mt-4 flex flex-wrap gap-3 text-xs">
@@ -166,14 +292,18 @@ export default function TopUpPage() {
                     <div className="mt-5 text-3xl font-semibold tracking-[-0.05em] text-foreground">
                       {displayPrice}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">约 {formatUsdLabel(usdPrice)}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      约 {formatUsdLabel(usdPrice)}
+                    </div>
                     <div className="mt-2 flex items-baseline gap-2">
                       <span className="text-lg font-semibold text-amber-600 dark:text-amber-300">
                         到账 {totalCredits}
                       </span>
                       <span className="text-xs text-muted-foreground">credits</span>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatCreditsUsdLabel(totalCredits)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatCreditsUsdLabel(totalCredits)}
+                    </p>
 
                     <div className="mt-4 rounded-2xl bg-black/[0.03] px-3 py-2 text-xs text-muted-foreground dark:bg-white/[0.04]">
                       每 {formatUsdLabel(1)} 固定对应 {creditsPerUnit.toFixed(0)} credits
@@ -182,9 +312,24 @@ export default function TopUpPage() {
                     <Button
                       type="button"
                       className="mt-5 h-10 w-full rounded-xl bg-slate-900 text-white hover:opacity-90 dark:bg-white dark:text-slate-900"
+                      disabled={
+                        Boolean(submittingPackId) || currency !== STRIPE_TOP_UP_CHECKOUT_CURRENCY
+                      }
+                      onClick={() => void handleCheckout(pack.id)}
                     >
-                      选择这个档位
-                      <ArrowRight className="size-4" />
+                      {submittingPackId === pack.id ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          正在跳转结账
+                        </>
+                      ) : currency === STRIPE_TOP_UP_CHECKOUT_CURRENCY ? (
+                        <>
+                          使用 Stripe 支付
+                          <ArrowRight className="size-4" />
+                        </>
+                      ) : (
+                        `当前仅支持 ${STRIPE_TOP_UP_CHECKOUT_CURRENCY} 结账`
+                      )}
                     </Button>
                   </div>
                 );

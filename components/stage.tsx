@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
 import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -311,11 +311,21 @@ function serializeSceneForRawView(scene: Scene): unknown {
  */
 export function Stage({
   onRetryOutline,
+  headerActions,
 }: {
   onRetryOutline?: (outlineId: string) => Promise<void>;
+  headerActions?: ReactNode;
 }) {
   const { t, locale } = useI18n();
-  const { mode, getCurrentScene, scenes, currentSceneId, setCurrentSceneId, generatingOutlines } =
+  const {
+    mode,
+    getCurrentScene,
+    scenes,
+    currentSceneId,
+    setCurrentSceneId,
+    generatingOutlines,
+    generationStatus,
+  } =
     useStageStore();
   const stage = useStageStore((s) => s.stage);
   const stageLanguage = useStageStore((s) => s.stage?.language);
@@ -1150,7 +1160,8 @@ export function Stage({
   // get scene information
   const isPendingScene = currentSceneId === PENDING_SCENE_ID;
   const hasNextPending = generatingOutlines.length > 0;
-  const pendingSceneTitle = isPendingScene ? generatingOutlines[0]?.title || '' : '';
+  const pendingSceneTitle =
+    isPendingScene && generationStatus === 'generating' ? generatingOutlines[0]?.title || '' : '';
   const currentSceneIndex = isPendingScene
     ? scenes.length
     : scenes.findIndex((s) => s.id === currentSceneId);
@@ -1322,6 +1333,10 @@ export function Stage({
           'x-requires-api-key': modelConfig.requiresApiKey ? 'true' : 'false',
         },
         body: JSON.stringify({
+          notebookId: stage.id,
+          notebookName: stage.name,
+          sceneId: currentScene.id,
+          sceneOrder: currentScene.order + 1,
           sceneTitle: currentScene.title,
           language: rewriteLanguage,
           content: currentScene.content,
@@ -1702,9 +1717,9 @@ export function Stage({
     handleOpenSlideEditor();
   }, [canRepairCurrentSlide, handleOpenSlideEditor, slideEditorOpen]);
 
-  const titleActions =
+  const builtInTitleActions =
     canEditCurrentSlide || slideEditorOpen || canRepairCurrentSlide || canRestoreCurrentSlide ? (
-      <div className="flex items-center gap-2">
+      <>
         {canRestoreCurrentSlide ? (
           <button
             type="button"
@@ -1756,6 +1771,14 @@ export function Stage({
             {slideEditorOpen ? '完成编辑' : '编辑当前页'}
           </button>
         ) : null}
+      </>
+    ) : null;
+
+  const titleActions =
+    headerActions || builtInTitleActions ? (
+      <div className="flex items-center gap-2">
+        {headerActions}
+        {builtInTitleActions}
       </div>
     ) : null;
 
@@ -1785,7 +1808,7 @@ export function Stage({
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
         {/* Header */}
         <Header
-          currentSceneTitle={currentScene?.title || pendingSceneTitle}
+          currentSceneTitle={currentScene?.title || pendingSceneTitle || stage?.name || ''}
           titleActions={titleActions}
         />
 

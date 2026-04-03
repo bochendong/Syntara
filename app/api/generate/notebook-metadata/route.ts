@@ -123,15 +123,23 @@ Rules:
 - Must align with requirement; do not invent unrelated scope`;
 
     log.info(`Generating notebook metadata [model=${modelString}]`);
-    const result = await runWithRequestContext(req, '/api/generate/notebook-metadata', () =>
-      callLLM(
-        {
-          model,
-          system: systemPrompt,
-          prompt: userPrompt,
-        },
-        'notebook-metadata',
-      ),
+    const result = await runWithRequestContext(
+      req,
+      '/api/generate/notebook-metadata',
+      () =>
+        callLLM(
+          {
+            model,
+            system: systemPrompt,
+            prompt: userPrompt,
+          },
+          'notebook-metadata',
+        ),
+      {
+        courseName: courseContext?.name?.trim() || undefined,
+        operationCode: 'notebook_metadata_generation',
+        chargeReason: '生成笔记本标题与简介',
+      },
     );
 
     let parsed: ParsedMeta;

@@ -28,11 +28,12 @@ class MediaApiError extends Error {
 
 /**
  * Launch media generation for all mediaGenerations declared in outlines.
- * Runs in parallel with content/action generation — does not block.
+ * This is an explicit/manual step and does not run unless the user triggers it.
  */
 export async function generateMediaForOutlines(
   outlines: SceneOutline[],
   stageId: string,
+  notebookName?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const settings = useSettingsStore.getState();
@@ -46,9 +47,9 @@ export async function generateMediaForOutlines(
       // Filter by enabled flags
       if (mg.type === 'image' && !settings.imageGenerationEnabled) continue;
       if (mg.type === 'video' && !settings.videoGenerationEnabled) continue;
-      // Skip already completed or permanently failed (restored from DB)
+      // Skip anything already tracked to keep manual retries idempotent.
       const existing = store.getTask(mg.elementId);
-      if (existing?.status === 'done' || existing?.status === 'failed') continue;
+      if (existing) continue;
       allRequests.push(mg);
     }
   }
@@ -61,7 +62,7 @@ export async function generateMediaForOutlines(
   // Process requests serially — image/video APIs have limited concurrency
   for (const req of allRequests) {
     if (abortSignal?.aborted) break;
-    await generateSingleMedia(req, stageId, abortSignal);
+    await generateSingleMedia(req, stageId, notebookName, abortSignal);
   }
 }
 
@@ -94,6 +95,7 @@ export async function retryMediaTask(elementId: string): Promise<void> {
       style: task.params.style,
     },
     task.stageId,
+    undefined,
   );
 }
 
@@ -102,6 +104,7 @@ export async function retryMediaTask(elementId: string): Promise<void> {
 async function generateSingleMedia(
   req: MediaGenerationRequest,
   stageId: string,
+  notebookName?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const store = useMediaGenerationStore.getState();
@@ -112,7 +115,7 @@ async function generateSingleMedia(
     let posterUrl: string | undefined;
 
     if (req.type === 'image') {
-      const result = await callImageApi(req, abortSignal);
+      const result = await callImageApi(req, stageId, notebookName, abortSignal);
       resultUrl = result.url;
     } else {
       const result = await callVideoApi(req, abortSignal);
@@ -144,6 +147,8 @@ async function generateSingleMedia(
 
 async function callImageApi(
   req: MediaGenerationRequest,
+  stageId: string,
+  notebookName: string | undefined,
   abortSignal?: AbortSignal,
 ): Promise<{ url: string }> {
   const settings = useSettingsStore.getState();
@@ -162,6 +167,10 @@ async function callImageApi(
       prompt: req.prompt,
       aspectRatio: req.aspectRatio,
       style: req.style,
+      notebookContext: {
+        id: stageId,
+        name: notebookName,
+      },
     }),
     signal: abortSignal,
   });

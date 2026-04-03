@@ -74,6 +74,16 @@ export async function POST(req: NextRequest) {
       ...rawOutline,
       language: rawOutline.language || (stageInfo?.language as 'zh-CN' | 'en-US') || 'zh-CN',
     };
+    const usageContext = {
+      notebookId: stageId.trim(),
+      notebookName: stageInfo?.name?.trim() || undefined,
+      courseName: body.courseContext?.name?.trim() || undefined,
+      sceneTitle: outline.title.trim() || undefined,
+      sceneOrder: outline.order,
+      sceneType: outline.type,
+      operationCode: 'scene_content_generation',
+      chargeReason: '生成页面内容',
+    } as const;
 
     // ── Model resolution from request headers ──
     const { model: languageModel, modelInfo, modelString } = await resolveModelFromHeaders(req, {
@@ -90,34 +100,46 @@ export async function POST(req: NextRequest) {
       images?: Array<{ id: string; src: string }>,
     ): Promise<string> => {
       if (images?.length && hasVision) {
-        const result = await runWithRequestContext(req, '/api/generate/scene-content', () =>
+        const result = await runWithRequestContext(
+          req,
+          '/api/generate/scene-content',
+          () =>
+            callLLM(
+              {
+                model: languageModel,
+                system: systemPrompt,
+                messages: [
+                  {
+                    role: 'user' as const,
+                    content: buildVisionUserContent(
+                      userPrompt,
+                      images,
+                      outline.language || 'zh-CN',
+                    ),
+                  },
+                ],
+                maxOutputTokens: modelInfo?.outputWindow,
+              },
+              'scene-content',
+            ),
+          usageContext,
+        );
+        return result.text;
+      }
+      const result = await runWithRequestContext(
+        req,
+        '/api/generate/scene-content',
+        () =>
           callLLM(
             {
               model: languageModel,
               system: systemPrompt,
-              messages: [
-                {
-                  role: 'user' as const,
-                  content: buildVisionUserContent(userPrompt, images, outline.language || 'zh-CN'),
-                },
-              ],
+              prompt: userPrompt,
               maxOutputTokens: modelInfo?.outputWindow,
             },
             'scene-content',
           ),
-        );
-        return result.text;
-      }
-      const result = await runWithRequestContext(req, '/api/generate/scene-content', () =>
-        callLLM(
-          {
-            model: languageModel,
-            system: systemPrompt,
-            prompt: userPrompt,
-            maxOutputTokens: modelInfo?.outputWindow,
-          },
-          'scene-content',
-        ),
+        usageContext,
       );
       return result.text;
     };

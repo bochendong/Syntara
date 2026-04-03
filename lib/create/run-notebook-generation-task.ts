@@ -409,6 +409,12 @@ async function maybeRunWebSearch(args: {
   requirement: string;
   enabled: boolean;
   signal?: AbortSignal;
+  usageContext?: {
+    courseId?: string;
+    courseName?: string;
+    operationCode?: string;
+    chargeReason?: string;
+  };
 }): Promise<{ context?: string; sources: WebSearchSource[] }> {
   if (!args.enabled) return { context: undefined, sources: [] };
 
@@ -419,7 +425,11 @@ async function maybeRunWebSearch(args: {
   const res = await backendFetch('/api/web-search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: args.requirement, apiKey }),
+    body: JSON.stringify({
+      query: args.requirement,
+      apiKey,
+      usageContext: args.usageContext,
+    }),
     signal: args.signal,
   });
 
@@ -825,6 +835,12 @@ async function generateOutlines(args: {
   language: 'zh-CN' | 'en-US';
   researchContext?: string;
   agents: AgentInfo[];
+  notebookContext?: {
+    id: string;
+    name: string;
+    courseId?: string;
+    courseName?: string;
+  };
   coursePurpose?: 'research' | 'university' | 'daily';
   courseContext?: CoursePersonalizationContext;
   signal?: AbortSignal;
@@ -850,6 +866,7 @@ async function generateOutlines(args: {
     coursePurpose: args.coursePurpose,
     courseContext: args.courseContext,
     outlinePreferences: args.outlinePreferences ?? null,
+    notebookContext: args.notebookContext,
   };
   const budgetedMedia = buildBudgetedGenerationMedia({
     basePayload,
@@ -948,6 +965,12 @@ async function repairOutlinesIfNeeded(args: {
   language: 'zh-CN' | 'en-US';
   researchContext?: string;
   agents: AgentInfo[];
+  notebookContext?: {
+    id: string;
+    name: string;
+    courseId?: string;
+    courseName?: string;
+  };
   coursePurpose?: 'research' | 'university' | 'daily';
   courseContext?: CoursePersonalizationContext;
   signal?: AbortSignal;
@@ -1020,6 +1043,7 @@ async function repairOutlinesIfNeeded(args: {
       language: args.language,
       researchContext: args.researchContext,
       agents: args.agents,
+      notebookContext: args.notebookContext,
       coursePurpose: args.coursePurpose,
       courseContext: args.courseContext,
       signal: args.signal,
@@ -1154,6 +1178,7 @@ async function generateSingleScene(args: {
       allOutlines: args.allOutlines,
       content: contentData.content,
       stageId: args.stage.id,
+      notebookName: args.stage.name,
       agents: args.agents,
       previousSpeeches: args.previousSpeeches,
       userProfile: args.userProfile,
@@ -1291,6 +1316,12 @@ export async function runNotebookGenerationTask(
         requirement,
         enabled: webSearch,
         signal: input.signal,
+        usageContext: {
+          courseId: currentCourse?.id,
+          courseName: currentCourse?.name,
+          operationCode: 'notebook_research',
+          chargeReason: '为新笔记本补充联网资料',
+        },
       });
       researchContext = research.context;
       researchSources = research.sources;
@@ -1356,6 +1387,12 @@ export async function runNotebookGenerationTask(
       language,
       researchContext,
       agents,
+      notebookContext: {
+        id: stage.id,
+        name: stage.name,
+        courseId: stage.courseId,
+        courseName: currentCourse?.name,
+      },
       coursePurpose: currentCourse?.purpose,
       courseContext,
       signal: input.signal,
@@ -1396,6 +1433,12 @@ export async function runNotebookGenerationTask(
       language,
       researchContext,
       agents,
+      notebookContext: {
+        id: stage.id,
+        name: stage.name,
+        courseId: stage.courseId,
+        courseName: currentCourse?.name,
+      },
       coursePurpose: currentCourse?.purpose,
       courseContext,
       signal: input.signal,

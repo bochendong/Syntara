@@ -190,6 +190,29 @@ export default function NotificationsPage() {
                           </Button>
                         ) : null}
                       </div>
+
+                      {item.details.length > 0 ? (
+                        <div className="mt-4 grid gap-2 md:grid-cols-2">
+                          {item.details.map((detail) => (
+                            <div
+                              key={`${item.id}:${detail.key}`}
+                              className="rounded-2xl border border-black/5 bg-white/45 px-3 py-2 dark:border-white/8 dark:bg-white/5"
+                            >
+                              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                                {detail.label}
+                              </div>
+                              <div
+                                className={cn(
+                                  'mt-1 text-sm text-slate-700 dark:text-slate-200',
+                                  detail.key === 'model' ? 'font-mono text-[13px]' : '',
+                                )}
+                              >
+                                {detail.value}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </article>

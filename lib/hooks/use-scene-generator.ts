@@ -9,7 +9,6 @@ import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/g
 import type { Scene } from '@/lib/types/stage';
 import type { MouthCue, SpeechAction, SpeechVisemeCue } from '@/lib/types/action';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
-import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
 import { createLogger } from '@/lib/logger';
 import {
   buildTtsCacheKey,
@@ -177,6 +176,7 @@ async function fetchSceneActions(
     allOutlines: SceneOutline[];
     content: unknown;
     stageId: string;
+    notebookName?: string;
     agents?: AgentInfo[];
     previousSpeeches?: string[];
     userProfile?: string;
@@ -345,7 +345,6 @@ export interface GenerationParams {
 export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
   const abortRef = useRef(false);
   const generatingRef = useRef(false);
-  const mediaAbortRef = useRef<AbortController | null>(null);
   const fetchAbortRef = useRef<AbortController | null>(null);
   const lastParamsRef = useRef<GenerationParams | null>(null);
   const generateRemainingRef = useRef<((params: GenerationParams) => Promise<void>) | null>(null);
@@ -393,12 +392,6 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
       }
 
       store.getState().setGeneratingOutlines(pending);
-
-      // Launch media generation in parallel — does not block content/action generation
-      mediaAbortRef.current = new AbortController();
-      generateMediaForOutlines(outlines, stage.id, mediaAbortRef.current.signal).catch((err) => {
-        log.warn('Media generation error:', err);
-      });
 
       // Get previousSpeeches from last completed scene
       let previousSpeeches: string[] = [];
@@ -470,6 +463,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               allOutlines: outlines,
               content: contentResult.content,
               stageId: stage.id,
+              notebookName: stage.name,
               agents: params.agents,
               previousSpeeches,
               userProfile: params.userProfile,
@@ -557,7 +551,6 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
     abortRef.current = true;
     store.getState().bumpGenerationEpoch();
     fetchAbortRef.current?.abort();
-    mediaAbortRef.current?.abort();
   }, [store]);
 
   const isGenerating = useCallback(() => generatingRef.current, []);

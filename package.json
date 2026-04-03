@@ -100,6 +100,7 @@
     "shiki": "^3.21.0",
     "sonner": "^2.0.7",
     "streamdown": "^2.1.0",
+    "stripe": "^22.0.0",
     "svg-arc-to-cubic-bezier": "^3.2.0",
     "svg-pathdata": "^8.0.0",
     "tailwind-merge": "^3.4.0",

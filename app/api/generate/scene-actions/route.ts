@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
         | GeneratedInteractiveContent
         | GeneratedPBLContent;
       stageId: string;
+      notebookName?: string;
       agents?: AgentInfo[];
       previousSpeeches?: string[];
       userProfile?: string;
@@ -84,6 +85,16 @@ export async function POST(req: NextRequest) {
       (pageIndex >= 0 ? allOutlines[pageIndex]?.language : undefined) ||
       allOutlines.find((item) => item.language)?.language ||
       'zh-CN';
+    const usageContext = {
+      notebookId: stageId.trim(),
+      notebookName: body.notebookName?.trim() || undefined,
+      courseName: body.courseContext?.name?.trim() || undefined,
+      sceneTitle: outline.title.trim() || undefined,
+      sceneOrder: outline.order,
+      sceneType: outline.type,
+      operationCode: 'scene_actions_generation',
+      chargeReason: '生成讲解动作',
+    } as const;
 
     // ── Model resolution from request headers ──
     const { model: languageModel, modelInfo, modelString } = await resolveModelFromHeaders(req, {
@@ -100,34 +111,42 @@ export async function POST(req: NextRequest) {
       images?: Array<{ id: string; src: string }>,
     ): Promise<string> => {
       if (images?.length && hasVision) {
-        const result = await runWithRequestContext(req, '/api/generate/scene-actions', () =>
+        const result = await runWithRequestContext(
+          req,
+          '/api/generate/scene-actions',
+          () =>
+            callLLM(
+              {
+                model: languageModel,
+                system: systemPrompt,
+                messages: [
+                  {
+                    role: 'user' as const,
+                    content: buildVisionUserContent(userPrompt, images, normalizedLanguage),
+                  },
+                ],
+                maxOutputTokens: modelInfo?.outputWindow,
+              },
+              'scene-actions',
+            ),
+          usageContext,
+        );
+        return result.text;
+      }
+      const result = await runWithRequestContext(
+        req,
+        '/api/generate/scene-actions',
+        () =>
           callLLM(
             {
               model: languageModel,
               system: systemPrompt,
-              messages: [
-                {
-                  role: 'user' as const,
-                  content: buildVisionUserContent(userPrompt, images, normalizedLanguage),
-                },
-              ],
+              prompt: userPrompt,
               maxOutputTokens: modelInfo?.outputWindow,
             },
             'scene-actions',
           ),
-        );
-        return result.text;
-      }
-      const result = await runWithRequestContext(req, '/api/generate/scene-actions', () =>
-        callLLM(
-          {
-            model: languageModel,
-            system: systemPrompt,
-            prompt: userPrompt,
-            maxOutputTokens: modelInfo?.outputWindow,
-          },
-          'scene-actions',
-        ),
+        usageContext,
       );
       return result.text;
     };

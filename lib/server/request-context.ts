@@ -10,6 +10,17 @@ export interface RequestLLMContext {
   userEmail?: string;
   userName?: string;
   route?: string;
+  notebookId?: string;
+  notebookName?: string;
+  courseId?: string;
+  courseName?: string;
+  sceneId?: string;
+  sceneTitle?: string;
+  sceneOrder?: number;
+  sceneType?: string;
+  operationCode?: string;
+  chargeReason?: string;
+  serviceLabel?: string;
 }
 
 const requestContextStorage = new AsyncLocalStorage<RequestLLMContext>();
@@ -26,6 +37,7 @@ export async function runWithRequestContext<T>(
   req: NextRequest,
   route: string,
   callback: () => Promise<T>,
+  extraContext?: Partial<RequestLLMContext>,
 ): Promise<T> {
   let authSource: 'header' | 'session' | 'fallback' | 'none' = 'none';
   let user = null as { id?: string; email?: string; name?: string } | null;
@@ -81,6 +93,7 @@ export async function runWithRequestContext<T>(
       userId: user?.id,
       userEmail: user?.email,
       userName: user?.name,
+      ...extraContext,
     },
     callback,
   ) as Promise<T>;

@@ -21,6 +21,10 @@ import type {
 export type SlideRepairLanguage = 'zh-CN' | 'en-US';
 
 export type RepairRequestBody = {
+  notebookId?: string;
+  notebookName?: string;
+  sceneId?: string;
+  sceneOrder?: number;
   sceneTitle?: string;
   language?: SlideRepairLanguage;
   content?: SlideContent;

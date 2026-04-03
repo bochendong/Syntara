@@ -4,6 +4,12 @@ export type AppNotificationTone = 'positive' | 'negative';
 
 export type AppNotificationPresentation = 'banner' | 'feed';
 
+export interface AppNotificationDetail {
+  key: string;
+  label: string;
+  value: string;
+}
+
 export interface AppNotification {
   id: string;
   kind: AppNotificationKind;
@@ -17,6 +23,7 @@ export interface AppNotification {
   sourceKind: string;
   sourceLabel: string;
   createdAt: string;
+  details: AppNotificationDetail[];
 }
 
 export interface NotificationsResponse {

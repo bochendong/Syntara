@@ -51,30 +51,38 @@ enum CreditTransactionKind {
   TOKEN_USAGE
 }
 
+enum TopUpOrderStatus {
+  pending
+  fulfilled
+  expired
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(USER)
-  creditsBalance Int      @default(100)
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  role             UserRole  @default(USER)
+  creditsBalance   Int       @default(100)
+  stripeCustomerId String?   @unique
 
   accounts Account[]
   sessions Session[]
 
-  courses           Course[]
-  notebooks         Notebook[]
-  conversations     Conversation[]
-  messages          Message[]
-  agentTasks        AgentTask[]
-  agentEnvelopes    AgentEnvelope[]
-  llmUsageLogs      LLMUsageLog[]
+  courses            Course[]
+  notebooks          Notebook[]
+  conversations      Conversation[]
+  messages           Message[]
+  agentTasks         AgentTask[]
+  agentEnvelopes     AgentEnvelope[]
+  llmUsageLogs       LLMUsageLog[]
   creditTransactions CreditTransaction[]
-  coursePurchases   CoursePurchase[]
-  notebookPurchases NotebookPurchase[]
-  courseReviews     CourseReview[]
-  notebookReviews   NotebookReview[]
+  coursePurchases    CoursePurchase[]
+  notebookPurchases  NotebookPurchase[]
+  courseReviews      CourseReview[]
+  notebookReviews    NotebookReview[]
+  topUpOrders        TopUpOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -387,6 +395,56 @@ model CreditTransaction {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([kind, createdAt(sort: Desc)])
+}
+
+model CreditTopUpPrice {
+  id              String   @id @default(cuid())
+  packId          String
+  currency        String
+  credits         Int
+  unitAmount      Int
+  stripeProductId String
+  stripePriceId   String   @unique
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([packId, currency])
+  @@index([stripeProductId])
+}
+
+model TopUpOrder {
+  id                      String           @id @default(cuid())
+  userId                  String
+  packId                  String
+  packTitle               String
+  credits                 Int
+  currency                String
+  amountTotal             Int
+  stripeCustomerId        String?
+  stripeProductId         String?
+  stripePriceId           String?
+  stripeCheckoutSessionId String?          @unique
+  stripePaymentIntentId   String?          @unique
+  status                  TopUpOrderStatus @default(pending)
+  fulfilledAt             DateTime?
+  metadata                Json?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model StripeWebhookEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  eventType     String
+  createdAt     DateTime @default(now())
+
+  @@index([eventType, createdAt(sort: Desc)])
 }
 
 model NotebookReview {

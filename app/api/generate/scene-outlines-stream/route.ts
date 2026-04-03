@@ -240,6 +240,12 @@ export async function POST(req: NextRequest) {
       imageMapping?: ImageMapping;
       researchContext?: string;
       agents?: AgentInfo[];
+      notebookContext?: {
+        id?: string;
+        name?: string;
+        courseId?: string;
+        courseName?: string;
+      };
       coursePurpose?: CoursePurpose;
       outlinePreferences?: {
         length: OrchestratorOutlineLength;
@@ -256,6 +262,15 @@ export async function POST(req: NextRequest) {
         language?: 'zh-CN' | 'en-US';
       };
     };
+    const usageContext = {
+      notebookId: body.notebookContext?.id?.trim() || undefined,
+      notebookName: body.notebookContext?.name?.trim() || undefined,
+      courseId: body.notebookContext?.courseId?.trim() || undefined,
+      courseName:
+        body.notebookContext?.courseName?.trim() || body.courseContext?.name?.trim() || undefined,
+      operationCode: 'scene_outline_generation',
+      chargeReason: '生成笔记本大纲',
+    } as const;
 
     // Detect vision capability
     const hasVision = !!modelInfo?.capabilities?.vision;
@@ -428,6 +443,7 @@ export async function POST(req: NextRequest) {
                 req,
                 '/api/generate/scene-outlines-stream',
                 () => streamLLM(streamParams, 'scene-outlines-stream'),
+                usageContext,
               );
 
               let fullText = '';

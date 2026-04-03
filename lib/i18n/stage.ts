@@ -24,6 +24,10 @@ export const stageZhCN = {
     ttsSynthesizeAllButton: '合成全部语音',
     ttsSynthesizeAllButtonTooltip:
       '只在点击后，为当前已生成页面批量合成讲解语音；下载不需要等待它完成。',
+    resumePageGenerationButton: '继续生成页面',
+    resumePageGenerationTooltip: '只在点击后，继续生成当前笔记本里尚未完成的页面。',
+    generateMediaButton: '生成媒体',
+    generateMediaTooltip: '只在点击后，为当前笔记本里声明的图片或视频资源开始生成。',
     openSceneList: '展开幻灯片列表',
     deletePage: '删除页面',
     deletePageConfirm: '确定删除「{title}」？删除后无法恢复。',
@@ -222,6 +226,12 @@ export const stageEnUS = {
     ttsSynthesizeAllButton: 'Generate all speech',
     ttsSynthesizeAllButtonTooltip:
       'Only runs when clicked: batch-synthesizes narration for generated slides and does not block download.',
+    resumePageGenerationButton: 'Resume page generation',
+    resumePageGenerationTooltip:
+      'Only runs when clicked: continues generating any unfinished slides in this notebook.',
+    generateMediaButton: 'Generate media',
+    generateMediaTooltip:
+      'Only runs when clicked: starts generating declared images or videos for this notebook.',
     openSceneList: 'Show slide list',
     deletePage: 'Delete page',
     deletePageConfirm: 'Delete “{title}”? This cannot be undone.',

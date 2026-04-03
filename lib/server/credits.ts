@@ -230,6 +230,17 @@ export async function chargeCreditsForTokenUsage(args: {
   route?: string | null;
   source?: string | null;
   modelString?: string | null;
+  notebookId?: string | null;
+  notebookName?: string | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  sceneId?: string | null;
+  sceneTitle?: string | null;
+  sceneOrder?: number | null;
+  sceneType?: string | null;
+  operationCode?: string | null;
+  chargeReason?: string | null;
+  serviceLabel?: string | null;
 }): Promise<void> {
   const userId = args.userId?.trim();
   if (!userId) {
@@ -300,6 +311,20 @@ export async function chargeCreditsForTokenUsage(args: {
       route: args.route ?? null,
       source: args.source ?? null,
       modelString: args.modelString ?? null,
+      notebookId: args.notebookId ?? null,
+      notebookName: args.notebookName ?? null,
+      courseId: args.courseId ?? null,
+      courseName: args.courseName ?? null,
+      sceneId: args.sceneId ?? null,
+      sceneTitle: args.sceneTitle ?? null,
+      sceneOrder:
+        typeof args.sceneOrder === 'number' && Number.isFinite(args.sceneOrder)
+          ? Math.max(0, Math.round(args.sceneOrder))
+          : null,
+      sceneType: args.sceneType ?? null,
+      operationCode: args.operationCode ?? null,
+      chargeReason: args.chargeReason ?? null,
+      serviceLabel: args.serviceLabel ?? null,
       estimatedBaseUsdCost,
       retailMarkupMultiplier:
         estimatedUsdCost == null ? null : OPENAI_RETAIL_MARKUP_MULTIPLIER,
@@ -341,6 +366,17 @@ export async function chargeCreditsForImageGeneration(args: {
   modelId?: string | null;
   route?: string | null;
   prompt?: string | null;
+  notebookId?: string | null;
+  notebookName?: string | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  sceneId?: string | null;
+  sceneTitle?: string | null;
+  sceneOrder?: number | null;
+  sceneType?: string | null;
+  operationCode?: string | null;
+  chargeReason?: string | null;
+  serviceLabel?: string | null;
   usage?: {
     inputTokens?: number | null;
     outputTokens?: number | null;
@@ -369,6 +405,20 @@ export async function chargeCreditsForImageGeneration(args: {
     metadata: {
       providerId: args.providerId ?? null,
       modelId: args.modelId ?? null,
+      notebookId: args.notebookId ?? null,
+      notebookName: args.notebookName ?? null,
+      courseId: args.courseId ?? null,
+      courseName: args.courseName ?? null,
+      sceneId: args.sceneId ?? null,
+      sceneTitle: args.sceneTitle ?? null,
+      sceneOrder:
+        typeof args.sceneOrder === 'number' && Number.isFinite(args.sceneOrder)
+          ? Math.max(0, Math.round(args.sceneOrder))
+          : null,
+      sceneType: args.sceneType ?? null,
+      operationCode: args.operationCode ?? null,
+      chargeReason: args.chargeReason ?? null,
+      serviceLabel: args.serviceLabel ?? null,
       promptPreview: args.prompt?.trim().slice(0, 200) || null,
       inputTokens: args.usage?.inputTokens ?? 0,
       outputTokens: args.usage?.outputTokens ?? 0,
@@ -386,6 +436,17 @@ export async function chargeCreditsForWebSearch(args: {
   query?: string | null;
   callCount?: number | null;
   source?: string | null;
+  notebookId?: string | null;
+  notebookName?: string | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  sceneId?: string | null;
+  sceneTitle?: string | null;
+  sceneOrder?: number | null;
+  sceneType?: string | null;
+  operationCode?: string | null;
+  chargeReason?: string | null;
+  serviceLabel?: string | null;
 }): Promise<void> {
   const callCount =
     typeof args.callCount === 'number' && !Number.isNaN(args.callCount)
@@ -403,6 +464,20 @@ export async function chargeCreditsForWebSearch(args: {
     referenceType: 'web_search',
     referenceId: args.route?.trim() || undefined,
     metadata: {
+      notebookId: args.notebookId ?? null,
+      notebookName: args.notebookName ?? null,
+      courseId: args.courseId ?? null,
+      courseName: args.courseName ?? null,
+      sceneId: args.sceneId ?? null,
+      sceneTitle: args.sceneTitle ?? null,
+      sceneOrder:
+        typeof args.sceneOrder === 'number' && Number.isFinite(args.sceneOrder)
+          ? Math.max(0, Math.round(args.sceneOrder))
+          : null,
+      sceneType: args.sceneType ?? null,
+      operationCode: args.operationCode ?? null,
+      chargeReason: args.chargeReason ?? null,
+      serviceLabel: args.serviceLabel ?? null,
       queryPreview: args.query?.trim().slice(0, 200) || null,
       callCount,
       retailMarkupMultiplier: OPENAI_RETAIL_MARKUP_MULTIPLIER,

@@ -161,6 +161,13 @@ export async function POST(req: NextRequest) {
           'notebook.id and notebook.scenes are required',
         );
       }
+      const usageContext = {
+        notebookId: body.notebook.id.trim(),
+        notebookName: body.notebook.name?.trim() || undefined,
+        courseName: body.course?.name?.trim() || undefined,
+        operationCode: 'notebook_chat',
+        chargeReason: '笔记本助手对话',
+      } as const;
 
       const allowWrite = body.options?.allowWrite !== false;
       const purpose = body.course?.purpose;
@@ -186,6 +193,12 @@ export async function POST(req: NextRequest) {
               route: '/api/notebooks/send-message',
               query: q,
               source: 'notebook-prerequisite-search',
+              notebookId: body.notebook.id,
+              notebookName: body.notebook.name,
+              courseName: body.course?.name,
+              operationCode: 'notebook_prerequisite_search',
+              chargeReason: '笔记本助手补充前置知识检索',
+              serviceLabel: 'Tavily Web Search',
             });
           }
         } catch (e) {
@@ -311,13 +324,19 @@ Rules:
 `;
 
       log.info(`Notebook send-message [model=${modelString}]`);
-      const llm = await callLLM(
-        {
-          model,
-          system: systemPrompt,
-          prompt: userPrompt,
-        },
-        'notebook-send-message',
+      const llm = await runWithRequestContext(
+        req,
+        '/api/notebooks/send-message',
+        () =>
+          callLLM(
+            {
+              model,
+              system: systemPrompt,
+              prompt: userPrompt,
+            },
+            'notebook-send-message',
+          ),
+        usageContext,
       );
 
       let parsedRaw: unknown;

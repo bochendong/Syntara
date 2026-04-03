@@ -19,9 +19,22 @@ export async function POST(req: NextRequest) {
   return runWithRequestContext(req, '/api/web-search', async () => {
     try {
       const body = await req.json();
-      const { query, apiKey: clientApiKey } = body as {
+      const { query, apiKey: clientApiKey, usageContext } = body as {
         query?: string;
         apiKey?: string;
+        usageContext?: {
+          notebookId?: string;
+          notebookName?: string;
+          courseId?: string;
+          courseName?: string;
+          sceneId?: string;
+          sceneTitle?: string;
+          sceneOrder?: number;
+          sceneType?: string;
+          operationCode?: string;
+          chargeReason?: string;
+          serviceLabel?: string;
+        };
       };
 
       if (!query || !query.trim()) {
@@ -50,6 +63,17 @@ export async function POST(req: NextRequest) {
         userId: getRequestContext()?.userId,
         route: '/api/web-search',
         query: query.trim(),
+        notebookId: usageContext?.notebookId,
+        notebookName: usageContext?.notebookName,
+        courseId: usageContext?.courseId,
+        courseName: usageContext?.courseName,
+        sceneId: usageContext?.sceneId,
+        sceneTitle: usageContext?.sceneTitle,
+        sceneOrder: usageContext?.sceneOrder,
+        sceneType: usageContext?.sceneType,
+        operationCode: usageContext?.operationCode || 'web_search',
+        chargeReason: usageContext?.chargeReason || '联网搜索',
+        serviceLabel: usageContext?.serviceLabel || 'Tavily Web Search',
       });
 
       return apiSuccess({

@@ -17,6 +17,17 @@ export interface LLMUsagePayload {
   outputTokens?: number | null;
   cachedInputTokens?: number | null;
   totalTokens?: number | null;
+  notebookId?: string | null;
+  notebookName?: string | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  sceneId?: string | null;
+  sceneTitle?: string | null;
+  sceneOrder?: number | null;
+  sceneType?: string | null;
+  operationCode?: string | null;
+  chargeReason?: string | null;
+  serviceLabel?: string | null;
 }
 
 function toInt(value: number | null | undefined): number {
@@ -79,6 +90,17 @@ export async function recordLLMUsage(payload: LLMUsagePayload): Promise<void> {
       route: payload.route,
       source: payload.source,
       modelString: payload.modelString,
+      notebookId: payload.notebookId,
+      notebookName: payload.notebookName,
+      courseId: payload.courseId,
+      courseName: payload.courseName,
+      sceneId: payload.sceneId,
+      sceneTitle: payload.sceneTitle,
+      sceneOrder: payload.sceneOrder,
+      sceneType: payload.sceneType,
+      operationCode: payload.operationCode,
+      chargeReason: payload.chargeReason,
+      serviceLabel: payload.serviceLabel,
     });
   } catch (error) {
     log.warn('Failed to record LLM usage:', error);

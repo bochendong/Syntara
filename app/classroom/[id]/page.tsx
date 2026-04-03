@@ -6,7 +6,7 @@ import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import { loadImageMapping } from '@/lib/utils/image-storage';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -16,6 +16,11 @@ import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
 import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SpeechAction } from '@/lib/types/action';
+import type { PdfImage } from '@/lib/types/generation';
+import { useI18n } from '@/lib/hooks/use-i18n';
+import { useSettingsStore } from '@/lib/store/settings';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const log = createLogger('Classroom');
 
@@ -36,6 +41,7 @@ function summarizeSpeechProgress(scenes: Array<{ actions?: Array<{ type: string 
 export default function ClassroomDetailPage() {
   const params = useParams();
   const classroomId = params?.id as string;
+  const { t, locale } = useI18n();
 
   const { loadFromStorage } = useStageStore();
   const stage = useStageStore((s) => s.stage);
@@ -44,19 +50,156 @@ export default function ClassroomDetailPage() {
   const generatingOutlines = useStageStore((s) => s.generatingOutlines);
   const generationStatus = useStageStore((s) => s.generationStatus);
   const currentSceneId = useStageStore((s) => s.currentSceneId);
+  const setCurrentSceneId = useStageStore((s) => s.setCurrentSceneId);
+  const mediaTasks = useMediaGenerationStore((s) => s.tasks);
+  const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
+  const videoGenerationEnabled = useSettingsStore((s) => s.videoGenerationEnabled);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /** 加载阶段说明；若有进行中的 Agent 任务则轮询写入与总控侧栏一致 */
   const [loadingSubtitle, setLoadingSubtitle] = useState<string>('正在连接服务器并读取笔记本…');
-
-  const generationStartedRef = useRef(false);
+  const [resumeGenerationBusy, setResumeGenerationBusy] = useState(false);
+  const [generateMediaBusy, setGenerateMediaBusy] = useState(false);
 
   const { generateRemaining, retrySingleOutline, stop } = useSceneGenerator({
     onComplete: () => {
       log.info('[Classroom] All scenes generated');
     },
   });
+
+  const pendingOutlineCount = useMemo(() => {
+    const completedOrders = new Set(scenes.map((scene) => scene.order));
+    return outlines.filter((outline) => !completedOrders.has(outline.order)).length;
+  }, [outlines, scenes]);
+
+  const actionableMediaCount = useMemo(() => {
+    let count = 0;
+    for (const outline of outlines) {
+      for (const media of outline.mediaGenerations || []) {
+        if (media.type === 'image' && !imageGenerationEnabled) continue;
+        if (media.type === 'video' && !videoGenerationEnabled) continue;
+        const task = mediaTasks[media.elementId];
+        if (task) continue;
+        count += 1;
+      }
+    }
+    return count;
+  }, [outlines, mediaTasks, imageGenerationEnabled, videoGenerationEnabled]);
+
+  const mediaGenerationInFlight = useMemo(
+    () => Object.values(mediaTasks).some((task) => task.status === 'pending' || task.status === 'generating'),
+    [mediaTasks],
+  );
+
+  const handleResumeGeneration = useCallback(async () => {
+    if (resumeGenerationBusy || generationStatus === 'generating' || !stage) return;
+    if (pendingOutlineCount === 0) {
+      toast.success(
+        locale === 'zh-CN' ? '当前没有待生成页面。' : 'There are no pending slides to generate.',
+      );
+      return;
+    }
+
+    const genParamsStr = sessionStorage.getItem('generationParams');
+    if (!genParamsStr) {
+      toast.error(
+        locale === 'zh-CN'
+          ? '缺少继续生成所需的上下文，请回到创建页重新发起生成。'
+          : 'Missing generation context. Please go back to the creation flow and start generation again.',
+      );
+      return;
+    }
+
+    let params: {
+      pdfImages?: PdfImage[];
+      agents?: unknown[];
+      userProfile?: string;
+      courseContext?: unknown;
+    };
+    try {
+      params = JSON.parse(genParamsStr);
+    } catch {
+      toast.error(
+        locale === 'zh-CN'
+          ? '生成上下文已损坏，请回到创建页重新发起生成。'
+          : 'The saved generation context is invalid. Please start generation again from the creation flow.',
+      );
+      return;
+    }
+
+    setResumeGenerationBusy(true);
+    try {
+      if (currentSceneId == null || currentSceneId === PENDING_SCENE_ID) {
+        setCurrentSceneId(PENDING_SCENE_ID);
+      }
+
+      const storageIds = (params.pdfImages || []).map((img) => img.storageId).filter(Boolean) as string[];
+      const imageMapping = await loadImageMapping(storageIds);
+      await generateRemaining({
+        pdfImages: params.pdfImages,
+        imageMapping,
+        stageInfo: {
+          name: stage.name || '',
+          description: stage.description,
+          language: stage.language,
+          style: stage.style,
+        },
+        agents: params.agents as never,
+        userProfile: params.userProfile,
+        courseContext: params.courseContext as never,
+      });
+    } catch (resumeError) {
+      toast.error(
+        locale === 'zh-CN'
+          ? `继续生成页面失败：${resumeError instanceof Error ? resumeError.message : '未知错误'}`
+          : `Failed to resume slide generation: ${resumeError instanceof Error ? resumeError.message : 'Unknown error'}`,
+      );
+    } finally {
+      setResumeGenerationBusy(false);
+    }
+  }, [
+    currentSceneId,
+    generateRemaining,
+    generationStatus,
+    locale,
+    pendingOutlineCount,
+    resumeGenerationBusy,
+    setCurrentSceneId,
+    stage,
+  ]);
+
+  const handleGenerateMedia = useCallback(async () => {
+    if (generateMediaBusy || mediaGenerationInFlight || !stage) return;
+    if (actionableMediaCount === 0) {
+      toast.success(
+        locale === 'zh-CN'
+          ? '当前没有待生成媒体资源。'
+          : 'There is no pending media to generate.',
+      );
+      return;
+    }
+
+    setGenerateMediaBusy(true);
+    try {
+      await generateMediaForOutlines(outlines, stage.id, stage.name);
+    } catch (mediaError) {
+      toast.error(
+        locale === 'zh-CN'
+          ? `媒体生成失败：${mediaError instanceof Error ? mediaError.message : '未知错误'}`
+          : `Media generation failed: ${mediaError instanceof Error ? mediaError.message : 'Unknown error'}`,
+      );
+    } finally {
+      setGenerateMediaBusy(false);
+    }
+  }, [
+    actionableMediaCount,
+    generateMediaBusy,
+    locale,
+    mediaGenerationInFlight,
+    outlines,
+    stage,
+  ]);
 
   const loadClassroom = useCallback(async () => {
     try {
@@ -201,7 +344,6 @@ export default function ClassroomDetailPage() {
     setLoading(true);
     setError(null);
     setLoadingSubtitle('正在连接服务器并读取笔记本…');
-    generationStartedRef.current = false;
 
     // Clear previous classroom's media tasks to prevent cross-classroom contamination.
     // Placeholder IDs (gen_img_1, gen_vid_1) are NOT globally unique across stages,
@@ -247,74 +389,44 @@ export default function ClassroomDetailPage() {
     };
   }, [loading, error, stage?.courseId]);
 
-  // Auto-resume generation for pending outlines
-  useEffect(() => {
-    if (loading || error || generationStartedRef.current) return;
+  const manualGenerationActions =
+    pendingOutlineCount > 0 ||
+    actionableMediaCount > 0 ||
+    mediaGenerationInFlight ? (
+      <>
+        {pendingOutlineCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => void handleResumeGeneration()}
+            disabled={resumeGenerationBusy || generationStatus === 'generating'}
+            className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-all hover:bg-violet-100 disabled:cursor-wait disabled:opacity-70 dark:border-violet-500/30 dark:bg-violet-950/35 dark:text-violet-200 dark:hover:bg-violet-950/55"
+            title={t('stage.resumePageGenerationTooltip')}
+          >
+            {resumeGenerationBusy || generationStatus === 'generating' ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : null}
+            {t('stage.resumePageGenerationButton')}
+            {pendingOutlineCount > 0 ? ` (${pendingOutlineCount})` : ''}
+          </button>
+        ) : null}
 
-    const state = useStageStore.getState();
-    const { outlines, scenes, stage } = state;
-
-    // Check if there are pending outlines
-    const completedOrders = new Set(scenes.map((s) => s.order));
-    const hasPending = outlines.some((o) => !completedOrders.has(o.order));
-
-    if (hasPending && stage) {
-      generationStartedRef.current = true;
-      log.info('[Classroom] Resuming remaining scene generation', {
-        classroomId,
-        stageId: stage.id,
-        outlineCount: outlines.length,
-        displayedSceneCount: scenes.length,
-        pendingOutlineCount: outlines.filter((o) => !completedOrders.has(o.order)).length,
-        pageGenerationCompleted: false,
-      });
-
-      if (scenes.length === 0 && state.currentSceneId !== PENDING_SCENE_ID) {
-        useStageStore.getState().setCurrentSceneId(PENDING_SCENE_ID);
-      }
-
-      // Load generation params from sessionStorage (stored by generation-preview before navigating)
-      const genParamsStr = sessionStorage.getItem('generationParams');
-      const params = genParamsStr ? JSON.parse(genParamsStr) : {};
-
-      // Reconstruct imageMapping from IndexedDB using pdfImages storageIds
-      const storageIds = (params.pdfImages || [])
-        .map((img: { storageId?: string }) => img.storageId)
-        .filter(Boolean);
-
-      loadImageMapping(storageIds).then((imageMapping) => {
-        generateRemaining({
-          pdfImages: params.pdfImages,
-          imageMapping,
-          stageInfo: {
-            name: stage.name || '',
-            description: stage.description,
-            language: stage.language,
-            style: stage.style,
-          },
-          agents: params.agents,
-          userProfile: params.userProfile,
-          courseContext: params.courseContext,
-        });
-      });
-    } else if (outlines.length > 0 && stage) {
-      // All scenes are generated, but some media may not have finished.
-      // Resume media generation for any tasks not yet in IndexedDB.
-      // generateMediaForOutlines skips already-completed tasks automatically.
-      generationStartedRef.current = true;
-      log.info('[Classroom] Page generation already complete; only media may remain', {
-        classroomId,
-        stageId: stage.id,
-        outlineCount: outlines.length,
-        displayedSceneCount: scenes.length,
-        pendingOutlineCount: 0,
-        pageGenerationCompleted: true,
-      });
-      generateMediaForOutlines(outlines, stage.id).catch((err) => {
-        log.warn('[Classroom] Media generation resume error:', err);
-      });
-    }
-  }, [classroomId, loading, error, generateRemaining]);
+        {(actionableMediaCount > 0 || mediaGenerationInFlight) ? (
+          <button
+            type="button"
+            onClick={() => void handleGenerateMedia()}
+            disabled={generateMediaBusy || mediaGenerationInFlight}
+            className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition-all hover:bg-cyan-100 disabled:cursor-wait disabled:opacity-70 dark:border-cyan-500/30 dark:bg-cyan-950/35 dark:text-cyan-200 dark:hover:bg-cyan-950/55"
+            title={t('stage.generateMediaTooltip')}
+          >
+            {generateMediaBusy || mediaGenerationInFlight ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : null}
+            {t('stage.generateMediaButton')}
+            {actionableMediaCount > 0 ? ` (${actionableMediaCount})` : ''}
+          </button>
+        ) : null}
+      </>
+    ) : null;
 
   return (
     <ThemeProvider>
@@ -347,7 +459,7 @@ export default function ClassroomDetailPage() {
               </div>
             </div>
           ) : (
-            <Stage onRetryOutline={retrySingleOutline} />
+            <Stage onRetryOutline={retrySingleOutline} headerActions={manualGenerationActions} />
           )}
         </div>
       </MediaStageProvider>

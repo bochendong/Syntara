@@ -32,7 +32,18 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   return runWithRequestContext(request, '/api/generate/image', async () => {
     try {
-      const body = (await request.json()) as ImageGenerationOptions;
+      const body = (await request.json()) as ImageGenerationOptions & {
+        notebookContext?: {
+          id?: string;
+          name?: string;
+          courseId?: string;
+          courseName?: string;
+          sceneId?: string;
+          sceneTitle?: string;
+          sceneOrder?: number;
+          sceneType?: string;
+        };
+      };
 
       if (!body.prompt) {
         return apiError('MISSING_REQUIRED_FIELD', 400, 'Missing prompt');
@@ -88,6 +99,17 @@ export async function POST(request: NextRequest) {
           modelId: result.usage?.modelId || clientModel || 'gpt-image-1.5',
           route: '/api/generate/image',
           prompt: body.prompt,
+          notebookId: body.notebookContext?.id,
+          notebookName: body.notebookContext?.name,
+          courseId: body.notebookContext?.courseId,
+          courseName: body.notebookContext?.courseName,
+          sceneId: body.notebookContext?.sceneId,
+          sceneTitle: body.notebookContext?.sceneTitle,
+          sceneOrder: body.notebookContext?.sceneOrder,
+          sceneType: body.notebookContext?.sceneType,
+          operationCode: 'media_image_generation',
+          chargeReason: '生成笔记本媒体图片',
+          serviceLabel: 'OpenAI Image API',
           usage: result.usage,
         });
       }

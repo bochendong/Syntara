@@ -21,6 +21,9 @@ function formatBannerTime(value: string): string {
 
 function NotificationBannerCard({ item }: { item: AppNotification }) {
   const dismissBanner = useNotificationStore((state) => state.dismissBanner);
+  const primaryDetail = item.details.find((detail) =>
+    ['notebook', 'scene', 'model', 'service', 'reason'].includes(detail.key),
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -74,6 +77,11 @@ function NotificationBannerCard({ item }: { item: AppNotification }) {
             <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
               {item.body}
             </p>
+            {primaryDetail ? (
+              <p className="mt-2 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">
+                {primaryDetail.label}: {primaryDetail.value}
+              </p>
+            ) : null}
             <div className="mt-3 flex items-center gap-2">
               <span
                 className={cn(

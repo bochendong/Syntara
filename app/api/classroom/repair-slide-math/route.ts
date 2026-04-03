@@ -545,15 +545,25 @@ async function runRepairAttempt(args: {
 }
 
 export async function POST(req: NextRequest) {
-  return runWithRequestContext(req, '/api/classroom/repair-slide-math', async () => {
+  let body: RepairRequestBody;
+  try {
+    body = (await req.json()) as RepairRequestBody;
+  } catch {
+    return apiError('INVALID_REQUEST', 400, 'Invalid request body');
+  }
+
+  const sceneTitle = body.sceneTitle?.trim() || 'Slide';
+
+  return runWithRequestContext(
+    req,
+    '/api/classroom/repair-slide-math',
+    async () => {
     try {
-      const body = (await req.json()) as RepairRequestBody;
       const content = body.content;
       if (!content || content.type !== 'slide') {
         return apiError('MISSING_REQUIRED_FIELD', 400, 'slide content is required');
       }
 
-      const sceneTitle = body.sceneTitle?.trim() || 'Slide';
       const language = body.language === 'en-US' ? 'en-US' : 'zh-CN';
       const semanticDocument = parseNotebookContentDocument(content.semanticDocument);
       const sourceDocument =
@@ -704,5 +714,19 @@ export async function POST(req: NextRequest) {
         error instanceof Error ? error.message : String(error),
       );
     }
-  });
+    },
+    {
+      notebookId: body.notebookId?.trim() || undefined,
+      notebookName: body.notebookName?.trim() || undefined,
+      sceneId: body.sceneId?.trim() || undefined,
+      sceneTitle,
+      sceneOrder:
+        typeof body.sceneOrder === 'number' && Number.isFinite(body.sceneOrder)
+          ? Math.max(1, Math.round(body.sceneOrder))
+          : undefined,
+      sceneType: 'slide',
+      operationCode: 'slide_repair_math',
+      chargeReason: '修复当前数学页面',
+    },
+  );
 }

@@ -132,15 +132,24 @@ Return a JSON object with this exact structure:
 
     log.info(`Generating agent profiles for "${stageInfo.name}" [model=${modelString}]`);
 
-    const result = await runWithRequestContext(req, '/api/generate/agent-profiles', () =>
-      callLLM(
-        {
-          model: languageModel,
-          system: systemPrompt,
-          prompt: userPrompt,
-        },
-        'agent-profiles',
-      ),
+    const result = await runWithRequestContext(
+      req,
+      '/api/generate/agent-profiles',
+      () =>
+        callLLM(
+          {
+            model: languageModel,
+            system: systemPrompt,
+            prompt: userPrompt,
+          },
+          'agent-profiles',
+        ),
+      {
+        notebookName: stageInfo.name.trim(),
+        courseName: courseContext?.name?.trim() || undefined,
+        operationCode: 'agent_profile_generation',
+        chargeReason: '生成讲解角色',
+      },
     );
 
     // ── Parse LLM response ──

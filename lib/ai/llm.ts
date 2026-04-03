@@ -84,6 +84,17 @@ async function persistUsage(
     outputTokens,
     cachedInputTokens: usage.cachedInputTokens ?? 0,
     totalTokens,
+    notebookId: requestContext?.notebookId,
+    notebookName: requestContext?.notebookName,
+    courseId: requestContext?.courseId,
+    courseName: requestContext?.courseName,
+    sceneId: requestContext?.sceneId,
+    sceneTitle: requestContext?.sceneTitle,
+    sceneOrder: requestContext?.sceneOrder,
+    sceneType: requestContext?.sceneType,
+    operationCode: requestContext?.operationCode,
+    chargeReason: requestContext?.chargeReason,
+    serviceLabel: requestContext?.serviceLabel,
   });
 }
 
