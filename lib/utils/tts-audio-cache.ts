@@ -8,7 +8,7 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('TtsAudioCache');
 
-const DB_NAME = 'openmaic-tts-audio';
+const DB_NAME = 'synatra-tts-audio';
 const STORE = 'clips';
 const DB_VERSION = 2;
 

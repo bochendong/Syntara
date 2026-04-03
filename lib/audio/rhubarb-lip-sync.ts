@@ -58,7 +58,7 @@ async function runCommand(
 
 async function convertAudioToPcm16Khz(audio: Uint8Array, format: string): Promise<Buffer> {
   const ext = inferInputExtension(format);
-  const tempDir = path.join(os.tmpdir(), `openmaic-rhubarb-${randomUUID()}`);
+  const tempDir = path.join(os.tmpdir(), `synatra-rhubarb-${randomUUID()}`);
   const inputPath = path.join(tempDir, `input.${ext}`);
 
   await fs.mkdir(tempDir, { recursive: true });

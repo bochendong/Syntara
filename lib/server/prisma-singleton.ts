@@ -2,9 +2,9 @@ import { PrismaClient } from '@prisma/client';
 
 declare global {
   // eslint-disable-next-line no-var -- reused across HMR in dev
-  var __openmaicPrisma__: PrismaClient | undefined;
+  var __synatraPrisma__: PrismaClient | undefined;
   // eslint-disable-next-line no-var
-  var __openmaicPrismaUrl__: string | undefined;
+  var __synatraPrismaUrl__: string | undefined;
 }
 
 function requireDatabaseUrl(): string {
@@ -31,15 +31,15 @@ export function getOrCreatePrisma(): PrismaClient {
   // 开发时 HMR 可能让模块重载，但 global 上仍挂着「旧连接串」下创建的 Client，导致
   // `User was denied access on the database (not available)` 等异常；URL 变化则重建。
   if (process.env.NODE_ENV !== 'production') {
-    if (global.__openmaicPrisma__ && global.__openmaicPrismaUrl__ !== url) {
-      void global.__openmaicPrisma__.$disconnect().catch(() => {});
-      global.__openmaicPrisma__ = undefined;
+    if (global.__synatraPrisma__ && global.__synatraPrismaUrl__ !== url) {
+      void global.__synatraPrisma__.$disconnect().catch(() => {});
+      global.__synatraPrisma__ = undefined;
     }
-    global.__openmaicPrismaUrl__ = url;
+    global.__synatraPrismaUrl__ = url;
   }
 
-  if (!global.__openmaicPrisma__) {
-    global.__openmaicPrisma__ = createClient(url);
+  if (!global.__synatraPrisma__) {
+    global.__synatraPrisma__ = createClient(url);
   }
-  return global.__openmaicPrisma__;
+  return global.__synatraPrisma__;
 }

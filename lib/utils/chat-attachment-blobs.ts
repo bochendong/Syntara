@@ -1,6 +1,6 @@
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 
-const DB_NAME = 'openmaic-chat-attachments';
+const DB_NAME = 'synatra-chat-attachments';
 const DB_VERSION = 1;
 const STORE = 'blobs';
 

@@ -21,7 +21,7 @@ The app requires at least one LLM provider API key in `.env.local` (e.g. `OPENAI
 
 ### Environment file
 
-Copy `.env.example` to `.env.local`. At minimum, set one LLM provider key. PostgreSQL (`DATABASE_URL`) is optional — without it, the `/api/courses` endpoint returns 500 but the app's local-first mode still works via `/create?courseId=openmaic-legacy-course`.
+Copy `.env.example` to `.env.local`. At minimum, set one LLM provider key. PostgreSQL (`DATABASE_URL`) is optional — without it, the `/api/courses` endpoint returns 500 but the app's local-first mode still works via `/create?courseId=synatra-legacy-course`.
 
 ### Prisma client
 
@@ -43,4 +43,4 @@ The codebase has pre-existing lint/format warnings; these are not caused by agen
 - `pnpm install` shows warnings about ignored build scripts (prisma, sharp, etc.) — these are expected due to `pnpm.ignoredBuiltDependencies` in `package.json`.
 - There are no automated test suites in this project (no test framework in devDependencies). Verification is done via lint, type check, and manual testing.
 - The login page uses a local demo mode when OAuth providers aren't configured — enter any name/email to proceed.
-- To bypass the database-dependent course creation flow, navigate directly to `/create?courseId=openmaic-legacy-course`.
+- To bypass the database-dependent course creation flow, navigate directly to `/create?courseId=synatra-legacy-course`.

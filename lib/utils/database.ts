@@ -26,7 +26,7 @@ export interface Snapshot {
 }
 
 /**
- * MAIC Local Database
+ * Synatra Local Database
  *
  * Uses IndexedDB to store all user data locally
  * - Does not delete expired data; all data is stored permanently
@@ -250,13 +250,13 @@ export function mediaFileKey(stageId: string, elementId: string): string {
 
 // ==================== Database Definition ====================
 
-const DATABASE_NAME = 'MAIC-Database';
+const DATABASE_NAME = 'Synatra-Database';
 const _DATABASE_VERSION = 9;
 
 /**
- * MAIC Database Instance
+ * Synatra Database Instance
  */
-class MAICDatabase extends Dexie {
+class SynatraDatabase extends Dexie {
   // Table definitions
   courses!: EntityTable<CourseRecord, 'id'>;
   stages!: EntityTable<StageRecord, 'id'>;
@@ -492,7 +492,7 @@ class MAICDatabase extends Dexie {
 }
 
 // Create database instance
-export const db = new MAICDatabase();
+export const db = new SynatraDatabase();
 
 // ==================== Helper Functions ====================
 
@@ -577,7 +577,7 @@ export async function deleteStageWithRelatedData(stageId: string): Promise<void>
   const headers: Record<string, string> = {};
   if (typeof window !== 'undefined') {
     try {
-      const raw = localStorage.getItem('openmaic-auth');
+      const raw = localStorage.getItem('synatra-auth');
       if (raw) {
         const parsed = JSON.parse(raw) as { state?: { userId?: string } };
         const uid = parsed?.state?.userId?.trim();

@@ -21,7 +21,7 @@ fi
 if ! grep -qE '^DATABASE_URL=.+' .env.local; then
   echo "错误: .env.local 中未设置 DATABASE_URL。"
   echo "示例（本机 Homebrew，用户名为你的 macOS 登录名）:"
-  echo "  DATABASE_URL=\"postgresql://你的用户名@localhost:5432/openmaic\""
+  echo "  DATABASE_URL=\"postgresql://你的用户名@localhost:5432/synatra\""
   exit 1
 fi
 

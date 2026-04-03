@@ -11,7 +11,7 @@ import type { ChatSessionRecord } from './database';
 
 /** Maximum messages per session to avoid IndexedDB bloat */
 const MAX_MESSAGES_PER_SESSION = 200;
-const KEY_PREFIX = 'openmaic-chat-sessions:';
+const KEY_PREFIX = 'synatra-chat-sessions:';
 
 function readStageSessions(stageId: string): ChatSessionRecord[] {
   if (typeof window === 'undefined') return [];

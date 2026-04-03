@@ -4,11 +4,11 @@ import type { Action, SpeechAction } from '@/lib/types/action';
 
 const log = createLogger('StageDraftSnapshot');
 
-const DB_NAME = 'openmaic-stage-drafts';
+const DB_NAME = 'synatra-stage-drafts';
 const DB_VERSION = 1;
 const STORE = 'drafts';
-const STAGE_DRAFT_KEY_PREFIX = 'openmaic-stage-draft:';
-const STAGE_DRAFT_PERSISTENT_KEY_PREFIX = 'openmaic-stage-draft-persistent:';
+const STAGE_DRAFT_KEY_PREFIX = 'synatra-stage-draft:';
+const STAGE_DRAFT_PERSISTENT_KEY_PREFIX = 'synatra-stage-draft-persistent:';
 
 type StageDraftRecord = {
   id: string;

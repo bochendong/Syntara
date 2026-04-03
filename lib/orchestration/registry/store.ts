@@ -324,7 +324,7 @@ export function agentsToParticipants(
   return participants;
 }
 
-const GENERATED_AGENTS_KEY_PREFIX = 'openmaic-generated-agents:';
+const GENERATED_AGENTS_KEY_PREFIX = 'synatra-generated-agents:';
 
 function readGeneratedAgents(stageId: string): Array<{
   id: string;

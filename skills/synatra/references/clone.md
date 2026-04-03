@@ -21,8 +21,8 @@ Establish which Syntara checkout will be used for setup and runtime actions.
 Clone:
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone https://github.com/synatra/synatra.git
+cd synatra
 ```
 
 Install dependencies:

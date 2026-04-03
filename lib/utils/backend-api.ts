@@ -11,7 +11,7 @@ type PersistedAuthState = {
 function readAuthFromPersistedStore(): { userId: string; email: string; name: string } {
   if (typeof window === 'undefined') return { userId: '', email: '', name: '' };
   try {
-    const raw = localStorage.getItem('openmaic-auth');
+    const raw = localStorage.getItem('synatra-auth');
     if (!raw) return { userId: '', email: '', name: '' };
     const parsed = JSON.parse(raw) as PersistedAuthState;
     return {

@@ -41,6 +41,6 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       setIncludeQuizScenes: (includeQuizScenes) => set({ includeQuizScenes }),
       setUseAiImages: (useAiImages) => set({ useAiImages }),
     }),
-    { name: 'openmaic-orchestrator-nb-gen' },
+    { name: 'synatra-orchestrator-nb-gen' },
   ),
 );

@@ -12,7 +12,7 @@ export interface AdminIdentity {
   name?: string;
 }
 
-export const ADMIN_SESSION_COOKIE = 'openmaic-admin-session';
+export const ADMIN_SESSION_COOKIE = 'synatra-admin-session';
 
 function buildFallbackUserId(email: string): string {
   const safe = email.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');

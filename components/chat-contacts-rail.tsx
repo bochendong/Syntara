@@ -83,8 +83,8 @@ function GroupChatThumb() {
   );
 }
 
-const NOTEBOOK_CHAT_PREVIEW_EVENT = 'openmaic-notebook-chat-updated';
-const NOTEBOOK_LIST_UPDATED_EVENT = 'openmaic-notebook-list-updated';
+const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
+const NOTEBOOK_LIST_UPDATED_EVENT = 'synatra-notebook-list-updated';
 
 function matchesContactSearch(
   needle: string,

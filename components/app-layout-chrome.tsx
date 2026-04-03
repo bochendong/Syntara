@@ -9,7 +9,7 @@ import { ChatRightRail } from '@/components/chat-right-rail';
 /** 与 notebook-agent-sidebar 抽屉宽度一致：展开 270px / 收起 88px，侧栏 inset left-4 / right-4 各 16px */
 const SIDEBAR_GAP = 12;
 
-const CHAT_RIGHT_RAIL_STORAGE_KEY = 'openmaic-chat-right-rail-collapsed';
+const CHAT_RIGHT_RAIL_STORAGE_KEY = 'synatra-chat-right-rail-collapsed';
 
 function railOuterPaddingPx(collapsed: boolean): number {
   const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : 270;

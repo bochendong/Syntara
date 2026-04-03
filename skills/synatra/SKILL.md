@@ -1,11 +1,11 @@
 ---
-name: openmaic
+name: synatra
 description: Guided SOP for setting up and using Syntara from OpenClaw. Use when the user wants to clone the Syntara repo, choose a startup mode, configure recommended API keys, start the service, or generate a classroom from requirements or a PDF. Run one phase at a time and ask for confirmation before each state-changing step.
 user-invocable: true
 metadata: { "openclaw": { "emoji": "🏫" } }
 ---
 
-# Syntara Skill (ClawHub id: `openmaic`)
+# Syntara Skill (ClawHub id: `synatra`)
 
 Use this as a guided, confirmation-heavy SOP. Do not compress the whole setup into one reply and do not perform state-changing actions without explicit user confirmation.
 
@@ -32,11 +32,11 @@ If present, read defaults from `~/.openclaw/openclaw.json` under:
 {
   "skills": {
     "entries": {
-      "openmaic": {
+      "synatra": {
         "enabled": true,
         "config": {
           "accessCode": "sk-xxx",
-          "repoDir": "/path/to/OpenMAIC",
+          "repoDir": "/path/to/synatra",
           "url": "http://localhost:3000"
         }
       }
@@ -57,7 +57,7 @@ First check skill config for `accessCode`. If present, announce that a stored ac
 
 If no `accessCode` in config, ask the user how they want to use Syntara:
 
-1. **Use hosted Syntara** (recommended for quick start) — Requires an access code from the operator's hosted URL (e.g. open.maic.chat if applicable). No local setup needed.
+1. **Use hosted Syntara** (recommended for quick start) — Requires an access code from the operator's hosted URL (e.g. https://app.synatra.dev if applicable). No local setup needed.
 2. **Run locally** — Clone the repo, configure provider keys, and run on your machine.
 
 If the user chooses hosted mode, load [references/hosted-mode.md](references/hosted-mode.md) and skip phases 1–4.

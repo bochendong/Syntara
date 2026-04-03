@@ -2,7 +2,7 @@ import type { CommunityCourseListItem, CoursePurpose, CourseRecord } from '@/lib
 import { backendJson } from '@/lib/utils/backend-api';
 
 /** 已切换到后端数据库；保留常量兼容旧代码引用 */
-export const LEGACY_COURSE_ID = 'openmaic-legacy-course';
+export const LEGACY_COURSE_ID = 'synatra-legacy-course';
 
 /** IndexedDB 迁移逻辑已停用 */
 export async function ensureLegacyCourseBucket(): Promise<void> {}

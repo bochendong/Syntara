@@ -171,7 +171,7 @@ function shouldOfferMicroLessonButton(text: string): boolean {
   return lines.length >= 18;
 }
 
-const NOTEBOOK_CHAT_PREVIEW_EVENT = 'openmaic-notebook-chat-updated';
+const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
 
 type NotebookRouteDecision =
   | { type: 'create' }
@@ -1747,7 +1747,7 @@ export function ChatPageClient() {
         });
         if (cancelled) return;
         window.dispatchEvent(
-          new CustomEvent('openmaic-notebook-chat-updated', {
+          new CustomEvent('synatra-notebook-chat-updated', {
             detail: { courseId, notebookId },
           }),
         );
@@ -1910,7 +1910,7 @@ export function ChatPageClient() {
             setOrchestratorRemoteTask(null);
             if (courseId && nid) {
               window.dispatchEvent(
-                new CustomEvent('openmaic-notebook-list-updated', {
+                new CustomEvent('synatra-notebook-list-updated', {
                   detail: { courseId, notebookId: nid },
                 }),
               );
@@ -2707,7 +2707,7 @@ export function ChatPageClient() {
           });
           if (courseId) {
             window.dispatchEvent(
-              new CustomEvent('openmaic-notebook-list-updated', {
+              new CustomEvent('synatra-notebook-list-updated', {
                 detail: { courseId, notebookId: created.stage.id },
               }),
             );

@@ -1,5 +1,5 @@
-const STORAGE_KEY = 'openmaic-apply-notebook-writes';
-const CHANGE_EVENT = 'openmaic-apply-notebook-writes-changed';
+const STORAGE_KEY = 'synatra-apply-notebook-writes';
+const CHANGE_EVENT = 'synatra-apply-notebook-writes-changed';
 
 export function getStoredApplyNotebookWrites(): boolean {
   if (typeof window === 'undefined') return true;

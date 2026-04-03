@@ -23,7 +23,7 @@ export type ProtocolAttachment = {
 };
 
 export type ProtocolMessageEnvelope<TPayload = Record<string, unknown>> = {
-  protocol: 'openmaic.a2a.v1';
+  protocol: 'synatra.a2a.v1';
   messageId: string;
   conversationId: string;
   parentMessageId?: string;

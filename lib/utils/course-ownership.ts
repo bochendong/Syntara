@@ -1,4 +1,4 @@
-const OWNERSHIP_STORAGE_KEY = 'openmaic-course-ownership-v1';
+const OWNERSHIP_STORAGE_KEY = 'synatra-course-ownership-v1';
 
 type OwnershipMap = Record<string, string[]>;
 

@@ -7,7 +7,7 @@ import { nanoid } from 'nanoid';
 
 type MemoryEntry = { kind: 'image' | 'source'; value: string | Blob; createdAt: number };
 const memoryStore = new Map<string, MemoryEntry>();
-const SESSION_PREFIX = 'openmaic-image-storage:';
+const SESSION_PREFIX = 'synatra-image-storage:';
 
 function isStorageQuotaError(e: unknown): boolean {
   return (

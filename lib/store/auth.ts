@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: 'openmaic-auth',
+      name: 'synatra-auth',
       version: 1,
       migrate: (persisted, fromVersion) => {
         const p = (persisted ?? {}) as Partial<AuthState>;

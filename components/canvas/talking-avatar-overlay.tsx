@@ -54,7 +54,7 @@ declare global {
   interface Window {
     PIXI?: PixiModule;
     Live2DCubismCore?: unknown;
-    __openmaicLive2DCorePromise?: Promise<void>;
+    __synatraLive2DCorePromise?: Promise<void>;
   }
 }
 
@@ -663,9 +663,9 @@ async function ensureCubismCore() {
   if (typeof window === 'undefined') return;
   if (window.Live2DCubismCore) return;
 
-  if (!window.__openmaicLive2DCorePromise) {
-    window.__openmaicLive2DCorePromise = new Promise<void>((resolve, reject) => {
-      const existing = document.querySelector<HTMLScriptElement>('script[data-openmaic-live2d]');
+  if (!window.__synatraLive2DCorePromise) {
+    window.__synatraLive2DCorePromise = new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-synatra-live2d]');
 
       if (existing) {
         existing.addEventListener('load', () => resolve(), { once: true });
@@ -677,16 +677,16 @@ async function ensureCubismCore() {
 
       const script = document.createElement('script');
       script.async = true;
-      script.dataset.openmaicLive2d = 'true';
+      script.dataset.synatraLive2d = 'true';
       script.src = LIVE2D_CORE_SRC;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Cubism core failed to load'));
       document.head.appendChild(script);
     }).catch((error) => {
-      window.__openmaicLive2DCorePromise = undefined;
+      window.__synatraLive2DCorePromise = undefined;
       throw error;
     });
   }
 
-  await window.__openmaicLive2DCorePromise;
+  await window.__synatraLive2DCorePromise;
 }

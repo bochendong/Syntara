@@ -5,7 +5,7 @@
  * position (sceneIndex + actionIndex) and consumed discussions.
  */
 
-const KEY_PREFIX = 'openmaic-playback:';
+const KEY_PREFIX = 'synatra-playback:';
 
 export interface PlaybackSnapshot {
   sceneIndex: number;

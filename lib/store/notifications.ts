@@ -179,7 +179,7 @@ export const useNotificationStore = create<NotificationStoreState>()(
         })),
     }),
     {
-      name: 'openmaic-notifications',
+      name: 'synatra-notifications',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         readByUser: state.readByUser,

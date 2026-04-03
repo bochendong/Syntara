@@ -5,7 +5,7 @@ import type { QuizCodeReport } from '@/lib/types/stage';
  * Keyed by localStorage: stageId + userId.
  */
 
-const STORAGE_PREFIX = 'openmaic-quiz-q-v1';
+const STORAGE_PREFIX = 'synatra-quiz-q-v1';
 
 export type QuizQuestionProgressStatus = 'correct' | 'incorrect';
 
