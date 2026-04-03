@@ -10,7 +10,7 @@ import { useMediaGenerationStore, isMediaPlaceholder } from '@/lib/store/media-g
 import { useSettingsStore } from '@/lib/store/settings';
 import { useMediaStageId } from '@/lib/contexts/media-stage-context';
 import { retryMediaTask } from '@/lib/media/media-orchestrator';
-import { RotateCcw, Paintbrush, ShieldAlert, ImageOff } from 'lucide-react';
+import { RotateCcw, Paintbrush, ShieldAlert, ImageOff, ImageIcon } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { mediaPlaceholderUi } from '../media-placeholder-ui';
 
@@ -31,9 +31,9 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   // Only subscribe to media store when inside a classroom (stageId provided via context).
   // Homepage thumbnails have no stageId context → skip store to prevent cross-course contamination.
   const stageId = useMediaStageId();
-  const isPlaceholder = !!stageId && isMediaPlaceholder(elementInfo.src);
+  const isPlaceholder = isMediaPlaceholder(elementInfo.src);
   const task = useMediaGenerationStore((s) => {
-    if (!isPlaceholder) return undefined;
+    if (!isPlaceholder || !stageId) return undefined;
     const t = s.tasks[elementInfo.src];
     // Only use task if it belongs to the current stage
     if (t && t.stageId !== stageId) return undefined;
@@ -42,13 +42,16 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
 
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
   // Resolve actual src: use objectUrl from store if available, otherwise original src
-  const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
+  const resolvedSrc =
+    task?.status === 'done' && task.objectUrl
+      ? task.objectUrl
+      : isPlaceholder
+        ? ''
+        : elementInfo.src;
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
-  const showSkeleton =
-    isPlaceholder &&
-    !showDisabled &&
-    (!task || task.status === 'pending' || task.status === 'generating');
+  const showSkeleton = isPlaceholder && !showDisabled && !!task && task.status !== 'done' && task.status !== 'failed';
   const showError = isPlaceholder && task?.status === 'failed';
+  const showIdle = isPlaceholder && !showDisabled && !showSkeleton && !showError && !resolvedSrc;
 
   return (
     <div
@@ -124,6 +127,10 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     {t('settings.mediaRetry')}
                   </button>
                 )}
+              </div>
+            ) : showIdle ? (
+              <div className={mediaPlaceholderUi.imageIdleWrap}>
+                <ImageIcon className={mediaPlaceholderUi.imageIdleIcon} strokeWidth={1.5} />
               </div>
             ) : resolvedSrc ? (
               <>

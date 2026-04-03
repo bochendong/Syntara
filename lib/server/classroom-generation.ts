@@ -22,8 +22,6 @@ import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
 import { persistClassroom } from '@/lib/server/classroom-storage';
 import {
-  generateMediaForClassroom,
-  replaceMediaPlaceholders,
   generateTTSForClassroom,
 } from '@/lib/server/classroom-media-generation';
 import type { UserRequirements } from '@/lib/types/generation';
@@ -358,25 +356,6 @@ export async function generateClassroom(
 
   if (scenes.length === 0) {
     throw new Error('No scenes were generated');
-  }
-
-  // Phase: Media generation (after all scenes generated)
-  if (input.enableImageGeneration || input.enableVideoGeneration) {
-    await options.onProgress?.({
-      step: 'generating_media',
-      progress: 90,
-      message: 'Generating media files',
-      scenesGenerated: scenes.length,
-      totalScenes: outlines.length,
-    });
-
-    try {
-      const mediaMap = await generateMediaForClassroom(outlines, stageId, options.baseUrl);
-      replaceMediaPlaceholders(scenes, mediaMap);
-      log.info(`Media generation complete: ${Object.keys(mediaMap).length} files`);
-    } catch (err) {
-      log.warn('Media generation phase failed, continuing:', err);
-    }
   }
 
   // Phase: TTS generation

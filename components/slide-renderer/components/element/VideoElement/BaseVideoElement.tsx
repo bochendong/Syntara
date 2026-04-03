@@ -43,10 +43,7 @@ export function BaseVideoElement({ elementInfo }: BaseVideoElementProps) {
   const videoGenerationEnabled = useSettingsStore((s) => s.videoGenerationEnabled);
   const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
   const showDisabled = isPlaceholder && !task && !videoGenerationEnabled;
-  const showSkeleton =
-    isPlaceholder &&
-    !showDisabled &&
-    (!task || task.status === 'pending' || task.status === 'generating');
+  const showSkeleton = isPlaceholder && !showDisabled && !!task && task.status !== 'done' && task.status !== 'failed';
   const showError = isPlaceholder && task?.status === 'failed';
   const isReady = !isPlaceholder || task?.status === 'done';
 

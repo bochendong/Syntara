@@ -17,6 +17,9 @@ export const mediaPlaceholderUi = {
     'flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[#c2410c] dark:text-[#fdba74]',
   retryBtn:
     'flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-[10px] border border-red-300/55 dark:border-red-500/35 text-red-700 dark:text-red-300 bg-white/90 dark:bg-white/[0.06] hover:bg-red-50/90 dark:hover:bg-red-950/35 transition-colors',
+  imageIdleWrap:
+    'w-full h-full flex items-center justify-center rounded-[12px] border border-black/[0.05] dark:border-white/[0.08] bg-slate-100/65 dark:bg-white/[0.03]',
+  imageIdleIcon: 'w-10 h-10 text-[#86868b] dark:text-[#636366]',
   videoIdleWrap:
     'w-full h-full flex items-center justify-center rounded-[12px] border border-black/[0.05] dark:border-white/[0.08] bg-black/[0.035] dark:bg-white/[0.03]',
   videoIdleIcon: 'w-12 h-12 text-[#86868b] dark:text-[#636366]',
