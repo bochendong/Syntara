@@ -902,8 +902,8 @@ export function Stage({
     setSceneSidebarAskThread(thread);
   }, []);
 
+  /** 侧栏提问框聚焦：切到聊天 Tab、暂停讲解，但不自动展开右侧聊天区（避免一点输入框就「弹开」右栏；发送时仍会展开）。 */
   const handleSidebarInputActivate = useCallback(async () => {
-    setChatAreaCollapsed(false);
     chatAreaRef.current?.switchToTab('chat');
 
     if (chatIsStreaming) {
@@ -914,7 +914,7 @@ export function Stage({
     if (engineRef.current && (mode === 'playing' || mode === 'live')) {
       engineRef.current.pause();
     }
-  }, [chatIsStreaming, doSoftPause, setChatAreaCollapsed]);
+  }, [chatIsStreaming, doSoftPause]);
 
   const handleSidebarQuestionSend = useCallback(
     (msg: string) => {

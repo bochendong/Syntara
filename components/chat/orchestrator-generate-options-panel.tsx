@@ -23,9 +23,13 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import type { CoursePurpose } from '@/lib/utils/database';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDownIcon } from 'lucide-react';
 import type { NotebookGenerationModelStage } from '@/lib/constants/notebook-generation-model-stages';
 import {
   NOTEBOOK_MODEL_PRESET_FULL,
+  NOTEBOOK_MODEL_PRESET_MINI,
+  NOTEBOOK_MODEL_RECOMMENDED_BY_STAGE,
   type NotebookGenerationModelMode,
 } from '@/lib/constants/notebook-generation-model-presets';
 
@@ -85,6 +89,7 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
 
   const notebookModelMode = useOrchestratorNotebookGenStore((s) => s.notebookModelMode);
   const setNotebookModelMode = useOrchestratorNotebookGenStore((s) => s.setNotebookModelMode);
+  const modelIdOverride = useOrchestratorNotebookGenStore((s) => s.modelIdOverride);
   const setModelIdOverride = useOrchestratorNotebookGenStore((s) => s.setModelIdOverride);
   const notebookStageModelOverrides = useOrchestratorNotebookGenStore((s) => s.notebookStageModelOverrides);
   const setNotebookStageModelOverride = useOrchestratorNotebookGenStore(
@@ -126,20 +131,16 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
     };
   }, [courseId, setIncludeQuizScenes, setWorkedExampleLevel]);
 
+  const defaultModelDisplay = modelIdOverride?.trim() || currentModelId;
+
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto px-0.5 pb-2', className)}>
       <div className="flex flex-col gap-3 rounded-xl border border-slate-900/[0.06] bg-white/40 p-3 dark:border-white/[0.08] dark:bg-black/20">
         <FieldBlock label="模型策略">
-          <div className="w-full">
+          <div className="w-full space-y-1.5">
             <Select
               value={notebookModelMode}
-              onValueChange={(v) => {
-                const mode = v as NotebookGenerationModelMode;
-                if (mode === 'custom') {
-                  setModelIdOverride(null);
-                }
-                setNotebookModelMode(mode);
-              }}
+              onValueChange={(v) => setNotebookModelMode(v as NotebookGenerationModelMode)}
             >
               <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
                 <SelectValue />
@@ -156,47 +157,119 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
                 </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              仅影响这次 notebook 创建；服务端仍使用系统托管 OpenAI Key。
+            </p>
           </div>
         </FieldBlock>
 
+        {notebookModelMode === 'recommended' && (
+          <div className="space-y-1.5 rounded-lg border border-slate-900/[0.06] bg-white/30 p-2.5 dark:border-white/[0.08] dark:bg-black/15">
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              已按步骤预配：关键内容用 <span className="font-mono text-foreground/85">{NOTEBOOK_MODEL_PRESET_FULL}</span>
+              ，低成本步骤用 <span className="font-mono text-foreground/85">{NOTEBOOK_MODEL_PRESET_MINI}</span>。
+            </p>
+            <ul className="list-inside list-disc space-y-0.5 text-[10px] text-muted-foreground">
+              {NOTEBOOK_STAGE_ORDER.map((stage) => (
+                <li key={stage}>
+                  {NOTEBOOK_STAGE_MODEL_LABELS[stage]}：
+                  <span className="font-mono text-foreground/80">
+                    {NOTEBOOK_MODEL_RECOMMENDED_BY_STAGE[stage]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {notebookModelMode === 'max' && (
+          <div className="rounded-lg border border-slate-900/[0.06] bg-white/30 p-2.5 dark:border-white/[0.08] dark:bg-black/15">
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              标题、角色、大纲、页面与口播等步骤均使用{' '}
+              <span className="font-mono text-foreground/85">{NOTEBOOK_MODEL_PRESET_FULL}</span>
+              ，不使用 mini。下方默认与分阶段选择在 Max 模式下不会生效。
+            </p>
+          </div>
+        )}
+
         {notebookModelMode === 'custom' && (
-          <FieldBlock label="分阶段模型">
-            <div className="flex w-full flex-col gap-2.5">
-              {NOTEBOOK_STAGE_ORDER.map((stage) => {
-                const picked = notebookStageModelOverrides[stage]?.trim() || null;
-                return (
-                  <div key={stage} className="flex flex-col gap-1">
-                    <Label className="text-[10px] font-medium text-muted-foreground">
-                      {NOTEBOOK_STAGE_MODEL_LABELS[stage]}
-                    </Label>
-                    <Select
-                      value={picked ?? FOLLOW_CURRENT_MODEL}
-                      onValueChange={(value) => {
-                        setNotebookStageModelOverride(
-                          stage,
-                          value === FOLLOW_CURRENT_MODEL ? null : value,
-                        );
-                      }}
-                    >
-                      <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={FOLLOW_CURRENT_MODEL}>
-                          跟随当前模型（{currentModelId}）
-                        </SelectItem>
-                        {openaiModels.map((model) => (
-                          <SelectItem key={`${stage}-${model.id}`} value={model.id}>
-                            {model.id}
+          <>
+            <FieldBlock label="默认模型">
+              <div className="w-full space-y-1.5">
+                <Select
+                  value={modelIdOverride ?? FOLLOW_CURRENT_MODEL}
+                  onValueChange={(value) => {
+                    setModelIdOverride(value === FOLLOW_CURRENT_MODEL ? null : value);
+                  }}
+                >
+                  <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={FOLLOW_CURRENT_MODEL}>
+                      跟随当前模型（{currentModelId}）
+                    </SelectItem>
+                    {openaiModels.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  未在分阶段中单独指定的步骤使用此处模型。
+                </p>
+              </div>
+            </FieldBlock>
+
+            <Collapsible
+              defaultOpen={false}
+              className="w-full rounded-lg border border-slate-900/[0.06] bg-white/30 p-2 dark:border-white/[0.08] dark:bg-black/15"
+            >
+              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-black/[0.03] dark:hover:bg-white/[0.06]">
+                <span className="text-[11px] font-semibold text-foreground/90">分阶段模型（可选）</span>
+                <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-2.5 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0">
+                <p className="px-1 text-[10px] leading-relaxed text-muted-foreground">
+                  为各步骤单独选模型；选「跟随默认」则使用上方默认（{defaultModelDisplay}）。
+                </p>
+                {NOTEBOOK_STAGE_ORDER.map((stage) => {
+                  const picked = notebookStageModelOverrides[stage]?.trim() || null;
+                  return (
+                    <div key={stage} className="flex flex-col gap-1 px-0.5">
+                      <Label className="text-[10px] font-medium text-muted-foreground">
+                        {NOTEBOOK_STAGE_MODEL_LABELS[stage]}
+                      </Label>
+                      <Select
+                        value={picked ?? FOLLOW_CURRENT_MODEL}
+                        onValueChange={(value) => {
+                          setNotebookStageModelOverride(
+                            stage,
+                            value === FOLLOW_CURRENT_MODEL ? null : value,
+                          );
+                        }}
+                      >
+                        <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={FOLLOW_CURRENT_MODEL}>
+                            跟随默认（{defaultModelDisplay}）
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-          </FieldBlock>
+                          {openaiModels.map((model) => (
+                            <SelectItem key={`${stage}-${model.id}`} value={model.id}>
+                              {model.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          </>
         )}
 
         <FieldBlock label="课程语言">
