@@ -30,12 +30,6 @@ type UserBalances = {
   purchaseCreditsBalance: number;
 };
 
-const ACCOUNT_BALANCE_FIELD: Record<CreditAccountType, BalanceField> = {
-  CASH: 'creditsBalance',
-  COMPUTE: 'computeCreditsBalance',
-  PURCHASE: 'purchaseCreditsBalance',
-};
-
 const ACCOUNT_INIT_CONFIG: Array<{
   accountType: CreditAccountType;
   defaultAmount: number;
@@ -90,7 +84,9 @@ interface ChargeCreditsForUsdArgs {
 }
 
 function getBalanceField(accountType: CreditAccountType): BalanceField {
-  return ACCOUNT_BALANCE_FIELD[accountType];
+  if (accountType === 'CASH') return 'creditsBalance';
+  if (accountType === 'PURCHASE') return 'purchaseCreditsBalance';
+  return 'computeCreditsBalance';
 }
 
 function getBalance(user: UserBalances, accountType: CreditAccountType): number {
