@@ -21,10 +21,7 @@ import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
-import {
-  creditsFromPriceCents,
-  formatPurchaseCreditsLabel,
-} from '@/lib/utils/credits';
+import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/credits';
 
 type StoreNotebook = {
   id: string;
@@ -38,6 +35,9 @@ type StoreNotebook = {
   clonedNotebookId: string | null;
   updatedAt: string;
   createdAt: string;
+  speechReadyCount?: number;
+  speechTotalCount?: number;
+  speechStatus?: 'no_speech' | 'ready' | 'pending';
   _count: { scenes: number };
 };
 
@@ -56,6 +56,9 @@ type StoreCourseDetailResponse = {
     ownerName: string;
     averageRating: number;
     reviewCount: number;
+    speechReadyCount?: number;
+    speechTotalCount?: number;
+    speechStatus?: 'no_speech' | 'ready' | 'pending';
     purchased: boolean;
     clonedCourseId: string | null;
     notebooks: StoreNotebook[];
@@ -101,7 +104,31 @@ function buildHighlights(course: StoreCourseDetailResponse['course']) {
           ? `当前评分 ${course.averageRating.toFixed(1)}，已有 ${course.reviewCount} 条学习反馈。`
           : '当前还没有评论，适合成为第一批使用并留下反馈的学习者。',
     },
+    {
+      title: '语音状态',
+      description:
+        course.speechStatus === 'ready'
+          ? '这门课程已附带原始语音，购买后可以直接使用。'
+          : course.speechStatus === 'pending'
+            ? `当前已有 ${course.speechReadyCount ?? 0}/${course.speechTotalCount ?? 0} 条语音就绪；其余部分可在购买后继续生成。`
+            : '当前未附带原始语音，购买后可自行生成。',
+    },
   ];
+}
+
+function speechStatusLabel(
+  item: Pick<
+    StoreCourseDetailResponse['course'],
+    'speechStatus' | 'speechReadyCount' | 'speechTotalCount'
+  >,
+) {
+  if (item.speechStatus === 'ready') return '附带原始语音';
+  if (item.speechStatus === 'pending') {
+    return item.speechTotalCount
+      ? `部分语音待生成 ${item.speechReadyCount ?? 0}/${item.speechTotalCount}`
+      : '部分语音待生成';
+  }
+  return '需自行生成语音';
 }
 
 export default function StoreCourseDetailPage() {
@@ -164,9 +191,7 @@ export default function StoreCourseDetailPage() {
   }, [currentCourseId]);
 
   const priceLabel = useMemo(() => {
-    return formatPurchaseCreditsLabel(
-      creditsFromPriceCents(data?.course.coursePriceCents ?? 0),
-    );
+    return formatPurchaseCreditsLabel(creditsFromPriceCents(data?.course.coursePriceCents ?? 0));
   }, [data]);
 
   const totalScenes = useMemo(
@@ -291,6 +316,7 @@ export default function StoreCourseDetailPage() {
                   <LayoutGrid className="size-4" />
                   {`${course.notebooks.length} 本笔记本 · ${totalScenes} 页`}
                 </span>
+                <span className="store-chip text-sm">{speechStatusLabel(course)}</span>
               </div>
             </div>
 
@@ -413,6 +439,9 @@ export default function StoreCourseDetailPage() {
                               {`单本价格 ${formatPurchaseCreditsLabel(
                                 creditsFromPriceCents(notebook.notebookPriceCents),
                               )}`}
+                            </span>
+                            <span className="store-chip text-xs">
+                              {speechStatusLabel(notebook)}
                             </span>
                             {notebook.tags.slice(0, 3).map((tag) => (
                               <span key={tag} className="store-chip text-xs">

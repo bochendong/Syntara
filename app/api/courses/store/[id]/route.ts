@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
 
 function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
   const n = owner.name?.trim();
@@ -38,6 +39,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
             notebookPriceCents: true,
             updatedAt: true,
             createdAt: true,
+            scenes: {
+              select: { actions: true },
+            },
             _count: { select: { scenes: true } },
           },
         },
@@ -80,9 +84,45 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
         ...course,
         notebooks: course.notebooks.map((notebook) => ({
           ...notebook,
+          speechReadyCount: summarizeSpeechReadinessFromScenes(
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ).ready,
+          speechTotalCount: summarizeSpeechReadinessFromScenes(
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ).total,
+          speechStatus: summarizeSpeechReadinessFromScenes(
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ).status,
           purchased: notebookPurchaseMap.has(notebook.id),
           clonedNotebookId: notebookPurchaseMap.get(notebook.id) ?? null,
         })),
+        speechReadyCount: summarizeSpeechReadinessFromScenes(
+          course.notebooks.flatMap((notebook) =>
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ),
+        ).ready,
+        speechTotalCount: summarizeSpeechReadinessFromScenes(
+          course.notebooks.flatMap((notebook) =>
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ),
+        ).total,
+        speechStatus: summarizeSpeechReadinessFromScenes(
+          course.notebooks.flatMap((notebook) =>
+            notebook.scenes.map((scene) => ({
+              actions: (scene.actions as any[] | undefined) ?? undefined,
+            })),
+          ),
+        ).status,
         ownerName: ownerDisplayName(course.owner),
         averageRating: reviews.length > 0 ? ratingSum / reviews.length : 0,
         reviewCount: reviews.length,

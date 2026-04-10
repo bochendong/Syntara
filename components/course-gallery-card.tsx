@@ -87,6 +87,7 @@ interface CourseGalleryCardProps {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   secondaryActionDisabled?: boolean;
+  speechStatusLabel?: string;
 }
 
 const variantConfig = {
@@ -161,6 +162,7 @@ export function CourseGalleryCard({
   secondaryActionLabel,
   onSecondaryAction,
   secondaryActionDisabled = false,
+  speechStatusLabel,
 }: CourseGalleryCardProps) {
   const cfg = variantConfig[variant];
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -321,12 +323,12 @@ export function CourseGalleryCard({
               coverAvatarUrl?.trim() && 'ring-1 ring-slate-200/80 dark:ring-white/12',
             )}
           >
-              {coverAvatarUrl?.trim() ? (
-                <img
-                  src={coverAvatarUrl.trim()}
-                  alt=""
-                  className="size-full object-cover object-center"
-                />
+            {coverAvatarUrl?.trim() ? (
+              <img
+                src={coverAvatarUrl.trim()}
+                alt=""
+                className="size-full object-cover object-center"
+              />
             ) : (
               <BookOpen className="size-5 text-slate-500 dark:text-slate-300" strokeWidth={1.7} />
             )}
@@ -345,7 +347,9 @@ export function CourseGalleryCard({
             {showNotebookCourseMeta && (parentCourseName?.trim() || schoolLine?.trim()) ? (
               <div className="mt-1 space-y-0.5">
                 {parentCourseName?.trim() ? (
-                  <p className={cn('truncate text-xs', cfg.metaTone)}>{`所属课程 · ${parentCourseName.trim()}`}</p>
+                  <p
+                    className={cn('truncate text-xs', cfg.metaTone)}
+                  >{`所属课程 · ${parentCourseName.trim()}`}</p>
                 ) : null}
                 {schoolLine?.trim() ? (
                   <p className={cn('truncate text-xs', cfg.metaTone)}>{schoolLine.trim()}</p>
@@ -404,17 +408,26 @@ export function CourseGalleryCard({
                   {tag}
                 </span>
               ))}
-              {tags.length > 4 ? <span className="store-chip text-[11px]">+{tags.length - 4}</span> : null}
+              {tags.length > 4 ? (
+                <span className="store-chip text-[11px]">+{tags.length - 4}</span>
+              ) : null}
             </div>
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px]', cfg.pillTone)}>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px]',
+                cfg.pillTone,
+              )}
+            >
               <School className="size-3.5 opacity-75" />
               {course.sceneCount} {countUnit}
             </span>
             {courseMetaChips?.school?.trim() ? (
-              <span className={cn('store-chip text-[11px]', cfg.pillTone)}>{courseMetaChips.school.trim()}</span>
+              <span className={cn('store-chip text-[11px]', cfg.pillTone)}>
+                {courseMetaChips.school.trim()}
+              </span>
             ) : null}
             {courseMetaChips?.purposeType?.trim() ? (
               <span className={cn('store-chip text-[11px]', cfg.pillTone)}>
@@ -423,7 +436,14 @@ export function CourseGalleryCard({
               </span>
             ) : null}
             {courseMetaChips?.courseCode?.trim() ? (
-              <span className={cn('store-chip text-[11px]', cfg.pillTone)}>{courseMetaChips.courseCode.trim()}</span>
+              <span className={cn('store-chip text-[11px]', cfg.pillTone)}>
+                {courseMetaChips.courseCode.trim()}
+              </span>
+            ) : null}
+            {speechStatusLabel?.trim() ? (
+              <span className={cn('store-chip text-[11px]', cfg.pillTone)}>
+                {speechStatusLabel.trim()}
+              </span>
             ) : null}
           </div>
         </div>

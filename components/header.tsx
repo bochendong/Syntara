@@ -35,6 +35,7 @@ import { renderPlainTitleWithOptionalLatex } from '@/lib/render-html-with-latex'
 import { ensureSpeechActionsHaveAudio } from '@/lib/hooks/use-scene-generator';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import type { SpeechAction } from '@/lib/types/action';
+import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 
 interface HeaderProps {
   readonly currentSceneTitle: string;
@@ -254,16 +255,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   );
 
   const synthAllSpeechStatusText = (() => {
-    if (synthAllSpeechProgress != null) {
-      if (locale === 'zh-CN') {
-        return synthAllSpeechProgress.active > 0
-          ? `并行合成中 ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total} 条 · ${synthAllSpeechProgress.active}/${synthAllSpeechProgress.parallelism} 路`
-          : `收尾中 ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total} 条`;
-      }
-      return synthAllSpeechProgress.active > 0
-        ? `Generating ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total} · ${synthAllSpeechProgress.active}/${synthAllSpeechProgress.parallelism} active`
-        : `Finishing ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`;
-    }
+    if (synthAllSpeechProgress != null) return null;
     if (speechPagesBreakdown.totalPagesWithSpeech > 0) {
       const { readyPages, totalPagesWithSpeech } = speechPagesBreakdown;
       return locale === 'zh-CN'
@@ -376,9 +368,11 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
       setIsSynthesizingAllSpeech(true);
       setSynthAllSpeechProgress({ done: 0, total, active: 0, parallelism: 0 });
       const loadingId = toast.loading(
-        locale === 'zh-CN'
-          ? `正在并行合成语音（0/${total}）…`
-          : `Generating speech in parallel (0/${total})…`,
+        <SpeechGenerationIndicator
+          label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
+          done={0}
+          total={total}
+        />,
       );
 
       try {
@@ -407,6 +401,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
           return;
         }
 
+        let lastDone = -1;
         useStageStore.getState().touchScenes();
 
         const result = await ensureSpeechActionsHaveAudio(
@@ -414,15 +409,16 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
           undefined,
           ({ done, total: progressTotal, active, parallelism }) => {
             setSynthAllSpeechProgress({ done, total: progressTotal, active, parallelism });
-            useStageStore.getState().touchScenes();
+            if (done !== lastDone) {
+              lastDone = done;
+              useStageStore.getState().touchScenes();
+            }
             toast.loading(
-              locale === 'zh-CN'
-                ? active > 0
-                  ? `正在并行合成语音（${done}/${progressTotal}，${active}/${parallelism} 路进行中）…`
-                  : `正在收尾语音任务（${done}/${progressTotal}）…`
-                : active > 0
-                  ? `Generating speech (${done}/${progressTotal}, ${active}/${parallelism} active)…`
-                  : `Finishing speech jobs (${done}/${progressTotal})…`,
+              <SpeechGenerationIndicator
+                label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
+                done={done}
+                total={progressTotal}
+              />,
               { id: loadingId },
             );
           },
@@ -548,7 +544,16 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
                 ) : (
                   <Volume2 className="size-3 shrink-0" />
                 )}
-                <span className="min-w-0 truncate">{synthAllSpeechStatusText}</span>
+                {synthAllSpeechProgress ? (
+                  <SpeechGenerationIndicator
+                    label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
+                    done={synthAllSpeechProgress.done}
+                    total={synthAllSpeechProgress.total}
+                    className="min-w-0 truncate"
+                  />
+                ) : (
+                  <span className="min-w-0 truncate">{synthAllSpeechStatusText}</span>
+                )}
               </button>
             </TooltipTrigger>
             <TooltipContent

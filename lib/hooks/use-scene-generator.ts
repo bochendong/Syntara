@@ -374,10 +374,14 @@ export async function ensureMissingSpeechAudioForScene(
 
   const speechActions =
     scene.actions?.filter((a): a is SpeechAction => a.type === 'speech' && Boolean(a.text)) ?? [];
+  let lastDone = -1;
   return ensureSpeechActionsHaveAudio(speechActions, signal, (progress) => {
     onProgress?.(progress);
-    // 让顶栏「讲解就绪」计数随每段生成递增（否则仅 scenes 引用不变，React 不刷新）
-    useStageStore.getState().touchScenes();
+    if (progress.done !== lastDone) {
+      lastDone = progress.done;
+      // 只在真实完成数变化时刷新，避免活跃任务数波动导致过多重渲染。
+      useStageStore.getState().touchScenes();
+    }
   });
 }
 

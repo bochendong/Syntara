@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
 
 function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
   const n = owner.name?.trim();
@@ -29,6 +30,13 @@ export async function GET() {
       include: {
         owner: { select: { name: true, email: true } },
         _count: { select: { notebooks: true } },
+        notebooks: {
+          select: {
+            scenes: {
+              select: { actions: true },
+            },
+          },
+        },
       },
     });
 
@@ -54,12 +62,22 @@ export async function GET() {
     const purchasedSet = new Set(purchases.map((purchase) => purchase.sourceCourseId));
 
     const courses = rows.map((row) => {
-      const { owner, _count, ...course } = row;
+      const { owner, _count, notebooks, ...course } = row;
       const reviewStats = reviewMap.get(row.id);
+      const speech = summarizeSpeechReadinessFromScenes(
+        notebooks.flatMap((notebook) =>
+          notebook.scenes.map((scene) => ({
+            actions: (scene.actions as any[] | undefined) ?? undefined,
+          })),
+        ),
+      );
       return {
         ...course,
         ownerName: ownerDisplayName(owner),
         notebookCount: _count.notebooks,
+        speechReadyCount: speech.ready,
+        speechTotalCount: speech.total,
+        speechStatus: speech.status,
         averageRating: reviewStats ? reviewStats.sum / reviewStats.count : 0,
         reviewCount: reviewStats?.count ?? 0,
         purchased: purchasedSet.has(row.id),

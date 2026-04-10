@@ -56,6 +56,9 @@ export interface CourseRecord {
   coursePriceCents?: number;
   storePublishedAt?: number | string;
   sourceCourseId?: string;
+  speechReadyCount?: number;
+  speechTotalCount?: number;
+  speechStatus?: 'no_speech' | 'ready' | 'pending';
   createdAt: number;
   updatedAt: number;
 }

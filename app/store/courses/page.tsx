@@ -48,6 +48,18 @@ function featuredReason(item: CommunityCourseListItem) {
   return '编辑精选';
 }
 
+function speechStatusLabel(
+  item: Pick<CommunityCourseListItem, 'speechStatus' | 'speechReadyCount' | 'speechTotalCount'>,
+) {
+  if (item.speechStatus === 'ready') return '附带原始语音';
+  if (item.speechStatus === 'pending') {
+    return item.speechTotalCount
+      ? `部分语音待生成 ${item.speechReadyCount ?? 0}/${item.speechTotalCount}`
+      : '部分语音待生成';
+  }
+  return '需自行生成语音';
+}
+
 export default function CourseStorePage() {
   const router = useRouter();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -350,6 +362,7 @@ export default function CourseStorePage() {
                     purposeType: purposeLabel(featuredCourse.purpose),
                     courseCode: featuredCourse.courseCode?.trim() || undefined,
                   }}
+                  speechStatusLabel={speechStatusLabel(featuredCourse)}
                   countUnit="个笔记本"
                   priceLabel={formatPurchaseCreditsLabel(
                     creditsFromPriceCents(featuredCourse.coursePriceCents),
@@ -393,9 +406,7 @@ export default function CourseStorePage() {
                         <span className="store-chip text-xs">{purposeLabel(item.purpose)}</span>
                         <span className="store-chip text-xs">{item.notebookCount} 个笔记本</span>
                         <span className="store-chip text-xs">
-                          {formatPurchaseCreditsLabel(
-                            creditsFromPriceCents(item.coursePriceCents),
-                          )}
+                          {formatPurchaseCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
                         </span>
                       </div>
                       <button
@@ -474,6 +485,7 @@ export default function CourseStorePage() {
                     purposeType: purposeLabel(item.purpose),
                     courseCode: item.courseCode?.trim() || undefined,
                   }}
+                  speechStatusLabel={speechStatusLabel(item)}
                   countUnit="个笔记本"
                   priceLabel={formatPurchaseCreditsLabel(
                     creditsFromPriceCents(item.coursePriceCents),
@@ -540,6 +552,7 @@ export default function CourseStorePage() {
                         purposeType: purposeLabel(item.purpose),
                         courseCode: item.courseCode?.trim() || undefined,
                       }}
+                      speechStatusLabel={speechStatusLabel(item)}
                       countUnit="个笔记本"
                       priceLabel={formatPurchaseCreditsLabel(
                         creditsFromPriceCents(item.coursePriceCents),

@@ -35,6 +35,9 @@ export interface StageListItem {
   notebookPriceCents?: number;
   storePublishedAt?: number;
   sourceNotebookId?: string;
+  speechReadyCount?: number;
+  speechTotalCount?: number;
+  speechStatus?: 'no_speech' | 'ready' | 'pending';
   sceneCount: number;
   createdAt: number;
   updatedAt: number;
@@ -54,6 +57,9 @@ type NotebookApiRow = {
   notebookPriceCents?: number;
   storePublishedAt?: string | null;
   sourceNotebookId?: string | null;
+  speechReadyCount?: number;
+  speechTotalCount?: number;
+  speechStatus?: 'no_speech' | 'ready' | 'pending';
   createdAt: string;
   updatedAt: string;
   _count?: { scenes: number };
@@ -84,6 +90,9 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
     notebookPriceCents: row.notebookPriceCents ?? 0,
     storePublishedAt: row.storePublishedAt ? Date.parse(row.storePublishedAt) : undefined,
     sourceNotebookId: row.sourceNotebookId || undefined,
+    speechReadyCount: row.speechReadyCount ?? 0,
+    speechTotalCount: row.speechTotalCount ?? 0,
+    speechStatus: row.speechStatus ?? 'no_speech',
     sceneCount: row._count?.scenes ?? 0,
     createdAt: Date.parse(row.createdAt),
     updatedAt: Date.parse(row.updatedAt),
@@ -157,19 +166,22 @@ export async function saveStageData(
   try {
     await ensureNotebookRow(stageId, data);
 
-    await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        courseId: data.stage.courseId ?? null,
-        name: data.stage.name,
-        description: data.stage.description,
-        tags: data.stage.tags ?? [],
-        avatarUrl: data.stage.avatarUrl,
-        language: data.stage.language,
-        style: data.stage.style,
-      }),
-    });
+    await backendJson<{ notebook: NotebookApiRow }>(
+      `/api/notebooks/${encodeURIComponent(stageId)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: data.stage.courseId ?? null,
+          name: data.stage.name,
+          description: data.stage.description,
+          tags: data.stage.tags ?? [],
+          avatarUrl: data.stage.avatarUrl,
+          language: data.stage.language,
+          style: data.stage.style,
+        }),
+      },
+    );
 
     await backendJson<{ scenes: SceneApiRow[] }>(
       `/api/notebooks/${encodeURIComponent(stageId)}/scenes`,
@@ -349,6 +361,50 @@ export async function updateStageStoreMeta(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+export async function savePublishedStageData(
+  stageId: string,
+  data: StageStoreData,
+  options: { includeSpeechAudio: boolean },
+): Promise<void> {
+  const sortedScenes = [...data.scenes].sort((a, b) => a.order - b.order);
+  const persistedScenes = options.includeSpeechAudio
+    ? sortedScenes
+    : sanitizeScenesForPersistence(sortedScenes);
+
+  await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      courseId: data.stage.courseId ?? null,
+      name: data.stage.name,
+      description: data.stage.description,
+      tags: data.stage.tags ?? [],
+      avatarUrl: data.stage.avatarUrl,
+      language: data.stage.language,
+      style: data.stage.style,
+    }),
+  });
+
+  await backendJson<{ scenes: SceneApiRow[] }>(
+    `/api/notebooks/${encodeURIComponent(stageId)}/scenes`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenes: persistedScenes.map((s, i) => ({
+          id: s.id,
+          title: s.title,
+          type: s.type,
+          order: Number.isFinite(s.order) ? s.order : i,
+          content: s.content,
+          actions: s.actions,
+          whiteboards: s.whiteboards,
+        })),
+      }),
+    },
+  );
 }
 
 export async function listStages(): Promise<StageListItem[]> {

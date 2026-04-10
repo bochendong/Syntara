@@ -107,6 +107,11 @@ export default function MyCoursesPage() {
       toast.error('购买得到的课程副本不能再次发布到商城');
       return;
     }
+    if (!course.listedInCourseStore) {
+      toast.info('请先进入课程页，选择是否附带原始语音后再发布。');
+      router.push(`/course/${course.id}`);
+      return;
+    }
     try {
       await updateCourse(course.id, {
         name: course.name,
@@ -286,40 +291,40 @@ export default function MyCoursesPage() {
                       }}
                     >
                       <CourseGalleryCard
-                      course={cardItem}
-                      tags={course.tags.length > 0 ? course.tags : undefined}
-                      badge={purposeLabel(course.purpose)}
-                      subtitle={formatDate(course.updatedAt)}
-                      useRatingOnCover
-                      creatorName={creatorDisplay}
-                      courseMetaChips={{
-                        school: course.university?.trim() || undefined,
-                        courseCode: course.courseCode?.trim() || undefined,
-                      }}
-                      countUnit="个笔记本"
-                      priceLabel={formatCreditsUsdCompactLabel(
-                        creditsFromPriceCents(course.coursePriceCents),
-                      )}
-                      actionLabel="进入课程"
-                      onAction={() => router.push(`/course/${course.id}`)}
-                      secondaryActionLabel={
-                        course.sourceCourseId
-                          ? '已购副本不可发布'
-                          : course.listedInCourseStore
-                            ? '取消发布'
-                            : '发布'
-                      }
-                      secondaryActionDisabled={Boolean(course.sourceCourseId)}
-                      onSecondaryAction={() => void handleTogglePublishCourse(course)}
-                      coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
-                      onEdit={() => {
-                        setEditingCourse(course);
-                        setEditOpen(true);
-                      }}
-                      deleteDialogTitle="删除课程？"
-                      deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
-                      onDelete={() => handleDeleteCourse(course.id, course.name)}
-                    />
+                        course={cardItem}
+                        tags={course.tags.length > 0 ? course.tags : undefined}
+                        badge={purposeLabel(course.purpose)}
+                        subtitle={formatDate(course.updatedAt)}
+                        useRatingOnCover
+                        creatorName={creatorDisplay}
+                        courseMetaChips={{
+                          school: course.university?.trim() || undefined,
+                          courseCode: course.courseCode?.trim() || undefined,
+                        }}
+                        countUnit="个笔记本"
+                        priceLabel={formatCreditsUsdCompactLabel(
+                          creditsFromPriceCents(course.coursePriceCents),
+                        )}
+                        actionLabel="进入课程"
+                        onAction={() => router.push(`/course/${course.id}`)}
+                        secondaryActionLabel={
+                          course.sourceCourseId
+                            ? '已购副本不可发布'
+                            : course.listedInCourseStore
+                              ? '取消发布'
+                              : '发布'
+                        }
+                        secondaryActionDisabled={Boolean(course.sourceCourseId)}
+                        onSecondaryAction={() => void handleTogglePublishCourse(course)}
+                        coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
+                        onEdit={() => {
+                          setEditingCourse(course);
+                          setEditOpen(true);
+                        }}
+                        deleteDialogTitle="删除课程？"
+                        deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
+                        onDelete={() => handleDeleteCourse(course.id, course.name)}
+                      />
                     </motion.li>
                   );
                 })}

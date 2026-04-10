@@ -50,6 +50,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ClassroomFooter } from '@/components/stage/classroom-footer';
 import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-voice-chip';
+import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
 import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
 
@@ -924,12 +925,16 @@ export function Stage({
     }
   }, [chatIsStreaming, doSoftPause]);
 
-  const handleSidebarQuestionSend = useCallback(
-    (msg: string) => {
+  const sendClassroomQuestion = useCallback(
+    (msg: string, options?: { revealChatArea?: boolean; restoreChatAreaCollapsed?: boolean }) => {
       const trimmed = msg.trim();
       if (!trimmed) return;
 
-      setChatAreaCollapsed(false);
+      const shouldRestoreChatArea = Boolean(options?.restoreChatAreaCollapsed && chatAreaCollapsed);
+
+      if (options?.revealChatArea) {
+        setChatAreaCollapsed(false);
+      }
 
       if (isTopicPending) {
         setIsTopicPending(false);
@@ -952,8 +957,31 @@ export function Stage({
       setChatSessionType(chatSessionType || 'qa');
       setThinkingState({ stage: 'director' });
       setIsDiscussionPaused(false);
+
+      if (shouldRestoreChatArea) {
+        window.setTimeout(() => {
+          setChatAreaCollapsed(true);
+        }, 0);
+      }
     },
-    [chatSessionType, engineMode, isTopicPending, setChatAreaCollapsed],
+    [chatAreaCollapsed, chatSessionType, engineMode, isTopicPending, setChatAreaCollapsed],
+  );
+
+  const handleSidebarQuestionSend = useCallback(
+    (msg: string) => {
+      sendClassroomQuestion(msg, {
+        revealChatArea: true,
+        restoreChatAreaCollapsed: true,
+      });
+    },
+    [sendClassroomQuestion],
+  );
+
+  const handleChatAreaQuestionSend = useCallback(
+    (msg: string) => {
+      sendClassroomQuestion(msg, { revealChatArea: true });
+    },
+    [sendClassroomQuestion],
   );
 
   // First speech text for idle display (extracted here for playbackView)
@@ -1092,9 +1120,11 @@ export function Stage({
           if (!sceneForTts) return;
           const missingCount = speechActions.filter((a) => !a.audioUrl).length;
           const loadingId = toast.loading(
-            locale === 'zh-CN'
-              ? `正在并行生成语音（0/${missingCount}）…`
-              : `Generating speech in parallel (0/${missingCount})…`,
+            <SpeechGenerationIndicator
+              label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
+              done={0}
+              total={missingCount}
+            />,
           );
           setSpeechAudioPreparing(true);
           let ttsReady: Awaited<ReturnType<typeof ensureMissingSpeechAudioForScene>>;
@@ -1102,15 +1132,13 @@ export function Stage({
             ttsReady = await ensureMissingSpeechAudioForScene(
               sceneForTts,
               undefined,
-              ({ done, total, active, parallelism }) => {
+              ({ done, total }) => {
                 toast.loading(
-                  locale === 'zh-CN'
-                    ? active > 0
-                      ? `正在并行生成语音（${done}/${total}，${active}/${parallelism} 路进行中）…`
-                      : `正在收尾语音任务（${done}/${total}）…`
-                    : active > 0
-                      ? `Generating speech (${done}/${total}, ${active}/${parallelism} active)…`
-                      : `Finishing speech jobs (${done}/${total})…`,
+                  <SpeechGenerationIndicator
+                    label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
+                    done={done}
+                    total={total}
+                  />,
                   { id: loadingId },
                 );
               },
@@ -1983,7 +2011,7 @@ export function Stage({
             thinkingState={thinkingState}
             isCueUser={isCueUser}
             isTopicPending={isTopicPending}
-            onMessageSend={handleSidebarQuestionSend}
+            onMessageSend={handleChatAreaQuestionSend}
             onDiscussionStart={() => {
               // User clicks "Join" on ProactiveCard
               engineRef.current?.confirmDiscussion();
@@ -2072,7 +2100,7 @@ export function Stage({
         }}
         onStopSession={doSessionCleanup}
         onInputActivate={handleSidebarInputActivate}
-        onMessageSend={handleSidebarQuestionSend}
+        onMessageSend={handleChatAreaQuestionSend}
         onSceneSidebarAskThreadChange={handleSceneSidebarAskThreadChange}
       />
 

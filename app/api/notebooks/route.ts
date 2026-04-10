@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
 
 const createNotebookSchema = z.object({
   /** 客户端生成（如 nanoid）的笔记本 id；不传则使用数据库默认 cuid */
@@ -36,11 +37,26 @@ export async function GET(request: Request) {
         _count: {
           select: { scenes: true },
         },
+        scenes: {
+          select: { actions: true },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    return NextResponse.json({ notebooks });
+    return NextResponse.json({
+      notebooks: notebooks.map(({ scenes, ...notebook }) => {
+        const speech = summarizeSpeechReadinessFromScenes(
+          scenes.map((scene) => ({ actions: (scene.actions as any[] | undefined) ?? undefined })),
+        );
+        return {
+          ...notebook,
+          speechReadyCount: speech.ready,
+          speechTotalCount: speech.total,
+          speechStatus: speech.status,
+        };
+      }),
+    });
   });
 }
 

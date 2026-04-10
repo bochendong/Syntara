@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import {
   CourseGalleryCard,
   courseGalleryListGridClassName,
@@ -12,13 +13,16 @@ import { EditNotebookForm } from '@/components/courses/edit-notebook-form';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { useSettingsStore } from '@/lib/store/settings';
 import { getCourse, touchCourseUpdatedAt, updateCourse } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import {
   deleteStageData,
   getFirstSlideByStages,
   listStagesByCourse,
+  loadStageData,
   moveStageToCourse,
+  savePublishedStageData,
   updateStageStoreMeta,
   type StageListItem,
 } from '@/lib/utils/stage-storage';
@@ -36,6 +40,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ensureSpeechActionsHaveAudio } from '@/lib/hooks/use-scene-generator';
+import type { SpeechAction } from '@/lib/types/action';
+import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import {
   creditsFromPriceCents,
   formatCreditsUsdCompactLabel,
@@ -65,7 +72,18 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [editingNotebook, setEditingNotebook] = useState<StageListItem | null>(null);
+  const [publishTarget, setPublishTarget] = useState<
+    { kind: 'course' } | { kind: 'notebook'; notebook: StageListItem } | null
+  >(null);
+  const [publishWithAudio, setPublishWithAudio] = useState(true);
+  const [publishState, setPublishState] = useState<
+    'idle' | 'preparing_audio' | 'publishing' | 'published'
+  >('idle');
+  const [publishProgress, setPublishProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
   const coursePublishLocked = Boolean(course?.sourceCourseId);
+  const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -149,6 +167,13 @@ export default function CourseDetailPage() {
       toast.error('购买得到的课程副本不能再次发布到商城');
       return;
     }
+    if (!course.listedInCourseStore) {
+      setPublishWithAudio(true);
+      setPublishTarget({ kind: 'course' });
+      setPublishState('idle');
+      setPublishProgress(null);
+      return;
+    }
     try {
       await updateCourse(course.id, {
         name: course.name,
@@ -176,6 +201,13 @@ export default function CourseDetailPage() {
       toast.error('购买得到的笔记本副本不能再次发布到商城');
       return;
     }
+    if (!notebook.listedInNotebookStore) {
+      setPublishWithAudio(true);
+      setPublishTarget({ kind: 'notebook', notebook });
+      setPublishState('idle');
+      setPublishProgress(null);
+      return;
+    }
     try {
       let notebookPriceCents = notebook.notebookPriceCents ?? 0;
       if (!notebook.listedInNotebookStore) {
@@ -199,6 +231,108 @@ export default function CourseDetailPage() {
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '操作失败');
+    }
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!course || !publishTarget) return;
+    setPublishState(publishWithAudio ? 'preparing_audio' : 'publishing');
+    setPublishProgress(null);
+    try {
+      const targets = publishTarget.kind === 'course' ? notebooks : [publishTarget.notebook];
+
+      const loadedStages = (
+        await Promise.all(
+          targets.map(async (notebook) => ({ notebook, data: await loadStageData(notebook.id) })),
+        )
+      ).filter(
+        (
+          entry,
+        ): entry is {
+          notebook: StageListItem;
+          data: NonNullable<Awaited<ReturnType<typeof loadStageData>>>;
+        } => Boolean(entry.data),
+      );
+
+      if (loadedStages.length === 0) {
+        throw new Error('未能读取待发布的笔记本内容');
+      }
+
+      const allSpeechActions: SpeechAction[] = [];
+      for (const { data } of loadedStages) {
+        for (const scene of data.scenes) {
+          const splitActions = splitLongSpeechActions(scene.actions || [], ttsProviderId);
+          scene.actions = splitActions;
+          allSpeechActions.push(
+            ...splitActions.filter(
+              (action): action is SpeechAction =>
+                action.type === 'speech' && Boolean(action.text?.trim()) && !action.audioUrl,
+            ),
+          );
+        }
+      }
+
+      if (publishWithAudio && allSpeechActions.length > 0) {
+        const result = await ensureSpeechActionsHaveAudio(
+          allSpeechActions,
+          undefined,
+          ({ done, total }) => {
+            setPublishState('preparing_audio');
+            setPublishProgress({ done, total });
+          },
+        );
+        if (!result.ok) {
+          throw new Error(result.error || '语音生成失败');
+        }
+      }
+
+      setPublishState('publishing');
+      setPublishProgress(null);
+
+      await Promise.all(
+        loadedStages.map(async ({ notebook, data }) => {
+          await savePublishedStageData(notebook.id, data, {
+            includeSpeechAudio: publishWithAudio,
+          });
+          await updateStageStoreMeta(notebook.id, {
+            listedInNotebookStore: true,
+            notebookPriceCents: notebook.notebookPriceCents ?? 0,
+          });
+        }),
+      );
+
+      await updateCourse(course.id, {
+        name: course.name,
+        description: course.description ?? '',
+        language: course.language,
+        tags: course.tags,
+        purpose: course.purpose,
+        university: course.university,
+        courseCode: course.courseCode,
+        listedInCourseStore: publishTarget.kind === 'course' ? true : course.listedInCourseStore,
+        coursePriceCents: course.coursePriceCents ?? 0,
+      });
+
+      const next = await getCourse(course.id);
+      if (next) setCourse(next);
+      const list = await listStagesByCourse(id);
+      setNotebooks(list);
+      setPublishState('published');
+      toast.success(
+        publishTarget.kind === 'course'
+          ? publishWithAudio
+            ? '课程已附带语音发布'
+            : '课程已发布，商城将提示用户自行生成语音'
+          : publishWithAudio
+            ? `笔记本「${publishTarget.notebook.name}」已附带语音发布`
+            : `笔记本「${publishTarget.notebook.name}」已发布，商城将提示用户自行生成语音`,
+      );
+      setPublishTarget(null);
+      setPublishProgress(null);
+      setPublishState('idle');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '发布失败');
+      setPublishState('idle');
     }
   };
 
@@ -315,9 +449,12 @@ export default function CourseDetailPage() {
                   >
                     {coursePublishLocked
                       ? '已购副本不可发布'
-                      : course.listedInCourseStore
-                        ? '取消发布课程'
-                        : '发布课程'}
+                      : publishTarget?.kind === 'course' &&
+                          (publishState === 'preparing_audio' || publishState === 'publishing')
+                        ? '发布中…'
+                        : course.listedInCourseStore
+                          ? '已发布课程'
+                          : '发布课程'}
                   </Button>
                   <Button
                     asChild
@@ -363,14 +500,21 @@ export default function CourseDetailPage() {
                         secondaryActionLabel={
                           nb.sourceNotebookId
                             ? '已购副本不可发布'
-                            : nb.listedInNotebookStore
-                              ? '取消发布'
-                              : '发布'
+                            : publishTarget?.kind === 'notebook' &&
+                                publishTarget.notebook.id === nb.id &&
+                                (publishState === 'preparing_audio' ||
+                                  publishState === 'publishing')
+                              ? '发布中…'
+                              : nb.listedInNotebookStore
+                                ? '已发布'
+                                : '发布'
                         }
                         secondaryActionDisabled={Boolean(nb.sourceNotebookId)}
                         onSecondaryAction={() => void handleTogglePublishNotebook(nb)}
                         moveToCourseTargets={moveTargets}
-                        onMoveToCourse={(targetCourseId) => handleMoveNotebook(nb.id, targetCourseId)}
+                        onMoveToCourse={(targetCourseId) =>
+                          handleMoveNotebook(nb.id, targetCourseId)
+                        }
                         deleteDialogTitle="删除笔记本？"
                         deleteDialogDescription={`将永久删除「${nb.name}」及其课件与对话记录，不可恢复。`}
                         onDelete={() => handleDeleteNotebook(nb.id, nb.name)}
@@ -427,6 +571,124 @@ export default function CourseDetailPage() {
                     onSuccess={() => void handleNotebookEditSaved()}
                   />
                 ) : null}
+              </DialogContent>
+            </Dialog>
+            <Dialog
+              open={Boolean(publishTarget)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setPublishTarget(null);
+                  setPublishState('idle');
+                  setPublishProgress(null);
+                }
+              }}
+            >
+              <DialogContent className="w-full max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {publishTarget?.kind === 'course' ? '发布课程到商城' : '发布笔记本到商城'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    发布时可以选择先生成全部语音。附带原始语音发布后，购买用户会直接拿到可播放语音；
+                    不附带语音发布时，商城会明确提示该内容仍需用户自行生成语音。
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-sm leading-7 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                    <p className="font-medium text-slate-900 dark:text-white">
+                      {publishTarget?.kind === 'course'
+                        ? `将发布当前课程及其下 ${notebooks.length} 本笔记本。`
+                        : `将发布笔记本「${publishTarget?.kind === 'notebook' ? publishTarget.notebook.name : ''}」。`}
+                    </p>
+                    <p className="mt-2">
+                      {publishWithAudio
+                        ? '推荐：先补齐语音再发布，买家复制后可以直接使用原始语音。'
+                        : '不附带语音也可以立即发布，但商城会提醒用户部分语音仍需自行生成。'}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-2xl border px-4 py-3 text-left transition-colors',
+                        publishWithAudio
+                          ? 'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100'
+                          : 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5',
+                      )}
+                      onClick={() => setPublishWithAudio(true)}
+                      disabled={publishState !== 'idle'}
+                    >
+                      <p className="text-sm font-medium">附带原始语音发布</p>
+                      <p className="mt-1 text-xs opacity-80">
+                        发布前自动补齐缺失语音，买家拿到即可播放。
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-2xl border px-4 py-3 text-left transition-colors',
+                        !publishWithAudio
+                          ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100'
+                          : 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5',
+                      )}
+                      onClick={() => setPublishWithAudio(false)}
+                      disabled={publishState !== 'idle'}
+                    >
+                      <p className="text-sm font-medium">不附带语音发布</p>
+                      <p className="mt-1 text-xs opacity-80">
+                        更快发布，但商城会提示用户需要自行生成语音。
+                      </p>
+                    </button>
+                  </div>
+
+                  {publishState !== 'idle' ? (
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex items-center gap-3 text-sm font-medium text-slate-900 dark:text-white">
+                        <Loader2 className="size-4 animate-spin" />
+                        {publishState === 'preparing_audio'
+                          ? '正在准备语音'
+                          : publishState === 'publishing'
+                            ? '正在发布'
+                            : '已发布'}
+                      </div>
+                      {publishProgress ? (
+                        <div className="mt-3">
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-sky-500 transition-all"
+                              style={{
+                                width: `${publishProgress.total > 0 ? (publishProgress.done / publishProgress.total) * 100 : 0}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {publishProgress.done}/{publishProgress.total}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="flex justify-end gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPublishTarget(null)}
+                      disabled={publishState !== 'idle'}
+                    >
+                      取消
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => void handleConfirmPublish()}
+                      disabled={publishState !== 'idle'}
+                    >
+                      {publishState === 'idle' ? '开始发布' : '发布中…'}
+                    </Button>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
           </>
