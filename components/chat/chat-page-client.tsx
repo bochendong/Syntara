@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
@@ -1290,6 +1290,7 @@ export function ChatPageClient() {
     });
   }, []);
   const [pendingAttachments, setPendingAttachments] = useState<NotebookAttachmentInput[]>([]);
+  const [isComposerDragging, setIsComposerDragging] = useState(false);
   const [lessonGeneratingAt, setLessonGeneratingAt] = useState<number | null>(null);
   const [lessonSavingAt, setLessonSavingAt] = useState<number | null>(null);
   const agThreadRef = useRef(agThread);
@@ -1338,6 +1339,7 @@ export function ChatPageClient() {
   }, [searchParams, agentId]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerDragDepthRef = useRef(0);
   /** 总控「创建笔记本」任务 id，用于轮询检测完成并补发气泡 */
   const trackedOrchestratorCreateTaskIdRef = useRef<string | null>(null);
   const orchestratorCompletionAnnouncedRef = useRef<string | null>(null);
@@ -1367,6 +1369,10 @@ export function ChatPageClient() {
     : agentId
       ? ('agent' as const)
       : ('none' as const);
+  const supportsComposerAttachments = mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator);
+
+  const isFileDragEvent = (event: Pick<ReactDragEvent<HTMLDivElement>, 'dataTransfer'>) =>
+    Array.from(event.dataTransfer?.types ?? []).includes('Files');
 
   const handleCancelOrchestratorTask = useCallback(async () => {
     const taskId = activeOrchestratorTaskId || trackedOrchestratorCreateTaskIdRef.current;
@@ -2145,6 +2151,55 @@ export function ChatPageClient() {
       fileInputRef.current.value = '';
     }
   };
+
+  const handleComposerDragEnter = useCallback(
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      if (!supportsComposerAttachments || sending || !isFileDragEvent(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      composerDragDepthRef.current += 1;
+      setIsComposerDragging(true);
+    },
+    [sending, supportsComposerAttachments],
+  );
+
+  const handleComposerDragOver = useCallback(
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      if (!supportsComposerAttachments || sending || !isFileDragEvent(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy';
+      }
+      if (!isComposerDragging) setIsComposerDragging(true);
+    },
+    [isComposerDragging, sending, supportsComposerAttachments],
+  );
+
+  const handleComposerDragLeave = useCallback(
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      if (!supportsComposerAttachments || sending || !isFileDragEvent(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      composerDragDepthRef.current = Math.max(0, composerDragDepthRef.current - 1);
+      if (composerDragDepthRef.current === 0) {
+        setIsComposerDragging(false);
+      }
+    },
+    [sending, supportsComposerAttachments],
+  );
+
+  const handleComposerDrop = useCallback(
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      if (!supportsComposerAttachments || sending || !isFileDragEvent(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      composerDragDepthRef.current = 0;
+      setIsComposerDragging(false);
+      void onPickAttachments(event.dataTransfer.files);
+    },
+    [onPickAttachments, sending, supportsComposerAttachments],
+  );
 
   const persistNotebookConversation = useCallback(
     async (
@@ -3350,7 +3405,26 @@ export function ChatPageClient() {
             <TabsContent value="generate-notebook" className="hidden" tabIndex={-1} aria-hidden />
           </Tabs>
         ) : null}
-        <ComposerInputShell>
+        <ComposerInputShell
+          className={cn(
+            'relative transition-all',
+            supportsComposerAttachments &&
+              isComposerDragging &&
+              'border-sky-400/80 bg-sky-50/80 shadow-[0_0_0_4px_rgba(56,189,248,0.14)] dark:bg-sky-500/10',
+          )}
+          onDragEnter={handleComposerDragEnter}
+          onDragOver={handleComposerDragOver}
+          onDragLeave={handleComposerDragLeave}
+          onDrop={handleComposerDrop}
+        >
+          {supportsComposerAttachments && isComposerDragging ? (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-sky-400/80 bg-sky-50/90 text-sky-900 dark:bg-slate-950/80 dark:text-sky-100">
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/80 bg-white/90 px-4 py-2 text-sm font-medium shadow-sm dark:border-sky-400/30 dark:bg-slate-900/90">
+                <Paperclip className="size-4" />
+                松开以上传附件
+              </div>
+            </div>
+          ) : null}
           {(mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator)) &&
           pendingAttachments.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2">

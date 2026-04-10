@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -7,6 +8,8 @@ import {
   Bell,
   BookOpen,
   Bug,
+  ChevronDown,
+  ChevronRight,
   Coins,
   LifeBuoy,
   MessageCircle,
@@ -25,7 +28,7 @@ import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/s
 
 function navItemClass(collapsed: boolean, active: boolean, variant: 'home' | 'notebook') {
   return cn(
-    'flex min-h-11 w-full items-center gap-3 rounded-[12px] py-2.5 text-left text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+    'flex min-h-10 w-full items-center gap-3 rounded-[12px] py-2 text-left text-[13px] transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
     collapsed ? 'justify-center px-2' : 'px-3',
     active
       ? variant === 'notebook'
@@ -112,6 +115,7 @@ export function AppCoreNavList({
   const pathname = usePathname();
   const courseId = useCurrentCourseStore((s) => s.id);
   const unreadNotificationCount = useNotificationStore((s) => s.unreadCount);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const inCourseContext = Boolean(courseId);
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
@@ -154,6 +158,36 @@ export function AppCoreNavList({
           active: pathname === '/my-courses',
         },
         {
+          key: 'store',
+          href: '/store/courses',
+          label: '课程商城',
+          tooltip: '课程商城',
+          icon: ShoppingBag,
+          active: courseStoreActive,
+        },
+        {
+          key: 'notifications',
+          href: '/notifications',
+          label: '通知',
+          tooltip: '通知',
+          icon: Bell,
+          active: notificationsActive,
+        },
+        {
+          key: 'live2d',
+          href: '/live2d',
+          label: '虚拟讲师',
+          tooltip: '选择虚拟讲师形象',
+          icon: Sparkles,
+          active: live2dActive,
+        },
+      ],
+    },
+    {
+      key: 'credits',
+      label: '积分中心',
+      items: [
+        {
           key: 'top-up',
           href: '/top-up',
           label: '充值/转换',
@@ -169,22 +203,6 @@ export function AppCoreNavList({
           icon: ArrowRightLeft,
           active: creditsMarketActive,
         },
-        {
-          key: 'store',
-          href: '/store/courses',
-          label: '课程商城',
-          tooltip: '课程商城',
-          icon: ShoppingBag,
-          active: courseStoreActive,
-        },
-        {
-          key: 'live2d',
-          href: '/live2d',
-          label: '虚拟讲师',
-          tooltip: '选择虚拟讲师形象',
-          icon: Sparkles,
-          active: live2dActive,
-        },
       ],
     },
     {
@@ -198,14 +216,6 @@ export function AppCoreNavList({
           tooltip: '个人中心',
           icon: UserRound,
           active: profileActive,
-        },
-        {
-          key: 'notifications',
-          href: '/notifications',
-          label: '通知',
-          tooltip: '通知',
-          icon: Bell,
-          active: notificationsActive,
         },
         {
           key: 'settings',
@@ -369,6 +379,29 @@ export function AppCoreNavList({
         }))
         .filter((section) => section.items.length > 0)
     : coreNavSections;
+  const enableCollapsibleSections = grouped && !collapsed && isDashboardRoute(pathname);
+
+  useEffect(() => {
+    if (!enableCollapsibleSections) return;
+    setCollapsedSections((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const section of visibleSections) {
+        if (next[section.key] !== undefined) continue;
+        next[section.key] = section.key !== 'workspace';
+        changed = true;
+      }
+
+      for (const key of Object.keys(next)) {
+        if (visibleSections.some((section) => section.key === key)) continue;
+        delete next[key];
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [enableCollapsibleSections, visibleSections]);
 
   const renderItem = (item: CoreNavItem) => {
     const Icon = item.icon;
@@ -434,24 +467,56 @@ export function AppCoreNavList({
 
   return (
     <div className="flex flex-col gap-3 p-0">
-      {visibleSections.map((section, sectionIndex) => (
-        <div
-          key={section.key}
-          className={cn(
-            'flex flex-col',
-            !collapsed &&
-              'rounded-[16px] border border-black/[0.04] bg-black/[0.02] px-2 py-2 dark:border-white/[0.06] dark:bg-white/[0.03]',
-            collapsed && sectionIndex > 0 && 'pt-1.5',
-          )}
-        >
-          {!collapsed ? (
-            <div className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/90">
-              {section.label}
-            </div>
-          ) : null}
-          <ul className="flex flex-col gap-0.5 p-0">{section.items.map(renderItem)}</ul>
-        </div>
-      ))}
+      {visibleSections.map((section, sectionIndex) => {
+        const sectionCollapsed = enableCollapsibleSections
+          ? (collapsedSections[section.key] ?? section.key !== 'workspace')
+          : false;
+
+        return (
+          <div
+            key={section.key}
+            className={cn(
+              'flex flex-col',
+              !collapsed &&
+                'rounded-[16px] border border-black/[0.04] bg-black/[0.02] px-2 py-2 dark:border-white/[0.06] dark:bg-white/[0.03]',
+              collapsed && sectionIndex > 0 && 'pt-1.5',
+            )}
+          >
+            {!collapsed ? (
+              enableCollapsibleSections ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedSections((current) => ({
+                      ...current,
+                      [section.key]: !sectionCollapsed,
+                    }))
+                  }
+                  className="flex w-full items-center gap-1.5 rounded-[10px] px-2 pb-1.5 pt-0.5 text-left text-[11px] font-semibold tracking-[0.08em] text-muted-foreground/90 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
+                  aria-expanded={!sectionCollapsed}
+                  aria-controls={`nav-section-${section.key}`}
+                >
+                  {sectionCollapsed ? (
+                    <ChevronRight className="size-3 shrink-0" strokeWidth={2} />
+                  ) : (
+                    <ChevronDown className="size-3 shrink-0" strokeWidth={2} />
+                  )}
+                  <span className="truncate">{section.label}</span>
+                </button>
+              ) : (
+                <div className="px-2 pb-1.5 pt-0.5 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground/90">
+                  {section.label}
+                </div>
+              )
+            ) : null}
+            {!sectionCollapsed ? (
+              <ul id={`nav-section-${section.key}`} className="flex flex-col gap-0.5 p-0">
+                {section.items.map(renderItem)}
+              </ul>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

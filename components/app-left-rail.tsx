@@ -100,7 +100,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
         ]
       : 'apple-glass-heavy',
   );
-  const contextBadge = notebookSidebar ? 'Notebook 工作区' : 'Dashboard';
 
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
 
@@ -251,16 +250,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     {railTitle}
                   </p>
                   <div className="mt-2 grid w-full gap-2">
-                    <div
-                      className={cn(
-                        'mx-auto rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.14em]',
-                        notebookSidebar
-                          ? 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200'
-                          : 'bg-black/[0.04] text-muted-foreground dark:bg-white/[0.05]',
-                      )}
-                    >
-                      {contextBadge}
-                    </div>
                     {balances != null ? (
                       <div className="grid grid-cols-3 gap-1.5 text-[10px]">
                         <div className="rounded-xl border border-amber-200/70 bg-amber-50/80 px-2 py-2 text-center text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
