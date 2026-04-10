@@ -708,7 +708,18 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   tooltipSide="left"
                   grouped={false}
                   chatRightRailOrder
-                  excludeKeys={['top-up', 'store']}
+                  excludeKeys={[
+                    'top-up',
+                    'credits-market',
+                    'store',
+                    'chat',
+                    'notifications',
+                    'live2d',
+                    'profile',
+                    'settings',
+                    'contact-support',
+                    'report-issue',
+                  ]}
                 />
               </div>
             </div>
@@ -800,7 +811,18 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   tooltipSide="left"
                   grouped={false}
                   chatRightRailOrder
-                  excludeKeys={['top-up', 'store']}
+                  excludeKeys={[
+                    'top-up',
+                    'credits-market',
+                    'store',
+                    'chat',
+                    'notifications',
+                    'live2d',
+                    'profile',
+                    'settings',
+                    'contact-support',
+                    'report-issue',
+                  ]}
                 />
               </div>
             ) : null}

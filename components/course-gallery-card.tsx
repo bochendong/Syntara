@@ -200,6 +200,23 @@ export function CourseGalleryCard({
         ? ratingLabel?.trim() || '暂无评分'
         : subtitle;
 
+  const isUniversityCourse =
+    Boolean(courseMetaChips?.purposeType?.includes('大学')) ||
+    Boolean(courseMetaChips?.purposeType?.toLowerCase().includes('university'));
+  const universityCourseCodeLabel =
+    isUniversityCourse && (courseMetaChips?.school?.trim() || courseMetaChips?.courseCode?.trim())
+      ? [courseMetaChips?.school?.trim(), courseMetaChips?.courseCode?.trim()]
+          .filter(Boolean)
+          .join(' ')
+      : null;
+  const coverKickerLabel =
+    universityCourseCodeLabel ??
+    (variant === 'store-course'
+      ? 'Featured Course'
+      : variant === 'owned-course'
+        ? 'My Library'
+        : 'Notebook Library');
+
   return (
     <article
       className={cn(
@@ -301,11 +318,7 @@ export function CourseGalleryCard({
         <div className="absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-[12px] font-medium tracking-[0.12em] text-white/78 uppercase">
-              {variant === 'store-course'
-                ? 'Featured Course'
-                : variant === 'owned-course'
-                  ? 'My Library'
-                  : 'Notebook Library'}
+              {coverKickerLabel}
             </p>
             <h3 className={cn('mt-1 truncate text-white', cfg.title)}>{course.name}</h3>
           </div>

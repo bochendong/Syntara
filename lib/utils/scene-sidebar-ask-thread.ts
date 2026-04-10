@@ -16,20 +16,10 @@ export function flattenUIMessageText(message: UIMessage<ChatMessageMetadata>): s
     .join('');
 }
 
-/**
- * 与右侧 Chat 区当前线程对齐：优先展示进行中的会话，否则最近更新的 QA/讨论会话。
- */
-export function buildSceneSidebarAskThread(
-  chatSessions: ChatSession[],
+export function buildSceneSidebarAskThreadFromMessages(
+  messages: UIMessage<ChatMessageMetadata>[],
   isStreaming: boolean,
 ): SceneSidebarAskBubble[] {
-  if (chatSessions.length === 0) return [];
-  const active = chatSessions.find((s) => s.status === 'active');
-  const sess = active ?? [...chatSessions].sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  if (!sess) return [];
-
-  const messages = sess.messages ?? [];
-
   return messages
     .map((m, idx) => {
       const content = flattenUIMessageText(m);
@@ -44,4 +34,19 @@ export function buildSceneSidebarAskThread(
       };
     })
     .filter((row) => row.content.trim() || row.pending);
+}
+
+/**
+ * 与右侧 Chat 区当前线程对齐：优先展示进行中的会话，否则最近更新的 QA/讨论会话。
+ */
+export function buildSceneSidebarAskThread(
+  chatSessions: ChatSession[],
+  isStreaming: boolean,
+): SceneSidebarAskBubble[] {
+  if (chatSessions.length === 0) return [];
+  const active = chatSessions.find((s) => s.status === 'active');
+  const sess = active ?? [...chatSessions].sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (!sess) return [];
+
+  return buildSceneSidebarAskThreadFromMessages(sess.messages ?? [], isStreaming);
 }

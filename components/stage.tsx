@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
+import type { UIMessage } from 'ai';
 import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -29,11 +30,17 @@ import {
 // Playback state persistence removed — refresh always starts from the beginning
 import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
+import { getActionsForRole } from '@/lib/orchestration/registry/types';
 import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
 import { hydrateSpeechAudioFromTtsCache } from '@/lib/utils/tts-audio-cache';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import type { SlideRepairChatMessage } from '@/lib/types/slide-repair';
-import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
+import {
+  buildSceneSidebarAskThreadFromMessages,
+  type SceneSidebarAskBubble,
+} from '@/lib/utils/scene-sidebar-ask-thread';
+import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
+import type { ChatMessageMetadata } from '@/lib/types/chat';
 import {
   AlertDialog,
   AlertDialogDescription,
@@ -418,7 +425,6 @@ export function Stage({
   const [repairSidebarFocusNonce, setRepairSidebarFocusNonce] = useState(0);
   const [slideRepairPending, setSlideRepairPending] = useState(false);
   const [speechAudioPreparing, setSpeechAudioPreparing] = useState(false);
-  const [sceneSidebarAskThread, setSceneSidebarAskThread] = useState<SceneSidebarAskBubble[]>([]);
   const currentSlideSceneId = currentScene?.type === 'slide' ? currentScene.id : null;
   const repairInstructions = useMemo(
     () => (currentSlideSceneId ? (repairDraftByScene[currentSlideSceneId] ?? '') : ''),
@@ -465,6 +471,7 @@ export function Stage({
   const lectureSessionIdRef = useRef<string | null>(null);
   const lectureActionCounterRef = useRef(0);
   const discussionAbortRef = useRef<AbortController | null>(null);
+  const sidebarAskAbortRef = useRef<AbortController | null>(null);
   // Guard to prevent double flash when manual stop triggers onDiscussionEnd
   const manualStopRef = useRef(false);
   // Monotonic counter incremented on each scene switch — used to discard stale SSE callbacks
@@ -473,6 +480,53 @@ export function Stage({
   const autoStartRef = useRef(false);
   // Discussion buffer-level pause state (distinct from soft-pause which aborts SSE)
   const [isDiscussionPaused, setIsDiscussionPaused] = useState(false);
+  const [sceneSidebarAskMessages, setSceneSidebarAskMessages] = useState<
+    UIMessage<ChatMessageMetadata>[]
+  >([]);
+
+  const sceneSidebarAskThread = useMemo(
+    () => buildSceneSidebarAskThreadFromMessages(sceneSidebarAskMessages, chatIsStreaming),
+    [sceneSidebarAskMessages, chatIsStreaming],
+  );
+
+  const appendInterruptedSidebarAskMessage = useCallback(() => {
+    setSceneSidebarAskMessages((prev) => {
+      const next = [...prev];
+      for (let i = next.length - 1; i >= 0; i--) {
+        if (next[i].role !== 'assistant') continue;
+        const parts = [...next[i].parts];
+        let appended = false;
+        for (let j = parts.length - 1; j >= 0; j--) {
+          if (parts[j].type !== 'text') continue;
+          const textPart = parts[j] as { type: 'text'; text?: string };
+          parts[j] = {
+            ...textPart,
+            text: `${textPart.text || ''}...`,
+          } as UIMessage<ChatMessageMetadata>['parts'][number];
+          appended = true;
+          break;
+        }
+        if (!appended) {
+          parts.push({ type: 'text', text: '...' } as UIMessage<ChatMessageMetadata>['parts'][number]);
+        }
+        next[i] = { ...next[i], parts };
+        return next;
+      }
+      return prev;
+    });
+  }, []);
+
+  const abortSidebarAskLoop = useCallback(
+    (markInterrupted: boolean) => {
+      if (!sidebarAskAbortRef.current) return;
+      sidebarAskAbortRef.current.abort();
+      sidebarAskAbortRef.current = null;
+      if (markInterrupted) {
+        appendInterruptedSidebarAskMessage();
+      }
+    },
+    [appendInterruptedSidebarAskMessage],
+  );
 
   /**
    * Soft-pause: interrupt current agent stream but keep the session active.
@@ -483,6 +537,7 @@ export function Stage({
    */
   const doSoftPause = useCallback(async () => {
     await chatAreaRef.current?.softPauseActiveSession();
+    abortSidebarAskLoop(true);
     // Append "..." to live speech to show interruption in roundtable bubble.
     // Only annotate when there's actual text being interrupted — during pure
     // director-thinking (prev is null, no agent assigned), leave liveSpeech
@@ -496,7 +551,7 @@ export function Stage({
     // Don't clear chatSessionType, speakingAgentId, or liveSpeech
     // Don't show end flash
     // Don't call handleEndDiscussion — engine stays in current state
-  }, []);
+  }, [abortSidebarAskLoop]);
 
   /**
    * Resume a soft-paused topic: re-call /chat with existing session messages.
@@ -566,8 +621,9 @@ export function Stage({
   // Shared stop-discussion handler (used by both Roundtable and Canvas toolbar)
   const handleStopDiscussion = useCallback(async () => {
     await chatAreaRef.current?.endActiveSession();
+    abortSidebarAskLoop(true);
     doSessionCleanup();
-  }, [doSessionCleanup]);
+  }, [abortSidebarAskLoop, doSessionCleanup]);
 
   // Initialize playback engine when scene changes
   useEffect(() => {
@@ -578,6 +634,7 @@ export function Stage({
     // stream inside use-chat-sessions (abortControllerRef.abort()), preventing
     // stale onLiveSpeech callbacks from leaking into the new scene.
     chatAreaRef.current?.endActiveSession();
+    abortSidebarAskLoop(false);
 
     // Also abort the engine-level discussion controller
     if (discussionAbortRef.current) {
@@ -697,8 +754,8 @@ export function Stage({
         }
       },
       onUserInterrupt: (text) => {
-        // User interrupted → start a discussion via chat
-        chatAreaRef.current?.sendMessage(text);
+        // User interrupted → continue in the classroom sidebar ask thread
+        void runSidebarAskLoop(text);
       },
       isAgentSelected: (agentId) => {
         const ids = useSettingsStore.getState().selectedAgentIds;
@@ -774,7 +831,7 @@ export function Stage({
       // Load saved playback state and restore position (but never auto-play).
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run when scene changes, functions are stable refs
-  }, [currentScene]);
+  }, [abortSidebarAskLoop, currentScene, resetSceneState]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -786,6 +843,9 @@ export function Stage({
       audioPlayer.destroy();
       if (discussionAbortRef.current) {
         discussionAbortRef.current.abort();
+      }
+      if (sidebarAskAbortRef.current) {
+        sidebarAskAbortRef.current.abort();
       }
     };
   }, []);
@@ -907,9 +967,151 @@ export function Stage({
     [],
   );
 
-  const handleSceneSidebarAskThreadChange = useCallback((thread: SceneSidebarAskBubble[]) => {
-    setSceneSidebarAskThread(thread);
-  }, []);
+  const executeSidebarAskLoop = useCallback(
+    async (initialMessages: UIMessage<ChatMessageMetadata>[]) => {
+      const modelConfig = getCurrentModelConfig();
+      if (!modelConfig.isServerConfigured) {
+        toast.error(t('settings.setupNeeded'), {
+          description: '系统 OpenAI 模型尚未配置，请联系管理员。',
+        });
+        return;
+      }
+
+      const controller = new AbortController();
+      sidebarAskAbortRef.current = controller;
+      setChatIsStreaming(true);
+      setChatSessionType('qa');
+      setThinkingState({ stage: 'director' });
+      setIsDiscussionPaused(false);
+      setIsCueUser(false);
+      setIsTopicPending(false);
+
+      const agentIds = selectedAgentIds.length > 0 ? selectedAgentIds : ['default-1'];
+      const agentConfigs = agentIds
+        .map((id) => useAgentRegistry.getState().getAgent(id))
+        .filter((agent): agent is AgentConfig => Boolean(agent))
+        .filter((agent) => !agent.id.startsWith('default-'))
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+          role: agent.role,
+          persona: agent.persona,
+          avatar: agent.avatar,
+          color: agent.color,
+          allowedActions: getActionsForRole(agent.role),
+          priority: agent.priority,
+          isGenerated: agent.isGenerated,
+          boundStageId: agent.boundStageId,
+        }));
+
+      try {
+        await runCourseSideChatLoop({
+          initialMessages,
+          agentIds,
+          agentConfigs: agentConfigs.length > 0 ? agentConfigs : undefined,
+          getStoreState: () => {
+            const state = useStageStore.getState();
+            return {
+              stage: state.stage,
+              scenes: state.scenes,
+              currentSceneId: state.currentSceneId,
+              mode: state.mode,
+              whiteboardOpen: useCanvasStore.getState().whiteboardOpen,
+            };
+          },
+          apiKey: modelConfig.apiKey,
+          baseUrl: modelConfig.baseUrl || undefined,
+          model: modelConfig.modelString,
+          signal: controller.signal,
+          onMessages: (messages) => {
+            setSceneSidebarAskMessages(messages);
+            const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+            const textPart = lastAssistant?.parts.find((part) => part.type === 'text');
+            setLiveSpeech(
+              textPart && textPart.type === 'text' ? (textPart.text || null) : null,
+            );
+            setSpeakingAgentId(lastAssistant?.metadata?.agentId || null);
+            if (messages.some((m) => m.role === 'assistant')) {
+              setThinkingState(null);
+            }
+          },
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+
+        const errText = error instanceof Error ? error.message : String(error);
+        setSceneSidebarAskMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            parts: [{ type: 'text', text: `发送失败：${errText}` }],
+            metadata: {
+              senderName: '系统',
+              originalRole: 'agent',
+              createdAt: Date.now(),
+            },
+          },
+        ]);
+      } finally {
+        if (sidebarAskAbortRef.current === controller) {
+          sidebarAskAbortRef.current = null;
+          setChatIsStreaming(false);
+          setThinkingState(null);
+          setLiveSpeech(null);
+          setSpeakingAgentId(null);
+        }
+      }
+    },
+    [selectedAgentIds, t],
+  );
+
+  const runSidebarAskLoop = useCallback(
+    async (message: string) => {
+      const trimmed = message.trim();
+      if (!trimmed) return;
+
+      abortSidebarAskLoop(true);
+
+      const now = Date.now();
+      const userMessage: UIMessage<ChatMessageMetadata> = {
+        id: `user-${now}`,
+        role: 'user',
+        parts: [{ type: 'text', text: trimmed }],
+        metadata: {
+          senderName: t('common.you'),
+          originalRole: 'user',
+          createdAt: now,
+        },
+      };
+
+      let nextMessages: UIMessage<ChatMessageMetadata>[] = [];
+      setSceneSidebarAskMessages((prev) => {
+        nextMessages = [...prev, userMessage];
+        return nextMessages;
+      });
+
+      await executeSidebarAskLoop(nextMessages);
+    },
+    [abortSidebarAskLoop, executeSidebarAskLoop, t],
+  );
+
+  const handleSidebarAskPause = useCallback(() => {
+    if (!sidebarAskAbortRef.current) return;
+    abortSidebarAskLoop(true);
+    setIsDiscussionPaused(true);
+    setIsTopicPending(true);
+    setChatIsStreaming(false);
+    setThinkingState(null);
+  }, [abortSidebarAskLoop]);
+
+  const handleSidebarAskResume = useCallback(async () => {
+    if (sidebarAskAbortRef.current || sceneSidebarAskMessages.length === 0) return;
+    setIsDiscussionPaused(false);
+    await executeSidebarAskLoop(sceneSidebarAskMessages);
+  }, [executeSidebarAskLoop, sceneSidebarAskMessages]);
 
   /** 侧栏提问框聚焦：切到聊天 Tab、暂停讲解，但不自动展开右侧聊天区（避免一点输入框就「弹开」右栏；发送时仍会展开）。 */
   const handleSidebarInputActivate = useCallback(async () => {
@@ -948,14 +1150,10 @@ export function Stage({
       ) {
         engineRef.current.handleUserInterrupt(trimmed);
       } else {
-        chatAreaRef.current?.sendMessage(trimmed);
+        void runSidebarAskLoop(trimmed);
       }
 
-      chatAreaRef.current?.switchToTab('chat');
       setIsCueUser(false);
-      setChatIsStreaming(true);
-      setChatSessionType(chatSessionType || 'qa');
-      setThinkingState({ stage: 'director' });
       setIsDiscussionPaused(false);
 
       if (shouldRestoreChatArea) {
@@ -964,7 +1162,7 @@ export function Stage({
         }, 0);
       }
     },
-    [chatAreaCollapsed, chatSessionType, engineMode, isTopicPending, setChatAreaCollapsed],
+    [chatAreaCollapsed, engineMode, isTopicPending, runSidebarAskLoop, setChatAreaCollapsed],
   );
 
   const handleSidebarQuestionSend = useCallback(
@@ -996,6 +1194,32 @@ export function Stage({
     const agent = useAgentRegistry.getState().getAgent(speakingAgentId);
     return agent?.role !== 'teacher';
   }, [speakingAgentId]);
+
+  const sceneSidebarAskSpeakerName = useMemo(() => {
+    if (!speakingAgentId) {
+      return chatSessionType === 'qa' ? '老师' : null;
+    }
+    const agent = useAgentRegistry.getState().getAgent(speakingAgentId);
+    if (!agent) return chatSessionType === 'qa' ? '老师' : null;
+    return agent.role === 'teacher' ? agent.name || '老师' : agent.name;
+  }, [chatSessionType, speakingAgentId]);
+
+  const sceneSidebarAskSpeakerMeta = useMemo(() => {
+    if (!speakingAgentId) {
+      const teacher = selectedAgentIds
+        .map((id) => useAgentRegistry.getState().getAgent(id))
+        .find((agent) => agent?.role === 'teacher');
+      return {
+        avatar: teacher?.avatar || null,
+        color: teacher?.color || '#38bdf8',
+      };
+    }
+    const agent = useAgentRegistry.getState().getAgent(speakingAgentId);
+    return {
+      avatar: agent?.avatar || null,
+      color: agent?.color || '#38bdf8',
+    };
+  }, [selectedAgentIds, speakingAgentId]);
 
   // Centralised derived playback view
   const playbackView = useMemo(
@@ -1949,6 +2173,15 @@ export function Stage({
               onSidebarAskActivate={handleSidebarInputActivate}
               onSidebarAskSubmit={handleSidebarQuestionSend}
               sceneSidebarAskThread={sceneSidebarAskThread}
+              sceneSidebarAskLiveSpeech={liveSpeech}
+              sceneSidebarAskThinking={thinkingState?.stage === 'director'}
+              sceneSidebarAskStreaming={chatIsStreaming}
+              sceneSidebarAskSpeakerName={sceneSidebarAskSpeakerName}
+              sceneSidebarAskSpeakerAvatar={sceneSidebarAskSpeakerMeta.avatar}
+              sceneSidebarAskSpeakerColor={sceneSidebarAskSpeakerMeta.color}
+              sceneSidebarAskPaused={isDiscussionPaused}
+              onSidebarAskPause={handleSidebarAskPause}
+              onSidebarAskResume={() => void handleSidebarAskResume()}
               chatCollapsed={chatAreaCollapsed}
               onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
               onToggleChat={() => setChatAreaCollapsed(!chatAreaCollapsed)}
@@ -2101,7 +2334,6 @@ export function Stage({
         onStopSession={doSessionCleanup}
         onInputActivate={handleSidebarInputActivate}
         onMessageSend={handleChatAreaQuestionSend}
-        onSceneSidebarAskThreadChange={handleSceneSidebarAskThreadChange}
       />
 
       {/* Scene switch confirmation dialog */}

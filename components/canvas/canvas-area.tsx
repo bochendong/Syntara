@@ -28,6 +28,15 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   readonly onSidebarAskActivate?: () => Promise<void> | void;
   readonly onSidebarAskSubmit?: (message: string) => Promise<void> | void;
   readonly sceneSidebarAskThread?: SceneSidebarAskBubble[];
+  readonly sceneSidebarAskLiveSpeech?: string | null;
+  readonly sceneSidebarAskThinking?: boolean;
+  readonly sceneSidebarAskStreaming?: boolean;
+  readonly sceneSidebarAskSpeakerName?: string | null;
+  readonly sceneSidebarAskSpeakerAvatar?: string | null;
+  readonly sceneSidebarAskSpeakerColor?: string | null;
+  readonly sceneSidebarAskPaused?: boolean;
+  readonly onSidebarAskPause?: () => void;
+  readonly onSidebarAskResume?: () => void;
   /** 播放模式下在左侧栏显示「虚拟讲师」标签与形象时传入 */
   readonly sceneSidebarLive2d?: TalkingAvatarOverlayState;
   readonly playPauseDisabled?: boolean;
@@ -49,6 +58,15 @@ export function CanvasArea({
   onSidebarAskActivate,
   onSidebarAskSubmit,
   sceneSidebarAskThread = [],
+  sceneSidebarAskLiveSpeech = null,
+  sceneSidebarAskThinking = false,
+  sceneSidebarAskStreaming = false,
+  sceneSidebarAskSpeakerName = null,
+  sceneSidebarAskSpeakerAvatar = null,
+  sceneSidebarAskSpeakerColor = null,
+  sceneSidebarAskPaused = false,
+  onSidebarAskPause,
+  onSidebarAskResume,
   chatCollapsed,
   onToggleSidebar,
   onToggleChat,
@@ -119,6 +137,15 @@ export function CanvasArea({
           onAskActivate={onSidebarAskActivate}
           onAskSubmit={onSidebarAskSubmit}
           askThread={sceneSidebarAskThread}
+          askLiveSpeech={sceneSidebarAskLiveSpeech}
+          askThinking={sceneSidebarAskThinking}
+          askStreaming={sceneSidebarAskStreaming}
+          askSpeakerName={sceneSidebarAskSpeakerName}
+          askSpeakerAvatar={sceneSidebarAskSpeakerAvatar}
+          askSpeakerColor={sceneSidebarAskSpeakerColor}
+          askPaused={sceneSidebarAskPaused}
+          onAskPause={onSidebarAskPause}
+          onAskResume={onSidebarAskResume}
           live2dPresenter={sceneSidebarLive2d}
           playbackEngineState={engineState}
         />

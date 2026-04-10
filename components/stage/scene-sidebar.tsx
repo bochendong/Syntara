@@ -13,10 +13,13 @@ import {
   Trash2,
   SendHorizonal,
   Loader2,
+  Pause,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   TalkingAvatarOverlay,
   type TalkingAvatarOverlayState,
@@ -44,6 +47,15 @@ interface SceneSidebarProps {
   readonly playbackEngineState?: 'idle' | 'playing' | 'paused';
   /** 与右侧 Chat 区当前 QA/讨论线程同步，布局对齐 AI 编辑侧栏对话区 */
   readonly askThread?: SceneSidebarAskBubble[];
+  readonly askLiveSpeech?: string | null;
+  readonly askThinking?: boolean;
+  readonly askStreaming?: boolean;
+  readonly askSpeakerName?: string | null;
+  readonly askSpeakerAvatar?: string | null;
+  readonly askSpeakerColor?: string | null;
+  readonly askPaused?: boolean;
+  readonly onAskPause?: () => void;
+  readonly onAskResume?: () => void;
 }
 
 type SidebarMainTab = 'nav' | 'notes' | 'ask' | 'live2d';
@@ -62,6 +74,15 @@ export function SceneSidebar({
   live2dPresenter,
   playbackEngineState = 'idle',
   askThread = [],
+  askLiveSpeech = null,
+  askThinking = false,
+  askStreaming = false,
+  askSpeakerName = null,
+  askSpeakerAvatar = null,
+  askSpeakerColor = null,
+  askPaused = false,
+  onAskPause,
+  onAskResume,
 }: SceneSidebarProps) {
   const { t } = useI18n();
   const { scenes, currentSceneId, setCurrentSceneId, generatingOutlines, generationStatus } =
@@ -258,6 +279,9 @@ export function SceneSidebar({
     setAskValue('');
     void onAskSubmit?.(message);
   }, [askValue, onAskSubmit]);
+
+  const showAskStatus = askThinking || Boolean(askLiveSpeech) || (askStreaming && askThread.length > 0);
+  const isAskSpeaking = !askThinking && Boolean(askLiveSpeech?.trim());
 
   return (
     <div
@@ -706,6 +730,88 @@ export function SceneSidebar({
             className="mt-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none data-[state=inactive]:hidden"
           >
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-0 pt-1">
+              {showAskStatus ? (
+                <div className="shrink-0 px-3 pb-2">
+                  <div className="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-3 py-3 shadow-sm dark:border-sky-500/20 dark:bg-gradient-to-br dark:from-sky-500/10 dark:via-slate-950/40 dark:to-cyan-500/5">
+                    <div className="flex items-start gap-3">
+                      <div className="relative mt-0.5 shrink-0">
+                        <Avatar
+                          className="h-10 w-10 border-2 shadow-[0_10px_24px_rgba(14,165,233,0.18)]"
+                          style={{ borderColor: askSpeakerColor || '#38bdf8' }}
+                        >
+                          {askSpeakerAvatar &&
+                          (askSpeakerAvatar.startsWith('http') ||
+                            askSpeakerAvatar.startsWith('/') ||
+                            askSpeakerAvatar.startsWith('data:')) ? (
+                            <AvatarImage src={askSpeakerAvatar} alt={askSpeakerName || 'AI'} />
+                          ) : null}
+                          <AvatarFallback
+                            style={{
+                              backgroundColor: `${askSpeakerColor || '#38bdf8'}20`,
+                              color: askSpeakerColor || '#0369a1',
+                            }}
+                          >
+                            {askSpeakerAvatar || (askSpeakerName || 'AI').slice(0, 1)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isAskSpeaking ? (
+                          <>
+                            <span className="absolute inset-0 rounded-full border border-sky-400/50 animate-ping" />
+                            <span className="absolute -right-1 -top-1 flex h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-slate-950" />
+                          </>
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
+                          <span>{askSpeakerName || t('chat.sidebarAskAiLabel')}</span>
+                          <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-sky-700 dark:text-sky-200">
+                            {askThinking ? '思考中' : askPaused ? '已暂停' : '正在回答'}
+                          </span>
+                        </div>
+                        {isAskSpeaking ? (
+                          <div className="mt-1 flex items-end gap-1.5">
+                            <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite]" />
+                            <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.15s]" />
+                            <span className="h-4 w-1 rounded-full bg-cyan-500/90 animate-[askWave_1.1s_ease-in-out_infinite_0.3s]" />
+                            <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.45s]" />
+                            <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite_0.6s]" />
+                          </div>
+                        ) : null}
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 dark:text-slate-100">
+                          {askLiveSpeech?.trim()
+                            ? askLiveSpeech
+                            : askThinking
+                              ? '正在结合当前课堂内容组织回答...'
+                              : '正在生成回复...'}
+                        </p>
+                        {!askThinking && (onAskPause || onAskResume) ? (
+                          <div className="mt-2 flex items-center gap-2">
+                            {askPaused ? (
+                              <button
+                                type="button"
+                                onClick={onAskResume}
+                                className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
+                              >
+                                <Play className="h-3.5 w-3.5" />
+                                继续回答
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={onAskPause}
+                                className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
+                              >
+                                <Pause className="h-3.5 w-3.5" />
+                                暂停回答
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               <div
                 ref={askThreadScrollRef}
                 className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-2 pt-1 scrollbar-hide"

@@ -28,8 +28,6 @@ import { ChevronDownIcon } from 'lucide-react';
 import type { NotebookGenerationModelStage } from '@/lib/constants/notebook-generation-model-stages';
 import {
   NOTEBOOK_MODEL_PRESET_FULL,
-  NOTEBOOK_MODEL_PRESET_MINI,
-  NOTEBOOK_MODEL_RECOMMENDED_BY_STAGE,
   type NotebookGenerationModelMode,
 } from '@/lib/constants/notebook-generation-model-presets';
 
@@ -158,30 +156,10 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              仅影响这次 notebook 创建；服务端仍使用系统托管 OpenAI Key。
-            </p>
           </div>
         </FieldBlock>
 
-        {notebookModelMode === 'recommended' && (
-          <div className="space-y-1.5 rounded-lg border border-slate-900/[0.06] bg-white/30 p-2.5 dark:border-white/[0.08] dark:bg-black/15">
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              已按步骤预配：关键内容用 <span className="font-mono text-foreground/85">{NOTEBOOK_MODEL_PRESET_FULL}</span>
-              ，低成本步骤用 <span className="font-mono text-foreground/85">{NOTEBOOK_MODEL_PRESET_MINI}</span>。
-            </p>
-            <ul className="list-inside list-disc space-y-0.5 text-[10px] text-muted-foreground">
-              {NOTEBOOK_STAGE_ORDER.map((stage) => (
-                <li key={stage}>
-                  {NOTEBOOK_STAGE_MODEL_LABELS[stage]}：
-                  <span className="font-mono text-foreground/80">
-                    {NOTEBOOK_MODEL_RECOMMENDED_BY_STAGE[stage]}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/** Intentionally hide the per-stage recommended preset breakdown in the UI. */}
 
         {notebookModelMode === 'max' && (
           <div className="rounded-lg border border-slate-900/[0.06] bg-white/30 p-2.5 dark:border-white/[0.08] dark:bg-black/15">

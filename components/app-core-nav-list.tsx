@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  ArrowRightLeft,
   Bell,
   BookOpen,
   Bug,
@@ -58,14 +59,15 @@ const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   'agent-teams': 0,
   courses: 1,
   'top-up': 2,
-  store: 3,
-  chat: 4,
-  notifications: 5,
-  live2d: 6,
-  profile: 7,
-  settings: 8,
-  'contact-support': 9,
-  'report-issue': 10,
+  'credits-market': 3,
+  store: 4,
+  chat: 5,
+  notifications: 6,
+  live2d: 7,
+  profile: 8,
+  settings: 9,
+  'contact-support': 10,
+  'report-issue': 11,
 };
 
 function sortChatRightRailItems(items: CoreNavItem[]): CoreNavItem[] {
@@ -127,6 +129,8 @@ export function AppCoreNavList({
 
   const live2dActive = pathname === '/live2d' || pathname?.startsWith('/live2d/');
   const topUpActive = pathname === '/top-up' || pathname?.startsWith('/top-up/');
+  const creditsMarketActive =
+    pathname === '/credits-market' || pathname?.startsWith('/credits-market/');
   const profileActive = pathname === '/profile' || pathname?.startsWith('/profile/');
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
   const notificationsActive =
@@ -152,10 +156,18 @@ export function AppCoreNavList({
         {
           key: 'top-up',
           href: '/top-up',
-          label: '充值',
-          tooltip: '充值中心',
+          label: '充值/转换',
+          tooltip: '充值/转换',
           icon: Coins,
           active: topUpActive,
+        },
+        {
+          key: 'credits-market',
+          href: '/credits-market',
+          label: '交易积分',
+          tooltip: '交易积分',
+          icon: ArrowRightLeft,
+          active: creditsMarketActive,
         },
         {
           key: 'store',
@@ -249,10 +261,18 @@ export function AppCoreNavList({
             {
               key: 'top-up',
               href: '/top-up',
-              label: '充值',
-              tooltip: '充值中心',
+              label: '充值/转换',
+              tooltip: '充值/转换',
               icon: Coins,
               active: topUpActive,
+            },
+            {
+              key: 'credits-market',
+              href: '/credits-market',
+              label: '交易积分',
+              tooltip: '交易积分',
+              icon: ArrowRightLeft,
+              active: creditsMarketActive,
             },
             {
               key: 'store',
@@ -340,6 +360,16 @@ export function AppCoreNavList({
         },
       ].filter((section) => section.items.length > 0);
 
+  const omit = excludeKeys?.length ? new Set(excludeKeys) : null;
+  const visibleSections = omit
+    ? coreNavSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => !omit.has(item.key)),
+        }))
+        .filter((section) => section.items.length > 0)
+    : coreNavSections;
+
   const renderItem = (item: CoreNavItem) => {
     const Icon = item.icon;
     const isNotificationsItem = item.key === 'notifications';
@@ -392,10 +422,9 @@ export function AppCoreNavList({
   };
 
   if (!grouped) {
-    const rawFlat = coreNavSections.flatMap((s) => s.items);
+    const rawFlat = visibleSections.flatMap((s) => s.items);
     const ordered = chatRightRailOrder ? sortChatRightRailItems(rawFlat) : rawFlat;
-    const omit = excludeKeys?.length ? new Set(excludeKeys) : null;
-    const flatItems = omit ? ordered.filter((item) => !omit.has(item.key)) : ordered;
+    const flatItems = ordered;
     return (
       <div className="flex flex-col p-0">
         <ul className="flex flex-col gap-0.5 p-0">{flatItems.map(renderItem)}</ul>
@@ -405,7 +434,7 @@ export function AppCoreNavList({
 
   return (
     <div className="flex flex-col gap-3 p-0">
-      {coreNavSections.map((section, sectionIndex) => (
+      {visibleSections.map((section, sectionIndex) => (
         <div
           key={section.key}
           className={cn(
