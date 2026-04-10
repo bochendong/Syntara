@@ -15,8 +15,10 @@ const REPAIR_GAP_PX = 12;
 const DEFAULT_CONTAINER_INSET_PX = 10;
 const MAX_CONTAINER_INSET_PX = 24;
 const MIN_CONTAINER_STACK_GAP_PX = 6;
-const MAX_CONTAINER_STACK_GAP_PX = 24;
-const CONTAINER_ATTACH_GAP_PX = 42;
+const MAX_CONTAINER_STACK_GAP_PX = 18;
+const CONTAINER_ATTACH_GAP_PX = 20;
+const MAX_CONTAINER_CONTENT_COUNT = 3;
+const MAX_CONTAINER_MIGRATION_EXTRA_HEIGHT_PX = 96;
 
 export interface SlideViewport {
   width: number;
@@ -370,6 +372,22 @@ function getHorizontalOverlapRatio(
   return overlapWidth / Math.max(1, Math.min(shape.width, element.width));
 }
 
+function overlapsShapeLane(
+  shapeRange: ReturnType<typeof getElementRange>,
+  candidateRange: ReturnType<typeof getElementRange>,
+): boolean {
+  return (
+    getHorizontalOverlapWidth(
+      [shapeRange.minX, shapeRange.maxX],
+      [candidateRange.minX, candidateRange.maxX],
+    ) > 24 &&
+    rangesOverlap(
+      [shapeRange.minY - 12, shapeRange.maxY + 48],
+      [candidateRange.minY, candidateRange.maxY],
+    )
+  );
+}
+
 function updateStyleBlock(
   source: string,
   property: string,
@@ -485,12 +503,19 @@ function collectContainerContentIndexes(elements: PPTElement[], shapeIndex: numb
   const shapeRange = getElementRange(shape);
   const indexes: number[] = [];
   let laneBottom = shapeRange.maxY;
+  let sawBarrier = false;
 
   for (let index = shapeIndex + 1; index < elements.length; index += 1) {
     const candidate = elements[index];
     if (!isLayoutContentElement(candidate)) {
+      if (indexes.length > 0 && candidate) {
+        const candidateRange = getElementRange(candidate);
+        if (overlapsShapeLane(shapeRange, candidateRange)) {
+          sawBarrier = true;
+          break;
+        }
+      }
       if (
-        indexes.length > 0 &&
         candidate?.type === 'shape' &&
         getElementRange(candidate).minY > laneBottom + CONTAINER_ATTACH_GAP_PX
       ) {
@@ -515,7 +540,9 @@ function collectContainerContentIndexes(elements: PPTElement[], shapeIndex: numb
     }
 
     const attachCeiling =
-      indexes.length === 0 ? shapeRange.maxY + CONTAINER_ATTACH_GAP_PX : laneBottom + 48;
+      indexes.length === 0
+        ? shapeRange.maxY + CONTAINER_ATTACH_GAP_PX
+        : laneBottom + MAX_CONTAINER_STACK_GAP_PX;
     const attachFloor = shapeRange.minY - 12;
 
     if (candidateRange.minY < attachFloor) continue;
@@ -525,16 +552,24 @@ function collectContainerContentIndexes(elements: PPTElement[], shapeIndex: numb
     }
 
     indexes.push(index);
+    if (indexes.length > MAX_CONTAINER_CONTENT_COUNT) return [];
     laneBottom = Math.max(laneBottom, candidateRange.maxY);
   }
 
-  if (indexes.length === 0) return [];
+  if (indexes.length === 0 || sawBarrier) return [];
 
   const firstRange = getElementRange(elements[indexes[0]] as LayoutContentElement);
-  const startsInside = firstRange.minY < shapeRange.maxY - 4;
+  const lastRange = getElementRange(elements[indexes[indexes.length - 1]] as LayoutContentElement);
+  const startsInside = firstRange.minY <= shapeRange.maxY - 4;
   const startsJustBelow = firstRange.minY <= shapeRange.maxY + CONTAINER_ATTACH_GAP_PX;
+  const spanHeight = lastRange.maxY - firstRange.minY;
+  const projectedHeight =
+    Math.max(shape.height, DEFAULT_CONTAINER_INSET_PX * 2 + spanHeight) - shape.height;
 
-  return startsInside || startsJustBelow ? indexes : [];
+  if (!startsInside && !startsJustBelow) return [];
+  if (projectedHeight > MAX_CONTAINER_MIGRATION_EXTRA_HEIGHT_PX) return [];
+
+  return indexes;
 }
 
 function rangesOverlap(a: [number, number], b: [number, number], tolerance = 0): boolean {
@@ -718,6 +753,9 @@ function applyContainerContentLayout(
   }
 
   const requiredShapeHeight = Math.ceil(latestPlacedBottom - shape.top + bottomInset);
+  if (requiredShapeHeight > shape.height + MAX_CONTAINER_MIGRATION_EXTRA_HEIGHT_PX) {
+    return elements;
+  }
   const updatedShape: PPTShapeElement = {
     ...shape,
     height: Math.max(shape.height, requiredShapeHeight),
