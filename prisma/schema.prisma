@@ -51,12 +51,16 @@ enum CreditTransactionKind {
   TOKEN_USAGE
   CASH_TO_COMPUTE_TRANSFER
   CASH_TO_PURCHASE_TRANSFER
+  /// @deprecated Kept for backward compatibility — existing rows in the database still reference this value
+  NOTEBOOK_GENERATION_USAGE
 }
 
 enum CreditAccountType {
   CASH
   COMPUTE
   PURCHASE
+  /// @deprecated Kept for backward compatibility — existing rows in the database still reference this value
+  NOTEBOOK_GENERATION
 }
 
 enum TopUpOrderStatus {
