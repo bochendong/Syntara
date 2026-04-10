@@ -1,4 +1,10 @@
-import type { PPTElement, PPTShapeElement, PPTTextElement, TextType } from '@/lib/types/slides';
+import type {
+  PPTElement,
+  PPTLatexElement,
+  PPTShapeElement,
+  PPTTextElement,
+  TextType,
+} from '@/lib/types/slides';
 import { getElementListRange, getElementRange } from '@/lib/utils/element';
 
 export const TEXT_BOX_PADDING_PX = 10;
@@ -6,6 +12,11 @@ const DEFAULT_PARAGRAPH_SPACE_PX = 5;
 const MIN_PARAGRAPH_SPACE_PX = 2;
 const MIN_LINE_HEIGHT = 1.25;
 const REPAIR_GAP_PX = 12;
+const DEFAULT_CONTAINER_INSET_PX = 10;
+const MAX_CONTAINER_INSET_PX = 24;
+const MIN_CONTAINER_STACK_GAP_PX = 6;
+const MAX_CONTAINER_STACK_GAP_PX = 24;
+const CONTAINER_ATTACH_GAP_PX = 42;
 
 export interface SlideViewport {
   width: number;
@@ -70,6 +81,8 @@ type ShapeTextPair = {
   };
 };
 
+type LayoutContentElement = PPTTextElement | PPTLatexElement;
+
 function decodeHtmlEntities(input: string): string {
   return input
     .replace(/&nbsp;/g, ' ')
@@ -78,6 +91,10 @@ function decodeHtmlEntities(input: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function parseInlineStyles(styleText?: string): Record<string, string> {
@@ -322,6 +339,37 @@ export function getMaxFontSizeForTextElement(element: PPTTextElement): number {
   return paragraphSizes.length > 0 ? Math.max(...paragraphSizes, fallback) : fallback;
 }
 
+function isTextElement(element: PPTElement | undefined): element is PPTTextElement {
+  return !!element && element.type === 'text';
+}
+
+function isLatexElement(element: PPTElement | undefined): element is PPTLatexElement {
+  return !!element && element.type === 'latex';
+}
+
+function isLayoutContentElement(element: PPTElement | undefined): element is LayoutContentElement {
+  return isTextElement(element) || isLatexElement(element);
+}
+
+function hasShapeTextContent(shape: PPTShapeElement): boolean {
+  return !!shape.text?.content?.replace(/<[^>]+>/g, '').trim();
+}
+
+function getHorizontalOverlapWidth(a: [number, number], b: [number, number]): number {
+  return Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0]));
+}
+
+function getHorizontalOverlapRatio(
+  shape: Pick<PPTShapeElement, 'left' | 'width'>,
+  element: Pick<LayoutContentElement, 'left' | 'width'>,
+): number {
+  const overlapWidth = getHorizontalOverlapWidth(
+    [shape.left, shape.left + shape.width],
+    [element.left, element.left + element.width],
+  );
+  return overlapWidth / Math.max(1, Math.min(shape.width, element.width));
+}
+
 function updateStyleBlock(
   source: string,
   property: string,
@@ -400,11 +448,93 @@ function tightenTextElement(element: PPTTextElement, minFontSizePx: number): PPT
   };
 }
 
+function resolveContainerContentLeft(
+  shape: PPTShapeElement,
+  element: LayoutContentElement,
+  inset = DEFAULT_CONTAINER_INSET_PX,
+): number {
+  const maxLeft = shape.left + Math.max(inset, shape.width - inset - element.width);
+  const minLeft = shape.left + inset;
+  const shapeCenter = shape.left + shape.width / 2;
+  const elementCenter = element.left + element.width / 2;
+  const isCentered = Math.abs(shapeCenter - elementCenter) <= 14;
+
+  if (isCentered && element.width <= shape.width - inset * 2) {
+    return Math.round(shape.left + (shape.width - element.width) / 2);
+  }
+
+  if (maxLeft < minLeft) {
+    return Math.round(shape.left + Math.max(0, (shape.width - element.width) / 2));
+  }
+
+  return Math.round(clamp(element.left, minLeft, maxLeft));
+}
+
 function cloneElement<T extends PPTElement>(element: T): T {
   return {
     ...element,
     ...(element.type === 'shape' && element.text ? { text: { ...element.text } } : {}),
   };
+}
+
+function collectContainerContentIndexes(elements: PPTElement[], shapeIndex: number): number[] {
+  const shape = elements[shapeIndex];
+  if (!shape || shape.type !== 'shape') return [];
+  if (hasShapeTextContent(shape) || shape.pattern || shape.special) return [];
+
+  const shapeRange = getElementRange(shape);
+  const indexes: number[] = [];
+  let laneBottom = shapeRange.maxY;
+
+  for (let index = shapeIndex + 1; index < elements.length; index += 1) {
+    const candidate = elements[index];
+    if (!isLayoutContentElement(candidate)) {
+      if (
+        indexes.length > 0 &&
+        candidate?.type === 'shape' &&
+        getElementRange(candidate).minY > laneBottom + CONTAINER_ATTACH_GAP_PX
+      ) {
+        break;
+      }
+      continue;
+    }
+
+    const candidateRange = getElementRange(candidate);
+    const overlapRatio = getHorizontalOverlapRatio(shape, candidate);
+    const fitsWidth = candidate.width <= shape.width + 16;
+    const leftSlack = candidate.left - shape.left;
+    const rightSlack = shape.left + shape.width - (candidate.left + candidate.width);
+    const horizontallyAligned =
+      fitsWidth && (overlapRatio >= 0.72 || (leftSlack >= -16 && rightSlack >= -16));
+
+    if (!horizontallyAligned) {
+      if (indexes.length > 0 && candidateRange.minY > laneBottom + CONTAINER_ATTACH_GAP_PX) {
+        break;
+      }
+      continue;
+    }
+
+    const attachCeiling =
+      indexes.length === 0 ? shapeRange.maxY + CONTAINER_ATTACH_GAP_PX : laneBottom + 48;
+    const attachFloor = shapeRange.minY - 12;
+
+    if (candidateRange.minY < attachFloor) continue;
+    if (candidateRange.minY > attachCeiling) {
+      if (indexes.length > 0) break;
+      continue;
+    }
+
+    indexes.push(index);
+    laneBottom = Math.max(laneBottom, candidateRange.maxY);
+  }
+
+  if (indexes.length === 0) return [];
+
+  const firstRange = getElementRange(elements[indexes[0]] as LayoutContentElement);
+  const startsInside = firstRange.minY < shapeRange.maxY - 4;
+  const startsJustBelow = firstRange.minY <= shapeRange.maxY + CONTAINER_ATTACH_GAP_PX;
+
+  return startsInside || startsJustBelow ? indexes : [];
 }
 
 function rangesOverlap(a: [number, number], b: [number, number], tolerance = 0): boolean {
@@ -514,6 +644,115 @@ function applyTextHeight(text: PPTTextElement, allowTightHeight: boolean): PPTTe
     ...text,
     height: estimatedHeight,
   };
+}
+
+function applyContentHeight(
+  element: LayoutContentElement,
+  allowTightHeight: boolean,
+): LayoutContentElement {
+  if (element.type === 'text') {
+    return applyTextHeight(element, allowTightHeight);
+  }
+
+  return element;
+}
+
+function applyContainerContentLayout(
+  elements: PPTElement[],
+  shapeIndex: number,
+  contentIndexes: number[],
+): PPTElement[] {
+  if (contentIndexes.length === 0) return elements;
+
+  const nextElements = elements.map((element) => cloneElement(element));
+  const shape = nextElements[shapeIndex] as PPTShapeElement;
+  const oldShapeRange = getElementRange(shape);
+  const originalContents = contentIndexes.map(
+    (index) => nextElements[index] as LayoutContentElement,
+  );
+  const firstOriginalRange = getElementRange(originalContents[0]);
+  const lastOriginalRange = getElementRange(originalContents[originalContents.length - 1]);
+  const firstStartsInside = firstOriginalRange.minY < oldShapeRange.maxY - 4;
+
+  const topInset = firstStartsInside
+    ? clamp(
+        Math.round(firstOriginalRange.minY - oldShapeRange.minY),
+        DEFAULT_CONTAINER_INSET_PX,
+        MAX_CONTAINER_INSET_PX,
+      )
+    : DEFAULT_CONTAINER_INSET_PX;
+  const bottomInset = firstStartsInside
+    ? clamp(
+        Math.round(oldShapeRange.maxY - lastOriginalRange.maxY),
+        DEFAULT_CONTAINER_INSET_PX,
+        MAX_CONTAINER_INSET_PX,
+      )
+    : DEFAULT_CONTAINER_INSET_PX;
+
+  let cursorTop = shape.top + topInset;
+  let previousOriginalBottom = firstOriginalRange.minY;
+  let latestPlacedBottom = cursorTop;
+
+  for (let offset = 0; offset < contentIndexes.length; offset += 1) {
+    const index = contentIndexes[offset];
+    const original = originalContents[offset];
+    const sized = applyContentHeight(original, false);
+    const currentRange = getElementRange(original);
+
+    if (offset > 0) {
+      const rawGap = Math.round(currentRange.minY - previousOriginalBottom);
+      const gap = clamp(rawGap, MIN_CONTAINER_STACK_GAP_PX, MAX_CONTAINER_STACK_GAP_PX);
+      cursorTop = latestPlacedBottom + gap;
+    }
+
+    const placedElement: LayoutContentElement = {
+      ...sized,
+      left: resolveContainerContentLeft(shape, sized),
+      top: Math.round(cursorTop),
+      height: Math.round(sized.height),
+    };
+
+    nextElements[index] = placedElement;
+    latestPlacedBottom = placedElement.top + placedElement.height;
+    previousOriginalBottom = currentRange.maxY;
+  }
+
+  const requiredShapeHeight = Math.ceil(latestPlacedBottom - shape.top + bottomInset);
+  const updatedShape: PPTShapeElement = {
+    ...shape,
+    height: Math.max(shape.height, requiredShapeHeight),
+  };
+
+  nextElements[shapeIndex] = updatedShape;
+
+  const newShapeRange = getElementRange(updatedShape);
+  const oldBottom = Math.max(oldShapeRange.maxY, lastOriginalRange.maxY);
+  const newBottom = Math.max(newShapeRange.maxY, latestPlacedBottom);
+
+  if (newBottom <= oldBottom + 1) return nextElements;
+
+  return reflowFollowingElements({
+    elements: nextElements,
+    startIndex: Math.max(shapeIndex, contentIndexes[contentIndexes.length - 1]),
+    oldBottom,
+    newBottom,
+    anchorXRange: [oldShapeRange.minX, oldShapeRange.maxX],
+  });
+}
+
+function normalizeContainerBoundContent(elements: PPTElement[]): PPTElement[] {
+  let normalized = elements.map((element) => cloneElement(element));
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const candidate = normalized[index];
+    if (!candidate || candidate.type !== 'shape') continue;
+
+    const contentIndexes = collectContainerContentIndexes(normalized, index);
+    if (contentIndexes.length === 0) continue;
+    normalized = applyContainerContentLayout(normalized, index, contentIndexes);
+  }
+
+  return normalized;
 }
 
 function applyShapePairLayout(
@@ -652,7 +891,7 @@ export function normalizeSlideTextLayout(
   elements: PPTElement[],
   viewport: SlideViewport = DEFAULT_VIEWPORT,
 ): PPTElement[] {
-  let normalized = elements.map((element) => cloneElement(element));
+  let normalized = normalizeContainerBoundContent(elements);
 
   for (let index = 0; index < normalized.length; index += 1) {
     if (normalized[index]?.type !== 'text') continue;
