@@ -20,6 +20,7 @@ import {
   buildBudgetedGenerationMedia,
   SAFE_GENERATION_REQUEST_BYTES,
 } from '@/lib/generation/request-payload-budget';
+import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('SceneGenerator');
@@ -35,7 +36,9 @@ export interface SpeechAudioProgress {
 interface SceneContentResult {
   success: boolean;
   content?: unknown;
+  contents?: unknown[];
   effectiveOutline?: SceneOutline;
+  effectiveOutlines?: SceneOutline[];
   error?: string;
 }
 
@@ -44,6 +47,24 @@ interface SceneActionsResult {
   scene?: Scene;
   previousSpeeches?: string[];
   error?: string;
+}
+
+function resolveGeneratedPageBundle(
+  result: SceneContentResult,
+  fallbackOutline: SceneOutline,
+): { contents: unknown[]; effectiveOutlines: SceneOutline[] } {
+  const contents = Array.isArray(result.contents)
+    ? result.contents
+    : result.content !== undefined
+      ? [result.content]
+      : [];
+  const effectiveOutlines = Array.isArray(result.effectiveOutlines)
+    ? result.effectiveOutlines
+    : [result.effectiveOutline || fallbackOutline];
+  return {
+    contents,
+    effectiveOutlines,
+  };
 }
 
 function getApiHeaders(): HeadersInit {
@@ -432,7 +453,8 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
       const signal = fetchAbortRef.current.signal;
 
       const state = store.getState();
-      const { outlines, scenes, stage } = state;
+      let outlines = [...state.outlines];
+      const { scenes, stage } = state;
       const startEpoch = state.generationEpoch;
       if (!stage || outlines.length === 0) {
         generatingRef.current = false;
@@ -470,7 +492,10 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
       // Serial generation loop — two-step per outline
       try {
         let pausedByFailureOrAbort = false;
-        for (const outline of pending) {
+        for (const pendingOutline of pending) {
+          const outline =
+            outlines.find((currentOutline) => currentOutline.id === pendingOutline.id) ||
+            pendingOutline;
           if (abortRef.current || store.getState().generationEpoch !== startEpoch) {
             store.getState().setGenerationStatus('paused');
             pausedByFailureOrAbort = true;
@@ -522,40 +547,66 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             break;
           }
 
-          // Step 2: Generate actions + assemble scene
-          options.onPhaseChange?.('actions', outline);
-          const actionsResult = await fetchSceneActions(
-            {
-              outline: contentResult.effectiveOutline || outline,
-              allOutlines: outlines,
-              content: contentResult.content,
-              stageId: stage.id,
-              notebookName: stage.name,
-              agents: params.agents,
-              previousSpeeches,
-              userProfile: params.userProfile,
-              courseContext: params.courseContext,
-            },
-            signal,
-          );
+          const pageBundle = resolveGeneratedPageBundle(contentResult, outline);
+          let effectiveOutlines = pageBundle.effectiveOutlines;
+          if (effectiveOutlines.length > 1) {
+            const spliced = spliceGeneratedOutlines(outlines, outline.id, effectiveOutlines);
+            outlines = spliced.outlines;
+            effectiveOutlines = spliced.effectiveOutlines;
+            store.getState().setOutlines(outlines);
+          }
 
-          if (actionsResult.success && actionsResult.scene) {
-            const scene = actionsResult.scene;
-            // Epoch changed — stage switched, discard this scene
-            if (store.getState().generationEpoch !== startEpoch) {
+          let pageFailed = false;
+          for (let pageIndex = 0; pageIndex < pageBundle.contents.length; pageIndex += 1) {
+            const pageOutline = effectiveOutlines[pageIndex] || outline;
+            const pageContent = pageBundle.contents[pageIndex];
+            options.onPhaseChange?.('actions', pageOutline);
+            const actionsResult = await fetchSceneActions(
+              {
+                outline: pageOutline,
+                allOutlines: outlines,
+                content: pageContent,
+                stageId: stage.id,
+                notebookName: stage.name,
+                agents: params.agents,
+                previousSpeeches,
+                userProfile: params.userProfile,
+                courseContext: params.courseContext,
+              },
+              signal,
+            );
+
+            if (!actionsResult.success || !actionsResult.scene) {
+              if (abortRef.current || store.getState().generationEpoch !== startEpoch) {
+                pausedByFailureOrAbort = true;
+                pageFailed = true;
+                break;
+              }
+              store.getState().addFailedOutline(pageOutline);
+              options.onSceneFailed?.(
+                pageOutline,
+                actionsResult.error || 'Actions generation failed',
+              );
+              store.getState().setGenerationStatus('paused');
               pausedByFailureOrAbort = true;
+              pageFailed = true;
               break;
             }
 
-            removeGeneratingOutline(outline.id);
-            store.getState().addScene(scene);
+            if (store.getState().generationEpoch !== startEpoch) {
+              pausedByFailureOrAbort = true;
+              pageFailed = true;
+              break;
+            }
+
+            store.getState().addScene(actionsResult.scene);
             {
               const nextState = store.getState();
               log.info('[SceneGenerator] Scene committed to store', {
                 stageId: stage.id,
-                outlineId: outline.id,
-                outlineOrder: outline.order,
-                outlineTitle: outline.title,
+                outlineId: pageOutline.id,
+                outlineOrder: pageOutline.order,
+                outlineTitle: pageOutline.title,
                 displayedSceneCount: nextState.scenes.length,
                 displayedSceneOrders: nextState.scenes.map((item) => item.order),
                 pendingOutlineCount: nextState.generatingOutlines.length,
@@ -565,19 +616,23 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
                   nextState.scenes.length >= nextState.outlines.length,
               });
             }
-            options.onSceneGenerated?.(scene, outline.order);
+            options.onSceneGenerated?.(actionsResult.scene, pageOutline.order);
             previousSpeeches = actionsResult.previousSpeeches || [];
-          } else {
-            if (abortRef.current || store.getState().generationEpoch !== startEpoch) {
-              pausedByFailureOrAbort = true;
-              break;
-            }
-            store.getState().addFailedOutline(outline);
-            options.onSceneFailed?.(outline, actionsResult.error || 'Actions generation failed');
-            store.getState().setGenerationStatus('paused');
-            pausedByFailureOrAbort = true;
+          }
+
+          if (pageFailed) {
             break;
           }
+
+          removeGeneratingOutline(outline.id);
+          const refreshedCompletedOrders = new Set(
+            store.getState().scenes.map((scene) => scene.order),
+          );
+          store
+            .getState()
+            .setGeneratingOutlines(
+              outlines.filter((item) => !refreshedCompletedOrders.has(item.order)),
+            );
         }
 
         if (!abortRef.current && !pausedByFailureOrAbort) {
@@ -674,6 +729,16 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           return;
         }
 
+        const pageBundle = resolveGeneratedPageBundle(contentResult, outline);
+        let outlines = [...state.outlines];
+        let effectiveOutlines = pageBundle.effectiveOutlines;
+        if (effectiveOutlines.length > 1) {
+          const spliced = spliceGeneratedOutlines(outlines, outline.id, effectiveOutlines);
+          outlines = spliced.outlines;
+          effectiveOutlines = spliced.effectiveOutlines;
+          store.getState().setOutlines(outlines);
+        }
+
         // Step 2: Actions
         const sortedScenes = [...store.getState().scenes].sort((a, b) => a.order - b.order);
         const lastScene = sortedScenes[sortedScenes.length - 1];
@@ -683,31 +748,45 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               .map((a) => a.text)
           : [];
 
-        const actionsResult = await fetchSceneActions(
-          {
-            outline: contentResult.effectiveOutline || outline,
-            allOutlines: state.outlines,
-            content: contentResult.content,
-            stageId: state.stage.id,
-            agents: params.agents,
-            previousSpeeches,
-            userProfile: params.userProfile,
-            courseContext: params.courseContext,
-          },
-          signal,
-        );
+        let rollingPreviousSpeeches = previousSpeeches;
+        for (let pageIndex = 0; pageIndex < pageBundle.contents.length; pageIndex += 1) {
+          const pageOutline = effectiveOutlines[pageIndex] || outline;
+          const actionsResult = await fetchSceneActions(
+            {
+              outline: pageOutline,
+              allOutlines: outlines,
+              content: pageBundle.contents[pageIndex],
+              stageId: state.stage.id,
+              agents: params.agents,
+              previousSpeeches: rollingPreviousSpeeches,
+              userProfile: params.userProfile,
+              courseContext: params.courseContext,
+            },
+            signal,
+          );
 
-        if (!actionsResult.success || !actionsResult.scene) {
-          store.getState().addFailedOutline(outline);
-          return;
-        }
+          if (!actionsResult.success || !actionsResult.scene) {
+            store.getState().addFailedOutline(pageOutline);
+            return;
+          }
 
-        if (signal.aborted) {
-          return;
+          if (signal.aborted) {
+            return;
+          }
+
+          store.getState().addScene(actionsResult.scene);
+          rollingPreviousSpeeches = actionsResult.previousSpeeches || [];
         }
 
         removeGeneratingOutline();
-        store.getState().addScene(actionsResult.scene);
+        const refreshedCompletedOrders = new Set(
+          store.getState().scenes.map((scene) => scene.order),
+        );
+        store
+          .getState()
+          .setGeneratingOutlines(
+            outlines.filter((item) => !refreshedCompletedOrders.has(item.order)),
+          );
         {
           const nextState = store.getState();
           log.info('[SceneGenerator] Single outline retry committed scene', {

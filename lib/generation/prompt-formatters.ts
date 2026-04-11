@@ -3,7 +3,7 @@
  */
 
 import type { PdfImage, SceneOutline } from '@/lib/types/generation';
-import { formatContentProfileForPrompt } from './content-profile';
+import { formatContentProfileForPrompt, formatSceneArchetypeForPrompt } from './content-profile';
 import type {
   AgentInfo,
   SceneGenerationContext,
@@ -149,6 +149,13 @@ export function formatSceneContentProfileContext(
   language: 'zh-CN' | 'en-US' = 'zh-CN',
 ): string {
   return formatContentProfileForPrompt(outline.contentProfile || 'general', language);
+}
+
+export function formatSceneArchetypeContext(
+  outline: SceneOutline,
+  language: 'zh-CN' | 'en-US' = 'zh-CN',
+): string {
+  return formatSceneArchetypeForPrompt(outline.archetype || 'concept', language);
 }
 
 /** Format worked-example metadata for slide/content/action prompts */

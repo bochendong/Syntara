@@ -13,8 +13,10 @@ import type {
 import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
 import type {
   NotebookContentBlock,
+  NotebookContentContinuation,
   NotebookContentDocument,
   NotebookContentProfile,
+  NotebookSlideArchetype,
 } from './schema';
 import {
   estimateCodeBlockHeight,
@@ -38,6 +40,147 @@ type ContentCardTone = {
   border: string;
   accent: string;
 };
+type ArchetypeLayoutSettings = {
+  bodyTop: number;
+  titleTop: number;
+  titleHeight: number;
+  titleFontSize: number;
+  accentHeight: number;
+};
+const DEFAULT_ARCHETYPE: NotebookSlideArchetype = 'concept';
+const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookContentBlock['type'][]> = {
+  intro: ['heading', 'paragraph', 'bullet_list', 'callout', 'definition', 'theorem', 'equation'],
+  concept: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'equation',
+    'matrix',
+    'derivation_steps',
+    'code_block',
+    'code_walkthrough',
+    'table',
+    'callout',
+    'definition',
+    'theorem',
+    'chem_formula',
+    'chem_equation',
+  ],
+  definition: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'equation',
+    'matrix',
+    'derivation_steps',
+    'callout',
+    'definition',
+    'theorem',
+    'chem_formula',
+    'chem_equation',
+  ],
+  example: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'equation',
+    'matrix',
+    'derivation_steps',
+    'code_block',
+    'code_walkthrough',
+    'table',
+    'callout',
+    'definition',
+    'theorem',
+    'example',
+    'chem_formula',
+    'chem_equation',
+  ],
+  bridge: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'equation',
+    'table',
+    'callout',
+    'definition',
+    'theorem',
+    'chem_formula',
+    'chem_equation',
+  ],
+  summary: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'equation',
+    'table',
+    'callout',
+    'definition',
+    'theorem',
+    'chem_formula',
+    'chem_equation',
+  ],
+};
+
+function resolveDocumentArchetype(
+  document: Pick<NotebookContentDocument, 'archetype'>,
+): NotebookSlideArchetype {
+  return document.archetype || DEFAULT_ARCHETYPE;
+}
+
+function getArchetypeLayoutSettings(archetype: NotebookSlideArchetype): ArchetypeLayoutSettings {
+  switch (archetype) {
+    case 'intro':
+      return {
+        bodyTop: 136,
+        titleTop: 44,
+        titleHeight: 60,
+        titleFontSize: 34,
+        accentHeight: 42,
+      };
+    case 'summary':
+      return {
+        bodyTop: 130,
+        titleTop: 46,
+        titleHeight: 56,
+        titleFontSize: 32,
+        accentHeight: 40,
+      };
+    case 'bridge':
+      return {
+        bodyTop: 122,
+        titleTop: 46,
+        titleHeight: 56,
+        titleFontSize: 31,
+        accentHeight: 40,
+      };
+    case 'definition':
+      return {
+        bodyTop: 120,
+        titleTop: 46,
+        titleHeight: 56,
+        titleFontSize: 31,
+        accentHeight: 40,
+      };
+    case 'example':
+      return {
+        bodyTop: 120,
+        titleTop: 46,
+        titleHeight: 56,
+        titleFontSize: 31,
+        accentHeight: 40,
+      };
+    case 'concept':
+    default:
+      return {
+        bodyTop: 116,
+        titleTop: 48,
+        titleHeight: 52,
+        titleFontSize: 30,
+        accentHeight: 38,
+      };
+  }
+}
 
 function getProfileTokens(profile: NotebookContentProfile) {
   if (profile === 'code') {
@@ -640,12 +783,132 @@ function expandBlocks(
   return expanded;
 }
 
+function splitBulletListBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'bullet_list' }>,
+): NotebookContentBlock[] {
+  if (block.items.length <= 5) return [block];
+
+  const chunks: string[][] = [];
+  let currentChunk: string[] = [];
+
+  for (const item of block.items) {
+    const candidate = [...currentChunk, item];
+    const candidateHeight = estimateParagraphStackHeight(candidate, 34, 20) + CARD_INSET_Y * 2;
+    if (currentChunk.length > 0 && candidateHeight > 156) {
+      chunks.push(currentChunk);
+      currentChunk = [item];
+      continue;
+    }
+
+    currentChunk = candidate;
+  }
+
+  if (currentChunk.length > 0) chunks.push(currentChunk);
+
+  return chunks.map((items) => ({ ...block, items }));
+}
+
+function splitTableBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'table' }>,
+): NotebookContentBlock[] {
+  const headerRows = block.headers?.length ? 1 : 0;
+  const maxRowsPerPage = headerRows > 0 ? 5 : 6;
+  if (block.rows.length <= maxRowsPerPage) return [block];
+
+  const chunks: NotebookContentBlock[] = [];
+  for (let index = 0; index < block.rows.length; index += maxRowsPerPage) {
+    chunks.push({
+      ...block,
+      rows: block.rows.slice(index, index + maxRowsPerPage),
+    });
+  }
+  return chunks;
+}
+
+function splitCodeWalkthroughBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'code_walkthrough' }>,
+): NotebookContentBlock[] {
+  if (block.steps.length <= 3) return [block];
+
+  const chunks: NotebookContentBlock[] = [];
+  for (let index = 0; index < block.steps.length; index += 3) {
+    const isLast = index + 3 >= block.steps.length;
+    chunks.push({
+      ...block,
+      steps: block.steps.slice(index, index + 3),
+      output: isLast ? block.output : undefined,
+    });
+  }
+  return chunks;
+}
+
+function prepareBlocksForPagination(
+  blocks: NotebookContentDocument['blocks'],
+  language: 'zh-CN' | 'en-US',
+): NotebookContentBlock[] {
+  const preSplitBlocks: NotebookContentBlock[] = [];
+
+  for (const block of blocks) {
+    if (block.type === 'bullet_list') {
+      preSplitBlocks.push(...splitBulletListBlockForPagination(block));
+      continue;
+    }
+
+    if (block.type === 'table') {
+      preSplitBlocks.push(...splitTableBlockForPagination(block));
+      continue;
+    }
+
+    if (block.type === 'code_walkthrough') {
+      preSplitBlocks.push(...splitCodeWalkthroughBlockForPagination(block));
+      continue;
+    }
+
+    preSplitBlocks.push(block);
+  }
+
+  return expandBlocks(preSplitBlocks, language);
+}
+
+export interface NotebookDocumentArchetypeValidation {
+  isValid: boolean;
+  invalidBlockTypes: NotebookContentBlock['type'][];
+  reasons: string[];
+}
+
+export function validateNotebookContentDocumentArchetype(
+  document: NotebookContentDocument,
+): NotebookDocumentArchetypeValidation {
+  const archetype = resolveDocumentArchetype(document);
+  const allowedTypes = new Set(ARCHETYPE_ALLOWED_BLOCKS[archetype]);
+  const invalidBlockTypes = Array.from(
+    new Set(
+      document.blocks.filter((block) => !allowedTypes.has(block.type)).map((block) => block.type),
+    ),
+  );
+
+  return {
+    isValid: invalidBlockTypes.length === 0,
+    invalidBlockTypes,
+    reasons: invalidBlockTypes.map((type) => `archetype_block_mismatch:${archetype}:${type}`),
+  };
+}
+
+export interface NotebookDocumentPaginationResult {
+  pages: NotebookContentDocument[];
+  wasSplit: boolean;
+  reasons: string[];
+  unpageableBlockTypes: NotebookContentBlock['type'][];
+}
+
 export function renderNotebookContentDocumentToSlide(args: {
   document: NotebookContentDocument;
   fallbackTitle: string;
 }): Slide {
   const language = args.document.language || 'zh-CN';
   const profile = resolveNotebookContentProfile(args.document);
+  const archetype = resolveDocumentArchetype(args.document);
+  const layout = getArchetypeLayoutSettings(archetype);
   const tokens = getProfileTokens(profile);
   const cardPalettes = tokens.cardPalettes;
   const blocks = expandBlocks(args.document.blocks, language);
@@ -654,23 +917,49 @@ export function renderNotebookContentDocumentToSlide(args: {
   elements.push(
     createRectShape({
       left: CONTENT_LEFT,
-      top: 52,
+      top: layout.titleTop + 4,
       width: 10,
-      height: 38,
+      height: layout.accentHeight,
       fill: tokens.titleAccent,
     }),
     createTextElement({
       left: CONTENT_LEFT + 22,
-      top: 48,
+      top: layout.titleTop,
       width: CONTENT_WIDTH - 22,
-      height: 52,
-      html: `<p style="font-size:30px;"><strong>${renderInlineLatexToHtml(args.document.title || args.fallbackTitle)}</strong></p>`,
+      height: layout.titleHeight,
+      html: `<p style="font-size:${layout.titleFontSize}px;"><strong>${renderInlineLatexToHtml(args.document.title || args.fallbackTitle)}</strong></p>`,
       color: tokens.titleText,
       textType: 'title',
     }),
   );
 
-  let cursorTop = 116;
+  if (args.document.continuation) {
+    const chipLabel =
+      language === 'en-US'
+        ? `Part ${args.document.continuation.partNumber} of ${args.document.continuation.totalParts}`
+        : `续 ${args.document.continuation.partNumber}/${args.document.continuation.totalParts}`;
+    elements.push(
+      createRectShape({
+        left: CONTENT_LEFT + CONTENT_WIDTH - 178,
+        top: layout.titleTop + 6,
+        width: 158,
+        height: 24,
+        fill: '#eef2ff',
+        outlineColor: '#c7d2fe',
+      }),
+      createTextElement({
+        left: CONTENT_LEFT + CONTENT_WIDTH - 170,
+        top: layout.titleTop + 8,
+        width: 142,
+        height: 20,
+        html: `<p style="font-size:12px;color:#4f46e5;text-align:center;"><strong>${escapeHtml(chipLabel)}</strong></p>`,
+        color: '#4f46e5',
+        textType: 'notes',
+      }),
+    );
+  }
+
+  let cursorTop = layout.bodyTop;
   let visualBlockIndex = 0;
   for (const block of blocks) {
     if (cursorTop >= CONTENT_BOTTOM) break;
@@ -1178,6 +1467,40 @@ function getProfileDensityBudget(profile: NotebookContentProfile): number {
   }
 }
 
+function getArchetypeDensityBudget(
+  profile: NotebookContentProfile,
+  archetype: NotebookSlideArchetype,
+): number {
+  const baseBudget = getProfileDensityBudget(profile);
+  switch (archetype) {
+    case 'intro':
+      return baseBudget - 0.8;
+    case 'summary':
+      return baseBudget - 0.6;
+    case 'bridge':
+      return baseBudget - 0.35;
+    case 'example':
+      return baseBudget + 0.3;
+    default:
+      return baseBudget;
+  }
+}
+
+function getArchetypeBlockBudget(archetype: NotebookSlideArchetype): number {
+  switch (archetype) {
+    case 'intro':
+      return 5;
+    case 'bridge':
+      return 6;
+    case 'summary':
+      return 6;
+    case 'definition':
+      return 6;
+    default:
+      return 7;
+  }
+}
+
 function assessExpandedBlockHeight(
   block: NotebookContentBlock,
   language: 'zh-CN' | 'en-US',
@@ -1351,10 +1674,13 @@ export function assessNotebookContentDocumentForSlide(
 ): NotebookSlideContentBudgetAssessment {
   const language = document.language || 'zh-CN';
   const profile = resolveNotebookContentProfile(document);
-  const blocks = expandBlocks(document.blocks, language);
-  const maxDensityScore = getProfileDensityBudget(profile);
+  const archetype = resolveDocumentArchetype(document);
+  const layout = getArchetypeLayoutSettings(archetype);
+  const blocks = prepareBlocksForPagination(document.blocks, language);
+  const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
+  const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
 
-  let cursorTop = 116;
+  let cursorTop = layout.bodyTop;
   let visualBlockIndex = 0;
   let densityScore = 0.5;
 
@@ -1378,7 +1704,7 @@ export function assessNotebookContentDocumentForSlide(
     reasons.push(`density_score:${densityScore.toFixed(2)}/${maxDensityScore.toFixed(2)}`);
   }
 
-  if (blocks.length > 8) {
+  if (blocks.length > maxBlocksPerPage) {
     reasons.push(`too_many_blocks:${blocks.length}`);
   }
 
@@ -1390,5 +1716,92 @@ export function assessNotebookContentDocumentForSlide(
     maxDensityScore,
     expandedBlockCount: blocks.length,
     reasons,
+  };
+}
+
+export function paginateNotebookContentDocument(args: {
+  document: NotebookContentDocument;
+  rootOutlineId: string;
+}): NotebookDocumentPaginationResult {
+  const language = args.document.language || 'zh-CN';
+  const profile = resolveNotebookContentProfile(args.document);
+  const archetype = resolveDocumentArchetype(args.document);
+  const layout = getArchetypeLayoutSettings(archetype);
+  const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
+  const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
+  const blocks = prepareBlocksForPagination(args.document.blocks, language);
+
+  const pages: NotebookContentBlock[][] = [];
+  const unpageableBlockTypes = new Set<NotebookContentBlock['type']>();
+  let currentBlocks: NotebookContentBlock[] = [];
+  let cursorTop = layout.bodyTop;
+  let visualBlockIndex = 0;
+  let densityScore = 0.5;
+
+  const pushPage = () => {
+    if (currentBlocks.length === 0) return;
+    pages.push(currentBlocks);
+    currentBlocks = [];
+    cursorTop = layout.bodyTop;
+    visualBlockIndex = 0;
+    densityScore = 0.5;
+  };
+
+  for (const block of blocks) {
+    const estimate = assessExpandedBlockHeight(block, language, visualBlockIndex);
+    const nextBottom = cursorTop + estimate.height;
+    const nextDensity = densityScore + estimate.densityDelta;
+    const wouldOverflow =
+      nextBottom > CONTENT_BOTTOM ||
+      nextDensity > maxDensityScore ||
+      currentBlocks.length + 1 > maxBlocksPerPage;
+
+    if (currentBlocks.length > 0 && wouldOverflow) {
+      pushPage();
+    }
+
+    const blockEstimateOnEmpty = assessExpandedBlockHeight(block, language, 0);
+    if (layout.bodyTop + blockEstimateOnEmpty.height > CONTENT_BOTTOM) {
+      unpageableBlockTypes.add(block.type);
+      continue;
+    }
+
+    currentBlocks.push(block);
+    cursorTop += estimate.height;
+    densityScore += estimate.densityDelta;
+    if (estimate.consumesVisualCard) {
+      visualBlockIndex += 1;
+    }
+  }
+
+  pushPage();
+
+  if (pages.length === 0) {
+    return {
+      pages: [],
+      wasSplit: false,
+      reasons: ['no_renderable_blocks_after_pagination'],
+      unpageableBlockTypes: Array.from(unpageableBlockTypes),
+    };
+  }
+
+  const totalParts = pages.length;
+  return {
+    pages: pages.map((pageBlocks, index) => ({
+      ...args.document,
+      blocks: pageBlocks,
+      archetype,
+      continuation:
+        totalParts > 1 && index > 0
+          ? ({
+              rootOutlineId: args.rootOutlineId,
+              partNumber: index + 1,
+              totalParts,
+            } satisfies NotebookContentContinuation)
+          : undefined,
+    })),
+    wasSplit: totalParts > 1,
+    reasons: totalParts > 1 ? [`split_into_pages:${totalParts}`] : [],
+    unpageableBlockTypes: Array.from(unpageableBlockTypes),
   };
 }

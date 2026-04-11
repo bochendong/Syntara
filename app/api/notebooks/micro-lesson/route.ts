@@ -60,7 +60,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
           'Define expected output',
           'Identify hidden assumptions',
         ],
-        order: 0,
+        order: 1,
         language,
       },
       {
@@ -69,7 +69,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
         title: 'Approach and Reasoning',
         description: 'Break down the strategy and why it works.',
         keyPoints: ['Core algorithm idea', 'Step-by-step process', 'Correctness intuition'],
-        order: 1,
+        order: 2,
         language,
       },
       {
@@ -78,7 +78,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
         title: 'Complexity and Pitfalls',
         description: 'Summarize complexity, edge cases, and common mistakes.',
         keyPoints: ['Time and space complexity', 'Edge cases', 'Common implementation errors'],
-        order: 2,
+        order: 3,
         language,
       },
     ];
@@ -91,7 +91,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
       title: '题意拆解',
       description: '先明确输入、输出、约束和题目真正要回答的问题。',
       keyPoints: ['提取关键约束', '明确目标输出', '识别潜在隐含条件'],
-      order: 0,
+      order: 1,
       language,
     },
     {
@@ -100,7 +100,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
       title: '思路与推导',
       description: '分步骤说明算法思路，并解释为什么这样做是正确的。',
       keyPoints: ['核心策略', '执行流程', '正确性直觉'],
-      order: 1,
+      order: 2,
       language,
     },
     {
@@ -109,7 +109,7 @@ function fallbackOutlines(language: 'zh-CN' | 'en-US'): SceneOutline[] {
       title: '复杂度与易错点',
       description: '给出复杂度结论，补充边界情况与常见错误。',
       keyPoints: ['时间/空间复杂度', '边界测试', '常见失误与修正'],
-      order: 2,
+      order: 3,
       language,
     },
   ];
@@ -141,7 +141,7 @@ function normalizeOutlines(outlines: SceneOutline[], language: 'zh-CN' | 'en-US'
         title: o.title.trim(),
         description: (o.description || o.title || '').trim(),
         keyPoints: safeKeyPoints,
-        order: i,
+        order: i + 1,
         language,
       } satisfies SceneOutline;
     });
@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
           scenesResult.error || 'Failed to generate scenes',
         );
       }
-      const scenes = [...store.getState().scenes].sort((a, b) => a.order - b.order).slice(0, 5);
+      const scenes = [...store.getState().scenes].sort((a, b) => a.order - b.order);
       if (scenes.length === 0) {
         return apiError('GENERATION_FAILED', 500, 'No scenes generated');
       }

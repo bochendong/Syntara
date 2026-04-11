@@ -2,6 +2,19 @@ import { z } from 'zod';
 
 export const notebookContentLanguageSchema = z.enum(['zh-CN', 'en-US']);
 export const notebookContentProfileSchema = z.enum(['general', 'math', 'code']);
+export const notebookSlideArchetypeSchema = z.enum([
+  'intro',
+  'concept',
+  'definition',
+  'example',
+  'bridge',
+  'summary',
+]);
+export const notebookContentContinuationSchema = z.object({
+  rootOutlineId: z.string().trim().min(1).max(200),
+  partNumber: z.number().int().min(2).max(99),
+  totalParts: z.number().int().min(2).max(99),
+});
 
 export const notebookContentHeadingBlockSchema = z.object({
   type: z.literal('heading'),
@@ -149,12 +162,16 @@ export const notebookContentDocumentSchema = z.object({
   version: z.literal(1).default(1),
   language: notebookContentLanguageSchema.default('zh-CN'),
   profile: notebookContentProfileSchema.default('general'),
+  archetype: notebookSlideArchetypeSchema.default('concept'),
+  continuation: notebookContentContinuationSchema.optional(),
   title: z.string().trim().max(300).optional(),
   blocks: z.array(notebookContentBlockSchema).min(1).max(64),
 });
 
 export type NotebookContentLanguage = z.infer<typeof notebookContentLanguageSchema>;
 export type NotebookContentProfile = z.infer<typeof notebookContentProfileSchema>;
+export type NotebookSlideArchetype = z.infer<typeof notebookSlideArchetypeSchema>;
+export type NotebookContentContinuation = z.infer<typeof notebookContentContinuationSchema>;
 export type NotebookContentHeadingBlock = z.infer<typeof notebookContentHeadingBlockSchema>;
 export type NotebookContentParagraphBlock = z.infer<typeof notebookContentParagraphBlockSchema>;
 export type NotebookContentBulletListBlock = z.infer<typeof notebookContentBulletListBlockSchema>;

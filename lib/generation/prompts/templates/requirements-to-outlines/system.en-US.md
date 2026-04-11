@@ -31,6 +31,23 @@ Based on the user's free-form requirement text, automatically infer course detai
 - **Logical Flow**: Scenes form a natural teaching progression
 - **Experience Design**: Consider learning experience and emotional response from the student's perspective
 
+### Slide Archetypes
+
+For `slide` scenes, choose one `archetype` from:
+
+- `intro`: introduction / roadmap / learning goals
+- `concept`: concept explanation / intuition / property explanation
+- `definition`: definitions / theorems / propositions / criteria / proof idea
+- `example`: worked example / walkthrough / proof steps / code tracing
+- `bridge`: transitions / comparisons / relationships / taxonomy / framework overview
+- `summary`: recap / takeaways / closure / next-step prompts
+
+Rules:
+
+- Every `slide` scene must include an `archetype`
+- `quiz` / `interactive` / `pbl` scenes may omit `archetype`
+- Long content that continues across pages should keep the same `archetype`
+
 ### Concept + Problem Coverage
 
 - **Do not make the notebook problem-driven by default for every course**:
@@ -251,6 +268,7 @@ You must output a JSON array where each element is a scene outline object:
     "id": "scene_1",
     "type": "slide",
     "contentProfile": "math",
+    "archetype": "definition",
     "title": "Scene Title",
     "description": "1-2 sentences describing the teaching purpose",
     "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],

@@ -9,6 +9,14 @@ import type { ActionType } from './action';
 import type { MediaGenerationRequest } from '@/lib/media/types';
 import type { NotebookContentProfile } from '@/lib/notebook-content';
 
+export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'bridge' | 'summary';
+
+export interface SceneContinuation {
+  rootOutlineId: string;
+  partNumber: number;
+  totalParts: number;
+}
+
 // ==================== PDF Image Types ====================
 
 /**
@@ -96,6 +104,8 @@ export interface SceneOutline {
   id: string;
   type: 'slide' | 'quiz' | 'interactive' | 'pbl';
   contentProfile?: NotebookContentProfile;
+  archetype?: SceneArchetype;
+  continuation?: SceneContinuation;
   title: string;
   description: string; // 1-2 sentences describing the purpose
   keyPoints: string[]; // 3-5 core key points
@@ -169,15 +179,24 @@ import type { PPTElement, SlideBackground, SlideTheme } from './slides';
 import type { QuizQuestion } from './stage';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
 
-/**
- * AI-generated slide content
- */
-export interface GeneratedSlideContent {
+export interface GeneratedSlidePageContent {
   elements: PPTElement[];
   background?: SlideBackground;
   theme?: SlideTheme;
   remark?: string;
   contentDocument?: NotebookContentDocument;
+}
+
+export interface GeneratedSlideContinuationPage {
+  outline: SceneOutline;
+  content: GeneratedSlidePageContent;
+}
+
+/**
+ * AI-generated slide content
+ */
+export interface GeneratedSlideContent extends GeneratedSlidePageContent {
+  continuationPages?: GeneratedSlideContinuationPage[];
 }
 
 /**

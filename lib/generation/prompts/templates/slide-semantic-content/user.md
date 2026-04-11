@@ -9,6 +9,7 @@
   {{keyPoints}}
 
 {{contentProfileContext}}
+{{archetypeContext}}
 {{workedExampleContext}}
 {{teacherContext}}
 {{coursePersonalization}}

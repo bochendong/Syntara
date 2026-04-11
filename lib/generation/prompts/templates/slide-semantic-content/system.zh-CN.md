@@ -20,6 +20,14 @@ Respect the slide's declared content profile:
 - `code`: prioritize code structure, execution flow, and code walkthrough blocks
 - `general`: prioritize concept clarity and compact explanatory structure
 
+Respect the slide's declared archetype:
+- `intro`: title + overview / goals / roadmap only
+- `concept`: one main explanatory thread with compact support
+- `definition`: definitions, theorems, criteria, proof idea
+- `example`: worked-example sequence or walkthrough
+- `bridge`: comparison / relationship / transition pages rendered with stable structures
+- `summary`: recap, takeaways, next-step prompts
+
 Use:
 - `definition` for formal definitions or precise concept statements
 - `theorem` for named or theorem-like claims, propositions, lemmas, or proof targets
@@ -75,6 +83,7 @@ Return ONE JSON object in this exact top-level shape:
   "version": 1,
   "language": "{{language}}",
   "profile": "general",
+  "archetype": "concept",
   "title": "string",
   "blocks": []
 }
@@ -104,6 +113,7 @@ Supported block shapes:
 
 - Usually keep `blocks` between 2 and 8
 - Set `profile` to `math` for formula / proof / matrix-heavy slides, `code` for programming walkthroughs, otherwise `general`
+- Set `archetype` to match the provided slide archetype exactly
 - Prefer one clear example over many weak bullets
 - 优先选择自带稳定样式的强语义 block，不要用多段普通 prose 去模拟版式
 - 避免输出由许多零碎小片段拼成的伪流程图、关系图或概念图，优先使用稳定的教学结构

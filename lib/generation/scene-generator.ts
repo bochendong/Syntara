@@ -24,8 +24,10 @@ import { createStageAPI } from '@/lib/api/stage-api';
 import { generatePBLContent } from '@/lib/pbl/generate-pbl';
 import {
   assessNotebookContentDocumentForSlide,
+  paginateNotebookContentDocument,
   parseNotebookContentDocument,
   renderNotebookContentDocumentToSlide,
+  validateNotebookContentDocumentArchetype,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 import { buildPrompt, PROMPT_IDS } from './prompts';
@@ -36,6 +38,7 @@ import {
   buildCourseContext,
   formatCoursePersonalizationForPrompt,
   formatAgentsForPrompt,
+  formatSceneArchetypeContext,
   formatTeacherPersonaForPrompt,
   formatSceneContentProfileContext,
   formatSlideRewriteContext,
@@ -43,6 +46,11 @@ import {
   formatImageDescription,
   formatImagePlaceholder,
 } from './prompt-formatters';
+import {
+  buildContinuationSceneOutline,
+  flattenGeneratedSlideContentPages,
+  spliceGeneratedOutlines,
+} from './continuation-pages';
 import type {
   PPTElement,
   PPTImageElement,
@@ -316,13 +324,10 @@ function buildValidatedFallbackSlideContent(outline: SceneOutline): GeneratedSli
 // ==================== Stage 2: Full Scenes (Two-Step) ====================
 
 /**
- * Stage 3: Generate full scenes (parallel version)
+ * Stage 3: Generate full scenes.
  *
- * Two steps:
- * - Step 3.1: Outline -> Page content (slide/quiz)
- * - Step 3.2: Content + script -> Action list
- *
- * All scenes generated in parallel using Promise.all
+ * Slide scenes may expand into multiple continuation pages. Those continuation pages
+ * are materialized immediately and participate in later ordering / narration context.
  */
 export async function generateFullScenes(
   sceneOutlines: SceneOutline[],
@@ -331,82 +336,77 @@ export async function generateFullScenes(
   callbacks?: GenerationCallbacks,
 ): Promise<GenerationResult<string[]>> {
   const api = createStageAPI(store);
-  const totalScenes = sceneOutlines.length;
+  let outlines = [...sceneOutlines].sort((a, b) => a.order - b.order);
   let completedCount = 0;
+  const sceneIds: string[] = [];
 
   callbacks?.onProgress?.({
     currentStage: 3,
     overallProgress: 66,
     stageProgress: 0,
-    statusMessage: `正在并行生成 ${totalScenes} 个场景...`,
+    statusMessage: `正在生成 ${outlines.length} 个场景...`,
     scenesGenerated: 0,
-    totalScenes,
+    totalScenes: outlines.length,
   });
 
-  // Generate all scenes in parallel
-  const results = await Promise.all(
-    sceneOutlines.map(async (outline, index) => {
-      try {
-        const sceneId = await generateSingleScene(outline, api, aiCall);
+  for (let index = 0; index < outlines.length; index += 1) {
+    const outline = outlines[index];
 
-        // Update progress (not atomic, but sufficient for UI display)
-        completedCount++;
-        callbacks?.onProgress?.({
-          currentStage: 3,
-          overallProgress: 66 + Math.floor((completedCount / totalScenes) * 34),
-          stageProgress: Math.floor((completedCount / totalScenes) * 100),
-          statusMessage: `已完成 ${completedCount}/${totalScenes} 个场景`,
-          scenesGenerated: completedCount,
-          totalScenes,
-        });
-
-        return { success: true, sceneId, index };
-      } catch (error) {
-        completedCount++;
-        callbacks?.onError?.(`Failed to generate scene ${outline.title}: ${error}`);
-        return { success: false, sceneId: null, index };
+    try {
+      log.info(`Step 3.1: Generating content for: ${outline.title}`);
+      const content = await generateSceneContent(outline, aiCall);
+      if (!content) {
+        throw new Error(`Failed to generate content for: ${outline.title}`);
       }
-    }),
-  );
 
-  // Collect successful sceneIds in original order
-  const sceneIds = results
-    .filter(
-      (r): r is { success: true; sceneId: string; index: number } =>
-        r.success && r.sceneId !== null,
-    )
-    .sort((a, b) => a.index - b.index)
-    .map((r) => r.sceneId);
+      if (outline.type === 'slide' && 'elements' in content) {
+        const flattened = flattenGeneratedSlideContentPages({
+          content,
+          effectiveOutline: outline,
+        });
+        let effectiveOutlines = flattened.effectiveOutlines;
+        if (effectiveOutlines.length > 1) {
+          const spliced = spliceGeneratedOutlines(outlines, outline.id, effectiveOutlines);
+          outlines = spliced.outlines;
+          effectiveOutlines = spliced.effectiveOutlines;
+        }
 
-  return { success: true, data: sceneIds };
-}
+        for (let pageIndex = 0; pageIndex < flattened.contents.length; pageIndex += 1) {
+          const pageOutline = effectiveOutlines[pageIndex] || outline;
+          const pageContent = flattened.contents[pageIndex];
+          log.info(`Step 3.2: Generating actions for: ${pageOutline.title}`);
+          const actions = await generateSceneActions(pageOutline, { ...pageContent }, aiCall);
+          const sceneId = createSceneWithActions(pageOutline, { ...pageContent }, actions, api);
+          if (sceneId) {
+            sceneIds.push(sceneId);
+          }
+          completedCount += 1;
+        }
+      } else {
+        log.info(`Step 3.2: Generating actions for: ${outline.title}`);
+        const actions = await generateSceneActions(outline, content, aiCall);
+        const sceneId = createSceneWithActions(outline, content, actions, api);
+        if (sceneId) {
+          sceneIds.push(sceneId);
+        }
+        completedCount += 1;
+      }
+    } catch (error) {
+      completedCount += 1;
+      callbacks?.onError?.(`Failed to generate scene ${outline.title}: ${error}`);
+    }
 
-/**
- * Generate a single scene (two-step process)
- *
- * Step 3.1: Generate content
- * Step 3.2: Generate Actions
- */
-async function generateSingleScene(
-  outline: SceneOutline,
-  api: ReturnType<typeof createStageAPI>,
-  aiCall: AICallFn,
-): Promise<string | null> {
-  // Step 3.1: Generate content
-  log.info(`Step 3.1: Generating content for: ${outline.title}`);
-  const content = await generateSceneContent(outline, aiCall);
-  if (!content) {
-    log.error(`Failed to generate content for: ${outline.title}`);
-    return null;
+    callbacks?.onProgress?.({
+      currentStage: 3,
+      overallProgress: 66 + Math.floor((completedCount / Math.max(outlines.length, 1)) * 34),
+      stageProgress: Math.floor((completedCount / Math.max(outlines.length, 1)) * 100),
+      statusMessage: `已完成 ${completedCount}/${outlines.length} 个场景`,
+      scenesGenerated: sceneIds.length,
+      totalScenes: outlines.length,
+    });
   }
 
-  // Step 3.2: Generate Actions
-  log.info(`Step 3.2: Generating actions for: ${outline.title}`);
-  const actions = await generateSceneActions(outline, content, aiCall);
-  log.info(`Generated ${actions.length} actions for: ${outline.title}`);
-
-  // Create complete Scene
-  return createSceneWithActions(outline, content, actions, api);
+  return { success: true, data: sceneIds };
 }
 
 /**
@@ -2368,6 +2368,7 @@ async function generateSemanticSlideContent(
   const teacherContext = formatTeacherPersonaForPrompt(agents, lang);
   const coursePersonalization = formatCoursePersonalizationForPrompt(courseContext, lang);
   const contentProfileContext = formatSceneContentProfileContext(outline, lang);
+  const archetypeContext = formatSceneArchetypeContext(outline, lang);
   const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
   const rewriteContext = formatSlideRewriteContext(rewriteReason, lang);
 
@@ -2377,6 +2378,7 @@ async function generateSemanticSlideContent(
     description: outline.description,
     keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
     contentProfileContext,
+    archetypeContext,
     teacherContext,
     coursePersonalization,
     workedExampleContext,
@@ -2395,6 +2397,7 @@ async function generateSemanticSlideContent(
           contentDocumentRaw.profile === 'general' && outline.contentProfile
             ? outline.contentProfile
             : contentDocumentRaw.profile,
+        archetype: outline.archetype || contentDocumentRaw.archetype || 'concept',
       }
     : null;
   if (!contentDocument) {
@@ -2416,44 +2419,90 @@ async function generateSemanticSlideContent(
     return null;
   }
 
-  const contentBudget = assessNotebookContentDocumentForSlide(contentDocument);
-  if (!contentBudget.fits) {
-    log.warn(`Semantic slide content budget exceeded for: ${outline.title}`, contentBudget.reasons);
+  const archetypeValidation = validateNotebookContentDocumentArchetype(contentDocument);
+  if (!archetypeValidation.isValid) {
+    log.warn(
+      `Semantic slide content archetype mismatch for: ${outline.title}`,
+      archetypeValidation.reasons,
+    );
     if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
       return generateSemanticSlideContent(
         outline,
         aiCall,
         agents,
         courseContext,
-        appendRewriteReason(
-          rewriteReason,
-          buildSemanticBudgetRetryReason(lang, contentBudget.reasons),
-        ),
+        appendRewriteReason(rewriteReason, archetypeValidation.reasons.join('\n')),
+        semanticRetryCount + 1,
+      );
+    }
+    const fallbackContent = buildValidatedFallbackSlideContent(outline);
+    if (fallbackContent) {
+      log.warn(
+        `Using safe fallback slide layout after semantic archetype mismatch: ${outline.title}`,
+      );
+      return fallbackContent;
+    }
+    return null;
+  }
+
+  const contentBudget = assessNotebookContentDocumentForSlide(contentDocument);
+  const paginationResult = paginateNotebookContentDocument({
+    document: contentDocument,
+    rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
+  });
+  const paginationReasons = [
+    ...contentBudget.reasons,
+    ...paginationResult.reasons,
+    ...paginationResult.unpageableBlockTypes.map((type) => `unpageable_block:${type}`),
+  ];
+
+  if (paginationResult.unpageableBlockTypes.length > 0 || paginationResult.pages.length === 0) {
+    log.warn(`Semantic slide content pagination failed for: ${outline.title}`, paginationReasons);
+    if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
+      return generateSemanticSlideContent(
+        outline,
+        aiCall,
+        agents,
+        courseContext,
+        appendRewriteReason(rewriteReason, buildSemanticBudgetRetryReason(lang, paginationReasons)),
         semanticRetryCount + 1,
       );
     }
 
     const fallbackContent = buildValidatedFallbackSlideContent(outline);
     if (fallbackContent) {
-      log.warn(`Using safe fallback slide layout after semantic budget overflow: ${outline.title}`);
+      log.warn(
+        `Using safe fallback slide layout after semantic pagination failure: ${outline.title}`,
+      );
       return fallbackContent;
     }
     return null;
   }
 
-  const renderedSlide = renderNotebookContentDocumentToSlide({
-    document: contentDocument,
-    fallbackTitle: outline.title,
+  const renderedPages = paginationResult.pages.map((pageDocument) => {
+    const renderedSlide = renderNotebookContentDocumentToSlide({
+      document: pageDocument,
+      fallbackTitle: outline.title,
+    });
+    const normalizedElements = normalizeSlideTextLayout(
+      renderedSlide.elements,
+      SLIDE_LAYOUT_VIEWPORT,
+    );
+    const layoutValidation = validateSlideTextLayout(normalizedElements, SLIDE_LAYOUT_VIEWPORT);
+    return {
+      elements: normalizedElements,
+      background: renderedSlide.background,
+      theme: renderedSlide.theme,
+      contentDocument: pageDocument,
+      layoutValidation,
+    };
   });
-  const normalizedElements = normalizeSlideTextLayout(
-    renderedSlide.elements,
-    SLIDE_LAYOUT_VIEWPORT,
-  );
-  const layoutValidation = validateSlideTextLayout(normalizedElements, SLIDE_LAYOUT_VIEWPORT);
-  if (!layoutValidation.isValid) {
+
+  const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
+  if (invalidPage) {
     log.warn(
       `Semantic slide content layout invalid for: ${outline.title}`,
-      layoutValidation.issues.map((issue) => issue.message),
+      invalidPage.layoutValidation.issues.map((issue) => issue.message),
     );
     if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
       return generateSemanticSlideContent(
@@ -2463,7 +2512,7 @@ async function generateSemanticSlideContent(
         courseContext,
         appendRewriteReason(
           rewriteReason,
-          `${buildLayoutRetryReason(layoutValidation, lang)}\n${buildSemanticStructureRetryReason(lang)}`,
+          `${buildLayoutRetryReason(invalidPage.layoutValidation, lang)}\n${buildSemanticStructureRetryReason(lang)}`,
         ),
         semanticRetryCount + 1,
       );
@@ -2476,12 +2525,23 @@ async function generateSemanticSlideContent(
     return null;
   }
 
+  const [primaryPage, ...continuationPages] = renderedPages;
   return {
-    elements: normalizedElements,
-    background: renderedSlide.background,
-    theme: renderedSlide.theme,
+    elements: primaryPage.elements,
+    background: primaryPage.background,
+    theme: primaryPage.theme,
     remark: outline.description,
-    contentDocument,
+    contentDocument: primaryPage.contentDocument,
+    continuationPages: continuationPages.map((page, index) => ({
+      outline: buildContinuationSceneOutline(outline, index + 2, renderedPages.length),
+      content: {
+        elements: page.elements,
+        background: page.background,
+        theme: page.theme,
+        remark: outline.description,
+        contentDocument: page.contentDocument,
+      },
+    })),
   };
 }
 

@@ -18,6 +18,8 @@ import {
   buildBudgetedGenerationMedia,
   SAFE_GENERATION_REQUEST_BYTES,
 } from '@/lib/generation/request-payload-budget';
+import { normalizeSceneOutlineContentProfile } from '@/lib/generation/content-profile';
+import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { loadImageMapping, storeImages } from '@/lib/utils/image-storage';
 import {
   NOTEBOOK_MODEL_PRESET_FULL,
@@ -116,6 +118,7 @@ export type NotebookGenerationTaskResult = {
   outlines: SceneOutline[];
   agents: AgentInfo[];
   researchSources: WebSearchSource[];
+  failedScenes?: Array<{ outlineId: string; title: string; error: string }>;
 };
 
 function getApiHeaders(overrides?: {
@@ -558,10 +561,12 @@ function applyOutlineLanguage(
   outlines: SceneOutline[],
   language: 'zh-CN' | 'en-US',
 ): SceneOutline[] {
-  return outlines.map((outline) => ({
-    ...outline,
-    language,
-  }));
+  return outlines.map((outline) =>
+    normalizeSceneOutlineContentProfile({
+      ...outline,
+      language,
+    }),
+  );
 }
 
 function getMinimumSceneCount(length: OrchestratorOutlineLength): number {
@@ -680,11 +685,11 @@ function normalizeOutlineCollection(outlines: SceneOutline[]): SceneOutline[] {
     let id = outline.id?.trim() || nanoid();
     if (seenIds.has(id)) id = nanoid();
     seenIds.add(id);
-    return {
+    return normalizeSceneOutlineContentProfile({
       ...outline,
       id,
       order: index + 1,
-    };
+    });
   });
 }
 
@@ -916,7 +921,10 @@ async function generateOutlines(args: {
     maxRequestBytes: SAFE_GENERATION_REQUEST_BYTES,
   });
 
-  if (budgetedMedia.omittedVisionImageIds.length > 0 || budgetedMedia.omittedPdfImageIds.length > 0) {
+  if (
+    budgetedMedia.omittedVisionImageIds.length > 0 ||
+    budgetedMedia.omittedPdfImageIds.length > 0
+  ) {
     console.warn('[NotebookGeneration] Trimmed outline payload media to stay under request limit', {
       requestBytes: budgetedMedia.requestBytes,
       omittedVisionImageIds: budgetedMedia.omittedVisionImageIds,
@@ -945,7 +953,9 @@ async function generateOutlines(args: {
 
   let response = await sendOutlineRequest(primaryPayload);
   if (response.status === 413 && budgetedMedia.imageMapping) {
-    console.warn('[NotebookGeneration] Outline payload still too large, retrying without vision images');
+    console.warn(
+      '[NotebookGeneration] Outline payload still too large, retrying without vision images',
+    );
     response = await sendOutlineRequest(fallbackPayload);
   }
 
@@ -987,7 +997,10 @@ async function generateOutlines(args: {
           outlines.length = 0;
           args.onOutline?.(0);
         } else if (evt.type === 'done') {
-          return applyOutlineLanguage(evt.outlines?.length ? evt.outlines : outlines, args.language);
+          return applyOutlineLanguage(
+            evt.outlines?.length ? evt.outlines : outlines,
+            args.language,
+          );
         } else if (evt.type === 'error') {
           throw new Error(evt.error || '大纲生成失败');
         }
@@ -1139,7 +1152,7 @@ async function generateSingleScene(args: {
   pdfImages?: PdfImage[];
   imageMapping?: ImageMapping;
   getHeaders?: () => HeadersInit;
-}): Promise<{ scene: Scene; previousSpeeches: string[] }> {
+}): Promise<{ scenes: Scene[]; effectiveOutlines: SceneOutline[]; previousSpeeches: string[] }> {
   const suggestedIds = args.outline.suggestedImageIds || [];
   const filteredPdfImages =
     suggestedIds.length > 0
@@ -1187,10 +1200,13 @@ async function generateSingleScene(args: {
 
   let contentResp = await sendSceneContentRequest(primaryPayload);
   if (contentResp.status === 413 && budgetedMedia.imageMapping) {
-    console.warn('[NotebookGeneration] Scene payload still too large, retrying without vision images', {
-      outlineId: args.outline.id,
-      outlineTitle: args.outline.title,
-    });
+    console.warn(
+      '[NotebookGeneration] Scene payload still too large, retrying without vision images',
+      {
+        outlineId: args.outline.id,
+        outlineTitle: args.outline.title,
+      },
+    );
     contentResp = await sendSceneContentRequest(fallbackPayload);
   }
 
@@ -1210,39 +1226,67 @@ async function generateSingleScene(args: {
   if (!contentData?.success || !contentData?.content) {
     throw new Error(contentData?.error || '页面内容生成失败');
   }
+  const contents = Array.isArray(contentData.contents)
+    ? contentData.contents
+    : [contentData.content];
+  let effectiveOutlines = Array.isArray(contentData.effectiveOutlines)
+    ? contentData.effectiveOutlines
+    : [contentData.effectiveOutline || args.outline];
+  const allOutlinesForActions =
+    effectiveOutlines.length > 1
+      ? (() => {
+          const spliced = spliceGeneratedOutlines(
+            args.allOutlines,
+            args.outline.id,
+            effectiveOutlines,
+          );
+          effectiveOutlines = spliced.effectiveOutlines;
+          return spliced.outlines;
+        })()
+      : args.allOutlines;
 
-  const actionsResp = await backendFetch('/api/generate/scene-actions', {
-    method: 'POST',
-    headers: (args.getHeaders ?? (() => getApiHeaders()))(),
-    body: JSON.stringify({
-      outline: contentData.effectiveOutline || args.outline,
-      allOutlines: args.allOutlines,
-      content: contentData.content,
-      stageId: args.stage.id,
-      notebookName: args.stage.name,
-      agents: args.agents,
-      previousSpeeches: args.previousSpeeches,
-      userProfile: args.userProfile,
-      courseContext: args.courseContext,
-    }),
-    signal: args.signal,
-  });
+  const scenes: Scene[] = [];
+  let previousSpeeches = args.previousSpeeches;
 
-  if (!actionsResp.ok) {
-    const data = await actionsResp.json().catch(() => ({ error: '页面讲解生成失败' }));
-    throw new Error(data.error || '页面讲解生成失败');
-  }
+  for (let pageIndex = 0; pageIndex < contents.length; pageIndex += 1) {
+    const pageOutline = effectiveOutlines[pageIndex] || args.outline;
+    const actionsResp = await backendFetch('/api/generate/scene-actions', {
+      method: 'POST',
+      headers: (args.getHeaders ?? (() => getApiHeaders()))(),
+      body: JSON.stringify({
+        outline: pageOutline,
+        allOutlines: allOutlinesForActions,
+        content: contents[pageIndex],
+        stageId: args.stage.id,
+        notebookName: args.stage.name,
+        agents: args.agents,
+        previousSpeeches,
+        userProfile: args.userProfile,
+        courseContext: args.courseContext,
+      }),
+      signal: args.signal,
+    });
 
-  const actionsData = await actionsResp.json();
-  if (!actionsData?.success || !actionsData?.scene) {
-    throw new Error(actionsData?.error || '页面讲解生成失败');
+    if (!actionsResp.ok) {
+      const data = await actionsResp.json().catch(() => ({ error: '页面讲解生成失败' }));
+      throw new Error(data.error || '页面讲解生成失败');
+    }
+
+    const actionsData = await actionsResp.json();
+    if (!actionsData?.success || !actionsData?.scene) {
+      throw new Error(actionsData?.error || '页面讲解生成失败');
+    }
+
+    scenes.push(actionsData.scene as Scene);
+    previousSpeeches = Array.isArray(actionsData.previousSpeeches)
+      ? actionsData.previousSpeeches
+      : previousSpeeches;
   }
 
   return {
-    scene: actionsData.scene as Scene,
-    previousSpeeches: Array.isArray(actionsData.previousSpeeches)
-      ? actionsData.previousSpeeches
-      : [],
+    scenes,
+    effectiveOutlines,
+    previousSpeeches,
   };
 }
 
@@ -1470,7 +1514,7 @@ export async function runNotebookGenerationTask(
       completed: filteredOutlines.length,
     });
 
-    const outlines = await repairOutlinesIfNeeded({
+    let outlines = await repairOutlinesIfNeeded({
       outlines: filteredOutlines,
       originalRequirement: requirement,
       language,
@@ -1497,6 +1541,7 @@ export async function runNotebookGenerationTask(
     if (!outlines.length) throw new Error('未生成任何课程大纲');
 
     const scenes: Scene[] = [];
+    const failedScenes: Array<{ outlineId: string; title: string; error: string }> = [];
     let previousSpeeches: string[] = [];
     const userProfile =
       input.userNickname || input.userBio
@@ -1511,21 +1556,51 @@ export async function runNotebookGenerationTask(
         completed: i,
         total: outlines.length,
       });
-      const result = await generateSingleScene({
-        outline,
-        allOutlines: outlines,
-        stage,
-        agents,
-        previousSpeeches,
-        userProfile,
-        courseContext,
-        signal: input.signal,
-        pdfImages,
-        imageMapping,
-        getHeaders,
-      });
-      scenes.push(result.scene);
-      previousSpeeches = result.previousSpeeches;
+      try {
+        const result = await generateSingleScene({
+          outline,
+          allOutlines: outlines,
+          stage,
+          agents,
+          previousSpeeches,
+          userProfile,
+          courseContext,
+          signal: input.signal,
+          pdfImages,
+          imageMapping,
+          getHeaders,
+        });
+        if (result.effectiveOutlines.length > 1) {
+          const spliced = spliceGeneratedOutlines(outlines, outline.id, result.effectiveOutlines);
+          outlines = spliced.outlines;
+          i += result.effectiveOutlines.length - 1;
+        }
+        scenes.push(...result.scenes);
+        previousSpeeches = result.previousSpeeches;
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : '页面生成失败';
+        failedScenes.push({
+          outlineId: outline.id,
+          title: outline.title,
+          error: message,
+        });
+        input.onProgress?.({
+          stage: 'scene',
+          detail: `已跳过失败页面 ${i + 1}/${outlines.length}：${outline.title}`,
+          completed: i + 1,
+          total: outlines.length,
+        });
+      }
+    }
+
+    if (scenes.length === 0) {
+      const firstFailure = failedScenes[0];
+      throw new Error(firstFailure?.error || '未能生成任何页面');
     }
 
     input.onProgress?.({ stage: 'saving', detail: '正在保存笔记本与页面…' });
@@ -1545,7 +1620,10 @@ export async function runNotebookGenerationTask(
 
     input.onProgress?.({
       stage: 'completed',
-      detail: `已完成，共生成 ${scenes.length} 页`,
+      detail:
+        failedScenes.length > 0
+          ? `已完成，成功生成 ${scenes.length} 页，跳过 ${failedScenes.length} 页失败页面`
+          : `已完成，共生成 ${scenes.length} 页`,
       notebookId: stage.id,
       notebookName: stage.name,
     });
@@ -1555,6 +1633,7 @@ export async function runNotebookGenerationTask(
       outlines,
       agents,
       researchSources,
+      failedScenes: failedScenes.length > 0 ? failedScenes : undefined,
     };
   } catch (error) {
     throw error;

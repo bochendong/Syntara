@@ -20,6 +20,14 @@ Respect the slide's declared content profile:
 - `code`: prioritize code structure, execution flow, and code walkthrough blocks
 - `general`: prioritize concept clarity and compact explanatory structure
 
+Respect the slide's declared archetype:
+- `intro`: title + overview / goals / roadmap only
+- `concept`: one main explanatory thread with compact support
+- `definition`: definitions, theorems, criteria, proof idea
+- `example`: worked-example sequence or walkthrough
+- `bridge`: comparison / relationship / transition pages rendered with stable structures
+- `summary`: recap, takeaways, next-step prompts
+
 Use:
 - `definition` for formal definitions or precise concept statements
 - `theorem` for named or theorem-like claims, propositions, lemmas, or proof targets
@@ -75,6 +83,7 @@ Return ONE JSON object in this exact top-level shape:
   "version": 1,
   "language": "{{language}}",
   "profile": "general",
+  "archetype": "concept",
   "title": "string",
   "blocks": []
 }
@@ -104,6 +113,7 @@ Supported block shapes:
 
 - Usually keep `blocks` between 2 and 8
 - Set `profile` to `math` for formula / proof / matrix-heavy slides, `code` for programming walkthroughs, otherwise `general`
+- Set `archetype` to exactly match the requested slide archetype
 - Prefer one clear example over many weak bullets
 - Prefer semantically strong blocks whose built-in styles already match the teaching intent, instead of simulating layout with extra prose
 - Avoid pseudo-flowcharts, relation maps, or concept maps made of many tiny fragments; use stable teaching structures instead

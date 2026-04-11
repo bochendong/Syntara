@@ -112,6 +112,7 @@ function buildFallbackDocumentFromSlideContent(args: {
     version: 1,
     language: args.language,
     profile: 'code',
+    archetype: 'example',
     title: args.sceneTitle,
     blocks:
       blocks.length > 0
@@ -531,52 +532,24 @@ export async function POST(req: NextRequest) {
     req,
     '/api/classroom/repair-slide-code',
     async () => {
-    try {
-      const content = body.content;
-      if (!content || content.type !== 'slide') {
-        return apiError('MISSING_REQUIRED_FIELD', 400, 'slide content is required');
-      }
+      try {
+        const content = body.content;
+        if (!content || content.type !== 'slide') {
+          return apiError('MISSING_REQUIRED_FIELD', 400, 'slide content is required');
+        }
 
-      const language = body.language === 'en-US' ? 'en-US' : 'zh-CN';
-      const semanticDocument = parseNotebookContentDocument(content.semanticDocument);
-      const sourceDocument =
-        semanticDocument ||
-        buildFallbackDocumentFromSlideContent({
-          sceneTitle,
-          language,
-          content,
-        });
-      const repairIntent = inferRepairIntent(body.repairInstructions);
+        const language = body.language === 'en-US' ? 'en-US' : 'zh-CN';
+        const semanticDocument = parseNotebookContentDocument(content.semanticDocument);
+        const sourceDocument =
+          semanticDocument ||
+          buildFallbackDocumentFromSlideContent({
+            sceneTitle,
+            language,
+            content,
+          });
+        const repairIntent = inferRepairIntent(body.repairInstructions);
 
-      let attempt = await runRepairAttempt({
-        req,
-        sceneTitle,
-        language,
-        semanticDocument,
-        content,
-        repairInstructions: body.repairInstructions,
-        repairConversation: body.repairConversation,
-        intent: repairIntent,
-      });
-
-      let parsed = attempt.parsed;
-      let document = attempt.document;
-      let instructionIgnored = looksLikeInstructionWasIgnored({
-        sourceDocument,
-        repairedDocument: document,
-        intent: repairIntent,
-      });
-      let languageMismatch = repairOutputHasUnexpectedCjk(
-        {
-          sceneTitle: parsed.sceneTitle,
-          assistantReply: parsed.assistantReply,
-          document,
-        },
-        language,
-      );
-
-      if (instructionIgnored || languageMismatch) {
-        attempt = await runRepairAttempt({
+        let attempt = await runRepairAttempt({
           req,
           sceneTitle,
           language,
@@ -584,22 +557,17 @@ export async function POST(req: NextRequest) {
           content,
           repairInstructions: body.repairInstructions,
           repairConversation: body.repairConversation,
-          retryReason:
-            language === 'en-US' && languageMismatch
-              ? 'The previous attempt still contained Chinese text. Rewrite every visible title, heading, bullet, walkthrough step, output note, callout, caption, and summary into English while preserving the original code meaning.'
-              : language === 'zh-CN'
-              ? '上一版几乎没有体现教师输入的修复要求，请显式补足代码讲解或结构变化'
-              : 'The previous attempt did not visibly follow the teacher instruction. Make the requested code explanation or structure change explicit.',
           intent: repairIntent,
         });
-        parsed = attempt.parsed;
-        document = attempt.document;
-        instructionIgnored = looksLikeInstructionWasIgnored({
+
+        let parsed = attempt.parsed;
+        let document = attempt.document;
+        let instructionIgnored = looksLikeInstructionWasIgnored({
           sourceDocument,
           repairedDocument: document,
           intent: repairIntent,
         });
-        languageMismatch = repairOutputHasUnexpectedCjk(
+        let languageMismatch = repairOutputHasUnexpectedCjk(
           {
             sceneTitle: parsed.sceneTitle,
             assistantReply: parsed.assistantReply,
@@ -607,87 +575,121 @@ export async function POST(req: NextRequest) {
           },
           language,
         );
-      }
 
-      const sourceBlockCount = sourceDocument.blocks.length;
-      const repairedBlockCount = document.blocks.length;
-      const sourceSignal = estimateDocumentSignal(sourceDocument);
-      const repairedSignal = estimateDocumentSignal(document);
-      const placeholderCount = countSuspiciousPlaceholderBlocks(document, [
-        '代码',
-        '思路',
-        '步骤',
-        '输出',
-        '解释',
-        '分析',
-        'trace',
-        'walkthrough',
-      ]);
-      const sourceReasoningBlocks = countReasoningBlocks(sourceDocument);
-      const repairedReasoningBlocks = countReasoningBlocks(document);
-      const sourceCodeBlocks = countCodeStructureBlocks(sourceDocument);
-      const repairedCodeBlocks = countCodeStructureBlocks(document);
+        if (instructionIgnored || languageMismatch) {
+          attempt = await runRepairAttempt({
+            req,
+            sceneTitle,
+            language,
+            semanticDocument,
+            content,
+            repairInstructions: body.repairInstructions,
+            repairConversation: body.repairConversation,
+            retryReason:
+              language === 'en-US' && languageMismatch
+                ? 'The previous attempt still contained Chinese text. Rewrite every visible title, heading, bullet, walkthrough step, output note, callout, caption, and summary into English while preserving the original code meaning.'
+                : language === 'zh-CN'
+                  ? '上一版几乎没有体现教师输入的修复要求，请显式补足代码讲解或结构变化'
+                  : 'The previous attempt did not visibly follow the teacher instruction. Make the requested code explanation or structure change explicit.',
+            intent: repairIntent,
+          });
+          parsed = attempt.parsed;
+          document = attempt.document;
+          instructionIgnored = looksLikeInstructionWasIgnored({
+            sourceDocument,
+            repairedDocument: document,
+            intent: repairIntent,
+          });
+          languageMismatch = repairOutputHasUnexpectedCjk(
+            {
+              sceneTitle: parsed.sceneTitle,
+              assistantReply: parsed.assistantReply,
+              document,
+            },
+            language,
+          );
+        }
 
-      if (
-        repairedBlockCount < Math.max(2, Math.ceil(sourceBlockCount * 0.6)) ||
-        repairedSignal < Math.max(40, Math.floor(sourceSignal * 0.55)) ||
-        placeholderCount > 0 ||
-        (sourceReasoningBlocks >= 2 &&
-          repairedReasoningBlocks < Math.max(2, sourceReasoningBlocks - 1)) ||
-        (sourceCodeBlocks >= 1 && repairedCodeBlocks < 1) ||
-        instructionIgnored ||
-        languageMismatch
-      ) {
-        return apiError(
-          'GENERATION_FAILED',
-          409,
-          language === 'zh-CN'
-            ? instructionIgnored
-              ? repairIntent.hintsNeedAnotherPage
-                ? 'AI 本轮没有真正按你的要求补足内容；这类请求更像需要补页，已保留原页不做修改'
-                : 'AI 本轮没有真正按你的要求把这一页修到位，已保留原页不做修改'
+        const sourceBlockCount = sourceDocument.blocks.length;
+        const repairedBlockCount = document.blocks.length;
+        const sourceSignal = estimateDocumentSignal(sourceDocument);
+        const repairedSignal = estimateDocumentSignal(document);
+        const placeholderCount = countSuspiciousPlaceholderBlocks(document, [
+          '代码',
+          '思路',
+          '步骤',
+          '输出',
+          '解释',
+          '分析',
+          'trace',
+          'walkthrough',
+        ]);
+        const sourceReasoningBlocks = countReasoningBlocks(sourceDocument);
+        const repairedReasoningBlocks = countReasoningBlocks(document);
+        const sourceCodeBlocks = countCodeStructureBlocks(sourceDocument);
+        const repairedCodeBlocks = countCodeStructureBlocks(document);
+
+        if (
+          repairedBlockCount < Math.max(2, Math.ceil(sourceBlockCount * 0.6)) ||
+          repairedSignal < Math.max(40, Math.floor(sourceSignal * 0.55)) ||
+          placeholderCount > 0 ||
+          (sourceReasoningBlocks >= 2 &&
+            repairedReasoningBlocks < Math.max(2, sourceReasoningBlocks - 1)) ||
+          (sourceCodeBlocks >= 1 && repairedCodeBlocks < 1) ||
+          instructionIgnored ||
+          languageMismatch
+        ) {
+          return apiError(
+            'GENERATION_FAILED',
+            409,
+            language === 'zh-CN'
+              ? instructionIgnored
+                ? repairIntent.hintsNeedAnotherPage
+                  ? 'AI 本轮没有真正按你的要求补足内容；这类请求更像需要补页，已保留原页不做修改'
+                  : 'AI 本轮没有真正按你的要求把这一页修到位，已保留原页不做修改'
+                : languageMismatch
+                  ? 'AI 本轮输出仍混入了英文课堂不该出现的中文，已保留原页不做修改'
+                  : '修复结果疑似删掉了关键代码讲解，已保留原页不做修改'
               : languageMismatch
-                ? 'AI 本轮输出仍混入了英文课堂不该出现的中文，已保留原页不做修改'
-              : '修复结果疑似删掉了关键代码讲解，已保留原页不做修改'
-            : languageMismatch
-              ? 'The repaired slide still contained Chinese text, so the original slide was kept'
-              : instructionIgnored
-              ? repairIntent.hintsNeedAnotherPage
-                ? 'The request looked more like an add-a-page task, so the original slide was kept'
-                : 'The AI did not visibly follow your repair instruction, so the original slide was kept'
-              : 'Repair result looked destructive to the code explanation, so the original slide was kept',
+                ? 'The repaired slide still contained Chinese text, so the original slide was kept'
+                : instructionIgnored
+                  ? repairIntent.hintsNeedAnotherPage
+                    ? 'The request looked more like an add-a-page task, so the original slide was kept'
+                    : 'The AI did not visibly follow your repair instruction, so the original slide was kept'
+                  : 'Repair result looked destructive to the code explanation, so the original slide was kept',
+          );
+        }
+
+        const repairedSceneTitle =
+          parsed.sceneTitle?.trim() || document.title?.trim() || sceneTitle;
+        const assistantReply =
+          parsed.assistantReply?.trim() ||
+          buildFallbackAssistantReply({
+            language,
+            intent: repairIntent,
+            repairInstructions: body.repairInstructions,
+            document,
+          });
+        const repairedContent = buildRenderedRepairContent({
+          content,
+          document,
+          profile: 'code',
+          sceneTitle: repairedSceneTitle,
+        });
+
+        return apiSuccess({
+          sceneTitle: repairedSceneTitle,
+          assistantReply,
+          content: repairedContent,
+        });
+      } catch (error) {
+        log.error('repair-slide-code route error:', error);
+        return apiError(
+          'INTERNAL_ERROR',
+          500,
+          error instanceof Error ? error.message : String(error),
         );
       }
-
-      const repairedSceneTitle = parsed.sceneTitle?.trim() || document.title?.trim() || sceneTitle;
-      const assistantReply =
-        parsed.assistantReply?.trim() ||
-        buildFallbackAssistantReply({
-          language,
-          intent: repairIntent,
-          repairInstructions: body.repairInstructions,
-          document,
-        });
-      const repairedContent = buildRenderedRepairContent({
-        content,
-        document,
-        profile: 'code',
-        sceneTitle: repairedSceneTitle,
-      });
-
-      return apiSuccess({
-        sceneTitle: repairedSceneTitle,
-        assistantReply,
-        content: repairedContent,
-      });
-    } catch (error) {
-      log.error('repair-slide-code route error:', error);
-      return apiError(
-        'INTERNAL_ERROR',
-        500,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
     },
     {
       notebookId: body.notebookId?.trim() || undefined,

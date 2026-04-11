@@ -14,6 +14,7 @@ import {
   buildFallbackSlideContentFromOutline,
   buildVisionUserContent,
 } from '@/lib/generation/generation-pipeline';
+import { flattenGeneratedSlideContentPages } from '@/lib/generation/continuation-pages';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
 import type { CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
@@ -86,10 +87,13 @@ export async function POST(req: NextRequest) {
     } as const;
 
     // ── Model resolution from request headers ──
-    const { model: languageModel, modelInfo, modelString } =
-      await resolveModelFromHeadersForNotebookStage(req, 'content', {
-        allowOpenAIModelOverride: true,
-      });
+    const {
+      model: languageModel,
+      modelInfo,
+      modelString,
+    } = await resolveModelFromHeadersForNotebookStage(req, 'content', {
+      allowOpenAIModelOverride: true,
+    });
 
     // Detect vision capability
     const hasVision = !!modelInfo?.capabilities?.vision;
@@ -202,9 +206,16 @@ export async function POST(req: NextRequest) {
                 ? String(generationError)
                 : 'parse-failed-or-empty',
         });
-        return apiSuccess({
-          content: buildFallbackSlideContentFromOutline(effectiveOutline),
+        const fallbackContent = buildFallbackSlideContentFromOutline(effectiveOutline);
+        const flattenedFallback = flattenGeneratedSlideContentPages({
+          content: fallbackContent,
           effectiveOutline,
+        });
+        return apiSuccess({
+          content: fallbackContent,
+          effectiveOutline,
+          contents: flattenedFallback.contents,
+          effectiveOutlines: flattenedFallback.effectiveOutlines,
           fallbackUsed: true,
         });
       }
@@ -220,6 +231,19 @@ export async function POST(req: NextRequest) {
     }
 
     log.info(`Content generated successfully: "${effectiveOutline.title}"`);
+
+    if (effectiveOutline.type === 'slide' && 'elements' in content) {
+      const flattened = flattenGeneratedSlideContentPages({
+        content,
+        effectiveOutline,
+      });
+      return apiSuccess({
+        content,
+        effectiveOutline,
+        contents: flattened.contents,
+        effectiveOutlines: flattened.effectiveOutlines,
+      });
+    }
 
     return apiSuccess({ content, effectiveOutline });
   } catch (error) {
