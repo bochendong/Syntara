@@ -28,6 +28,8 @@ export interface Stage {
   // Stage metadata
   language?: string;
   style?: string;
+  /** Historical total fallback usage count for this notebook/stage */
+  fallbackUsageCount?: number;
   // Whiteboard data
   whiteboard?: Whiteboard[];
 }

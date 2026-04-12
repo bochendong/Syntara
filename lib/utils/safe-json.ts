@@ -29,17 +29,16 @@ function toSerializablePreview(
 ): unknown {
   if (value == null) return value;
 
-  const valueType = typeof value;
-  if (valueType === 'string') return truncateString(value, options.maxStringLength);
-  if (valueType === 'number' || valueType === 'boolean') return value;
-  if (valueType === 'bigint') return `${value}n`;
-  if (valueType === 'symbol') return String(value);
-  if (valueType === 'function') return '[Function]';
+  if (typeof value === 'string') return truncateString(value, options.maxStringLength);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'bigint') return `${value}n`;
+  if (typeof value === 'symbol') return String(value);
+  if (typeof value === 'function') return '[Function]';
 
   if (value instanceof Date) return value.toISOString();
   if (value instanceof RegExp) return value.toString();
 
-  if (valueType === 'object') {
+  if (typeof value === 'object') {
     const objectValue = value as Record<string, unknown> | Array<unknown>;
     if (seen.has(objectValue)) return '[Circular]';
     if (depth >= options.maxDepth) return '[MaxDepthExceeded]';

@@ -115,6 +115,24 @@ Grid notes:
 - `columns` should be 1-3, `rows` should be 1-3.
 - Do not simulate ordered flows with grid; real sequence pages should usually use `process_flow` with `layout.mode = "stack"`.
 
+Built-in text templates (`templateId`):
+- `plain`: neutral white card
+- `infoCard`: informational light-blue card
+- `successCard`: success/result light-green card
+- `warningCard`: caution/risk light-orange card
+- `accentCard`: emphasized light-purple card
+
+Any block can optionally include presentation hints (without changing semantic meaning):
+
+```json
+{"templateId":"infoCard","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
+```
+
+`placement` notes:
+- `order`: ordering hint for stack or grid (smaller comes earlier)
+- `row` / `col`: only for grid mode; preferred target row/column (1-based)
+- `rowSpan` / `colSpan`: only for grid mode; preferred row/column span (1-based, max 3)
+
 Supported block shapes:
 
 ```json
@@ -149,6 +167,7 @@ Supported block shapes:
 - Set `profile` to `math` for formula / proof / matrix-heavy slides, `code` for programming walkthroughs, otherwise `general`
 - Set `archetype` to exactly match the requested slide archetype
 - Use `layout.mode = "grid"` for side-by-side structures; otherwise use `stack`
+- If a specific card background is needed, set `templateId`; do not describe "background boxes" in prose
 - Prefer `process_flow` for true sequence teaching; do not fake a flowchart with heading + paragraph + bullet_list fragments
 - Prefer one clear example over many weak bullets
 - Prefer semantically strong blocks whose built-in styles already match the teaching intent, instead of simulating layout with extra prose

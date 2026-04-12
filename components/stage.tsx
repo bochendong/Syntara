@@ -289,9 +289,12 @@ function sceneTypeTabLabel(tr: (key: string) => string, type: SceneType): string
   return label === key ? type : label;
 }
 
-/** 原始数据里折叠 slide 画布，避免 JSON 过大 */
-function serializeSceneForRawView(scene: Scene): unknown {
-  if (scene.content.type === 'slide') {
+/** 原始数据里默认折叠 slide 画布；当前页可选择展开查看完整 canvas */
+function serializeSceneForRawView(
+  scene: Scene,
+  options?: { expandSlideCanvas?: boolean },
+): unknown {
+  if (scene.content.type === 'slide' && !options?.expandSlideCanvas) {
     const canvas = scene.content.canvas;
     const elements = canvas.elements ?? [];
     const elementTypeCounts: Record<string, number> = {};
@@ -418,6 +421,10 @@ export function Stage({
   const [mainClassroomView, setMainClassroomView] = useState<'ppt' | 'quiz' | 'raw'>('ppt');
   /** 原始数据下的子 Tab：按场景类型（slide / quiz / interactive / …） */
   const [rawDataSubTab, setRawDataSubTab] = useState<SceneType>('slide');
+  /** 幻灯片原始数据细分：生成结果 / 讲解动作 / UI衍生数据 */
+  const [rawSlideDataView, setRawSlideDataView] = useState<'generated' | 'narration' | 'ui'>(
+    'generated',
+  );
   /** 课堂内当前页编辑模式：页面布局 / 讲解稿 */
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);
   const [slideEditTab, setSlideEditTab] = useState<SlideEditTab>('canvas');
@@ -1841,12 +1848,62 @@ export function Stage({
     try {
       const type = rawDataSubTab;
       const outlinesForType = mergedOutlines.filter((o) => o.type === type);
-      const scenesForType = scenes.filter((s) => s.type === type).map(serializeSceneForRawView);
-      return JSON.stringify({ type, outlines: outlinesForType, scenes: scenesForType }, null, 2);
+      const scenesForTypeBase = scenes.filter((s) => s.type === type);
+      const scenesForType =
+        type === 'slide'
+          ? scenesForTypeBase.map((scene) => {
+              if (rawSlideDataView === 'generated') {
+                return {
+                  id: scene.id,
+                  type: scene.type,
+                  title: scene.title,
+                  order: scene.order,
+                  content: scene.content,
+                };
+              }
+
+              if (rawSlideDataView === 'narration') {
+                return {
+                  id: scene.id,
+                  type: scene.type,
+                  title: scene.title,
+                  order: scene.order,
+                  actions: scene.actions || [],
+                };
+              }
+
+              const serialized = serializeSceneForRawView(scene, {
+                expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
+              }) as Record<string, unknown>;
+              const { actions, ...rest } = serialized;
+              return {
+                ...rest,
+                actionsSummary: Array.isArray(scene.actions)
+                  ? {
+                      total: scene.actions.length,
+                      speech: scene.actions.filter((action) => action.type === 'speech').length,
+                      spotlight: scene.actions.filter((action) => action.type === 'spotlight').length,
+                      laser: scene.actions.filter((action) => action.type === 'laser').length,
+                    }
+                  : { total: 0, speech: 0, spotlight: 0, laser: 0 },
+              };
+            })
+          : scenesForTypeBase.map((scene) => serializeSceneForRawView(scene));
+
+      return JSON.stringify(
+        {
+          type,
+          view: type === 'slide' ? rawSlideDataView : 'default',
+          outlines: outlinesForType,
+          scenes: scenesForType,
+        },
+        null,
+        2,
+      );
     } catch {
       return '{"error":"serialize_failed"}';
     }
-  }, [rawDataSubTab, mergedOutlines, scenes]);
+  }, [currentSceneId, rawDataSubTab, rawSlideDataView, mergedOutlines, scenes]);
 
   useEffect(() => {
     if (!rawDataTabTypes.includes(rawDataSubTab)) {
@@ -2126,6 +2183,56 @@ export function Stage({
                     </button>
                   ))}
                 </div>
+                {rawDataSubTab === 'slide' ? (
+                  <div
+                    className="flex flex-wrap gap-0.5 rounded-lg bg-white/5 p-0.5"
+                    role="tablist"
+                    aria-label="幻灯片原始数据视图"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={rawSlideDataView === 'generated'}
+                      onClick={() => setRawSlideDataView('generated')}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        rawSlideDataView === 'generated'
+                          ? 'bg-white/15 text-white'
+                          : 'text-slate-400 hover:text-slate-200',
+                      )}
+                    >
+                      生成数据
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={rawSlideDataView === 'narration'}
+                      onClick={() => setRawSlideDataView('narration')}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        rawSlideDataView === 'narration'
+                          ? 'bg-white/15 text-white'
+                          : 'text-slate-400 hover:text-slate-200',
+                      )}
+                    >
+                      讲解数据
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={rawSlideDataView === 'ui'}
+                      onClick={() => setRawSlideDataView('ui')}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        rawSlideDataView === 'ui'
+                          ? 'bg-white/15 text-white'
+                          : 'text-slate-400 hover:text-slate-200',
+                      )}
+                    >
+                      UI计算
+                    </button>
+                  </div>
+                ) : null}
                 <p className="ml-auto min-w-0 text-[10px] text-slate-500">
                   {t('stage.rawDataCaption')}
                 </p>

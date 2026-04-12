@@ -14,12 +14,14 @@ import type {
 import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
 import type {
   NotebookContentBlock,
+  NotebookContentBlockPlacement,
   NotebookContentContinuation,
   NotebookContentDocument,
   NotebookContentGridLayout,
   NotebookContentLayout,
   NotebookContentProfile,
   NotebookSlideArchetype,
+  NotebookContentTextTemplate,
 } from './schema';
 import {
   estimateCodeBlockHeight,
@@ -56,6 +58,13 @@ type ArchetypeLayoutSettings = {
   accentHeight: number;
 };
 type ProcessFlowBlock = Extract<NotebookContentBlock, { type: 'process_flow' }>;
+type PlacedGridBlock = {
+  block: NotebookContentBlock;
+  row: number;
+  col: number;
+  rowSpan: number;
+  colSpan: number;
+};
 const DEFAULT_ARCHETYPE: NotebookSlideArchetype = 'concept';
 const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookContentBlock['type'][]> = {
   intro: ['heading', 'paragraph', 'bullet_list', 'callout', 'definition', 'theorem', 'equation'],
@@ -164,6 +173,161 @@ function resolveGridLayout(
     rows,
     capacity: columns * rows,
   };
+}
+
+function resolveBlockTemplateTone(
+  templateId: NotebookContentTextTemplate | undefined,
+  fallbackTone: ContentCardTone,
+): ContentCardTone {
+  if (!templateId) return fallbackTone;
+  switch (templateId) {
+    case 'plain':
+      return { fill: '#ffffff', border: '#cbd5e1', accent: fallbackTone.accent };
+    case 'infoCard':
+      return { fill: '#eff6ff', border: '#bfdbfe', accent: '#2563eb' };
+    case 'successCard':
+      return { fill: '#ecfdf5', border: '#a7f3d0', accent: '#16a34a' };
+    case 'warningCard':
+      return { fill: '#fff7ed', border: '#fdba74', accent: '#ea580c' };
+    case 'accentCard':
+      return { fill: '#f5f3ff', border: '#c4b5fd', accent: '#6d28d9' };
+    default:
+      return fallbackTone;
+  }
+}
+
+function sortBlocksByPlacementOrder(blocks: NotebookContentBlock[]): NotebookContentBlock[] {
+  return [...blocks].sort((a, b) => {
+    const aOrder = a.placement?.order;
+    const bOrder = b.placement?.order;
+    if (typeof aOrder !== 'number' && typeof bOrder !== 'number') return 0;
+    if (typeof aOrder !== 'number') return 1;
+    if (typeof bOrder !== 'number') return -1;
+    return aOrder - bOrder;
+  });
+}
+
+function normalizePlacementSpan(
+  placement: NotebookContentBlockPlacement | undefined,
+  grid: { rows: number; columns: number },
+): { rowSpan: number; colSpan: number } {
+  const rowSpan = Math.max(1, Math.min(grid.rows, placement?.rowSpan ?? 1));
+  const colSpan = Math.max(1, Math.min(grid.columns, placement?.colSpan ?? 1));
+  return { rowSpan, colSpan };
+}
+
+function canPlaceInGrid(
+  occupancy: boolean[][],
+  row: number,
+  col: number,
+  rowSpan: number,
+  colSpan: number,
+): boolean {
+  const rowLimit = occupancy.length;
+  const colLimit = occupancy[0]?.length ?? 0;
+  if (row < 0 || col < 0) return false;
+  if (row + rowSpan > rowLimit) return false;
+  if (col + colSpan > colLimit) return false;
+  for (let r = row; r < row + rowSpan; r += 1) {
+    for (let c = col; c < col + colSpan; c += 1) {
+      if (occupancy[r][c]) return false;
+    }
+  }
+  return true;
+}
+
+function occupyGridArea(
+  occupancy: boolean[][],
+  row: number,
+  col: number,
+  rowSpan: number,
+  colSpan: number,
+): void {
+  for (let r = row; r < row + rowSpan; r += 1) {
+    for (let c = col; c < col + colSpan; c += 1) {
+      occupancy[r][c] = true;
+    }
+  }
+}
+
+function findFirstFitInGrid(
+  occupancy: boolean[][],
+  rowSpan: number,
+  colSpan: number,
+): { row: number; col: number } | null {
+  for (let row = 0; row < occupancy.length; row += 1) {
+    for (let col = 0; col < (occupancy[0]?.length ?? 0); col += 1) {
+      if (canPlaceInGrid(occupancy, row, col, rowSpan, colSpan)) {
+        return { row, col };
+      }
+    }
+  }
+  return null;
+}
+
+function arrangeGridBlocksByPlacement(
+  blocks: NotebookContentBlock[],
+  grid: { rows: number; columns: number; capacity: number },
+): PlacedGridBlock[] {
+  const orderedBlocks = sortBlocksByPlacementOrder(blocks);
+  const occupancy = Array.from({ length: grid.rows }, () =>
+    Array.from({ length: grid.columns }, () => false),
+  );
+  const placed: PlacedGridBlock[] = [];
+
+  for (const block of orderedBlocks) {
+    const normalized = normalizePlacementSpan(block.placement, grid);
+    const preferredRow = block.placement?.row ? block.placement.row - 1 : -1;
+    const preferredCol = block.placement?.col ? block.placement.col - 1 : -1;
+    if (
+      canPlaceInGrid(occupancy, preferredRow, preferredCol, normalized.rowSpan, normalized.colSpan)
+    ) {
+      occupyGridArea(occupancy, preferredRow, preferredCol, normalized.rowSpan, normalized.colSpan);
+      placed.push({
+        block,
+        row: preferredRow,
+        col: preferredCol,
+        rowSpan: normalized.rowSpan,
+        colSpan: normalized.colSpan,
+      });
+    }
+  }
+
+  for (const block of orderedBlocks) {
+    if (placed.some((item) => item.block === block)) continue;
+    const normalized = normalizePlacementSpan(block.placement, grid);
+    const fallbackPosition = findFirstFitInGrid(occupancy, normalized.rowSpan, normalized.colSpan);
+    if (!fallbackPosition) {
+      const singleCellFallback = findFirstFitInGrid(occupancy, 1, 1);
+      if (!singleCellFallback) break;
+      occupyGridArea(occupancy, singleCellFallback.row, singleCellFallback.col, 1, 1);
+      placed.push({
+        block,
+        row: singleCellFallback.row,
+        col: singleCellFallback.col,
+        rowSpan: 1,
+        colSpan: 1,
+      });
+      continue;
+    }
+    occupyGridArea(
+      occupancy,
+      fallbackPosition.row,
+      fallbackPosition.col,
+      normalized.rowSpan,
+      normalized.colSpan,
+    );
+    placed.push({
+      block,
+      row: fallbackPosition.row,
+      col: fallbackPosition.col,
+      rowSpan: normalized.rowSpan,
+      colSpan: normalized.colSpan,
+    });
+    if (placed.length >= grid.capacity) break;
+  }
+
+  return placed;
 }
 
 function getArchetypeLayoutSettings(archetype: NotebookSlideArchetype): ArchetypeLayoutSettings {
@@ -526,6 +690,8 @@ function createTextElement(args: {
   fontName?: string;
   textType?: PPTTextElement['textType'];
   groupId?: string;
+  fill?: string;
+  outlineColor?: string;
 }): PPTTextElement {
   return {
     id: `text_${nanoid(8)}`,
@@ -541,6 +707,14 @@ function createTextElement(args: {
     defaultColor: args.color || '#0f172a',
     textType: args.textType,
     lineHeight: 1.35,
+    fill: args.fill,
+    outline: args.outlineColor
+      ? {
+          color: args.outlineColor,
+          width: 1,
+          style: 'solid',
+        }
+      : undefined,
   };
 }
 
@@ -635,23 +809,18 @@ function createBoundContentCard(args: {
   textType?: PPTTextElement['textType'];
   lineHeight?: number;
   paragraphSpace?: number;
-}): PPTShapeElement {
-  return createRectShape({
+}): PPTTextElement {
+  return createTextElement({
     left: CONTENT_LEFT,
     top: args.top,
     width: CONTENT_WIDTH,
     height: args.height,
     fill: args.tone.fill,
     outlineColor: args.tone.border,
-    text: createShapeText({
-      html: args.html,
-      color: args.color,
-      fontName: args.fontName,
-      textType: args.textType,
-      lineHeight: args.lineHeight,
-      paragraphSpace: args.paragraphSpace,
-      align: 'top',
-    }),
+    html: args.html,
+    color: args.color,
+    fontName: args.fontName,
+    textType: args.textType,
   });
 }
 
@@ -1765,6 +1934,42 @@ type ShapeBoxElement = PPTShapeElement & {
   height: number;
 };
 
+function stripShapeElements(elements: PPTElement[]): PPTElement[] {
+  const converted: PPTElement[] = [];
+  for (const element of elements) {
+    if (element.type !== 'shape') {
+      converted.push(element);
+      continue;
+    }
+
+    const shapeText = element.text?.content?.trim();
+    if (!shapeText) {
+      continue;
+    }
+
+    converted.push({
+      id: `text_${nanoid(8)}`,
+      type: 'text',
+      left: element.left,
+      top: element.top,
+      width: element.width,
+      height: element.height,
+      rotate: element.rotate,
+      groupId: element.groupId,
+      content: shapeText,
+      defaultFontName: element.text?.defaultFontName || 'Microsoft YaHei',
+      defaultColor: element.text?.defaultColor || '#0f172a',
+      textType: element.text?.type,
+      lineHeight: element.text?.lineHeight,
+      paragraphSpace: element.text?.paragraphSpace,
+      fill: element.fill,
+      outline: element.outline,
+      opacity: element.opacity,
+    });
+  }
+  return converted;
+}
+
 function buildStackUnderfillExpansionRequests(args: {
   elements: PPTElement[];
   bodyTop: number;
@@ -1906,8 +2111,9 @@ export function renderNotebookContentDocumentToSlide(args: {
   const documentLayout = resolveDocumentLayout(args.document);
   const tokens = getProfileTokens(profile);
   const cardPalettes = tokens.cardPalettes;
+  const orderedBlocks = sortBlocksByPlacementOrder(args.document.blocks);
   const blocks =
-    documentLayout.mode === 'grid' ? args.document.blocks : expandBlocks(args.document.blocks, language);
+    documentLayout.mode === 'grid' ? orderedBlocks : expandBlocks(orderedBlocks, language);
   const elements: PPTElement[] = [];
 
   elements.push(
@@ -1959,14 +2165,16 @@ export function renderNotebookContentDocumentToSlide(args: {
     const bodyTop = archetypeLayout.bodyTop;
     const bodyHeight = CONTENT_BOTTOM - bodyTop;
     const grid = resolveGridLayout(documentLayout, { blockCount: blocks.length, bodyHeight });
-    const visibleBlocks = blocks.slice(0, grid.capacity);
+    const placedBlocks = arrangeGridBlocksByPlacement(blocks, grid);
     const cellWidth =
       (CONTENT_WIDTH - Math.max(0, grid.columns - 1) * GRID_GAP_X) / Math.max(grid.columns, 1);
-    const innerWidth = Math.max(120, cellWidth - CARD_INSET_X * 2);
     const rowDesiredHeights = Array.from({ length: grid.rows }, () => GRID_MIN_CELL_HEIGHT);
-    visibleBlocks.forEach((block, index) => {
-      const row = Math.floor(index / grid.columns);
-      if (row >= grid.rows) return;
+    placedBlocks.forEach((placed) => {
+      const innerWidth = Math.max(
+        120,
+        placed.colSpan * cellWidth + Math.max(0, placed.colSpan - 1) * GRID_GAP_X - CARD_INSET_X * 2,
+      );
+      const block = placed.block;
       const heading = blockToGridHeading(language, block);
       const headingHeight = fitGridHeadingToHeight({
         text: heading,
@@ -1979,27 +2187,45 @@ export function renderNotebookContentDocumentToSlide(args: {
         block,
         widthPx: innerWidth,
       });
-      rowDesiredHeights[row] = Math.max(
-        rowDesiredHeights[row],
-        Math.ceil(headingHeight + bodyHeightEstimate + 20),
+      const requiredCardHeight = Math.ceil(headingHeight + bodyHeightEstimate + 20);
+      const internalGaps = Math.max(0, placed.rowSpan - 1) * GRID_GAP_Y;
+      const perRowNeed = Math.max(
+        GRID_MIN_CELL_HEIGHT,
+        Math.ceil((requiredCardHeight - internalGaps) / Math.max(1, placed.rowSpan)),
       );
+      for (let row = placed.row; row < placed.row + placed.rowSpan && row < grid.rows; row += 1) {
+        rowDesiredHeights[row] = Math.max(rowDesiredHeights[row], perRowNeed);
+      }
     });
     const adaptive = computeAdaptiveGridRowHeights({
       gridRows: grid.rows,
       gridColumns: grid.columns,
-      blockCount: visibleBlocks.length,
+      blockCount: placedBlocks.length,
       bodyHeight,
       rowDesiredHeights,
     });
 
-    visibleBlocks.forEach((block, index) => {
-      const row = Math.floor(index / grid.columns);
-      const col = index % grid.columns;
-      const left = CONTENT_LEFT + col * (cellWidth + GRID_GAP_X);
-      if (row >= adaptive.rowHeights.length) return;
-      const cellHeight = adaptive.rowHeights[row];
-      const top = bodyTop + adaptive.rowTops[row];
-      const tone = cardPalettes[index % cardPalettes.length];
+    placedBlocks.forEach((placed, index) => {
+      const block = placed.block;
+      if (placed.row >= adaptive.rowHeights.length) return;
+      const left = CONTENT_LEFT + placed.col * (cellWidth + GRID_GAP_X);
+      const top = bodyTop + adaptive.rowTops[placed.row];
+      const cellWidthWithSpan =
+        placed.colSpan * cellWidth + Math.max(0, placed.colSpan - 1) * GRID_GAP_X;
+      const cellHeightWithSpan = Array.from({ length: placed.rowSpan }).reduce<number>(
+        (sum, _, rowOffset) => {
+          const rowIndex = placed.row + rowOffset;
+          if (rowIndex >= adaptive.rowHeights.length) return sum;
+          const gap = rowOffset > 0 ? GRID_GAP_Y : 0;
+          return sum + gap + adaptive.rowHeights[rowIndex];
+        },
+        0,
+      );
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[index % cardPalettes.length],
+      );
+      const innerWidth = Math.max(120, cellWidthWithSpan - CARD_INSET_X * 2);
       const heading = blockToGridHeading(language, block);
       const headingFit = fitGridHeadingToHeight({
         text: heading,
@@ -2011,26 +2237,21 @@ export function renderNotebookContentDocumentToSlide(args: {
         language,
         block,
         widthPx: innerWidth,
-        maxHeightPx: Math.max(24, cellHeight - headingFit.height - 20),
+        maxHeightPx: Math.max(24, cellHeightWithSpan - headingFit.height - 20),
         tone,
       });
 
       elements.push(
-        createRectShape({
+        createTextElement({
           left,
           top,
-          width: cellWidth,
-          height: cellHeight,
+          width: cellWidthWithSpan,
+          height: cellHeightWithSpan,
+          html: `${headingFit.html}${bodyFit.html}`,
+          color: '#334155',
+          textType: 'content',
           fill: tone.fill,
           outlineColor: tone.border,
-          text: createShapeText({
-            html: `${headingFit.html}${bodyFit.html}`,
-            color: '#334155',
-            textType: 'content',
-            lineHeight: 1.35,
-            paragraphSpace: 5,
-            align: 'top',
-          }),
         }),
       );
     });
@@ -2045,7 +2266,7 @@ export function renderNotebookContentDocumentToSlide(args: {
         fontColor: tokens.titleText,
         fontName: 'Microsoft YaHei',
       },
-      elements: normalizeSlideTextLayout(elements, {
+      elements: normalizeSlideTextLayout(stripShapeElements(elements), {
         width: CANVAS_WIDTH,
         height: CANVAS_HEIGHT,
       }),
@@ -2088,7 +2309,10 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'paragraph') {
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const remainingHeight = Math.max(72, CONTENT_BOTTOM - cursorTop);
       const maxContentHeight = Math.max(28, remainingHeight - CARD_INSET_Y * 2);
       const paragraph = fitParagraphBlockToHeight({
@@ -2118,7 +2342,10 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'bullet_list') {
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const remainingHeight = Math.max(72, CONTENT_BOTTOM - cursorTop);
       const maxContentHeight = Math.max(40, remainingHeight - CARD_INSET_Y * 2);
       const bulletList = fitBulletListBlockToHeight({
@@ -2149,7 +2376,10 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'equation') {
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const contentHeight = estimateLatexDisplayHeight(block.latex, block.display);
       const cardHeight = contentHeight + CARD_INSET_Y * 2 + (block.caption ? 22 : 0);
       const groupId = createCardGroupId('equation_card');
@@ -2195,7 +2425,10 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'matrix') {
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const latex = matrixBlockToLatex(block);
       const contentHeight = estimateLatexDisplayHeight(latex, true);
       const labelHeight = block.label ? 24 : 0;
@@ -2340,7 +2573,10 @@ export function renderNotebookContentDocumentToSlide(args: {
       );
       cursorTop += codeHeight + 10;
 
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const stepItems = block.steps.map((step, idx) => {
         const focus = step.title || step.focus;
         return `${idx + 1}. ${focus ? `${focus}: ` : ''}${step.explanation}`;
@@ -2433,13 +2669,18 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'callout') {
-      const tonePalette = {
+      const baseTonePalette = {
         info: { fill: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
         success: { fill: '#ecfdf5', border: '#a7f3d0', text: '#047857' },
         warning: { fill: '#fff7ed', border: '#fdba74', text: '#c2410c' },
         danger: { fill: '#fef2f2', border: '#fca5a5', text: '#b91c1c' },
         tip: { fill: '#f5f3ff', border: '#c4b5fd', text: '#6d28d9' },
       }[block.tone];
+      const templateTone = resolveBlockTemplateTone(block.templateId, {
+        fill: baseTonePalette.fill,
+        border: baseTonePalette.border,
+        accent: baseTonePalette.text,
+      });
       const height = estimateParagraphHeight(block.text, 36, 20) + (block.title ? 28 : 12);
       elements.push(
         createRectShape({
@@ -2447,18 +2688,18 @@ export function renderNotebookContentDocumentToSlide(args: {
           top: cursorTop,
           width: CONTENT_WIDTH,
           height,
-          fill: tonePalette.fill,
-          outlineColor: tonePalette.border,
+          fill: templateTone.fill,
+          outlineColor: templateTone.border,
           text: createShapeText({
             html: [
               block.title
-                ? `<p style="font-size:15px;color:${tonePalette.text};"><strong>${renderInlineLatexToHtml(block.title)}</strong></p>`
+                ? `<p style="font-size:15px;color:${templateTone.accent};"><strong>${renderInlineLatexToHtml(block.title)}</strong></p>`
                 : '',
-              `<p style="font-size:15px;color:${tonePalette.text};">${renderInlineLatexToHtml(block.text)}</p>`,
+              `<p style="font-size:15px;color:${templateTone.accent};">${renderInlineLatexToHtml(block.text)}</p>`,
             ]
               .filter(Boolean)
               .join(''),
-            color: tonePalette.text,
+            color: templateTone.accent,
             textType: 'content',
             align: 'top',
           }),
@@ -2470,10 +2711,15 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'definition' || block.type === 'theorem') {
-      const tonePalette =
+      const baseTonePalette =
         block.type === 'definition'
           ? { fill: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' }
           : { fill: '#f5f3ff', border: '#c4b5fd', text: '#6d28d9' };
+      const templateTone = resolveBlockTemplateTone(block.templateId, {
+        fill: baseTonePalette.fill,
+        border: baseTonePalette.border,
+        accent: baseTonePalette.text,
+      });
       const supportText = block.type === 'theorem' ? block.proofIdea : undefined;
       const bodyText = supportText ? `${block.text}\n${supportText}` : block.text;
       const height =
@@ -2485,14 +2731,14 @@ export function renderNotebookContentDocumentToSlide(args: {
           top: cursorTop,
           width: CONTENT_WIDTH,
           height,
-          fill: tonePalette.fill,
-          outlineColor: tonePalette.border,
+          fill: templateTone.fill,
+          outlineColor: templateTone.border,
           text: createShapeText({
             html: [
-              `<p style="font-size:15px;color:${tonePalette.text};"><strong>${renderInlineLatexToHtml(block.title || (language === 'en-US' ? (block.type === 'definition' ? 'Definition' : 'Theorem') : block.type === 'definition' ? '定义' : '定理'))}</strong></p>`,
+              `<p style="font-size:15px;color:${templateTone.accent};"><strong>${renderInlineLatexToHtml(block.title || (language === 'en-US' ? (block.type === 'definition' ? 'Definition' : 'Theorem') : block.type === 'definition' ? '定义' : '定理'))}</strong></p>`,
               `<p style="font-size:15px;color:#334155;">${renderInlineLatexToHtml(block.text)}</p>`,
               supportText
-                ? `<p style="font-size:14px;color:${tonePalette.text};">${renderInlineLatexToHtml(supportText)}</p>`
+                ? `<p style="font-size:14px;color:${templateTone.accent};">${renderInlineLatexToHtml(supportText)}</p>`
                 : '',
             ]
               .filter(Boolean)
@@ -2509,7 +2755,10 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'chem_formula' || block.type === 'chem_equation') {
-      const tone = cardPalettes[visualBlockIndex % cardPalettes.length];
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
       const raw = block.type === 'chem_formula' ? block.formula : block.equation;
       const caption = block.caption;
       const contentHeight = 34 + (caption ? 24 : 0);
@@ -2548,6 +2797,7 @@ export function renderNotebookContentDocumentToSlide(args: {
     elements,
     requestedHeights: underfillExpansion,
   });
+  const noShapeElements = stripShapeElements(reflowedElements);
 
   return {
     id: `slide_${nanoid(8)}`,
@@ -2559,7 +2809,7 @@ export function renderNotebookContentDocumentToSlide(args: {
       fontColor: tokens.titleText,
       fontName: 'Microsoft YaHei',
     },
-    elements: normalizeSlideTextLayout(reflowedElements, {
+    elements: normalizeSlideTextLayout(noShapeElements, {
       width: CANVAS_WIDTH,
       height: CANVAS_HEIGHT,
     }),

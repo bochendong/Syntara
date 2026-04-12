@@ -24,6 +24,38 @@ import type { AgentInfo, SceneGenerationContext, AICallFn } from './pipeline-typ
 import { createLogger } from '@/lib/logger';
 const log = createLogger('Generation');
 
+function stripShapeElements(elements: Slide['elements']): Slide['elements'] {
+  const converted: Slide['elements'] = [];
+  for (const element of elements) {
+    if (element.type !== 'shape') {
+      converted.push(element);
+      continue;
+    }
+    const shapeText = element.text?.content?.trim();
+    if (!shapeText) continue;
+    converted.push({
+      id: `text_${nanoid(8)}`,
+      type: 'text',
+      left: element.left,
+      top: element.top,
+      width: element.width,
+      height: element.height,
+      rotate: element.rotate,
+      groupId: element.groupId,
+      content: shapeText,
+      defaultFontName: element.text?.defaultFontName || 'Microsoft YaHei',
+      defaultColor: element.text?.defaultColor || '#0f172a',
+      textType: element.text?.type,
+      lineHeight: element.text?.lineHeight,
+      paragraphSpace: element.text?.paragraphSpace,
+      fill: element.fill,
+      outline: element.outline,
+      opacity: element.opacity,
+    });
+  }
+  return converted;
+}
+
 /**
  * Replace sequential gen_img_N / gen_vid_N IDs in outlines with globally unique IDs.
  *
@@ -148,7 +180,7 @@ export function buildCompleteScene(
       viewportSize: 1000,
       viewportRatio: 0.5625,
       theme: content.theme || defaultTheme,
-      elements: normalizeSlideTextLayout(content.elements),
+      elements: normalizeSlideTextLayout(stripShapeElements(content.elements)),
       background: content.background,
     };
 

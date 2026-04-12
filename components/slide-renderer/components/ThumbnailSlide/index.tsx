@@ -31,6 +31,10 @@ export function ThumbnailSlide({
 }: ThumbnailSlideProps) {
   // Calculate scale ratio
   const scale = useMemo(() => size / viewportSize, [size, viewportSize]);
+  const elements = useMemo(
+    () => slide.elements.filter((element) => element.type !== 'shape'),
+    [slide.elements],
+  );
 
   // Get background style
   const { backgroundStyle } = useSlideBackgroundStyle(slide.background);
@@ -71,7 +75,7 @@ export function ThumbnailSlide({
         <div className="background w-full h-full bg-center absolute" style={backgroundStyle} />
 
         {/* Render all elements */}
-        {slide.elements.map((element, index) => (
+        {elements.map((element, index) => (
           <ThumbnailElement key={element.id} elementInfo={element} elementIndex={index + 1} />
         ))}
       </div>

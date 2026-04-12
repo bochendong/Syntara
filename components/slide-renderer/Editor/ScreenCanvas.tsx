@@ -22,6 +22,119 @@ export interface ScreenCanvasProps {
 }
 
 const CONTENT_BOTTOM_PADDING = 24;
+const TEXT_SHAPE_BIND_PADDING = 4;
+
+type BoxGeometry = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometry {
+  return (
+    typeof (element as { left?: unknown }).left === 'number' &&
+    typeof (element as { top?: unknown }).top === 'number' &&
+    typeof (element as { width?: unknown }).width === 'number' &&
+    typeof (element as { height?: unknown }).height === 'number'
+  );
+}
+
+function getBindingShapeForText(
+  textElement: PPTElement & BoxGeometry,
+  shapeElements: Array<PPTElement & BoxGeometry>,
+): (PPTElement & BoxGeometry) | null {
+  const textRight = textElement.left + textElement.width;
+  const textBottom = textElement.top + textElement.height;
+  let chosen: (PPTElement & BoxGeometry) | null = null;
+  let chosenArea = Number.POSITIVE_INFINITY;
+
+  for (const shape of shapeElements) {
+    const shapeRight = shape.left + shape.width;
+    const shapeBottom = shape.top + shape.height;
+    const contains =
+      textElement.left >= shape.left + TEXT_SHAPE_BIND_PADDING &&
+      textElement.top >= shape.top + TEXT_SHAPE_BIND_PADDING &&
+      textRight <= shapeRight - TEXT_SHAPE_BIND_PADDING &&
+      textBottom <= shapeBottom - TEXT_SHAPE_BIND_PADDING;
+    if (!contains) continue;
+
+    const area = shape.width * shape.height;
+    if (area < chosenArea) {
+      chosen = shape;
+      chosenArea = area;
+    }
+  }
+
+  if (chosen) return chosen;
+
+  // Fallback: geometric nearest candidate when strict containment fails.
+  let nearest: (PPTElement & BoxGeometry) | null = null;
+  let nearestScore = Number.POSITIVE_INFINITY;
+  for (const shape of shapeElements) {
+    const shapeRight = shape.left + shape.width;
+    const shapeBottom = shape.top + shape.height;
+    const overlapWidth = Math.max(
+      0,
+      Math.min(textRight, shapeRight) - Math.max(textElement.left, shape.left),
+    );
+    const overlapRatio = overlapWidth / Math.max(1, Math.min(textElement.width, shape.width));
+    if (overlapRatio < 0.6) continue;
+
+    const verticalGap =
+      textElement.top >= shapeBottom
+        ? textElement.top - shapeBottom
+        : textBottom <= shape.top
+          ? shape.top - textBottom
+          : 0;
+    if (verticalGap > 320) continue;
+
+    const widthPenalty = Math.abs(shape.width - textElement.width) / Math.max(shape.width, 1);
+    const score = verticalGap + widthPenalty * 80;
+    if (score < nearestScore) {
+      nearest = shape;
+      nearestScore = score;
+    }
+  }
+  return nearest;
+}
+
+function deriveShapeGeometryFromBoundTexts(args: {
+  elements: PPTElement[];
+  textToShapeBinding: Map<string, string>;
+}): PPTElement[] {
+  if (args.textToShapeBinding.size === 0) return args.elements.map((element) => ({ ...element }));
+  const cloned = args.elements.map((element) => ({ ...element })) as PPTElement[];
+  const elementsById = new Map(cloned.map((element) => [element.id, element] as const));
+  const shapeToTexts = new Map<string, Array<PPTElement & BoxGeometry>>();
+
+  cloned.forEach((element) => {
+    if (element.type !== 'text' || !hasBoxGeometry(element)) return;
+    const shapeId = args.textToShapeBinding.get(element.id);
+    if (!shapeId) return;
+    const list = shapeToTexts.get(shapeId) || [];
+    list.push(element);
+    shapeToTexts.set(shapeId, list);
+  });
+
+  for (const [shapeId, texts] of shapeToTexts.entries()) {
+    const shape = elementsById.get(shapeId);
+    if (!shape || shape.type !== 'shape' || !hasBoxGeometry(shape)) continue;
+    // Keep explicit shape.text-driven cards unchanged.
+    if (shape.text?.content?.trim()) continue;
+    if (texts.length === 0) continue;
+
+    const minTop = Math.min(...texts.map((text) => text.top));
+    const maxBottom = Math.max(...texts.map((text) => text.top + text.height));
+    const newTop = Math.max(0, Math.floor(minTop - 12));
+    const newBottom = Math.ceil(maxBottom + 12);
+    const nextHeight = Math.max(40, newBottom - newTop);
+    shape.top = newTop;
+    shape.height = nextHeight;
+  }
+
+  return cloned;
+}
 
 function getPercentageGeometryForElement(
   element: PPTElement,
@@ -49,7 +162,7 @@ function getPercentageGeometryForElement(
 export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
   const elements = useSceneSelector<SlideContent, PPTElement[]>(
-    (content) => content.canvas.elements,
+    (content) => content.canvas.elements.filter((element) => element.type !== 'shape'),
   );
   const [autoHeights, setAutoHeights] = useState<Record<string, number>>({});
 
@@ -76,9 +189,73 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
 
   const adjustedElements = useMemo(() => {
     if (!elements.length) return elements;
-    return applyAutoHeightReflow({
+    const shapeElements = elements.filter(
+      (element): element is PPTElement & BoxGeometry =>
+        element.type === 'shape' && hasBoxGeometry(element),
+    );
+    const textToShapeBinding = new Map<string, string>();
+
+    elements.forEach((element) => {
+      if (element.type !== 'text' || !hasBoxGeometry(element)) return;
+      const shape = getBindingShapeForText(element, shapeElements);
+      if (!shape) return;
+      textToShapeBinding.set(element.id, shape.id);
+    });
+
+    const baseElements = deriveShapeGeometryFromBoundTexts({
       elements,
-      requestedHeights: activeAutoHeights,
+      textToShapeBinding,
+    });
+    const anchorRequests: Record<string, number> = {};
+    const textMirrorRequests: Record<string, number> = {};
+    const elementById = new Map(baseElements.map((element) => [element.id, element] as const));
+
+    Object.entries(activeAutoHeights).forEach(([elementId, requestedHeight]) => {
+      const sourceElement = elementById.get(elementId);
+      if (!sourceElement || !hasBoxGeometry(sourceElement)) return;
+      const normalizedHeight = Math.ceil(requestedHeight);
+      if (!Number.isFinite(normalizedHeight) || normalizedHeight <= sourceElement.height + 1) return;
+
+      if (sourceElement.type === 'text') {
+        textMirrorRequests[elementId] = normalizedHeight;
+        const bindingShapeId = textToShapeBinding.get(elementId);
+        if (bindingShapeId) {
+          const parentShape = elementById.get(bindingShapeId);
+          if (parentShape && parentShape.type === 'shape' && hasBoxGeometry(parentShape)) {
+            const textOffsetTop = Math.max(0, sourceElement.top - parentShape.top);
+            const textBottomPadding = Math.max(
+              0,
+              parentShape.height - (sourceElement.top - parentShape.top + sourceElement.height),
+            );
+            const requiredShapeHeight = Math.ceil(
+              textOffsetTop + normalizedHeight + textBottomPadding,
+            );
+            const prev = anchorRequests[bindingShapeId] || parentShape.height;
+            anchorRequests[bindingShapeId] = Math.max(prev, requiredShapeHeight);
+            return;
+          }
+        }
+      }
+
+      const prev = anchorRequests[elementId] || sourceElement.height;
+      anchorRequests[elementId] = Math.max(prev, normalizedHeight);
+    });
+
+    const reflowed = applyAutoHeightReflow({
+      elements: baseElements,
+      requestedHeights: anchorRequests,
+    });
+    if (Object.keys(textMirrorRequests).length === 0) return reflowed;
+
+    return reflowed.map((element) => {
+      const requested = textMirrorRequests[element.id];
+      if (!requested) return element;
+      if (element.type !== 'text') return element;
+      if (!hasBoxGeometry(element)) return element;
+      return {
+        ...element,
+        height: Math.max(element.height, requested),
+      };
     });
   }, [activeAutoHeights, elements]);
   const reflowStats = useMemo(() => {

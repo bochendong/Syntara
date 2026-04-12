@@ -115,6 +115,24 @@ Grid 使用规则：
 - `columns` 范围 1-3，`rows` 范围 1-3。
 - 顺序流程不要靠 grid 模拟；真正的流程页优先使用 `process_flow` 并保持 `layout.mode = "stack"`。
 
+内置文本模板（`templateId`）：
+- `plain`: 白底中性卡片
+- `infoCard`: 信息提示（浅蓝）
+- `successCard`: 成功/结论（浅绿）
+- `warningCard`: 风险/注意（浅橙）
+- `accentCard`: 强调块（浅紫）
+
+任意 block 可选附带展示提示字段（不改变 block 语义）：
+
+```json
+{"templateId":"infoCard","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
+```
+
+`placement` 使用规则：
+- `order`：用于 stack 或 grid 的顺序提示（越小越靠前）
+- `row` / `col`：仅在 grid 下生效，表示希望放到第几行/第几列（从 1 开始）
+- `rowSpan` / `colSpan`：仅在 grid 下生效，表示跨几行/跨几列（从 1 开始，最大 3）
+
 Supported block shapes:
 
 ```json
@@ -149,6 +167,7 @@ Supported block shapes:
 - Set `profile` to `math` for formula / proof / matrix-heavy slides, `code` for programming walkthroughs, otherwise `general`
 - Set `archetype` to match the provided slide archetype exactly
 - 并列结构优先使用 `layout.mode = "grid"`，其它情况使用 `stack`
+- 需要特定底色时，用 `templateId` 选择内置模板；不要在文本里描述“浅色背景框”
 - 流程结构优先使用 `process_flow`，不要用一串 heading + paragraph + bullet_list 去拼伪流程图
 - Prefer one clear example over many weak bullets
 - 优先选择自带稳定样式的强语义 block，不要用多段普通 prose 去模拟版式

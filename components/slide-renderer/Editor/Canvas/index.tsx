@@ -72,7 +72,7 @@ export function Canvas(_props: CanvasProps) {
 
   // Subscribe to specific parts for performance optimization
   const elements = useSceneSelector<SlideContent, PPTElement[]>(
-    (content) => content.canvas.elements,
+    (content) => content.canvas.elements.filter((element) => element.type !== 'shape'),
   );
 
   // Canvas UI state

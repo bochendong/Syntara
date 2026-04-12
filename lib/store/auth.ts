@@ -71,11 +71,15 @@ export const useAuthStore = create<AuthState>()(
       name: 'synatra-auth',
       version: 1,
       migrate: (persisted, fromVersion) => {
-        const p = (persisted ?? {}) as Partial<AuthState> & { authMode?: string };
+        const p = (persisted ?? {}) as Partial<AuthState>;
+        const rawAuthMode =
+          typeof (persisted as { authMode?: unknown } | null | undefined)?.authMode === 'string'
+            ? (persisted as { authMode?: string }).authMode
+            : undefined;
         const migratedAuthMode: AuthMode =
-          p.authMode === 'oauth'
+          rawAuthMode === 'oauth'
             ? 'oauth'
-            : p.authMode === 'email' || p.authMode === 'local'
+            : rawAuthMode === 'email' || rawAuthMode === 'local'
               ? 'email'
               : 'none';
         const normalizedAuthMode: AuthMode = p.isLoggedIn

@@ -3,7 +3,6 @@ import { ElementTypes, type PPTElement } from '@/lib/types/slides';
 
 import { BaseImageElement } from '../element/ImageElement/BaseImageElement';
 import { BaseTextElement } from '../element/TextElement/BaseTextElement';
-import { BaseShapeElement } from '../element/ShapeElement/BaseShapeElement';
 import { BaseLineElement } from '../element/LineElement/BaseLineElement';
 import { BaseChartElement } from '../element/ChartElement/BaseChartElement';
 import { BaseLatexElement } from '../element/LatexElement/BaseLatexElement';
@@ -26,7 +25,6 @@ export function ThumbnailElement({ elementInfo, elementIndex }: ThumbnailElement
     const elementTypeMap: Record<string, any> = {
       [ElementTypes.IMAGE]: BaseImageElement,
       [ElementTypes.TEXT]: BaseTextElement,
-      [ElementTypes.SHAPE]: BaseShapeElement,
       [ElementTypes.LINE]: BaseLineElement,
       [ElementTypes.CHART]: BaseChartElement,
       [ElementTypes.LATEX]: BaseLatexElement,

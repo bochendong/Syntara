@@ -23,6 +23,24 @@ export const notebookContentLayoutSchema = z.discriminatedUnion('mode', [
   notebookContentStackLayoutSchema,
   notebookContentGridLayoutSchema,
 ]);
+export const notebookContentTextTemplateSchema = z.enum([
+  'plain',
+  'infoCard',
+  'successCard',
+  'warningCard',
+  'accentCard',
+]);
+export const notebookContentBlockPlacementSchema = z.object({
+  order: z.number().int().min(0).max(63).optional(),
+  row: z.number().int().min(1).max(3).optional(),
+  col: z.number().int().min(1).max(3).optional(),
+  rowSpan: z.number().int().min(1).max(3).optional(),
+  colSpan: z.number().int().min(1).max(3).optional(),
+});
+export const notebookContentBlockPresentationSchema = z.object({
+  templateId: notebookContentTextTemplateSchema.optional(),
+  placement: notebookContentBlockPlacementSchema.optional(),
+});
 export const notebookContentContinuationSchema = z.object({
   rootOutlineId: z.string().trim().min(1).max(200),
   partNumber: z.number().int().min(2).max(99),
@@ -174,7 +192,7 @@ export const notebookContentChemEquationBlockSchema = z.object({
   caption: z.string().trim().max(300).optional(),
 });
 
-export const notebookContentBlockSchema = z.discriminatedUnion('type', [
+const notebookContentBlockBaseSchema = z.discriminatedUnion('type', [
   notebookContentHeadingBlockSchema,
   notebookContentParagraphBlockSchema,
   notebookContentBulletListBlockSchema,
@@ -192,6 +210,10 @@ export const notebookContentBlockSchema = z.discriminatedUnion('type', [
   notebookContentChemFormulaBlockSchema,
   notebookContentChemEquationBlockSchema,
 ]);
+export const notebookContentBlockSchema = z.intersection(
+  notebookContentBlockBaseSchema,
+  notebookContentBlockPresentationSchema,
+);
 
 export const notebookContentDocumentSchema = z.object({
   version: z.literal(1).default(1),
@@ -210,6 +232,8 @@ export type NotebookContentLayoutMode = z.infer<typeof notebookContentLayoutMode
 export type NotebookContentStackLayout = z.infer<typeof notebookContentStackLayoutSchema>;
 export type NotebookContentGridLayout = z.infer<typeof notebookContentGridLayoutSchema>;
 export type NotebookContentLayout = z.infer<typeof notebookContentLayoutSchema>;
+export type NotebookContentTextTemplate = z.infer<typeof notebookContentTextTemplateSchema>;
+export type NotebookContentBlockPlacement = z.infer<typeof notebookContentBlockPlacementSchema>;
 export type NotebookSlideArchetype = z.infer<typeof notebookSlideArchetypeSchema>;
 export type NotebookContentContinuation = z.infer<typeof notebookContentContinuationSchema>;
 export type NotebookContentHeadingBlock = z.infer<typeof notebookContentHeadingBlockSchema>;
