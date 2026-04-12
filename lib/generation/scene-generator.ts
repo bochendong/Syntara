@@ -2635,31 +2635,11 @@ async function generateSemanticSlideContent(
   const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
   if (invalidPage) {
     log.warn(
-      `Semantic slide content layout invalid for: ${outline.title}`,
+      `Semantic slide content layout invalid but allowed: ${outline.title}`,
       invalidPage.layoutValidation.issues.map((issue) => issue.message),
     );
-    diagnostics && (diagnostics.semanticRetryCount = Math.max(diagnostics.semanticRetryCount, semanticRetryCount + 1));
-    recordFailure(
-      diagnostics,
-      'semantic_layout',
-      invalidPage.layoutValidation.issues.map((issue) => issue.code).join(', '),
-    );
-    if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
-      return generateSemanticSlideContent(
-        outline,
-        aiCall,
-        agents,
-        courseContext,
-        appendRewriteReason(
-          rewriteReason,
-          `${buildLayoutRetryReason(invalidPage.layoutValidation, lang)}\n${buildSemanticStructureRetryReason(lang)}`,
-        ),
-        semanticRetryCount + 1,
-        diagnostics,
-      );
-    }
-    log.error(`Semantic slide content rejected after layout retries: ${outline.title}`);
-    return null;
+    // User-requested behavior: do not block generation on layout overlap/overflow.
+    // Keep the slide for inspection even when layout validation reports issues.
   }
 
   const [primaryPage, ...continuationPages] = renderedPages;

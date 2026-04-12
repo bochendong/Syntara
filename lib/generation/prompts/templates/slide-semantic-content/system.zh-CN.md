@@ -98,6 +98,9 @@ Return ONE JSON object in this exact top-level shape:
   "layout": {"mode":"stack"},
   "pattern": "auto",
   "archetype": "concept",
+  "titleTextColor": "#0f172a",
+  "titleBackgroundColor": "#eff6ff",
+  "titleBorderColor": "#bfdbfe",
   "title": "string",
   "blocks": []
 }
@@ -133,7 +136,7 @@ Grid 使用规则：
 任意 block 可选附带展示提示字段（不改变 block 语义）：
 
 ```json
-{"templateId":"infoCard","cardTitle":"核心结论","titleTone":"accent","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
+{"templateId":"infoCard","cardTitle":"核心结论","titleTone":"accent","textColor":"#1f2937","backgroundColor":"#eff6ff","borderColor":"#bfdbfe","noteTextColor":"#475569","noteBackgroundColor":"#f8fafc","noteBorderColor":"#cbd5e1","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
 ```
 
 `placement` 使用规则：
@@ -142,6 +145,10 @@ Grid 使用规则：
 - `rowSpan` / `colSpan`：仅在 grid 下生效，表示跨几行/跨几列（从 1 开始，最大 3）
 - `cardTitle`：可选块标题，渲染时会用比正文更高的字号与强调色
 - `titleTone`：标题色调，可选 `accent | neutral | inverse`（默认 `accent`）
+- `textColor`：块正文/公式文字颜色（例如 KaTeX 公式颜色）
+- `backgroundColor` / `borderColor`：块背景色与边框色
+- `noteTextColor` / `noteBackgroundColor` / `noteBorderColor`：注释条（caption/notes）的文字、背景、边框色
+- `titleTextColor` / `titleBackgroundColor` / `titleBorderColor`：页面主标题的文字、背景、边框色
 
 Supported block shapes:
 

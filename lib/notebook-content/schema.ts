@@ -50,6 +50,12 @@ export const notebookContentBlockPresentationSchema = z.object({
   placement: notebookContentBlockPlacementSchema.optional(),
   cardTitle: z.string().trim().max(200).optional(),
   titleTone: notebookContentTitleToneSchema.optional(),
+  textColor: z.string().trim().max(40).optional(),
+  backgroundColor: z.string().trim().max(40).optional(),
+  borderColor: z.string().trim().max(40).optional(),
+  noteTextColor: z.string().trim().max(40).optional(),
+  noteBackgroundColor: z.string().trim().max(40).optional(),
+  noteBorderColor: z.string().trim().max(40).optional(),
 });
 export const notebookContentContinuationSchema = z.object({
   rootOutlineId: z.string().trim().min(1).max(200),
@@ -234,6 +240,9 @@ export const notebookContentDocumentSchema = z.object({
   archetype: notebookSlideArchetypeSchema.default('concept'),
   continuation: notebookContentContinuationSchema.optional(),
   title: z.string().trim().max(300).optional(),
+  titleTextColor: z.string().trim().max(40).optional(),
+  titleBackgroundColor: z.string().trim().max(40).optional(),
+  titleBorderColor: z.string().trim().max(40).optional(),
   blocks: z.array(notebookContentBlockSchema).min(1).max(64),
 });
 

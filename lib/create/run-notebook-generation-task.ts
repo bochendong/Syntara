@@ -183,11 +183,67 @@ function getApiHeaders(overrides?: {
   return headers;
 }
 
+type SceneContentDiagnosticsPayload = {
+  pipeline?: string;
+  failureStage?: string;
+  failureReasons?: string[];
+  semanticRetryCount?: number;
+  layoutRetryCount?: number;
+};
+
+function summarizeSceneContentDiagnostics(details: string | undefined): string | null {
+  if (!details?.trim()) return null;
+  try {
+    const parsed = JSON.parse(details) as {
+      diagnostics?: SceneContentDiagnosticsPayload;
+    };
+    const diagnostics = parsed?.diagnostics;
+    if (!diagnostics) return null;
+
+    const reasons = Array.isArray(diagnostics.failureReasons)
+      ? diagnostics.failureReasons.filter((item) => typeof item === 'string' && item.trim())
+      : [];
+
+    const parts: string[] = [];
+    if (diagnostics.pipeline) parts.push(`pipeline=${diagnostics.pipeline}`);
+    if (diagnostics.failureStage) parts.push(`stage=${diagnostics.failureStage}`);
+    if (reasons.length > 0) parts.push(`reason=${reasons.slice(0, 2).join(' | ')}`);
+    if (Number.isFinite(diagnostics.semanticRetryCount)) {
+      parts.push(`semanticRetries=${diagnostics.semanticRetryCount}`);
+    }
+    if (Number.isFinite(diagnostics.layoutRetryCount) && diagnostics.layoutRetryCount! > 0) {
+      parts.push(`layoutRetries=${diagnostics.layoutRetryCount}`);
+    }
+
+    return parts.length > 0 ? parts.join('; ') : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractFailureStageFromMessage(message: string): string | null {
+  const stageMatch = message.match(/stage=([a-zA-Z0-9_:-]+)/);
+  return stageMatch?.[1] || null;
+}
+
+function buildShortFailureReason(message: string): string {
+  const stage = extractFailureStageFromMessage(message);
+  if (stage) return stage;
+  const compact = message.replace(/\s+/g, ' ').trim();
+  return compact.length > 64 ? `${compact.slice(0, 64)}...` : compact;
+}
+
 async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    if (data?.error?.trim()) return data.error.trim();
+    const data = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string; details?: string }
+      | null;
+    const diagnosticsSummary = summarizeSceneContentDiagnostics(data?.details);
+    const baseMessage = data?.message?.trim() || data?.error?.trim() || '';
+    if (baseMessage && diagnosticsSummary) return `${baseMessage} (${diagnosticsSummary})`;
+    if (baseMessage) return baseMessage;
+    if (diagnosticsSummary) return `${fallback} (${diagnosticsSummary})`;
   }
 
   const text = await response.text().catch(() => '');
@@ -1584,6 +1640,7 @@ export async function runNotebookGenerationTask(
             : typeof error === 'string'
               ? error
               : '页面生成失败';
+        const shortReason = buildShortFailureReason(message);
         failedScenes.push({
           outlineId: outline.id,
           title: outline.title,
@@ -1591,7 +1648,7 @@ export async function runNotebookGenerationTask(
         });
         input.onProgress?.({
           stage: 'scene',
-          detail: `已跳过失败页面 ${i + 1}/${outlines.length}：${outline.title}`,
+          detail: `已跳过失败页面 ${i + 1}/${outlines.length}：${outline.title}（${shortReason}）`,
           completed: i + 1,
           total: outlines.length,
         });

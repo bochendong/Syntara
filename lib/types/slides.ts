@@ -613,6 +613,8 @@ export interface PPTLatexElement extends PPTBaseElement {
   viewBox?: [number, number];
   fixedRatio?: boolean;
   align?: 'left' | 'center' | 'right';
+  fill?: string;
+  outline?: PPTElementOutline;
 }
 
 /**

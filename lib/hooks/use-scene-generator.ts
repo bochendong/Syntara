@@ -98,11 +98,53 @@ function getApiHeaders(): HeadersInit {
   };
 }
 
+type SceneContentDiagnosticsPayload = {
+  pipeline?: string;
+  failureStage?: string;
+  failureReasons?: string[];
+  semanticRetryCount?: number;
+  layoutRetryCount?: number;
+};
+
+function summarizeSceneContentDiagnostics(details: string | undefined): string | null {
+  if (!details?.trim()) return null;
+  try {
+    const parsed = JSON.parse(details) as {
+      diagnostics?: SceneContentDiagnosticsPayload;
+    };
+    const diagnostics = parsed?.diagnostics;
+    if (!diagnostics) return null;
+
+    const reasons = Array.isArray(diagnostics.failureReasons)
+      ? diagnostics.failureReasons.filter((item) => typeof item === 'string' && item.trim())
+      : [];
+    const parts: string[] = [];
+    if (diagnostics.pipeline) parts.push(`pipeline=${diagnostics.pipeline}`);
+    if (diagnostics.failureStage) parts.push(`stage=${diagnostics.failureStage}`);
+    if (reasons.length > 0) parts.push(`reason=${reasons.slice(0, 2).join(' | ')}`);
+    if (Number.isFinite(diagnostics.semanticRetryCount)) {
+      parts.push(`semanticRetries=${diagnostics.semanticRetryCount}`);
+    }
+    if (Number.isFinite(diagnostics.layoutRetryCount) && diagnostics.layoutRetryCount! > 0) {
+      parts.push(`layoutRetries=${diagnostics.layoutRetryCount}`);
+    }
+    return parts.length > 0 ? parts.join('; ') : null;
+  } catch {
+    return null;
+  }
+}
+
 async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    if (data?.error?.trim()) return data.error.trim();
+    const data = (await response.json().catch(() => null)) as
+      | { error?: string; message?: string; details?: string }
+      | null;
+    const diagnosticsSummary = summarizeSceneContentDiagnostics(data?.details);
+    const baseMessage = data?.message?.trim() || data?.error?.trim() || '';
+    if (baseMessage && diagnosticsSummary) return `${baseMessage} (${diagnosticsSummary})`;
+    if (baseMessage) return baseMessage;
+    if (diagnosticsSummary) return `${fallback} (${diagnosticsSummary})`;
   }
 
   const text = await response.text().catch(() => '');

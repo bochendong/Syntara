@@ -47,6 +47,35 @@ import {
 } from '@/components/ui/context-menu';
 
 const CONTENT_BOTTOM_PADDING = 24;
+const TITLE_BASELINE_LEFT = 64;
+const FULL_ROW_BASELINE_WIDTH = 872;
+const FULL_ROW_SNAP_MIN_WIDTH = 800;
+const LEGACY_FULL_ROW_MIN_LEFT = 80;
+const LEGACY_FULL_ROW_MAX_LEFT = 100;
+
+function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
+  return elements.map((element) => {
+    const isTextElement = element.type === 'text';
+    const isLatexElement = element.type === 'latex';
+    if (!isTextElement && !isLatexElement) return element;
+    if (element.width < FULL_ROW_SNAP_MIN_WIDTH) return element;
+    if (element.left < LEGACY_FULL_ROW_MIN_LEFT || element.left > LEGACY_FULL_ROW_MAX_LEFT) {
+      return element;
+    }
+    if (
+      isTextElement &&
+      element.textType !== 'title' &&
+      element.textType !== 'notes'
+    ) {
+      return element;
+    }
+    return {
+      ...element,
+      left: TITLE_BASELINE_LEFT,
+      width: FULL_ROW_BASELINE_WIDTH,
+    };
+  });
+}
 
 export interface CanvasProps {
   editable?: boolean;
@@ -103,7 +132,8 @@ export function Canvas(_props: CanvasProps) {
 
   // Sync store elements to local state
   useEffect(() => {
-    const newElements = elements ? JSON.parse(JSON.stringify(elements)) : [];
+    const rawElements = elements ? (JSON.parse(JSON.stringify(elements)) as PPTElement[]) : [];
+    const newElements = normalizeTitleBaseline(rawElements);
     elementListRef.current = newElements;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync store elements to local state
     setElementList(newElements);

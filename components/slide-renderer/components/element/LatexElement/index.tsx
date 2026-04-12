@@ -2,6 +2,7 @@
 
 import { useRef, useState, useLayoutEffect } from 'react';
 import type { PPTLatexElement } from '@/lib/types/slides';
+import { ElementOutline } from '../ElementOutline';
 
 export { BaseLatexElement } from './BaseLatexElement';
 
@@ -22,6 +23,14 @@ export interface LatexElementProps {
  * Renders KaTeX HTML if available, falls back to legacy SVG path.
  */
 export function LatexElement({ elementInfo, selectElement }: LatexElementProps) {
+  const resolvedFill = elementInfo.fill ?? '#f8fafc';
+  const resolvedOutline =
+    elementInfo.outline ??
+    ({
+      color: '#cbd5e1',
+      width: 1,
+      style: 'solid',
+    } as const);
   const handleSelectElement = (e: React.MouseEvent | React.TouchEvent) => {
     if (elementInfo.lock) return;
     e.stopPropagation();
@@ -46,9 +55,18 @@ export function LatexElement({ elementInfo, selectElement }: LatexElementProps) 
           className={`element-content relative w-full h-full ${
             elementInfo.lock ? 'cursor-default' : 'cursor-move'
           }`}
+          style={{
+            backgroundColor: resolvedFill,
+            color: elementInfo.color,
+          }}
           onMouseDown={handleSelectElement}
           onTouchStart={handleSelectElement}
         >
+          <ElementOutline
+            width={elementInfo.width}
+            height={elementInfo.height}
+            outline={resolvedOutline}
+          />
           {elementInfo.html ? (
             <KatexContent
               html={elementInfo.html}
@@ -108,7 +126,8 @@ function KatexContent({
   }, [html, width, height]);
 
   const justify = ALIGN_MAP[align];
-  const origin = align === 'left' ? 'left top' : align === 'right' ? 'right top' : 'center top';
+  const origin =
+    align === 'left' ? 'left center' : align === 'right' ? 'right center' : 'center center';
 
   return (
     <div
@@ -117,7 +136,7 @@ function KatexContent({
         height,
         overflow: 'hidden',
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: justify,
       }}
     >

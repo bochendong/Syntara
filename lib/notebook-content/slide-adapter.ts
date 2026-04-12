@@ -69,7 +69,17 @@ type PlacedGridBlock = {
 };
 const DEFAULT_ARCHETYPE: NotebookSlideArchetype = 'concept';
 const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookContentBlock['type'][]> = {
-  intro: ['heading', 'paragraph', 'bullet_list', 'callout', 'definition', 'theorem', 'equation'],
+  intro: [
+    'heading',
+    'paragraph',
+    'bullet_list',
+    'callout',
+    'definition',
+    'theorem',
+    'equation',
+    'table',
+    'process_flow',
+  ],
   concept: [
     'heading',
     'paragraph',
@@ -94,6 +104,8 @@ const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookContentBl
     'equation',
     'matrix',
     'derivation_steps',
+    'process_flow',
+    'table',
     'callout',
     'definition',
     'theorem',
@@ -899,6 +911,9 @@ function createLatexElement(args: {
   height: number;
   align?: PPTLatexElement['align'];
   groupId?: string;
+  color?: string;
+  fill?: string;
+  outlineColor?: string;
 }): PPTLatexElement {
   const latex = normalizeLatexSource(args.latex);
   const directSymbol = getDirectUnicodeMathSymbol(latex);
@@ -922,6 +937,15 @@ function createLatexElement(args: {
         strict: 'ignore',
       }),
     align: args.align || 'left',
+    color: args.color,
+    fill: args.fill,
+    outline: args.outlineColor
+      ? {
+          color: args.outlineColor,
+          width: 1,
+          style: 'solid',
+        }
+      : undefined,
   };
 }
 
@@ -2221,20 +2245,22 @@ export function renderNotebookContentDocumentToSlide(args: {
 
   elements.push(
     createRectShape({
-      left: CONTENT_LEFT,
+      left: CONTENT_LEFT - 14,
       top: archetypeLayout.titleTop + 4,
       width: 10,
       height: archetypeLayout.accentHeight,
       fill: tokens.titleAccent,
     }),
     createTextElement({
-      left: CONTENT_LEFT + 22,
+      left: CONTENT_LEFT,
       top: archetypeLayout.titleTop,
-      width: CONTENT_WIDTH - 22,
+      width: CONTENT_WIDTH,
       height: archetypeLayout.titleHeight,
       html: `<p style="font-size:${archetypeLayout.titleFontSize}px;"><strong>${renderInlineLatexToHtml(args.document.title || args.fallbackTitle)}</strong></p>`,
-      color: tokens.titleText,
+      color: args.document.titleTextColor || tokens.titleText,
       textType: 'title',
+      fill: args.document.titleBackgroundColor || '#eff6ff',
+      outlineColor: args.document.titleBorderColor || '#bfdbfe',
     }),
   );
 
@@ -2508,6 +2534,8 @@ export function renderNotebookContentDocumentToSlide(args: {
         block.templateId,
         cardPalettes[visualBlockIndex % cardPalettes.length],
       );
+      const toneFill = block.backgroundColor || tone.fill;
+      const toneBorder = block.borderColor || tone.border;
       const contentHeight = estimateLatexDisplayHeight(block.latex, block.display);
       const cardHeight = contentHeight + CARD_INSET_Y * 2 + (block.caption ? 22 : 0);
       const groupId = createCardGroupId('equation_card');
@@ -2517,8 +2545,8 @@ export function renderNotebookContentDocumentToSlide(args: {
           top: cursorTop,
           width: CONTENT_WIDTH,
           height: cardHeight,
-          fill: tone.fill,
-          outlineColor: tone.border,
+          fill: toneFill,
+          outlineColor: toneBorder,
           groupId,
         }),
       );
@@ -2531,6 +2559,9 @@ export function renderNotebookContentDocumentToSlide(args: {
           height: contentHeight,
           align: block.display ? 'center' : 'left',
           groupId,
+          color: block.textColor,
+          fill: toneFill,
+          outlineColor: toneBorder,
         }),
       );
       if (block.caption) {
@@ -2542,7 +2573,9 @@ export function renderNotebookContentDocumentToSlide(args: {
             height: 22,
             groupId,
             html: `<p style="font-size:13px;color:#64748b;">${escapeHtml(block.caption)}</p>`,
-            color: '#64748b',
+            color: block.noteTextColor || '#64748b',
+            fill: block.noteBackgroundColor,
+            outlineColor: block.noteBorderColor,
             textType: 'notes',
           }),
         );
@@ -2557,6 +2590,8 @@ export function renderNotebookContentDocumentToSlide(args: {
         block.templateId,
         cardPalettes[visualBlockIndex % cardPalettes.length],
       );
+      const toneFill = block.backgroundColor || tone.fill;
+      const toneBorder = block.borderColor || tone.border;
       const latex = matrixBlockToLatex(block);
       const contentHeight = estimateLatexDisplayHeight(latex, true);
       const labelHeight = block.label ? 24 : 0;
@@ -2569,8 +2604,8 @@ export function renderNotebookContentDocumentToSlide(args: {
           top: cursorTop,
           width: CONTENT_WIDTH,
           height: cardHeight,
-          fill: tone.fill,
-          outlineColor: tone.border,
+          fill: toneFill,
+          outlineColor: toneBorder,
           groupId,
         }),
       );
@@ -2597,6 +2632,9 @@ export function renderNotebookContentDocumentToSlide(args: {
           height: contentHeight,
           align: 'center',
           groupId,
+          color: block.textColor,
+          fill: toneFill,
+          outlineColor: toneBorder,
         }),
       );
       if (block.caption) {
@@ -2608,7 +2646,9 @@ export function renderNotebookContentDocumentToSlide(args: {
             height: 22,
             groupId,
             html: `<p style="font-size:13px;color:#64748b;">${escapeHtml(block.caption)}</p>`,
-            color: '#64748b',
+            color: block.noteTextColor || '#64748b',
+            fill: block.noteBackgroundColor,
+            outlineColor: block.noteBorderColor,
             textType: 'notes',
           }),
         );

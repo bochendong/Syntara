@@ -2,6 +2,7 @@
 
 import { useRef, useState, useLayoutEffect } from 'react';
 import type { PPTLatexElement } from '@/lib/types/slides';
+import { ElementOutline } from '../ElementOutline';
 
 export interface BaseLatexElementProps {
   elementInfo: PPTLatexElement;
@@ -12,6 +13,14 @@ export interface BaseLatexElementProps {
  * Renders KaTeX HTML if available, falls back to legacy SVG path.
  */
 export function BaseLatexElement({ elementInfo }: BaseLatexElementProps) {
+  const resolvedFill = elementInfo.fill ?? '#f8fafc';
+  const resolvedOutline =
+    elementInfo.outline ??
+    ({
+      color: '#cbd5e1',
+      width: 1,
+      style: 'solid',
+    } as const);
   return (
     <div
       className="base-element-latex absolute"
@@ -26,7 +35,18 @@ export function BaseLatexElement({ elementInfo }: BaseLatexElementProps) {
         className="rotate-wrapper w-full h-full"
         style={{ transform: `rotate(${elementInfo.rotate}deg)` }}
       >
-        <div className="element-content subpixel-antialiased relative w-full h-full">
+        <div
+          className="element-content subpixel-antialiased relative w-full h-full overflow-hidden"
+          style={{
+            backgroundColor: resolvedFill,
+            color: elementInfo.color,
+          }}
+        >
+          <ElementOutline
+            width={elementInfo.width}
+            height={elementInfo.height}
+            outline={resolvedOutline}
+          />
           {elementInfo.html ? (
             <KatexContent
               html={elementInfo.html}
@@ -91,7 +111,7 @@ function KatexContent({
 
   // Playback should present formulas like the editor preview: visually centered on the slide.
   const justify = 'center';
-  const origin = 'center top';
+  const origin = 'center center';
 
   return (
     <div
@@ -100,7 +120,7 @@ function KatexContent({
         height,
         overflow: 'hidden',
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: justify,
       }}
     >

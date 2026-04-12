@@ -2764,6 +2764,12 @@ export function ChatPageClient() {
             outlineCount: created.outlines.length,
             generatedSceneCount: created.scenes.length,
             generatedSceneOrders: created.scenes.map((scene) => scene.order),
+            failedSceneCount: created.failedScenes?.length ?? 0,
+            failedScenes: (created.failedScenes || []).map((item) => ({
+              outlineId: item.outlineId,
+              title: item.title,
+              error: item.error,
+            })),
           });
           if (courseId) {
             window.dispatchEvent(

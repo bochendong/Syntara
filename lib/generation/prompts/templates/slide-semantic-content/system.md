@@ -98,6 +98,9 @@ Return ONE JSON object in this exact top-level shape:
   "layout": {"mode":"stack"},
   "pattern": "auto",
   "archetype": "concept",
+  "titleTextColor": "#0f172a",
+  "titleBackgroundColor": "#eff6ff",
+  "titleBorderColor": "#bfdbfe",
   "title": "string",
   "blocks": []
 }
@@ -133,7 +136,7 @@ Built-in text templates (`templateId`):
 Any block can optionally include presentation hints (without changing semantic meaning):
 
 ```json
-{"templateId":"infoCard","cardTitle":"Key Takeaway","titleTone":"accent","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
+{"templateId":"infoCard","cardTitle":"Key Takeaway","titleTone":"accent","textColor":"#1f2937","backgroundColor":"#eff6ff","borderColor":"#bfdbfe","noteTextColor":"#475569","noteBackgroundColor":"#f8fafc","noteBorderColor":"#cbd5e1","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
 ```
 
 `placement` notes:
@@ -142,6 +145,10 @@ Any block can optionally include presentation hints (without changing semantic m
 - `rowSpan` / `colSpan`: only for grid mode; preferred row/column span (1-based, max 3)
 - `cardTitle`: optional block title; rendered with stronger size and accent color than body text
 - `titleTone`: title color tone, one of `accent | neutral | inverse` (default `accent`)
+- `textColor`: block body/formula text color (including KaTeX content)
+- `backgroundColor` / `borderColor`: block background and border colors
+- `noteTextColor` / `noteBackgroundColor` / `noteBorderColor`: caption/notes text, background, border colors
+- `titleTextColor` / `titleBackgroundColor` / `titleBorderColor`: page title text, background, border colors
 
 Supported block shapes:
 

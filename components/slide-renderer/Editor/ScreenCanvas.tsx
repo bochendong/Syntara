@@ -23,6 +23,11 @@ export interface ScreenCanvasProps {
 
 const CONTENT_BOTTOM_PADDING = 24;
 const TEXT_SHAPE_BIND_PADDING = 4;
+const TITLE_BASELINE_LEFT = 64;
+const FULL_ROW_BASELINE_WIDTH = 872;
+const FULL_ROW_SNAP_MIN_WIDTH = 800;
+const LEGACY_FULL_ROW_MIN_LEFT = 80;
+const LEGACY_FULL_ROW_MAX_LEFT = 100;
 
 type BoxGeometry = {
   left: number;
@@ -206,9 +211,26 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
       elements,
       textToShapeBinding,
     });
+    const alignedElements = baseElements.map((element) => {
+      if (!hasBoxGeometry(element)) return element;
+      const isTextFullRow =
+        element.type === 'text' &&
+        (element.textType === 'title' || element.textType === 'notes');
+      const isLatexFullRow = element.type === 'latex';
+      if (!isTextFullRow && !isLatexFullRow) return element;
+      if (element.width < FULL_ROW_SNAP_MIN_WIDTH) return element;
+      if (element.left < LEGACY_FULL_ROW_MIN_LEFT || element.left > LEGACY_FULL_ROW_MAX_LEFT) {
+        return element;
+      }
+      return {
+        ...element,
+        left: TITLE_BASELINE_LEFT,
+        width: FULL_ROW_BASELINE_WIDTH,
+      };
+    });
     const anchorRequests: Record<string, number> = {};
     const textMirrorRequests: Record<string, number> = {};
-    const elementById = new Map(baseElements.map((element) => [element.id, element] as const));
+    const elementById = new Map(alignedElements.map((element) => [element.id, element] as const));
 
     Object.entries(activeAutoHeights).forEach(([elementId, requestedHeight]) => {
       const sourceElement = elementById.get(elementId);
@@ -242,7 +264,7 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
     });
 
     const reflowed = applyAutoHeightReflow({
-      elements: baseElements,
+      elements: alignedElements,
       requestedHeights: anchorRequests,
     });
     if (Object.keys(textMirrorRequests).length === 0) return reflowed;

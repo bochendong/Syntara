@@ -30,6 +30,24 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
   const { addHistorySnapshot } = useHistorySnapshot();
 
   const { shadowStyle } = useElementShadow(elementInfo.shadow);
+  const titleCardFallbackFill = elementInfo.textType === 'title' ? '#eff6ff' : undefined;
+  const notesCardFallbackFill = elementInfo.textType === 'notes' ? '#f8fafc' : undefined;
+  const resolvedFill = elementInfo.fill ?? titleCardFallbackFill ?? notesCardFallbackFill;
+  const resolvedOutline =
+    elementInfo.outline ??
+    (elementInfo.textType === 'title'
+      ? {
+          color: '#bfdbfe',
+          width: 1,
+          style: 'solid' as const,
+        }
+      : elementInfo.textType === 'notes'
+        ? {
+            color: '#cbd5e1',
+            width: 1,
+            style: 'solid' as const,
+          }
+      : undefined);
 
   const elementRef = useRef<HTMLDivElement>(null);
   const [realHeightCache, setRealHeightCache] = useState(-1);
@@ -183,7 +201,7 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
           style={{
             width: elementInfo.vertical ? 'auto' : `${elementInfo.width}px`,
             height: elementInfo.vertical ? `${elementInfo.height}px` : 'auto',
-            backgroundColor: elementInfo.fill,
+            backgroundColor: resolvedFill,
             opacity: elementInfo.opacity,
             textShadow: shadowStyle,
             lineHeight: elementInfo.lineHeight,
@@ -200,7 +218,7 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
           <ElementOutline
             width={elementInfo.width}
             height={elementInfo.height}
-            outline={elementInfo.outline}
+            outline={resolvedOutline}
           />
 
           <div className="text relative">
