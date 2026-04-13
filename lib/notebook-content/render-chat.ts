@@ -116,6 +116,17 @@ function renderBlock(block: NotebookContentBlock, language: 'zh-CN' | 'en-US'): 
       ]
         .filter(Boolean)
         .join('\n\n');
+    case 'layout_cards':
+      return [
+        block.title
+          ? `### ${block.title}`
+          : language === 'en-US'
+            ? '### Card Layout'
+            : '### 卡片布局',
+        block.items.map((item) => `- ${item.title}: ${item.text}`).join('\n'),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
     case 'chem_formula':
       return block.caption ? `${block.caption}\n${block.formula}` : block.formula;
     case 'chem_equation':

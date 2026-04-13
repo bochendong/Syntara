@@ -196,6 +196,19 @@ export const notebookContentProcessFlowBlockSchema = z.object({
   summary: z.string().trim().max(1000).optional(),
 });
 
+export const notebookContentLayoutCardsItemSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  text: z.string().trim().min(1).max(2000),
+  tone: z.enum(['neutral', 'info', 'warning', 'success']).default('neutral'),
+});
+
+export const notebookContentLayoutCardsBlockSchema = z.object({
+  type: z.literal('layout_cards'),
+  title: z.string().trim().max(200).optional(),
+  columns: z.enum([z.literal(2), z.literal(3), z.literal(4)]).default(3),
+  items: z.array(notebookContentLayoutCardsItemSchema).min(1).max(4),
+});
+
 export const notebookContentChemFormulaBlockSchema = z.object({
   type: z.literal('chem_formula'),
   formula: z.string().trim().min(1).max(2000),
@@ -223,6 +236,7 @@ const notebookContentBlockBaseSchema = z.discriminatedUnion('type', [
   notebookContentTheoremBlockSchema,
   notebookContentExampleBlockSchema,
   notebookContentProcessFlowBlockSchema,
+  notebookContentLayoutCardsBlockSchema,
   notebookContentChemFormulaBlockSchema,
   notebookContentChemEquationBlockSchema,
 ]);
@@ -278,6 +292,8 @@ export type NotebookContentProcessFlowContextItem = z.infer<
 >;
 export type NotebookContentProcessFlowStep = z.infer<typeof notebookContentProcessFlowStepSchema>;
 export type NotebookContentProcessFlowBlock = z.infer<typeof notebookContentProcessFlowBlockSchema>;
+export type NotebookContentLayoutCardsItem = z.infer<typeof notebookContentLayoutCardsItemSchema>;
+export type NotebookContentLayoutCardsBlock = z.infer<typeof notebookContentLayoutCardsBlockSchema>;
 export type NotebookContentChemFormulaBlock = z.infer<typeof notebookContentChemFormulaBlockSchema>;
 export type NotebookContentChemEquationBlock = z.infer<
   typeof notebookContentChemEquationBlockSchema
@@ -285,7 +301,62 @@ export type NotebookContentChemEquationBlock = z.infer<
 export type NotebookContentBlock = z.infer<typeof notebookContentBlockSchema>;
 export type NotebookContentDocument = z.infer<typeof notebookContentDocumentSchema>;
 
+function decodeHtmlEntities(input: string): string {
+  return input
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+}
+
+function stripHtmlTags(input: string): string {
+  return input
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, ' ');
+}
+
+function normalizeSemanticText(input: string): string {
+  if (!input) return input;
+  const hasLikelyHtml = /<(span|div|p|strong|em|b|i|u|ul|ol|li|br|math|mrow|mi|mo|mn)\b/i.test(
+    input,
+  );
+  const hasKatex = /katex/i.test(input);
+  if (!hasLikelyHtml && !hasKatex) return input;
+  return decodeHtmlEntities(stripHtmlTags(input))
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function sanitizeNotebookContentValue(value: unknown): unknown {
+  if (typeof value === 'string') return normalizeSemanticText(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeNotebookContentValue(item));
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    Object.entries(value).forEach(([key, child]) => {
+      // Keep source code blocks unchanged except for optional caption/title fields.
+      if (key === 'code' && typeof child === 'string') {
+        out[key] = child;
+        return;
+      }
+      out[key] = sanitizeNotebookContentValue(child);
+    });
+    return out;
+  }
+  return value;
+}
+
 export function parseNotebookContentDocument(input: unknown): NotebookContentDocument | null {
   const parsed = notebookContentDocumentSchema.safeParse(input);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const sanitized = sanitizeNotebookContentValue(parsed.data);
+  const reparsed = notebookContentDocumentSchema.safeParse(sanitized);
+  return reparsed.success ? reparsed.data : null;
 }

@@ -363,6 +363,17 @@ export async function updateStageStoreMeta(
   });
 }
 
+export async function syncStageFromSource(
+  stageId: string,
+): Promise<{ syncedFromSourceNotebookId: string }> {
+  return backendJson<{ syncedFromSourceNotebookId: string }>(
+    `/api/notebooks/${encodeURIComponent(stageId)}/sync`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
 export async function savePublishedStageData(
   stageId: string,
   data: StageStoreData,

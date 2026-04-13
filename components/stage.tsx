@@ -421,8 +421,10 @@ export function Stage({
   const [mainClassroomView, setMainClassroomView] = useState<'ppt' | 'quiz' | 'raw'>('ppt');
   /** 原始数据下的子 Tab：按场景类型（slide / quiz / interactive / …） */
   const [rawDataSubTab, setRawDataSubTab] = useState<SceneType>('slide');
-  /** 幻灯片原始数据细分：生成结果 / 讲解动作 / UI衍生数据 */
-  const [rawSlideDataView, setRawSlideDataView] = useState<'generated' | 'narration' | 'ui'>(
+  /** 幻灯片原始数据细分：生成结果 / 大纲 / 讲解动作 / UI衍生数据 */
+  const [rawSlideDataView, setRawSlideDataView] = useState<
+    'generated' | 'outline' | 'narration' | 'ui'
+  >(
     'generated',
   );
   /** 课堂内当前页编辑模式：页面布局 / 讲解稿 */
@@ -1844,58 +1846,92 @@ export function Stage({
     return [...RAW_DATA_BASE_TYPES, ...extras];
   }, [mergedOutlines, scenes]);
 
+  const rawCurrentScene = useMemo(() => {
+    if (currentScene && currentScene.type === rawDataSubTab) {
+      return currentScene;
+    }
+    return null;
+  }, [currentScene, rawDataSubTab]);
+
+  const rawCurrentOutline = useMemo(() => {
+    if (!rawCurrentScene) return null;
+    const byOrder = mergedOutlines.find(
+      (outline) => outline.type === rawDataSubTab && outline.order === rawCurrentScene.order,
+    );
+    if (byOrder) return byOrder;
+    return (
+      mergedOutlines.find(
+        (outline) =>
+          outline.type === rawDataSubTab &&
+          outline.title.trim().toLowerCase() === rawCurrentScene.title.trim().toLowerCase(),
+      ) || null
+    );
+  }, [mergedOutlines, rawCurrentScene, rawDataSubTab]);
+
   const rawTypePayloadJson = useMemo(() => {
     try {
       const type = rawDataSubTab;
-      const outlinesForType = mergedOutlines.filter((o) => o.type === type);
-      const scenesForTypeBase = scenes.filter((s) => s.type === type);
-      const scenesForType =
-        type === 'slide'
-          ? scenesForTypeBase.map((scene) => {
-              if (rawSlideDataView === 'generated') {
-                return {
-                  id: scene.id,
-                  type: scene.type,
-                  title: scene.title,
-                  order: scene.order,
-                  content: scene.content,
-                };
-              }
+      const scene = rawCurrentScene;
+      const scenePayload =
+        !scene
+          ? null
+          : type === 'slide'
+            ? (() => {
+                if (rawSlideDataView === 'generated') {
+                  return {
+                    id: scene.id,
+                    type: scene.type,
+                    title: scene.title,
+                    order: scene.order,
+                    content: scene.content,
+                  };
+                }
 
-              if (rawSlideDataView === 'narration') {
-                return {
-                  id: scene.id,
-                  type: scene.type,
-                  title: scene.title,
-                  order: scene.order,
-                  actions: scene.actions || [],
-                };
-              }
+                if (rawSlideDataView === 'outline') {
+                  return {
+                    id: scene.id,
+                    type: scene.type,
+                    title: scene.title,
+                    order: scene.order,
+                    outline: rawCurrentOutline,
+                  };
+                }
 
-              const serialized = serializeSceneForRawView(scene, {
-                expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
-              }) as Record<string, unknown>;
-              const { actions, ...rest } = serialized;
-              return {
-                ...rest,
-                actionsSummary: Array.isArray(scene.actions)
-                  ? {
-                      total: scene.actions.length,
-                      speech: scene.actions.filter((action) => action.type === 'speech').length,
-                      spotlight: scene.actions.filter((action) => action.type === 'spotlight').length,
-                      laser: scene.actions.filter((action) => action.type === 'laser').length,
-                    }
-                  : { total: 0, speech: 0, spotlight: 0, laser: 0 },
-              };
-            })
-          : scenesForTypeBase.map((scene) => serializeSceneForRawView(scene));
+                if (rawSlideDataView === 'narration') {
+                  return {
+                    id: scene.id,
+                    type: scene.type,
+                    title: scene.title,
+                    order: scene.order,
+                    actions: scene.actions || [],
+                  };
+                }
+
+                const serialized = serializeSceneForRawView(scene, {
+                  expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
+                }) as Record<string, unknown>;
+                const { actions, ...rest } = serialized;
+                return {
+                  ...rest,
+                  actionsSummary: Array.isArray(scene.actions)
+                    ? {
+                        total: scene.actions.length,
+                        speech: scene.actions.filter((action) => action.type === 'speech').length,
+                        spotlight: scene.actions.filter((action) => action.type === 'spotlight').length,
+                        laser: scene.actions.filter((action) => action.type === 'laser').length,
+                      }
+                    : { total: 0, speech: 0, spotlight: 0, laser: 0 },
+                };
+              })()
+            : serializeSceneForRawView(scene);
 
       return JSON.stringify(
         {
           type,
           view: type === 'slide' ? rawSlideDataView : 'default',
-          outlines: outlinesForType,
-          scenes: scenesForType,
+          sceneId: scene?.id ?? null,
+          outline: rawCurrentOutline,
+          scene: scenePayload,
         },
         null,
         2,
@@ -1903,7 +1939,13 @@ export function Stage({
     } catch {
       return '{"error":"serialize_failed"}';
     }
-  }, [currentSceneId, rawDataSubTab, rawSlideDataView, mergedOutlines, scenes]);
+  }, [
+    currentSceneId,
+    rawDataSubTab,
+    rawSlideDataView,
+    rawCurrentOutline,
+    rawCurrentScene,
+  ]);
 
   useEffect(() => {
     if (!rawDataTabTypes.includes(rawDataSubTab)) {
@@ -1990,7 +2032,10 @@ export function Stage({
         type="button"
         role="tab"
         aria-selected={mainClassroomView === 'raw'}
-        onClick={() => setMainClassroomView('raw')}
+        onClick={() => {
+          setMainClassroomView('raw');
+          if (currentScene?.type) setRawDataSubTab(currentScene.type);
+        }}
         className={cn(
           'rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
           mainClassroomView === 'raw'
@@ -2202,6 +2247,20 @@ export function Stage({
                       )}
                     >
                       生成数据
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={rawSlideDataView === 'outline'}
+                      onClick={() => setRawSlideDataView('outline')}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        rawSlideDataView === 'outline'
+                          ? 'bg-white/15 text-white'
+                          : 'text-slate-400 hover:text-slate-200',
+                      )}
+                    >
+                      大纲
                     </button>
                     <button
                       type="button"

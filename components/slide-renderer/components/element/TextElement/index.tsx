@@ -33,6 +33,7 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
   const titleCardFallbackFill = elementInfo.textType === 'title' ? '#eff6ff' : undefined;
   const notesCardFallbackFill = elementInfo.textType === 'notes' ? '#f8fafc' : undefined;
   const resolvedFill = elementInfo.fill ?? titleCardFallbackFill ?? notesCardFallbackFill;
+  const effectiveFill = elementInfo.textType === 'title' ? 'transparent' : resolvedFill;
   const resolvedOutline =
     elementInfo.outline ??
     (elementInfo.textType === 'title'
@@ -48,6 +49,8 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
             style: 'solid' as const,
           }
       : undefined);
+  const effectiveOutline = elementInfo.textType === 'title' ? undefined : resolvedOutline;
+  const showTitleUnderline = elementInfo.textType === 'title' && !elementInfo.vertical;
 
   const elementRef = useRef<HTMLDivElement>(null);
   const [realHeightCache, setRealHeightCache] = useState(-1);
@@ -201,7 +204,7 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
           style={{
             width: elementInfo.vertical ? 'auto' : `${elementInfo.width}px`,
             height: elementInfo.vertical ? `${elementInfo.height}px` : 'auto',
-            backgroundColor: resolvedFill,
+            backgroundColor: effectiveFill,
             opacity: elementInfo.opacity,
             textShadow: shadowStyle,
             lineHeight: elementInfo.lineHeight,
@@ -218,7 +221,7 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
           <ElementOutline
             width={elementInfo.width}
             height={elementInfo.height}
-            outline={resolvedOutline}
+            outline={effectiveOutline}
           />
 
           <div className="text relative">
@@ -233,6 +236,14 @@ export function TextElement({ elementInfo, selectElement }: TextElementProps) {
                 handleSelectElement(e as React.MouseEvent, elementInfo.groupId ? true : false)
               }
             />
+            {showTitleUnderline ? (
+              <div
+                className="pointer-events-none mt-3 h-1 w-[60px] rounded-[4px]"
+                style={{
+                  background: 'linear-gradient(90deg, #2F6BFF, #7A5AF8)',
+                }}
+              />
+            ) : null}
           </div>
 
           {/* Drag handlers for better interaction when text overflows */}

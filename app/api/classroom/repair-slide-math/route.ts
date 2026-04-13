@@ -251,6 +251,8 @@ function getBlockTextFragments(block: NotebookContentDocument['blocks'][number])
         block.answer || '',
         ...block.pitfalls,
       ];
+    case 'layout_cards':
+      return [block.title || '', ...block.items.flatMap((item) => [item.title, item.text])];
     case 'chem_formula':
       return [block.caption || '', block.formula];
     case 'chem_equation':
@@ -407,6 +409,18 @@ function postProcessMathRepairDocument(document: NotebookContentDocument): Noteb
             steps: block.steps.map(normalizeInlineMathDelimiters),
             answer: block.answer ? normalizeInlineMathDelimiters(block.answer) : undefined,
             pitfalls: block.pitfalls.map(normalizeInlineMathDelimiters),
+          },
+        ];
+      case 'layout_cards':
+        return [
+          {
+            ...block,
+            title: block.title ? normalizeInlineMathDelimiters(block.title) : undefined,
+            items: block.items.map((item) => ({
+              ...item,
+              title: normalizeInlineMathDelimiters(item.title),
+              text: normalizeInlineMathDelimiters(item.text),
+            })),
           },
         ];
       case 'chem_formula':

@@ -100,6 +100,8 @@ function collectBlockText(block: NotebookContentBlock): string[] {
         ...block.steps.flatMap((step) => [step.title, step.detail, step.note || '']),
         block.summary || '',
       ];
+    case 'layout_cards':
+      return [block.title || '', ...block.items.flatMap((item) => [item.title, item.text])];
     case 'chem_formula':
       return [block.caption || '', block.formula];
     case 'chem_equation':

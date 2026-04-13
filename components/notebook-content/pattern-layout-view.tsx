@@ -78,6 +78,8 @@ function blockSummary(language: 'zh-CN' | 'en-US', block: NotebookContentDocumen
       return block.steps.map((step) => step.explanation).slice(0, 2).join('\n');
     case 'process_flow':
       return block.steps.map((step) => step.title).slice(0, 3).join(' → ');
+    case 'layout_cards':
+      return block.items.map((item) => item.title).slice(0, 4).join(' / ');
     case 'table':
       return block.rows
         .slice(0, 2)

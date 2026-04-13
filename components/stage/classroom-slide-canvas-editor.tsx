@@ -21,7 +21,6 @@ interface ClassroomSlideCanvasEditorProps {
 }
 
 export function ClassroomSlideCanvasEditor({
-  currentSceneIndex,
   currentScene,
   sidebarPanel,
   repairDraft,
@@ -48,16 +47,13 @@ export function ClassroomSlideCanvasEditor({
     >
       <SceneProvider>
         <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-3">
-          <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+          <div className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden">
             <div
-              className="relative h-full max-h-full max-w-full"
+              className="relative h-full"
               style={{ aspectRatio: `${slideAspectRatio}` }}
             >
               <div className="relative h-full w-full overflow-hidden rounded-[24px] border border-slate-900/[0.08] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]">
                 <Canvas />
-                <div className="pointer-events-none absolute right-4 top-4 text-4xl font-black text-gray-200 opacity-50 mix-blend-multiply select-none dark:text-gray-700 dark:mix-blend-screen">
-                  {(currentSceneIndex + 1).toString().padStart(2, '0')}
-                </div>
               </div>
             </div>
           </div>

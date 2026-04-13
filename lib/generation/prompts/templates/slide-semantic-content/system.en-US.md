@@ -45,6 +45,7 @@ Use:
 Do not output:
 - Markdown fences
 - HTML
+- KaTeX-rendered HTML such as `<span class="katex">...</span>`
 - slide element coordinates
 - raw PPT element definitions
 - separate "background box" ideas as content

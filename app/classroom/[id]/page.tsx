@@ -20,7 +20,8 @@ import type { PdfImage } from '@/lib/types/generation';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { syncStageFromSource } from '@/lib/utils/stage-storage';
 
 const log = createLogger('Classroom');
 
@@ -61,6 +62,8 @@ export default function ClassroomDetailPage() {
   const [loadingSubtitle, setLoadingSubtitle] = useState<string>('正在连接服务器并读取笔记本…');
   const [resumeGenerationBusy, setResumeGenerationBusy] = useState(false);
   const [generateMediaBusy, setGenerateMediaBusy] = useState(false);
+  const [syncFromSourceBusy, setSyncFromSourceBusy] = useState(false);
+  const [sourceNotebookId, setSourceNotebookId] = useState<string | null>(null);
 
   const { generateRemaining, retrySingleOutline, stop } = useSceneGenerator({
     onComplete: () => {
@@ -203,6 +206,18 @@ export default function ClassroomDetailPage() {
 
   const loadClassroom = useCallback(async () => {
     try {
+      setSourceNotebookId(null);
+      const notebookMetaResponse = await fetch(`/api/notebooks/${encodeURIComponent(classroomId)}`, {
+        credentials: 'same-origin',
+      });
+      if (notebookMetaResponse.ok) {
+        const notebookMeta = (await notebookMetaResponse.json()) as {
+          notebook?: { sourceNotebookId?: string | null };
+        };
+        const nextSourceNotebookId = notebookMeta.notebook?.sourceNotebookId?.trim();
+        setSourceNotebookId(nextSourceNotebookId || null);
+      }
+
       setLoadingSubtitle('正在从服务器加载笔记本与页面…');
       await loadFromStorage(classroomId);
       {
@@ -271,6 +286,34 @@ export default function ClassroomDetailPage() {
       setLoading(false);
     }
   }, [classroomId, loadFromStorage]);
+
+  const handleSyncFromSource = useCallback(async () => {
+    if (!sourceNotebookId || syncFromSourceBusy) return;
+    setSyncFromSourceBusy(true);
+    setLoading(true);
+    setError(null);
+    setLoadingSubtitle('正在同步发布者更新…');
+    let reloaded = false;
+    try {
+      await syncStageFromSource(classroomId);
+      await loadClassroom();
+      reloaded = true;
+      toast.success(
+        locale === 'zh-CN'
+          ? '已同步发布者最新内容'
+          : 'Synced to the latest publisher content.',
+      );
+    } catch (syncError) {
+      toast.error(
+        locale === 'zh-CN'
+          ? `同步失败：${syncError instanceof Error ? syncError.message : '未知错误'}`
+          : `Sync failed: ${syncError instanceof Error ? syncError.message : 'Unknown error'}`,
+      );
+    } finally {
+      if (!reloaded) setLoading(false);
+      setSyncFromSourceBusy(false);
+    }
+  }, [classroomId, loadClassroom, locale, sourceNotebookId, syncFromSourceBusy]);
 
   /** 生成过程中从聊天/总控同步的任务详情（与右侧「进行中」一致） */
   useEffect(() => {
@@ -391,10 +434,24 @@ export default function ClassroomDetailPage() {
   }, [loading, error, stage?.courseId]);
 
   const manualGenerationActions =
+    sourceNotebookId ||
     pendingOutlineCount > 0 ||
     actionableMediaCount > 0 ||
     mediaGenerationInFlight ? (
       <>
+        {sourceNotebookId ? (
+          <button
+            type="button"
+            onClick={() => void handleSyncFromSource()}
+            disabled={syncFromSourceBusy}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-70 dark:border-emerald-500/30 dark:bg-emerald-950/35 dark:text-emerald-200 dark:hover:bg-emerald-950/55"
+            title={locale === 'zh-CN' ? '用发布者最新版本覆盖当前笔记本' : 'Overwrite with the latest publisher version'}
+          >
+            {syncFromSourceBusy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+            {locale === 'zh-CN' ? '更新笔记本' : 'Update notebook'}
+          </button>
+        ) : null}
+
         {pendingOutlineCount > 0 ? (
           <button
             type="button"

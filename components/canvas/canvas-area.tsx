@@ -149,10 +149,10 @@ export function CanvasArea({
           live2dPresenter={sceneSidebarLive2d}
           playbackEngineState={engineState}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+        <div className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden">
           <div
             className={cn(
-              'relative aspect-[16/9] h-full max-h-full max-w-full overflow-hidden rounded-[20px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-700 dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]',
+              'relative aspect-[16/9] h-full overflow-hidden rounded-[20px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-700 dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]',
               showControls && !isLiveSession && currentScene?.type === 'slide' && 'cursor-pointer',
               currentScene?.type === 'interactive'
                 ? 'ring-1 ring-blue-500/[0.12] dark:ring-blue-400/20'
@@ -236,18 +236,6 @@ export function CanvasArea({
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Scene Number Badge */}
-            {currentScene && (
-              <div
-                className={cn(
-                  'absolute top-4 text-gray-200 dark:text-gray-700 font-black text-4xl opacity-50 pointer-events-none select-none mix-blend-multiply dark:mix-blend-screen',
-                  'right-4',
-                )}
-              >
-                {(currentSceneIndex + 1).toString().padStart(2, '0')}
-              </div>
-            )}
 
             {/* Play hint — breathing button when idle or paused (slides only) */}
             <AnimatePresence>

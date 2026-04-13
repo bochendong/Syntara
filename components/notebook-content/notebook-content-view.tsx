@@ -581,6 +581,51 @@ export const NotebookContentView = memo(function NotebookContentView({
               </div>
             );
           }
+          case 'layout_cards': {
+            const toneClass = {
+              neutral:
+                'border-slate-200 bg-slate-50/80 text-slate-900 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-100',
+              info: 'border-blue-200 bg-blue-50/80 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100',
+              warning:
+                'border-amber-200 bg-amber-50/80 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100',
+              success:
+                'border-emerald-200 bg-emerald-50/80 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-100',
+            } as const;
+            const visualColumns = block.columns === 4 ? 2 : block.columns;
+            return (
+              <div
+                key={index}
+                className="space-y-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+              >
+                {block.title ? (
+                  <p
+                    className="text-sm font-semibold text-foreground"
+                    dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(block.title) }}
+                  />
+                ) : null}
+                <div
+                  className="grid gap-3"
+                  style={{ gridTemplateColumns: `repeat(${Math.max(1, visualColumns)}, minmax(0, 1fr))` }}
+                >
+                  {block.items.map((item, itemIdx) => (
+                    <div
+                      key={itemIdx}
+                      className={cn('rounded-xl border px-3 py-2.5', toneClass[item.tone || 'neutral'])}
+                    >
+                      <p
+                        className="text-xs font-semibold uppercase tracking-wide"
+                        dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(item.title) }}
+                      />
+                      <p
+                        className="mt-1 whitespace-pre-wrap text-sm leading-6"
+                        dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(item.text) }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
           case 'chem_formula':
             return (
               <div key={index} className="space-y-1">

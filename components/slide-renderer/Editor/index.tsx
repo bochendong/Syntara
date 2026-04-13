@@ -15,7 +15,7 @@ export function SlideEditor({ mode }: { readonly mode: StageMode }) {
   const setCanvasDragged = useCanvasStore.use.setCanvasDragged();
 
   useEffect(() => {
-    setCanvasPercentage(mode === 'autonomous' ? 100 : 94);
+    setCanvasPercentage(100);
     setCanvasDragged(false);
 
     return () => {

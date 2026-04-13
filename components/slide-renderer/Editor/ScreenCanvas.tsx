@@ -8,7 +8,9 @@ import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style'
 import { useCanvasStore } from '@/lib/store';
 import { useSceneSelector } from '@/lib/contexts/scene-context';
 import { getElementListRange, getElementRange } from '@/lib/utils/element';
+import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
 import { applyAutoHeightReflow } from '@/lib/slide-layout-reflow';
+import { FlowTimelineOverlay } from '../components/FlowTimelineOverlay';
 import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, SlideBackground } from '@/lib/types/slides';
 import type { PercentageGeometry } from '@/lib/types/action';
@@ -166,9 +168,10 @@ function getPercentageGeometryForElement(
 
 export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
-  const elements = useSceneSelector<SlideContent, PPTElement[]>(
-    (content) => content.canvas.elements.filter((element) => element.type !== 'shape'),
+  const rawElements = useSceneSelector<SlideContent, PPTElement[]>((content) =>
+    content.canvas.elements.filter((element) => element.type !== 'shape'),
   );
+  const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
   const [autoHeights, setAutoHeights] = useState<Record<string, number>>({});
 
   const handleElementAutoHeightChange = useCallback((elementId: string, nextHeight: number) => {
@@ -399,6 +402,12 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
             onElementAutoHeightChange={handleElementAutoHeightChange}
           />
         ))}
+
+        <FlowTimelineOverlay
+          elements={adjustedElements}
+          viewportWidth={viewportStyles.width}
+          contentHeight={contentHeight}
+        />
 
         <HighlightOverlay />
       </div>

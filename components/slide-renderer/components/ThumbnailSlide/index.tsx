@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Slide } from '@/lib/types/slides';
 import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style';
+import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
 import { ThumbnailElement } from './ThumbnailElement';
 
 interface ThumbnailSlideProps {
@@ -32,7 +33,7 @@ export function ThumbnailSlide({
   // Calculate scale ratio
   const scale = useMemo(() => size / viewportSize, [size, viewportSize]);
   const elements = useMemo(
-    () => slide.elements.filter((element) => element.type !== 'shape'),
+    () => stripLegacyVerticalFlowMarkers(slide.elements.filter((element) => element.type !== 'shape')),
     [slide.elements],
   );
 

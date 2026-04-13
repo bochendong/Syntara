@@ -31,6 +31,8 @@ import type { ContextmenuItem } from './EditableElement';
 import type { SlideContent } from '@/lib/types/stage';
 import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
 import { getElementListRange } from '@/lib/utils/element';
+import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
+import { FlowTimelineOverlay } from '../../components/FlowTimelineOverlay';
 import {
   CanvasViewportMetricsProvider,
 } from './canvas-viewport-metrics-context';
@@ -100,9 +102,10 @@ export function Canvas(_props: CanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to specific parts for performance optimization
-  const elements = useSceneSelector<SlideContent, PPTElement[]>(
+  const rawElements = useSceneSelector<SlideContent, PPTElement[]>(
     (content) => content.canvas.elements.filter((element) => element.type !== 'shape'),
   );
+  const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
 
   // Canvas UI state
   const canvasScale = useCanvasStore.use.canvasScale();
@@ -449,6 +452,12 @@ export function Canvas(_props: CanvasProps) {
                   />
                 ) : null,
               )}
+
+              <FlowTimelineOverlay
+                elements={elementList}
+                viewportWidth={viewportStyles.width}
+                contentHeight={contentHeight}
+              />
             </div>
           </div>
 

@@ -14,6 +14,8 @@ export type {
   NotebookContentProcessFlowBlock,
   NotebookContentProcessFlowContextItem,
   NotebookContentProcessFlowStep,
+  NotebookContentLayoutCardsBlock,
+  NotebookContentLayoutCardsItem,
   NotebookContentStackLayout,
   NotebookSlideArchetype,
 } from './schema';

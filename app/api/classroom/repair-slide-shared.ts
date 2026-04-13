@@ -354,6 +354,8 @@ function summarizeBlockForComparison(block: NotebookContentDocument['blocks'][nu
         block.answer || '',
         ...block.pitfalls,
       ];
+      case 'layout_cards':
+        return [block.title || '', ...block.items.flatMap((item) => [item.title, item.text])];
     case 'chem_formula':
       return [block.caption || '', block.formula];
     case 'chem_equation':

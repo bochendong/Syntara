@@ -3,6 +3,8 @@ import type { Stage, Scene, StageMode } from '@/lib/types/stage';
 import { createSelectors } from '@/lib/utils/create-selectors';
 import type { ChatSession } from '@/lib/types/chat';
 import type { SceneOutline } from '@/lib/types/generation';
+import type { CurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
+import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
 import { createLogger } from '@/lib/logger';
 import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
 import { queueWriteStageDraftSnapshot } from '@/lib/utils/stage-draft-snapshot';
@@ -116,6 +118,8 @@ interface StageState {
   getCurrentScene: () => Scene | null;
   getSceneById: (sceneId: string) => Scene | null;
   getSceneIndex: (sceneId: string) => number;
+  getCurrentPageGenerationData: () => CurrentPageGenerationData | null;
+  getPageGenerationDataBySceneId: (sceneId: string) => CurrentPageGenerationData | null;
 
   // Storage
   saveToStorage: () => Promise<void>;
@@ -333,6 +337,24 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   getSceneIndex: (sceneId) => {
     return get().scenes.findIndex((s) => s.id === sceneId);
+  },
+
+  getCurrentPageGenerationData: () => {
+    const { scenes, outlines, currentSceneId } = get();
+    return getCurrentPageGenerationData({
+      scenes,
+      outlines,
+      sceneId: currentSceneId,
+    });
+  },
+
+  getPageGenerationDataBySceneId: (sceneId) => {
+    const { scenes, outlines } = get();
+    return getCurrentPageGenerationData({
+      scenes,
+      outlines,
+      sceneId,
+    });
   },
 
   // Storage methods

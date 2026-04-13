@@ -46,7 +46,6 @@ import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import {
   creditsFromPriceCents,
   formatPurchaseCreditsLabel,
-  priceCentsFromCredits,
 } from '@/lib/utils/credits';
 import {
   courseContainsPurchasedNotebook,
@@ -192,33 +191,10 @@ export default function CourseDetailPage() {
       toast.error(coursePublishBlockReason);
       return;
     }
-    if (!course.listedInCourseStore) {
-      setPublishWithAudio(true);
-      setPublishTarget({ kind: 'course' });
-      setPublishState('idle');
-      setPublishProgress(null);
-      return;
-    }
-    try {
-      await updateCourse(course.id, {
-        name: course.name,
-        description: course.description ?? '',
-        language: course.language,
-        tags: course.tags,
-        purpose: course.purpose,
-        university: course.university,
-        courseCode: course.courseCode,
-        listedInCourseStore: !course.listedInCourseStore,
-        coursePriceCents: course.coursePriceCents ?? 0,
-      });
-      const next = await getCourse(course.id);
-      if (next) setCourse(next);
-      const list = await listStagesByCourse(id);
-      setNotebooks(list);
-      toast.success(course.listedInCourseStore ? '已取消发布课程' : '已发布课程和全部笔记本');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : '发布失败');
-    }
+    setPublishWithAudio(true);
+    setPublishTarget({ kind: 'course' });
+    setPublishState('idle');
+    setPublishProgress(null);
   };
 
   const handleTogglePublishNotebook = async (notebook: StageListItem) => {
@@ -226,37 +202,10 @@ export default function CourseDetailPage() {
       toast.error('购买得到的笔记本副本不能再次发布到商城');
       return;
     }
-    if (!notebook.listedInNotebookStore) {
-      setPublishWithAudio(true);
-      setPublishTarget({ kind: 'notebook', notebook });
-      setPublishState('idle');
-      setPublishProgress(null);
-      return;
-    }
-    try {
-      let notebookPriceCents = notebook.notebookPriceCents ?? 0;
-      if (!notebook.listedInNotebookStore) {
-        const nextPrice = window.prompt(
-          '设置该笔记本价格（单位：credits，0 表示免费；100 credits = 1 USD）',
-          String(creditsFromPriceCents(notebookPriceCents)),
-        );
-        if (nextPrice === null) return;
-        notebookPriceCents = priceCentsFromCredits(
-          Math.max(0, Number.parseInt(nextPrice.replace(/[^\d]/g, ''), 10) || 0),
-        );
-      }
-      await updateStageStoreMeta(notebook.id, {
-        listedInNotebookStore: !notebook.listedInNotebookStore,
-        notebookPriceCents,
-      });
-      const list = await listStagesByCourse(id);
-      setNotebooks(list);
-      toast.success(
-        notebook.listedInNotebookStore ? '已取消发布笔记本' : `已发布笔记本「${notebook.name}」`,
-      );
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : '操作失败');
-    }
+    setPublishWithAudio(true);
+    setPublishTarget({ kind: 'notebook', notebook });
+    setPublishState('idle');
+    setPublishProgress(null);
   };
 
   const handleConfirmPublish = async () => {
@@ -268,6 +217,10 @@ export default function CourseDetailPage() {
     setPublishState(publishWithAudio ? 'preparing_audio' : 'publishing');
     setPublishProgress(null);
     try {
+      const alreadyListed =
+        publishTarget.kind === 'course'
+          ? course.listedInCourseStore
+          : Boolean(publishTarget.notebook.listedInNotebookStore);
       const targets = publishTarget.kind === 'course' ? notebooks : [publishTarget.notebook];
 
       const loadedStages = (
@@ -349,12 +302,20 @@ export default function CourseDetailPage() {
       setPublishState('published');
       toast.success(
         publishTarget.kind === 'course'
-          ? publishWithAudio
-            ? '课程已附带语音发布'
-            : '课程已发布，商城将提示用户自行生成语音'
+          ? alreadyListed
+            ? publishWithAudio
+              ? '课程更新已发布（附带语音）'
+              : '课程更新已发布（不附带语音）'
+            : publishWithAudio
+              ? '课程已附带语音发布'
+              : '课程已发布，商城将提示用户自行生成语音'
           : publishWithAudio
-            ? `笔记本「${publishTarget.notebook.name}」已附带语音发布`
-            : `笔记本「${publishTarget.notebook.name}」已发布，商城将提示用户自行生成语音`,
+            ? alreadyListed
+              ? `笔记本「${publishTarget.notebook.name}」更新已发布（附带语音）`
+              : `笔记本「${publishTarget.notebook.name}」已附带语音发布`
+            : alreadyListed
+              ? `笔记本「${publishTarget.notebook.name}」更新已发布（不附带语音）`
+              : `笔记本「${publishTarget.notebook.name}」已发布，商城将提示用户自行生成语音`,
       );
       setPublishTarget(null);
       setPublishProgress(null);
@@ -484,7 +445,7 @@ export default function CourseDetailPage() {
                           (publishState === 'preparing_audio' || publishState === 'publishing')
                         ? '发布中…'
                         : course.listedInCourseStore
-                          ? '已发布课程'
+                          ? '发布更新'
                           : '发布课程'}
                   </Button>
                   <Button
@@ -542,7 +503,7 @@ export default function CourseDetailPage() {
                                   publishState === 'publishing')
                               ? '发布中…'
                               : nb.listedInNotebookStore
-                                ? '已发布'
+                                ? '发布更新'
                                 : '发布'
                         }
                         secondaryActionDisabled={Boolean(nb.sourceNotebookId)}
@@ -622,7 +583,13 @@ export default function CourseDetailPage() {
               <DialogContent className="w-full max-w-xl">
                 <DialogHeader>
                   <DialogTitle>
-                    {publishTarget?.kind === 'course' ? '发布课程到商城' : '发布笔记本到商城'}
+                    {publishTarget?.kind === 'course'
+                      ? course.listedInCourseStore
+                        ? '发布课程更新'
+                        : '发布课程到商城'
+                      : publishTarget?.notebook.listedInNotebookStore
+                        ? '发布笔记本更新'
+                        : '发布笔记本到商城'}
                   </DialogTitle>
                   <DialogDescription>
                     发布时可以选择先生成全部语音。附带原始语音发布后，购买用户会直接拿到可播放语音；
