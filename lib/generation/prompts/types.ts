@@ -7,6 +7,7 @@
  */
 export type PromptId =
   | 'requirements-to-outlines'
+  | 'web-search-query-rewrite'
   | 'slide-content'
   | 'slide-semantic-content'
   | 'quiz-content'

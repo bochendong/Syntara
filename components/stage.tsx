@@ -9,7 +9,11 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import { resolveNotebookContentProfile, type NotebookContentProfile } from '@/lib/notebook-content';
+import {
+  renderNotebookContentDocumentToSlide,
+  resolveNotebookContentProfile,
+  type NotebookContentProfile,
+} from '@/lib/notebook-content';
 import { Header } from './header';
 import { QuizCourseQuestionHub } from '@/components/scene-renderers/quiz-course-question-hub';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
@@ -441,6 +445,7 @@ export function Stage({
   const [repairSidebarFocusNonce, setRepairSidebarFocusNonce] = useState(0);
   const [slideRepairPending, setSlideRepairPending] = useState(false);
   const [speechAudioPreparing, setSpeechAudioPreparing] = useState(false);
+  const [gridReflowPending, setGridReflowPending] = useState(false);
   const currentSlideSceneId = currentScene?.type === 'slide' ? currentScene.id : null;
   const repairInstructions = useMemo(
     () => (currentSlideSceneId ? (repairDraftByScene[currentSlideSceneId] ?? '') : ''),
@@ -1868,6 +1873,86 @@ export function Stage({
     );
   }, [mergedOutlines, rawCurrentScene, rawDataSubTab]);
 
+  const canReflowCurrentGridScene = useMemo(() => {
+    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+      return false;
+    }
+    return rawCurrentScene.content.semanticDocument?.layout?.mode === 'grid';
+  }, [rawCurrentScene]);
+
+  const canReflowCurrentLayoutCardsScene = useMemo(() => {
+    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+      return false;
+    }
+    return Boolean(
+      rawCurrentScene.content.semanticDocument?.blocks.some((block) => block.type === 'layout_cards'),
+    );
+  }, [rawCurrentScene]);
+
+  const handleReflowCurrentGridScene = useCallback(() => {
+    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+      return;
+    }
+    const semanticDocument = rawCurrentScene.content.semanticDocument;
+    if (!semanticDocument || semanticDocument.layout.mode !== 'grid') {
+      toast.info('当前页不是 Grid 布局，无需重排。');
+      return;
+    }
+    try {
+      setGridReflowPending(true);
+      const reRendered = renderNotebookContentDocumentToSlide({
+        document: semanticDocument,
+        fallbackTitle: semanticDocument.title || rawCurrentScene.title,
+      });
+      updateScene(rawCurrentScene.id, {
+        content: {
+          ...rawCurrentScene.content,
+          canvas: reRendered,
+          semanticDocument,
+        },
+        updatedAt: Date.now(),
+      });
+      toast.success('已按 Grid 规则重排当前页。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Grid 重排失败：${message}`);
+    } finally {
+      setGridReflowPending(false);
+    }
+  }, [rawCurrentScene, updateScene]);
+
+  const handleReflowCurrentLayoutCardsScene = useCallback(() => {
+    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+      return;
+    }
+    const semanticDocument = rawCurrentScene.content.semanticDocument;
+    if (!semanticDocument || !semanticDocument.blocks.some((block) => block.type === 'layout_cards')) {
+      toast.info('当前页没有 Layout Cards 块，无需重排。');
+      return;
+    }
+    try {
+      setGridReflowPending(true);
+      const reRendered = renderNotebookContentDocumentToSlide({
+        document: semanticDocument,
+        fallbackTitle: semanticDocument.title || rawCurrentScene.title,
+      });
+      updateScene(rawCurrentScene.id, {
+        content: {
+          ...rawCurrentScene.content,
+          canvas: reRendered,
+          semanticDocument,
+        },
+        updatedAt: Date.now(),
+      });
+      toast.success('已按 Layout Cards 规则重排当前页。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Layout Cards 重排失败：${message}`);
+    } finally {
+      setGridReflowPending(false);
+    }
+  }, [rawCurrentScene, updateScene]);
+
   const rawTypePayloadJson = useMemo(() => {
     try {
       const type = rawDataSubTab;
@@ -2289,6 +2374,32 @@ export function Stage({
                       )}
                     >
                       UI计算
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReflowCurrentGridScene}
+                      disabled={!canReflowCurrentGridScene || gridReflowPending}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        canReflowCurrentGridScene && !gridReflowPending
+                          ? 'bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30'
+                          : 'cursor-not-allowed text-slate-500',
+                      )}
+                    >
+                      {gridReflowPending ? '重排中…' : '仅重排 Grid'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReflowCurrentLayoutCardsScene}
+                      disabled={!canReflowCurrentLayoutCardsScene || gridReflowPending}
+                      className={cn(
+                        'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        canReflowCurrentLayoutCardsScene && !gridReflowPending
+                          ? 'bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30'
+                          : 'cursor-not-allowed text-slate-500',
+                      )}
+                    >
+                      {gridReflowPending ? '重排中…' : '仅重排 Layout Cards'}
                     </button>
                   </div>
                 ) : null}

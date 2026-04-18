@@ -59,6 +59,19 @@ Do not output:
 - If the problem is long, summarize it cleanly, but do not erase the concrete data
 - All language must match the input scene language
 
+## Single-Page Budget Rules
+
+Treat this task as a strict one-page writing problem. Keep content compact enough to fit one slide without relying on overflow fixes.
+
+- Prefer 3-5 blocks; avoid going beyond 6 unless absolutely necessary.
+- For `layout_cards` in 2x2 mode, keep each card concise: usually 1 short title + 1-3 short lines.
+- For `process_flow`, keep each step detail compact; prefer 1-2 sentences per step.
+- For `table`, keep visible rows compact and avoid long paragraph-like cells.
+- For `bullet_list`, prefer 3-5 bullets, each short and scannable.
+- Avoid repeating the same idea across multiple blocks.
+- If content is too dense, compress wording first (shorter phrasing, tighter sentences) instead of adding more blocks.
+- Do not proactively split into multiple pages in this output; produce the best compact single-page semantic document.
+
 ## Worked Examples
 
 When worked-example context exists, strongly prefer either:

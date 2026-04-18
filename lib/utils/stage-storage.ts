@@ -337,6 +337,17 @@ export async function deleteStageData(stageId: string): Promise<void> {
   await clearStageDraftSnapshot(stageId);
 }
 
+/**
+ * Rename a stage (updates notebook name).
+ */
+export async function renameStage(stageId: string, newName: string): Promise<void> {
+  await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName }),
+  });
+}
+
 export async function moveStageToCourse(stageId: string, targetCourseId: string): Promise<void> {
   await backendJson<{ notebook: NotebookApiRow }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
     method: 'PATCH',

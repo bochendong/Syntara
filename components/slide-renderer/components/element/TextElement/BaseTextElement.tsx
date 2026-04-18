@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { PPTTextElement } from '@/lib/types/slides';
 import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
 import { useElementShadow } from '../hooks/useElementShadow';
@@ -19,6 +19,31 @@ function compactHtmlText(html: string): string {
     .replace(/&nbsp;/gi, ' ')
     .replace(/\s+/g, '')
     .trim();
+}
+
+function dedupeAdjacentDuplicateParagraphs(html: string): string {
+  if (!html || typeof document === 'undefined') return html;
+  const root = document.createElement('div');
+  root.innerHTML = html;
+  const children = Array.from(root.children);
+  if (children.length < 2) return html;
+
+  let previousNormalized = '';
+  for (const child of children) {
+    const normalized = (child.textContent || '').replace(/\s+/g, ' ').trim();
+    if (
+      normalized.length >= 60 &&
+      previousNormalized &&
+      normalized === previousNormalized &&
+      child.parentElement
+    ) {
+      child.remove();
+      continue;
+    }
+    previousNormalized = normalized;
+  }
+
+  return root.innerHTML;
 }
 
 function mixHexColor(base: string, target: string, weight: number): string {
@@ -84,11 +109,12 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
           }
       : undefined);
   const effectiveOutline = elementInfo.textType === 'title' ? undefined : resolvedOutline;
-  const renderedContent = useMemo(
-    () => renderHtmlWithLatex(elementInfo.content),
+  const dedupedContent = useMemo(
+    () => dedupeAdjacentDuplicateParagraphs(elementInfo.content || ''),
     [elementInfo.content],
   );
-  const compactContent = compactHtmlText(elementInfo.content || '');
+  const renderedContent = useMemo(() => renderHtmlWithLatex(dedupedContent), [dedupedContent]);
+  const compactContent = compactHtmlText(dedupedContent || '');
   const shouldHideLegacyStepBadge =
     elementInfo.width <= 30 &&
     elementInfo.height <= 50 &&
@@ -123,9 +149,16 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
   const glassGradientEnd = mixHexColor(glassBase, '#edf2f7', 0.34);
   const cardAccent = effectiveOutline?.color || '#2f6bff';
   const contentInsetLeft = isGlassCard ? TEXT_BOX_PADDING_PX + 12 : TEXT_BOX_PADDING_PX;
+  const contentInsetBottom =
+    elementInfo.textType === 'content' ? Math.max(6, TEXT_BOX_PADDING_PX - 4) : TEXT_BOX_PADDING_PX;
+  const disableAutoHeightReflow =
+    elementInfo.groupId?.startsWith('grid_cell_') ||
+    elementInfo.groupId?.startsWith('layout_cards_') ||
+    false;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!onAutoHeightChange) return;
+    if (disableAutoHeightReflow) return;
     const prose = proseRef.current;
     if (!prose) return;
 
@@ -134,7 +167,10 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
       const requiredInnerHeight = Math.ceil(prose.scrollHeight);
       if (requiredInnerHeight <= 0) return;
       const requiredHeight = requiredInnerHeight + TEXT_BOX_PADDING_PX * 2;
-      if (requiredHeight > elementInfo.height + 1) {
+      const heightDelta = requiredHeight - elementInfo.height;
+      // Expand quickly when content overflows, and shrink conservatively when
+      // previous estimations left too much empty space.
+      if (heightDelta > 1 || (elementInfo.textType === 'content' && heightDelta < -6)) {
         onAutoHeightChange(requiredHeight);
       }
     };
@@ -157,7 +193,7 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [elementInfo.content, elementInfo.height, onAutoHeightChange]);
+  }, [disableAutoHeightReflow, elementInfo.content, elementInfo.height, onAutoHeightChange]);
 
   if (shouldHideLegacyStepBadge) {
     return null;
@@ -230,7 +266,7 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
             style={{
               top: `${TEXT_BOX_PADDING_PX}px`,
               right: `${TEXT_BOX_PADDING_PX}px`,
-              bottom: `${TEXT_BOX_PADDING_PX}px`,
+              bottom: `${contentInsetBottom}px`,
               left: `${contentInsetLeft}px`,
             }}
           >

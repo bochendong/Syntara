@@ -1,0 +1,131 @@
+import type { TTSProviderId } from '@/lib/audio/types';
+import type { AgentConfig } from '@/lib/orchestration/registry/types';
+import { TTS_PROVIDERS } from '@/lib/audio/constants';
+
+type AgentVoiceConfig = { providerId: TTSProviderId; modelId?: string; voiceId: string };
+type AgentWithVoiceConfig = AgentConfig & { voiceConfig?: AgentVoiceConfig };
+
+export interface ResolvedVoice {
+  providerId: TTSProviderId;
+  modelId?: string;
+  voiceId: string;
+}
+
+/**
+ * Resolve the TTS provider + voice for an agent.
+ * 1. If agent has voiceConfig and the voice is still valid, use it
+ * 2. Otherwise, use the first available provider + deterministic voice by index
+ */
+export function resolveAgentVoice(
+  agent: AgentConfig,
+  agentIndex: number,
+  availableProviders: ProviderWithVoices[],
+): ResolvedVoice {
+  const voiceConfig = (agent as AgentWithVoiceConfig).voiceConfig;
+  if (voiceConfig) {
+    if (voiceConfig.providerId === 'browser-native-tts') {
+      return {
+        providerId: voiceConfig.providerId,
+        modelId: voiceConfig.modelId,
+        voiceId: voiceConfig.voiceId,
+      };
+    }
+    const list = getServerVoiceList(voiceConfig.providerId);
+    if (list.includes(voiceConfig.voiceId)) {
+      return {
+        providerId: voiceConfig.providerId,
+        modelId: voiceConfig.modelId,
+        voiceId: voiceConfig.voiceId,
+      };
+    }
+  }
+
+  if (availableProviders.length > 0) {
+    const first = availableProviders[0];
+    return {
+      providerId: first.providerId,
+      voiceId: first.voices[agentIndex % first.voices.length].id,
+    };
+  }
+
+  return { providerId: 'browser-native-tts', voiceId: 'default' };
+}
+
+/**
+ * Get the list of voice IDs for a TTS provider.
+ * For browser-native-tts, returns empty (browser voices are dynamic).
+ */
+export function getServerVoiceList(providerId: TTSProviderId): string[] {
+  if (providerId === 'browser-native-tts') return [];
+  const provider = TTS_PROVIDERS[providerId];
+  if (!provider) return [];
+  return provider.voices.map((v) => v.id);
+}
+
+export interface ModelVoiceGroup {
+  modelId: string;
+  modelName: string;
+  voices: Array<{ id: string; name: string }>;
+}
+
+export interface ProviderWithVoices {
+  providerId: TTSProviderId;
+  providerName: string;
+  voices: Array<{ id: string; name: string }>;
+  modelGroups: ModelVoiceGroup[];
+}
+
+/**
+ * Get all available providers and their voices for the voice picker UI.
+ * A provider is available if it has an API key or is server-configured.
+ * Browser-native-tts is excluded (no static voice list).
+ */
+export function getAvailableProvidersWithVoices(
+  ttsProvidersConfig: Record<
+    string,
+    { apiKey?: string; enabled?: boolean; isServerConfigured?: boolean }
+  >,
+): ProviderWithVoices[] {
+  const result: ProviderWithVoices[] = [];
+
+  for (const [id, config] of Object.entries(TTS_PROVIDERS)) {
+    const providerId = id as TTSProviderId;
+    if (providerId === 'browser-native-tts') continue;
+    if (config.voices.length === 0) continue;
+
+    const providerConfig = ttsProvidersConfig[providerId];
+    const hasApiKey = providerConfig?.apiKey && providerConfig.apiKey.trim().length > 0;
+    const isServerConfigured = providerConfig?.isServerConfigured === true;
+
+    if (hasApiKey || isServerConfigured) {
+      const allVoices = config.voices.map((v) => ({ id: v.id, name: v.name }));
+
+      const modelGroups: ModelVoiceGroup[] = [
+        {
+          modelId: '',
+          modelName: config.name,
+          voices: allVoices,
+        },
+      ];
+
+      result.push({
+        providerId,
+        providerName: config.name,
+        voices: allVoices,
+        modelGroups,
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Find a voice display name across all providers.
+ */
+export function findVoiceDisplayName(providerId: TTSProviderId, voiceId: string): string {
+  const provider = TTS_PROVIDERS[providerId];
+  if (!provider) return voiceId;
+  const voice = provider.voices.find((v) => v.id === voiceId);
+  return voice?.name ?? voiceId;
+}

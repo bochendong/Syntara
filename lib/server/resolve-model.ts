@@ -16,6 +16,10 @@ import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
 export interface ResolvedModel extends ModelWithInfo {
   /** Original model string (e.g. "openai/gpt-4o-mini") */
   modelString: string;
+  /** Resolved provider ID (kept for compatibility with older call sites). */
+  providerId: string;
+  /** Effective API key (server-resolved; may be empty if not configured). */
+  apiKey: string;
 }
 
 type ResolveModelOptions = {
@@ -60,7 +64,7 @@ export async function resolveModel(_params: {
     requiresApiKey: true,
   });
 
-  return { model, modelInfo, modelString };
+  return { model, modelInfo, modelString, providerId, apiKey: config.apiKey };
 }
 
 /**

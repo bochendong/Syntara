@@ -59,7 +59,7 @@ export const notebookContentBlockPresentationSchema = z.object({
 });
 export const notebookContentContinuationSchema = z.object({
   rootOutlineId: z.string().trim().min(1).max(200),
-  partNumber: z.number().int().min(2).max(99),
+  partNumber: z.number().int().min(1).max(99),
   totalParts: z.number().int().min(2).max(99),
 });
 

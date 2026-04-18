@@ -609,6 +609,48 @@ function estimateCharsPerLine(text: string, widthPx: number, fontSizePx: number)
   return Math.max(12, Math.floor(widthPx / Math.max(unitWidth, 1)));
 }
 
+let htmlMeasureHost: HTMLDivElement | null = null;
+function getHtmlMeasureHost(): HTMLDivElement | null {
+  if (typeof document === 'undefined') return null;
+  if (htmlMeasureHost && document.body.contains(htmlMeasureHost)) return htmlMeasureHost;
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-100000px';
+  host.style.top = '0';
+  host.style.width = '0';
+  host.style.height = '0';
+  host.style.opacity = '0';
+  host.style.pointerEvents = 'none';
+  host.style.overflow = 'hidden';
+  host.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(host);
+  htmlMeasureHost = host;
+  return host;
+}
+
+function measureHtmlHeightIfAvailable(args: {
+  html: string;
+  widthPx: number;
+  fontName?: string;
+  lineHeight?: number;
+}): number | null {
+  const host = getHtmlMeasureHost();
+  if (!host) return null;
+  const node = document.createElement('div');
+  node.style.width = `${Math.max(1, Math.ceil(args.widthPx))}px`;
+  node.style.boxSizing = 'border-box';
+  node.style.wordBreak = 'break-word';
+  node.style.overflowWrap = 'break-word';
+  node.style.whiteSpace = 'normal';
+  node.style.fontFamily = args.fontName || 'Microsoft YaHei';
+  node.style.lineHeight = String(args.lineHeight ?? 1.35);
+  node.innerHTML = args.html;
+  host.appendChild(node);
+  const measured = Math.ceil(node.scrollHeight);
+  host.removeChild(node);
+  return Number.isFinite(measured) && measured > 0 ? measured : null;
+}
+
 function wrapLineByWidth(text: string, maxChars: number): string[] {
   const normalized = text.trim();
   if (!normalized) return [];
@@ -699,19 +741,27 @@ function fitParagraphBlockToHeight(args: {
   maxHeightPx: number;
   color: string;
 }): { html: string; height: number } {
-  const maxChars = estimateCharsPerLine(args.text, args.widthPx, args.fontSizePx);
-  const wrapped = wrapTextToLines(args.text, maxChars);
-  const fittedLines = clampWrappedLines(wrapped, Number.MAX_SAFE_INTEGER, maxChars);
-  const height = Math.max(args.lineHeightPx + 12, fittedLines.length * args.lineHeightPx + 18);
+  const normalized = args.text.replace(/\r/g, '').trim();
+  const maxChars = estimateCharsPerLine(normalized, args.widthPx, args.fontSizePx);
+  const height = estimateParagraphHeight(normalized, maxChars, args.lineHeightPx);
+  const paragraphLines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const paragraphHtml =
+    paragraphLines.length > 0
+      ? paragraphLines.map((line) => renderInlineLatexToHtml(line)).join('<br/>')
+      : renderInlineLatexToHtml(normalized);
+  const paragraphNodeHtml = `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${paragraphHtml}</p>`;
+  const measuredHeight = measureHtmlHeightIfAvailable({
+    html: paragraphNodeHtml,
+    widthPx: args.widthPx,
+    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
+  });
 
   return {
-    html: fittedLines
-      .map(
-        (line) =>
-          `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${renderInlineLatexToHtml(line)}</p>`,
-      )
-      .join(''),
-    height,
+    html: paragraphNodeHtml,
+    height: measuredHeight ?? height,
   };
 }
 
@@ -730,29 +780,55 @@ function fitBulletListBlockToHeight(args: {
   let usedHeight = 18;
 
   for (const item of args.items) {
-    const maxChars = estimateCharsPerLine(item, args.widthPx - 16, args.fontSizePx);
-    const wrapped = wrapTextToLines(item, maxChars);
+    const normalizedItem = item.replace(/\r/g, '').trim();
+    if (!normalizedItem) continue;
+    const maxChars = estimateCharsPerLine(normalizedItem, args.widthPx - 16, args.fontSizePx);
+    const wrapped = wrapTextToLines(normalizedItem, maxChars);
     const gap = htmlParts.length > 0 ? paragraphGapPx : 0;
-    const fittedLines = clampWrappedLines(wrapped, Number.MAX_SAFE_INTEGER, maxChars);
-    const lineHtml = fittedLines
+    const logicalLines = normalizedItem
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const lineHtml = logicalLines
       .map((line, index) =>
         index === 0
           ? `<span style="color:${args.bulletColor};font-weight:700;">•</span> ${renderInlineLatexToHtml(line)}`
           : `${'&nbsp;'.repeat(4)}${renderInlineLatexToHtml(line)}`,
       )
       .join('<br/>');
+    const estimatedLineCount = Math.max(1, wrapped.length);
 
     htmlParts.push(
       `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${lineHtml}</p>`,
     );
-    usedHeight += gap + fittedLines.length * args.lineHeightPx;
+    usedHeight += gap + estimatedLineCount * args.lineHeightPx;
   }
 
   const height = Math.max(args.lineHeightPx + 12, usedHeight);
+  const measuredHeight = measureHtmlHeightIfAvailable({
+    html: htmlParts.join(''),
+    widthPx: args.widthPx,
+    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
+  });
   return {
     html: htmlParts.join(''),
-    height,
+    height: measuredHeight ?? height,
   };
+}
+
+function measureParagraphHeightIfAvailable(args: {
+  text: string;
+  widthPx: number;
+  fontSizePx: number;
+  lineHeightPx: number;
+  color: string;
+}): number | null {
+  const html = `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${renderInlineLatexToHtml(args.text)}</p>`;
+  return measureHtmlHeightIfAvailable({
+    html,
+    widthPx: args.widthPx,
+    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
+  });
 }
 
 function createTextElement(args: {
@@ -1099,8 +1175,16 @@ function measureLayoutCardsLayout(args: {
     };
   }
 
-  const requestedColumns = resolveLayoutCardsVisualColumns(args.columns);
-  const columns = args.items.length === 1 ? 1 : Math.max(1, Math.min(requestedColumns, args.items.length));
+  const parsedColumns = Number(args.columns);
+  const requestedColumns = resolveLayoutCardsVisualColumns(
+    parsedColumns === 2 || parsedColumns === 3 || parsedColumns === 4 ? parsedColumns : 2,
+  );
+  let columns =
+    args.items.length === 1 ? 1 : Math.max(1, Math.min(requestedColumns, args.items.length));
+  // For exactly two cards, keep side-by-side layout stable.
+  if (args.items.length === 2 && requestedColumns >= 2) {
+    columns = 2;
+  }
   const gapX = 10;
   const gapY = 10;
   const cellWidth = (CONTENT_WIDTH - Math.max(0, columns - 1) * gapX) / columns;
@@ -2526,6 +2610,7 @@ export function renderNotebookContentDocumentToSlide(args: {
         createTextElement({
           left,
           top,
+          groupId: `grid_cell_${placed.row}_${placed.col}`,
           width: cellWidthWithSpan,
           height: cellHeightWithSpan,
           html: `${headingFit.html}${bodyFit.html}`,
@@ -2553,10 +2638,9 @@ export function renderNotebookContentDocumentToSlide(args: {
         fontColor: tokens.titleText,
         fontName: 'Microsoft YaHei',
       },
-      elements: normalizeSlideTextLayout(expandSingleOccupancyRows(stripShapeElements(elements)), {
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-      }),
+      // Grid cards already have explicit row/column sizing. Post-layout text reflow
+      // can stretch cards and break 2x2 visual alignment into a waterfall.
+      elements: stripShapeElements(elements),
       background: {
         type: 'gradient',
         gradient: {
@@ -3018,7 +3102,14 @@ export function renderNotebookContentDocumentToSlide(args: {
         border: baseTonePalette.border,
         accent: baseTonePalette.text,
       });
-      const height = estimateParagraphHeight(block.text, 36, 20) + (block.title ? 28 : 12);
+      const measuredBodyHeight = measureParagraphHeightIfAvailable({
+        text: block.text,
+        widthPx: CONTENT_WIDTH - 22 - 10,
+        fontSizePx: 15,
+        lineHeightPx: 21,
+        color: templateTone.accent,
+      });
+      const height = (measuredBodyHeight ?? estimateParagraphHeight(block.text, 36, 20)) + (block.title ? 28 : 12);
       elements.push(
         createRectShape({
           left: CONTENT_LEFT,
@@ -3059,8 +3150,15 @@ export function renderNotebookContentDocumentToSlide(args: {
       });
       const supportText = block.type === 'theorem' ? block.proofIdea : undefined;
       const bodyText = supportText ? `${block.text}\n${supportText}` : block.text;
+      const measuredBodyHeight = measureParagraphHeightIfAvailable({
+        text: bodyText,
+        widthPx: CONTENT_WIDTH - 22 - 10,
+        fontSizePx: 15,
+        lineHeightPx: 21,
+        color: '#334155',
+      });
       const height =
-        estimateParagraphHeight(bodyText, 36, 20) +
+        (measuredBodyHeight ?? estimateParagraphHeight(bodyText, 36, 20)) +
         (block.title || block.type === 'definition' || block.type === 'theorem' ? 28 : 12);
       elements.push(
         createRectShape({
@@ -3176,14 +3274,18 @@ export interface NotebookSlideContentBudgetAssessment {
   reasons: string[];
 }
 
+const SOFT_PAGE_HEIGHT_RATIO = 1.5;
+const PAGINATION_REBALANCE_HEIGHT_RATIO = 1.6;
+const PAGINATION_REBALANCE_DENSITY_RATIO = 1.18;
+
 function getProfileDensityBudget(profile: NotebookContentProfile): number {
   switch (profile) {
     case 'math':
-      return 8.8;
-    case 'code':
       return 8.2;
+    case 'code':
+      return 7.8;
     default:
-      return 8.4;
+      return 7.9;
   }
 }
 
@@ -3217,21 +3319,233 @@ function getArchetypeBlockBudget(archetype: NotebookSlideArchetype): number {
     case 'definition':
       return 6;
     default:
-      return 7;
+      return 6;
   }
+}
+
+function estimateWrappedLineCount(
+  text: string,
+  language: 'zh-CN' | 'en-US',
+  maxCharsPerLine: number,
+): number {
+  const normalized = text.replace(/\r\n/g, '\n').trim();
+  if (!normalized) return 0;
+  const unitScale = language === 'zh-CN' ? 1 : 0.55;
+  return normalized
+    .split('\n')
+    .reduce((sum, line) => sum + Math.max(1, Math.ceil((line.length * unitScale) / maxCharsPerLine)), 0);
+}
+
+function collectDenseBlockReasons(
+  blocks: NotebookContentBlock[],
+  language: 'zh-CN' | 'en-US',
+): string[] {
+  const reasons: string[] = [];
+  const maxTableCellLength = language === 'zh-CN' ? 42 : 88;
+  const maxProcessStepLength = language === 'zh-CN' ? 92 : 170;
+
+  for (const block of blocks) {
+    if (block.type === 'layout_cards') {
+      const normalizedColumns = Number(block.columns);
+      const perCardLineBudget = normalizedColumns === 2 && block.items.length >= 4 ? 4 : 5;
+      const exceedsLineBudget = block.items.some((item) => {
+        const lineCount =
+          estimateWrappedLineCount(item.title, language, 16) +
+          estimateWrappedLineCount(item.text, language, 22);
+        return lineCount > perCardLineBudget;
+      });
+      if (exceedsLineBudget) {
+        reasons.push(`layout_cards_item_lines_exceed:${perCardLineBudget}`);
+      }
+    }
+
+    if (block.type === 'process_flow') {
+      if (block.steps.length > 4) {
+        reasons.push(`process_flow_steps_exceed:${block.steps.length}/4`);
+      }
+      const denseDetail = block.steps.some(
+        (step) =>
+          step.detail.length > maxProcessStepLength ||
+          estimateWrappedLineCount(step.detail, language, 26) > 4,
+      );
+      if (denseDetail) {
+        reasons.push(`process_flow_step_detail_too_dense:${maxProcessStepLength}`);
+      }
+    }
+
+    if (block.type === 'table') {
+      const rowCount = block.rows.length + (block.headers?.length ? 1 : 0);
+      if (rowCount > 6) {
+        reasons.push(`table_rows_exceed:${rowCount}/6`);
+      }
+      const hasLongCell = block.rows.some((row) =>
+        row.some((cell) => cell.length > maxTableCellLength || estimateWrappedLineCount(cell, language, 20) > 3),
+      );
+      if (hasLongCell) {
+        reasons.push(`table_cell_too_dense:${maxTableCellLength}`);
+      }
+    }
+  }
+
+  return Array.from(new Set(reasons));
+}
+
+function getSoftPageBottomLimit(layout: ReturnType<typeof getArchetypeLayoutSettings>): number {
+  const bodyHeight = Math.max(1, CONTENT_BOTTOM - layout.bodyTop);
+  return layout.bodyTop + bodyHeight * SOFT_PAGE_HEIGHT_RATIO;
+}
+
+function assessPageUsage(args: {
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  layout: ReturnType<typeof getArchetypeLayoutSettings>;
+}): {
+  estimatedBottom: number;
+  estimatedHeight: number;
+  densityScore: number;
+  visualBlockCount: number;
+} {
+  let cursorTop = args.layout.bodyTop;
+  let visualBlockIndex = 0;
+  let densityScore = 0.5;
+
+  for (const block of args.blocks) {
+    const estimate = assessExpandedBlockHeight(block, args.language, visualBlockIndex);
+    cursorTop += toRenderAwareBudgetHeight({
+      block,
+      measuredHeight: estimate.height,
+      measuredWithDom: estimate.measuredWithDom,
+    });
+    densityScore += estimate.densityDelta;
+    if (estimate.consumesVisualCard) {
+      visualBlockIndex += 1;
+    }
+  }
+
+  return {
+    estimatedBottom: cursorTop,
+    estimatedHeight: Math.max(0, cursorTop - args.layout.bodyTop),
+    densityScore,
+    visualBlockCount: visualBlockIndex,
+  };
+}
+
+function calcSparsePenalty(args: {
+  blocks: NotebookContentBlock[];
+  usage: ReturnType<typeof assessPageUsage>;
+  baseBodyHeight: number;
+}): number {
+  if (args.blocks.length === 0) return 9;
+  const fillRatio = args.usage.estimatedHeight / Math.max(1, args.baseBodyHeight);
+  let penalty = 0;
+  if (args.blocks.length === 1) penalty += 5.5;
+  if (args.blocks.length === 2 && fillRatio < 0.36) penalty += 1.8;
+  if (fillRatio < 0.26) penalty += 2.8;
+  else if (fillRatio < 0.36) penalty += 1.4;
+  else if (fillRatio < 0.48) penalty += 0.7;
+  return penalty;
+}
+
+function rebalancePaginatedPages(args: {
+  pages: NotebookContentBlock[][];
+  language: 'zh-CN' | 'en-US';
+  layout: ReturnType<typeof getArchetypeLayoutSettings>;
+  maxBlocksPerPage: number;
+  maxDensityScore: number;
+}): NotebookContentBlock[][] {
+  if (args.pages.length <= 1) return args.pages;
+  const pages = args.pages.map((page) => [...page]);
+  const baseBodyHeight = Math.max(1, CONTENT_BOTTOM - args.layout.bodyTop);
+  const rebalanceBottomLimit =
+    args.layout.bodyTop + baseBodyHeight * Math.max(SOFT_PAGE_HEIGHT_RATIO, PAGINATION_REBALANCE_HEIGHT_RATIO);
+  const rebalanceDensityLimit = args.maxDensityScore * PAGINATION_REBALANCE_DENSITY_RATIO;
+
+  const canAccept = (blocks: NotebookContentBlock[]) => {
+    if (blocks.length === 0) return false;
+    if (blocks.length > args.maxBlocksPerPage + 1) return false;
+    const usage = assessPageUsage({
+      blocks,
+      language: args.language,
+      layout: args.layout,
+    });
+    if (usage.estimatedBottom > rebalanceBottomLimit) return false;
+    if (usage.densityScore > rebalanceDensityLimit) return false;
+    return true;
+  };
+
+  const pairPenalty = (left: NotebookContentBlock[], right: NotebookContentBlock[]): number => {
+    const leftUsage = assessPageUsage({
+      blocks: left,
+      language: args.language,
+      layout: args.layout,
+    });
+    const rightUsage = assessPageUsage({
+      blocks: right,
+      language: args.language,
+      layout: args.layout,
+    });
+    return (
+      calcSparsePenalty({ blocks: left, usage: leftUsage, baseBodyHeight }) +
+      calcSparsePenalty({ blocks: right, usage: rightUsage, baseBodyHeight })
+    );
+  };
+
+  let changed = true;
+  let guard = 0;
+  while (changed && guard < 10) {
+    changed = false;
+    guard += 1;
+
+    for (let i = 0; i < pages.length - 1; i += 1) {
+      const left = pages[i];
+      const right = pages[i + 1];
+      if (right.length === 0) continue;
+      const beforePenalty = pairPenalty(left, right);
+
+      // Try pulling one block from next page to reduce sparse/isolated pages globally.
+      const movedFromRight = [...left, right[0]];
+      const rightAfterPull = right.slice(1);
+      if (rightAfterPull.length > 0 && canAccept(movedFromRight)) {
+        const afterPenalty = pairPenalty(movedFromRight, rightAfterPull);
+        if (afterPenalty + 0.15 < beforePenalty) {
+          pages[i] = movedFromRight;
+          pages[i + 1] = rightAfterPull;
+          changed = true;
+          continue;
+        }
+      }
+
+      // Try pushing one block to next page if current page is too dense and next can absorb.
+      if (left.length > 1) {
+        const movedToRight = [left[left.length - 1], ...right];
+        const leftAfterPush = left.slice(0, -1);
+        if (canAccept(movedToRight) && leftAfterPush.length > 0) {
+          const afterPenalty = pairPenalty(leftAfterPush, movedToRight);
+          if (afterPenalty + 0.15 < beforePenalty) {
+            pages[i] = leftAfterPush;
+            pages[i + 1] = movedToRight;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  return pages.filter((page) => page.length > 0);
 }
 
 function assessExpandedBlockHeight(
   block: NotebookContentBlock,
   language: 'zh-CN' | 'en-US',
   visualBlockIndex: number,
-): { height: number; densityDelta: number; consumesVisualCard: boolean } {
+): { height: number; densityDelta: number; consumesVisualCard: boolean; measuredWithDom: boolean } {
   if (block.type === 'heading') {
     const height = block.level <= 2 ? 34 : 28;
     return {
       height: height + 10,
       densityDelta: block.level <= 2 ? 0.55 : 0.35,
       consumesVisualCard: false,
+      measuredWithDom: false,
     };
   }
 
@@ -3249,6 +3563,7 @@ function assessExpandedBlockHeight(
       height: paragraph.height + CARD_INSET_Y * 2 + 10,
       densityDelta,
       consumesVisualCard: true,
+      measuredWithDom: typeof document !== 'undefined',
     };
   }
 
@@ -3269,6 +3584,7 @@ function assessExpandedBlockHeight(
       height: bulletList.height + CARD_INSET_Y * 2 + 10,
       densityDelta,
       consumesVisualCard: true,
+      measuredWithDom: typeof document !== 'undefined',
     };
   }
 
@@ -3281,6 +3597,7 @@ function assessExpandedBlockHeight(
         10,
       densityDelta: block.display ? 1.2 : 1.0,
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3296,6 +3613,7 @@ function assessExpandedBlockHeight(
         10,
       densityDelta: 1.45 + rows * 0.12 + cols * 0.08,
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3305,6 +3623,7 @@ function assessExpandedBlockHeight(
       height: estimateCodeBlockHeight(block.code, block.caption ? 1 : 0) + 12,
       densityDelta: 1.6 + Math.min(1.2, lineCount * 0.08),
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3327,17 +3646,21 @@ function assessExpandedBlockHeight(
         Math.min(1.1, block.code.split('\n').length * 0.05) +
         Math.min(1.0, block.steps.length * 0.22),
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
   if (block.type === 'process_flow') {
+    const stepDetailChars = block.steps.reduce((sum, step) => sum + step.detail.length, 0);
     return {
       height: estimateProcessFlowBlockHeight({ block, language }),
       densityDelta:
-        1.8 +
-        Math.min(1.2, block.steps.length * 0.2) +
-        Math.min(0.7, block.context.length * 0.16),
+        2.2 +
+        Math.min(1.35, block.steps.length * 0.24) +
+        Math.min(0.85, block.context.length * 0.2) +
+        Math.min(0.95, stepDetailChars / 680),
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3346,10 +3669,18 @@ function assessExpandedBlockHeight(
       items: block.items,
       columns: block.columns,
     });
+    const normalizedColumns = Number(block.columns);
+    const textChars = block.items.reduce((sum, item) => sum + item.text.length + item.title.length, 0);
+    const compactPenalty = normalizedColumns === 2 && block.items.length >= 4 ? 0.75 : 0.35;
     return {
       height: measured.totalHeight + (block.title ? 34 : 0) + 12,
-      densityDelta: 1.1 + Math.min(0.9, block.items.length * 0.2),
+      densityDelta:
+        1.35 +
+        Math.min(0.95, block.items.length * 0.24) +
+        compactPenalty +
+        Math.min(0.8, textChars / 980),
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3360,40 +3691,70 @@ function assessExpandedBlockHeight(
       ...block.rows.map((row) => row.length),
       1,
     );
+    const maxCellLength = block.rows.reduce(
+      (currentMax, row) => Math.max(currentMax, ...row.map((cell) => cell.length)),
+      0,
+    );
     return {
       height: Math.min(220, Math.max(72, rowCount * 34 + 12)) + (block.caption ? 38 : 12),
-      densityDelta: 1.4 + rowCount * 0.12 + colCount * 0.08,
+      densityDelta: 1.7 + rowCount * 0.15 + colCount * 0.1 + Math.min(0.9, maxCellLength / 180),
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
   if (block.type === 'callout') {
+    const measuredTextHeight = measureParagraphHeightIfAvailable({
+      text: block.text,
+      widthPx: CONTENT_WIDTH - 22 - 10,
+      fontSizePx: 15,
+      lineHeightPx: 21,
+      color: '#334155',
+    });
     return {
-      height: estimateParagraphHeight(block.text, 36, 20) + (block.title ? 28 : 12) + 12,
+      height: (measuredTextHeight ?? estimateParagraphHeight(block.text, 36, 20)) + (block.title ? 28 : 12) + 12,
       densityDelta: 0.95 + Math.min(0.75, block.text.length / 900),
       consumesVisualCard: true,
+      measuredWithDom: measuredTextHeight !== null,
     };
   }
 
   if (block.type === 'definition') {
+    const measuredTextHeight = measureParagraphHeightIfAvailable({
+      text: block.text,
+      widthPx: CONTENT_WIDTH - 22 - 10,
+      fontSizePx: 15,
+      lineHeightPx: 21,
+      color: '#334155',
+    });
     return {
-      height: estimateParagraphHeight(block.text, 36, 20) + 40,
+      height: (measuredTextHeight ?? estimateParagraphHeight(block.text, 36, 20)) + 40,
       densityDelta: 1.0 + Math.min(0.7, block.text.length / 1000),
       consumesVisualCard: true,
+      measuredWithDom: measuredTextHeight !== null,
     };
   }
 
   if (block.type === 'theorem') {
     const supportLength = block.proofIdea?.length ?? 0;
+    const measuredTextHeight = measureParagraphHeightIfAvailable({
+      text: supportLength > 0 ? `${block.text}\n${block.proofIdea}` : block.text,
+      widthPx: CONTENT_WIDTH - 22 - 10,
+      fontSizePx: 15,
+      lineHeightPx: 21,
+      color: '#334155',
+    });
     return {
       height:
-        estimateParagraphHeight(
-          supportLength > 0 ? `${block.text}\n${block.proofIdea}` : block.text,
-          36,
-          20,
-        ) + 40,
+        (measuredTextHeight ??
+          estimateParagraphHeight(
+            supportLength > 0 ? `${block.text}\n${block.proofIdea}` : block.text,
+            36,
+            20,
+          )) + 40,
       densityDelta: 1.15 + Math.min(0.85, (block.text.length + supportLength) / 1200),
       consumesVisualCard: true,
+      measuredWithDom: measuredTextHeight !== null,
     };
   }
 
@@ -3402,6 +3763,7 @@ function assessExpandedBlockHeight(
       height: 34 + (block.caption ? 24 : 0) + CARD_INSET_Y * 2 + 10,
       densityDelta: 1.05,
       consumesVisualCard: true,
+      measuredWithDom: false,
     };
   }
 
@@ -3409,7 +3771,42 @@ function assessExpandedBlockHeight(
     height: language === 'en-US' ? 110 : 100,
     densityDelta: 1.0,
     consumesVisualCard: true,
+    measuredWithDom: false,
   };
+}
+
+function toRenderAwareBudgetHeight(args: {
+  block: NotebookContentBlock;
+  measuredHeight: number;
+  measuredWithDom: boolean;
+}): number {
+  if (args.measuredWithDom) {
+    return Math.max(40, Math.ceil(args.measuredHeight));
+  }
+  // Keep pagination closer to actual rendered height after runtime text shrink-back.
+  // Factors are conservative to avoid aggressive underestimation.
+  let factor = 1;
+  switch (args.block.type) {
+    case 'paragraph':
+    case 'bullet_list':
+      factor = 0.88;
+      break;
+    case 'callout':
+    case 'definition':
+    case 'theorem':
+      factor = 0.9;
+      break;
+    case 'layout_cards':
+      factor = 0.92;
+      break;
+    case 'process_flow':
+    case 'table':
+      factor = 0.94;
+      break;
+    default:
+      factor = 1;
+  }
+  return Math.max(40, Math.ceil(args.measuredHeight * factor));
 }
 
 export function assessNotebookContentDocumentForSlide(
@@ -3441,6 +3838,7 @@ export function assessNotebookContentDocumentForSlide(
     };
   }
   const layout = getArchetypeLayoutSettings(archetype);
+  const softBottomLimit = getSoftPageBottomLimit(layout);
   const blocks = prepareBlocksForPagination(document.blocks, language);
   const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
   const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
@@ -3451,18 +3849,25 @@ export function assessNotebookContentDocumentForSlide(
 
   for (const block of blocks) {
     const estimate = assessExpandedBlockHeight(block, language, visualBlockIndex);
-    cursorTop += estimate.height;
+    const budgetHeight = toRenderAwareBudgetHeight({
+      block,
+      measuredHeight: estimate.height,
+      measuredWithDom: estimate.measuredWithDom,
+    });
+    cursorTop += budgetHeight;
     densityScore += estimate.densityDelta;
     if (estimate.consumesVisualCard) {
       visualBlockIndex += 1;
     }
   }
 
-  const overflowPx = Math.max(0, cursorTop - CONTENT_BOTTOM);
+  const overflowPx = Math.max(0, cursorTop - softBottomLimit);
   const reasons: string[] = [];
 
   if (overflowPx > 0) {
-    reasons.push(`estimated_content_height_overflow:${Math.ceil(overflowPx)}`);
+      reasons.push(
+        `estimated_content_height_overflow_soft_${SOFT_PAGE_HEIGHT_RATIO.toFixed(2)}x:${Math.ceil(overflowPx)}`,
+      );
   }
 
   if (densityScore > maxDensityScore) {
@@ -3472,6 +3877,8 @@ export function assessNotebookContentDocumentForSlide(
   if (blocks.length > maxBlocksPerPage) {
     reasons.push(`too_many_blocks:${blocks.length}`);
   }
+
+  reasons.push(...collectDenseBlockReasons(blocks, language));
 
   return {
     fits: reasons.length === 0,
@@ -3525,7 +3932,7 @@ export function paginateNotebookContentDocument(args: {
       pages: pages.map((page, index) => ({
         ...page,
         continuation:
-          totalParts > 1 && index > 0
+          totalParts > 1
             ? ({
                 rootOutlineId: args.rootOutlineId,
                 partNumber: index + 1,
@@ -3539,6 +3946,7 @@ export function paginateNotebookContentDocument(args: {
     };
   }
   const layout = getArchetypeLayoutSettings(archetype);
+  const softBottomLimit = getSoftPageBottomLimit(layout);
   const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
   const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
   const blocks = prepareBlocksForPagination(args.document.blocks, language);
@@ -3559,27 +3967,48 @@ export function paginateNotebookContentDocument(args: {
     densityScore = 0.5;
   };
 
-  for (const block of blocks) {
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
     const estimate = assessExpandedBlockHeight(block, language, visualBlockIndex);
-    const nextBottom = cursorTop + estimate.height;
+    const budgetHeight = toRenderAwareBudgetHeight({
+      block,
+      measuredHeight: estimate.height,
+      measuredWithDom: estimate.measuredWithDom,
+    });
+    const nextBottom = cursorTop + budgetHeight;
     const nextDensity = densityScore + estimate.densityDelta;
+    const nextBlockCount = currentBlocks.length + 1;
     const wouldOverflow =
-      nextBottom > CONTENT_BOTTOM ||
+      nextBottom > softBottomLimit ||
       nextDensity > maxDensityScore ||
-      currentBlocks.length + 1 > maxBlocksPerPage;
+      nextBlockCount > maxBlocksPerPage;
 
-    if (currentBlocks.length > 0 && wouldOverflow) {
+    const remainingAfterCurrent = blocks.length - index - 1;
+    const shouldAvoidSingletonTail =
+      remainingAfterCurrent === 1 &&
+      currentBlocks.length > 0 &&
+      currentBlocks.length >= 2 &&
+      nextBottom <= softBottomLimit &&
+      nextDensity <= maxDensityScore * 1.12 &&
+      nextBlockCount <= maxBlocksPerPage + 1;
+
+    if (currentBlocks.length > 0 && wouldOverflow && !shouldAvoidSingletonTail) {
       pushPage();
     }
 
     const blockEstimateOnEmpty = assessExpandedBlockHeight(block, language, 0);
-    if (layout.bodyTop + blockEstimateOnEmpty.height > CONTENT_BOTTOM) {
+    const blockBudgetHeightOnEmpty = toRenderAwareBudgetHeight({
+      block,
+      measuredHeight: blockEstimateOnEmpty.height,
+      measuredWithDom: blockEstimateOnEmpty.measuredWithDom,
+    });
+    if (layout.bodyTop + blockBudgetHeightOnEmpty > softBottomLimit) {
       unpageableBlockTypes.add(block.type);
       continue;
     }
 
     currentBlocks.push(block);
-    cursorTop += estimate.height;
+    cursorTop += budgetHeight;
     densityScore += estimate.densityDelta;
     if (estimate.consumesVisualCard) {
       visualBlockIndex += 1;
@@ -3597,14 +4026,22 @@ export function paginateNotebookContentDocument(args: {
     };
   }
 
-  const totalParts = pages.length;
+  const balancedPages = rebalancePaginatedPages({
+    pages,
+    language,
+    layout,
+    maxBlocksPerPage,
+    maxDensityScore,
+  });
+
+  const totalParts = balancedPages.length;
   return {
-    pages: pages.map((pageBlocks, index) => ({
+    pages: balancedPages.map((pageBlocks, index) => ({
       ...args.document,
       blocks: pageBlocks,
       archetype,
       continuation:
-        totalParts > 1 && index > 0
+        totalParts > 1
           ? ({
               rootOutlineId: args.rootOutlineId,
               partNumber: index + 1,

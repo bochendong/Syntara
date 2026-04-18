@@ -983,6 +983,11 @@ function getProviderConfig(providerId: ProviderId): ProviderConfig | null {
   return null;
 }
 
+/** Returns true if the provider requires an API key (defaults to true for unknown providers). */
+export function isProviderKeyRequired(providerId: string): boolean {
+  return getProviderConfig(providerId as ProviderId)?.requiresApiKey ?? true;
+}
+
 /**
  * Model instance with its configuration info
  */

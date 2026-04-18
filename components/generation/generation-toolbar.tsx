@@ -59,9 +59,13 @@ export interface GenerationToolbarProps {
   onWebSearchChange: (v: boolean) => void;
   onSettingsOpen: (section?: SettingsSection) => void;
   // Source document
-  sourceFile: File | null;
-  onSourceFileChange: (file: File | null) => void;
-  onSourceFileError: (error: string | null) => void;
+  sourceFile?: File | null;
+  onSourceFileChange?: (file: File | null) => void;
+  onSourceFileError?: (error: string | null) => void;
+  // Legacy aliases for older pages
+  pdfFile?: File | null;
+  onPdfFileChange?: (file: File | null) => void;
+  onPdfError?: (error: string | null) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -74,6 +78,9 @@ export function GenerationToolbar({
   sourceFile,
   onSourceFileChange,
   onSourceFileError,
+  pdfFile,
+  onPdfFileChange,
+  onPdfError,
 }: GenerationToolbarProps) {
   const { t } = useI18n();
   const providerId = useSettingsStore((s) => s.providerId);
@@ -110,10 +117,14 @@ export function GenerationToolbar({
       ? 'PPTX 文件会提取每页文字、备注和图片，用作笔记本生成上下文。'
       : 'PPTX files will extract slide text, notes, and images for notebook generation.';
 
+  const effectiveSourceFile = sourceFile ?? pdfFile ?? null;
+  const effectiveSetSourceFile = onSourceFileChange ?? onPdfFileChange ?? (() => undefined);
+  const effectiveSetSourceFileError = onSourceFileError ?? onPdfError ?? (() => undefined);
+
   // Source file handler
   const handleFileSelect = (file: File) => {
     if (!isPdfSourceFile(file) && !isMarkdownSourceFile(file) && !isPptxSourceFile(file)) {
-      onSourceFileError(
+      effectiveSetSourceFileError(
         language === 'zh-CN'
           ? '目前只支持 PDF、PPTX 或 Markdown（.md）文件。'
           : 'Only PDF, PPTX or Markdown (.md) files are supported.',
@@ -121,11 +132,11 @@ export function GenerationToolbar({
       return;
     }
     if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
-      onSourceFileError(t('upload.fileTooLarge'));
+      effectiveSetSourceFileError(t('upload.fileTooLarge'));
       return;
     }
-    onSourceFileError(null);
-    onSourceFileChange(file);
+    effectiveSetSourceFileError(null);
+    effectiveSetSourceFile(file);
   };
 
   // ─── Pill button helper ─────────────────────────────
@@ -149,16 +160,16 @@ export function GenerationToolbar({
       {/* ── Source document upload ── */}
       <Popover>
         <PopoverTrigger asChild>
-          {sourceFile ? (
+          {effectiveSourceFile ? (
             <button className={pillActive}>
               <Paperclip className="size-3.5" />
-              <span className="max-w-[100px] truncate">{sourceFile.name}</span>
+              <span className="max-w-[100px] truncate">{effectiveSourceFile.name}</span>
               <span
                 role="button"
                 className="size-4 rounded-full inline-flex items-center justify-center hover:bg-violet-200 dark:hover:bg-violet-800 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSourceFileChange(null);
+                  effectiveSetSourceFile(null);
                 }}
               >
                 <X className="size-2.5" />
@@ -171,7 +182,7 @@ export function GenerationToolbar({
           )}
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 p-0">
-          {!sourceFile || isPdfSourceFile(sourceFile) ? (
+          {!effectiveSourceFile || isPdfSourceFile(effectiveSourceFile) ? (
             <div className="flex items-center gap-2 px-3 pt-3 pb-2">
               <span className="text-xs font-medium text-muted-foreground shrink-0">
                 {t('toolbar.pdfParser')}
@@ -209,7 +220,7 @@ export function GenerationToolbar({
                 </SelectContent>
               </Select>
             </div>
-          ) : isPptxSourceFile(sourceFile) ? (
+          ) : isPptxSourceFile(effectiveSourceFile) ? (
             <div className="px-3 pt-3 pb-2 text-[11px] leading-relaxed text-muted-foreground">
               {pptxHint}
             </div>
@@ -232,21 +243,21 @@ export function GenerationToolbar({
                 e.target.value = '';
               }}
             />
-            {sourceFile ? (
+            {effectiveSourceFile ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="size-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
                     <FileText className="size-4 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{sourceFile.name}</p>
+                    <p className="text-sm font-medium truncate">{effectiveSourceFile.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(sourceFile.size / 1024 / 1024).toFixed(2)} MB
+                      {(effectiveSourceFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => onSourceFileChange(null)}
+                  onClick={() => effectiveSetSourceFile(null)}
                   className="w-full text-xs text-destructive hover:underline text-left"
                 >
                   {language === 'zh-CN' ? `移除${documentLabel}` : `Remove ${documentLabel}`}

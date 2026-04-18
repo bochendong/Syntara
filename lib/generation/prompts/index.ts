@@ -22,6 +22,7 @@ export {
 // Prompt IDs constant
 export const PROMPT_IDS = {
   REQUIREMENTS_TO_OUTLINES: 'requirements-to-outlines',
+  WEB_SEARCH_QUERY_REWRITE: 'web-search-query-rewrite',
   SLIDE_CONTENT: 'slide-content',
   SLIDE_SEMANTIC_CONTENT: 'slide-semantic-content',
   QUIZ_CONTENT: 'quiz-content',

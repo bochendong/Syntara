@@ -309,7 +309,7 @@ function buildSemanticBudgetRetryReason(language: 'zh-CN' | 'en-US', reasons: st
       `- 预算信号：${reasonText || '当前页面内容过多。'}`,
       '- 只保留这一页最核心的 1-2 个结构，不要同时塞入很多平级分类、标签、说明和结论。',
       '- 优先输出表格、编号列表、要点卡片或 callout，不要把多个分类结果拆成很多零碎小块。',
-      '- 如果材料天然需要两页，请让这一页只覆盖前半部分或核心主线，不要强行把全部信息塞进一页。',
+      '- 本轮必须优先压缩同页表达（缩句、减冗余、减少平级块），不要主动拆成多页。',
     ].join('\n');
   }
 
@@ -318,7 +318,7 @@ function buildSemanticBudgetRetryReason(language: 'zh-CN' | 'en-US', reasons: st
     `- Budget signals: ${reasonText || 'This slide is too dense.'}`,
     '- Keep only the most important 1-2 structures for this slide instead of combining many peer classifications, labels, notes, and conclusions.',
     '- Prefer a table, numbered list, bullet card, or callout instead of many tiny fragments.',
-    '- If the material naturally needs two slides, keep this slide focused on the first half or the main thread rather than forcing everything onto one page.',
+    '- In this retry, prioritize compact single-page rewriting (shorter phrasing, fewer peer blocks) instead of proactively splitting into multiple pages.',
   ].join('\n');
 }
 
@@ -2845,6 +2845,7 @@ async function generateSemanticSlideContent(
   courseContext?: CoursePersonalizationContext,
   rewriteReason?: string,
   semanticRetryCount = 0,
+  budgetRewriteAttempted = false,
   diagnostics?: SceneContentDiagnostics,
 ): Promise<GeneratedSlideContent | null> {
   const lang = outline.language || 'zh-CN';
@@ -2901,6 +2902,7 @@ async function generateSemanticSlideContent(
         courseContext,
         appendRewriteReason(rewriteReason, buildSemanticStructureRetryReason(lang)),
         semanticRetryCount + 1,
+        budgetRewriteAttempted,
         diagnostics,
       );
     }
@@ -2933,6 +2935,7 @@ async function generateSemanticSlideContent(
         courseContext,
         appendRewriteReason(rewriteReason, archetypeValidation.reasons.join('\n')),
         semanticRetryCount + 1,
+        budgetRewriteAttempted,
         diagnostics,
       );
     }
@@ -2941,6 +2944,23 @@ async function generateSemanticSlideContent(
   }
 
   const contentBudget = assessNotebookContentDocumentForSlide(normalizedDocument);
+  if (!contentBudget.fits && !budgetRewriteAttempted) {
+    log.info(`[Budget] budget_rewrite_once for: ${outline.title}`);
+    diagnostics && (diagnostics.semanticRetryCount = Math.max(diagnostics.semanticRetryCount, semanticRetryCount + 1));
+    return generateSemanticSlideContent(
+      outline,
+      aiCall,
+      agents,
+      courseContext,
+      appendRewriteReason(rewriteReason, buildSemanticBudgetRetryReason(lang, contentBudget.reasons)),
+      semanticRetryCount + 1,
+      true,
+      diagnostics,
+    );
+  }
+  log.info(
+    `[Budget] ${contentBudget.fits ? 'budget_check_pass' : 'budget_fallback_paginate'} for: ${outline.title}`,
+  );
   const paginationResult = paginateNotebookContentDocument({
     document: normalizedDocument,
     rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
@@ -2950,6 +2970,9 @@ async function generateSemanticSlideContent(
     ...paginationResult.reasons,
     ...paginationResult.unpageableBlockTypes.map((type) => `unpageable_block:${type}`),
   ];
+  if (paginationResult.wasSplit) {
+    log.info(`[Budget] budget_fallback_paginate for: ${outline.title}`);
+  }
 
   if (paginationResult.unpageableBlockTypes.length > 0 || paginationResult.pages.length === 0) {
     log.warn(`Semantic slide content pagination failed for: ${outline.title}`, paginationReasons);
@@ -2967,6 +2990,7 @@ async function generateSemanticSlideContent(
         courseContext,
         appendRewriteReason(rewriteReason, buildSemanticBudgetRetryReason(lang, paginationReasons)),
         semanticRetryCount + 1,
+        true,
         diagnostics,
       );
     }
@@ -2974,7 +2998,21 @@ async function generateSemanticSlideContent(
     return null;
   }
 
-  const renderedPages = paginationResult.pages.map((pageDocument) => {
+  const totalParts = paginationResult.pages.length;
+  const pagedDocuments = paginationResult.pages.map((pageDocument, index) =>
+    totalParts > 1
+      ? {
+          ...pageDocument,
+          continuation: {
+            rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
+            partNumber: index + 1,
+            totalParts,
+          },
+        }
+      : pageDocument,
+  );
+
+  const renderedPages = pagedDocuments.map((pageDocument) => {
     const renderedSlide = renderNotebookContentDocumentToSlide({
       document: pageDocument,
       fallbackTitle: outline.title,
@@ -3052,6 +3090,7 @@ async function generateSlideContent(
       courseContext,
       rewriteReason,
       0,
+      false,
       diagnostics,
     );
     if (semanticContent) {
@@ -3100,6 +3139,7 @@ async function generateSlideContent(
       courseContext,
       rewriteReason,
       0,
+      false,
       diagnostics,
     );
     if (semanticContent) {
