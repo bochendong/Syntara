@@ -11,11 +11,19 @@ function isLegacyTimelineLine(element: PPTElement): element is PPTLineElement {
   if (element.type !== 'line') return false;
   const hasNoMarkers = element.points[0] === '' && element.points[1] === '';
   if (!hasNoMarkers) return false;
-  if (normalizeHex(element.color) !== LEGACY_TIMELINE_LINE_COLOR) return false;
-  if (Math.abs(element.width - 3) > 0.2) return false;
   const dx = Math.abs(element.start[0] - element.end[0]);
   const dy = Math.abs(element.start[1] - element.end[1]);
-  return dx <= 2 && dy >= 36;
+  const isVerticalTimeline = dx <= 2 && dy >= 36;
+  if (!isVerticalTimeline) return false;
+
+  // Legacy markers used width=3; newer process_flow timeline used width=1.
+  const hasLegacyColor = normalizeHex(element.color) === LEGACY_TIMELINE_LINE_COLOR;
+  const isLegacyWidth = Math.abs(element.width - 3) <= 0.2;
+  const isProcessFlowTimeline =
+    typeof element.groupId === 'string' &&
+    element.groupId.startsWith('process_flow_') &&
+    element.width <= 2;
+  return (hasLegacyColor && isLegacyWidth) || isProcessFlowTimeline;
 }
 
 function compactTextContent(html: string): string {
@@ -47,9 +55,6 @@ export function stripLegacyVerticalFlowMarkers(elements: PPTElement[]): PPTEleme
   const lineCandidates = elements.filter(isLegacyTimelineLine);
   const textCandidates = elements.filter(isLegacyTimelineStepText);
   const tinyBadgeCandidates = elements.filter(isTinyLegacyStepBadge);
-  if (lineCandidates.length === 0 && textCandidates.length === 0 && tinyBadgeCandidates.length === 0) {
-    return elements;
-  }
 
   const lineIdsToRemove = new Set<string>();
   const textIdsToRemove = new Set<string>();
@@ -80,7 +85,6 @@ export function stripLegacyVerticalFlowMarkers(elements: PPTElement[]): PPTEleme
     }
   });
 
-  if (lineIdsToRemove.size === 0 && textIdsToRemove.size === 0) return elements;
   return elements.filter(
     (element) => !lineIdsToRemove.has(element.id) && !textIdsToRemove.has(element.id),
   );

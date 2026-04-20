@@ -55,7 +55,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Sparkles, SquarePen } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, Sparkles, SquarePen } from 'lucide-react';
 import { VisuallyHidden } from 'radix-ui';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -2165,10 +2165,45 @@ export function Stage({
 
   const canRepairCurrentSlide =
     !isPendingScene && currentScene?.type === 'slide' && currentScene.content.type === 'slide';
+  const canRerenderCurrentSlide =
+    currentScene?.type === 'slide' &&
+    currentScene.content.type === 'slide' &&
+    Boolean(currentScene.content.semanticDocument);
   const canRestoreCurrentSlide =
     currentScene?.type === 'slide' &&
     currentScene.content.type === 'slide' &&
     Boolean(currentScene.repairSnapshot);
+  const handleRerenderCurrentSlide = useCallback(() => {
+    if (!currentScene || currentScene.type !== 'slide' || currentScene.content.type !== 'slide') {
+      return;
+    }
+    const semanticDocument = currentScene.content.semanticDocument;
+    if (!semanticDocument) {
+      toast.info('当前页没有语义文档，无法重新渲染。');
+      return;
+    }
+    try {
+      setGridReflowPending(true);
+      const reRendered = renderNotebookContentDocumentToSlide({
+        document: semanticDocument,
+        fallbackTitle: semanticDocument.title || currentScene.title,
+      });
+      updateScene(currentScene.id, {
+        content: {
+          ...currentScene.content,
+          canvas: reRendered,
+          semanticDocument,
+        },
+        updatedAt: Date.now(),
+      });
+      toast.success('已根据生成数据重新渲染当前页。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`重新渲染失败：${message}`);
+    } finally {
+      setGridReflowPending(false);
+    }
+  }, [currentScene, updateScene]);
   const openRepairSidebar = useCallback(() => {
     if (!canRepairCurrentSlide) return;
 
@@ -2184,8 +2219,30 @@ export function Stage({
   }, [canRepairCurrentSlide, handleOpenSlideEditor, slideEditorOpen]);
 
   const builtInTitleActions =
-    canEditCurrentSlide || slideEditorOpen || canRepairCurrentSlide || canRestoreCurrentSlide ? (
+    canEditCurrentSlide ||
+    slideEditorOpen ||
+    canRepairCurrentSlide ||
+    canRestoreCurrentSlide ||
+    canRerenderCurrentSlide ? (
       <>
+        {canRerenderCurrentSlide ? (
+          <button
+            type="button"
+            onClick={handleRerenderCurrentSlide}
+            disabled={gridReflowPending}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+              gridReflowPending
+                ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/35'
+                : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-950/35 dark:text-violet-200 dark:hover:bg-violet-950/55',
+            )}
+            title="按 semanticDocument 重新生成当前页布局"
+          >
+            <RefreshCcw className="size-3.5" />
+            {gridReflowPending ? '重新渲染中…' : '重新渲染'}
+          </button>
+        ) : null}
+
         {canRestoreCurrentSlide ? (
           <button
             type="button"

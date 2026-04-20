@@ -23,12 +23,14 @@ import type { StageStore } from '@/lib/api/stage-api';
 import { createStageAPI } from '@/lib/api/stage-api';
 import { generatePBLContent } from '@/lib/pbl/generate-pbl';
 import {
-  assessNotebookContentDocumentForSlide,
   buildNotebookContentDocumentFromInsert,
-  paginateNotebookContentDocument,
+  prepareNotebookSemanticLayout,
   parseNotebookContentDocument,
-  renderNotebookContentDocumentToSlide,
+  measureNotebookSemanticLayout,
+  paginateNotebookSemanticLayout,
+  renderNotebookSemanticPages,
   validateNotebookContentDocumentArchetype,
+  type NotebookContentBlockPlacement,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 import { buildPrompt, PROMPT_IDS } from './prompts';
@@ -358,30 +360,21 @@ function buildSemanticFallbackSlideContent(outline: SceneOutline): GeneratedSlid
     title: outline.title || fallbackDocumentBase.title,
   };
 
-  const paginationResult = paginateNotebookContentDocument({
+  const preparedLayout = prepareNotebookSemanticLayout({
     document: fallbackDocument,
+    fallbackTitle: outline.title,
     rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
+    viewport: SLIDE_LAYOUT_VIEWPORT,
   });
-  if (paginationResult.pages.length === 0) return null;
+  if (preparedLayout.pagination.pages.length === 0) return null;
 
-  const renderedPages = paginationResult.pages.map((pageDocument) => {
-    const renderedSlide = renderNotebookContentDocumentToSlide({
-      document: pageDocument,
-      fallbackTitle: outline.title,
-    });
-    const normalizedElements = normalizeSlideTextLayout(
-      renderedSlide.elements,
-      SLIDE_LAYOUT_VIEWPORT,
-    );
-    const layoutValidation = validateSlideTextLayout(normalizedElements, SLIDE_LAYOUT_VIEWPORT);
-    return {
-      elements: normalizedElements,
-      background: renderedSlide.background,
-      theme: renderedSlide.theme,
-      contentDocument: pageDocument,
-      layoutValidation,
-    };
-  });
+  const renderedPages = preparedLayout.pages.map((page) => ({
+    elements: page.slide.elements,
+    background: page.slide.background,
+    theme: page.slide.theme,
+    contentDocument: page.document,
+    layoutValidation: page.layoutValidation,
+  }));
 
   const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
   if (invalidPage) return null;
@@ -2519,6 +2512,42 @@ function normalizeColumnLayoutBlocks(document: NotebookContentDocument): Noteboo
   };
 }
 
+function normalizeGridPlacementHints(document: NotebookContentDocument): NotebookContentDocument {
+  if (document.layout.mode !== 'grid') return document;
+  const maxRows = document.layout.rows ?? 3;
+  const maxCols = document.layout.columns;
+
+  const normalizedBlocks = document.blocks.map((block, index) => {
+    const placement = block.placement;
+    if (!placement) {
+      return { ...block, placement: { order: index } };
+    }
+
+    const rowSpan = Math.max(1, Math.min(maxRows, placement.rowSpan ?? 1));
+    const colSpan = Math.max(1, Math.min(maxCols, placement.colSpan ?? 1));
+    const keepExplicitAnchor = rowSpan > 1 || colSpan > 1;
+    const nextPlacement: NotebookContentBlockPlacement = {
+      order: typeof placement.order === 'number' ? placement.order : index,
+      rowSpan,
+      colSpan,
+    };
+    if (keepExplicitAnchor) {
+      nextPlacement.row = placement.row;
+      nextPlacement.col = placement.col;
+    }
+
+    return {
+      ...block,
+      placement: nextPlacement,
+    };
+  });
+
+  return {
+    ...document,
+    blocks: normalizedBlocks,
+  };
+}
+
 function pickDeterministicTemplateVariant(outline: SceneOutline, variantCount: number): number {
   if (variantCount <= 1) return 0;
   const seed = `${outline.id}:${outline.title}:${outline.order}:${outline.archetype || ''}`;
@@ -2909,6 +2938,7 @@ async function generateSemanticSlideContent(
     return null;
   }
   normalizedDocument = normalizeColumnLayoutBlocks(normalizedDocument);
+  normalizedDocument = normalizeGridPlacementHints(normalizedDocument);
   if (hasUnexpectedCjkForLanguage(normalizedDocument, lang)) {
     log.warn(`Semantic slide content language mismatch for: ${outline.title}`);
     recordFailure(diagnostics, 'semantic_language', 'language mismatch in semantic document');
@@ -2943,7 +2973,7 @@ async function generateSemanticSlideContent(
     return null;
   }
 
-  const contentBudget = assessNotebookContentDocumentForSlide(normalizedDocument);
+  const contentBudget = measureNotebookSemanticLayout(normalizedDocument);
   if (!contentBudget.fits && !budgetRewriteAttempted) {
     log.info(`[Budget] budget_rewrite_once for: ${outline.title}`);
     diagnostics && (diagnostics.semanticRetryCount = Math.max(diagnostics.semanticRetryCount, semanticRetryCount + 1));
@@ -2961,7 +2991,7 @@ async function generateSemanticSlideContent(
   log.info(
     `[Budget] ${contentBudget.fits ? 'budget_check_pass' : 'budget_fallback_paginate'} for: ${outline.title}`,
   );
-  const paginationResult = paginateNotebookContentDocument({
+  const paginationResult = paginateNotebookSemanticLayout({
     document: normalizedDocument,
     rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
   });
@@ -2998,38 +3028,17 @@ async function generateSemanticSlideContent(
     return null;
   }
 
-  const totalParts = paginationResult.pages.length;
-  const pagedDocuments = paginationResult.pages.map((pageDocument, index) =>
-    totalParts > 1
-      ? {
-          ...pageDocument,
-          continuation: {
-            rootOutlineId: outline.continuation?.rootOutlineId || outline.id,
-            partNumber: index + 1,
-            totalParts,
-          },
-        }
-      : pageDocument,
-  );
-
-  const renderedPages = pagedDocuments.map((pageDocument) => {
-    const renderedSlide = renderNotebookContentDocumentToSlide({
-      document: pageDocument,
-      fallbackTitle: outline.title,
-    });
-    const normalizedElements = normalizeSlideTextLayout(
-      renderedSlide.elements,
-      SLIDE_LAYOUT_VIEWPORT,
-    );
-    const layoutValidation = validateSlideTextLayout(normalizedElements, SLIDE_LAYOUT_VIEWPORT);
-    return {
-      elements: normalizedElements,
-      background: renderedSlide.background,
-      theme: renderedSlide.theme,
-      contentDocument: pageDocument,
-      layoutValidation,
-    };
-  });
+  const renderedPages = renderNotebookSemanticPages({
+    pageDocuments: paginationResult.pages,
+    fallbackTitle: outline.title,
+    viewport: SLIDE_LAYOUT_VIEWPORT,
+  }).map((page) => ({
+    elements: page.slide.elements,
+    background: page.slide.background,
+    theme: page.slide.theme,
+    contentDocument: page.document,
+    layoutValidation: page.layoutValidation,
+  }));
 
   const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
   if (invalidPage) {

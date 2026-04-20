@@ -56,7 +56,7 @@ const LEGACY_FULL_ROW_MIN_LEFT = 80;
 const LEGACY_FULL_ROW_MAX_LEFT = 100;
 
 function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
-  return elements.map((element) => {
+  const baselineAdjusted = elements.map((element) => {
     const isTextElement = element.type === 'text';
     const isLatexElement = element.type === 'latex';
     if (!isTextElement && !isLatexElement) return element;
@@ -77,6 +77,59 @@ function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
       width: FULL_ROW_BASELINE_WIDTH,
     };
   });
+  const groups = new Map<string, Array<{ id: string; left: number; top: number; width: number }>>();
+  baselineAdjusted.forEach((element) => {
+    if (!element.groupId?.startsWith('layout_cards_')) return;
+    if (typeof element.left !== 'number' || typeof element.top !== 'number') return;
+    if (typeof element.width !== 'number') return;
+    const list = groups.get(element.groupId) || [];
+    list.push({ id: element.id, left: element.left, top: element.top, width: element.width });
+    groups.set(element.groupId, list);
+  });
+  if (groups.size === 0) return baselineAdjusted;
+  const byId = new Map(baselineAdjusted.map((element) => [element.id, element] as const));
+  for (const cards of groups.values()) {
+    if (cards.length !== 2) continue;
+    const [a, b] = cards;
+    const horizontalSplit = Math.abs(a.left - b.left) > Math.min(a.width, b.width) * 0.45;
+    if (!horizontalSplit) continue;
+    const first = byId.get(a.id);
+    const second = byId.get(b.id);
+    const firstHeight = first && typeof (first as { height?: unknown }).height === 'number' ? (first as { height: number }).height : 0;
+    const secondHeight = second && typeof (second as { height?: unknown }).height === 'number' ? (second as { height: number }).height : 0;
+    const oldBottom = Math.max(a.top + firstHeight, b.top + secondHeight);
+    const alignedTop = Math.min(a.top, b.top);
+    const ae = first;
+    const be = second;
+    if (ae && typeof ae.top === 'number') ae.top = alignedTop;
+    if (be && typeof be.top === 'number') be.top = alignedTop;
+    const newBottom = Math.max(
+      ae && typeof ae.top === 'number' && typeof (ae as { height?: unknown }).height === 'number'
+        ? ae.top + (ae as { height: number }).height
+        : oldBottom,
+      be && typeof be.top === 'number' && typeof (be as { height?: unknown }).height === 'number'
+        ? be.top + (be as { height: number }).height
+        : oldBottom,
+    );
+    const collapseDelta = Math.max(0, Math.round(oldBottom - newBottom));
+    if (collapseDelta <= 0) continue;
+    baselineAdjusted.forEach((element) => {
+      if (element.groupId === (ae?.groupId || be?.groupId)) return;
+      if (element.type === 'line') {
+        const minY = Math.min(element.start[1], element.end[1]);
+        if (minY >= oldBottom - 1) {
+          element.start = [element.start[0], element.start[1] - collapseDelta];
+          element.end = [element.end[0], element.end[1] - collapseDelta];
+        }
+        return;
+      }
+      if (typeof (element as { top?: unknown }).top !== 'number') return;
+      if ((element as { top: number }).top >= oldBottom - 1) {
+        (element as { top: number }).top -= collapseDelta;
+      }
+    });
+  }
+  return baselineAdjusted;
 }
 
 export interface CanvasProps {

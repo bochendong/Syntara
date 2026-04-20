@@ -7,16 +7,14 @@ import { LaserOverlay } from './LaserOverlay';
 import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style';
 import { useCanvasStore } from '@/lib/store';
 import { useSceneSelector } from '@/lib/contexts/scene-context';
-import { useSceneData } from '@/lib/contexts/scene-context';
 import { getElementListRange, getElementRange } from '@/lib/utils/element';
 import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
-import { applyAutoHeightReflow } from '@/lib/slide-layout-reflow';
 import { FlowTimelineOverlay } from '../components/FlowTimelineOverlay';
 import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, SlideBackground } from '@/lib/types/slides';
 import type { PercentageGeometry } from '@/lib/types/action';
 import { useViewportSize } from './Canvas/hooks/useViewportSize';
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useMemo, type RefObject } from 'react';
 import { AnimatePresence } from 'motion/react';
 
 export interface ScreenCanvasProps {
@@ -25,7 +23,6 @@ export interface ScreenCanvasProps {
 }
 
 const CONTENT_BOTTOM_PADDING = 24;
-const TEXT_SHAPE_BIND_PADDING = 4;
 const TITLE_BASELINE_LEFT = 64;
 const FULL_ROW_BASELINE_WIDTH = 872;
 const FULL_ROW_SNAP_MIN_WIDTH = 800;
@@ -48,152 +45,56 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometr
   );
 }
 
-function isAutoHeightEligibleElement(element: PPTElement): boolean {
-  if (element.type !== 'text') return true;
-  const groupId = element.groupId || '';
-  if (groupId.startsWith('grid_cell_') || groupId.startsWith('layout_cards_')) {
-    return false;
-  }
-  return true;
-}
-
-function stabilizeLayoutCardsRows(elements: PPTElement[]): PPTElement[] {
-  const grouped = new Map<string, Array<PPTElement & BoxGeometry>>();
+function alignTwoCardLayoutRows(elements: PPTElement[]): PPTElement[] {
+  const groups = new Map<string, Array<{ id: string; left: number; top: number; width: number }>>();
   elements.forEach((element) => {
-    if (element.type !== 'text' || !hasBoxGeometry(element)) return;
-    const groupId = element.groupId || '';
-    if (!groupId.startsWith('layout_cards_')) return;
-    const list = grouped.get(groupId) || [];
-    list.push(element);
-    grouped.set(groupId, list);
+    if (!hasBoxGeometry(element)) return;
+    if (!element.groupId?.startsWith('layout_cards_')) return;
+    const list = groups.get(element.groupId) || [];
+    list.push({ id: element.id, left: element.left, top: element.top, width: element.width });
+    groups.set(element.groupId, list);
   });
+  if (groups.size === 0) return elements;
 
-  if (grouped.size === 0) return elements;
-  const cloned = elements.map((element) => ({ ...element })) as PPTElement[];
-  const byId = new Map(cloned.map((element) => [element.id, element] as const));
-
-  grouped.forEach((cards) => {
-    if (cards.length !== 2) return;
-    const [leftCard, rightCard] = cards.sort((a, b) => a.left - b.left);
-    const widthRatio = Math.min(leftCard.width, rightCard.width) / Math.max(leftCard.width, rightCard.width);
-    if (widthRatio < 0.85) return;
-    const horizontalGap = Math.abs(rightCard.left - leftCard.left);
-    const minTwoColumnGap = Math.max(80, Math.min(leftCard.width, rightCard.width) * 0.45);
-    // Only enforce row alignment for clearly two-column cards.
-    if (horizontalGap < minTwoColumnGap) return;
-    const topDelta = Math.abs(leftCard.top - rightCard.top);
-    if (topDelta <= 12) return;
-
-    const targetTop = Math.min(leftCard.top, rightCard.top);
-    const targetHeight = Math.max(leftCard.height, rightCard.height);
-    const leftTarget = byId.get(leftCard.id);
-    const rightTarget = byId.get(rightCard.id);
-    if (!leftTarget || !rightTarget) return;
-    if (!hasBoxGeometry(leftTarget) || !hasBoxGeometry(rightTarget)) return;
-
-    leftTarget.top = targetTop;
-    rightTarget.top = targetTop;
-    leftTarget.height = targetHeight;
-    rightTarget.height = targetHeight;
-  });
-
-  return cloned;
-}
-
-function getBindingShapeForText(
-  textElement: PPTElement & BoxGeometry,
-  shapeElements: Array<PPTElement & BoxGeometry>,
-): (PPTElement & BoxGeometry) | null {
-  const textRight = textElement.left + textElement.width;
-  const textBottom = textElement.top + textElement.height;
-  let chosen: (PPTElement & BoxGeometry) | null = null;
-  let chosenArea = Number.POSITIVE_INFINITY;
-
-  for (const shape of shapeElements) {
-    const shapeRight = shape.left + shape.width;
-    const shapeBottom = shape.top + shape.height;
-    const contains =
-      textElement.left >= shape.left + TEXT_SHAPE_BIND_PADDING &&
-      textElement.top >= shape.top + TEXT_SHAPE_BIND_PADDING &&
-      textRight <= shapeRight - TEXT_SHAPE_BIND_PADDING &&
-      textBottom <= shapeBottom - TEXT_SHAPE_BIND_PADDING;
-    if (!contains) continue;
-
-    const area = shape.width * shape.height;
-    if (area < chosenArea) {
-      chosen = shape;
-      chosenArea = area;
-    }
-  }
-
-  if (chosen) return chosen;
-
-  // Fallback: geometric nearest candidate when strict containment fails.
-  let nearest: (PPTElement & BoxGeometry) | null = null;
-  let nearestScore = Number.POSITIVE_INFINITY;
-  for (const shape of shapeElements) {
-    const shapeRight = shape.left + shape.width;
-    const shapeBottom = shape.top + shape.height;
-    const overlapWidth = Math.max(
-      0,
-      Math.min(textRight, shapeRight) - Math.max(textElement.left, shape.left),
+  const next = elements.map((element) => ({ ...element })) as PPTElement[];
+  const byId = new Map(next.map((element) => [element.id, element] as const));
+  for (const cards of groups.values()) {
+    if (cards.length !== 2) continue;
+    const [a, b] = cards;
+    const horizontalSplit = Math.abs(a.left - b.left) > Math.min(a.width, b.width) * 0.45;
+    if (!horizontalSplit) continue;
+    const oldBottom = Math.max(a.top, b.top) + Math.max(
+      (byId.get(a.id) && hasBoxGeometry(byId.get(a.id) as PPTElement) ? (byId.get(a.id) as PPTElement & BoxGeometry).height : 0),
+      (byId.get(b.id) && hasBoxGeometry(byId.get(b.id) as PPTElement) ? (byId.get(b.id) as PPTElement & BoxGeometry).height : 0),
     );
-    const overlapRatio = overlapWidth / Math.max(1, Math.min(textElement.width, shape.width));
-    if (overlapRatio < 0.6) continue;
-
-    const verticalGap =
-      textElement.top >= shapeBottom
-        ? textElement.top - shapeBottom
-        : textBottom <= shape.top
-          ? shape.top - textBottom
-          : 0;
-    if (verticalGap > 320) continue;
-
-    const widthPenalty = Math.abs(shape.width - textElement.width) / Math.max(shape.width, 1);
-    const score = verticalGap + widthPenalty * 80;
-    if (score < nearestScore) {
-      nearest = shape;
-      nearestScore = score;
-    }
+    const top = Math.min(a.top, b.top);
+    const ae = byId.get(a.id);
+    const be = byId.get(b.id);
+    if (ae && hasBoxGeometry(ae)) ae.top = top;
+    if (be && hasBoxGeometry(be)) be.top = top;
+    const newBottom = Math.max(
+      ae && hasBoxGeometry(ae) ? ae.top + ae.height : oldBottom,
+      be && hasBoxGeometry(be) ? be.top + be.height : oldBottom,
+    );
+    const collapseDelta = Math.max(0, Math.round(oldBottom - newBottom));
+    if (collapseDelta <= 0) continue;
+    next.forEach((element) => {
+      if (element.groupId === (ae?.groupId || be?.groupId)) return;
+      if (element.type === 'line') {
+        const minY = Math.min(element.start[1], element.end[1]);
+        if (minY >= oldBottom - 1) {
+          element.start = [element.start[0], element.start[1] - collapseDelta];
+          element.end = [element.end[0], element.end[1] - collapseDelta];
+        }
+        return;
+      }
+      if (!hasBoxGeometry(element)) return;
+      if (element.top >= oldBottom - 1) {
+        element.top -= collapseDelta;
+      }
+    });
   }
-  return nearest;
-}
-
-function deriveShapeGeometryFromBoundTexts(args: {
-  elements: PPTElement[];
-  textToShapeBinding: Map<string, string>;
-}): PPTElement[] {
-  if (args.textToShapeBinding.size === 0) return args.elements.map((element) => ({ ...element }));
-  const cloned = args.elements.map((element) => ({ ...element })) as PPTElement[];
-  const elementsById = new Map(cloned.map((element) => [element.id, element] as const));
-  const shapeToTexts = new Map<string, Array<PPTElement & BoxGeometry>>();
-
-  cloned.forEach((element) => {
-    if (element.type !== 'text' || !hasBoxGeometry(element)) return;
-    const shapeId = args.textToShapeBinding.get(element.id);
-    if (!shapeId) return;
-    const list = shapeToTexts.get(shapeId) || [];
-    list.push(element);
-    shapeToTexts.set(shapeId, list);
-  });
-
-  for (const [shapeId, texts] of shapeToTexts.entries()) {
-    const shape = elementsById.get(shapeId);
-    if (!shape || shape.type !== 'shape' || !hasBoxGeometry(shape)) continue;
-    // Keep explicit shape.text-driven cards unchanged.
-    if (shape.text?.content?.trim()) continue;
-    if (texts.length === 0) continue;
-
-    const minTop = Math.min(...texts.map((text) => text.top));
-    const maxBottom = Math.max(...texts.map((text) => text.top + text.height));
-    const newTop = Math.max(0, Math.floor(minTop - 12));
-    const newBottom = Math.ceil(maxBottom + 12);
-    const nextHeight = Math.max(40, newBottom - newTop);
-    shape.top = newTop;
-    shape.height = nextHeight;
-  }
-
-  return cloned;
+  return next;
 }
 
 function getPercentageGeometryForElement(
@@ -220,76 +121,18 @@ function getPercentageGeometryForElement(
 }
 
 export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
-  const { updateSceneData } = useSceneData<SlideContent>();
   const canvasScale = useCanvasStore.use.canvasScale();
-  const semanticLayoutMode = useSceneSelector<SlideContent, 'stack' | 'grid' | null>((content) =>
-    content.semanticDocument?.layout?.mode === 'grid' ? 'grid' : content.semanticDocument?.layout?.mode || null,
-  );
   const rawElements = useSceneSelector<SlideContent, PPTElement[]>((content) =>
     content.canvas.elements.filter((element) => element.type !== 'shape'),
   );
   const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
-  const [autoHeights, setAutoHeights] = useState<Record<string, number>>({});
-  const isAutoHeightEligible = useCallback(
-    (element: PPTElement) => {
-      if (semanticLayoutMode === 'grid' && element.type === 'text') {
-        return false;
-      }
-      return isAutoHeightEligibleElement(element);
-    },
-    [semanticLayoutMode],
-  );
-
-  const handleElementAutoHeightChange = useCallback((elementId: string, nextHeight: number) => {
-    setAutoHeights((prev) => {
-      const source = elements.find((element) => element.id === elementId);
-      if (!source || !isAutoHeightEligible(source)) {
-        if (prev[elementId] === undefined) return prev;
-        const next = { ...prev };
-        delete next[elementId];
-        return next;
-      }
-      const current = prev[elementId];
-      const normalized = Math.ceil(nextHeight);
-      if (!Number.isFinite(normalized) || normalized <= 0) return prev;
-      if (current !== undefined && Math.abs(current - normalized) <= 1) return prev;
-      return {
-        ...prev,
-        [elementId]: normalized,
-      };
-    });
-  }, [elements, isAutoHeightEligible]);
-
-  const activeAutoHeights = useMemo(() => {
-    if (Object.keys(autoHeights).length === 0) return autoHeights;
-    const validIds = new Set(
-      elements.filter((element) => isAutoHeightEligible(element)).map((element) => element.id),
-    );
-    return Object.fromEntries(
-      Object.entries(autoHeights).filter(([elementId]) => validIds.has(elementId)),
-    );
-  }, [autoHeights, elements, isAutoHeightEligible]);
 
   const adjustedElements = useMemo(() => {
     if (!elements.length) return elements;
-    const shapeElements = elements.filter(
-      (element): element is PPTElement & BoxGeometry =>
-        element.type === 'shape' && hasBoxGeometry(element),
-    );
-    const textToShapeBinding = new Map<string, string>();
-
-    elements.forEach((element) => {
-      if (element.type !== 'text' || !hasBoxGeometry(element)) return;
-      const shape = getBindingShapeForText(element, shapeElements);
-      if (!shape) return;
-      textToShapeBinding.set(element.id, shape.id);
-    });
-
-    const baseElements = deriveShapeGeometryFromBoundTexts({
-      elements,
-      textToShapeBinding,
-    });
-    const alignedElements = baseElements.map((element) => {
+    // Screen playback is now a pure projection of stored geometry.
+    // We keep deterministic baseline snapping here, but do not measure DOM and
+    // do not mutate height/top after mount.
+    const baselineAdjusted = elements.map((element) => {
       if (!hasBoxGeometry(element)) return element;
       const isTextFullRow =
         element.type === 'text' &&
@@ -306,64 +149,8 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
         width: FULL_ROW_BASELINE_WIDTH,
       };
     });
-    const anchorRequests: Record<string, number> = {};
-    const textMirrorRequests: Record<string, number> = {};
-    const elementById = new Map(alignedElements.map((element) => [element.id, element] as const));
-
-    Object.entries(activeAutoHeights).forEach(([elementId, requestedHeight]) => {
-      const sourceElement = elementById.get(elementId);
-      if (!sourceElement || !hasBoxGeometry(sourceElement)) return;
-      const normalizedHeight = Math.ceil(requestedHeight);
-      if (!Number.isFinite(normalizedHeight) || normalizedHeight <= 0) return;
-      const heightDelta = normalizedHeight - sourceElement.height;
-      if (Math.abs(heightDelta) <= 1) return;
-
-      if (sourceElement.type === 'text') {
-        // Keep text boxes close to measured content, including shrink-back.
-        textMirrorRequests[elementId] = normalizedHeight;
-        const bindingShapeId = textToShapeBinding.get(elementId);
-        if (bindingShapeId && heightDelta > 1) {
-          const parentShape = elementById.get(bindingShapeId);
-          if (parentShape && parentShape.type === 'shape' && hasBoxGeometry(parentShape)) {
-            const textOffsetTop = Math.max(0, sourceElement.top - parentShape.top);
-            const textBottomPadding = Math.max(
-              0,
-              parentShape.height - (sourceElement.top - parentShape.top + sourceElement.height),
-            );
-            const requiredShapeHeight = Math.ceil(
-              textOffsetTop + normalizedHeight + textBottomPadding,
-            );
-            const prev = anchorRequests[bindingShapeId] || parentShape.height;
-            anchorRequests[bindingShapeId] = Math.max(prev, requiredShapeHeight);
-            return;
-          }
-        }
-      }
-
-      if (heightDelta <= 1) return;
-      const prev = anchorRequests[elementId] || sourceElement.height;
-      anchorRequests[elementId] = Math.max(prev, normalizedHeight);
-    });
-
-    const reflowed = applyAutoHeightReflow({
-      elements: alignedElements,
-      requestedHeights: anchorRequests,
-    });
-    if (Object.keys(textMirrorRequests).length === 0) return stabilizeLayoutCardsRows(reflowed);
-
-    return stabilizeLayoutCardsRows(
-      reflowed.map((element) => {
-        const requested = textMirrorRequests[element.id];
-        if (!requested) return element;
-        if (element.type !== 'text') return element;
-        if (!hasBoxGeometry(element)) return element;
-        return {
-          ...element,
-          height: Math.max(24, requested),
-        };
-      }),
-    );
-  }, [activeAutoHeights, elements]);
+    return alignTwoCardLayoutRows(baselineAdjusted);
+  }, [elements]);
   const reflowStats = useMemo(() => {
     if (!elements.length || elements.length !== adjustedElements.length) {
       return { adjustedCount: 0, maxHeightDelta: 0, maxTopDelta: 0 };
@@ -398,60 +185,6 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
     }
     return { adjustedCount, maxHeightDelta, maxTopDelta };
   }, [adjustedElements, elements]);
-  const persistReflowRafRef = useRef<number | null>(null);
-  const lastPersistSignatureRef = useRef('');
-
-  useEffect(() => {
-    const changedGeometry = adjustedElements
-      .map((target, index) => {
-        const source = elements[index];
-        if (!source) return null;
-        if (!hasBoxGeometry(source) || !hasBoxGeometry(target)) return null;
-        if (source.id !== target.id) return null;
-        if (Math.abs(source.top - target.top) <= 1 && Math.abs(source.height - target.height) <= 1) {
-          return null;
-        }
-        return {
-          id: target.id,
-          top: target.top,
-          height: target.height,
-        };
-      })
-      .filter(Boolean) as Array<{ id: string; top: number; height: number }>;
-
-    if (changedGeometry.length === 0) return;
-    const signature = changedGeometry
-      .map((item) => `${item.id}:${Math.round(item.top)}:${Math.round(item.height)}`)
-      .join('|');
-    if (signature === lastPersistSignatureRef.current) return;
-
-    if (persistReflowRafRef.current) cancelAnimationFrame(persistReflowRafRef.current);
-    persistReflowRafRef.current = requestAnimationFrame(() => {
-      const geometryById = new Map(changedGeometry.map((item) => [item.id, item] as const));
-      updateSceneData((draft) => {
-        if (!draft || (draft as SlideContent).type !== 'slide') return;
-        const slideDraft = draft as SlideContent;
-        slideDraft.canvas.elements = slideDraft.canvas.elements.map((element) => {
-          const next = geometryById.get(element.id);
-          if (!next) return element;
-          if (!hasBoxGeometry(element)) return element;
-          return {
-            ...element,
-            top: next.top,
-            height: next.height,
-          };
-        });
-      });
-      lastPersistSignatureRef.current = signature;
-    });
-
-    return () => {
-      if (persistReflowRafRef.current) {
-        cancelAnimationFrame(persistReflowRafRef.current);
-        persistReflowRafRef.current = null;
-      }
-    };
-  }, [adjustedElements, elements, updateSceneData]);
 
   // Viewport size and positioning
   const { viewportStyles } = useViewportSize(containerRef);
@@ -534,7 +267,6 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
             key={element.id}
             elementInfo={element}
             elementIndex={index + 1}
-            onElementAutoHeightChange={handleElementAutoHeightChange}
           />
         ))}
 

@@ -138,6 +138,9 @@ Grid notes:
 - Use `layout.mode = "grid"` when the page is naturally a comparison / checklist / compact matrix of peer items.
 - Keep each cell concise; renderer enforces equal row height and card alignment.
 - `columns` should be 1-3, `rows` should be 1-3.
+- In grid mode, keep peer cards side-by-side by default. Avoid diagonal placement.
+- For normal cards, prefer `placement.order` only; do not set `placement.row` / `placement.col`.
+- Use `placement.row` / `placement.col` only when a block intentionally spans (`rowSpan` or `colSpan` > 1).
 - Do not simulate ordered flows with grid; real sequence pages should usually use `process_flow` with `layout.mode = "stack"`.
 
 Built-in text templates (`templateId`):
@@ -155,7 +158,7 @@ Any block can optionally include presentation hints (without changing semantic m
 
 `placement` notes:
 - `order`: ordering hint for stack or grid (smaller comes earlier)
-- `row` / `col`: only for grid mode; preferred target row/column (1-based)
+- `row` / `col`: only for grid mode; use sparingly, mainly when a spanning block (`rowSpan` / `colSpan` > 1) needs an explicit anchor
 - `rowSpan` / `colSpan`: only for grid mode; preferred row/column span (1-based, max 3)
 - `cardTitle`: optional block title; rendered with stronger size and accent color than body text
 - `titleTone`: title color tone, one of `accent | neutral | inverse` (default `accent`)

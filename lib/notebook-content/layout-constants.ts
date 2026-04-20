@@ -1,0 +1,13 @@
+export const CANVAS_WIDTH = 1000;
+export const CANVAS_HEIGHT = 562.5;
+export const CONTENT_LEFT = 64;
+export const CONTENT_WIDTH = 872;
+export const CONTENT_BOTTOM = 522;
+export const CARD_INSET_X = 18;
+export const CARD_INSET_Y = 12;
+export const GRID_GAP_X = 14;
+export const GRID_GAP_Y = 12;
+export const GRID_MIN_CELL_HEIGHT = 112;
+export const GRID_MAX_AUTO_STRETCH_PER_ROW = 18;
+export const STACK_UNDERFILL_THRESHOLD = 0.72;
+export const CJK_TEXT_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;

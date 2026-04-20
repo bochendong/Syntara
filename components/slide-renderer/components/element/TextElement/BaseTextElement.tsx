@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import type { PPTTextElement } from '@/lib/types/slides';
 import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
 import { useElementShadow } from '../hooks/useElementShadow';
@@ -10,7 +10,6 @@ import { TEXT_BOX_PADDING_PX } from '@/lib/slide-text-layout';
 export interface BaseTextElementProps {
   elementInfo: PPTTextElement;
   target?: string;
-  onAutoHeightChange?: (nextHeight: number) => void;
 }
 
 function compactHtmlText(html: string): string {
@@ -86,9 +85,8 @@ function mixHexColor(base: string, target: string, weight: number): string {
  * Base text element component (read-only)
  * Renders static text content with styling
  */
-export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: BaseTextElementProps) {
+export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
   const { shadowStyle } = useElementShadow(elementInfo.shadow);
-  const proseRef = useRef<HTMLDivElement>(null);
   const titleCardFallbackFill = elementInfo.textType === 'title' ? '#eff6ff' : undefined;
   const notesCardFallbackFill = elementInfo.textType === 'notes' ? '#f8fafc' : undefined;
   const resolvedFill = elementInfo.fill ?? titleCardFallbackFill ?? notesCardFallbackFill;
@@ -149,51 +147,13 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
   const glassGradientEnd = mixHexColor(glassBase, '#edf2f7', 0.34);
   const cardAccent = effectiveOutline?.color || '#2f6bff';
   const contentInsetLeft = isGlassCard ? TEXT_BOX_PADDING_PX + 12 : TEXT_BOX_PADDING_PX;
+  const contentInsetTop = elementInfo.textType === 'itemTitle' ? 2 : TEXT_BOX_PADDING_PX;
   const contentInsetBottom =
-    elementInfo.textType === 'content' ? Math.max(6, TEXT_BOX_PADDING_PX - 4) : TEXT_BOX_PADDING_PX;
-  const disableAutoHeightReflow =
-    elementInfo.groupId?.startsWith('grid_cell_') ||
-    elementInfo.groupId?.startsWith('layout_cards_') ||
-    false;
-
-  useLayoutEffect(() => {
-    if (!onAutoHeightChange) return;
-    if (disableAutoHeightReflow) return;
-    const prose = proseRef.current;
-    if (!prose) return;
-
-    let rafId = 0;
-    const measure = () => {
-      const requiredInnerHeight = Math.ceil(prose.scrollHeight);
-      if (requiredInnerHeight <= 0) return;
-      const requiredHeight = requiredInnerHeight + TEXT_BOX_PADDING_PX * 2;
-      const heightDelta = requiredHeight - elementInfo.height;
-      // Expand quickly when content overflows, and shrink conservatively when
-      // previous estimations left too much empty space.
-      if (heightDelta > 1 || (elementInfo.textType === 'content' && heightDelta < -6)) {
-        onAutoHeightChange(requiredHeight);
-      }
-    };
-    const queueMeasure = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(measure);
-    };
-
-    queueMeasure();
-    const resizeObserver = new ResizeObserver(queueMeasure);
-    resizeObserver.observe(prose);
-    const mutationObserver = new MutationObserver(queueMeasure);
-    mutationObserver.observe(prose, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-    };
-  }, [disableAutoHeightReflow, elementInfo.content, elementInfo.height, onAutoHeightChange]);
+    elementInfo.textType === 'itemTitle'
+      ? 2
+      : elementInfo.textType === 'content'
+        ? Math.max(6, TEXT_BOX_PADDING_PX - 4)
+        : TEXT_BOX_PADDING_PX;
 
   if (shouldHideLegacyStepBadge) {
     return null;
@@ -264,14 +224,13 @@ export function BaseTextElement({ elementInfo, target, onAutoHeightChange }: Bas
           <div
             className="absolute overflow-hidden"
             style={{
-              top: `${TEXT_BOX_PADDING_PX}px`,
+              top: `${contentInsetTop}px`,
               right: `${TEXT_BOX_PADDING_PX}px`,
               bottom: `${contentInsetBottom}px`,
               left: `${contentInsetLeft}px`,
             }}
           >
             <div
-              ref={proseRef}
               className={`text ProseMirror-static relative origin-top-left [&_ol]:my-0 [&_p]:m-0 [&_p:not(:last-child)]:mb-[var(--paragraphSpace)] [&_ul]:my-0 ${
                 target === 'thumbnail' ? 'pointer-events-none' : ''
               }`}

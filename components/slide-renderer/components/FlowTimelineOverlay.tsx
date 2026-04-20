@@ -62,6 +62,10 @@ function buildTimelineGroups(elements: PPTElement[]): TimelineGroup[] {
   for (const [groupId, cards] of grouped.entries()) {
     if (cards.length < 2) continue;
     const sorted = cards.slice().sort((a, b) => a.top - b.top);
+    const leftSpread = Math.max(...sorted.map((card) => card.left)) - Math.min(...sorted.map((card) => card.left));
+    // Only render the vertical rail for near-single-column flows.
+    // Horizontal/diagonal step cards should not show this overlay.
+    if (leftSpread > 140) continue;
     const minLeft = Math.min(...sorted.map((card) => card.left));
     const railX = Math.max(24, minLeft - 26);
     const first = sorted[0];

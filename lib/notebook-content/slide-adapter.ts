@@ -31,22 +31,47 @@ import {
   matrixBlockToLatex,
 } from './block-utils';
 import { chemistryTextToHtml } from './chemistry';
+import { escapeHtml, renderInlineLatexToHtml } from './inline-html';
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  CARD_INSET_X,
+  CARD_INSET_Y,
+  CONTENT_BOTTOM,
+  CONTENT_LEFT,
+  CONTENT_WIDTH,
+  GRID_GAP_X,
+  GRID_GAP_Y,
+  GRID_MAX_AUTO_STRETCH_PER_ROW,
+  GRID_MIN_CELL_HEIGHT,
+  STACK_UNDERFILL_THRESHOLD,
+} from './layout-constants';
+import {
+  assessExpandedBlockHeight,
+  assessPageUsage,
+  calcSparsePenalty,
+  estimateCharsPerLine,
+  estimateGridHeadingHeight,
+  estimateParagraphHeight,
+  estimateParagraphHeightForWidth,
+  estimateParagraphStackHeight,
+  estimateParagraphStackHeightForWidth,
+  estimateProcessFlowBlockHeight,
+  estimateProcessFlowStepCardHeight,
+  estimateProcessFlowSummaryHeight,
+  estimateWrappedLineCount,
+  getBaseBodyHeight,
+  measureBulletListBlock,
+  measureLayoutCardsLayout,
+  measureParagraphBlock,
+  measureParagraphHeightIfAvailable,
+  toRenderAwareBudgetHeight,
+  wrapTextToLines,
+} from './measure';
 import { resolveNotebookContentProfile } from './profile';
 import { normalizeSlideTextLayout } from '@/lib/slide-text-layout';
 import { applyAutoHeightReflow } from '@/lib/slide-layout-reflow';
 
-const CANVAS_WIDTH = 1000;
-const CANVAS_HEIGHT = 562.5;
-const CONTENT_LEFT = 64;
-const CONTENT_WIDTH = 872;
-const CONTENT_BOTTOM = 522;
-const CARD_INSET_X = 18;
-const CARD_INSET_Y = 12;
-const GRID_GAP_X = 14;
-const GRID_GAP_Y = 12;
-const GRID_MIN_CELL_HEIGHT = 112;
-const STACK_UNDERFILL_THRESHOLD = 0.72;
-const CJK_TEXT_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
 type ContentCardTone = {
   fill: string;
   border: string;
@@ -533,201 +558,6 @@ function getProfileTokens(profile: NotebookContentProfile) {
   };
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
-
-function renderInlineLatexToHtml(text: string): string {
-  const pattern = /(\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]|\$([^\n$]+?)\$)/g;
-  let result = '';
-  let lastIndex = 0;
-
-  for (const match of text.matchAll(pattern)) {
-    const fullMatch = match[0];
-    const start = match.index ?? 0;
-    const end = start + fullMatch.length;
-    const expression = normalizeLatexSource(match[2] ?? match[3] ?? match[4] ?? match[5] ?? '');
-
-    result += escapeHtml(text.slice(lastIndex, start));
-    const directSymbol = getDirectUnicodeMathSymbol(expression);
-    result +=
-      directSymbol ??
-      katex.renderToString(expression, {
-        displayMode: false,
-        throwOnError: false,
-        output: 'html',
-        strict: 'ignore',
-      });
-    lastIndex = end;
-  }
-
-  result += escapeHtml(text.slice(lastIndex));
-  return result;
-}
-
-function estimateParagraphHeight(text: string, charsPerLine: number, lineHeightPx: number): number {
-  const lines = Math.max(
-    1,
-    text
-      .split('\n')
-      .map((line) => Math.max(1, Math.ceil(line.length / Math.max(charsPerLine, 1))))
-      .reduce((sum, value) => sum + value, 0),
-  );
-  return Math.max(lineHeightPx + 12, lines * lineHeightPx + 18);
-}
-
-function estimateParagraphStackHeight(
-  items: string[],
-  charsPerLine: number,
-  lineHeightPx: number,
-  paragraphSpacePx = 5,
-): number {
-  const normalized = items.map((item) => item.trim()).filter(Boolean);
-  if (normalized.length === 0) return lineHeightPx + 12;
-
-  const totalLines = normalized.reduce((sum, item) => {
-    const wrappedLines = item
-      .split('\n')
-      .map((line) => Math.max(1, Math.ceil(line.length / Math.max(charsPerLine, 1))))
-      .reduce((lineSum, value) => lineSum + value, 0);
-
-    return sum + wrappedLines;
-  }, 0);
-
-  return Math.max(
-    lineHeightPx + 12,
-    totalLines * lineHeightPx + Math.max(0, normalized.length - 1) * paragraphSpacePx + 18,
-  );
-}
-
-function estimateCharsPerLine(text: string, widthPx: number, fontSizePx: number): number {
-  const unitWidth = CJK_TEXT_REGEX.test(text) ? fontSizePx * 0.96 : fontSizePx * 0.56;
-  return Math.max(12, Math.floor(widthPx / Math.max(unitWidth, 1)));
-}
-
-let htmlMeasureHost: HTMLDivElement | null = null;
-function getHtmlMeasureHost(): HTMLDivElement | null {
-  if (typeof document === 'undefined') return null;
-  if (htmlMeasureHost && document.body.contains(htmlMeasureHost)) return htmlMeasureHost;
-  const host = document.createElement('div');
-  host.style.position = 'fixed';
-  host.style.left = '-100000px';
-  host.style.top = '0';
-  host.style.width = '0';
-  host.style.height = '0';
-  host.style.opacity = '0';
-  host.style.pointerEvents = 'none';
-  host.style.overflow = 'hidden';
-  host.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(host);
-  htmlMeasureHost = host;
-  return host;
-}
-
-function measureHtmlHeightIfAvailable(args: {
-  html: string;
-  widthPx: number;
-  fontName?: string;
-  lineHeight?: number;
-}): number | null {
-  const host = getHtmlMeasureHost();
-  if (!host) return null;
-  const node = document.createElement('div');
-  node.style.width = `${Math.max(1, Math.ceil(args.widthPx))}px`;
-  node.style.boxSizing = 'border-box';
-  node.style.wordBreak = 'break-word';
-  node.style.overflowWrap = 'break-word';
-  node.style.whiteSpace = 'normal';
-  node.style.fontFamily = args.fontName || 'Microsoft YaHei';
-  node.style.lineHeight = String(args.lineHeight ?? 1.35);
-  node.innerHTML = args.html;
-  host.appendChild(node);
-  const measured = Math.ceil(node.scrollHeight);
-  host.removeChild(node);
-  return Number.isFinite(measured) && measured > 0 ? measured : null;
-}
-
-function wrapLineByWidth(text: string, maxChars: number): string[] {
-  const normalized = text.trim();
-  if (!normalized) return [];
-  if (normalized.length <= maxChars) return [normalized];
-
-  const hasWhitespace = /\s/.test(normalized);
-  if (!hasWhitespace) {
-    const chunks: string[] = [];
-    let remaining = normalized;
-    while (remaining.length > maxChars) {
-      chunks.push(remaining.slice(0, maxChars));
-      remaining = remaining.slice(maxChars);
-    }
-    if (remaining) chunks.push(remaining);
-    return chunks;
-  }
-
-  const tokens = normalized.split(/(\s+)/).filter(Boolean);
-  const lines: string[] = [];
-  let current = '';
-
-  const pushCurrent = () => {
-    const trimmed = current.trim();
-    if (trimmed) lines.push(trimmed);
-    current = '';
-  };
-
-  for (const token of tokens) {
-    if (!token.trim()) {
-      current += token;
-      continue;
-    }
-
-    const candidate = current ? `${current}${token}` : token;
-    if (candidate.trim().length <= maxChars) {
-      current = candidate;
-      continue;
-    }
-
-    if (current.trim()) {
-      pushCurrent();
-    }
-
-    if (token.length <= maxChars) {
-      current = token;
-      continue;
-    }
-
-    let remaining = token;
-    while (remaining.length > maxChars) {
-      lines.push(remaining.slice(0, maxChars));
-      remaining = remaining.slice(maxChars);
-    }
-    current = remaining;
-  }
-
-  pushCurrent();
-  return lines;
-}
-
-function wrapTextToLines(text: string, maxChars: number): string[] {
-  const paragraphs = text
-    .replace(/\r/g, '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const lines = paragraphs.flatMap((paragraph) => wrapLineByWidth(paragraph, maxChars));
-  return lines.length > 0 ? lines : [''];
-}
-
-function ellipsizeLine(text: string, maxChars: number): string {
-  const normalized = text.trim();
-  if (normalized.length <= maxChars) return normalized;
-  return `${normalized.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
-}
-
 function clampWrappedLines(lines: string[], _maxLines: number, _maxChars: number): string[] {
   // Keep full content: no truncation at generation-time.
   return lines;
@@ -742,8 +572,6 @@ function fitParagraphBlockToHeight(args: {
   color: string;
 }): { html: string; height: number } {
   const normalized = args.text.replace(/\r/g, '').trim();
-  const maxChars = estimateCharsPerLine(normalized, args.widthPx, args.fontSizePx);
-  const height = estimateParagraphHeight(normalized, maxChars, args.lineHeightPx);
   const paragraphLines = normalized
     .split('\n')
     .map((line) => line.trim())
@@ -753,15 +581,17 @@ function fitParagraphBlockToHeight(args: {
       ? paragraphLines.map((line) => renderInlineLatexToHtml(line)).join('<br/>')
       : renderInlineLatexToHtml(normalized);
   const paragraphNodeHtml = `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${paragraphHtml}</p>`;
-  const measuredHeight = measureHtmlHeightIfAvailable({
-    html: paragraphNodeHtml,
+  const measurement = measureParagraphBlock({
+    text: normalized,
     widthPx: args.widthPx,
-    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
+    fontSizePx: args.fontSizePx,
+    lineHeightPx: args.lineHeightPx,
+    color: args.color,
   });
 
   return {
     html: paragraphNodeHtml,
-    height: measuredHeight ?? height,
+    height: measurement.height,
   };
 }
 
@@ -777,14 +607,10 @@ function fitBulletListBlockToHeight(args: {
 }): { html: string; height: number } {
   const paragraphGapPx = args.paragraphGapPx ?? 5;
   const htmlParts: string[] = [];
-  let usedHeight = 18;
 
   for (const item of args.items) {
     const normalizedItem = item.replace(/\r/g, '').trim();
     if (!normalizedItem) continue;
-    const maxChars = estimateCharsPerLine(normalizedItem, args.widthPx - 16, args.fontSizePx);
-    const wrapped = wrapTextToLines(normalizedItem, maxChars);
-    const gap = htmlParts.length > 0 ? paragraphGapPx : 0;
     const logicalLines = normalizedItem
       .split('\n')
       .map((line) => line.trim())
@@ -796,39 +622,25 @@ function fitBulletListBlockToHeight(args: {
           : `${'&nbsp;'.repeat(4)}${renderInlineLatexToHtml(line)}`,
       )
       .join('<br/>');
-    const estimatedLineCount = Math.max(1, wrapped.length);
 
     htmlParts.push(
       `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${lineHtml}</p>`,
     );
-    usedHeight += gap + estimatedLineCount * args.lineHeightPx;
   }
 
-  const height = Math.max(args.lineHeightPx + 12, usedHeight);
-  const measuredHeight = measureHtmlHeightIfAvailable({
-    html: htmlParts.join(''),
+  const measurement = measureBulletListBlock({
+    items: args.items,
     widthPx: args.widthPx,
-    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
+    fontSizePx: args.fontSizePx,
+    lineHeightPx: args.lineHeightPx,
+    color: args.color,
+    bulletColor: args.bulletColor,
+    paragraphGapPx,
   });
   return {
     html: htmlParts.join(''),
-    height: measuredHeight ?? height,
+    height: measurement.height,
   };
-}
-
-function measureParagraphHeightIfAvailable(args: {
-  text: string;
-  widthPx: number;
-  fontSizePx: number;
-  lineHeightPx: number;
-  color: string;
-}): number | null {
-  const html = `<p style="font-size:${args.fontSizePx}px;color:${args.color};line-height:${args.lineHeightPx}px;">${renderInlineLatexToHtml(args.text)}</p>`;
-  return measureHtmlHeightIfAvailable({
-    html,
-    widthPx: args.widthPx,
-    lineHeight: args.lineHeightPx / Math.max(1, args.fontSizePx),
-  });
 }
 
 function createTextElement(args: {
@@ -1149,80 +961,6 @@ function getLayoutCardsItemTone(
   }
 }
 
-function resolveLayoutCardsVisualColumns(columns: 2 | 3 | 4): number {
-  return columns === 4 ? 2 : columns;
-}
-
-function measureLayoutCardsLayout(args: {
-  items: LayoutCardsBlock['items'];
-  columns: 2 | 3 | 4;
-}): {
-  columns: number;
-  cellWidth: number;
-  gapX: number;
-  gapY: number;
-  rowHeights: number[];
-  totalHeight: number;
-} {
-  if (args.items.length === 0) {
-    return {
-      columns: 0,
-      cellWidth: CONTENT_WIDTH,
-      gapX: 10,
-      gapY: 10,
-      rowHeights: [],
-      totalHeight: 0,
-    };
-  }
-
-  const parsedColumns = Number(args.columns);
-  const requestedColumns = resolveLayoutCardsVisualColumns(
-    parsedColumns === 2 || parsedColumns === 3 || parsedColumns === 4 ? parsedColumns : 2,
-  );
-  let columns =
-    args.items.length === 1 ? 1 : Math.max(1, Math.min(requestedColumns, args.items.length));
-  // For exactly two cards, keep side-by-side layout stable.
-  if (args.items.length === 2 && requestedColumns >= 2) {
-    columns = 2;
-  }
-  const gapX = 10;
-  const gapY = 10;
-  const cellWidth = (CONTENT_WIDTH - Math.max(0, columns - 1) * gapX) / columns;
-  const rowCount = Math.ceil(args.items.length / columns);
-  const rowHeights = Array.from({ length: rowCount }, () => 0);
-
-  args.items.forEach((item, index) => {
-    const row = Math.floor(index / columns);
-    const bodyHeight = fitParagraphBlockToHeight({
-      text: item.text,
-      widthPx: Math.max(120, cellWidth - CARD_INSET_X * 2),
-      fontSizePx: 14,
-      lineHeightPx: 18,
-      maxHeightPx: 320,
-      color: '#334155',
-    }).height;
-    const titleHeight = fitParagraphBlockToHeight({
-      text: item.title,
-      widthPx: Math.max(120, cellWidth - CARD_INSET_X * 2),
-      fontSizePx: 13,
-      lineHeightPx: 18,
-      maxHeightPx: 90,
-      color: '#334155',
-    }).height;
-    rowHeights[row] = Math.max(rowHeights[row], Math.max(72, titleHeight + bodyHeight + 18));
-  });
-
-  return {
-    columns,
-    cellWidth,
-    gapX,
-    gapY,
-    rowHeights,
-    totalHeight:
-      rowHeights.reduce((sum, value) => sum + value, 0) + Math.max(0, rowHeights.length - 1) * gapY,
-  };
-}
-
 function renderLayoutCardsBlock(args: {
   block: LayoutCardsBlock;
   top: number;
@@ -1253,26 +991,70 @@ function renderLayoutCardsBlock(args: {
     items: args.block.items,
     columns: args.block.columns,
   });
-  if (layout.columns === 0) {
+  const requestedColumns = args.block.columns === 4 ? 2 : args.block.columns;
+  const normalizedColumns =
+    args.block.items.length === 1
+      ? 1
+      : args.block.items.length === 2 && requestedColumns >= 2
+        ? 2
+        : Math.max(1, Math.min(requestedColumns, args.block.items.length));
+  const effectiveLayout =
+    layout.columns === normalizedColumns
+      ? layout
+      : (() => {
+          const gapX = 10;
+          const gapY = 10;
+          const cellWidth =
+            (CONTENT_WIDTH - Math.max(0, normalizedColumns - 1) * gapX) /
+            Math.max(1, normalizedColumns);
+          const rowCount = Math.ceil(args.block.items.length / Math.max(1, normalizedColumns));
+          const rowHeights = Array.from({ length: rowCount }, () => 0);
+          args.block.items.forEach((item, index) => {
+            const row = Math.floor(index / Math.max(1, normalizedColumns));
+            const body = measureParagraphBlock({
+              text: item.text,
+              widthPx: Math.max(120, cellWidth - CARD_INSET_X * 2),
+              fontSizePx: 14,
+              lineHeightPx: 18,
+            });
+            const title = measureParagraphBlock({
+              text: item.title,
+              widthPx: Math.max(120, cellWidth - CARD_INSET_X * 2),
+              fontSizePx: 13,
+              lineHeightPx: 18,
+            });
+            rowHeights[row] = Math.max(rowHeights[row], Math.max(72, title.height + body.height + 18));
+          });
+          return {
+            columns: normalizedColumns,
+            cellWidth,
+            gapX,
+            gapY,
+            rowHeights,
+            totalHeight:
+              rowHeights.reduce((sum, value) => sum + value, 0) + Math.max(0, rowHeights.length - 1) * gapY,
+          };
+        })();
+  if (effectiveLayout.columns === 0) {
     return { elements, height: cursorTop - args.top };
   }
 
   let rowCursorTop = cursorTop;
   let rowIndex = 0;
   args.block.items.forEach((item, index) => {
-    const column = index % layout.columns;
-    const row = Math.floor(index / layout.columns);
+    const column = index % effectiveLayout.columns;
+    const row = Math.floor(index / effectiveLayout.columns);
     if (row !== rowIndex) {
-      rowCursorTop += layout.rowHeights[rowIndex] + layout.gapY;
+      rowCursorTop += effectiveLayout.rowHeights[rowIndex] + effectiveLayout.gapY;
       rowIndex = row;
     }
-    const left = CONTENT_LEFT + column * (layout.cellWidth + layout.gapX);
-    const rowHeight = layout.rowHeights[row];
+    const left = CONTENT_LEFT + column * (effectiveLayout.cellWidth + effectiveLayout.gapX);
+    const rowHeight = effectiveLayout.rowHeights[row];
     const fallbackAccent = args.cardPalettes[index % args.cardPalettes.length]?.accent || '#2563eb';
     const tone = getLayoutCardsItemTone(item.tone, fallbackAccent);
     const body = fitParagraphBlockToHeight({
       text: item.text,
-      widthPx: Math.max(120, layout.cellWidth - CARD_INSET_X * 2),
+      widthPx: Math.max(120, effectiveLayout.cellWidth - CARD_INSET_X * 2),
       fontSizePx: 14,
       lineHeightPx: 18,
       maxHeightPx: rowHeight,
@@ -1282,7 +1064,7 @@ function renderLayoutCardsBlock(args: {
       createRectShape({
         left,
         top: rowCursorTop,
-        width: layout.cellWidth,
+        width: effectiveLayout.cellWidth,
         height: rowHeight,
         fill: tone.fill,
         outlineColor: tone.border,
@@ -1302,7 +1084,7 @@ function renderLayoutCardsBlock(args: {
     );
   });
 
-  cursorTop += layout.totalHeight;
+  cursorTop += effectiveLayout.totalHeight;
   return {
     elements,
     height: cursorTop - args.top,
@@ -1322,21 +1104,6 @@ function processFlowContextToLayoutCardsBlock(
       tone: item.tone,
     })),
   };
-}
-
-function estimateProcessFlowSummaryHeight(
-  summary: string,
-  widthPx: number,
-): number {
-  const paragraph = fitParagraphBlockToHeight({
-    text: summary,
-    widthPx,
-    fontSizePx: 14,
-    lineHeightPx: 20,
-    maxHeightPx: 220,
-    color: '#334155',
-  });
-  return paragraph.height + 26;
 }
 
 function fitProcessFlowSummaryCard(args: {
@@ -1366,41 +1133,6 @@ function fitProcessFlowSummaryCard(args: {
   };
 }
 
-function estimateProcessFlowStepCardHeight(args: {
-  step: ProcessFlowBlock['steps'][number];
-  widthPx: number;
-  orientation: ProcessFlowBlock['orientation'];
-}): number {
-  const titleHeight = fitGridHeadingToHeight({
-    text: args.step.title,
-    widthPx: args.widthPx,
-    maxHeightPx: 48,
-    color: '#0f172a',
-  }).height;
-  const detailHeight = fitParagraphBlockToHeight({
-    text: args.step.detail,
-    widthPx: args.widthPx,
-    fontSizePx: args.orientation === 'horizontal' ? 13 : 14,
-    lineHeightPx: args.orientation === 'horizontal' ? 18 : 20,
-    maxHeightPx: 260,
-    color: '#334155',
-  }).height;
-  const noteHeight = args.step.note
-    ? fitParagraphBlockToHeight({
-        text: args.step.note,
-        widthPx: args.widthPx,
-        fontSizePx: 12,
-        lineHeightPx: 16,
-        maxHeightPx: 80,
-        color: '#475569',
-      }).height + 6
-    : 0;
-
-  return Math.max(
-    args.orientation === 'horizontal' ? 112 : 84,
-    titleHeight + detailHeight + noteHeight + 28,
-  );
-}
 
 function fitProcessFlowStepCard(args: {
   step: ProcessFlowBlock['steps'][number];
@@ -1452,59 +1184,6 @@ function fitProcessFlowStepCard(args: {
   };
 }
 
-function estimateProcessFlowBlockHeight(args: {
-  block: ProcessFlowBlock;
-  language: 'zh-CN' | 'en-US';
-}): number {
-  const titleHeight = args.block.title ? 34 : 0;
-  const contextCards = processFlowContextToLayoutCardsBlock(args.block.context);
-  const contextHeight = contextCards
-    ? measureLayoutCardsLayout({
-        items: contextCards.items,
-        columns: contextCards.columns,
-      }).totalHeight + 14
-    : 0;
-  const summaryHeight = args.block.summary
-    ? estimateProcessFlowSummaryHeight(args.block.summary, CONTENT_WIDTH - CARD_INSET_X * 2) + 12
-    : 0;
-
-  if (args.block.orientation === 'horizontal') {
-    const gapX = args.block.steps.length > 3 ? 14 : 18;
-    const stepWidth =
-      (CONTENT_WIDTH - Math.max(0, args.block.steps.length - 1) * gapX) /
-      Math.max(args.block.steps.length, 1);
-    const innerWidth = Math.max(104, stepWidth - CARD_INSET_X * 2);
-    const stepHeight = Math.max(
-      112,
-      ...args.block.steps.map((step) =>
-        estimateProcessFlowStepCardHeight({
-          step,
-          widthPx: innerWidth,
-          orientation: 'horizontal',
-        }),
-      ),
-    );
-    return titleHeight + contextHeight + stepHeight + summaryHeight + 12;
-  }
-
-  const stepWidth = CONTENT_WIDTH;
-  const stepHeights = args.block.steps.map((step) =>
-    estimateProcessFlowStepCardHeight({
-      step,
-      widthPx: stepWidth - CARD_INSET_X * 2,
-      orientation: 'vertical',
-    }),
-  );
-
-  return (
-    titleHeight +
-    contextHeight +
-    stepHeights.reduce((sum, value) => sum + value, 0) +
-    Math.max(0, stepHeights.length - 1) * 12 +
-    summaryHeight +
-    12
-  );
-}
 
 function renderProcessFlowBlock(args: {
   block: ProcessFlowBlock;
@@ -1638,18 +1317,6 @@ function renderProcessFlowBlock(args: {
       return centerY;
     });
     localTop = cursorTop;
-
-    if (markerCenters.length > 1) {
-      elements.push(
-        createLineElement({
-          start: [timelineX, markerCenters[0]],
-          end: [timelineX, markerCenters[markerCenters.length - 1]],
-          color: '#cbd5e1',
-          width: 1,
-          groupId,
-        }),
-      );
-    }
 
     args.block.steps.forEach((step, index) => {
       const tone = args.cardPalettes[index % args.cardPalettes.length];
@@ -1903,7 +1570,7 @@ function splitProcessFlowBlockForPagination(
   }
 
   const maxBlockHeight = 334;
-  const chunks: NotebookContentBlock[] = [];
+  const chunks: ProcessFlowBlock[] = [];
   let currentSteps: ProcessFlowBlock['steps'] = [];
 
   const buildCandidate = (
@@ -1948,7 +1615,33 @@ function splitProcessFlowBlockForPagination(
     );
   }
 
-  return chunks.length > 0 ? chunks : [block];
+  if (chunks.length <= 1) {
+    return chunks.length > 0 ? chunks : [block];
+  }
+
+  const balancedChunks: ProcessFlowBlock[] = chunks.map((chunk) => ({
+    ...chunk,
+    context: [...chunk.context],
+    steps: [...chunk.steps],
+  }));
+
+  for (let index = 0; index < balancedChunks.length - 1; index += 1) {
+    const current = balancedChunks[index];
+    const next = balancedChunks[index + 1];
+    if (next.steps.length > 1 || current.steps.length < 3) continue;
+
+    const movedStep = current.steps[current.steps.length - 1];
+    balancedChunks[index] = {
+      ...current,
+      steps: current.steps.slice(0, -1),
+    };
+    balancedChunks[index + 1] = {
+      ...next,
+      steps: [movedStep, ...next.steps],
+    };
+  }
+
+  return balancedChunks;
 }
 
 function prepareBlocksForPagination(
@@ -2119,7 +1812,12 @@ function fitGridHeadingToHeight(args: {
           `<p style="font-size:16px;color:${args.color};line-height:22px;"><strong>${renderInlineLatexToHtml(line)}</strong></p>`,
       )
       .join(''),
-    height: Math.max(24, fitted.length * 22 + 8),
+    height: estimateGridHeadingHeight({
+      text: args.text,
+      widthPx: args.widthPx,
+      fontSizePx: 16,
+      lineHeightPx: 22,
+    }),
   };
 }
 
@@ -2299,6 +1997,56 @@ function expandSingleOccupancyRows(elements: PPTElement[]): PPTElement[] {
   return cloned;
 }
 
+function alignGridCellRowTop(args: {
+  elements: PPTElement[];
+  bodyTop: number;
+  rowTops: number[];
+}): PPTElement[] {
+  return args.elements.map((element) => {
+    if (!hasBoxGeometry(element)) return element;
+    if (!element.groupId?.startsWith('grid_cell_')) return element;
+    const match = element.groupId.match(/^grid_cell_(\d+)_(\d+)$/);
+    if (!match) return element;
+    const row = Number.parseInt(match[1], 10);
+    if (!Number.isFinite(row) || row < 0 || row >= args.rowTops.length) return element;
+    const expectedTop = args.bodyTop + args.rowTops[row];
+    if (Math.abs(element.top - expectedTop) <= 0.5) return element;
+    return {
+      ...element,
+      top: expectedTop,
+    };
+  });
+}
+
+function alignTwoCardLayoutRows(elements: PPTElement[]): PPTElement[] {
+  const groups = new Map<string, Array<{ id: string; top: number; left: number; width: number }>>();
+  elements.forEach((element) => {
+    if (!hasBoxGeometry(element)) return;
+    if (!element.groupId?.startsWith('layout_cards_')) return;
+    const list = groups.get(element.groupId) || [];
+    list.push({ id: element.id, top: element.top, left: element.left, width: element.width });
+    groups.set(element.groupId, list);
+  });
+
+  if (groups.size === 0) return elements;
+  const next = elements.map((element) => ({ ...element })) as PPTElement[];
+  const byId = new Map(next.map((element) => [element.id, element] as const));
+
+  for (const cards of groups.values()) {
+    if (cards.length !== 2) continue;
+    const [a, b] = cards;
+    const horizontallySeparated = Math.abs(a.left - b.left) > Math.min(a.width, b.width) * 0.45;
+    if (!horizontallySeparated) continue;
+    const targetTop = Math.min(a.top, b.top);
+    const first = byId.get(a.id);
+    const second = byId.get(b.id);
+    if (first && hasBoxGeometry(first)) first.top = targetTop;
+    if (second && hasBoxGeometry(second)) second.top = targetTop;
+  }
+
+  return next;
+}
+
 function buildStackUnderfillExpansionRequests(args: {
   elements: PPTElement[];
   bodyTop: number;
@@ -2341,20 +2089,32 @@ function estimateGridBodyHeight(args: {
   widthPx: number;
 }): number {
   if (args.block.type === 'paragraph') {
-    const charsPerLine = estimateCharsPerLine(args.block.text, args.widthPx, 14);
-    return estimateParagraphHeight(args.block.text, charsPerLine, 20);
+    return estimateParagraphHeightForWidth({
+      text: args.block.text,
+      widthPx: args.widthPx,
+      fontSizePx: 14,
+      lineHeightPx: 20,
+    });
   }
 
   if (args.block.type === 'bullet_list') {
-    const joined = args.block.items.join('\n');
-    const charsPerLine = estimateCharsPerLine(joined, Math.max(120, args.widthPx - 16), 14);
-    return estimateParagraphStackHeight(args.block.items, charsPerLine, 20, 5);
+    return estimateParagraphStackHeightForWidth({
+      items: args.block.items,
+      widthPx: Math.max(120, args.widthPx - 16),
+      fontSizePx: 14,
+      lineHeightPx: 20,
+      paragraphSpacePx: 5,
+    });
   }
 
   const bodyLines = blockToGridBody(args.language, args.block);
-  const joined = bodyLines.join('\n');
-  const charsPerLine = estimateCharsPerLine(joined, Math.max(120, args.widthPx - 16), 14);
-  return estimateParagraphStackHeight(bodyLines, charsPerLine, 20, 5);
+  return estimateParagraphStackHeightForWidth({
+    items: bodyLines,
+    widthPx: Math.max(120, args.widthPx - 16),
+    fontSizePx: 14,
+    lineHeightPx: 20,
+    paragraphSpacePx: 5,
+  });
 }
 
 function computeAdaptiveGridRowHeights(args: {
@@ -2378,7 +2138,10 @@ function computeAdaptiveGridRowHeights(args: {
   let rowHeights: number[];
   if (desiredTotal <= availableHeight) {
     const leftover = availableHeight - desiredTotal;
-    const extraPerRow = leftover / usedRows;
+    // Keep grid cards close to their content-driven height. Stretching rows to
+    // fill the whole body makes sparse pages look unfinished and introduces
+    // oversized cards with large internal whitespace.
+    const extraPerRow = Math.min(leftover / usedRows, GRID_MAX_AUTO_STRETCH_PER_ROW);
     rowHeights = desired.map((value) => value + extraPerRow);
   } else {
     const desiredExtras = desired.map((value) => Math.max(0, value - baseMinHeight));
@@ -2628,6 +2391,11 @@ export function renderNotebookContentDocumentToSlide(args: {
       );
     });
 
+    const gridElements = alignGridCellRowTop({
+      elements: stripShapeElements(elements),
+      bodyTop,
+      rowTops: adaptive.rowTops,
+    });
     return {
       id: `slide_${nanoid(8)}`,
       viewportSize: CANVAS_WIDTH,
@@ -2638,9 +2406,9 @@ export function renderNotebookContentDocumentToSlide(args: {
         fontColor: tokens.titleText,
         fontName: 'Microsoft YaHei',
       },
-      // Grid cards already have explicit row/column sizing. Post-layout text reflow
-      // can stretch cards and break 2x2 visual alignment into a waterfall.
-      elements: stripShapeElements(elements),
+      // Grid cards already have explicit row/column sizing. Keep a deterministic
+      // row-top invariant here so same-row cards never drift into a staircase.
+      elements: gridElements,
       background: {
         type: 'gradient',
         gradient: {
@@ -3223,16 +2991,20 @@ export function renderNotebookContentDocumentToSlide(args: {
   const usedBottom = elements
     .filter(hasBoxGeometry)
     .reduce((maxBottom, element) => Math.max(maxBottom, element.top + element.height), archetypeLayout.bodyTop);
-  const underfillExpansion = buildStackUnderfillExpansionRequests({
-    elements,
-    bodyTop: archetypeLayout.bodyTop,
-    usedBottom,
-  });
+  const hasProcessFlowBlock = effectiveBlocks.some((block) => block.type === 'process_flow');
+  const underfillExpansion = hasProcessFlowBlock
+    ? {}
+    : buildStackUnderfillExpansionRequests({
+        elements,
+        bodyTop: archetypeLayout.bodyTop,
+        usedBottom,
+      });
   const reflowedElements = applyAutoHeightReflow({
     elements,
     requestedHeights: underfillExpansion,
   });
   const noShapeElements = stripShapeElements(reflowedElements);
+  const alignedLayoutCards = alignTwoCardLayoutRows(noShapeElements);
 
   return {
     id: `slide_${nanoid(8)}`,
@@ -3244,7 +3016,7 @@ export function renderNotebookContentDocumentToSlide(args: {
       fontColor: tokens.titleText,
       fontName: 'Microsoft YaHei',
     },
-    elements: normalizeSlideTextLayout(expandSingleOccupancyRows(noShapeElements), {
+    elements: normalizeSlideTextLayout(expandSingleOccupancyRows(alignedLayoutCards), {
       width: CANVAS_WIDTH,
       height: CANVAS_HEIGHT,
     }),
@@ -3323,19 +3095,6 @@ function getArchetypeBlockBudget(archetype: NotebookSlideArchetype): number {
   }
 }
 
-function estimateWrappedLineCount(
-  text: string,
-  language: 'zh-CN' | 'en-US',
-  maxCharsPerLine: number,
-): number {
-  const normalized = text.replace(/\r\n/g, '\n').trim();
-  if (!normalized) return 0;
-  const unitScale = language === 'zh-CN' ? 1 : 0.55;
-  return normalized
-    .split('\n')
-    .reduce((sum, line) => sum + Math.max(1, Math.ceil((line.length * unitScale) / maxCharsPerLine)), 0);
-}
-
 function collectDenseBlockReasons(
   blocks: NotebookContentBlock[],
   language: 'zh-CN' | 'en-US',
@@ -3395,57 +3154,6 @@ function getSoftPageBottomLimit(layout: ReturnType<typeof getArchetypeLayoutSett
   return layout.bodyTop + bodyHeight * SOFT_PAGE_HEIGHT_RATIO;
 }
 
-function assessPageUsage(args: {
-  blocks: NotebookContentBlock[];
-  language: 'zh-CN' | 'en-US';
-  layout: ReturnType<typeof getArchetypeLayoutSettings>;
-}): {
-  estimatedBottom: number;
-  estimatedHeight: number;
-  densityScore: number;
-  visualBlockCount: number;
-} {
-  let cursorTop = args.layout.bodyTop;
-  let visualBlockIndex = 0;
-  let densityScore = 0.5;
-
-  for (const block of args.blocks) {
-    const estimate = assessExpandedBlockHeight(block, args.language, visualBlockIndex);
-    cursorTop += toRenderAwareBudgetHeight({
-      block,
-      measuredHeight: estimate.height,
-      measuredWithDom: estimate.measuredWithDom,
-    });
-    densityScore += estimate.densityDelta;
-    if (estimate.consumesVisualCard) {
-      visualBlockIndex += 1;
-    }
-  }
-
-  return {
-    estimatedBottom: cursorTop,
-    estimatedHeight: Math.max(0, cursorTop - args.layout.bodyTop),
-    densityScore,
-    visualBlockCount: visualBlockIndex,
-  };
-}
-
-function calcSparsePenalty(args: {
-  blocks: NotebookContentBlock[];
-  usage: ReturnType<typeof assessPageUsage>;
-  baseBodyHeight: number;
-}): number {
-  if (args.blocks.length === 0) return 9;
-  const fillRatio = args.usage.estimatedHeight / Math.max(1, args.baseBodyHeight);
-  let penalty = 0;
-  if (args.blocks.length === 1) penalty += 5.5;
-  if (args.blocks.length === 2 && fillRatio < 0.36) penalty += 1.8;
-  if (fillRatio < 0.26) penalty += 2.8;
-  else if (fillRatio < 0.36) penalty += 1.4;
-  else if (fillRatio < 0.48) penalty += 0.7;
-  return penalty;
-}
-
 function rebalancePaginatedPages(args: {
   pages: NotebookContentBlock[][];
   language: 'zh-CN' | 'en-US';
@@ -3455,7 +3163,7 @@ function rebalancePaginatedPages(args: {
 }): NotebookContentBlock[][] {
   if (args.pages.length <= 1) return args.pages;
   const pages = args.pages.map((page) => [...page]);
-  const baseBodyHeight = Math.max(1, CONTENT_BOTTOM - args.layout.bodyTop);
+  const baseBodyHeight = getBaseBodyHeight(args.layout.bodyTop);
   const rebalanceBottomLimit =
     args.layout.bodyTop + baseBodyHeight * Math.max(SOFT_PAGE_HEIGHT_RATIO, PAGINATION_REBALANCE_HEIGHT_RATIO);
   const rebalanceDensityLimit = args.maxDensityScore * PAGINATION_REBALANCE_DENSITY_RATIO;
@@ -3532,281 +3240,6 @@ function rebalancePaginatedPages(args: {
   }
 
   return pages.filter((page) => page.length > 0);
-}
-
-function assessExpandedBlockHeight(
-  block: NotebookContentBlock,
-  language: 'zh-CN' | 'en-US',
-  visualBlockIndex: number,
-): { height: number; densityDelta: number; consumesVisualCard: boolean; measuredWithDom: boolean } {
-  if (block.type === 'heading') {
-    const height = block.level <= 2 ? 34 : 28;
-    return {
-      height: height + 10,
-      densityDelta: block.level <= 2 ? 0.55 : 0.35,
-      consumesVisualCard: false,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'paragraph') {
-    const paragraph = fitParagraphBlockToHeight({
-      text: block.text,
-      widthPx: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
-      fontSizePx: 16,
-      lineHeightPx: 22,
-      maxHeightPx: 960,
-      color: '#334155',
-    });
-    const densityDelta = 0.9 + Math.min(0.95, block.text.length / 850);
-    return {
-      height: paragraph.height + CARD_INSET_Y * 2 + 10,
-      densityDelta,
-      consumesVisualCard: true,
-      measuredWithDom: typeof document !== 'undefined',
-    };
-  }
-
-  if (block.type === 'bullet_list') {
-    const tone = getProfileTokens('general').cardPalettes[visualBlockIndex % 4];
-    const bulletList = fitBulletListBlockToHeight({
-      items: block.items,
-      widthPx: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
-      fontSizePx: 16,
-      lineHeightPx: 20,
-      maxHeightPx: 960,
-      color: '#334155',
-      bulletColor: tone.accent,
-    });
-    const totalChars = block.items.reduce((sum, item) => sum + item.length, 0);
-    const densityDelta = 1.1 + block.items.length * 0.18 + Math.min(0.8, totalChars / 1600);
-    return {
-      height: bulletList.height + CARD_INSET_Y * 2 + 10,
-      densityDelta,
-      consumesVisualCard: true,
-      measuredWithDom: typeof document !== 'undefined',
-    };
-  }
-
-  if (block.type === 'equation') {
-    return {
-      height:
-        estimateLatexDisplayHeight(block.latex, block.display) +
-        CARD_INSET_Y * 2 +
-        (block.caption ? 22 : 0) +
-        10,
-      densityDelta: block.display ? 1.2 : 1.0,
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'matrix') {
-    const rows = block.rows.length;
-    const cols = Math.max(...block.rows.map((row) => row.length));
-    return {
-      height:
-        estimateLatexDisplayHeight(matrixBlockToLatex(block), true) +
-        CARD_INSET_Y * 2 +
-        (block.label ? 24 : 0) +
-        (block.caption ? 22 : 0) +
-        10,
-      densityDelta: 1.45 + rows * 0.12 + cols * 0.08,
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'code_block') {
-    const lineCount = block.code.split('\n').length;
-    return {
-      height: estimateCodeBlockHeight(block.code, block.caption ? 1 : 0) + 12,
-      densityDelta: 1.6 + Math.min(1.2, lineCount * 0.08),
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'code_walkthrough') {
-    const titleHeight = block.title ? 34 : 0;
-    const codeHeight = estimateCodeBlockHeight(block.code, block.caption ? 1 : 0) + 10;
-    const stepItems = block.steps.map((step, idx) => {
-      const focus = step.title || step.focus;
-      return `${idx + 1}. ${focus ? `${focus}: ` : ''}${step.explanation}`;
-    });
-    const stepHeight =
-      Math.min(180, Math.max(56, estimateParagraphStackHeight(stepItems, 34, 20))) +
-      CARD_INSET_Y * 2 +
-      10;
-    const outputHeight = block.output ? estimateCodeBlockHeight(block.output, 1) + 10 : 0;
-    return {
-      height: titleHeight + codeHeight + stepHeight + outputHeight,
-      densityDelta:
-        2.3 +
-        Math.min(1.1, block.code.split('\n').length * 0.05) +
-        Math.min(1.0, block.steps.length * 0.22),
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'process_flow') {
-    const stepDetailChars = block.steps.reduce((sum, step) => sum + step.detail.length, 0);
-    return {
-      height: estimateProcessFlowBlockHeight({ block, language }),
-      densityDelta:
-        2.2 +
-        Math.min(1.35, block.steps.length * 0.24) +
-        Math.min(0.85, block.context.length * 0.2) +
-        Math.min(0.95, stepDetailChars / 680),
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'layout_cards') {
-    const measured = measureLayoutCardsLayout({
-      items: block.items,
-      columns: block.columns,
-    });
-    const normalizedColumns = Number(block.columns);
-    const textChars = block.items.reduce((sum, item) => sum + item.text.length + item.title.length, 0);
-    const compactPenalty = normalizedColumns === 2 && block.items.length >= 4 ? 0.75 : 0.35;
-    return {
-      height: measured.totalHeight + (block.title ? 34 : 0) + 12,
-      densityDelta:
-        1.35 +
-        Math.min(0.95, block.items.length * 0.24) +
-        compactPenalty +
-        Math.min(0.8, textChars / 980),
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'table') {
-    const rowCount = block.rows.length + (block.headers?.length ? 1 : 0);
-    const colCount = Math.max(
-      block.headers?.length ?? 0,
-      ...block.rows.map((row) => row.length),
-      1,
-    );
-    const maxCellLength = block.rows.reduce(
-      (currentMax, row) => Math.max(currentMax, ...row.map((cell) => cell.length)),
-      0,
-    );
-    return {
-      height: Math.min(220, Math.max(72, rowCount * 34 + 12)) + (block.caption ? 38 : 12),
-      densityDelta: 1.7 + rowCount * 0.15 + colCount * 0.1 + Math.min(0.9, maxCellLength / 180),
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  if (block.type === 'callout') {
-    const measuredTextHeight = measureParagraphHeightIfAvailable({
-      text: block.text,
-      widthPx: CONTENT_WIDTH - 22 - 10,
-      fontSizePx: 15,
-      lineHeightPx: 21,
-      color: '#334155',
-    });
-    return {
-      height: (measuredTextHeight ?? estimateParagraphHeight(block.text, 36, 20)) + (block.title ? 28 : 12) + 12,
-      densityDelta: 0.95 + Math.min(0.75, block.text.length / 900),
-      consumesVisualCard: true,
-      measuredWithDom: measuredTextHeight !== null,
-    };
-  }
-
-  if (block.type === 'definition') {
-    const measuredTextHeight = measureParagraphHeightIfAvailable({
-      text: block.text,
-      widthPx: CONTENT_WIDTH - 22 - 10,
-      fontSizePx: 15,
-      lineHeightPx: 21,
-      color: '#334155',
-    });
-    return {
-      height: (measuredTextHeight ?? estimateParagraphHeight(block.text, 36, 20)) + 40,
-      densityDelta: 1.0 + Math.min(0.7, block.text.length / 1000),
-      consumesVisualCard: true,
-      measuredWithDom: measuredTextHeight !== null,
-    };
-  }
-
-  if (block.type === 'theorem') {
-    const supportLength = block.proofIdea?.length ?? 0;
-    const measuredTextHeight = measureParagraphHeightIfAvailable({
-      text: supportLength > 0 ? `${block.text}\n${block.proofIdea}` : block.text,
-      widthPx: CONTENT_WIDTH - 22 - 10,
-      fontSizePx: 15,
-      lineHeightPx: 21,
-      color: '#334155',
-    });
-    return {
-      height:
-        (measuredTextHeight ??
-          estimateParagraphHeight(
-            supportLength > 0 ? `${block.text}\n${block.proofIdea}` : block.text,
-            36,
-            20,
-          )) + 40,
-      densityDelta: 1.15 + Math.min(0.85, (block.text.length + supportLength) / 1200),
-      consumesVisualCard: true,
-      measuredWithDom: measuredTextHeight !== null,
-    };
-  }
-
-  if (block.type === 'chem_formula' || block.type === 'chem_equation') {
-    return {
-      height: 34 + (block.caption ? 24 : 0) + CARD_INSET_Y * 2 + 10,
-      densityDelta: 1.05,
-      consumesVisualCard: true,
-      measuredWithDom: false,
-    };
-  }
-
-  return {
-    height: language === 'en-US' ? 110 : 100,
-    densityDelta: 1.0,
-    consumesVisualCard: true,
-    measuredWithDom: false,
-  };
-}
-
-function toRenderAwareBudgetHeight(args: {
-  block: NotebookContentBlock;
-  measuredHeight: number;
-  measuredWithDom: boolean;
-}): number {
-  if (args.measuredWithDom) {
-    return Math.max(40, Math.ceil(args.measuredHeight));
-  }
-  // Keep pagination closer to actual rendered height after runtime text shrink-back.
-  // Factors are conservative to avoid aggressive underestimation.
-  let factor = 1;
-  switch (args.block.type) {
-    case 'paragraph':
-    case 'bullet_list':
-      factor = 0.88;
-      break;
-    case 'callout':
-    case 'definition':
-    case 'theorem':
-      factor = 0.9;
-      break;
-    case 'layout_cards':
-      factor = 0.92;
-      break;
-    case 'process_flow':
-    case 'table':
-      factor = 0.94;
-      break;
-    default:
-      factor = 1;
-  }
-  return Math.max(40, Math.ceil(args.measuredHeight * factor));
 }
 
 export function assessNotebookContentDocumentForSlide(

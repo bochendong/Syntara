@@ -124,6 +124,9 @@ Grid 使用规则：
 - 当页面天然是“并列对照 / 检查清单 / 紧凑矩阵”时，使用 `layout.mode = "grid"`。
 - 每个格子保持简洁；渲染器会统一同一行高度并自动对齐卡片。
 - `columns` 范围 1-3，`rows` 范围 1-3。
+- grid 下同级卡片默认应并排，不要做对角线摆放。
+- 普通卡片优先只写 `placement.order`，不要填写 `placement.row` / `placement.col`。
+- 仅当区块需要跨行/跨列（`rowSpan` 或 `colSpan` > 1）时，才使用 `placement.row` / `placement.col` 作为锚点。
 - 顺序流程不要靠 grid 模拟；真正的流程页优先使用 `process_flow` 并保持 `layout.mode = "stack"`。
 
 内置文本模板（`templateId`）：
@@ -141,7 +144,7 @@ Grid 使用规则：
 
 `placement` 使用规则：
 - `order`：用于 stack 或 grid 的顺序提示（越小越靠前）
-- `row` / `col`：仅在 grid 下生效，表示希望放到第几行/第几列（从 1 开始）
+- `row` / `col`：仅在 grid 下生效，谨慎使用；主要用于跨行/跨列区块（`rowSpan` / `colSpan` > 1）的显式锚点
 - `rowSpan` / `colSpan`：仅在 grid 下生效，表示跨几行/跨几列（从 1 开始，最大 3）
 - `cardTitle`：可选块标题，渲染时会用比正文更高的字号与强调色
 - `titleTone`：标题色调，可选 `accent | neutral | inverse`（默认 `accent`）

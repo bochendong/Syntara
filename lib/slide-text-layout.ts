@@ -748,6 +748,17 @@ function normalizeStandaloneTextElement(elements: PPTElement[], textIndex: numbe
   const text = nextElements[textIndex];
   if (!text || text.type !== 'text') return nextElements;
   if (findContainingShapePair(nextElements, textIndex)) return nextElements;
+  if (
+    typeof text.groupId === 'string' &&
+    (text.groupId.startsWith('layout_cards_') ||
+      text.groupId.startsWith('process_flow_') ||
+      text.groupId.startsWith('grid_cell_'))
+  ) {
+    // Semantic-layout cards already have deterministic geometry from slide-adapter.
+    // Do not run standalone text reflow here, or same-row cards can be pushed into
+    // a staircase when one card's measured text height grows post-layout.
+    return nextElements;
+  }
 
   const requiredHeight = estimateTextElementContentHeight(text);
   if (requiredHeight <= text.height + 1) return nextElements;

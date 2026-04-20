@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useCanvasStore } from '@/lib/store/canvas';
 import Canvas from './Canvas';
 import type { StageMode } from '@/lib/types/stage';
 import { ScreenCanvas } from './ScreenCanvas';
+
+const DEFAULT_EDITOR_CANVAS_PERCENTAGE = 92;
 
 /**
  * Slide Editor - wraps Canvas with SceneProvider
@@ -14,12 +16,12 @@ export function SlideEditor({ mode }: { readonly mode: StageMode }) {
   const setCanvasPercentage = useCanvasStore.use.setCanvasPercentage();
   const setCanvasDragged = useCanvasStore.use.setCanvasDragged();
 
-  useEffect(() => {
-    setCanvasPercentage(100);
+  useLayoutEffect(() => {
+    setCanvasPercentage(DEFAULT_EDITOR_CANVAS_PERCENTAGE);
     setCanvasDragged(false);
 
     return () => {
-      setCanvasPercentage(100);
+      setCanvasPercentage(DEFAULT_EDITOR_CANVAS_PERCENTAGE);
       setCanvasDragged(false);
     };
   }, [mode, setCanvasPercentage, setCanvasDragged]);
