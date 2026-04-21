@@ -61,7 +61,7 @@ type NotebookGenerationGroup = {
 };
 
 type CreditTransferGroup = {
-  kind: CreditTransactionKind.CASH_TO_COMPUTE_TRANSFER | CreditTransactionKind.CASH_TO_PURCHASE_TRANSFER;
+  kind: 'CASH_TO_COMPUTE_TRANSFER' | 'CASH_TO_PURCHASE_TRANSFER';
   rows: CreditNotificationRow[];
   newestCreatedAt: Date;
   oldestCreatedAt: Date;
@@ -581,9 +581,7 @@ function shouldAppendToNotebookGenerationGroup(
 
 function isCreditTransferKind(
   kind: CreditTransactionKind,
-): kind is
-  | CreditTransactionKind.CASH_TO_COMPUTE_TRANSFER
-  | CreditTransactionKind.CASH_TO_PURCHASE_TRANSFER {
+): kind is 'CASH_TO_COMPUTE_TRANSFER' | 'CASH_TO_PURCHASE_TRANSFER' {
   return (
     kind === CreditTransactionKind.CASH_TO_COMPUTE_TRANSFER ||
     kind === CreditTransactionKind.CASH_TO_PURCHASE_TRANSFER
@@ -622,7 +620,7 @@ function mapCreditTransferGroupToNotification(group: CreditTransferGroup): AppNo
 
 function isQuizRewardKind(
   kind: CreditTransactionKind,
-): kind is CreditTransactionKind.QUIZ_COMPLETION_REWARD | CreditTransactionKind.QUIZ_ACCURACY_BONUS {
+): kind is 'QUIZ_COMPLETION_REWARD' | 'QUIZ_ACCURACY_BONUS' {
   return (
     kind === CreditTransactionKind.QUIZ_COMPLETION_REWARD ||
     kind === CreditTransactionKind.QUIZ_ACCURACY_BONUS

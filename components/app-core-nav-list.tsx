@@ -321,14 +321,18 @@ export function AppCoreNavList({
               icon: BookOpen,
               active: pathname === '/my-courses',
             },
-            {
-              key: 'gamification',
-              href: '/gamification',
-              label: '学习成长',
-              tooltip: '学习成长',
-              icon: Flame,
-              active: gamificationActive,
-            },
+            ...(!inCourseContext
+              ? ([
+                  {
+                    key: 'gamification',
+                    href: '/gamification',
+                    label: '学习成长',
+                    tooltip: '学习成长',
+                    icon: Flame,
+                    active: gamificationActive,
+                  },
+                ] satisfies CoreNavItem[])
+              : []),
             {
               key: 'store',
               href: storeHref,
