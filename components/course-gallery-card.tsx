@@ -209,12 +209,16 @@ export function CourseGalleryCard({
   const isUniversityCourse =
     Boolean(courseMetaChips?.purposeType?.includes('大学')) ||
     Boolean(courseMetaChips?.purposeType?.toLowerCase().includes('university'));
-  const universityCourseCodeLabel =
-    isUniversityCourse && (courseMetaChips?.school?.trim() || courseMetaChips?.courseCode?.trim())
-      ? [courseMetaChips?.school?.trim(), courseMetaChips?.courseCode?.trim()]
-          .filter(Boolean)
-          .join(' ')
-      : null;
+  const inferredCourseCodeFromName = (() => {
+    const m = course.name.match(/\b[A-Za-z]{2,}\s?-?\d{2,}[A-Za-z0-9-]*\b/);
+    return m?.[0]?.replace(/\s+/g, '') || null;
+  })();
+  const universityCourseCodeLabel = isUniversityCourse
+    ? courseMetaChips?.courseCode?.trim() ||
+      inferredCourseCodeFromName ||
+      courseMetaChips?.school?.trim() ||
+      null
+    : null;
   const coverKickerLabel =
     universityCourseCodeLabel ??
     (variant === 'store-course'

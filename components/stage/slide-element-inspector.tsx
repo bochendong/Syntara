@@ -80,22 +80,51 @@ function getElementDisplayName(element: PPTElement, index: number): string {
 }
 
 const COMMON_COLOR_SWATCHES = [
+  // Neutrals
   '#0f172a',
   '#334155',
   '#64748b',
+  '#94a3b8',
+  '#cbd5e1',
+  '#e2e8f0',
   '#ffffff',
+  // Reds / Oranges / Yellows
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#eab308',
+  '#fde047',
+  // Greens / Teals
+  '#84cc16',
+  '#22c55e',
+  '#10b981',
+  '#14b8a6',
+  // Cyans / Blues
+  '#06b6d4',
+  '#0ea5e9',
+  '#3b82f6',
+  '#2563eb',
+  '#1d4ed8',
+  // Purples / Pinks
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#f43f5e',
+  // Soft pastels for card fills
   '#eff6ff',
   '#dbeafe',
-  '#bfdbfe',
-  '#93c5fd',
-  '#d1fae5',
-  '#86efac',
+  '#e0e7ff',
+  '#ede9fe',
+  '#f5d0fe',
+  '#ffe4e6',
+  '#fee2e2',
+  '#ffedd5',
   '#fef3c7',
-  '#fdba74',
-  '#fecaca',
-  '#f9a8d4',
-  '#ddd6fe',
-  '#c4b5fd',
+  '#ecfccb',
+  '#dcfce7',
+  '#ccfbf1',
 ] as const;
 
 const FONT_FAMILY_OPTIONS = [

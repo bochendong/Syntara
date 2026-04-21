@@ -3793,8 +3793,14 @@ export function ChatPageClient() {
                     variant="outline"
                     size="sm"
                     className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
-                    onClick={() => void handleImportNotebookProblemBank()}
-                    disabled={sending || (!draft.trim() && pendingAttachments.length === 0)}
+                    onClick={() => {
+                      if (!draft.trim() && pendingAttachments.length === 0) {
+                        openAttachmentPicker();
+                        return;
+                      }
+                      void handleImportNotebookProblemBank();
+                    }}
+                    disabled={sending}
                   >
                     <FolderInput className="mr-1 size-3.5" />
                     导入题库

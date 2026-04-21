@@ -74,6 +74,13 @@ export function useSelectElement(
         }
       }
 
+      // If multi-select is active and user clicks one selected element without modifiers,
+      // collapse selection back to single-select for that element.
+      else if (activeElementIdList.length > 1) {
+        setActiveElementIdList([element.id]);
+        setHandleElementId(element.id);
+      }
+
       // If the target is already selected but not the current handle element, make it the handle element
       else if (handleElementId !== element.id) {
         setHandleElementId(element.id);

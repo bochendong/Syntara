@@ -195,3 +195,7 @@ Supported block shapes:
 - Do not invent unrelated sections
 - Do not mention teacher identity inside the content
 - Do not include images; this semantic mode is for text/formula/code/table/example content only
+- 当 `paragraph` / `bullet_list` / `callout` / `example.steps` 等文本字段里出现数学表达时，必须使用 KaTeX 可识别定界符包裹：
+  - 行内公式：`\\(...\\)` 或 `$...$`
+  - 独立公式：`$$...$$` 或单独使用 `equation` block
+- 严禁输出未包裹的裸公式片段（例如 `x^2+1`、`\\frac{a}{b}`、`\\approx` 直接混在普通句子中）

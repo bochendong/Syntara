@@ -478,6 +478,7 @@ export default function CourseDetailPage() {
                   {notebooks.map((nb, i) => (
                     <li key={nb.id} className="min-w-0">
                       <CourseGalleryCard
+                        variant="notebook"
                         listIndex={i}
                         course={nb}
                         tags={nb.tags}
@@ -485,6 +486,11 @@ export default function CourseDetailPage() {
                         slide={thumbnails[nb.id]}
                         subtitle={formatDate(nb.updatedAt)}
                         secondaryLabel=""
+                        courseMetaChips={{
+                          school: course.university?.trim() || undefined,
+                          purposeType: purposeLabel(course.purpose),
+                          courseCode: course.courseCode?.trim() || undefined,
+                        }}
                         priceLabel={formatPurchaseCreditsLabel(
                           creditsFromPriceCents(nb.notebookPriceCents),
                         )}
@@ -495,7 +501,7 @@ export default function CourseDetailPage() {
                         onTertiaryAction={() => router.push(`/classroom/${nb.id}?view=quiz`)}
                         secondaryActionLabel={
                           nb.sourceNotebookId
-                            ? '已购副本不可发布'
+                            ? undefined
                             : publishTarget?.kind === 'notebook' &&
                                 publishTarget.notebook.id === nb.id &&
                                 (publishState === 'preparing_audio' ||
@@ -505,8 +511,11 @@ export default function CourseDetailPage() {
                                 ? '发布更新'
                                 : '发布'
                         }
-                        secondaryActionDisabled={Boolean(nb.sourceNotebookId)}
-                        onSecondaryAction={() => void handleTogglePublishNotebook(nb)}
+                        onSecondaryAction={
+                          nb.sourceNotebookId
+                            ? undefined
+                            : () => void handleTogglePublishNotebook(nb)
+                        }
                         moveToCourseTargets={moveTargets}
                         onMoveToCourse={(targetCourseId) =>
                           handleMoveNotebook(nb.id, targetCourseId)

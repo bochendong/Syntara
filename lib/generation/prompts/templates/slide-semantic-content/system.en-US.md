@@ -209,3 +209,7 @@ Supported block shapes:
 - Do not invent unrelated sections
 - Do not mention teacher identity inside the content
 - Do not include images; this semantic mode is for text/formula/code/table/example content only
+- When mathematical expressions appear inside text-oriented fields (`paragraph`, `bullet_list`, `callout`, `example.steps`, etc.), wrap them with KaTeX delimiters:
+  - Inline math: `\\(...\\)` or `$...$`
+  - Display math: `$$...$$` (or use a dedicated `equation` block)
+- Never output raw, unwrapped math fragments such as `x^2+1`, `\\frac{a}{b}`, or `\\approx` mixed directly into plain prose

@@ -296,7 +296,7 @@ export default function MyCoursesPage() {
                         badge={purposeLabel(course.purpose)}
                         subtitle={formatDate(course.updatedAt)}
                         useRatingOnCover
-                        creatorName={creatorDisplay}
+                        creatorName={course.sourceOwnerName?.trim() || creatorDisplay}
                         courseMetaChips={{
                           school: course.university?.trim() || undefined,
                           purposeType: purposeLabel(course.purpose),
@@ -310,13 +310,16 @@ export default function MyCoursesPage() {
                         onAction={() => router.push(`/course/${course.id}`)}
                         secondaryActionLabel={
                           course.sourceCourseId
-                            ? '已购副本不可发布'
+                            ? undefined
                             : course.listedInCourseStore
                               ? '取消发布'
                               : '发布'
                         }
-                        secondaryActionDisabled={Boolean(course.sourceCourseId)}
-                        onSecondaryAction={() => void handleTogglePublishCourse(course)}
+                        onSecondaryAction={
+                          course.sourceCourseId
+                            ? undefined
+                            : () => void handleTogglePublishCourse(course)
+                        }
                         coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
                         onEdit={() => {
                           setEditingCourse(course);

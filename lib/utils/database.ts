@@ -56,6 +56,8 @@ export interface CourseRecord {
   coursePriceCents?: number;
   storePublishedAt?: number | string;
   sourceCourseId?: string;
+  /** 当课程是从商城复制而来时，记录源课程创作者展示名 */
+  sourceOwnerName?: string;
   speechReadyCount?: number;
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';

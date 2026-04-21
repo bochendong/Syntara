@@ -8,6 +8,14 @@ import {
   pickStableCourseAvatarUrl,
 } from '@/lib/constants/course-avatars';
 
+function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
+  const n = owner.name?.trim();
+  if (n) return n;
+  const e = owner.email?.trim();
+  if (e) return e.split('@')[0] || e;
+  return '匿名创作者';
+}
+
 const createCourseSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(2000).optional(),
@@ -45,8 +53,28 @@ export async function GET() {
     const courses = await prisma.course.findMany({
       where: { ownerId: userId },
       orderBy: { updatedAt: 'desc' },
+      include: {
+        clonePurchase: {
+          select: {
+            sourceCourse: {
+              select: {
+                owner: { select: { name: true, email: true } },
+              },
+            },
+          },
+        },
+      },
     });
-    return NextResponse.json({ courses });
+    return NextResponse.json({
+      courses: courses.map((course) => {
+        const sourceOwner = course.clonePurchase?.sourceCourse.owner;
+        const { clonePurchase: _clonePurchase, ...courseWithoutRelations } = course;
+        return {
+          ...courseWithoutRelations,
+          sourceOwnerName: sourceOwner ? ownerDisplayName(sourceOwner) : undefined,
+        };
+      }),
+    });
   });
 }
 
