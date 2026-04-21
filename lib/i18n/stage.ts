@@ -36,6 +36,10 @@ export const stageZhCN = {
     ttsSynthNoSelection: '请至少选择一页需要合成的内容。',
     resumePageGenerationButton: '继续生成页面',
     resumePageGenerationTooltip: '只在点击后，继续生成当前笔记本里尚未完成的页面。',
+    cancelPendingGenerationButton: '取消后续生成',
+    cancelPendingGenerationTooltip: '停止当前生成任务，并删除所有未完成的页面。',
+    cancelPendingGenerationConfirm: '确定取消后续生成，并删除所有未完成的页面吗？',
+    cancelPendingGenerationSuccess: '已取消后续生成，并删除所有未完成页面。',
     generateMediaButton: '生成媒体',
     generateMediaTooltip: '只在点击后，为当前笔记本里声明的图片或视频资源开始生成。',
     openSceneList: '展开幻灯片列表',
@@ -253,6 +257,13 @@ export const stageEnUS = {
     resumePageGenerationButton: 'Resume page generation',
     resumePageGenerationTooltip:
       'Only runs when clicked: continues generating any unfinished slides in this notebook.',
+    cancelPendingGenerationButton: 'Cancel remaining generation',
+    cancelPendingGenerationTooltip:
+      'Stops the current generation run and removes all unfinished pages.',
+    cancelPendingGenerationConfirm:
+      'Cancel the remaining generation and remove all unfinished pages?',
+    cancelPendingGenerationSuccess:
+      'Cancelled the remaining generation and removed all unfinished pages.',
     generateMediaButton: 'Generate media',
     generateMediaTooltip:
       'Only runs when clicked: starts generating declared images or videos for this notebook.',

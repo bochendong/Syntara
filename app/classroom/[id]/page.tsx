@@ -20,8 +20,10 @@ import type { PdfImage } from '@/lib/types/generation';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { syncStageFromSource } from '@/lib/utils/stage-storage';
+import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
+import { readGenerationContext } from '@/lib/utils/generation-context-storage';
 
 const log = createLogger('Classroom');
 
@@ -52,6 +54,7 @@ export default function ClassroomDetailPage() {
   const generationStatus = useStageStore((s) => s.generationStatus);
   const currentSceneId = useStageStore((s) => s.currentSceneId);
   const setCurrentSceneId = useStageStore((s) => s.setCurrentSceneId);
+  const discardPendingOutlines = useStageStore((s) => s.discardPendingOutlines);
   const mediaTasks = useMediaGenerationStore((s) => s.tasks);
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
   const videoGenerationEnabled = useSettingsStore((s) => s.videoGenerationEnabled);
@@ -104,31 +107,22 @@ export default function ClassroomDetailPage() {
       return;
     }
 
-    const genParamsStr = sessionStorage.getItem('generationParams');
-    if (!genParamsStr) {
-      toast.error(
-        locale === 'zh-CN'
-          ? '缺少继续生成所需的上下文，请回到创建页重新发起生成。'
-          : 'Missing generation context. Please go back to the creation flow and start generation again.',
-      );
-      return;
-    }
-
     let params: {
       pdfImages?: PdfImage[];
       agents?: unknown[];
       userProfile?: string;
       courseContext?: unknown;
     };
-    try {
-      params = JSON.parse(genParamsStr);
-    } catch {
-      toast.error(
+    const savedContext = readGenerationContext(stage.id);
+    if (savedContext) {
+      params = savedContext;
+    } else {
+      params = {};
+      toast.info(
         locale === 'zh-CN'
-          ? '生成上下文已损坏，请回到创建页重新发起生成。'
-          : 'The saved generation context is invalid. Please start generation again from the creation flow.',
+          ? '未找到首次生成时的上下文，将按当前笔记本信息继续生成；结果可能与原始生成略有差异。'
+          : 'The original generation context is unavailable. Continuing with the current notebook info; results may differ slightly from the original run.',
       );
-      return;
     }
 
     setResumeGenerationBusy(true);
@@ -204,6 +198,18 @@ export default function ClassroomDetailPage() {
     stage,
   ]);
 
+  const handleCancelPendingGeneration = useCallback(() => {
+    if (pendingOutlineCount === 0) return;
+    const confirmed = window.confirm(t('stage.cancelPendingGenerationConfirm'));
+    if (!confirmed) return;
+
+    stop();
+    const removedCount = discardPendingOutlines();
+    if (removedCount > 0) {
+      toast.success(t('stage.cancelPendingGenerationSuccess'));
+    }
+  }, [discardPendingOutlines, pendingOutlineCount, stop, t]);
+
   const loadClassroom = useCallback(async () => {
     try {
       setSourceNotebookId(null);
@@ -254,7 +260,9 @@ export default function ClassroomDetailPage() {
             const json = await res.json();
             if (json.success && json.classroom) {
               const { stage, scenes: scenesFromApi } = json.classroom;
-              const scenes = Array.isArray(scenesFromApi) ? scenesFromApi : [];
+              const scenes = Array.isArray(scenesFromApi)
+                ? scenesFromApi.map((scene) => refreshSemanticSlideScene(scene))
+                : [];
               useStageStore.getState().setStage(stage);
               useStageStore.setState({
                 scenes,
@@ -465,6 +473,18 @@ export default function ClassroomDetailPage() {
             ) : null}
             {t('stage.resumePageGenerationButton')}
             {pendingOutlineCount > 0 ? ` (${pendingOutlineCount})` : ''}
+          </button>
+        ) : null}
+
+        {pendingOutlineCount > 0 ? (
+          <button
+            type="button"
+            onClick={handleCancelPendingGeneration}
+            className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-950/35 dark:text-rose-200 dark:hover:bg-rose-950/55"
+            title={t('stage.cancelPendingGenerationTooltip')}
+          >
+            <Trash2 className="size-3.5" />
+            {t('stage.cancelPendingGenerationButton')}
           </button>
         ) : null}
 

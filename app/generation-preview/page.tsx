@@ -27,6 +27,7 @@ import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generatio
 import { AgentRevealModal } from '@/components/agent/agent-reveal-modal';
 import { createLogger } from '@/lib/logger';
 import { useAuthStore } from '@/lib/store/auth';
+import { writeGenerationContext } from '@/lib/utils/generation-context-storage';
 import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
@@ -907,15 +908,12 @@ function GenerationPreviewContent() {
       store.setGeneratingOutlines(remaining);
 
       // Store generation params for classroom to continue generation
-      sessionStorage.setItem(
-        'generationParams',
-        JSON.stringify({
-          pdfImages: currentSession.pdfImages,
-          agents,
-          userProfile,
-          courseContext,
-        }),
-      );
+      writeGenerationContext(stage.id, {
+        pdfImages: currentSession.pdfImages,
+        agents,
+        userProfile,
+        courseContext,
+      });
 
       sessionStorage.removeItem('generationSession');
       await store.saveToStorage();

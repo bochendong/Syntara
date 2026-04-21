@@ -11,10 +11,10 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import {
-  renderNotebookContentDocumentToSlide,
   resolveNotebookContentProfile,
   type NotebookContentProfile,
 } from '@/lib/notebook-content';
+import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { Header } from './header';
 import { ProblemBankView } from '@/components/problem-bank/problem-bank-view';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
@@ -40,10 +40,7 @@ import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generato
 import { hydrateSpeechAudioFromTtsCache } from '@/lib/utils/tts-audio-cache';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import type { SlideRepairChatMessage } from '@/lib/types/slide-repair';
-import {
-  buildSceneSidebarAskThreadFromMessages,
-  type SceneSidebarAskBubble,
-} from '@/lib/utils/scene-sidebar-ask-thread';
+import { buildSceneSidebarAskThreadFromMessages } from '@/lib/utils/scene-sidebar-ask-thread';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import {
@@ -1924,16 +1921,13 @@ export function Stage({
     }
     try {
       setGridReflowPending(true);
-      const reRendered = renderNotebookContentDocumentToSlide({
+      const reRendered = renderSemanticSlideContent({
         document: semanticDocument,
         fallbackTitle: semanticDocument.title || rawCurrentScene.title,
+        preserveCanvasId: rawCurrentScene.content.canvas.id,
       });
       updateScene(rawCurrentScene.id, {
-        content: {
-          ...rawCurrentScene.content,
-          canvas: reRendered,
-          semanticDocument,
-        },
+        content: reRendered,
         updatedAt: Date.now(),
       });
       toast.success('已按 Grid 规则重排当前页。');
@@ -1963,16 +1957,13 @@ export function Stage({
     }
     try {
       setGridReflowPending(true);
-      const reRendered = renderNotebookContentDocumentToSlide({
+      const reRendered = renderSemanticSlideContent({
         document: semanticDocument,
         fallbackTitle: semanticDocument.title || rawCurrentScene.title,
+        preserveCanvasId: rawCurrentScene.content.canvas.id,
       });
       updateScene(rawCurrentScene.id, {
-        content: {
-          ...rawCurrentScene.content,
-          canvas: reRendered,
-          semanticDocument,
-        },
+        content: reRendered,
         updatedAt: Date.now(),
       });
       toast.success('已按 Layout Cards 规则重排当前页。');
@@ -2025,9 +2016,8 @@ export function Stage({
               const serialized = serializeSceneForRawView(scene, {
                 expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
               }) as Record<string, unknown>;
-              const { actions, ...rest } = serialized;
               return {
-                ...rest,
+                ...serialized,
                 actionsSummary: Array.isArray(scene.actions)
                   ? {
                       total: scene.actions.length,
@@ -2209,16 +2199,13 @@ export function Stage({
     }
     try {
       setGridReflowPending(true);
-      const reRendered = renderNotebookContentDocumentToSlide({
+      const reRendered = renderSemanticSlideContent({
         document: semanticDocument,
         fallbackTitle: semanticDocument.title || currentScene.title,
+        preserveCanvasId: currentScene.content.canvas.id,
       });
       updateScene(currentScene.id, {
-        content: {
-          ...currentScene.content,
-          canvas: reRendered,
-          semanticDocument,
-        },
+        content: reRendered,
         updatedAt: Date.now(),
       });
       toast.success('已根据生成数据重新渲染当前页。');

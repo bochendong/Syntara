@@ -12,6 +12,7 @@ import React, {
 import { useStageStore } from '@/lib/store/stage';
 import type { Scene } from '@/lib/types/stage';
 import { produce } from 'immer';
+import { SEMANTIC_SLIDE_RENDER_VERSION } from '@/lib/notebook-content/semantic-slide-render';
 
 interface SceneContextValue<T = unknown> {
   sceneId: string;
@@ -75,6 +76,16 @@ export function SceneProvider({ children }: { children: React.ReactNode }) {
       if (!currentScene) return;
 
       const newContent = produce(currentScene.content, updater);
+      if (
+        currentScene.type === 'slide' &&
+        currentScene.content.type === 'slide' &&
+        newContent?.type === 'slide' &&
+        newContent.semanticDocument
+      ) {
+        newContent.semanticRenderMode = 'manual';
+        newContent.semanticRenderVersion =
+          newContent.semanticRenderVersion ?? SEMANTIC_SLIDE_RENDER_VERSION;
+      }
       updateScene(currentScene.id, {
         content: newContent,
       });

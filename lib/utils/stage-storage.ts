@@ -10,6 +10,7 @@ import {
   sanitizeScenesForPersistence,
   writeStageDraftSnapshot,
 } from '@/lib/utils/stage-draft-snapshot';
+import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 
 const log = createLogger('StageStorage');
 
@@ -238,7 +239,7 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
     const scenes = (notebook.scenes || [])
       .slice()
       .sort((a, b) => a.order - b.order)
-      .map((s) => mapScene(stageId, s));
+      .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
     const chats = await loadContactMessages<ChatSession>(
       notebook.courseId || '',
       'notebook',

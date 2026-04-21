@@ -3,10 +3,10 @@ import { callLLM } from '@/lib/ai/llm';
 import { parseJsonResponse } from '@/lib/generation/json-repair';
 import {
   parseNotebookContentDocument,
-  renderNotebookContentDocumentToSlide,
   type NotebookContentDocument,
   type NotebookContentProfile,
 } from '@/lib/notebook-content';
+import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import type { SlideContent } from '@/lib/types/stage';
 import type { SlideRepairConversationTurn } from '@/lib/types/slide-repair';
@@ -466,17 +466,11 @@ export function buildRenderedRepairContent(args: {
     profile: args.profile,
     title: args.document.title || args.sceneTitle,
   };
-  const renderedSlide = renderNotebookContentDocumentToSlide({
+  const renderedContent = renderSemanticSlideContent({
     document: normalizedDocument,
     fallbackTitle: args.sceneTitle,
+    preserveCanvasId: args.content.canvas.id,
   });
 
-  return {
-    type: 'slide',
-    canvas: {
-      ...renderedSlide,
-      id: args.content.canvas.id,
-    },
-    semanticDocument: normalizedDocument,
-  };
+  return renderedContent;
 }

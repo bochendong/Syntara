@@ -18,6 +18,7 @@ import type { Slide, SlideTheme } from '@/lib/types/slides';
 import type { Scene } from '@/lib/types/stage';
 import type { Action } from '@/lib/types/action';
 import { normalizeSlideTextLayout } from '@/lib/slide-text-layout';
+import { markSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { applyOutlineFallbacks } from './outline-generator';
 import { generateSceneContent, generateSceneActions } from './scene-generator';
 import type { AgentInfo, SceneGenerationContext, AICallFn } from './pipeline-types';
@@ -190,11 +191,11 @@ export function buildCompleteScene(
       type: 'slide',
       title: outline.title,
       order: outline.order,
-      content: {
+      content: markSemanticSlideContent({
         type: 'slide',
         canvas: slide,
         semanticDocument: content.contentDocument,
-      },
+      }),
       actions,
       createdAt: Date.now(),
       updatedAt: Date.now(),

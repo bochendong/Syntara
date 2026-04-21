@@ -108,6 +108,7 @@ interface StageState {
   setGenerationStatus: (status: 'idle' | 'generating' | 'paused' | 'completed' | 'error') => void;
   setCurrentGeneratingOrder: (order: number) => void;
   bumpGenerationEpoch: () => void;
+  discardPendingOutlines: () => number;
   addFailedOutline: (outline: SceneOutline) => void;
   clearFailedOutlines: () => void;
   retryFailedOutline: (outlineId: string) => void;
@@ -270,6 +271,48 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   setCurrentGeneratingOrder: (currentGeneratingOrder) => set({ currentGeneratingOrder }),
 
   bumpGenerationEpoch: () => set((s) => ({ generationEpoch: s.generationEpoch + 1 })),
+
+  discardPendingOutlines: () => {
+    const state = get();
+    const completedOrders = new Set(state.scenes.map((scene) => scene.order));
+    const pendingOrders = new Set(
+      state.outlines
+        .filter((outline) => !completedOrders.has(outline.order))
+        .map((outline) => outline.order),
+    );
+    if (pendingOrders.size === 0) return 0;
+
+    const nextOutlines = state.outlines.filter((outline) => completedOrders.has(outline.order));
+    const nextGeneratingOutlines = state.generatingOutlines.filter(
+      (outline) => !pendingOrders.has(outline.order),
+    );
+    const nextFailedOutlines = state.failedOutlines.filter(
+      (outline) => !pendingOrders.has(outline.order),
+    );
+    const nextCurrentSceneId =
+      state.currentSceneId === PENDING_SCENE_ID
+        ? state.scenes[state.scenes.length - 1]?.id ?? state.scenes[0]?.id ?? null
+        : state.currentSceneId;
+
+    set({
+      outlines: nextOutlines,
+      generatingOutlines: nextGeneratingOutlines,
+      failedOutlines: nextFailedOutlines,
+      currentSceneId: nextCurrentSceneId,
+      generationStatus: 'idle',
+      currentGeneratingOrder: -1,
+      storageSaveState: 'saving',
+      storageSaveError: null,
+    });
+
+    if (state.stage?.id && typeof window !== 'undefined') {
+      sessionStorage.setItem(`stage-outlines:${state.stage.id}`, JSON.stringify(nextOutlines));
+    }
+
+    writeDraftSnapshotForState(state.stage, state.scenes, nextCurrentSceneId);
+    debouncedSave();
+    return pendingOrders.size;
+  },
 
   addFailedOutline: (outline) => {
     const existed = get().failedOutlines.some((o) => o.id === outline.id);

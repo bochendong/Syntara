@@ -33,6 +33,7 @@ import {
   type NotebookContentBlockPlacement,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
+import { markSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { buildPrompt, PROMPT_IDS } from './prompts';
 import { postProcessInteractiveHtml } from './interactive-post-processor';
 import { parseActionsFromStructuredOutput } from './action-parser';
@@ -4300,11 +4301,11 @@ export function createSceneWithActions(
       type: 'slide',
       title: outline.title,
       order: outline.order,
-      content: {
+      content: markSemanticSlideContent({
         type: 'slide',
         canvas: slide,
         semanticDocument: content.contentDocument,
-      },
+      }),
       actions,
     });
 

@@ -10,8 +10,8 @@ import { backendFetch } from '@/lib/utils/backend-api';
 import {
   buildNotebookContentDocumentFromInsert,
   type NotebookContentDocument,
-  renderNotebookContentDocumentToSlide,
 } from '@/lib/notebook-content';
+import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import type {
   SendNotebookMessageResponse,
   SendNotebookMessageRequest,
@@ -131,14 +131,10 @@ function buildSlideFromInsert(
   keyPoints: string[],
   document = buildNotebookContentDocumentFromInsert({ title, description, keyPoints }),
 ): Scene['content'] {
-  return {
-    type: 'slide',
-    semanticDocument: document,
-    canvas: renderNotebookContentDocumentToSlide({
-      document,
-      fallbackTitle: title,
-    }),
-  } as SlideContent;
+  return renderSemanticSlideContent({
+    document,
+    fallbackTitle: title,
+  }) as SlideContent;
 }
 
 function appendKnowledgeToSemanticDocument(

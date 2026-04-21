@@ -99,6 +99,12 @@ export interface SlideContent {
   canvas: Slide;
   // Optional semantic source document used to render the slide
   semanticDocument?: NotebookContentDocument;
+  /**
+   * Semantic render metadata used to detect stale auto-generated canvases when the
+   * semantic-to-slide renderer changes across deployments.
+   */
+  semanticRenderVersion?: number;
+  semanticRenderMode?: 'auto' | 'manual';
 }
 
 /**
