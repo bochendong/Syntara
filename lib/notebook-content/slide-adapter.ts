@@ -866,6 +866,41 @@ function createLatexElement(args: {
   };
 }
 
+function splitCaptionedEquation(rawLatex: string, caption?: string): { latex: string; caption?: string } {
+  const raw = normalizeLatexSource(rawLatex.trim()).replace(/\${3,}/g, '$$');
+  const envMatch = raw.match(/^(.*?)(\\begin\{([a-zA-Z*]+)\}[\s\S]+?\\end\{\3\})(.*)$/);
+  if (envMatch?.[2]) {
+    const mergedCaption = [caption?.trim(), envMatch[1]?.trim(), envMatch[4]?.trim()]
+      .filter(Boolean)
+      .join(' ');
+    return {
+      latex: normalizeLatexSource(envMatch[2]),
+      caption: mergedCaption || undefined,
+    };
+  }
+
+  const wrappedMatch =
+    raw.match(/^(.*?)\$\$([\s\S]+?)\$\$(.*)$/) ||
+    raw.match(/^(.*?)(?<!\$)\$([\s\S]+?)\$(?!\$)(.*)$/) ||
+    raw.match(/^(.*?)\\\[([\s\S]+?)\\\](.*)$/) ||
+    raw.match(/^(.*?)\\\(([\s\S]+?)\\\)(.*)$/);
+
+  if (wrappedMatch?.[2]) {
+    const mergedCaption = [caption?.trim(), wrappedMatch[1]?.trim(), wrappedMatch[3]?.trim()]
+      .filter(Boolean)
+      .join(' ');
+    return {
+      latex: normalizeLatexSource(wrappedMatch[2]),
+      caption: mergedCaption || undefined,
+    };
+  }
+
+  return {
+    latex: raw,
+    caption: caption?.trim() || undefined,
+  };
+}
+
 function createTableElement(args: {
   top: number;
   headers?: string[];
@@ -2539,14 +2574,15 @@ export function renderNotebookContentDocumentToSlide(args: {
     }
 
     if (block.type === 'equation') {
+      const sanitizedEquation = splitCaptionedEquation(block.latex, block.caption);
       const tone = resolveBlockTemplateTone(
         block.templateId,
         cardPalettes[visualBlockIndex % cardPalettes.length],
       );
       const toneFill = block.backgroundColor || tone.fill;
       const toneBorder = block.borderColor || tone.border;
-      const contentHeight = estimateLatexDisplayHeight(block.latex, block.display);
-      const cardHeight = contentHeight + CARD_INSET_Y * 2 + (block.caption ? 22 : 0);
+      const contentHeight = estimateLatexDisplayHeight(sanitizedEquation.latex, block.display);
+      const cardHeight = contentHeight + CARD_INSET_Y * 2 + (sanitizedEquation.caption ? 22 : 0);
       const groupId = createCardGroupId('equation_card');
       elements.push(
         createRectShape({
@@ -2561,7 +2597,7 @@ export function renderNotebookContentDocumentToSlide(args: {
       );
       elements.push(
         createLatexElement({
-          latex: block.latex,
+          latex: sanitizedEquation.latex,
           left: CONTENT_LEFT + CARD_INSET_X + 8,
           top: cursorTop + CARD_INSET_Y,
           width: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
@@ -2573,7 +2609,7 @@ export function renderNotebookContentDocumentToSlide(args: {
           outlineColor: toneBorder,
         }),
       );
-      if (block.caption) {
+      if (sanitizedEquation.caption) {
         elements.push(
           createTextElement({
             left: CONTENT_LEFT + CARD_INSET_X + 8,
@@ -2581,7 +2617,7 @@ export function renderNotebookContentDocumentToSlide(args: {
             width: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
             height: 22,
             groupId,
-            html: `<p style="font-size:13px;color:#64748b;">${escapeHtml(block.caption)}</p>`,
+            html: `<p style="font-size:13px;color:#64748b;">${escapeHtml(sanitizedEquation.caption)}</p>`,
             color: block.noteTextColor || '#64748b',
             fill: block.noteBackgroundColor,
             outlineColor: block.noteBorderColor,

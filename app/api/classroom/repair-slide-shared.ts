@@ -424,9 +424,7 @@ export async function runSlideRepairAttempt(args: {
   prompt: string;
   usageTag: string;
 }) {
-  const { model, modelInfo, modelString } = await resolveModelFromHeaders(args.req, {
-    allowOpenAIModelOverride: true,
-  });
+  const { model, modelInfo, modelString } = await resolveModelFromHeaders(args.req);
 
   const result = await callLLM(
     {

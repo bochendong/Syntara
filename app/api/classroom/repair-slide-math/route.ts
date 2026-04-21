@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server';
 import { parseNotebookContentDocument, type NotebookContentDocument } from '@/lib/notebook-content';
-import { normalizeLatexSource } from '@/lib/latex-utils';
+import {
+  normalizeLatexSource,
+  replaceCommonRawLatexText,
+  wrapBareLatexEnvironments,
+} from '@/lib/latex-utils';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { runWithRequestContext } from '@/lib/server/request-context';
@@ -304,15 +308,68 @@ function summarizeProtectedBlocks(
 }
 
 function normalizeInlineMathDelimiters(text: string): string {
-  return text
+  const wrapDisplayMath = (expression: string) => {
+    let normalized = expression.trim();
+    let previous = '';
+
+    while (normalized !== previous) {
+      previous = normalized;
+      const wrappedMatch =
+        normalized.match(/^\$\$([\s\S]+?)\$\$$/) ||
+        normalized.match(/^\$([\s\S]+?)\$$/) ||
+        normalized.match(/^\\\[([\s\S]+?)\\\]$/) ||
+        normalized.match(/^\\\(([\s\S]+?)\\\)$/);
+      if (!wrappedMatch?.[1]) break;
+      normalized = wrappedMatch[1].trim();
+    }
+
+    return `$$${normalizeLatexSource(normalized)}$$`;
+  };
+
+  const normalized = wrapBareLatexEnvironments(text)
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_match, expression: string) => {
+      return wrapDisplayMath(expression);
+    })
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_match, expression: string) => {
+      return wrapDisplayMath(expression);
+    })
     .replace(/\$\$([\s\S]+?)\$\$/g, (_match, expression: string) => {
-      const normalized = normalizeLatexSource(expression);
-      return normalized.includes('\n') ? `\\[${normalized}\\]` : `\\(${normalized}\\)`;
+      return wrapDisplayMath(expression);
     })
     .replace(/\$([^\n$]+?)\$/g, (_match, expression: string) => {
-      const normalized = normalizeLatexSource(expression);
-      return `\\(${normalized}\\)`;
+      return wrapDisplayMath(expression);
     });
+
+  return replaceCommonRawLatexText(
+    normalized
+      .replace(
+        /\(\s*([^()]{1,18}?)\s+notin\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ∉ ${right.trim()})`,
+      )
+      .replace(
+        /\(\s*([^()]{1,18}?)\s+in\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ∈ ${right.trim()})`,
+      )
+      .replace(
+        /\(\s*([^()]{1,24}?)\s+subseteq\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ⊆ ${right.trim()})`,
+      )
+      .replace(
+        /\(\s*([^()]{1,24}?)\s+supseteq\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ⊇ ${right.trim()})`,
+      )
+      .replace(
+        /\(\s*([^()]{1,24}?)\s+subset\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ⊂ ${right.trim()})`,
+      )
+      .replace(
+        /\(\s*([^()]{1,24}?)\s+supset\s+([^()]{1,24}?)\s*\)/gi,
+        (_match, left: string, right: string) => `(${left.trim()} ⊃ ${right.trim()})`,
+      )
+      .replace(/\${3,}/g, '$$'),
+  ).replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, (_match, expression: string) => {
+    return wrapDisplayMath(expression);
+  });
 }
 
 function looksLikeBareStandaloneFormula(text: string): boolean {
@@ -347,6 +404,67 @@ function extractStandaloneFormulaLatex(text: string): string | null {
   return looksLikeBareStandaloneFormula(trimmed) ? normalizeLatexSource(trimmed) : null;
 }
 
+function sanitizeEquationBlock(block: Extract<NotebookContentDocument['blocks'][number], { type: 'equation' }>) {
+  const raw = block.latex.trim().replace(/\${3,}/g, '$$');
+  const extractCaptionedMath = (
+    pattern: RegExp,
+  ): { latex: string; caption?: string } | null => {
+    const match = raw.match(pattern);
+    if (!match?.[2]) return null;
+
+    const prefix = match[1]?.trim() || '';
+    const suffix = match[3]?.trim() || '';
+    const caption = [block.caption?.trim(), prefix, suffix].filter(Boolean).join(' ');
+    return {
+      latex: normalizeLatexSource(match[2]),
+      caption: caption || undefined,
+    };
+  };
+
+  const envMatch = raw.match(/^(.*?)(\\begin\{([a-zA-Z*]+)\}[\s\S]+?\\end\{\3\})(.*)$/);
+  if (envMatch?.[2]) {
+    const prefix = envMatch[1]?.trim() || '';
+    const suffix = envMatch[4]?.trim() || '';
+    const caption = [block.caption?.trim(), prefix, suffix].filter(Boolean).join(' ');
+    return {
+      ...block,
+      latex: normalizeLatexSource(envMatch[2]),
+      caption: caption || undefined,
+    };
+  }
+
+  const extractedFromDouble = extractCaptionedMath(/^(.*?)\$\$([\s\S]+?)\$\$(.*)$/);
+  if (extractedFromDouble) {
+    return { ...block, ...extractedFromDouble };
+  }
+
+  const extractedFromSingle = extractCaptionedMath(/^(.*?)(?<!\$)\$([\s\S]+?)\$(?!\$)(.*)$/);
+  if (extractedFromSingle) {
+    return { ...block, ...extractedFromSingle };
+  }
+
+  const wrappedMatch =
+    raw.match(/^(.*?)\\\[([\s\S]+?)\\\](.*)$/) ||
+    raw.match(/^(.*?)\\\(([\s\S]+?)\\\)(.*)$/);
+
+  if (wrappedMatch?.[2]) {
+    const prefix = wrappedMatch[1]?.trim() || '';
+    const suffix = wrappedMatch[3]?.trim() || '';
+    const caption = [block.caption?.trim(), prefix, suffix].filter(Boolean).join(' ');
+    return {
+      ...block,
+      latex: normalizeLatexSource(wrappedMatch[2]),
+      caption: caption || undefined,
+    };
+  }
+
+  return {
+    ...block,
+    latex: normalizeLatexSource(raw),
+    caption: block.caption?.trim() || undefined,
+  };
+}
+
 function postProcessMathRepairDocument(document: NotebookContentDocument): NotebookContentDocument {
   const blocks = document.blocks.flatMap<NotebookContentDocument['blocks'][number]>((block) => {
     switch (block.type) {
@@ -363,7 +481,7 @@ function postProcessMathRepairDocument(document: NotebookContentDocument): Noteb
       case 'bullet_list':
         return [{ ...block, items: block.items.map(normalizeInlineMathDelimiters) }];
       case 'equation':
-        return [{ ...block, latex: normalizeLatexSource(block.latex) }];
+        return [sanitizeEquationBlock(block)];
       case 'derivation_steps':
         return [
           {
@@ -772,8 +890,9 @@ function buildSystemPrompt(language: SlideRepairLanguage, intent: RepairIntent) 
   - 连续推导用 {"type":"derivation_steps", ...}
 - 解释性语句、标题、小结保留为 heading / paragraph / bullet_list。
 - 如果原文里只是把数学表达硬塞在句子里，请拆成“说明文字 + 公式块”，不要继续把复杂公式塞进 paragraph。
-- paragraph / bullet_list / callout / example 里的行内公式，必须用 \\(...\\) 包起来；不要把裸 LaTeX 直接塞进普通文本里。
-- 如果一整行基本就是公式，不要把 $$...$$ 放进 paragraph；直接改成 equation block。
+- paragraph / bullet_list / callout / example / layout_cards 里的数学表达，如果没有拆成 equation block，就必须用 $$...$$ 包起来；不要把裸 LaTeX 直接塞进普通文本里。
+- 严禁输出裸 LaTeX 源码片段，例如 \\begin{aligned}、\\text{...}、\\frac、\\subseteq 直接出现在普通文本里；这些内容要么放进 equation block，要么放进 $$...$$。
+- 如果一整行基本就是公式，优先直接改成 equation block；如果暂时保留在文本中，也必须完整包在 $$...$$ 里。
 - 不要输出 markdown，不要输出解释，不要输出代码块，只输出 JSON。
 
 数学修复示例：
@@ -846,8 +965,9 @@ Requirements:
 - Use equation blocks for standalone math, matrix blocks for standalone matrices, and derivation_steps for multi-line reasoning.
 - Keep prose as heading / paragraph / bullet_list.
 - If a sentence contains a heavy formula, split it into prose plus a formula block.
-- Inline math inside paragraph / bullet_list / callout / example text must use \\(...\\). Do not leave bare LaTeX inside ordinary prose.
-- If a line is basically just a formula, do not leave $$...$$ inside a paragraph. Turn it into an equation block.
+- Any math that remains inside paragraph / bullet_list / callout / example / layout_cards text must be wrapped in $$...$$. Do not leave bare LaTeX inside ordinary prose.
+- Never emit raw LaTeX commands such as \\begin{aligned}, \\text{...}, \\frac, or \\subseteq directly in prose. Either move them into an equation block or wrap the full math expression in $$...$$.
+- If a line is basically just a formula, prefer an equation block. If it temporarily stays in text, it still must be wrapped in $$...$$.
 - Output JSON only. No markdown. No commentary. No code fences.
 
 Examples:

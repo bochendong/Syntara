@@ -231,9 +231,83 @@ function resolveSlideRepairProfile(scene: Scene, outline?: SceneOutline): Notebo
 function repairRequestLooksMathFocused(text: string): boolean {
   const normalized = text.trim().toLowerCase();
   if (!normalized) return false;
-  return /公式|latex|符号|下标|上标|矩阵|推导|证明|同余|映射|核|像|math|formula|notation|equation|derivation|proof|matrix|subscript|superscript|kernel|image/i.test(
+  return /公式|公式显示|数学公式|latex|tex|mathjax|katex|渲染公式|修公式|更正公式|符号|下标|上标|矩阵|推导|证明|同余|映射|核|像|math|formula|formulas|notation|equation|equations|render the formula|fix the formula|latex rendering|derivation|proof|matrix|subscript|superscript|kernel|image/i.test(
     normalized,
   );
+}
+
+function inferRepairTargetLanguage(args: {
+  repairInstructions: string;
+  fallbackLanguage: 'zh-CN' | 'en-US';
+}): 'zh-CN' | 'en-US' {
+  const raw = args.repairInstructions.trim();
+  if (!raw) return args.fallbackLanguage;
+
+  const normalized = raw.toLowerCase();
+  const hasAny = (patterns: RegExp[]) => patterns.some((pattern) => pattern.test(raw));
+  const hasAnyNormalized = (patterns: RegExp[]) =>
+    patterns.some((pattern) => pattern.test(normalized));
+
+  const rejectChinese = hasAny([
+    /不要.{0,6}(中文|汉语|汉字|简体中文)/i,
+    /别.{0,6}(中文|汉语|汉字|简体中文)/i,
+  ]) || hasAnyNormalized([/\bdo not\b.{0,12}\bchinese\b/i, /\bdon't\b.{0,12}\bchinese\b/i]);
+  const rejectEnglish = hasAny([
+    /不要.{0,6}(英文|英语)/i,
+    /别.{0,6}(英文|英语)/i,
+  ]) || hasAnyNormalized([/\bdo not\b.{0,12}\benglish\b/i, /\bdon't\b.{0,12}\benglish\b/i]);
+
+  const wantsChinese =
+    !rejectChinese &&
+    (hasAny([
+      /改成中文/i,
+      /改为中文/i,
+      /换成中文/i,
+      /翻成中文/i,
+      /翻译成中文/i,
+      /用中文/i,
+      /中文表达/i,
+      /中文讲解/i,
+      /简体中文/i,
+      /汉语/i,
+      /汉字/i,
+    ]) ||
+      hasAnyNormalized([
+        /\btranslate\b.{0,12}\b(?:into|to)?\s*chinese\b/i,
+        /\brewrite\b.{0,12}\bin\s+chinese\b/i,
+        /\b(?:change|convert|make)\b.{0,12}\b(?:it\s+)?chinese\b/i,
+        /\bin\s+chinese\b/i,
+        /\bzh-cn\b/i,
+        /\bchinese\b/i,
+      ]));
+
+  if (wantsChinese) return 'zh-CN';
+
+  const wantsEnglish =
+    !rejectEnglish &&
+    (hasAny([
+      /改成英文/i,
+      /改为英文/i,
+      /换成英文/i,
+      /翻成英文/i,
+      /翻译成英文/i,
+      /用英文/i,
+      /英文表达/i,
+      /英文讲解/i,
+      /英语/i,
+    ]) ||
+      hasAnyNormalized([
+        /\btranslate\b.{0,12}\b(?:into|to)?\s*english\b/i,
+        /\brewrite\b.{0,12}\bin\s+english\b/i,
+        /\b(?:change|convert|make)\b.{0,12}\b(?:it\s+)?english\b/i,
+        /\bin\s+english\b/i,
+        /\ben-us\b/i,
+        /\benglish\b/i,
+      ]));
+
+  if (wantsEnglish) return 'en-US';
+
+  return args.fallbackLanguage;
 }
 
 function buildRepairPendingMessage(args: {
@@ -1578,7 +1652,10 @@ export function Stage({
 
     const sceneId = currentScene.id;
     const trimmedDraft = repairInstructions.trim();
-    const rewriteLanguage = (stageLanguage as 'zh-CN' | 'en-US' | undefined) || 'zh-CN';
+    const rewriteLanguage = inferRepairTargetLanguage({
+      repairInstructions: trimmedDraft,
+      fallbackLanguage: (stageLanguage as 'zh-CN' | 'en-US' | undefined) || 'zh-CN',
+    });
     const matchedOutline = resolveRewriteOutline(currentScene, outlines, rewriteLanguage);
     const baseRepairProfile = resolveSlideRepairProfile(currentScene, matchedOutline);
     const repairProfile = repairRequestLooksMathFocused(trimmedDraft) ? 'math' : baseRepairProfile;

@@ -1,5 +1,10 @@
 import katex from 'katex';
-import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
+import {
+  getDirectUnicodeMathSymbol,
+  normalizeLatexSource,
+  replaceCommonRawLatexText,
+  wrapBareLatexEnvironments,
+} from '@/lib/latex-utils';
 
 function escapeHtml(text: string): string {
   return text
@@ -14,7 +19,7 @@ function normalizeDelimiterEscapes(text: string): string {
 }
 
 function looksLikeMathText(text: string): boolean {
-  return /\\\(|\\\[|\$\$|\$[^$\n]+?\$|\\\\\(|\\\\\[/.test(text);
+  return /\\\(|\\\[|\$\$|\$[^$\n]+?\$|\\\\\(|\\\\\[|\\begin\{[a-zA-Z*]+\}/.test(text);
 }
 
 const MATH_PATTERN =
@@ -97,7 +102,7 @@ function renderMathFragment(raw: string, displayMode: boolean): string {
 function renderTextWithLatex(text: string): string | null {
   if (!looksLikeMathText(text)) return null;
 
-  const normalized = normalizeDelimiterEscapes(text);
+  const normalized = normalizeDelimiterEscapes(wrapBareLatexEnvironments(text));
   let html = '';
   let lastIndex = 0;
   let changed = false;
@@ -139,13 +144,17 @@ export function renderPlainTitleWithOptionalLatex(title: string): string {
   if (!title) return '';
   const html = renderTextWithLatex(title);
   if (html !== null) return html;
-  return escapeHtml(title);
+  return escapeHtml(replaceCommonRawLatexText(title));
 }
 
 export function renderHtmlWithLatex(html: string): string {
-  if (!html || !looksLikeMathText(html) || typeof document === 'undefined') return html;
+  if (!html) return html;
+  const wrappedHtml = wrapBareLatexEnvironments(html);
+  if (!looksLikeMathText(wrappedHtml) || typeof document === 'undefined') {
+    return replaceCommonRawLatexText(wrappedHtml);
+  }
 
-  const repairedHtml = repairSplitMathAcrossParagraphs(html);
+  const repairedHtml = repairSplitMathAcrossParagraphs(wrappedHtml);
   const root = document.createElement('div');
   root.innerHTML = repairedHtml;
 

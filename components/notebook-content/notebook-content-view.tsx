@@ -4,7 +4,11 @@ import katex from 'katex';
 import { memo } from 'react';
 import type { BundledLanguage } from 'shiki';
 import { cn } from '@/lib/utils';
-import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
+import {
+  getDirectUnicodeMathSymbol,
+  normalizeLatexSource,
+  wrapBareLatexEnvironments,
+} from '@/lib/latex-utils';
 import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-block';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
 import { chemistryTextToHtml } from '@/lib/notebook-content';
@@ -39,17 +43,18 @@ function FormulaBlock({ latex, display = true }: { latex: string; display?: bool
 }
 
 function renderInlineMathHtml(text: string): string {
+  const normalizedText = wrapBareLatexEnvironments(text);
   const pattern = /(\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]|\$([^\n$]+?)\$)/g;
   let result = '';
   let lastIndex = 0;
 
-  for (const match of text.matchAll(pattern)) {
+  for (const match of normalizedText.matchAll(pattern)) {
     const fullMatch = match[0];
     const start = match.index ?? 0;
     const end = start + fullMatch.length;
     const expression = normalizeLatexSource(match[2] ?? match[3] ?? match[4] ?? match[5] ?? '');
 
-    result += escapeHtml(text.slice(lastIndex, start));
+    result += escapeHtml(normalizedText.slice(lastIndex, start));
     const directSymbol = getDirectUnicodeMathSymbol(expression);
     result +=
       directSymbol ??
@@ -62,7 +67,7 @@ function renderInlineMathHtml(text: string): string {
     lastIndex = end;
   }
 
-  result += escapeHtml(text.slice(lastIndex));
+  result += escapeHtml(normalizedText.slice(lastIndex));
   return result;
 }
 

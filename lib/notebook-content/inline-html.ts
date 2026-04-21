@@ -1,5 +1,9 @@
 import katex from 'katex';
-import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
+import {
+  getDirectUnicodeMathSymbol,
+  normalizeLatexSource,
+  replaceCommonRawLatexText,
+} from '@/lib/latex-utils';
 
 export function escapeHtml(text: string): string {
   return text
@@ -75,5 +79,5 @@ export function renderInlineLatexToHtml(text: string): string {
     return result;
   }
 
-  return escapeHtml(text);
+  return escapeHtml(replaceCommonRawLatexText(text));
 }
