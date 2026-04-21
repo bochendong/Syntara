@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
 import type { UIMessage } from 'ai';
+import { useSearchParams } from 'next/navigation';
 import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -15,7 +16,7 @@ import {
   type NotebookContentProfile,
 } from '@/lib/notebook-content';
 import { Header } from './header';
-import { QuizCourseQuestionHub } from '@/components/scene-renderers/quiz-course-question-hub';
+import { ProblemBankView } from '@/components/problem-bank/problem-bank-view';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
 import { CanvasArea } from '@/components/canvas/canvas-area';
 import { Roundtable } from '@/components/roundtable';
@@ -350,6 +351,7 @@ export function Stage({
   headerActions?: ReactNode;
 }) {
   const { t, locale } = useI18n();
+  const searchParams = useSearchParams();
   const {
     mode,
     getCurrentScene,
@@ -420,17 +422,22 @@ export function Stage({
 
   // Scene switch confirmation dialog state
   const [pendingSceneId, setPendingSceneId] = useState<string | null>(null);
+  const requestedInitialClassroomView = searchParams.get('view');
 
   /** 主内容区：幻灯片画布 vs 原始 JSON */
-  const [mainClassroomView, setMainClassroomView] = useState<'ppt' | 'quiz' | 'raw'>('ppt');
+  const [mainClassroomView, setMainClassroomView] = useState<'ppt' | 'quiz' | 'raw'>(
+    requestedInitialClassroomView === 'quiz' ||
+      requestedInitialClassroomView === 'raw' ||
+      requestedInitialClassroomView === 'ppt'
+      ? requestedInitialClassroomView
+      : 'ppt',
+  );
   /** 原始数据下的子 Tab：按场景类型（slide / quiz / interactive / …） */
   const [rawDataSubTab, setRawDataSubTab] = useState<SceneType>('slide');
   /** 幻灯片原始数据细分：生成结果 / 大纲 / 讲解动作 / UI衍生数据 */
   const [rawSlideDataView, setRawSlideDataView] = useState<
     'generated' | 'outline' | 'narration' | 'ui'
-  >(
-    'generated',
-  );
+  >('generated');
   /** 课堂内当前页编辑模式：页面布局 / 讲解稿 */
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);
   const [slideEditTab, setSlideEditTab] = useState<SlideEditTab>('canvas');
@@ -468,6 +475,13 @@ export function Stage({
     () => agentsToParticipants(selectedAgentIds, t),
     [selectedAgentIds, t],
   );
+
+  useEffect(() => {
+    const requestedView = searchParams.get('view');
+    if (requestedView === 'quiz' || requestedView === 'raw' || requestedView === 'ppt') {
+      setMainClassroomView(requestedView);
+    }
+  }, [searchParams]);
 
   // Pick a student agent for discussion trigger (prioritize student > non-teacher > fallback)
   const pickStudentAgent = useCallback((): string => {
@@ -528,7 +542,10 @@ export function Stage({
           break;
         }
         if (!appended) {
-          parts.push({ type: 'text', text: '...' } as UIMessage<ChatMessageMetadata>['parts'][number]);
+          parts.push({
+            type: 'text',
+            text: '...',
+          } as UIMessage<ChatMessageMetadata>['parts'][number]);
         }
         next[i] = { ...next[i], parts };
         return next;
@@ -1048,9 +1065,7 @@ export function Stage({
             setSceneSidebarAskMessages(messages);
             const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
             const textPart = lastAssistant?.parts.find((part) => part.type === 'text');
-            setLiveSpeech(
-              textPart && textPart.type === 'text' ? (textPart.text || null) : null,
-            );
+            setLiveSpeech(textPart && textPart.type === 'text' ? textPart.text || null : null);
             setSpeakingAgentId(lastAssistant?.metadata?.agentId || null);
             if (messages.some((m) => m.role === 'assistant')) {
               setThinkingState(null);
@@ -1830,11 +1845,6 @@ export function Stage({
       }
     : null;
 
-  const quizScenesInCourse = useMemo(
-    () => scenes.filter((s) => s.type === 'quiz' && s.content.type === 'quiz'),
-    [scenes],
-  );
-
   const mergedOutlines = useMemo(() => {
     const byId = new Map<string, SceneOutline>();
     for (const o of outlines) byId.set(o.id, o);
@@ -1874,23 +1884,37 @@ export function Stage({
   }, [mergedOutlines, rawCurrentScene, rawDataSubTab]);
 
   const canReflowCurrentGridScene = useMemo(() => {
-    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+    if (
+      !rawCurrentScene ||
+      rawCurrentScene.type !== 'slide' ||
+      rawCurrentScene.content.type !== 'slide'
+    ) {
       return false;
     }
     return rawCurrentScene.content.semanticDocument?.layout?.mode === 'grid';
   }, [rawCurrentScene]);
 
   const canReflowCurrentLayoutCardsScene = useMemo(() => {
-    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+    if (
+      !rawCurrentScene ||
+      rawCurrentScene.type !== 'slide' ||
+      rawCurrentScene.content.type !== 'slide'
+    ) {
       return false;
     }
     return Boolean(
-      rawCurrentScene.content.semanticDocument?.blocks.some((block) => block.type === 'layout_cards'),
+      rawCurrentScene.content.semanticDocument?.blocks.some(
+        (block) => block.type === 'layout_cards',
+      ),
     );
   }, [rawCurrentScene]);
 
   const handleReflowCurrentGridScene = useCallback(() => {
-    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+    if (
+      !rawCurrentScene ||
+      rawCurrentScene.type !== 'slide' ||
+      rawCurrentScene.content.type !== 'slide'
+    ) {
       return;
     }
     const semanticDocument = rawCurrentScene.content.semanticDocument;
@@ -1922,11 +1946,18 @@ export function Stage({
   }, [rawCurrentScene, updateScene]);
 
   const handleReflowCurrentLayoutCardsScene = useCallback(() => {
-    if (!rawCurrentScene || rawCurrentScene.type !== 'slide' || rawCurrentScene.content.type !== 'slide') {
+    if (
+      !rawCurrentScene ||
+      rawCurrentScene.type !== 'slide' ||
+      rawCurrentScene.content.type !== 'slide'
+    ) {
       return;
     }
     const semanticDocument = rawCurrentScene.content.semanticDocument;
-    if (!semanticDocument || !semanticDocument.blocks.some((block) => block.type === 'layout_cards')) {
+    if (
+      !semanticDocument ||
+      !semanticDocument.blocks.some((block) => block.type === 'layout_cards')
+    ) {
       toast.info('当前页没有 Layout Cards 块，无需重排。');
       return;
     }
@@ -1957,58 +1988,58 @@ export function Stage({
     try {
       const type = rawDataSubTab;
       const scene = rawCurrentScene;
-      const scenePayload =
-        !scene
-          ? null
-          : type === 'slide'
-            ? (() => {
-                if (rawSlideDataView === 'generated') {
-                  return {
-                    id: scene.id,
-                    type: scene.type,
-                    title: scene.title,
-                    order: scene.order,
-                    content: scene.content,
-                  };
-                }
-
-                if (rawSlideDataView === 'outline') {
-                  return {
-                    id: scene.id,
-                    type: scene.type,
-                    title: scene.title,
-                    order: scene.order,
-                    outline: rawCurrentOutline,
-                  };
-                }
-
-                if (rawSlideDataView === 'narration') {
-                  return {
-                    id: scene.id,
-                    type: scene.type,
-                    title: scene.title,
-                    order: scene.order,
-                    actions: scene.actions || [],
-                  };
-                }
-
-                const serialized = serializeSceneForRawView(scene, {
-                  expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
-                }) as Record<string, unknown>;
-                const { actions, ...rest } = serialized;
+      const scenePayload = !scene
+        ? null
+        : type === 'slide'
+          ? (() => {
+              if (rawSlideDataView === 'generated') {
                 return {
-                  ...rest,
-                  actionsSummary: Array.isArray(scene.actions)
-                    ? {
-                        total: scene.actions.length,
-                        speech: scene.actions.filter((action) => action.type === 'speech').length,
-                        spotlight: scene.actions.filter((action) => action.type === 'spotlight').length,
-                        laser: scene.actions.filter((action) => action.type === 'laser').length,
-                      }
-                    : { total: 0, speech: 0, spotlight: 0, laser: 0 },
+                  id: scene.id,
+                  type: scene.type,
+                  title: scene.title,
+                  order: scene.order,
+                  content: scene.content,
                 };
-              })()
-            : serializeSceneForRawView(scene);
+              }
+
+              if (rawSlideDataView === 'outline') {
+                return {
+                  id: scene.id,
+                  type: scene.type,
+                  title: scene.title,
+                  order: scene.order,
+                  outline: rawCurrentOutline,
+                };
+              }
+
+              if (rawSlideDataView === 'narration') {
+                return {
+                  id: scene.id,
+                  type: scene.type,
+                  title: scene.title,
+                  order: scene.order,
+                  actions: scene.actions || [],
+                };
+              }
+
+              const serialized = serializeSceneForRawView(scene, {
+                expandSlideCanvas: scene.id === currentSceneId && scene.content.type === 'slide',
+              }) as Record<string, unknown>;
+              const { actions, ...rest } = serialized;
+              return {
+                ...rest,
+                actionsSummary: Array.isArray(scene.actions)
+                  ? {
+                      total: scene.actions.length,
+                      speech: scene.actions.filter((action) => action.type === 'speech').length,
+                      spotlight: scene.actions.filter((action) => action.type === 'spotlight')
+                        .length,
+                      laser: scene.actions.filter((action) => action.type === 'laser').length,
+                    }
+                  : { total: 0, speech: 0, spotlight: 0, laser: 0 },
+              };
+            })()
+          : serializeSceneForRawView(scene);
 
       return JSON.stringify(
         {
@@ -2024,13 +2055,7 @@ export function Stage({
     } catch {
       return '{"error":"serialize_failed"}';
     }
-  }, [
-    currentSceneId,
-    rawDataSubTab,
-    rawSlideDataView,
-    rawCurrentOutline,
-    rawCurrentScene,
-  ]);
+  }, [currentSceneId, rawDataSubTab, rawSlideDataView, rawCurrentOutline, rawCurrentScene]);
 
   useEffect(() => {
     if (!rawDataTabTypes.includes(rawDataSubTab)) {
@@ -2469,10 +2494,7 @@ export function Stage({
               </pre>
             </div>
           ) : mainClassroomView === 'quiz' ? (
-            <QuizCourseQuestionHub
-              quizScenes={quizScenesInCourse}
-              onSwitchScene={gatedSceneSwitch}
-            />
+            <ProblemBankView notebookId={stage?.id || ''} />
           ) : slideEditorOpen && slideEditTab === 'narration' && currentScene?.type === 'slide' ? (
             <SlideNarrationEditor
               scene={currentScene}

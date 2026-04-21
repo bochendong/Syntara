@@ -43,10 +43,7 @@ import {
 import { ensureSpeechActionsHaveAudio } from '@/lib/hooks/use-scene-generator';
 import type { SpeechAction } from '@/lib/types/action';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
-import {
-  creditsFromPriceCents,
-  formatPurchaseCreditsLabel,
-} from '@/lib/utils/credits';
+import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/credits';
 import {
   courseContainsPurchasedNotebook,
   getCoursePublishBlockReasonFromFlags,
@@ -494,6 +491,8 @@ export default function CourseDetailPage() {
                         actionLabel="打开笔记本"
                         onAction={() => router.push(`/classroom/${nb.id}`)}
                         onEdit={() => setEditingNotebook(nb)}
+                        tertiaryActionLabel="题库"
+                        onTertiaryAction={() => router.push(`/classroom/${nb.id}?view=quiz`)}
                         secondaryActionLabel={
                           nb.sourceNotebookId
                             ? '已购副本不可发布'

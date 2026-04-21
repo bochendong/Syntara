@@ -87,6 +87,9 @@ interface CourseGalleryCardProps {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   secondaryActionDisabled?: boolean;
+  tertiaryActionLabel?: string;
+  onTertiaryAction?: () => void;
+  tertiaryActionDisabled?: boolean;
   speechStatusLabel?: string;
 }
 
@@ -162,6 +165,9 @@ export function CourseGalleryCard({
   secondaryActionLabel,
   onSecondaryAction,
   secondaryActionDisabled = false,
+  tertiaryActionLabel,
+  onTertiaryAction,
+  tertiaryActionDisabled = false,
   speechStatusLabel,
 }: CourseGalleryCardProps) {
   const cfg = variantConfig[variant];
@@ -470,7 +476,10 @@ export function CourseGalleryCard({
             }}
             className={cn(
               'store-cta-primary rounded-full px-5 py-3 text-sm font-semibold',
-              onSecondaryAction && secondaryActionLabel ? 'flex-1' : 'w-full',
+              (onSecondaryAction && secondaryActionLabel) ||
+                (onTertiaryAction && tertiaryActionLabel)
+                ? 'flex-1'
+                : 'w-full',
             )}
           >
             {actionLabel}
@@ -490,6 +499,23 @@ export function CourseGalleryCard({
               )}
             >
               {secondaryActionLabel}
+            </button>
+          ) : null}
+          {onTertiaryAction && tertiaryActionLabel ? (
+            <button
+              type="button"
+              disabled={tertiaryActionDisabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (tertiaryActionDisabled) return;
+                onTertiaryAction();
+              }}
+              className={cn(
+                'store-cta-secondary shrink-0 rounded-full px-4 py-3 text-sm font-semibold',
+                tertiaryActionDisabled && 'cursor-not-allowed opacity-55',
+              )}
+            >
+              {tertiaryActionLabel}
             </button>
           ) : null}
         </div>

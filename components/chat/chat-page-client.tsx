@@ -1,12 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent as ReactDragEvent,
+} from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
 import {
   ArrowUp,
   BookOpen,
+  FolderInput,
   Loader2,
   Paperclip,
   Presentation,
@@ -63,6 +71,10 @@ import {
   planNotebookMessage,
   type NotebookPlanResult,
 } from '@/lib/notebook/send-message';
+import {
+  commitNotebookProblemImport,
+  previewNotebookProblemImport,
+} from '@/lib/utils/notebook-problem-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import {
   listAgentsForCourse,
@@ -112,10 +124,8 @@ import {
   buildNotebookContentDocumentFromText,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
-import {
-  PDF_PAGE_SELECTION_MAX_BYTES,
-  type PdfSourceSelection,
-} from '@/lib/pdf/page-selection';
+import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
+import { PDF_PAGE_SELECTION_MAX_BYTES, type PdfSourceSelection } from '@/lib/pdf/page-selection';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ChatPage');
@@ -171,6 +181,84 @@ function shouldOfferMicroLessonButton(text: string): boolean {
     return true;
   const lines = t.split(/\r?\n/).filter((l) => l.trim() !== '');
   return lines.length >= 18;
+}
+
+function shouldImportIntoProblemBank(text: string): boolean {
+  return /(导入到题库|题库导入|import to problem bank|import into problem bank)/i.test(text);
+}
+
+function stripProblemBankImportCommand(text: string): string {
+  return text
+    .replace(/导入到题库[:：]?\s*/gi, '')
+    .replace(/题库导入[:：]?\s*/gi, '')
+    .replace(/import to problem bank[:：]?\s*/gi, '')
+    .replace(/import into problem bank[:：]?\s*/gi, '')
+    .trim();
+}
+
+function isPdfAttachment(attachment: NotebookAttachmentInput): boolean {
+  const mimeType = attachment.mimeType.toLowerCase();
+  const lowerName = attachment.name.toLowerCase();
+  return mimeType === 'application/pdf' || lowerName.endsWith('.pdf');
+}
+
+async function buildProblemBankImportPayload(args: {
+  text: string;
+  attachments: NotebookAttachmentInput[];
+}): Promise<{
+  source: 'chat' | 'pdf' | 'manual';
+  text: string;
+  warnings: string[];
+  skippedAttachments: string[];
+}> {
+  const blocks: string[] = [];
+  const warnings: string[] = [];
+  const skippedAttachments: string[] = [];
+  const trimmedText = args.text.trim();
+  let hasPdf = false;
+
+  if (trimmedText) {
+    blocks.push(trimmedText);
+  }
+
+  for (const attachment of args.attachments) {
+    const file = attachment.file;
+    if (file && isPdfAttachment(attachment)) {
+      const parsed = await parsePdfForGeneration({
+        pdfFile: file,
+        language: 'zh-CN',
+      });
+      const pdfText = parsed.pdfText.trim();
+      if (pdfText) {
+        blocks.push(`附件：${attachment.name}\n${pdfText}`);
+      }
+      warnings.push(
+        ...parsed.truncationWarnings.map((warning) => `${attachment.name}: ${warning}`),
+      );
+      hasPdf = true;
+      continue;
+    }
+
+    const excerpt = attachment.textExcerpt?.trim();
+    if (excerpt) {
+      blocks.push(`附件：${attachment.name}\n${excerpt}`);
+      continue;
+    }
+
+    skippedAttachments.push(attachment.name);
+  }
+
+  const mergedText = blocks.filter(Boolean).join('\n\n---\n\n').trim();
+  if (!mergedText) {
+    throw new Error('没有可导入的文本内容，请上传 PDF / Markdown / TXT，或在消息里粘贴题目。');
+  }
+
+  return {
+    source: hasPdf ? 'pdf' : args.attachments.length > 0 ? 'chat' : 'manual',
+    text: mergedText,
+    warnings,
+    skippedAttachments,
+  };
 }
 
 const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
@@ -1283,6 +1371,9 @@ export function ChatPageClient() {
   const [agThread, setAgThread] = useState<UIMessage<ChatMessageMetadata>[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [notebookPendingAction, setNotebookPendingAction] = useState<'chat' | 'import' | null>(
+    null,
+  );
   const [applyNotebookWrites, setApplyNotebookWrites] = useState(true);
   useEffect(() => {
     setApplyNotebookWrites(getStoredApplyNotebookWrites());
@@ -1370,7 +1461,8 @@ export function ChatPageClient() {
     : agentId
       ? ('agent' as const)
       : ('none' as const);
-  const supportsComposerAttachments = mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator);
+  const supportsComposerAttachments =
+    mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator);
 
   const isFileDragEvent = (event: Pick<ReactDragEvent<HTMLDivElement>, 'dataTransfer'>) =>
     Array.from(event.dataTransfer?.types ?? []).includes('Files');
@@ -2357,6 +2449,142 @@ export function ChatPageClient() {
     [courseId, notebookId, persistNotebookConversation, reloadNotebookScenes],
   );
 
+  const handleImportNotebookProblemBank = useCallback(
+    async (options?: { composerText?: string; commandTriggered?: boolean }) => {
+      const currentDraft = options?.composerText ?? draft.trim();
+      const importText = options?.commandTriggered
+        ? stripProblemBankImportCommand(currentDraft)
+        : currentDraft;
+      const attachmentsSnapshot = [...pendingAttachments];
+      const userFacingText =
+        currentDraft || attachmentsSnapshot.length > 0
+          ? options?.commandTriggered
+            ? currentDraft || '导入到题库'
+            : currentDraft
+              ? `导入到题库\n\n${currentDraft}`
+              : '导入到题库'
+          : '';
+
+      if ((!importText && attachmentsSnapshot.length === 0) || !notebookId || sending) return;
+      const mc = getCurrentModelConfig();
+      if (!mc.isServerConfigured) {
+        window.alert('系统模型尚未配置，请联系管理员。');
+        return;
+      }
+
+      try {
+        await Promise.all(
+          attachmentsSnapshot
+            .filter((attachment): attachment is typeof attachment & { file: File } =>
+              Boolean(attachment.file),
+            )
+            .map((attachment) => storeChatAttachmentBlob(attachment.id, attachment.file)),
+        );
+      } catch {
+        /* IndexedDB 不可用时仍可导入，仅无法在刷新后再次打开附件 */
+      }
+
+      const userMsg: NotebookChatMessage = {
+        role: 'user',
+        text: userFacingText || ATTACHMENT_ONLY_PLACEHOLDER,
+        at: Date.now(),
+        attachments: attachmentsSnapshot.map((attachment) => ({
+          id: attachment.id,
+          name: attachment.name,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          objectUrl: attachment.file ? URL.createObjectURL(attachment.file) : undefined,
+        })),
+      };
+      setNbThread((thread) => [...thread, userMsg]);
+      setDraft('');
+      setSending(true);
+      setNotebookPendingAction('import');
+
+      const taskTitleSeed =
+        importText ||
+        attachmentsSnapshot.map((attachment) => attachment.name).join('、') ||
+        '新题目';
+      const taskId =
+        courseId && notebookId
+          ? await createAgentTask({
+              courseId,
+              contactKind: 'notebook',
+              contactId: notebookId,
+              title: `题库导入：${taskTitleSeed.slice(0, 36)}`,
+              detail: '正在解析题目并写入题库…',
+              status: 'running',
+            })
+          : null;
+
+      try {
+        const payload = await buildProblemBankImportPayload({
+          text: importText,
+          attachments: attachmentsSnapshot,
+        });
+        const drafts = await previewNotebookProblemImport({
+          notebookId,
+          source: payload.source,
+          text: payload.text,
+          language: 'zh-CN',
+        });
+        const importedProblems = await commitNotebookProblemImport({
+          notebookId,
+          drafts,
+        });
+        void reloadNotebookScenes();
+
+        const notes: string[] = [];
+        if (payload.warnings.length > 0) {
+          notes.push(`解析提示：${payload.warnings.join('；')}`);
+        }
+        if (payload.skippedAttachments.length > 0) {
+          notes.push(`以下附件未导入：${payload.skippedAttachments.join('、')}`);
+        }
+
+        const assistantMsg: NotebookChatMessage = {
+          role: 'assistant',
+          answer: `已导入 ${importedProblems.length} 道题到题库。你现在可以切到题库页开始做题了。${
+            notes.length > 0 ? `\n\n${notes.join('\n')}` : ''
+          }`,
+          references: [],
+          knowledgeGap: false,
+          at: Date.now(),
+        };
+        setNbThread((thread) => [...thread, assistantMsg]);
+        setPendingAttachments([]);
+        if (taskId) {
+          await updateAgentTask(taskId, {
+            status: 'done',
+            detail: `已导入 ${importedProblems.length} 道题到题库`,
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setNbThread((thread) => [
+          ...thread,
+          {
+            role: 'assistant',
+            answer: `题库导入失败：${message}`,
+            references: [],
+            knowledgeGap: false,
+            at: Date.now(),
+          },
+        ]);
+        if (taskId) {
+          await updateAgentTask(taskId, {
+            status: 'failed',
+            detail: message.slice(0, 300),
+          });
+        }
+      } finally {
+        setSending(false);
+        setNotebookPendingAction(null);
+      }
+    },
+    [courseId, draft, notebookId, pendingAttachments, reloadNotebookScenes, sending],
+  );
+
   const handleSendNotebook = async () => {
     const text = draft.trim();
     if (!text || !notebookId || sending) return;
@@ -2391,6 +2619,7 @@ export function ChatPageClient() {
     setNbThread((t) => [...t, userMsg]);
     setDraft('');
     setSending(true);
+    setNotebookPendingAction('chat');
     const taskId =
       courseId && notebookId
         ? await createAgentTask({
@@ -2410,6 +2639,48 @@ export function ChatPageClient() {
             ? { role: 'user' as const, content: m.text, at: m.at }
             : { role: 'assistant' as const, content: m.answer, at: m.at },
         );
+      if (shouldImportIntoProblemBank(text)) {
+        const payload = await buildProblemBankImportPayload({
+          text: stripProblemBankImportCommand(text),
+          attachments: pendingAttachments,
+        });
+        const drafts = await previewNotebookProblemImport({
+          notebookId,
+          source: payload.source,
+          text: payload.text,
+          language: 'zh-CN',
+        });
+        const importedProblems = await commitNotebookProblemImport({
+          notebookId,
+          drafts,
+        });
+        void reloadNotebookScenes();
+        const notes: string[] = [];
+        if (payload.warnings.length > 0) {
+          notes.push(`解析提示：${payload.warnings.join('；')}`);
+        }
+        if (payload.skippedAttachments.length > 0) {
+          notes.push(`以下附件未导入：${payload.skippedAttachments.join('、')}`);
+        }
+        const assistantMsg: NotebookChatMessage = {
+          role: 'assistant',
+          answer: `已导入 ${importedProblems.length} 道题到题库。你现在可以切到题库页开始做题了。${
+            notes.length > 0 ? `\n\n${notes.join('\n')}` : ''
+          }`,
+          references: [],
+          knowledgeGap: false,
+          at: Date.now(),
+        };
+        setNbThread((t) => [...t, assistantMsg]);
+        setPendingAttachments([]);
+        if (taskId) {
+          await updateAgentTask(taskId, {
+            status: 'done',
+            detail: `已导入 ${importedProblems.length} 道题到题库`,
+          });
+        }
+        return;
+      }
       const plan = await planNotebookMessage(notebookId, text, {
         allowWrite: applyNotebookWrites,
         preferWebSearch: true,
@@ -2510,6 +2781,7 @@ export function ChatPageClient() {
       }
     } finally {
       setSending(false);
+      setNotebookPendingAction(null);
     }
   };
 
@@ -2557,8 +2829,8 @@ export function ChatPageClient() {
       orchestratorViewMode === 'private' &&
       orchestratorComposerMode === 'generate-notebook' &&
       sourceFileForPipeline &&
-      (((sourceFileForPipeline.type || '').toLowerCase() === 'application/pdf' ||
-        sourceFileForPipeline.name.toLowerCase().endsWith('.pdf'))) &&
+      ((sourceFileForPipeline.type || '').toLowerCase() === 'application/pdf' ||
+        sourceFileForPipeline.name.toLowerCase().endsWith('.pdf')) &&
       sourceFileForPipeline.size > PDF_PAGE_SELECTION_MAX_BYTES &&
       !effectiveSourcePageSelection
     ) {
@@ -3366,7 +3638,11 @@ export function ChatPageClient() {
         ) : sending ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />
-            {mode === 'notebook' ? '正在询问笔记本…' : '正在回复…'}
+            {mode === 'notebook'
+              ? notebookPendingAction === 'import'
+                ? '正在导入题库…'
+                : '正在询问笔记本…'
+              : '正在回复…'}
           </div>
         ) : null}
       </div>
@@ -3463,7 +3739,7 @@ export function ChatPageClient() {
               mode === 'none'
                 ? '请选择左侧联系人…'
                 : mode === 'notebook'
-                  ? '向该笔记本提问…'
+                  ? '向该笔记本提问，或上传 PDF / 文本导入题库…'
                   : isCourseOrchestrator
                     ? orchestratorViewMode === 'group'
                       ? '在课程协作群聊中发起多方协作…'
@@ -3512,6 +3788,17 @@ export function ChatPageClient() {
                       void onPickAttachments(e.target.files);
                     }}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
+                    onClick={() => void handleImportNotebookProblemBank()}
+                    disabled={sending || (!draft.trim() && pendingAttachments.length === 0)}
+                  >
+                    <FolderInput className="mr-1 size-3.5" />
+                    导入题库
+                  </Button>
                   <GenerationModelSelector onSettingsOpen={openSettings} />
                   <ComposerVoiceSelector onSettingsOpen={openSettings} />
                 </div>

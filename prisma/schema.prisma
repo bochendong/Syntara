@@ -107,6 +107,48 @@ enum MissionType {
   WEEKLY_QUIZ_BATCHES
 }
 
+enum NotebookProblemType {
+  short_answer
+  choice
+  proof
+  calculation
+  code
+  fill_blank
+}
+
+enum NotebookProblemStatus {
+  draft
+  published
+  archived
+}
+
+enum NotebookProblemSource {
+  chat
+  pdf
+  manual
+  legacy_quiz_scene
+}
+
+enum NotebookProblemDifficulty {
+  easy
+  medium
+  hard
+}
+
+enum NotebookProblemAttemptKind {
+  run
+  submit
+  answer
+}
+
+enum NotebookProblemAttemptStatus {
+  pending
+  passed
+  failed
+  partial
+  error
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String?
@@ -134,6 +176,7 @@ model User {
   notebookPurchases  NotebookPurchase[]
   courseReviews      CourseReview[]
   notebookReviews    NotebookReview[]
+  notebookProblemAttempts NotebookProblemAttempt[]
   topUpOrders        TopUpOrder[]
   engagementProfile  UserEngagementProfile?
   learningActionLogs LearningActionLog[]
@@ -235,6 +278,7 @@ model Notebook {
   owner           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   course          Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
   scenes          Scene[]
+  problems        NotebookProblem[]
   conversations   Conversation[]
   agentTasks      AgentTask[]
   sourcePurchases NotebookPurchase[] @relation("NotebookPurchaseSource")
@@ -265,6 +309,64 @@ model Scene {
   updatedAt DateTime @updatedAt
 
   @@index([notebookId, order])
+}
+
+model NotebookProblem {
+  id                String                    @id @default(cuid())
+  notebookId        String
+  title             String
+  type              NotebookProblemType
+  status            NotebookProblemStatus     @default(draft)
+  source            NotebookProblemSource     @default(manual)
+  order             Int
+  points            Int                       @default(1)
+  tags              String[]
+  difficulty        NotebookProblemDifficulty @default(medium)
+  publicContentJson Json
+  gradingJson       Json
+  sourceMeta        Json?
+
+  notebook Notebook               @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  secret   NotebookProblemSecret?
+  attempts NotebookProblemAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([notebookId, order])
+  @@index([notebookId, status, order])
+  @@index([notebookId, updatedAt(sort: Desc)])
+}
+
+model NotebookProblemSecret {
+  problemId       String @id
+  secretJudgeJson Json
+
+  problem NotebookProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotebookProblemAttempt {
+  id         String                        @id @default(cuid())
+  problemId  String
+  userId     String
+  kind       NotebookProblemAttemptKind
+  answerJson Json
+  resultJson Json?
+  score      Float?
+  status     NotebookProblemAttemptStatus @default(pending)
+
+  problem NotebookProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([problemId, createdAt(sort: Desc)])
+  @@index([problemId, userId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Conversation {
