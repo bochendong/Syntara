@@ -245,8 +245,6 @@ async function createProblemFromDraftTx(args: {
   const normalized = normalizeDraftForPersistence(args.draft, args.order);
   const created = await args.tx.notebookProblem.create({
     data: {
-      courseId: args.courseId ?? null,
-      notebookId: args.notebookId ?? null,
       title: normalized.title,
       type: normalized.type,
       status: normalized.status,
@@ -258,6 +256,7 @@ async function createProblemFromDraftTx(args: {
       publicContentJson: toPrismaJson(normalized.publicContent),
       gradingJson: toPrismaJson(normalized.grading),
       sourceMeta: toPrismaNullableJson(normalized.sourceMeta),
+      notebookId: args.notebookId ?? null,
     },
   });
 
@@ -413,14 +412,10 @@ export async function listCourseProblemsForUser(
   await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
   const notebooks = await listOwnedCourseNotebooks(userId, courseId);
   const notebookIds = notebooks.map((notebook) => notebook.id);
+  if (notebookIds.length === 0) return [];
 
   const problems = await loadProblemsWithNotebook({
-    where:
-      notebookIds.length > 0
-        ? {
-            OR: [{ courseId }, { courseId: null, notebookId: { in: notebookIds } }],
-          }
-        : { courseId },
+    where: { notebookId: { in: notebookIds } },
   });
 
   const latestByProblemId = await listLatestAttemptsForUser(
@@ -495,7 +490,7 @@ export async function getCourseProblemForUser(
   const row = (await prismaDb.notebookProblem.findFirst({
     where: {
       id: problemId,
-      OR: [{ courseId }, { notebook: { courseId, ownerId: userId } }],
+      notebook: { courseId, ownerId: userId },
     },
     include: {
       notebook: {
@@ -578,9 +573,11 @@ export async function createCourseProblemsFromDrafts(args: {
   await ensureLegacyProblemsBackfilledForCourse(args.userId, args.courseId);
 
   const notebooks = await listOwnedCourseNotebooks(args.userId, args.courseId);
+  if (notebooks.length === 0) return [];
   const allowedNotebookIds = new Set(notebooks.map((notebook) => notebook.id));
+  const allowedNotebookIdList = Array.from(allowedNotebookIds);
   const count = await prismaDb.notebookProblem.count({
-    where: { courseId: args.courseId },
+    where: { notebookId: { in: allowedNotebookIdList } },
   });
 
   await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -809,8 +806,6 @@ export async function updateCourseProblem(args: {
     const row = await tx.notebookProblem.update({
       where: { id: args.problemId },
       data: {
-        courseId: args.courseId,
-        notebookId: nextNotebookId,
         title: normalizedDraft.title,
         status: normalizedDraft.status,
         order: args.patch.order ?? current.problem.order,
@@ -820,6 +815,7 @@ export async function updateCourseProblem(args: {
         publicContentJson: toPrismaJson(normalizedDraft.publicContent),
         gradingJson: toPrismaJson(normalizedDraft.grading),
         sourceMeta: toPrismaNullableJson(normalizedDraft.sourceMeta),
+        notebookId: nextNotebookId,
       },
       include: {
         notebook: {

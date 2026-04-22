@@ -1,7 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, FileUp, Globe2, Loader2, Save, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowRightLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Ellipsis,
+  FileUp,
+  Globe2,
+  Loader2,
+  Pencil,
+  Save,
+  Trash2,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
@@ -16,6 +30,7 @@ import {
   deleteCourseProblem,
   listCourseProblems,
   previewCourseProblemImport,
+  submitNotebookProblem,
   updateCourseProblem,
   type NotebookProblemClientRecord,
 } from '@/lib/utils/notebook-problem-api';
@@ -31,6 +46,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CommonMathSymbols } from '@/components/problem-bank/common-math-symbols';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -128,6 +150,18 @@ function renderProblemStem(problem: NotebookProblemClientRecord): string {
   return '';
 }
 
+function buildEditableProblemPayload(problem: NotebookProblemClientRecord) {
+  return {
+    title: problem.title,
+    status: problem.status,
+    points: problem.points,
+    tags: problem.tags,
+    difficulty: problem.difficulty,
+    publicContent: problem.publicContent,
+    grading: problem.grading,
+  };
+}
+
 export function CourseProblemBankView({
   courseId,
   initialNotebookId,
@@ -146,14 +180,24 @@ export function CourseProblemBankView({
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
-  const [selectedNotebookId, setSelectedNotebookId] = useState<string>('__unassigned__');
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveNotebookId, setMoveNotebookId] = useState<string>('__unassigned__');
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [deletingProblem, setDeletingProblem] = useState(false);
+  const [submittingAnswer, setSubmittingAnswer] = useState(false);
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
+  const [choiceAnswers, setChoiceAnswers] = useState<Record<string, string[]>>({});
+  const [blankAnswers, setBlankAnswers] = useState<Record<string, Record<string, string>>>({});
+  const [codeAnswers, setCodeAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<'all' | NotebookProblemClientRecord['type']>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | NotebookProblemClientRecord['status']>(
     'all',
   );
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [editProblemOpen, setEditProblemOpen] = useState(false);
+  const [editProblemText, setEditProblemText] = useState('');
+  const [savingProblemEdit, setSavingProblemEdit] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
   const [importMode, setImportMode] = useState<'text' | 'pdf' | 'web'>('text');
@@ -186,6 +230,7 @@ export function CourseProblemBankView({
   const [previewNotebookOptions, setPreviewNotebookOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const textAnswerInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   const loadAll = useCallback(async () => {
     if (!courseId) {
@@ -232,6 +277,7 @@ export function CourseProblemBankView({
   );
 
   const groupedProblems = useMemo(() => {
+    const notebookById = new Map(notebooks.map((notebook) => [notebook.id, notebook]));
     const groups = new Map<string, { label: string; items: NotebookProblemClientRecord[] }>();
     for (const problem of filteredProblems) {
       const key = problem.notebookId || '__unassigned__';
@@ -243,9 +289,10 @@ export function CourseProblemBankView({
     return Array.from(groups.entries()).map(([key, value]) => ({
       key,
       label: value.label,
+      avatarUrl: key === '__unassigned__' ? null : (notebookById.get(key)?.avatarUrl ?? null),
       items: value.items,
     }));
-  }, [filteredProblems, locale]);
+  }, [filteredProblems, locale, notebooks]);
 
   const selectedProblem =
     filteredProblems.find((problem) => problem.id === selectedProblemId) ||
@@ -253,7 +300,7 @@ export function CourseProblemBankView({
     null;
 
   useEffect(() => {
-    setSelectedNotebookId(selectedProblem?.notebookId || '__unassigned__');
+    setMoveNotebookId(selectedProblem?.notebookId || '__unassigned__');
   }, [selectedProblem?.id, selectedProblem?.notebookId]);
 
   const notebookOptions = useMemo(
@@ -452,17 +499,106 @@ export function CourseProblemBankView({
         courseId,
         problemId: selectedProblem.id,
         patch: {
-          notebookId: selectedNotebookId === '__unassigned__' ? null : selectedNotebookId,
+          notebookId: moveNotebookId === '__unassigned__' ? null : moveNotebookId,
         },
       });
       setProblems((prev) => prev.map((problem) => (problem.id === updated.id ? updated : problem)));
+      setMoveNotebookId(updated.notebookId ?? '__unassigned__');
+      setMoveDialogOpen(false);
       toast.success(locale === 'zh-CN' ? '题目归属已更新' : 'Problem assignment updated');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Assignment update failed');
     } finally {
       setSavingAssignment(false);
     }
-  }, [courseId, locale, savingAssignment, selectedNotebookId, selectedProblem]);
+  }, [courseId, locale, moveNotebookId, savingAssignment, selectedProblem]);
+
+  const openEditProblemDialog = useCallback(() => {
+    if (!selectedProblem) return;
+    setEditProblemText(JSON.stringify(buildEditableProblemPayload(selectedProblem), null, 2));
+    setEditProblemOpen(true);
+  }, [selectedProblem]);
+
+  const handleSaveProblemEdit = useCallback(async () => {
+    if (!selectedProblem || savingProblemEdit) return;
+
+    let parsed: Record<string, unknown>;
+    try {
+      const raw = JSON.parse(editProblemText) as unknown;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        throw new Error(locale === 'zh-CN' ? 'JSON 必须是对象。' : 'JSON must be an object.');
+      }
+      parsed = raw as Record<string, unknown>;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid JSON');
+      return;
+    }
+
+    try {
+      const title = parsed.title;
+      const status = parsed.status;
+      const points = parsed.points;
+      const tags = parsed.tags;
+      const difficulty = parsed.difficulty;
+      const publicContent = parsed.publicContent;
+      const grading = parsed.grading;
+
+      if (typeof title !== 'string' || !title.trim()) {
+        throw new Error(locale === 'zh-CN' ? 'title 必须是非空字符串。' : 'title must be a non-empty string.');
+      }
+      if (!['draft', 'published', 'archived'].includes(String(status))) {
+        throw new Error(
+          locale === 'zh-CN'
+            ? 'status 仅支持 draft / published / archived。'
+            : 'status must be draft / published / archived.',
+        );
+      }
+      if (typeof points !== 'number' || !Number.isFinite(points)) {
+        throw new Error(locale === 'zh-CN' ? 'points 必须是数字。' : 'points must be a number.');
+      }
+      if (!['easy', 'medium', 'hard'].includes(String(difficulty))) {
+        throw new Error(
+          locale === 'zh-CN'
+            ? 'difficulty 仅支持 easy / medium / hard。'
+            : 'difficulty must be easy / medium / hard.',
+        );
+      }
+      if (!Array.isArray(tags) || tags.some((item) => typeof item !== 'string')) {
+        throw new Error(locale === 'zh-CN' ? 'tags 必须是字符串数组。' : 'tags must be a string array.');
+      }
+      if (!publicContent || typeof publicContent !== 'object') {
+        throw new Error(
+          locale === 'zh-CN' ? 'publicContent 必须是对象。' : 'publicContent must be an object.',
+        );
+      }
+      if (!grading || typeof grading !== 'object') {
+        throw new Error(locale === 'zh-CN' ? 'grading 必须是对象。' : 'grading must be an object.');
+      }
+
+      setSavingProblemEdit(true);
+      const updated = await updateCourseProblem({
+        courseId,
+        problemId: selectedProblem.id,
+        patch: {
+          title,
+          status: status as NotebookProblemClientRecord['status'],
+          points,
+          tags: tags as string[],
+          difficulty: difficulty as NotebookProblemClientRecord['difficulty'],
+          publicContent,
+          grading,
+        },
+      });
+      setProblems((prev) => prev.map((problem) => (problem.id === updated.id ? updated : problem)));
+      setSelectedProblemId(updated.id);
+      setEditProblemOpen(false);
+      toast.success(locale === 'zh-CN' ? '题目已更新' : 'Problem updated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Update failed');
+    } finally {
+      setSavingProblemEdit(false);
+    }
+  }, [courseId, editProblemText, locale, savingProblemEdit, selectedProblem]);
 
   const handleDeleteProblem = useCallback(async () => {
     if (!selectedProblem || deletingProblem) return;
@@ -489,20 +625,88 @@ export function CourseProblemBankView({
     }
   }, [courseId, deletingProblem, locale, selectedProblem]);
 
+  const handleSubmitInlineAnswer = useCallback(async () => {
+    if (!selectedProblem || submittingAnswer) return;
+    if (!selectedProblem.notebookId) {
+      toast.error(
+        locale === 'zh-CN'
+          ? '请先为这道题设置归属章节并保存，才能作答。'
+          : 'Assign this problem to a notebook and save before submitting.',
+      );
+      return;
+    }
+    setSubmittingAnswer(true);
+    try {
+      const payload =
+        selectedProblem.type === 'choice'
+          ? { selectedOptionIds: choiceAnswers[selectedProblem.id] ?? [] }
+          : selectedProblem.type === 'fill_blank'
+            ? { blanks: blankAnswers[selectedProblem.id] ?? {} }
+            : selectedProblem.type === 'code'
+              ? { code: codeAnswers[selectedProblem.id] ?? '' }
+              : { text: textAnswers[selectedProblem.id] ?? '' };
+      await submitNotebookProblem({
+        notebookId: selectedProblem.notebookId,
+        problemId: selectedProblem.id,
+        language: locale,
+        ...payload,
+      });
+      await loadAll();
+      setSelectedProblemId(selectedProblem.id);
+      toast.success(locale === 'zh-CN' ? '已提交答案' : 'Answer submitted');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Submit failed');
+    } finally {
+      setSubmittingAnswer(false);
+    }
+  }, [
+    blankAnswers,
+    choiceAnswers,
+    codeAnswers,
+    loadAll,
+    locale,
+    selectedProblem,
+    submittingAnswer,
+    textAnswers,
+  ]);
+
+  const insertSymbolIntoTextAnswer = useCallback(
+    (problemId: string, symbol: string) => {
+      const textarea = textAnswerInputRefs.current[problemId];
+      if (!textarea) {
+        setTextAnswers((prev) => ({
+          ...prev,
+          [problemId]: `${prev[problemId] || ''}${symbol}`,
+        }));
+        return;
+      }
+
+      const start = textarea.selectionStart ?? textarea.value.length;
+      const end = textarea.selectionEnd ?? textarea.value.length;
+      const currentValue = textAnswers[problemId] || '';
+      const nextValue = `${currentValue.slice(0, start)}${symbol}${currentValue.slice(end)}`;
+      setTextAnswers((prev) => ({
+        ...prev,
+        [problemId]: nextValue,
+      }));
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const nextCursor = start + symbol.length;
+        textarea.setSelectionRange(nextCursor, nextCursor);
+      });
+    },
+    [textAnswers],
+  );
+
   return (
-    <div className="mx-auto flex max-w-7xl gap-4 p-4">
-      <div className="w-[380px] shrink-0 rounded-2xl border border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-950/50">
+    <div className="mx-auto flex h-full min-h-0 max-w-7xl gap-4 p-4">
+      <div className="order-2 flex h-full w-[380px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-950/50">
         <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {courseName || (locale === 'zh-CN' ? '课程题库' : 'Course problem bank')}
               </h1>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {locale === 'zh-CN'
-                  ? '按笔记本章节分组管理课程下的全部题目。'
-                  : 'Manage all course problems grouped by notebook chapter.'}
-              </p>
             </div>
             <Button size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
               <FileUp className="h-4 w-4" />
@@ -536,7 +740,7 @@ export function CourseProblemBankView({
           </div>
         </div>
 
-        <div className="max-h-[calc(100vh-180px)] overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {loading ? (
             <div className="flex items-center justify-center py-12 text-sm text-slate-500">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -548,60 +752,98 @@ export function CourseProblemBankView({
             </div>
           ) : (
             <div className="space-y-4">
-              {groupedProblems.map((group) => (
+              {groupedProblems.map((group) => {
+                const isCollapsed = collapsedGroups[group.key] !== false;
+                return (
                 <div key={group.key}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {group.label}
-                    </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsedGroups((prev) => ({
+                        ...prev,
+                        [group.key]: !isCollapsed,
+                      }))
+                    }
+                    className="mb-2 flex w-full items-center justify-between rounded-md px-1 py-0.5 text-left hover:bg-slate-100/80 dark:hover:bg-slate-800/40"
+                  >
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {isCollapsed ? (
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                      )}
+                      {group.avatarUrl ? (
+                        <img
+                          src={group.avatarUrl}
+                          alt=""
+                          className="size-4 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
+                        />
+                      ) : (
+                        <span className="inline-flex size-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                          {group.label.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {group.label}
+                      </p>
+                    </div>
                     <span className="text-[11px] text-slate-400">{group.items.length}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {group.items.map((problem) => (
-                      <button
-                        key={problem.id}
-                        type="button"
-                        onClick={() => setSelectedProblemId(problem.id)}
-                        className={`w-full rounded-xl border p-3 text-left transition-colors ${
-                          selectedProblemId === problem.id
-                            ? 'border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30'
-                            : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {problem.title}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {typeLabel(problem.type, locale)} ·{' '}
-                          {difficultyLabel(problem.difficulty, locale)} ·{' '}
-                          {sourceLabel(problem.source, locale)}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
+                  </button>
+                  {!isCollapsed ? (
+                    <div className="space-y-2">
+                      {group.items.map((problem) => (
+                        <button
+                          key={problem.id}
+                          type="button"
+                          onClick={() => setSelectedProblemId(problem.id)}
+                          className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                            selectedProblemId === problem.id
+                              ? 'border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30'
+                              : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-slate-700'
+                          }`}
+                        >
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {problem.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {typeLabel(problem.type, locale)} ·{' '}
+                            {difficultyLabel(problem.difficulty, locale)} ·{' '}
+                            {sourceLabel(problem.source, locale)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="order-1 min-h-0 min-w-0 flex-1">
         {!selectedProblem ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
+          <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
             {locale === 'zh-CN' ? '请选择一道题查看详情。' : 'Select a problem to inspect.'}
           </div>
         ) : (
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="text-xl">{selectedProblem.title}</CardTitle>
+          <>
+            <Card className="h-full">
+            <CardHeader className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="line-clamp-1 text-xl" title={selectedProblem.title}>
+                    {selectedProblem.title}
+                  </CardTitle>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="secondary">{typeLabel(selectedProblem.type, locale)}</Badge>
-                    <Badge variant="secondary">
-                      {difficultyLabel(selectedProblem.difficulty, locale)}
+                    <Badge variant="outline">
+                      {locale === 'zh-CN'
+                        ? `归属：${selectedProblem.notebookName || '未归类题目'}`
+                        : `Notebook: ${selectedProblem.notebookName || 'Unassigned'}`}
                     </Badge>
+                    <Badge variant="secondary">{typeLabel(selectedProblem.type, locale)}</Badge>
+                    <Badge variant="secondary">{difficultyLabel(selectedProblem.difficulty, locale)}</Badge>
                     <Badge variant="secondary">{statusLabel(selectedProblem.status, locale)}</Badge>
                     <Badge variant="secondary">{sourceLabel(selectedProblem.source, locale)}</Badge>
                     <Badge variant="secondary">
@@ -609,40 +851,197 @@ export function CourseProblemBankView({
                     </Badge>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {selectedProblem.notebookId ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      onClick={() => router.push(`/classroom/${selectedProblem.notebookId}`)}
+                      size="icon"
+                      aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
                     >
-                      {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                      <Ellipsis className="h-4 w-4" />
                     </Button>
-                  ) : null}
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteProblem}
-                    disabled={deletingProblem}
-                  >
-                    {deletingProblem ? (
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={openEditProblemDialog}>
+                      <Pencil className="h-4 w-4" />
+                      {locale === 'zh-CN' ? '编辑题目' : 'Edit problem'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
+                      <ArrowRightLeft className="h-4 w-4" />
+                      {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
+                    </DropdownMenuItem>
+                    {selectedProblem.notebookId ? (
+                      <DropdownMenuItem
+                        onClick={() => router.push(`/classroom/${selectedProblem.notebookId}`)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={handleDeleteProblem}
+                      disabled={deletingProblem}
+                    >
+                      {deletingProblem ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto">
+              <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-700 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {locale === 'zh-CN' ? '题目描述' : 'Problem statement'}
+                </p>
+                <p>
+                  {renderProblemStem(selectedProblem) ||
+                    (locale === 'zh-CN' ? '暂无题面。' : 'No stem available.')}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/40">
+                {selectedProblem.type === 'choice' &&
+                selectedProblem.publicContent.type === 'choice' ? (
+                  <div className="space-y-2">
+                    {selectedProblem.publicContent.options.map((option) => {
+                      const selected = choiceAnswers[selectedProblem.id] ?? [];
+                      const multi = selectedProblem.publicContent.selectionMode === 'multiple';
+                      return (
+                        <label
+                          key={option.id}
+                          className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                        >
+                          <input
+                            type={multi ? 'checkbox' : 'radio'}
+                            checked={selected.includes(option.id)}
+                            onChange={(event) => {
+                              setChoiceAnswers((prev) => {
+                                const current = prev[selectedProblem.id] ?? [];
+                                const next = multi
+                                  ? event.target.checked
+                                    ? [...current, option.id]
+                                    : current.filter((item) => item !== option.id)
+                                  : [option.id];
+                                return { ...prev, [selectedProblem.id]: Array.from(new Set(next)) };
+                              });
+                            }}
+                          />
+                          <span>
+                            <span className="font-medium">{option.id}.</span> {option.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : selectedProblem.type === 'fill_blank' &&
+                  selectedProblem.publicContent.type === 'fill_blank' ? (
+                  <div className="space-y-2">
+                    {selectedProblem.publicContent.blanks.map((blank) => (
+                      <div key={blank.id}>
+                        <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                          {blank.id}
+                        </label>
+                        <Input
+                          value={blankAnswers[selectedProblem.id]?.[blank.id] ?? ''}
+                          placeholder={
+                            blank.placeholder ||
+                            (locale === 'zh-CN' ? '请输入答案' : 'Type your answer')
+                          }
+                          onChange={(event) =>
+                            setBlankAnswers((prev) => ({
+                              ...prev,
+                              [selectedProblem.id]: {
+                                ...(prev[selectedProblem.id] ?? {}),
+                                [blank.id]: event.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : selectedProblem.type === 'code' &&
+                  selectedProblem.publicContent.type === 'code' ? (
+                  <Textarea
+                    className="min-h-[220px] font-mono text-xs"
+                    value={
+                      codeAnswers[selectedProblem.id] ??
+                      selectedProblem.publicContent.starterCode ??
+                      ''
+                    }
+                    onChange={(event) =>
+                      setCodeAnswers((prev) => ({
+                        ...prev,
+                        [selectedProblem.id]: event.target.value,
+                      }))
+                    }
+                    placeholder={
+                      locale === 'zh-CN' ? '在这里编写代码并提交。' : 'Write code here and submit.'
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {selectedProblem.type === 'short_answer' ||
+                    selectedProblem.type === 'proof' ||
+                    selectedProblem.type === 'calculation' ? (
+                      <CommonMathSymbols
+                        locale={locale}
+                        onInsert={(symbol) => insertSymbolIntoTextAnswer(selectedProblem.id, symbol)}
+                      />
+                    ) : null}
+                    <Textarea
+                      className="min-h-[140px]"
+                      value={textAnswers[selectedProblem.id] ?? ''}
+                      onChange={(event) =>
+                        setTextAnswers((prev) => ({
+                          ...prev,
+                          [selectedProblem.id]: event.target.value,
+                        }))
+                      }
+                      ref={(node) => {
+                        textAnswerInputRefs.current[selectedProblem.id] = node;
+                      }}
+                      placeholder={
+                        locale === 'zh-CN' ? '在这里输入你的答案。' : 'Type your answer here.'
+                      }
+                    />
+                  </div>
+                )}
+                <div className="mt-3">
+                  <Button onClick={handleSubmitInlineAnswer} disabled={submittingAnswer}>
+                    {submittingAnswer ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
+                      <Save className="mr-2 h-4 w-4" />
                     )}
-                    {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                    {locale === 'zh-CN' ? '提交答案' : 'Submit answer'}
                   </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
-                <div className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {locale === 'zh-CN' ? '归属章节' : 'Notebook assignment'}
-                </div>
-                <div className="flex flex-wrap gap-2">
+            </CardContent>
+            </Card>
+
+            <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{locale === 'zh-CN' ? '移动题目归属' : 'Move problem'}</DialogTitle>
+                  <DialogDescription>
+                    {locale === 'zh-CN'
+                      ? '选择要将当前题目归属到的笔记本。'
+                      : 'Choose the notebook to reassign this problem.'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
                   <select
-                    value={selectedNotebookId}
-                    onChange={(event) => setSelectedNotebookId(event.target.value)}
-                    className="h-10 min-w-[260px] rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    value={moveNotebookId}
+                    onChange={(event) => setMoveNotebookId(event.target.value)}
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
                   >
                     <option value="__unassigned__">
                       {locale === 'zh-CN' ? '未归类题目' : 'Unassigned'}
@@ -653,23 +1052,51 @@ export function CourseProblemBankView({
                       </option>
                     ))}
                   </select>
-                  <Button onClick={handleSaveAssignment} disabled={savingAssignment}>
-                    {savingAssignment ? (
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveAssignment} disabled={savingAssignment}>
+                      {savingAssignment ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      {locale === 'zh-CN' ? '确认移动' : 'Move'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editProblemOpen} onOpenChange={setEditProblemOpen}>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>{locale === 'zh-CN' ? '编辑题目' : 'Edit problem'}</DialogTitle>
+                  <DialogDescription>
+                    {locale === 'zh-CN'
+                      ? '可编辑 title/status/points/tags/difficulty/publicContent/grading。'
+                      : 'Edit title/status/points/tags/difficulty/publicContent/grading.'}
+                  </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                  className="min-h-[380px] font-mono text-xs"
+                  value={editProblemText}
+                  onChange={(event) => setEditProblemText(event.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditProblemOpen(false)}>
+                    {locale === 'zh-CN' ? '取消' : 'Cancel'}
+                  </Button>
+                  <Button onClick={handleSaveProblemEdit} disabled={savingProblemEdit}>
+                    {savingProblemEdit ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="mr-2 h-4 w-4" />
                     )}
-                    {locale === 'zh-CN' ? '保存归属' : 'Save assignment'}
+                    {locale === 'zh-CN' ? '保存' : 'Save'}
                   </Button>
                 </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-700 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200">
-                {renderProblemStem(selectedProblem) ||
-                  (locale === 'zh-CN' ? '暂无题面。' : 'No stem available.')}
-              </div>
-            </CardContent>
-          </Card>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </div>
 

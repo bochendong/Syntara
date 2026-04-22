@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CommonMathSymbols } from '@/components/problem-bank/common-math-symbols';
 
 function typeLabel(type: NotebookProblemClientRecord['type'], locale: 'zh-CN' | 'en-US') {
   const zh = {
@@ -273,29 +274,6 @@ function estimateProblemCountFromText(text: string): number {
     .filter(Boolean);
   return Math.max(1, blocks.length);
 }
-
-const COMMON_MATH_SYMBOLS = [
-  '∈',
-  '∉',
-  '⊂',
-  '⊆',
-  '⊄',
-  '∪',
-  '∩',
-  '∅',
-  '∀',
-  '∃',
-  '⇒',
-  '⇔',
-  '≠',
-  '≤',
-  '≥',
-  '≈',
-  '∞',
-  '∑',
-  '√',
-  'π',
-] as const;
 
 function buildPracticeNotification(args: {
   locale: 'zh-CN' | 'en-US';
@@ -1230,24 +1208,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         ) : null}
                       </div>
                     ) : null}
-                    {selectedProblem.type === 'short_answer' ? (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/40">
-                        <div className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                          {locale === 'zh-CN' ? '常用符号' : 'Common symbols'}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {COMMON_MATH_SYMBOLS.map((symbol) => (
-                            <button
-                              key={symbol}
-                              type="button"
-                              onClick={() => insertSymbolIntoTextAnswer(selectedProblem.id, symbol)}
-                              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-sky-700 dark:hover:text-sky-200"
-                            >
-                              {symbol}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                    {selectedProblem.type === 'short_answer' ||
+                    selectedProblem.type === 'proof' ||
+                    selectedProblem.type === 'calculation' ? (
+                      <CommonMathSymbols
+                        locale={locale}
+                        onInsert={(symbol) => insertSymbolIntoTextAnswer(selectedProblem.id, symbol)}
+                      />
                     ) : null}
                     <Textarea
                       value={textAnswer[selectedProblem.id] || ''}

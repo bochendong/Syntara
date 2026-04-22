@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowRightLeft,
   BookOpen,
+  ListChecks,
   Bug,
   ChevronDown,
   ChevronRight,
@@ -27,7 +28,7 @@ import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/s
 
 function navItemClass(collapsed: boolean, active: boolean, variant: 'home' | 'notebook') {
   return cn(
-    'flex min-h-10 w-full items-center gap-3 rounded-[12px] py-2 text-left text-[13px] transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+    'flex min-h-10 w-full items-center gap-3 rounded-[12px] py-2 text-left text-xs transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
     collapsed ? 'justify-center px-2' : 'px-3',
     active
       ? variant === 'notebook'
@@ -135,6 +136,9 @@ export function AppCoreNavList({
   const courseMilestoneActive =
     Boolean(pathname?.startsWith('/course/')) &&
     (pathname?.endsWith('/milestone') || pathname?.includes('/milestone/'));
+  const courseProblemBankActive =
+    Boolean(pathname?.startsWith('/course/')) &&
+    (pathname?.endsWith('/problem-bank') || pathname?.includes('/problem-bank/'));
   const topUpActive = pathname === '/top-up' || pathname?.startsWith('/top-up/');
   const creditsMarketActive =
     pathname === '/credits-market' || pathname?.startsWith('/credits-market/');
@@ -293,6 +297,14 @@ export function AppCoreNavList({
                     tooltip: '课程里程碑',
                     icon: Flame,
                     active: courseMilestoneActive,
+                  },
+                  {
+                    key: 'course-problem-bank',
+                    href: `/course/${encodeURIComponent(courseId ?? '')}/problem-bank`,
+                    label: '课程题库',
+                    tooltip: '课程题库',
+                    icon: ListChecks,
+                    active: courseProblemBankActive,
                   },
                   ...(isChatPage
                     ? []

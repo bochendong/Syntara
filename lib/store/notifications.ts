@@ -226,8 +226,20 @@ export const useNotificationStore = create<NotificationStoreState>()(
         }),
       dismissBanner: (notificationId) =>
         set((state) => {
+          const userId = state.activeUserId.trim();
+          const nextReadIds = userId
+            ? clampReadIds([notificationId, ...(state.readByUser[userId] ?? [])])
+            : [];
+          const nextReadByUser = userId
+            ? {
+                ...state.readByUser,
+                [userId]: nextReadIds,
+              }
+            : state.readByUser;
+          const nextReadSet = userId ? new Set(nextReadIds) : buildReadSet(state.readByUser, userId);
           const nextDismissed = clampReadIds([notificationId, ...state.dismissedBannerIds]);
           return {
+            readByUser: nextReadByUser,
             dismissedBannerIds: nextDismissed,
             queuedLocalBanners: state.queuedLocalBanners.filter(
               (item) => item.id !== notificationId,
@@ -235,12 +247,13 @@ export const useNotificationStore = create<NotificationStoreState>()(
             activeBanners: buildNextActiveBanners({
               notifications: state.notifications,
               activeBanners: state.activeBanners.filter((item) => item.id !== notificationId),
-              readSet: buildReadSet(state.readByUser, state.activeUserId),
+              readSet: nextReadSet,
               queuedLocalBanners: state.queuedLocalBanners.filter(
                 (item) => item.id !== notificationId,
               ),
               excludeIds: nextDismissed,
             }),
+            unreadCount: countUnread(state.notifications, nextReadSet),
           };
         }),
       enqueueBanner: (notification) =>

@@ -6,9 +6,11 @@ import { Suspense, useEffect, useState } from 'react';
 import {
   ArrowRightLeft,
   Bell,
+  Bug,
   ChevronLeft,
   ChevronRight,
   Cpu,
+  LifeBuoy,
   LogOut,
   Moon,
   Search,
@@ -37,6 +39,7 @@ import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
+import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 import { ProfileAvatarPicker } from '@/components/user-profile/profile-avatar-picker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -237,7 +240,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 'relative shrink-0 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
                 collapsed
                   ? 'flex flex-col items-center px-2 py-3'
-                  : 'flex flex-col items-center px-4 pb-3 pt-10',
+                  : 'flex flex-col items-center px-4 pb-3 pt-6',
               )}
             >
               <button
@@ -327,11 +330,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
                     {railTitle}
                   </p>
-                  {!inCourseContext && userAffinityLevel != null ? (
-                    <p className="mt-1 text-center text-xs text-muted-foreground">
-                      {`Lv.${userAffinityLevel}`}
-                    </p>
-                  ) : null}
                   <div className="mt-2 grid w-full gap-2">
                     {balances != null ? (
                       <div className="grid grid-cols-3 gap-1.5 text-[10px]">
@@ -482,11 +480,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 <AppCoreNavList
                   collapsed={collapsed}
                   variant={notebookSidebar ? 'notebook' : 'home'}
-                  excludeKeys={
-                    notebookSidebar
-                      ? (['contact-support', 'report-issue'] as const)
-                      : undefined
-                  }
+                  excludeKeys={['contact-support', 'report-issue']}
                   onItemClick={(key) => {
                     if (key === 'chat') expandIfCollapsed();
                   }}
@@ -500,10 +494,40 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               <div className="px-3 py-3">
                 <div className="flex items-center gap-0.5">
                   <div className="mr-auto min-w-0 flex-1 pl-1">
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {isLoggedIn ? '账户已连接' : '本地体验模式'}
-                    </p>
+                    {!inCourseContext && userAffinityLevel != null ? (
+                      <p className="text-[11px] text-muted-foreground/90">
+                        {`Lv.${userAffinityLevel}`}
+                      </p>
+                    ) : null}
                   </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={CONTACT_SUPPORT_NAV_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                        aria-label="联系客服"
+                      >
+                        <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">联系客服</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={REPORT_ISSUE_NAV_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                        aria-label="报告问题"
+                      >
+                        <Bug className="size-[18px]" strokeWidth={1.75} />
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">报告问题</TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button

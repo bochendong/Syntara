@@ -506,11 +506,7 @@ export default function CourseDetailPage() {
                         onAction={() => router.push(`/classroom/${nb.id}`)}
                         onEdit={() => setEditingNotebook(nb)}
                         tertiaryActionLabel="题库"
-                        onTertiaryAction={() =>
-                          router.push(
-                            `/course/${id}/problem-bank?notebookId=${encodeURIComponent(nb.id)}`,
-                          )
-                        }
+                        onTertiaryAction={() => router.push(`/classroom/${nb.id}?view=quiz`)}
                         secondaryActionLabel={
                           nb.sourceNotebookId
                             ? undefined
