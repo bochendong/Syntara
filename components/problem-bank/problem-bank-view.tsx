@@ -8,10 +8,12 @@ import {
   Code2,
   FileUp,
   Filter,
+  Globe2,
   Loader2,
   Play,
   Save,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -27,6 +29,7 @@ import {
 } from '@/lib/problem-bank';
 import {
   commitNotebookProblemImport,
+  deleteNotebookProblem,
   listNotebookProblemAttempts,
   listNotebookProblems,
   previewNotebookProblemImport,
@@ -72,12 +75,14 @@ function sourceLabel(source: NotebookProblemClientRecord['source'], locale: 'zh-
     chat: '聊天导入',
     pdf: 'PDF 导入',
     manual: '手动录入',
+    web: '联网导入',
     legacy_quiz_scene: '历史测验页',
   } as const;
   const en = {
     chat: 'Chat',
     pdf: 'PDF',
     manual: 'Manual',
+    web: 'Web',
     legacy_quiz_scene: 'Legacy quiz',
   } as const;
   return locale === 'zh-CN' ? zh[source] : en[source];
@@ -238,6 +243,7 @@ function AttemptSummary({
 type ImportProcessingStage =
   | 'idle'
   | 'parsing'
+  | 'searching'
   | 'extracting'
   | 'validating'
   | 'preview-ready'
@@ -388,6 +394,8 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
   const { locale } = useI18n();
   const pdfProviderId = useSettingsStore((state) => state.pdfProviderId);
   const pdfProvidersConfig = useSettingsStore((state) => state.pdfProvidersConfig);
+  const webSearchProviderId = useSettingsStore((state) => state.webSearchProviderId);
+  const webSearchProvidersConfig = useSettingsStore((state) => state.webSearchProvidersConfig);
   const enqueueBanner = useNotificationStore((state) => state.enqueueBanner);
   const textAnswerInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
@@ -406,11 +414,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
   const [codeAnswer, setCodeAnswer] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [runningCode, setRunningCode] = useState(false);
+  const [deletingProblem, setDeletingProblem] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
-  const [importMode, setImportMode] = useState<'text' | 'pdf'>('text');
+  const [importMode, setImportMode] = useState<'text' | 'pdf' | 'web'>('text');
   const [importText, setImportText] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importWebQuery, setImportWebQuery] = useState('');
   const [drafts, setDrafts] = useState<NotebookProblemImportDraft[]>([]);
   const [includedDraftIds, setIncludedDraftIds] = useState<Record<string, boolean>>({});
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -427,6 +437,12 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     outputTokens: number;
     cachedInputTokens: number;
     estimatedCostCredits: number | null;
+  } | null>(null);
+  const [importWebSearchSummary, setImportWebSearchSummary] = useState<{
+    query: string;
+    sourceCount: number;
+    estimatedCostCredits: number;
+    sources: Array<{ title: string; url: string }>;
   } | null>(null);
 
   const loadProblems = useCallback(async () => {
@@ -617,13 +633,45 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     }
   }, [codeAnswer, locale, notebookId, refreshAfterAttempt, runningCode, selectedProblem]);
 
+  const handleDeleteProblem = useCallback(async () => {
+    if (!selectedProblem || deletingProblem) return;
+    const confirmed = window.confirm(
+      locale === 'zh-CN'
+        ? `确认删除题目「${selectedProblem.title}」吗？删除后不可恢复。`
+        : `Delete "${selectedProblem.title}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingProblem(true);
+    try {
+      await deleteNotebookProblem({
+        notebookId,
+        problemId: selectedProblem.id,
+      });
+      const nextProblems = problems.filter((problem) => problem.id !== selectedProblem.id);
+      setProblems(nextProblems);
+      setSelectedProblemId((current) => {
+        if (current !== selectedProblem.id) return current;
+        return nextProblems[0]?.id ?? null;
+      });
+      setAttempts((prev) => prev.filter((attempt) => attempt.problemId !== selectedProblem.id));
+      toast.success(locale === 'zh-CN' ? '题目已删除' : 'Problem deleted');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Delete failed');
+    } finally {
+      setDeletingProblem(false);
+    }
+  }, [deletingProblem, locale, notebookId, problems, selectedProblem]);
+
   const handlePreviewImport = useCallback(async () => {
     setPreviewLoading(true);
     setImportSummaryNote(null);
     setImportUsage(null);
+    setImportWebSearchSummary(null);
     try {
       let text = importText.trim();
-      let source: 'manual' | 'pdf' = 'manual';
+      let source: 'manual' | 'pdf' | 'web' = 'manual';
+      let searchQuery = '';
       if (importMode === 'pdf') {
         if (!importFile) {
           throw new Error(locale === 'zh-CN' ? '请先选择 PDF 文件' : 'Select a PDF first');
@@ -651,26 +699,55 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             `${locale === 'zh-CN' ? '解析提示' : 'Parse notes'}：${parsed.truncationWarnings.join('；')}`,
           );
         }
+      } else if (importMode === 'web') {
+        searchQuery = importWebQuery.trim();
+        if (!searchQuery) {
+          throw new Error(
+            locale === 'zh-CN'
+              ? '请先输入课程名或搜题关键词'
+              : 'Enter a course name or search query first',
+          );
+        }
+        source = 'web';
+        setImportEstimatedProblemCount(0);
+        setImportProcessedProblemCount(0);
+        setImportProcessingStage('searching');
+        setImportProcessingDetail(
+          locale === 'zh-CN'
+            ? '正在联网搜索课程题目、往届试题和练习材料…'
+            : 'Searching the web for course problems and past exams…',
+        );
       }
-      if (!text) {
+      if (source !== 'web' && !text) {
         throw new Error(locale === 'zh-CN' ? '请先输入题目内容' : 'Enter problem text first');
       }
-      if (importMode !== 'pdf') {
+      if (importMode === 'text') {
         setImportEstimatedProblemCount(estimateProblemCountFromText(text));
         setImportProcessedProblemCount(0);
       }
-      setImportProcessingStage('extracting');
-      setImportProcessingDetail(
-        locale === 'zh-CN' ? '正在从材料中拆分题目草稿…' : 'Extracting problem drafts…',
-      );
+      if (source !== 'web') {
+        setImportProcessingStage('extracting');
+        setImportProcessingDetail(
+          locale === 'zh-CN' ? '正在从材料中拆分题目草稿…' : 'Extracting problem drafts…',
+        );
+      } else {
+        setImportProcessingDetail(
+          locale === 'zh-CN'
+            ? '正在联网搜索课程题目，并整理成可导入的题目草稿…'
+            : 'Searching the web and turning results into importable problem drafts…',
+        );
+      }
       const previewResult = await previewNotebookProblemImport({
         notebookId,
         source,
         text,
+        searchQuery,
+        webSearchApiKey: webSearchProvidersConfig[webSearchProviderId]?.apiKey || undefined,
         language: locale,
       });
       const nextDrafts = previewResult.drafts;
       setImportUsage(previewResult.usage);
+      setImportWebSearchSummary(previewResult.webSearch);
       setImportProcessingStage('validating');
       setImportProcessingDetail(
         locale === 'zh-CN' ? '正在校验题目 schema，并整理待修正项…' : 'Validating drafts…',
@@ -690,11 +767,19 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       setImportSummaryNote(
         locale === 'zh-CN'
           ? `已生成 ${nextDrafts.length} 道题草稿，其中 ${needsFixCount} 道需要修正。${
+              previewResult.webSearch
+                ? ` 本次联网检索命中 ${previewResult.webSearch.sourceCount} 个网页来源，并额外扣费 ${previewResult.webSearch.estimatedCostCredits} 算力积分。`
+                : ''
+            }${
               previewResult.usage?.estimatedCostCredits != null
                 ? `本次导题精确扣费 ${previewResult.usage.estimatedCostCredits} 算力积分。`
                 : '本次导题扣费会稍后汇总到通知中心。'
             }`
           : `${nextDrafts.length} drafts generated, ${needsFixCount} need fixes.${
+              previewResult.webSearch
+                ? ` Web search found ${previewResult.webSearch.sourceCount} sources and charged ${previewResult.webSearch.estimatedCostCredits} compute credits.`
+                : ''
+            }${
               previewResult.usage?.estimatedCostCredits != null
                 ? ` Charged ${previewResult.usage.estimatedCostCredits} compute credits.`
                 : ' Compute credits will sync to notifications shortly.'
@@ -709,7 +794,18 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     } finally {
       setPreviewLoading(false);
     }
-  }, [importFile, importMode, importText, locale, notebookId, pdfProviderId, pdfProvidersConfig]);
+  }, [
+    importFile,
+    importMode,
+    importText,
+    importWebQuery,
+    locale,
+    notebookId,
+    pdfProviderId,
+    pdfProvidersConfig,
+    webSearchProviderId,
+    webSearchProvidersConfig,
+  ]);
 
   const handleSaveDraftEditor = useCallback(() => {
     if (!editingDraftId) return;
@@ -750,6 +846,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       setDrafts([]);
       setImportText('');
       setImportFile(null);
+      setImportWebQuery('');
       setImportProcessedProblemCount(selectedDrafts.length);
       setImportProcessingStage('completed');
       setImportProcessingDetail(
@@ -944,7 +1041,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                     </div>
                   </div>
                   {selectedProblem.type === 'code' ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={handleRunCode} disabled={runningCode}>
                         {runningCode ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -961,16 +1058,42 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         )}
                         {locale === 'zh-CN' ? '提交' : 'Submit'}
                       </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteProblem}
+                        disabled={deletingProblem}
+                      >
+                        {deletingProblem ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                      </Button>
                     </div>
                   ) : (
-                    <Button onClick={handleSubmit} disabled={submitting}>
-                      {submitting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="mr-2 h-4 w-4" />
-                      )}
-                      {locale === 'zh-CN' ? '提交答案' : 'Submit answer'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={handleSubmit} disabled={submitting}>
+                        {submitting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {locale === 'zh-CN' ? '提交答案' : 'Submit answer'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteProblem}
+                        disabled={deletingProblem}
+                      >
+                        {deletingProblem ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -1202,6 +1325,14 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             >
               PDF
             </Button>
+            <Button
+              type="button"
+              variant={importMode === 'web' ? 'default' : 'outline'}
+              onClick={() => setImportMode('web')}
+            >
+              <Globe2 className="mr-2 h-4 w-4" />
+              {locale === 'zh-CN' ? '联网搜索' : 'Web search'}
+            </Button>
           </div>
 
           {importMode === 'text' ? (
@@ -1215,7 +1346,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                   : 'Paste problem text here.'
               }
             />
-          ) : (
+          ) : importMode === 'pdf' ? (
             <div className="space-y-3">
               <Input
                 type="file"
@@ -1224,6 +1355,33 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
               />
               {importFile ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400">{importFile.name}</p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                value={importWebQuery}
+                onChange={(event) => setImportWebQuery(event.target.value)}
+                placeholder={
+                  locale === 'zh-CN'
+                    ? '例如：多伦多大学 CSC148 past exam recursion linked list'
+                    : 'Example: university + course code + past exam + topic keywords'
+                }
+              />
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs leading-6 text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+                {locale === 'zh-CN'
+                  ? '可以什么都不上传，直接搜索课程名、课程代码、学校名，再加 past exam、midterm、final、homework、往届题等关键词。系统会先联网搜题，再生成导入预览。'
+                  : 'You can skip uploads and search by university, course name, course code, plus keywords like past exam, midterm, final, or homework. We will search first, then build the import preview.'}
+              </div>
+              {!(
+                webSearchProvidersConfig[webSearchProviderId]?.apiKey ||
+                webSearchProvidersConfig[webSearchProviderId]?.isServerConfigured
+              ) ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-6 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                  {locale === 'zh-CN'
+                    ? '当前未检测到联网搜索配置。请先在设置中启用 Tavily，才能使用联网搜题导入。'
+                    : 'Web search is not configured yet. Please enable Tavily in settings before using web import.'}
+                </div>
               ) : null}
             </div>
           )}
@@ -1308,9 +1466,33 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                       </div>
                     </div>
                   ) : null}
+                  {importWebSearchSummary ? (
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+                      <div className="font-medium text-slate-800 dark:text-slate-100">
+                        {locale === 'zh-CN' ? '联网搜题结果' : 'Web search results'}
+                      </div>
+                      <div className="mt-1">
+                        {locale === 'zh-CN' ? '检索词' : 'Query'}: {importWebSearchSummary.query}
+                      </div>
+                      <div className="mt-1">
+                        {locale === 'zh-CN' ? '命中来源' : 'Sources'}:{' '}
+                        {importWebSearchSummary.sourceCount}
+                        {' · '}
+                        {locale === 'zh-CN'
+                          ? `扣费 ${importWebSearchSummary.estimatedCostCredits} 算力积分`
+                          : `Charge ${importWebSearchSummary.estimatedCostCredits} compute credits`}
+                      </div>
+                      {importWebSearchSummary.sources.slice(0, 3).map((source) => (
+                        <div key={source.url} className="mt-1 truncate">
+                          {source.title}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                     {[
                       ['parsing', locale === 'zh-CN' ? '解析材料' : 'Parse'],
+                      ['searching', locale === 'zh-CN' ? '联网搜题' : 'Search'],
                       ['extracting', locale === 'zh-CN' ? '拆分题目' : 'Extract'],
                       ['validating', locale === 'zh-CN' ? '校验 schema' : 'Validate'],
                       ['committing', locale === 'zh-CN' ? '写入题库' : 'Commit'],
@@ -1320,8 +1502,10 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         ['preview-ready', 'completed'].includes(importProcessingStage) ||
                         (importProcessingStage === 'committing' && stage !== 'committing') ||
                         (importProcessingStage === 'validating' &&
-                          ['parsing', 'extracting'].includes(stage)) ||
-                        (importProcessingStage === 'extracting' && stage === 'parsing');
+                          ['parsing', 'searching', 'extracting'].includes(stage)) ||
+                        (importProcessingStage === 'extracting' &&
+                          ['parsing', 'searching'].includes(stage)) ||
+                        (importProcessingStage === 'searching' && stage === 'parsing');
                       return (
                         <span
                           key={stage}

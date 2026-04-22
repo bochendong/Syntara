@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { listNotebookProblemsForUser } from '@/lib/server/notebook-problems/service';
+import { listCourseProblemsForUser } from '@/lib/server/notebook-problems/service';
 
-function toClientProblem(problem: Awaited<ReturnType<typeof listNotebookProblemsForUser>>[number]) {
+function toClientProblem(problem: Awaited<ReturnType<typeof listCourseProblemsForUser>>[number]) {
   return {
     id: problem.id,
     courseId: problem.courseId ?? null,
@@ -30,7 +30,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id } = await context.params;
-    const problems = await listNotebookProblemsForUser(auth.userId, id);
+    const problems = await listCourseProblemsForUser(auth.userId, id);
     return NextResponse.json({ problems: problems.map(toClientProblem) });
   });
 }

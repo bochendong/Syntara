@@ -420,6 +420,14 @@ export default function CourseDetailPage() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
                   <Button
+                    asChild
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-xl border-slate-200 bg-white/80 dark:border-white/20 dark:bg-white/5"
+                  >
+                    <Link href={`/course/${course.id}/problem-bank`}>课程题库</Link>
+                  </Button>
+                  <Button
                     type="button"
                     variant="outline"
                     className="h-11 rounded-xl border-slate-200 bg-white/80 dark:border-white/20 dark:bg-white/5"
@@ -498,7 +506,11 @@ export default function CourseDetailPage() {
                         onAction={() => router.push(`/classroom/${nb.id}`)}
                         onEdit={() => setEditingNotebook(nb)}
                         tertiaryActionLabel="题库"
-                        onTertiaryAction={() => router.push(`/classroom/${nb.id}?view=quiz`)}
+                        onTertiaryAction={() =>
+                          router.push(
+                            `/course/${id}/problem-bank?notebookId=${encodeURIComponent(nb.id)}`,
+                          )
+                        }
                         secondaryActionLabel={
                           nb.sourceNotebookId
                             ? undefined

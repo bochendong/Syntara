@@ -10,7 +10,13 @@ export const notebookProblemTypeSchema = z.enum([
   'fill_blank',
 ]);
 export const notebookProblemStatusSchema = z.enum(['draft', 'published', 'archived']);
-export const notebookProblemSourceSchema = z.enum(['chat', 'pdf', 'manual', 'legacy_quiz_scene']);
+export const notebookProblemSourceSchema = z.enum([
+  'chat',
+  'pdf',
+  'manual',
+  'web',
+  'legacy_quiz_scene',
+]);
 export const notebookProblemDifficultySchema = z.enum(['easy', 'medium', 'hard']);
 export const notebookProblemAttemptKindSchema = z.enum(['run', 'submit', 'answer']);
 export const notebookProblemAttemptStatusSchema = z.enum([
@@ -170,7 +176,9 @@ export const notebookProblemSecretJudgeSchema = z.object({
 
 export const notebookProblemRecordSchema = z.object({
   id: z.string().trim().min(1),
-  notebookId: z.string().trim().min(1),
+  courseId: z.string().trim().min(1).nullable().optional(),
+  notebookId: z.string().trim().min(1).nullable().optional(),
+  notebookName: z.string().trim().min(1).max(200).optional(),
   title: z.string().trim().min(1).max(200),
   type: notebookProblemTypeSchema,
   status: notebookProblemStatusSchema,
@@ -244,6 +252,7 @@ export const notebookProblemAttemptRecordSchema = z.object({
 
 export const notebookProblemImportDraftSchema = z.object({
   draftId: z.string().trim().min(1),
+  notebookId: z.string().trim().min(1).nullable().optional(),
   title: z.string().trim().min(1).max(200),
   type: notebookProblemTypeSchema,
   status: notebookProblemStatusSchema.default('draft'),

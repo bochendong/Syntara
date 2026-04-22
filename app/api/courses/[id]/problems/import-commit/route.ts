@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { listNotebookProblemsForUser } from '@/lib/server/notebook-problems/service';
+import { notebookProblemImportDraftSchema } from '@/lib/problem-bank';
+import { createCourseProblemsFromDrafts } from '@/lib/server/notebook-problems/service';
 
-function toClientProblem(problem: Awaited<ReturnType<typeof listNotebookProblemsForUser>>[number]) {
+const commitSchema = z.object({
+  drafts: z.array(notebookProblemImportDraftSchema).min(1).max(200),
+});
+
+function toClientProblem(
+  problem: Awaited<ReturnType<typeof createCourseProblemsFromDrafts>>[number],
+) {
   return {
     id: problem.id,
     courseId: problem.courseId ?? null,
@@ -25,12 +33,25 @@ function toClientProblem(problem: Awaited<ReturnType<typeof listNotebookProblems
   };
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id } = await context.params;
-    const problems = await listNotebookProblemsForUser(auth.userId, id);
+
+    const payload = commitSchema.safeParse(await request.json());
+    if (!payload.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: payload.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const problems = await createCourseProblemsFromDrafts({
+      userId: auth.userId,
+      courseId: id,
+      drafts: payload.data.drafts,
+    });
     return NextResponse.json({ problems: problems.map(toClientProblem) });
   });
 }

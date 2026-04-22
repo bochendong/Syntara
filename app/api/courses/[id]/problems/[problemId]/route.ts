@@ -7,11 +7,13 @@ import {
   notebookProblemPublicContentSchema,
 } from '@/lib/problem-bank';
 import {
-  getNotebookProblemForUser,
-  updateNotebookProblem,
+  deleteCourseProblem,
+  getCourseProblemForUser,
+  updateCourseProblem,
 } from '@/lib/server/notebook-problems/service';
 
 const updateProblemSchema = z.object({
+  notebookId: z.string().trim().min(1).nullable().optional(),
   title: z.string().trim().min(1).max(200).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
   points: z.number().int().min(0).max(1000).optional(),
@@ -23,9 +25,7 @@ const updateProblemSchema = z.object({
   secretJudge: z.unknown().nullable().optional(),
 });
 
-function toClientProblem(
-  problem: Awaited<ReturnType<typeof getNotebookProblemForUser>>['problem'],
-) {
+function toClientProblem(problem: Awaited<ReturnType<typeof getCourseProblemForUser>>['problem']) {
   return {
     id: problem.id,
     courseId: problem.courseId ?? null,
@@ -54,7 +54,7 @@ export async function GET(
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id, problemId } = await context.params;
-    const { problem } = await getNotebookProblemForUser(auth.userId, id, problemId);
+    const { problem } = await getCourseProblemForUser(auth.userId, id, problemId);
     return NextResponse.json({ problem: toClientProblem(problem) });
   });
 }
@@ -76,9 +76,9 @@ export async function PATCH(
       );
     }
 
-    const problem = await updateNotebookProblem({
+    const problem = await updateCourseProblem({
       userId: auth.userId,
-      notebookId: id,
+      courseId: id,
       problemId,
       patch: payload.data,
     });
@@ -94,10 +94,9 @@ export async function DELETE(
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id, problemId } = await context.params;
-    const { deleteNotebookProblem } = await import('@/lib/server/notebook-problems/service');
-    await deleteNotebookProblem({
+    await deleteCourseProblem({
       userId: auth.userId,
-      notebookId: id,
+      courseId: id,
       problemId,
     });
     return NextResponse.json({ ok: true });

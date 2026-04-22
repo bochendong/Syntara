@@ -14,7 +14,9 @@ function toClientProblem(
 ) {
   return {
     id: problem.id,
+    courseId: problem.courseId ?? null,
     notebookId: problem.notebookId,
+    notebookName: problem.notebookName,
     title: problem.title,
     type: problem.type,
     status: problem.status,

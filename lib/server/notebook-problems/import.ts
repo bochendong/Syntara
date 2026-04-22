@@ -278,16 +278,32 @@ function normalizeRawCandidate(
     typeof base.publicContent === 'object' && base.publicContent
       ? ({ ...(base.publicContent as Record<string, unknown>) } as Record<string, unknown>)
       : {};
-  if (typeof publicContent.type !== 'string') {
-    publicContent.type = type;
-  }
+  publicContent.type = type;
 
   const grading =
     typeof base.grading === 'object' && base.grading
       ? ({ ...(base.grading as Record<string, unknown>) } as Record<string, unknown>)
       : {};
-  if (typeof grading.type !== 'string') {
-    grading.type = type;
+  grading.type = type;
+
+  if (
+    publicContent.stem == null &&
+    typeof base.stem === 'string' &&
+    (type === 'short_answer' ||
+      type === 'choice' ||
+      type === 'proof' ||
+      type === 'calculation' ||
+      type === 'code')
+  ) {
+    publicContent.stem = base.stem;
+  }
+
+  if (
+    publicContent.stemTemplate == null &&
+    typeof base.stemTemplate === 'string' &&
+    type === 'fill_blank'
+  ) {
+    publicContent.stemTemplate = base.stemTemplate;
   }
 
   if (Array.isArray(grading.rubric)) {

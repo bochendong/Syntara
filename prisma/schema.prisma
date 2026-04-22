@@ -126,6 +126,7 @@ enum NotebookProblemSource {
   chat
   pdf
   manual
+  web
   legacy_quiz_scene
 }
 
@@ -164,24 +165,24 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  courses            Course[]
-  notebooks          Notebook[]
-  conversations      Conversation[]
-  messages           Message[]
-  agentTasks         AgentTask[]
-  agentEnvelopes     AgentEnvelope[]
-  llmUsageLogs       LLMUsageLog[]
-  creditTransactions CreditTransaction[]
-  coursePurchases    CoursePurchase[]
-  notebookPurchases  NotebookPurchase[]
-  courseReviews      CourseReview[]
-  notebookReviews    NotebookReview[]
+  courses                 Course[]
+  notebooks               Notebook[]
+  conversations           Conversation[]
+  messages                Message[]
+  agentTasks              AgentTask[]
+  agentEnvelopes          AgentEnvelope[]
+  llmUsageLogs            LLMUsageLog[]
+  creditTransactions      CreditTransaction[]
+  coursePurchases         CoursePurchase[]
+  notebookPurchases       NotebookPurchase[]
+  courseReviews           CourseReview[]
+  notebookReviews         NotebookReview[]
   notebookProblemAttempts NotebookProblemAttempt[]
-  topUpOrders        TopUpOrder[]
-  engagementProfile  UserEngagementProfile?
-  learningActionLogs LearningActionLog[]
-  characterProgress  UserCharacterProgress[]
-  missionProgress    UserMissionProgress[]
+  topUpOrders             TopUpOrder[]
+  engagementProfile       UserEngagementProfile?
+  learningActionLogs      LearningActionLog[]
+  characterProgress       UserCharacterProgress[]
+  missionProgress         UserMissionProgress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -245,12 +246,13 @@ model Course {
   storePublishedAt    DateTime?
   sourceCourseId      String?
 
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   notebooks       Notebook[]
+  problems        NotebookProblem[]
   conversations   Conversation[]
   agentTasks      AgentTask[]
-  sourcePurchases CoursePurchase[] @relation("CoursePurchaseSource")
-  clonePurchase   CoursePurchase?  @relation("CoursePurchaseClone")
+  sourcePurchases CoursePurchase[]  @relation("CoursePurchaseSource")
+  clonePurchase   CoursePurchase?   @relation("CoursePurchaseClone")
   reviews         CourseReview[]
 
   createdAt DateTime @default(now())
@@ -313,7 +315,8 @@ model Scene {
 
 model NotebookProblem {
   id                String                    @id @default(cuid())
-  notebookId        String
+  courseId          String?
+  notebookId        String?
   title             String
   type              NotebookProblemType
   status            NotebookProblemStatus     @default(draft)
@@ -326,15 +329,18 @@ model NotebookProblem {
   gradingJson       Json
   sourceMeta        Json?
 
-  notebook Notebook               @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  course   Course?                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notebook Notebook?                @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   secret   NotebookProblemSecret?
   attempts NotebookProblemAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([courseId, order])
+  @@index([courseId, status, order])
+  @@index([courseId, updatedAt(sort: Desc)])
   @@index([notebookId, order])
-  @@index([notebookId, status, order])
   @@index([notebookId, updatedAt(sort: Desc)])
 }
 
@@ -349,7 +355,7 @@ model NotebookProblemSecret {
 }
 
 model NotebookProblemAttempt {
-  id         String                        @id @default(cuid())
+  id         String                       @id @default(cuid())
   problemId  String
   userId     String
   kind       NotebookProblemAttemptKind
