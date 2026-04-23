@@ -1,4 +1,4 @@
-export type Live2DPresenterModelId = 'hiyori' | 'haru' | 'mark' | 'mao' | 'ren' | 'rice';
+export type Live2DPresenterModelId = 'hiyori' | 'haru' | 'mark' | 'mao' | 'rice';
 
 export type Live2DPresenterModelConfig = {
   readonly id: Live2DPresenterModelId;
@@ -14,7 +14,7 @@ export const LIVE2D_PRESENTER_MODELS: Record<Live2DPresenterModelId, Live2DPrese
     id: 'hiyori',
     badgeLabel: 'Hiyori',
     modelSrc: '/live2d/Hiyori/Hiyori.model3.json',
-    previewSrc: '/live2d/previews/hiyori.jpg',
+    previewSrc: '/liv2d_poster/hiyori-full.png',
     idleMotionGroup: 'Idle',
     speakMotionGroup: 'TapBody',
   },
@@ -22,7 +22,7 @@ export const LIVE2D_PRESENTER_MODELS: Record<Live2DPresenterModelId, Live2DPrese
     id: 'haru',
     badgeLabel: 'Haru',
     modelSrc: '/live2d/Haru/Haru.model3.json',
-    previewSrc: '/live2d/previews/haru.jpg',
+    previewSrc: '/liv2d_poster/haru-full.png',
     idleMotionGroup: 'Idle',
     speakMotionGroup: 'TapBody',
   },
@@ -30,7 +30,7 @@ export const LIVE2D_PRESENTER_MODELS: Record<Live2DPresenterModelId, Live2DPrese
     id: 'mark',
     badgeLabel: 'Mark',
     modelSrc: '/live2d/Mark/Mark.model3.json',
-    previewSrc: '/live2d/previews/mark.jpg',
+    previewSrc: '/liv2d_poster/mark-full.png',
     idleMotionGroup: 'Idle',
     speakMotionGroup: 'Idle',
   },
@@ -38,15 +38,7 @@ export const LIVE2D_PRESENTER_MODELS: Record<Live2DPresenterModelId, Live2DPrese
     id: 'mao',
     badgeLabel: 'Mao',
     modelSrc: '/live2d/Mao/Mao.model3.json',
-    previewSrc: '/live2d/previews/mao.jpg',
-    idleMotionGroup: 'Idle',
-    speakMotionGroup: 'TapBody',
-  },
-  ren: {
-    id: 'ren',
-    badgeLabel: 'Ren',
-    modelSrc: '/live2d/Ren/Ren.model3.json',
-    previewSrc: '/live2d/previews/ren.png',
+    previewSrc: '/liv2d_poster/mao-full.png',
     idleMotionGroup: 'Idle',
     speakMotionGroup: 'TapBody',
   },
@@ -54,7 +46,7 @@ export const LIVE2D_PRESENTER_MODELS: Record<Live2DPresenterModelId, Live2DPrese
     id: 'rice',
     badgeLabel: 'Rice',
     modelSrc: '/live2d/Rice/Rice.model3.json',
-    previewSrc: '/live2d/previews/rice.jpg',
+    previewSrc: '/liv2d_poster/rice-full.png',
     idleMotionGroup: 'Idle',
     speakMotionGroup: 'TapBody',
   },

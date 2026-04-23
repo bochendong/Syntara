@@ -200,21 +200,6 @@ const DEFAULT_CATALOG: Array<{
     },
   },
   {
-    id: 'ren',
-    name: 'Ren',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 420,
-    affinityLevelRequired: 1,
-    sortOrder: 50,
-    isDefault: false,
-    metadata: {
-      previewSrc: '/live2d/previews/ren.png',
-      badgeLabel: 'Ren',
-      accentColor: '#60a5fa',
-      description: '更成熟冷静的讲师气质，适合偏结构化、节奏稳的课堂。',
-    },
-  },
-  {
     id: 'rice',
     name: 'Rice',
     assetType: CharacterAssetType.LIVE2D,

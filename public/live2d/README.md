@@ -2,9 +2,8 @@ Live2D assets in this directory come from the official Live2D sample resources.
 
 Current additions:
 - `Mao/` from `Live2D/CubismWebSamples`
-- `Ren/` from `Live2D/CubismWebSamples`
 - `Rice/` from `Live2D/CubismWebSamples`
-- `previews/mao.jpg`, `previews/ren.png`, `previews/rice.jpg` from the official sample catalog page
+- `previews/mao.jpg`, `previews/rice.jpg` from the official sample catalog page
 
 Sources:
 - https://github.com/Live2D/CubismWebSamples

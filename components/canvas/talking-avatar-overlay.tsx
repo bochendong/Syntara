@@ -45,7 +45,8 @@ interface TalkingAvatarOverlayProps extends TalkingAvatarOverlayState {
 }
 
 const LIVE2D_CORE_SRC = '/live2d/live2dcubismcore.min.js';
-const LIVE2D_CORE_CDN_FALLBACK_SRC = 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js';
+const LIVE2D_CORE_CDN_FALLBACK_SRC =
+  'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js';
 export type TalkingAvatarSpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
 type MouthPose = {
@@ -114,7 +115,7 @@ export function TalkingAvatarOverlay({
     resizeObserver: ResizeObserver | null;
     detachPoseHook: (() => void) | null;
   } | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'image-fallback'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const wasSpeakingRef = useRef(false);
 
   useEffect(() => {
@@ -225,6 +226,7 @@ export function TalkingAvatarOverlay({
     const setup = async () => {
       const mount = mountElement;
       if (!mount) return;
+
       const resolvedCoreSrc = resolveLive2dAssetUrl(LIVE2D_CORE_SRC);
       const resolvedModelSrc = resolveLive2dAssetUrl(modelConfig.modelSrc);
 
@@ -348,17 +350,6 @@ export function TalkingAvatarOverlay({
 
     setup().catch((error) => {
       const normalizedError = normalizeUnknownError(error);
-      if (modelConfig.id === 'ren' && /CubismMoc\.create\(\)/.test(normalizedError.message)) {
-        console.warn('Ren Live2D runtime incompatible, degrading to static preview fallback', {
-          modelId: modelConfig.id,
-          modelSrc: modelConfig.modelSrc,
-          resolvedModelSrc: resolveLive2dAssetUrl(modelConfig.modelSrc),
-          coreSrc: resolveLive2dAssetUrl(LIVE2D_CORE_SRC),
-          error: normalizedError,
-        });
-        setStatus('image-fallback');
-        return;
-      }
       console.error('Failed to initialize Live2D presenter', {
         modelId: modelConfig.id,
         modelSrc: modelConfig.modelSrc,
@@ -427,16 +418,6 @@ export function TalkingAvatarOverlay({
             {modelConfig.badgeLabel}
           </div>
         )}
-
-        <img
-          src={resolveLive2dAssetUrl(modelConfig.previewSrc)}
-          alt={modelConfig.badgeLabel}
-          className={cn(
-            'absolute inset-0 h-full w-full object-cover transition-opacity duration-300',
-            status === 'ready' ? 'opacity-0' : 'opacity-100',
-          )}
-          draggable={false}
-        />
 
         <div
           ref={mountRef}
@@ -872,7 +853,9 @@ async function forceReloadCubismCore(coreSrc: string) {
     (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore = undefined;
   }
 
-  const existingScripts = document.querySelectorAll<HTMLScriptElement>('script[data-synatra-live2d]');
+  const existingScripts = document.querySelectorAll<HTMLScriptElement>(
+    'script[data-synatra-live2d]',
+  );
   existingScripts.forEach((script) => script.remove());
 
   const cacheBustedSrc = `${coreSrc}${coreSrc.includes('?') ? '&' : '?'}reload=${Date.now()}`;
@@ -883,8 +866,9 @@ function resolveLive2dAssetUrl(path: string): string {
   if (typeof window === 'undefined') return path;
   if (!path.startsWith('/')) return path;
 
-  const nextData = (window as Window & { __NEXT_DATA__?: { assetPrefix?: string; basePath?: string } })
-    .__NEXT_DATA__;
+  const nextData = (
+    window as Window & { __NEXT_DATA__?: { assetPrefix?: string; basePath?: string } }
+  ).__NEXT_DATA__;
   const assetPrefix = nextData?.assetPrefix?.trim() ?? '';
   const basePath = nextData?.basePath?.trim() ?? '';
   const prefix = assetPrefix || basePath;

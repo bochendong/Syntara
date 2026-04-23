@@ -20,10 +20,30 @@ import type { WebSearchProviderId } from '@/lib/web-search/types';
 import { createLogger } from '@/lib/logger';
 import {
   DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
+  LIVE2D_PRESENTER_MODELS,
   type Live2DPresenterModelId,
 } from '@/lib/live2d/presenter-models';
 
 const log = createLogger('Settings');
+
+function isLive2DPresenterModelId(value: unknown): value is Live2DPresenterModelId {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(LIVE2D_PRESENTER_MODELS, value)
+  );
+}
+
+function ensureValidLive2DSelections(state: Partial<SettingsState>) {
+  if (!isLive2DPresenterModelId(state.live2dPresenterModelId)) {
+    state.live2dPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+  }
+  if (!isLive2DPresenterModelId(state.notificationCompanionId)) {
+    state.notificationCompanionId = state.live2dPresenterModelId;
+  }
+  if (!isLive2DPresenterModelId(state.checkInCompanionId)) {
+    state.checkInCompanionId = state.live2dPresenterModelId;
+  }
+}
 
 /** Available playback speed tiers */
 export const PLAYBACK_SPEEDS = [1, 1.25, 1.5, 2] as const;
@@ -1070,7 +1090,8 @@ export const useSettingsStore = create<SettingsState>()(
             state.live2dPresenterModelId || DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
         }
         if (version < 6 || state.checkInCompanionId === undefined) {
-          state.checkInCompanionId = state.live2dPresenterModelId || DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+          state.checkInCompanionId =
+            state.live2dPresenterModelId || DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
         }
 
         if (version < 5 || state.live2dPresenterVisible === undefined) {
@@ -1080,6 +1101,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 4 || !state.live2dPresenterModelId) {
           state.live2dPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
         }
+        ensureValidLive2DSelections(state);
 
         // v2 → v3: 课堂场景列表侧栏默认展开（此前默认为收起）
         if (version < 3) {
@@ -1201,6 +1223,7 @@ export const useSettingsStore = create<SettingsState>()(
         ensureBuiltInProviders(merged as Partial<SettingsState>);
         ensureBuiltInImageProviders(merged as Partial<SettingsState>);
         ensureBuiltInVideoProviders(merged as Partial<SettingsState>);
+        ensureValidLive2DSelections(merged as Partial<SettingsState>);
         ensureValidProviderSelections(merged as Partial<SettingsState>);
         return merged as SettingsState;
       },

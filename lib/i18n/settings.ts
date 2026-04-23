@@ -39,10 +39,6 @@ export const settingsZhCN = {
         label: 'Mao',
         desc: '更元气明亮的校园感讲师，表情丰富，适合轻松活泼的课堂。',
       },
-      ren: {
-        label: 'Ren',
-        desc: '偏成熟冷静的讲师气质，适合结构化讲解和复盘类课堂。',
-      },
       rice: {
         label: 'Rice',
         desc: '更轻盈温柔的少女感讲师，适合陪伴式和鼓励式课堂。',
@@ -685,10 +681,6 @@ export const settingsEnUS = {
       mao: {
         label: 'Mao',
         desc: 'A brighter, more energetic school-style presenter for lively, relaxed lessons.',
-      },
-      ren: {
-        label: 'Ren',
-        desc: 'A more mature and composed presenter for structured walkthroughs and review sessions.',
       },
       rice: {
         label: 'Rice',

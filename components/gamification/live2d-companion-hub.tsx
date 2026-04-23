@@ -105,19 +105,6 @@ const LIVE2D_CHARACTER_TRAITS: Record<
     ],
     maxAffinityGift: 'Mao 元气课前提醒卡组',
   },
-  ren: {
-    notificationBonuses: [
-      { requiredLevel: 5, label: '复盘提醒触发权重 +10%' },
-      { requiredLevel: 10, label: '复盘提醒触发权重 +18%' },
-      { requiredLevel: 15, label: '复盘提醒触发权重 +26%' },
-    ],
-    signInBonuses: [
-      { requiredLevel: 5, label: '签到后首个任务额外 +1 亲密度' },
-      { requiredLevel: 10, label: '签到后首个任务额外 +2 亲密度' },
-      { requiredLevel: 15, label: '签到后首个任务额外 +3 亲密度' },
-    ],
-    maxAffinityGift: 'Ren 复盘清单模板包',
-  },
   rice: {
     notificationBonuses: [
       { requiredLevel: 5, label: '温和提醒触发权重 +10%' },
@@ -137,12 +124,11 @@ const COMPANION_GIFT_CLAIM_STORAGE_KEY = 'companion-gift-claim-status';
 const COMPANION_STAGE_SKIN_STORAGE_KEY = 'companion-stage-skin-status';
 const COMPANION_NOTIFICATION_STYLE_STORAGE_KEY = 'companion-notification-style-status';
 const LIVE2D_POSTER_BY_ID: Partial<Record<Live2DPresenterModelId, string>> = {
-  haru: '/liv2d_poster/Haru.png',
-  hiyori: '/liv2d_poster/Hiyori.png',
-  mark: '/liv2d_poster/Mark.png',
-  mao: '/live2d/previews/mao.jpg',
-  ren: '/live2d/previews/ren.png',
-  rice: '/live2d/previews/rice.jpg',
+  haru: '/liv2d_poster/haru-avator.png',
+  hiyori: '/liv2d_poster/hiyori-avator.png',
+  mark: '/liv2d_poster/mark-avator.png',
+  mao: '/liv2d_poster/mao-avator.png',
+  rice: '/liv2d_poster/rice-avator.png',
 };
 type NotificationActionOption = {
   id: string;
@@ -290,29 +276,6 @@ const NOTIFICATION_ACTIONS_BY_MODEL: Record<Live2DPresenterModelId, Notification
       motionIndex: 0,
     },
   ],
-  ren: [
-    {
-      id: 'ren-nod',
-      label: '点头',
-      description: '用于简洁确认型通知。',
-      motionGroup: 'TapBody',
-      motionIndex: 0,
-    },
-    {
-      id: 'ren-focus',
-      label: '专注提醒',
-      description: '用于开始任务前的稳定提醒。',
-      motionGroup: 'TapBody',
-      motionIndex: 1,
-    },
-    {
-      id: 'ren-idle',
-      label: '标准提醒',
-      description: '默认通知动作。',
-      motionGroup: 'Idle',
-      motionIndex: 0,
-    },
-  ],
   rice: [
     {
       id: 'rice-soft',
@@ -380,7 +343,6 @@ const CHARACTER_VOICE_PACKS: Record<Live2DPresenterModelId, CharacterVoicePack[]
   hiyori: [],
   mark: [],
   mao: [],
-  ren: [],
   rice: [],
 };
 
@@ -633,32 +595,6 @@ const CHARACTER_MOTION_PACKS: Record<Live2DPresenterModelId, CharacterMotionPack
       motionIndex: 5,
     },
   ],
-  ren: [
-    {
-      id: 'ren-idle-0',
-      label: '专注待机',
-      description: 'Ren 的基础待机动作。',
-      requiredLevel: 1,
-      motionGroup: 'Idle',
-      motionIndex: 0,
-    },
-    {
-      id: 'ren-tap-0',
-      label: '冷静确认',
-      description: 'Ren TapBody 动作 0，适合纠错和确认。',
-      requiredLevel: 5,
-      motionGroup: 'TapBody',
-      motionIndex: 0,
-    },
-    {
-      id: 'ren-tap-1',
-      label: '专注提醒',
-      description: 'Ren TapBody 动作 1，适合开始任务。',
-      requiredLevel: 10,
-      motionGroup: 'TapBody',
-      motionIndex: 1,
-    },
-  ],
   rice: [
     {
       id: 'rice-idle-0',
@@ -776,26 +712,6 @@ const CHARACTER_STAGE_SKINS: Record<Live2DPresenterModelId, CharacterStageSkin[]
       glowClass: 'bg-[radial-gradient(circle,rgba(250,204,21,0.28),transparent_68%)]',
     },
   ],
-  ren: [
-    {
-      id: 'ren-focus',
-      label: '专注静室',
-      description: 'Ren 的深色专注舞台。',
-      requiredLevel: 1,
-      stageClass:
-        'bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.18),transparent_38%),linear-gradient(180deg,rgba(17,45,53,0.94),rgba(8,18,35,0.96))]',
-      glowClass: 'bg-[radial-gradient(circle,rgba(45,212,191,0.24),transparent_68%)]',
-    },
-    {
-      id: 'ren-archive',
-      label: '复盘档案室',
-      description: '复盘清单专属舞台皮肤。',
-      requiredLevel: 8,
-      stageClass:
-        'bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.2),transparent_38%),linear-gradient(180deg,rgba(27,34,74,0.94),rgba(8,16,35,0.96))]',
-      glowClass: 'bg-[radial-gradient(circle,rgba(129,140,248,0.26),transparent_68%)]',
-    },
-  ],
   rice: [
     {
       id: 'rice-warm',
@@ -892,24 +808,6 @@ const CHARACTER_NOTIFICATION_STYLES: Record<Live2DPresenterModelId, CharacterNot
         chipClass: 'bg-orange-500 text-white',
       },
     ],
-    ren: [
-      {
-        id: 'ren-calm',
-        label: '静谧青',
-        description: '低打扰专注提醒样式。',
-        requiredLevel: 1,
-        previewClass: 'border-teal-200/60 bg-teal-50/90 text-teal-950',
-        chipClass: 'bg-teal-600 text-white',
-      },
-      {
-        id: 'ren-archive',
-        label: '档案靛',
-        description: '复盘报告专属样式。',
-        requiredLevel: 10,
-        previewClass: 'border-blue-200/60 bg-blue-50/90 text-blue-950',
-        chipClass: 'bg-blue-600 text-white',
-      },
-    ],
     rice: [
       {
         id: 'rice-warm',
@@ -931,14 +829,7 @@ const CHARACTER_NOTIFICATION_STYLES: Record<Live2DPresenterModelId, CharacterNot
   };
 
 function toLive2DModelId(id: string): Live2DPresenterModelId | null {
-  if (
-    id === 'haru' ||
-    id === 'hiyori' ||
-    id === 'mark' ||
-    id === 'mao' ||
-    id === 'ren' ||
-    id === 'rice'
-  ) {
+  if (id === 'haru' || id === 'hiyori' || id === 'mark' || id === 'mao' || id === 'rice') {
     return id;
   }
   return null;
@@ -1096,7 +987,9 @@ export function Live2DCompanionHub() {
   };
 
   const live2dCharacters =
-    summary?.characters.filter((character) => character.assetType === 'LIVE2D') ?? [];
+    summary?.characters.filter(
+      (character) => character.assetType === 'LIVE2D' && toLive2DModelId(character.id) != null,
+    ) ?? [];
   const sortedLive2dCharacters = [...live2dCharacters].sort((a, b) => {
     if (a.isUnlocked === b.isUnlocked) return 0;
     return a.isUnlocked ? -1 : 1;
@@ -1850,260 +1743,263 @@ export function Live2DCompanionHub() {
 
                         <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
                           <div className="space-y-2">
-                          {showcasePanel === 'mentor-info' ? (
-                            <>
-                              <div className="rounded-2xl border border-sky-200/24 bg-sky-300/10 px-3 py-2.5">
-                                <p className="text-xs text-slate-200/82">成长解锁进度</p>
-                                <p className="mt-1 text-sm font-semibold text-white">
-                                  {`已解锁 ${showcaseUnlockedCount}/${showcaseUnlockTotal}`}
-                                </p>
-                              </div>
-                              {showcasePendingUnlocks.length > 0 ? (
-                                showcasePendingUnlocks.map((item) => (
-                                  <div
-                                    key={item.id}
-                                    className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 opacity-80"
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-medium text-white">
-                                        {item.label}
-                                      </span>
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
-                                        <Lock className="size-3" />
-                                        Lv{item.requiredLevel}
-                                      </span>
+                            {showcasePanel === 'mentor-info' ? (
+                              <>
+                                <div className="rounded-2xl border border-sky-200/24 bg-sky-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-slate-200/82">成长解锁进度</p>
+                                  <p className="mt-1 text-sm font-semibold text-white">
+                                    {`已解锁 ${showcaseUnlockedCount}/${showcaseUnlockTotal}`}
+                                  </p>
+                                </div>
+                                {showcasePendingUnlocks.length > 0 ? (
+                                  showcasePendingUnlocks.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 opacity-80"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-white">
+                                          {item.label}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
+                                          <Lock className="size-3" />
+                                          Lv{item.requiredLevel}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-[11px] text-slate-300/70">
+                                        {item.category}
+                                      </p>
+                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
+                                        {item.description}
+                                      </p>
                                     </div>
-                                    <p className="mt-1 text-[11px] text-slate-300/70">
-                                      {item.category}
-                                    </p>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                      {item.description}
+                                  ))
+                                ) : (
+                                  <div className="rounded-2xl border border-emerald-200/24 bg-emerald-300/10 px-3 py-2.5">
+                                    <p className="text-xs text-emerald-100">
+                                      当前导师已解锁全部内容
                                     </p>
                                   </div>
-                                ))
-                              ) : (
-                                <div className="rounded-2xl border border-emerald-200/24 bg-emerald-300/10 px-3 py-2.5">
-                                  <p className="text-xs text-emerald-100">当前导师已解锁全部内容</p>
-                                </div>
-                              )}
-                            </>
-                          ) : null}
+                                )}
+                              </>
+                            ) : null}
 
-                          {showcasePanel === 'voice' ? (
-                            showcaseVoicePacks.length > 0 ? (
-                              showcaseVoicePacks.map((pack) => {
-                                const unlocked = showcaseLevel >= pack.requiredLevel;
-                                return (
-                                  <button
-                                    key={pack.id}
-                                    type="button"
-                                    onClick={() => handlePreviewVoicePack(pack)}
-                                    className={cn(
-                                      'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
-                                      unlocked
-                                        ? 'border-sky-200/24 bg-sky-300/10 hover:bg-sky-300/16'
-                                        : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-medium text-white">
-                                        {pack.label}
-                                      </span>
-                                      <span
-                                        className={cn(
-                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]',
-                                          unlocked
-                                            ? 'bg-emerald-300/14 text-emerald-100'
-                                            : 'bg-white/8 text-slate-300/70',
-                                        )}
-                                      >
-                                        {!unlocked ? <Lock className="size-3" /> : null}
-                                        Lv{pack.requiredLevel}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                      {pack.description}
-                                    </p>
-                                  </button>
-                                );
-                              })
-                            ) : (
+                            {showcasePanel === 'voice' ? (
+                              showcaseVoicePacks.length > 0 ? (
+                                showcaseVoicePacks.map((pack) => {
+                                  const unlocked = showcaseLevel >= pack.requiredLevel;
+                                  return (
+                                    <button
+                                      key={pack.id}
+                                      type="button"
+                                      onClick={() => handlePreviewVoicePack(pack)}
+                                      className={cn(
+                                        'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
+                                        unlocked
+                                          ? 'border-sky-200/24 bg-sky-300/10 hover:bg-sky-300/16'
+                                          : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-white">
+                                          {pack.label}
+                                        </span>
+                                        <span
+                                          className={cn(
+                                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]',
+                                            unlocked
+                                              ? 'bg-emerald-300/14 text-emerald-100'
+                                              : 'bg-white/8 text-slate-300/70',
+                                          )}
+                                        >
+                                          {!unlocked ? <Lock className="size-3" /> : null}
+                                          Lv{pack.requiredLevel}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
+                                        {pack.description}
+                                      </p>
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="rounded-2xl border border-white/10 bg-white/7 px-3 py-3 text-left">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-medium text-white">
+                                      暂无内置语音文件
+                                    </span>
+                                    <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/75">
+                                      待接入
+                                    </span>
+                                  </div>
+                                  <p className="mt-2 text-xs leading-5 text-slate-300/74">
+                                    当前项目资源里没有找到这个角色的 wav/mp3/ogg
+                                    语音文件，所以这里不会再用浏览器 TTS 伪造语音包。
+                                    后续把专属音频放进对应角色的 sounds
+                                    目录后，就能按亲密度解锁试听。
+                                  </p>
+                                </div>
+                              )
+                            ) : null}
+
+                            {showcasePanel === 'motion'
+                              ? showcaseMotionPacks.map((pack) => {
+                                  const unlocked = showcaseLevel >= pack.requiredLevel;
+                                  return (
+                                    <button
+                                      key={pack.id}
+                                      type="button"
+                                      onClick={() => handlePreviewMotionPack(pack)}
+                                      className={cn(
+                                        'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
+                                        unlocked
+                                          ? 'border-violet-200/24 bg-violet-300/10 hover:bg-violet-300/16'
+                                          : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-white">
+                                          {pack.label}
+                                        </span>
+                                        <span
+                                          className={cn(
+                                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]',
+                                            unlocked
+                                              ? 'bg-emerald-300/14 text-emerald-100'
+                                              : 'bg-white/8 text-slate-300/70',
+                                          )}
+                                        >
+                                          {!unlocked ? <Lock className="size-3" /> : null}
+                                          Lv{pack.requiredLevel}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
+                                        {pack.description}
+                                      </p>
+                                    </button>
+                                  );
+                                })
+                              : null}
+
+                            {showcasePanel === 'skin' ? (
                               <div className="rounded-2xl border border-white/10 bg-white/7 px-3 py-3 text-left">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-white">
-                                    暂无内置语音文件
-                                  </span>
-                                  <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/75">
-                                    待接入
+                                  <span className="text-sm font-medium text-white">默认服装</span>
+                                  <span className="rounded-full bg-emerald-300/14 px-2 py-0.5 text-[10px] text-emerald-100">
+                                    使用中
                                   </span>
                                 </div>
                                 <p className="mt-2 text-xs leading-5 text-slate-300/74">
-                                  当前项目资源里没有找到这个角色的 wav/mp3/ogg
-                                  语音文件，所以这里不会再用浏览器 TTS 伪造语音包。
-                                  后续把专属音频放进对应角色的 sounds 目录后，就能按亲密度解锁试听。
+                                  当前 Live2D 包只有一个可加载模型，暂未发现独立换装模型或
+                                  costume/skin 资源。
+                                </p>
+                                <p className="mt-2 text-xs leading-5 text-slate-300/64">
+                                  Hiyori、Haru、Rice 包内存在多张
+                                  texture，但这些是同一模型的贴图拆分，
+                                  不是可单独切换的衣装。后续如果加入换装模型，我会在这里显示待解锁服装。
                                 </p>
                               </div>
-                            )
-                          ) : null}
+                            ) : null}
 
-                          {showcasePanel === 'motion'
-                            ? showcaseMotionPacks.map((pack) => {
-                                const unlocked = showcaseLevel >= pack.requiredLevel;
-                                return (
-                                  <button
-                                    key={pack.id}
-                                    type="button"
-                                    onClick={() => handlePreviewMotionPack(pack)}
-                                    className={cn(
-                                      'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
-                                      unlocked
-                                        ? 'border-violet-200/24 bg-violet-300/10 hover:bg-violet-300/16'
-                                        : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-medium text-white">
-                                        {pack.label}
-                                      </span>
-                                      <span
-                                        className={cn(
-                                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]',
-                                          unlocked
-                                            ? 'bg-emerald-300/14 text-emerald-100'
-                                            : 'bg-white/8 text-slate-300/70',
-                                        )}
-                                      >
-                                        {!unlocked ? <Lock className="size-3" /> : null}
-                                        Lv{pack.requiredLevel}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                      {pack.description}
-                                    </p>
-                                  </button>
-                                );
-                              })
-                            : null}
+                            {showcasePanel === 'stage-background'
+                              ? showcaseStageSkins.map((skin) => {
+                                  const unlocked = showcaseLevel >= skin.requiredLevel;
+                                  const selected = selectedStageSkin?.id === skin.id;
+                                  return (
+                                    <button
+                                      key={skin.id}
+                                      type="button"
+                                      onClick={() => handleSelectStageSkin(skin)}
+                                      className={cn(
+                                        'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
+                                        selected
+                                          ? 'border-amber-200/42 bg-amber-300/14'
+                                          : unlocked
+                                            ? 'border-amber-200/24 bg-amber-300/8 hover:bg-amber-300/14'
+                                            : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-white">
+                                          {skin.label}
+                                        </span>
+                                        <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
+                                          {selected ? '使用中' : `Lv${skin.requiredLevel}`}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
+                                        {skin.description}
+                                      </p>
+                                    </button>
+                                  );
+                                })
+                              : null}
 
-                          {showcasePanel === 'skin' ? (
-                            <div className="rounded-2xl border border-white/10 bg-white/7 px-3 py-3 text-left">
+                            {showcasePanel === 'notification-style'
+                              ? showcaseNotificationStyles.map((style) => {
+                                  const unlocked = showcaseLevel >= style.requiredLevel;
+                                  const selected = selectedNotificationStyle?.id === style.id;
+                                  return (
+                                    <button
+                                      key={style.id}
+                                      type="button"
+                                      onClick={() => handleSelectNotificationStyle(style)}
+                                      className={cn(
+                                        'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
+                                        selected
+                                          ? 'border-emerald-200/42 bg-emerald-300/14'
+                                          : unlocked
+                                            ? 'border-emerald-200/24 bg-emerald-300/8 hover:bg-emerald-300/14'
+                                            : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-medium text-white">
+                                          {style.label}
+                                        </span>
+                                        <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
+                                          {selected ? '使用中' : `Lv${style.requiredLevel}`}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
+                                        {style.description}
+                                      </p>
+                                    </button>
+                                  );
+                                })
+                              : null}
+                          </div>
+
+                          {showcasePanel === 'notification-style' && selectedNotificationStyle ? (
+                            <div
+                              className={cn(
+                                'mt-3 rounded-2xl border p-3 text-left shadow-sm',
+                                selectedNotificationStyle.previewClass,
+                              )}
+                            >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-medium text-white">默认服装</span>
-                                <span className="rounded-full bg-emerald-300/14 px-2 py-0.5 text-[10px] text-emerald-100">
-                                  使用中
+                                <span className="text-xs font-semibold">通知预览</span>
+                                <span
+                                  className={cn(
+                                    'rounded-full px-2 py-0.5 text-[10px]',
+                                    selectedNotificationStyle.chipClass,
+                                  )}
+                                >
+                                  {showcaseCharacter.name}
                                 </span>
                               </div>
-                              <p className="mt-2 text-xs leading-5 text-slate-300/74">
-                                当前 Live2D 包只有一个可加载模型，暂未发现独立换装模型或
-                                costume/skin 资源。
-                              </p>
-                              <p className="mt-2 text-xs leading-5 text-slate-300/64">
-                                Hiyori、Haru、Rice 包内存在多张
-                                texture，但这些是同一模型的贴图拆分，
-                                不是可单独切换的衣装。后续如果加入换装模型，我会在这里显示待解锁服装。
+                              <p className="mt-2 text-sm font-medium">
+                                今天的学习奖励已经到账，继续保持这个节奏。
                               </p>
                             </div>
                           ) : null}
-
-                          {showcasePanel === 'stage-background'
-                            ? showcaseStageSkins.map((skin) => {
-                                const unlocked = showcaseLevel >= skin.requiredLevel;
-                                const selected = selectedStageSkin?.id === skin.id;
-                                return (
-                                  <button
-                                    key={skin.id}
-                                    type="button"
-                                    onClick={() => handleSelectStageSkin(skin)}
-                                    className={cn(
-                                      'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
-                                      selected
-                                        ? 'border-amber-200/42 bg-amber-300/14'
-                                        : unlocked
-                                          ? 'border-amber-200/24 bg-amber-300/8 hover:bg-amber-300/14'
-                                          : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-medium text-white">
-                                        {skin.label}
-                                      </span>
-                                      <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
-                                        {selected ? '使用中' : `Lv${skin.requiredLevel}`}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                      {skin.description}
-                                    </p>
-                                  </button>
-                                );
-                              })
-                            : null}
-
-                          {showcasePanel === 'notification-style'
-                            ? showcaseNotificationStyles.map((style) => {
-                                const unlocked = showcaseLevel >= style.requiredLevel;
-                                const selected = selectedNotificationStyle?.id === style.id;
-                                return (
-                                  <button
-                                    key={style.id}
-                                    type="button"
-                                    onClick={() => handleSelectNotificationStyle(style)}
-                                    className={cn(
-                                      'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
-                                      selected
-                                        ? 'border-emerald-200/42 bg-emerald-300/14'
-                                        : unlocked
-                                          ? 'border-emerald-200/24 bg-emerald-300/8 hover:bg-emerald-300/14'
-                                          : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-medium text-white">
-                                        {style.label}
-                                      </span>
-                                      <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
-                                        {selected ? '使用中' : `Lv${style.requiredLevel}`}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                      {style.description}
-                                    </p>
-                                  </button>
-                                );
-                              })
-                            : null}
                         </div>
-
-                        {showcasePanel === 'notification-style' && selectedNotificationStyle ? (
-                          <div
-                            className={cn(
-                              'mt-3 rounded-2xl border p-3 text-left shadow-sm',
-                              selectedNotificationStyle.previewClass,
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold">通知预览</span>
-                              <span
-                                className={cn(
-                                  'rounded-full px-2 py-0.5 text-[10px]',
-                                  selectedNotificationStyle.chipClass,
-                                )}
-                              >
-                                {showcaseCharacter.name}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-sm font-medium">
-                              今天的学习奖励已经到账，继续保持这个节奏。
-                            </p>
-                          </div>
+                        {!summary?.databaseEnabled ? (
+                          <p className="mt-3 text-xs leading-5 text-slate-300/72">
+                            本地模式下可预览角色分工；开启数据库同步后会保存通知与签到成长。
+                          </p>
                         ) : null}
-                          </div>
-                          {!summary?.databaseEnabled ? (
-                            <p className="mt-3 text-xs leading-5 text-slate-300/72">
-                              本地模式下可预览角色分工；开启数据库同步后会保存通知与签到成长。
-                            </p>
-                          ) : null}
-                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2112,7 +2008,6 @@ export function Live2DCompanionHub() {
           </div>
         </Card>
       ) : null}
-
     </div>
   );
 }

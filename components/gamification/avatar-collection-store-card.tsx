@@ -16,12 +16,21 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useGamificationSummary } from '@/lib/hooks/use-gamification-summary';
 import type {
+  GamificationCharacterSummary,
   GamificationAvatarRarity,
   GamificationGachaBannerId,
   GamificationGachaDrawResponse,
   GamificationGachaDrawReward,
 } from '@/lib/types/gamification';
 import { cn } from '@/lib/utils';
+
+function isSupportedLive2DCharacterId(id: string): boolean {
+  return id === 'haru' || id === 'hiyori' || id === 'mark' || id === 'mao' || id === 'rice';
+}
+
+function resolveLive2DAvatar(characterId: string): string {
+  return `/liv2d_poster/${characterId.toLowerCase()}-avator.png`;
+}
 
 type BannerTone = {
   shellClassName: string;
@@ -396,70 +405,211 @@ function BannerCard({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[2rem] border p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)]',
+        'relative overflow-hidden rounded-[2rem] border p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)]',
         tone.shellClassName,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium',
-              tone.badgeClassName,
-            )}
-          >
-            {chip}
-          </span>
-          <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-            {title}
-          </h3>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {subtitle}
-          </p>
-        </div>
-        <div className="relative hidden shrink-0 md:block">
-          <div
-            className={cn(
-              'absolute inset-0 rounded-full bg-gradient-to-br blur-2xl',
-              tone.accentClassName,
-            )}
-          />
-          <div className="relative flex size-16 items-center justify-center rounded-[1.5rem] border border-white/40 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/8">
-            <Icon className="size-7 text-slate-900 dark:text-white" />
+      <div className="relative z-10">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium',
+                tone.badgeClassName,
+              )}
+            >
+              {chip}
+            </span>
+            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+              {title}
+            </h3>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+              {subtitle}
+            </p>
+          </div>
+          <div className="relative hidden shrink-0 md:block">
+            <div
+              className={cn(
+                'absolute inset-0 rounded-full bg-gradient-to-br blur-2xl',
+                tone.accentClassName,
+              )}
+            />
+            <div className="relative flex size-16 items-center justify-center rounded-[1.5rem] border border-white/40 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/8">
+              <Icon className="size-7 text-slate-900 dark:text-white" />
+            </div>
           </div>
         </div>
+
+        <div className="mt-5">{children}</div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Button
+            type="button"
+            size="lg"
+            className="h-12 justify-between rounded-2xl bg-slate-950/90 px-5 text-white hover:bg-slate-950 dark:bg-white/95 dark:text-slate-950 dark:hover:bg-white"
+            disabled={disabled}
+            onClick={() => onDraw(bannerId, 1)}
+          >
+            <span>单抽</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Ticket className="size-4" />
+              {singleCost}
+            </span>
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="h-12 justify-between rounded-2xl border-white/40 bg-white/60 px-5 backdrop-blur-sm dark:border-white/10 dark:bg-white/8"
+            disabled={disabled}
+            onClick={() => onDraw(bannerId, 10)}
+          >
+            <span>十连</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Gem className="size-4" />
+              {tenCost}
+            </span>
+          </Button>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="mt-5">{children}</div>
+function InstructorWishBanner({
+  characters,
+  unlockedCount,
+  disabled,
+  onDraw,
+}: {
+  characters: GamificationCharacterSummary[];
+  unlockedCount: number;
+  disabled: boolean;
+  onDraw: (bannerId: GamificationGachaBannerId, drawCount: 1 | 10) => void;
+}) {
+  const meta = BANNER_META.live2d;
+  const totalCount = characters.length;
+  const progress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Button
-          type="button"
-          size="lg"
-          className="h-12 justify-between rounded-2xl bg-slate-950/90 px-5 text-white hover:bg-slate-950 dark:bg-white/95 dark:text-slate-950 dark:hover:bg-white"
-          disabled={disabled}
-          onClick={() => onDraw(bannerId, 1)}
-        >
-          <span>单抽</span>
-          <span className="inline-flex items-center gap-1.5">
-            <Ticket className="size-4" />
-            {singleCost}
-          </span>
-        </Button>
-        <Button
-          type="button"
-          size="lg"
-          variant="outline"
-          className="h-12 justify-between rounded-2xl border-white/40 bg-white/60 px-5 backdrop-blur-sm dark:border-white/10 dark:bg-white/8"
-          disabled={disabled}
-          onClick={() => onDraw(bannerId, 10)}
-        >
-          <span>十连</span>
-          <span className="inline-flex items-center gap-1.5">
-            <Gem className="size-4" />
-            {tenCost}
-          </span>
-        </Button>
+  return (
+    <div className="relative min-h-[34rem] overflow-hidden rounded-[2.25rem] border border-sky-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(14,30,64,0.28)] dark:border-sky-300/15">
+      <img
+        src="/liv2d_poster/poster.png"
+        alt="讲师星愿补给"
+        className="absolute inset-0 size-full object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,11,28,0.92)_0%,rgba(4,11,28,0.68)_34%,rgba(4,11,28,0.16)_63%,rgba(4,11,28,0.62)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_18%,rgba(125,211,252,0.25),transparent_30%),radial-gradient(circle_at_18%_88%,rgba(59,130,246,0.24),transparent_34%)]" />
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/14 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950 via-slate-950/72 to-transparent" />
+
+      <div className="relative z-10 flex min-h-[34rem] flex-col justify-between gap-8 p-5 md:p-7">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-xs font-semibold text-sky-100 shadow-[0_12px_40px_rgba(14,165,233,0.22)] backdrop-blur-md">
+              <Shield className="size-3.5" />
+              {meta.chip}
+            </span>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.32em] text-sky-200/85">
+              Character Event Warp
+            </p>
+            <h3 className="mt-2 text-4xl font-semibold tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] md:text-6xl">
+              {meta.title}
+            </h3>
+            <p className="mt-4 max-w-md text-sm leading-6 text-sky-50/75 md:text-base">
+              {meta.subtitle}
+            </p>
+          </div>
+
+          <div className="w-full rounded-[1.65rem] border border-white/15 bg-black/25 p-4 shadow-[0_20px_80px_rgba(8,15,40,0.28)] backdrop-blur-md md:w-72">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.24em] text-sky-200">
+                  讲师收集
+                </p>
+                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+                  {unlockedCount}
+                  <span className="ml-1 text-base font-medium text-white/50">/ {totalCount}</span>
+                </p>
+              </div>
+              <Sparkles className="size-8 text-sky-200 drop-shadow-[0_0_18px_rgba(125,211,252,0.75)]" />
+            </div>
+            <Progress value={progress} className="mt-4 bg-white/15" />
+            <p className="mt-3 text-xs leading-5 text-white/60">
+              未拥有讲师掉落碎片，满 10 片自动解锁；重复讲师转化为亲密度。
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1fr_22rem] lg:items-end">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            {characters.map((character) => (
+              <div key={character.id} className={cn('group flex items-center justify-center')}>
+                <div
+                  className={cn(
+                    'relative size-12 overflow-hidden rounded-full border p-0.5 transition duration-200 group-hover:scale-105 md:size-14',
+                    character.isUnlocked
+                      ? 'border-amber-200/60 bg-amber-200/10 shadow-[0_0_24px_rgba(251,191,36,0.35)]'
+                      : 'border-sky-200/40 bg-sky-300/10',
+                  )}
+                >
+                  {character.previewSrc ? (
+                    <img
+                      src={resolveLive2DAvatar(character.id)}
+                      alt={character.name ?? character.id}
+                      className="size-full rounded-full object-cover object-top transition duration-300 group-hover:scale-105"
+                      onError={(event) => {
+                        event.currentTarget.src = character.previewSrc ?? '';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center text-xs text-white/50">
+                      No Avatar
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-[1.75rem] border border-white/16 bg-white/10 p-4 shadow-[0_22px_80px_rgba(8,15,40,0.28)] backdrop-blur-xl">
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-sky-100/72">
+              星愿补给
+            </p>
+            <div className="mt-4 grid gap-3">
+              <Button
+                type="button"
+                size="lg"
+                className="h-[3.25rem] justify-between rounded-2xl bg-white px-5 text-slate-950 shadow-[0_18px_50px_rgba(255,255,255,0.18)] hover:bg-sky-50"
+                disabled={disabled}
+                onClick={() => onDraw('live2d', 1)}
+              >
+                <span>单抽</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Ticket className="size-4" />
+                  {meta.singleCost}
+                </span>
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="h-[3.25rem] justify-between rounded-2xl border-white/30 bg-white/10 px-5 text-white backdrop-blur-sm hover:bg-white/[0.18] hover:text-white"
+                disabled={disabled}
+                onClick={() => onDraw('live2d', 10)}
+              >
+                <span>十连</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Gem className="size-4" />
+                  {meta.tenCost}
+                </span>
+              </Button>
+            </div>
+            <p className="mt-3 text-[11px] leading-5 text-white/55">
+              十连享受 9 抽价格，结果会直接写回讲师碎片、亲密度和余额。
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -475,7 +625,9 @@ export function AvatarCollectionStoreCard() {
   const ownedAvatarCount = summary?.avatarInventory.items.filter((item) => item.owned).length ?? 0;
   const totalAvatarCount = summary?.avatarInventory.items.length ?? 0;
   const live2dCharacters =
-    summary?.characters.filter((character) => character.assetType === 'LIVE2D') ?? [];
+    summary?.characters.filter(
+      (character) => character.assetType === 'LIVE2D' && isSupportedLive2DCharacterId(character.id),
+    ) ?? [];
   const unlockedLive2dCount = live2dCharacters.filter((character) => character.isUnlocked).length;
 
   const handleDraw = async (bannerId: GamificationGachaBannerId, drawCount: 1 | 10) => {
@@ -604,135 +756,76 @@ export function AvatarCollectionStoreCard() {
                 </div>
               </BannerCard>
 
-              <BannerCard
-                {...BANNER_META.live2d}
-                bannerId="live2d"
+              <InstructorWishBanner
+                characters={live2dCharacters}
+                unlockedCount={unlockedLive2dCount}
                 disabled={drawing}
                 onDraw={handleDraw}
-              >
-                <div className="grid gap-3 sm:grid-cols-[0.78fr_1.22fr]">
-                  <div className="rounded-[1.5rem] border border-white/45 bg-white/70 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-white/6">
-                    <p className="text-xs font-medium uppercase tracking-[0.22em] text-sky-600 dark:text-sky-200">
-                      讲师进度
-                    </p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                      {unlockedLive2dCount}
-                      <span className="ml-1 text-base font-medium text-slate-400">
-                        / {live2dCharacters.length}
-                      </span>
-                    </p>
-                    <div className="mt-3">
-                      <Progress
-                        value={
-                          live2dCharacters.length > 0
-                            ? Math.round((unlockedLive2dCount / live2dCharacters.length) * 100)
-                            : 0
-                        }
-                      />
-                    </div>
-                    <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-300">
-                      每次抽到未拥有讲师时会获得 1 碎片；集齐 10 碎片自动解锁。
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                    {live2dCharacters.map((character) => (
-                      <div
-                        key={character.id}
-                        className={cn(
-                          'overflow-hidden rounded-[1.25rem] border p-2 shadow-sm',
-                          character.isUnlocked
-                            ? 'border-white/45 bg-white/75 dark:border-white/10 dark:bg-white/6'
-                            : 'border-sky-200/70 bg-sky-50/60 dark:border-sky-400/20 dark:bg-sky-950/15',
-                        )}
-                      >
-                        <div className="relative overflow-hidden rounded-[1rem] bg-black/5 dark:bg-white/5">
-                          <img
-                            src={character.previewSrc || ''}
-                            alt={character.name}
-                            className="aspect-square w-full object-cover"
-                          />
-                        </div>
-                        <div className="mt-2">
-                          <p className="text-xs font-semibold text-slate-800 dark:text-white">
-                            {character.name}
-                          </p>
-                          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-300">
-                            {character.isUnlocked
-                              ? `已拥有 · Lv${character.affinityLevel}`
-                              : `碎片 ${character.fragmentCount ?? 0}/${character.fragmentTarget ?? 10}`}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </BannerCard>
+              />
             </div>
 
             <div className="grid gap-4">
-                <div className="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.86))] p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))]">
-                  <p className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-slate-950">
-                    <Star className="size-3.5" />
-                    掉落规则
-                  </p>
-                  <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    <p>头像补给：R 卡直接获得；SR / SSR 通过碎片合成，已拥有头像不会再次掉落。</p>
-                    <p>讲师补给：未拥有讲师掉落碎片，满 10 片自动解锁；重复讲师会转化为亲密度。</p>
-                    <p>十连享受 9 抽价格，结果会直接写回头像库存、讲师碎片和余额。</p>
-                  </div>
+              <div className="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.86))] p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))]">
+                <p className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-slate-950">
+                  <Star className="size-3.5" />
+                  掉落规则
+                </p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  <p>头像补给：R 卡直接获得；SR / SSR 通过碎片合成，已拥有头像不会再次掉落。</p>
+                  <p>讲师补给：未拥有讲师掉落碎片，满 10 片自动解锁；重复讲师会转化为亲密度。</p>
+                  <p>十连享受 9 抽价格，结果会直接写回头像库存、讲师碎片和余额。</p>
                 </div>
+              </div>
 
-                <div className="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.86))] p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))]">
-                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500 dark:text-slate-300">
-                    库存速览
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {summary.avatarInventory.items
-                      .filter((item) => !item.owned && item.fragmentCount > 0)
-                      .slice(0, 6)
-                      .map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-[1.25rem] border border-slate-200/70 bg-white/75 p-3 dark:border-white/10 dark:bg-white/6"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={item.url}
-                              alt={item.name}
-                              className="size-12 rounded-xl object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                                  {item.name}
-                                </p>
-                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-300">
-                                  {item.rarity}
-                                </span>
-                              </div>
-                              <div className="mt-2">
-                                <Progress
-                                  value={Math.round(
-                                    (item.fragmentCount / item.fragmentTarget) * 100,
-                                  )}
-                                />
-                              </div>
-                              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-300">
-                                碎片 {item.fragmentCount}/{item.fragmentTarget}
+              <div className="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.86))] p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))]">
+                <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500 dark:text-slate-300">
+                  库存速览
+                </p>
+                <div className="mt-4 space-y-3">
+                  {summary.avatarInventory.items
+                    .filter((item) => !item.owned && item.fragmentCount > 0)
+                    .slice(0, 6)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-[1.25rem] border border-slate-200/70 bg-white/75 p-3 dark:border-white/10 dark:bg-white/6"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.url}
+                            alt={item.name}
+                            className="size-12 rounded-xl object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                                {item.name}
                               </p>
+                              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-300">
+                                {item.rarity}
+                              </span>
                             </div>
+                            <div className="mt-2">
+                              <Progress
+                                value={Math.round((item.fragmentCount / item.fragmentTarget) * 100)}
+                              />
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-300">
+                              碎片 {item.fragmentCount}/{item.fragmentTarget}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    {summary.avatarInventory.items.every(
-                      (item) => item.owned || item.fragmentCount === 0,
-                    ) ? (
-                      <p className="rounded-[1.25rem] border border-dashed border-slate-200/70 bg-white/75 px-4 py-5 text-sm text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                        当前没有进行中的头像碎片合成，抽到 SR / SSR 后会显示在这里。
-                      </p>
-                    ) : null}
-                  </div>
+                      </div>
+                    ))}
+                  {summary.avatarInventory.items.every(
+                    (item) => item.owned || item.fragmentCount === 0,
+                  ) ? (
+                    <p className="rounded-[1.25rem] border border-dashed border-slate-200/70 bg-white/75 px-4 py-5 text-sm text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                      当前没有进行中的头像碎片合成，抽到 SR / SSR 后会显示在这里。
+                    </p>
+                  ) : null}
                 </div>
+              </div>
             </div>
           </div>
         )}

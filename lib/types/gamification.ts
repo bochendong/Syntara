@@ -7,7 +7,6 @@ export type GamificationCharacterId =
   | 'hiyori'
   | 'mark'
   | 'mao'
-  | 'ren'
   | 'rice'
   | 'avatar-r-pack'
   | 'avatar-sr-pack'
