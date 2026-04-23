@@ -197,7 +197,9 @@ export function buildCompleteScene(
       viewportSize: 1000,
       viewportRatio: 0.5625,
       theme: content.theme || defaultTheme,
-      elements: normalizeSlideTextLayout(stripShapeElements(content.elements)),
+      elements: content.contentDocument
+        ? content.elements
+        : normalizeSlideTextLayout(stripShapeElements(content.elements)),
       background: content.background,
     };
 

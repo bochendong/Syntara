@@ -4371,7 +4371,9 @@ export function createSceneWithActions(
       viewportSize: 1000,
       viewportRatio: 0.5625,
       theme: content.theme || defaultTheme,
-      elements: normalizeSlideTextLayout(content.elements),
+      elements: content.contentDocument
+        ? content.elements
+        : normalizeSlideTextLayout(content.elements),
       background: content.background,
     };
 

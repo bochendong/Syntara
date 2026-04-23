@@ -3,7 +3,7 @@ import type { Slide } from '@/lib/types/slides';
 import type { NotebookContentDocument } from './schema';
 import { renderNotebookContentDocumentToSlide } from './slide-adapter';
 
-export const SEMANTIC_SLIDE_RENDER_VERSION = 2;
+export const SEMANTIC_SLIDE_RENDER_VERSION = 3;
 
 export function markSemanticSlideContent(
   content: SlideContent,
