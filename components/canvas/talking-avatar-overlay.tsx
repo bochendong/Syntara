@@ -45,6 +45,7 @@ interface TalkingAvatarOverlayProps extends TalkingAvatarOverlayState {
 }
 
 const LIVE2D_CORE_SRC = '/live2d/live2dcubismcore.min.js';
+const LIVE2D_CORE_CDN_FALLBACK_SRC = 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js';
 export type TalkingAvatarSpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
 type MouthPose = {
@@ -113,7 +114,7 @@ export function TalkingAvatarOverlay({
     resizeObserver: ResizeObserver | null;
     detachPoseHook: (() => void) | null;
   } | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'image-fallback'>('loading');
   const wasSpeakingRef = useRef(false);
 
   useEffect(() => {
@@ -258,7 +259,42 @@ export function TalkingAvatarOverlay({
 
       mount.replaceChildren(app.view as HTMLCanvasElement);
 
-      const model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
+      let model: Live2DModelInstance;
+      try {
+        model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
+      } catch (initialLoadError) {
+        const normalizedInitialError = normalizeUnknownError(initialLoadError);
+        if (!/CubismMoc\.create\(\)/.test(normalizedInitialError.message)) {
+          throw initialLoadError;
+        }
+
+        console.warn('Live2D model load failed at CubismMoc.create(), reloading Cubism Core', {
+          modelId: modelConfig.id,
+          modelSrc: modelConfig.modelSrc,
+          resolvedModelSrc,
+          coreSrc: resolvedCoreSrc,
+          error: normalizedInitialError,
+        });
+
+        try {
+          await forceReloadCubismCore(resolvedCoreSrc);
+          model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
+        } catch (reloadError) {
+          const normalizedReloadError = normalizeUnknownError(reloadError);
+          const fallbackCoreSrc = LIVE2D_CORE_CDN_FALLBACK_SRC;
+          console.warn('Local Cubism Core retry failed, trying CDN fallback core', {
+            modelId: modelConfig.id,
+            modelSrc: modelConfig.modelSrc,
+            resolvedModelSrc,
+            coreSrc: resolvedCoreSrc,
+            fallbackCoreSrc,
+            error: normalizedReloadError,
+          });
+
+          await forceReloadCubismCore(fallbackCoreSrc);
+          model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
+        }
+      }
 
       if (cancelled) {
         app.destroy(true, { children: true });
@@ -312,6 +348,17 @@ export function TalkingAvatarOverlay({
 
     setup().catch((error) => {
       const normalizedError = normalizeUnknownError(error);
+      if (modelConfig.id === 'ren' && /CubismMoc\.create\(\)/.test(normalizedError.message)) {
+        console.warn('Ren Live2D runtime incompatible, degrading to static preview fallback', {
+          modelId: modelConfig.id,
+          modelSrc: modelConfig.modelSrc,
+          resolvedModelSrc: resolveLive2dAssetUrl(modelConfig.modelSrc),
+          coreSrc: resolveLive2dAssetUrl(LIVE2D_CORE_SRC),
+          error: normalizedError,
+        });
+        setStatus('image-fallback');
+        return;
+      }
       console.error('Failed to initialize Live2D presenter', {
         modelId: modelConfig.id,
         modelSrc: modelConfig.modelSrc,
@@ -442,7 +489,24 @@ async function loadPresenterModel(
       error: normalizedPrimaryError,
     });
 
-    return (await Live2DModel.from(resolvedModelSrc, baseOptions)) as Live2DModelInstance;
+    try {
+      return (await Live2DModel.from(resolvedModelSrc, baseOptions)) as Live2DModelInstance;
+    } catch (secondaryError) {
+      const normalizedSecondaryError = normalizeUnknownError(secondaryError);
+      console.warn('Secondary Live2D load failed, retrying without motion preload', {
+        modelId: modelConfig.id,
+        modelSrc: modelConfig.modelSrc,
+        resolvedModelSrc,
+        error: normalizedSecondaryError,
+      });
+
+      // Some Live2D assets fail during motion preload (especially older packs).
+      // We disable preload as a last resort so the model can still render.
+      return (await Live2DModel.from(resolvedModelSrc, {
+        ...baseOptions,
+        motionPreload: 0,
+      } as unknown as Parameters<typeof Live2DModel.from>[1])) as Live2DModelInstance;
+    }
   }
 }
 
@@ -797,6 +861,22 @@ async function ensureCubismCore(coreSrc: string) {
   }
 
   await window.__synatraLive2DCorePromise;
+}
+
+async function forceReloadCubismCore(coreSrc: string) {
+  if (typeof window === 'undefined') return;
+  window.__synatraLive2DCorePromise = undefined;
+  try {
+    delete (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore;
+  } catch {
+    (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore = undefined;
+  }
+
+  const existingScripts = document.querySelectorAll<HTMLScriptElement>('script[data-synatra-live2d]');
+  existingScripts.forEach((script) => script.remove());
+
+  const cacheBustedSrc = `${coreSrc}${coreSrc.includes('?') ? '&' : '?'}reload=${Date.now()}`;
+  await ensureCubismCore(cacheBustedSrc);
 }
 
 function resolveLive2dAssetUrl(path: string): string {
