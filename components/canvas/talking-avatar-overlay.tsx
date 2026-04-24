@@ -373,13 +373,15 @@ export function TalkingAvatarOverlay({
       if (instance?.app) {
         instance.app.destroy(true, { children: true });
       }
-      void import('pixi-live2d-display/cubism4')
-        .then((live2dModule) => {
-          (live2dModule as { SoundManager?: { destroy?: () => void } }).SoundManager?.destroy?.();
-        })
-        .catch(() => {
-          // Ignore cleanup failures for optional motion audio.
-        });
+      if (syncCubismCoreRuntime()) {
+        void import('pixi-live2d-display/cubism4')
+          .then((live2dModule) => {
+            (live2dModule as { SoundManager?: { destroy?: () => void } }).SoundManager?.destroy?.();
+          })
+          .catch(() => {
+            // Ignore cleanup failures for optional motion audio.
+          });
+      }
       if (mountElement) {
         mountElement.replaceChildren();
       }
@@ -813,19 +815,29 @@ async function playPresenterMotion(
 }
 
 async function ensureCubismCore(coreSrc: string) {
-  if (typeof window === 'undefined') return;
-  if (window.Live2DCubismCore) return;
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return;
+  if (syncCubismCoreRuntime()) return;
 
-  if (!window.__synatraLive2DCorePromise) {
-    window.__synatraLive2DCorePromise = new Promise<void>((resolve, reject) => {
+  if (!browserWindow.__synatraLive2DCorePromise) {
+    browserWindow.__synatraLive2DCorePromise = new Promise<void>((resolve, reject) => {
+      const resolveWhenRuntimeIsReady = () => {
+        void waitForCubismCoreRuntime(coreSrc).then(resolve, reject);
+      };
       const existing = document.querySelector<HTMLScriptElement>('script[data-synatra-live2d]');
 
       if (existing) {
-        if (window.Live2DCubismCore) {
+        if (syncCubismCoreRuntime()) {
           resolve();
           return;
         }
-        existing.addEventListener('load', () => resolve(), { once: true });
+
+        if (isScriptMarkedLoaded(existing)) {
+          resolveWhenRuntimeIsReady();
+          return;
+        }
+
+        existing.addEventListener('load', resolveWhenRuntimeIsReady, { once: true });
         existing.addEventListener('error', () => reject(new Error('Cubism core failed to load')), {
           once: true,
         });
@@ -837,29 +849,29 @@ async function ensureCubismCore(coreSrc: string) {
       script.type = 'text/javascript';
       script.dataset.synatraLive2d = 'true';
       script.src = coreSrc;
-      script.onload = () => resolve();
+      script.onload = () => {
+        script.dataset.synatraLive2dLoaded = 'true';
+        resolveWhenRuntimeIsReady();
+      };
       script.onerror = () => reject(new Error(`Cubism core failed to load: ${coreSrc}`));
       document.head.appendChild(script);
     }).catch((error) => {
-      window.__synatraLive2DCorePromise = undefined;
+      browserWindow.__synatraLive2DCorePromise = undefined;
       throw error;
     });
   }
 
-  await window.__synatraLive2DCorePromise;
-  if (!window.Live2DCubismCore) {
+  await browserWindow.__synatraLive2DCorePromise;
+  if (!syncCubismCoreRuntime()) {
     throw new Error(`Cubism core loaded but runtime global is missing: ${coreSrc}`);
   }
 }
 
 async function forceReloadCubismCore(coreSrc: string) {
-  if (typeof window === 'undefined') return;
-  window.__synatraLive2DCorePromise = undefined;
-  try {
-    delete (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore;
-  } catch {
-    (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore = undefined;
-  }
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return;
+  browserWindow.__synatraLive2DCorePromise = undefined;
+  clearCubismCoreRuntime();
 
   const existingScripts = document.querySelectorAll<HTMLScriptElement>(
     'script[data-synatra-live2d]',
@@ -868,6 +880,78 @@ async function forceReloadCubismCore(coreSrc: string) {
 
   const cacheBustedSrc = `${coreSrc}${coreSrc.includes('?') ? '&' : '?'}reload=${Date.now()}`;
   await ensureCubismCore(cacheBustedSrc);
+}
+
+function getLive2dBrowserWindow() {
+  if (typeof window === 'undefined') return null;
+  return window;
+}
+
+function getCubismCoreRuntime() {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return undefined;
+
+  return (
+    browserWindow.Live2DCubismCore ??
+    (globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore
+  );
+}
+
+function syncCubismCoreRuntime(runtime = getCubismCoreRuntime()) {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow || !runtime) return false;
+
+  browserWindow.Live2DCubismCore = runtime;
+  (globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore = runtime;
+  return true;
+}
+
+function clearCubismCoreRuntime() {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return;
+
+  try {
+    delete browserWindow.Live2DCubismCore;
+  } catch {
+    browserWindow.Live2DCubismCore = undefined;
+  }
+
+  try {
+    delete (globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore;
+  } catch {
+    (globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore = undefined;
+  }
+}
+
+function waitForCubismCoreRuntime(coreSrc: string, timeoutMs = 3000) {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return Promise.resolve();
+
+  const startedAt = performance.now();
+  return new Promise<void>((resolve, reject) => {
+    const checkRuntime = () => {
+      if (syncCubismCoreRuntime()) {
+        resolve();
+        return;
+      }
+
+      if (performance.now() - startedAt >= timeoutMs) {
+        reject(new Error(`Cubism core loaded but runtime global is missing: ${coreSrc}`));
+        return;
+      }
+
+      browserWindow.setTimeout(checkRuntime, 25);
+    };
+
+    checkRuntime();
+  });
+}
+
+function isScriptMarkedLoaded(script: HTMLScriptElement) {
+  return (
+    script.dataset.synatraLive2dLoaded === 'true' ||
+    (script as HTMLScriptElement & { readyState?: string }).readyState === 'complete'
+  );
 }
 
 async function ensureCubismCoreRuntimeWithFallback(
