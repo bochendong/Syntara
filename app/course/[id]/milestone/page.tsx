@@ -90,9 +90,6 @@ export default function CourseMilestonePage() {
           />
         ) : (
           <>
-            <Button variant="ghost" size="sm" className="-ml-2 mb-4 rounded-lg" asChild>
-              <Link href={`/course/${course.id}`}>← 返回课程主页</Link>
-            </Button>
             <GamificationSummaryCard
               title="这门课的学习激励"
               courseMilestone={{

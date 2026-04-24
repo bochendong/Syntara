@@ -66,6 +66,7 @@ export default function CourseDetailPage() {
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const creatorDisplay = useAuthStore(() => '你');
 
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
@@ -376,57 +377,15 @@ export default function CourseDetailPage() {
                     className="size-16 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-sm dark:border-white/15 dark:bg-slate-900 md:size-20"
                   />
                   <div className="min-w-0 flex-1">
-                    <Button variant="ghost" size="sm" className="-ml-2 mb-2 rounded-lg" asChild>
-                      <Link href="/my-courses">← 我的课程</Link>
-                    </Button>
                     <h1
                       id="course-detail-title"
                       className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white"
                     >
                       {course.name}
                     </h1>
-                    {course.description ? (
-                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                        {course.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <span
-                        className={cn(
-                          'rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5',
-                        )}
-                      >
-                        {course.language === 'zh-CN' ? '中文' : 'English'}
-                      </span>
-                      <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
-                        {purposeLabel(course.purpose)}
-                      </span>
-                      {course.purpose === 'university' &&
-                      (course.university || course.courseCode) ? (
-                        <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
-                          {[course.university, course.courseCode].filter(Boolean).join(' · ')}
-                        </span>
-                      ) : null}
-                      {course.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-violet-200/60 bg-violet-50/80 px-2.5 py-0.5 text-[11px] text-violet-900 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-                  <Button
-                    asChild
-                    type="button"
-                    variant="outline"
-                    className="h-11 rounded-xl border-slate-200 bg-white/80 dark:border-white/20 dark:bg-white/5"
-                  >
-                    <Link href={`/course/${course.id}/problem-bank`}>课程题库</Link>
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -461,6 +420,34 @@ export default function CourseDetailPage() {
                   </Button>
                 </div>
               </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <span
+                  className={cn(
+                    'rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5',
+                  )}
+                >
+                  {course.language === 'zh-CN' ? '中文' : 'English'}
+                </span>
+                <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
+                  {purposeLabel(course.purpose)}
+                </span>
+                {course.purpose === 'university' && (course.university || course.courseCode) ? (
+                  <span className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-0.5 dark:border-white/15 dark:bg-white/5">
+                    {[course.university, course.courseCode].filter(Boolean).join(' · ')}
+                  </span>
+                ) : null}
+                {course.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-violet-200/60 bg-violet-50/80 px-2.5 py-0.5 text-[11px] text-violet-900 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              {course.description ? (
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">{course.description}</p>
+              ) : null}
               {courseHasPurchasedNotebook && !course.listedInCourseStore ? (
                 <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
                   当前课程包含从商城购买的笔记本副本，因此不能发布到商城。
@@ -493,6 +480,7 @@ export default function CourseDetailPage() {
                         coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
                         slide={thumbnails[nb.id]}
                         subtitle={formatDate(nb.updatedAt)}
+                        creatorName={creatorDisplay}
                         secondaryLabel=""
                         courseMetaChips={{
                           school: course.university?.trim() || undefined,

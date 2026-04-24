@@ -1,10 +1,20 @@
 /**
  * 左侧栏「Dashboard」壳层：与课程/课堂内工作区分界，
  * 在此区域内固定展示 Dashboard / 充值 / 交易积分 / 商城入口 / 个人中心 / 设置。
+ *
+ * 当已选中某门课程（`courseId` 有值）时，`/top-up` 与 `/credits-market` 仍沿用课程工作区侧栏。
  */
-export function isDashboardRoute(pathname: string | null | undefined): boolean {
+export function isDashboardRoute(
+  pathname: string | null | undefined,
+  courseId?: string | null,
+): boolean {
   if (!pathname) return false;
   const p = pathname;
+  const inCourseWorkspace = Boolean(courseId?.trim());
+  if (inCourseWorkspace) {
+    if (p === '/top-up' || p.startsWith('/top-up/')) return false;
+    if (p === '/credits-market' || p.startsWith('/credits-market/')) return false;
+  }
   if (p === '/') return true;
   if (p === '/my-courses') return true;
   if (p === '/top-up' || p.startsWith('/top-up/')) return true;

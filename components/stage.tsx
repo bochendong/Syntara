@@ -20,7 +20,7 @@ import { PlaybackEngine, computePlaybackView } from '@/lib/playback';
 import type { EngineMode, TriggerEvent, Effect } from '@/lib/playback';
 import { ActionEngine } from '@/lib/action/engine';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
-import type { Action, DiscussionAction, MouthShape, SpeechAction } from '@/lib/types/action';
+import type { Action, MouthShape, SpeechAction } from '@/lib/types/action';
 import type { Scene, SceneType, SlideContent } from '@/lib/types/stage';
 import type { SceneOutline } from '@/lib/types/generation';
 import { inferSceneContentProfile } from '@/lib/generation/content-profile';
@@ -29,9 +29,10 @@ import {
   resolveCurrentMouthCueFrame,
 } from '@/lib/audio/mouth-cues';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import type { TTSProviderId } from '@/lib/audio/types';
 // Playback state persistence removed — refresh always starts from the beginning
 import type { ChatAreaRef } from '@/components/chat/chat-area';
-import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
+import { useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { getActionsForRole } from '@/lib/orchestration/registry/types';
 import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
 import { hydrateSpeechAudioFromTtsCache } from '@/lib/utils/tts-audio-cache';
@@ -72,6 +73,22 @@ const LIVE2D_PRESENTER_AVATAR_BY_ID = {
   mao: '/liv2d_poster/mao-avator.png',
   rice: '/liv2d_poster/rice-avator.png',
 } as const;
+
+const SIDEBAR_VOICE_REPLY_PROVIDER_ORDER = [
+  'qwen-tts',
+  'azure-tts',
+  'glm-tts',
+  'openai-tts',
+  'elevenlabs-tts',
+] as const satisfies readonly TTSProviderId[];
+
+const SIDEBAR_VOICE_REPLY_PREFERRED_VOICE: Partial<Record<TTSProviderId, string>> = {
+  'qwen-tts': 'Stella',
+  'azure-tts': 'zh-CN-XiaoyiNeural',
+  'glm-tts': 'tongtong',
+  'openai-tts': 'nova',
+  'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
+};
 
 function createRepairMessageId(role: 'user' | 'assistant') {
   return `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -460,7 +477,6 @@ export function Stage({
   const [currentMouthShape, setCurrentMouthShape] = useState<MouthShape | null>(null);
   const [speechCadence, setSpeechCadence] = useState<SpeechCadence>('idle');
   const [liveSpeech, setLiveSpeech] = useState<string | null>(null); // From buffer (discussion/QA)
-  const [speechProgress, setSpeechProgress] = useState<number | null>(null); // StreamBuffer reveal progress (0–1)
   const [discussionTrigger, setDiscussionTrigger] = useState<TriggerEvent | null>(null);
 
   // Speaking agent tracking (Issue 2)
@@ -475,19 +491,12 @@ export function Stage({
   // Cue user state (Issue 7)
   const [isCueUser, setIsCueUser] = useState(false);
 
-  // End flash state (Issue 3)
-  const [showEndFlash, setShowEndFlash] = useState(false);
-  const [endFlashSessionType, setEndFlashSessionType] = useState<'qa' | 'discussion'>('discussion');
-
   // Streaming state for stop button (Issue 1)
   const [chatIsStreaming, setChatIsStreaming] = useState(false);
   const [chatSessionType, setChatSessionType] = useState<string | null>(null);
 
   // Topic pending state: session is soft-paused, bubble stays visible, waiting for user input
   const [isTopicPending, setIsTopicPending] = useState(false);
-
-  // Active bubble ID for playback highlight in chat area (Issue 8)
-  const [activeBubbleId, setActiveBubbleId] = useState<string | null>(null);
 
   // Scene switch confirmation dialog state
   const [pendingSceneId, setPendingSceneId] = useState<string | null>(null);
@@ -539,12 +548,6 @@ export function Stage({
   // Selected agents from settings store (Zustand)
   const selectedAgentIds = useSettingsStore((s) => s.selectedAgentIds);
 
-  // Generate participants from selected agents
-  const participants = useMemo(
-    () => agentsToParticipants(selectedAgentIds, t),
-    [selectedAgentIds, t],
-  );
-
   useEffect(() => {
     const requestedView = searchParams.get('view');
     if (requestedView === 'quiz' || requestedView === 'raw' || requestedView === 'ppt') {
@@ -578,8 +581,8 @@ export function Stage({
   const sidebarAskAbortRef = useRef<AbortController | null>(null);
   const classroomQuestionLoopRef = useRef<(message: string) => void>(() => {});
   const sidebarAskVoiceReplyRef = useRef(false);
-  // Guard to prevent double flash when manual stop triggers onDiscussionEnd
-  const manualStopRef = useRef(false);
+  const sidebarAnswerAudioRef = useRef<HTMLAudioElement | null>(null);
+  const sidebarAnswerAudioUrlRef = useRef<string | null>(null);
   // Monotonic counter incremented on each scene switch — used to discard stale SSE callbacks
   const sceneEpochRef = useRef(0);
   // When true, the next engine init will auto-start playback (for auto-play scene advance)
@@ -594,6 +597,22 @@ export function Stage({
     () => buildSceneSidebarAskThreadFromMessages(sceneSidebarAskMessages, chatIsStreaming),
     [sceneSidebarAskMessages, chatIsStreaming],
   );
+
+  const stopSidebarAnswerAudio = useCallback(() => {
+    if (sidebarAnswerAudioRef.current) {
+      sidebarAnswerAudioRef.current.pause();
+      sidebarAnswerAudioRef.current = null;
+    }
+    if (sidebarAnswerAudioUrlRef.current) {
+      URL.revokeObjectURL(sidebarAnswerAudioUrlRef.current);
+      sidebarAnswerAudioUrlRef.current = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+    }
+  }, []);
+
+  useEffect(() => stopSidebarAnswerAudio, [stopSidebarAnswerAudio]);
 
   const appendInterruptedSidebarAskMessage = useCallback(() => {
     setSceneSidebarAskMessages((prev) => {
@@ -627,6 +646,7 @@ export function Stage({
 
   const abortSidebarAskLoop = useCallback(
     (markInterrupted: boolean) => {
+      stopSidebarAnswerAudio();
       if (!sidebarAskAbortRef.current) return;
       sidebarAskAbortRef.current.abort();
       sidebarAskAbortRef.current = null;
@@ -634,7 +654,7 @@ export function Stage({
         appendInterruptedSidebarAskMessage();
       }
     },
-    [appendInterruptedSidebarAskMessage],
+    [appendInterruptedSidebarAskMessage, stopSidebarAnswerAudio],
   );
 
   /**
@@ -662,26 +682,10 @@ export function Stage({
     // Don't call handleEndDiscussion — engine stays in current state
   }, [abortSidebarAskLoop]);
 
-  /**
-   * Resume a soft-paused topic: re-call /chat with existing session messages.
-   * The director picks the next agent to continue.
-   */
-  const doResumeTopic = useCallback(async () => {
-    // Clear old bubble immediately — no lingering on interrupted text
-    setIsTopicPending(false);
-    setLiveSpeech(null);
-    setSpeakingAgentId(null);
-    setThinkingState({ stage: 'director' });
-    setChatIsStreaming(true);
-    // Fire new chat round — SSE events will drive thinking → agent_start → speech
-    await chatAreaRef.current?.resumeActiveSession();
-  }, []);
-
   /** Reset all live/discussion state (shared by doSessionCleanup & onDiscussionEnd) */
   const resetLiveState = useCallback(() => {
     setLiveSpeech(null);
     setSpeakingAgentId(null);
-    setSpeechProgress(null);
     setThinkingState(null);
     setIsCueUser(false);
     setIsTopicPending(false);
@@ -699,9 +703,6 @@ export function Stage({
     setCurrentSpeechAction(null);
     setCurrentMouthShape(null);
     setSpeechCadence('idle');
-    setSpeechProgress(null);
-    setShowEndFlash(false);
-    setActiveBubbleId(null);
     setDiscussionTrigger(null);
   }, [resetLiveState]);
 
@@ -710,22 +711,9 @@ export function Stage({
    * Handles: engine transition, flash, roundtable state clearing.
    */
   const doSessionCleanup = useCallback(() => {
-    const activeType = chatSessionType;
-
-    // Engine cleanup — guard to avoid double flash from onDiscussionEnd
-    manualStopRef.current = true;
     engineRef.current?.handleEndDiscussion();
-    manualStopRef.current = false;
-
-    // Show end flash with correct session type
-    if (activeType === 'qa' || activeType === 'discussion') {
-      setEndFlashSessionType(activeType);
-      setShowEndFlash(true);
-      setTimeout(() => setShowEndFlash(false), 1800);
-    }
-
     resetLiveState();
-  }, [chatSessionType, resetLiveState]);
+  }, [resetLiveState]);
 
   // Shared stop-discussion handler (used by both Roundtable and Canvas toolbar)
   const handleStopDiscussion = useCallback(async () => {
@@ -793,9 +781,6 @@ export function Stage({
             { id: speechId, type: 'speech', text: speech.text } as Action,
             idx,
           );
-          // Track active bubble for highlight (Issue 8)
-          const msgId = chatAreaRef.current?.getLectureMessageId(lectureSessionIdRef.current!);
-          if (msgId) setActiveBubbleId(msgId);
         }
       },
       onSpeechEnd: () => {
@@ -806,7 +791,6 @@ export function Stage({
         setCurrentSpeechAction(null);
         setCurrentMouthShape(null);
         setSpeechCadence('idle');
-        setActiveBubbleId(null);
       },
       onEffectFire: (effect: Effect) => {
         // Add to lecture session with incrementing index
@@ -850,12 +834,6 @@ export function Stage({
         setDiscussionTrigger(null);
         // Clear roundtable state (idempotent — may already be cleared by doSessionCleanup)
         resetLiveState();
-        // Only show flash for engine-initiated ends (not manual stop — that's handled by doSessionCleanup)
-        if (!manualStopRef.current) {
-          setEndFlashSessionType('discussion');
-          setShowEndFlash(true);
-          setTimeout(() => setShowEndFlash(false), 1800);
-        }
         // If all actions are exhausted (discussion was the last action), mark
         // playback as completed so the bubble shows reset instead of play.
         if (engineRef.current?.isExhausted()) {
@@ -1054,33 +1032,108 @@ export function Stage({
     };
   }, [currentScene, ttsEnabled, ttsProviderId, ttsVoice, ttsSpeed, updateScene]);
 
-  const speakSidebarAnswer = useCallback((text: string) => {
-    const spokenText = verbalizeNarrationText(text).trim();
-    if (!spokenText || typeof window === 'undefined' || !window.speechSynthesis) return;
+  const speakSidebarAnswer = useCallback(
+    async (text: string) => {
+      const spokenText = verbalizeNarrationText(text).trim();
+      if (!spokenText || typeof window === 'undefined') return;
 
-    const settings = useSettingsStore.getState();
-    if (!settings.ttsEnabled || settings.ttsMuted || settings.ttsVolume <= 0) return;
+      const settings = useSettingsStore.getState();
+      if (!settings.ttsEnabled || settings.ttsMuted || settings.ttsVolume <= 0) return;
 
-    const utterance = new SpeechSynthesisUtterance(spokenText);
-    utterance.rate = settings.ttsSpeed ?? 1;
-    utterance.volume = settings.ttsVolume ?? 1;
+      stopSidebarAnswerAudio();
 
-    const voices = window.speechSynthesis.getVoices();
-    const configuredVoice =
-      settings.ttsVoice && settings.ttsVoice !== 'default'
-        ? voices.find((voice) => voice.voiceURI === settings.ttsVoice)
-        : undefined;
-    if (configuredVoice) {
-      utterance.voice = configuredVoice;
-      utterance.lang = configuredVoice.lang;
-    } else {
-      const cjkRatio = (spokenText.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / spokenText.length;
-      utterance.lang = cjkRatio > 0.3 ? 'zh-CN' : 'en-US';
-    }
+      const chooseProvider = (): TTSProviderId | null => {
+        const configuredPreferred = SIDEBAR_VOICE_REPLY_PROVIDER_ORDER.find((providerId) => {
+          const providerConfig = settings.ttsProvidersConfig?.[providerId];
+          return Boolean(providerConfig?.isServerConfigured || providerConfig?.apiKey?.trim());
+        });
+        if (configuredPreferred) return configuredPreferred;
+        if (settings.ttsProviderId !== 'browser-native-tts') {
+          const providerConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
+          if (providerConfig?.isServerConfigured || providerConfig?.apiKey?.trim()) {
+            return settings.ttsProviderId;
+          }
+        }
+        return null;
+      };
 
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }, []);
+      const providerId = chooseProvider();
+      if (!providerId) {
+        toast.warning(
+          '当前没有可用的服务端 TTS，先临时用浏览器朗读。建议在设置里启用 Qwen/Azure 等少女音色。',
+        );
+      }
+
+      setLiveSpeech(spokenText);
+
+      try {
+        if (!providerId) {
+          if (!window.speechSynthesis) return;
+          const utterance = new SpeechSynthesisUtterance(spokenText);
+          utterance.rate = settings.ttsSpeed ?? 1;
+          utterance.volume = settings.ttsVolume ?? 1;
+          utterance.lang = 'zh-CN';
+          await new Promise<void>((resolve) => {
+            utterance.onend = () => resolve();
+            utterance.onerror = () => resolve();
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+          });
+          return;
+        }
+
+        const providerConfig = settings.ttsProvidersConfig?.[providerId];
+        const voice =
+          SIDEBAR_VOICE_REPLY_PREFERRED_VOICE[providerId] ||
+          (providerId === settings.ttsProviderId && settings.ttsVoice !== 'default'
+            ? settings.ttsVoice
+            : 'default');
+        const body: Record<string, unknown> = {
+          text: spokenText,
+          audioId: `sidebar-answer-${Date.now()}`,
+          ttsProviderId: providerId,
+          ttsVoice: voice,
+          ttsSpeed: settings.ttsSpeed ?? 1,
+        };
+        if (providerConfig?.apiKey?.trim()) body.ttsApiKey = providerConfig.apiKey;
+        if (providerConfig?.baseUrl?.trim()) body.ttsBaseUrl = providerConfig.baseUrl;
+
+        const response = await fetch('/api/generate/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({ error: response.statusText }));
+        if (!response.ok || !data.base64) {
+          throw new Error(data.error || 'TTS 生成失败');
+        }
+
+        const binary = atob(data.base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: `audio/${data.format || 'mp3'}` });
+        const url = URL.createObjectURL(blob);
+        sidebarAnswerAudioUrlRef.current = url;
+
+        const audio = new Audio(url);
+        audio.volume = settings.ttsVolume ?? 1;
+        sidebarAnswerAudioRef.current = audio;
+        await new Promise<void>((resolve, reject) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => reject(new Error('语音播放失败'));
+          void audio.play().catch(reject);
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '语音回复失败');
+      } finally {
+        stopSidebarAnswerAudio();
+        setLiveSpeech(null);
+      }
+    },
+    [stopSidebarAnswerAudio],
+  );
 
   /**
    * Handle discussion SSE — POST /api/chat and push events to engine
@@ -1131,8 +1184,11 @@ export function Stage({
       setIsTopicPending(false);
 
       const registry = useAgentRegistry.getState();
-      const availableSelectedAgentIds = selectedAgentIds.filter((id) => Boolean(registry.getAgent(id)));
-      const agentIds = availableSelectedAgentIds.length > 0 ? availableSelectedAgentIds : ['default-1'];
+      const availableSelectedAgentIds = selectedAgentIds.filter((id) =>
+        Boolean(registry.getAgent(id)),
+      );
+      const agentIds =
+        availableSelectedAgentIds.length > 0 ? availableSelectedAgentIds : ['default-1'];
       const agentConfigs = agentIds
         .map((id) => registry.getAgent(id))
         .filter((agent): agent is AgentConfig => Boolean(agent))
@@ -1201,7 +1257,7 @@ export function Stage({
           ]);
         }
         if (!controller.signal.aborted && options?.speakReply && finalAssistantText.trim()) {
-          speakSidebarAnswer(finalAssistantText);
+          await speakSidebarAnswer(finalAssistantText);
         }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -1586,9 +1642,6 @@ export function Stage({
     : scenes.findIndex((s) => s.id === currentSceneId);
   const totalScenesCount = scenes.length + (hasNextPending ? 1 : 0);
 
-  // get action information
-  const totalActions = currentScene?.actions?.length || 0;
-
   // whiteboard toggle
   const handleWhiteboardToggle = () => {
     setWhiteboardOpen(!whiteboardOpen);
@@ -1926,10 +1979,7 @@ export function Stage({
   }, [slideEditorOpen, mainClassroomView, isPendingScene, currentScene]);
 
   /** 侧栏 Live2D 标签应持续可见；问答中也保留入口，仅在白板/待生成页隐藏。 */
-  const live2dSidebarEligible =
-    live2dPresenterVisible &&
-    !isPendingScene &&
-    !whiteboardOpen;
+  const live2dSidebarEligible = live2dPresenterVisible && !isPendingScene && !whiteboardOpen;
 
   const sceneSidebarLive2d = live2dSidebarEligible
     ? mode === 'playback' && currentScene?.type === 'slide'
@@ -1945,17 +1995,6 @@ export function Stage({
 
   const showPlaybackStopDiscussion =
     engineMode === 'live' || chatSessionType === 'qa' || chatSessionType === 'discussion';
-
-  // Build discussion request for Roundtable ProactiveCard from trigger
-  const discussionRequest: DiscussionAction | null = discussionTrigger
-    ? {
-        type: 'discussion',
-        id: discussionTrigger.id,
-        topic: discussionTrigger.question,
-        prompt: discussionTrigger.prompt,
-        agentId: discussionTrigger.agentId || 'default-1',
-      }
-    : null;
 
   const mergedOutlines = useMemo(() => {
     const byId = new Map<string, SceneOutline>();

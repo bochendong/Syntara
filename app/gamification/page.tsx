@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
 import { Flame } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { GamificationSummaryCard } from '@/components/gamification/gamification-summary-card';
 
 export default function GamificationPage() {
@@ -14,10 +12,6 @@ export default function GamificationPage() {
       </div>
 
       <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
-        <Button variant="ghost" size="sm" className="-ml-2 mb-4 rounded-lg" asChild>
-          <Link href="/my-courses">{'← Dashboard'}</Link>
-        </Button>
-
         <section className="mb-6 apple-glass rounded-[28px] p-6">
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200">

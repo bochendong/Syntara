@@ -177,6 +177,7 @@ export function SceneSidebar({
 
   const [retryingOutlineId, setRetryingOutlineId] = useState<string | null>(null);
   const [askValue, setAskValue] = useState('');
+  const [askVoiceNotice, setAskVoiceNotice] = useState<string | null>(null);
   const askTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const askThreadScrollRef = useRef<HTMLDivElement | null>(null);
   const asrEnabled = useSettingsStore((state) => state.asrEnabled);
@@ -232,8 +233,7 @@ export function SceneSidebar({
     prevPlaybackEngineRef.current = cur;
   }, [live2dPresenter, playbackEngineState]);
 
-  const tabsValue: SidebarMainTab =
-    live2dPresenter || sidebarTab !== 'live2d' ? sidebarTab : 'nav';
+  const tabsValue: SidebarMainTab = live2dPresenter || sidebarTab !== 'live2d' ? sidebarTab : 'nav';
 
   useEffect(() => {
     if (!live2dPresenter || collapsed || tabsValue !== 'live2d') {
@@ -288,22 +288,32 @@ export function SceneSidebar({
     }
   }, [tabsValue]);
 
-  const { isRecording, isProcessing, recordingTime, startRecording, stopRecording, cancelRecording } =
-    useAudioRecorder({
-      onTranscription: (text) => {
-        const transcript = text.trim();
-        if (!transcript) {
-          toast.info('未检测到有效语音输入');
-          return;
-        }
-        setSidebarTab('ask');
-        void onAskActivate?.();
-        void onAskSubmit?.(transcript, { inputMode: 'voice' });
-      },
-      onError: (error) => {
-        toast.error(error);
-      },
-    });
+  const {
+    isRecording,
+    isProcessing,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useAudioRecorder({
+    onTranscription: (text) => {
+      const transcript = text.trim();
+      if (!transcript) {
+        setAskVoiceNotice('没有听到有效内容，请靠近麦克风再试一次。');
+        toast.info('未检测到有效语音输入');
+        return;
+      }
+      setAskVoiceNotice(`听到了：${transcript}`);
+      setAskValue('');
+      setSidebarTab('ask');
+      void onAskActivate?.();
+      void onAskSubmit?.(transcript, { inputMode: 'voice' });
+    },
+    onError: (error) => {
+      setAskVoiceNotice(error);
+      toast.error(error);
+    },
+  });
 
   useEffect(() => {
     return () => {
@@ -425,17 +435,24 @@ export function SceneSidebar({
   }, [askValue, onAskSubmit]);
 
   const handleAskVoiceToggle = useCallback(() => {
-    if (!asrEnabled || isProcessing) return;
+    if (!asrEnabled || isProcessing) {
+      if (!asrEnabled) setAskVoiceNotice('语音输入未开启，请先在设置中开启 ASR。');
+      return;
+    }
     setSidebarTab('ask');
     void onAskActivate?.();
     if (isRecording) {
+      setAskVoiceNotice('正在识别刚才的语音...');
       stopRecording();
       return;
     }
+    setAskVoiceNotice('正在收录声音，请直接说出你的问题。');
     void startRecording();
   }, [asrEnabled, isProcessing, isRecording, onAskActivate, startRecording, stopRecording]);
 
-  const showAskStatus = askThinking || Boolean(askLiveSpeech) || (askStreaming && askThread.length > 0);
+  const showAskStatus =
+    askThinking || Boolean(askLiveSpeech) || (askStreaming && askThread.length > 0);
+  const showAskVoiceStatus = isRecording || isProcessing || Boolean(askVoiceNotice);
   const isAskSpeaking = !askThinking && Boolean(askLiveSpeech?.trim());
   const selectedLive2dSkinId = useMemo(
     () => stageSkinRecord[live2dPresenterModelId] ?? null,
@@ -929,7 +946,9 @@ export function SceneSidebar({
                       <div className="min-w-0 flex flex-1 items-center justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
-                            <span className="truncate">{askSpeakerName || t('chat.sidebarAskAiLabel')}</span>
+                            <span className="truncate">
+                              {askSpeakerName || t('chat.sidebarAskAiLabel')}
+                            </span>
                             <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-sky-700 dark:text-sky-200">
                               {askThinking ? '思考中' : askPaused ? '已暂停' : '正在回答'}
                             </span>
@@ -1080,7 +1099,13 @@ export function SceneSidebar({
                             : 'bg-slate-200/80 text-slate-400 dark:bg-white/[0.08] dark:text-white/30',
                       )}
                       aria-label={isRecording ? '停止录音' : '语音输入'}
-                      title={!asrEnabled ? '请在设置中开启语音输入' : isRecording ? '停止录音' : '语音输入'}
+                      title={
+                        !asrEnabled
+                          ? '请在设置中开启语音输入'
+                          : isRecording
+                            ? '停止录音'
+                            : '语音输入'
+                      }
                     >
                       {isProcessing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1105,16 +1130,47 @@ export function SceneSidebar({
                       <SendHorizonal className="h-4 w-4" />
                     </button>
                   </div>
-                  {isRecording ? (
-                    <p className="px-2 text-[11px] leading-5 text-rose-500 dark:text-rose-300">
-                      正在录音 {Math.floor(recordingTime / 60)}:
-                      {(recordingTime % 60).toString().padStart(2, '0')}，再次点击麦克风结束
-                    </p>
-                  ) : null}
-                  {!isRecording && isProcessing ? (
-                    <p className="px-2 text-[11px] leading-5 text-sky-600 dark:text-sky-300">
-                      正在转写语音...
-                    </p>
+                  {showAskVoiceStatus ? (
+                    <div
+                      className={cn(
+                        'mt-2 rounded-2xl border px-3 py-2 text-xs leading-5 shadow-sm transition-all',
+                        isRecording
+                          ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200'
+                          : isProcessing
+                            ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300',
+                      )}
+                      aria-live="polite"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isRecording ? (
+                          <span className="relative flex h-2.5 w-2.5 shrink-0">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-70" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+                          </span>
+                        ) : isProcessing ? (
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                        ) : (
+                          <Mic className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span className="font-medium">
+                          {isRecording
+                            ? `正在听 ${Math.floor(recordingTime / 60)}:${(recordingTime % 60)
+                                .toString()
+                                .padStart(2, '0')}`
+                            : isProcessing
+                              ? '正在识别'
+                              : '语音输入'}
+                        </span>
+                      </div>
+                      <p className="mt-1 break-words">
+                        {isRecording
+                          ? '麦克风已打开。说完后再次点击麦克风，老师会在左侧回答。'
+                          : isProcessing
+                            ? '正在把语音转成文字，请稍等一下。'
+                            : askVoiceNotice}
+                      </p>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -1131,7 +1187,9 @@ export function SceneSidebar({
             >
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-[20px]">
                 <div className={cn('absolute inset-0 z-0', live2dStageSkin.stageClass)} />
-                <div className="absolute inset-0 z-0">{renderLive2dStageEffect(selectedLive2dSkinId)}</div>
+                <div className="absolute inset-0 z-0">
+                  {renderLive2dStageEffect(selectedLive2dSkinId)}
+                </div>
                 <div
                   className={cn(
                     'pointer-events-none absolute inset-x-6 bottom-5 z-0 h-24 rounded-full blur-2xl',

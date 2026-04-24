@@ -158,8 +158,8 @@ export function AppCoreNavList({
         {
           key: 'courses',
           href: '/my-courses',
-          label: 'Dashboard',
-          tooltip: 'Dashboard',
+          label: '所有课程',
+          tooltip: '所有课程',
           icon: BookOpen,
           active: pathname === '/my-courses',
         },
@@ -273,7 +273,7 @@ export function AppCoreNavList({
     },
   ];
 
-  const coreNavSections: CoreNavSection[] = isDashboardRoute(pathname)
+  const coreNavSections: CoreNavSection[] = isDashboardRoute(pathname, courseId)
     ? dashboardNavSections
     : [
         {
@@ -328,8 +328,8 @@ export function AppCoreNavList({
             {
               key: 'courses',
               href: '/my-courses',
-              label: 'Dashboard',
-              tooltip: 'Dashboard',
+              label: '所有课程',
+              tooltip: '所有课程',
               icon: BookOpen,
               active: pathname === '/my-courses',
             },
@@ -433,7 +433,7 @@ export function AppCoreNavList({
         }))
         .filter((section) => section.items.length > 0)
     : coreNavSections;
-  const enableCollapsibleSections = grouped && !collapsed && isDashboardRoute(pathname);
+  const enableCollapsibleSections = grouped && !collapsed && isDashboardRoute(pathname, courseId);
 
   const isDashboardSectionExpandedByDefault = (sectionKey: string) =>
     sectionKey === 'workspace' || sectionKey === 'marketplace' || sectionKey === 'credits';
