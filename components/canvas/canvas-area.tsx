@@ -26,7 +26,10 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   readonly onSceneSelect?: (sceneId: string) => void;
   readonly onRetryOutline?: (outlineId: string) => Promise<void>;
   readonly onSidebarAskActivate?: () => Promise<void> | void;
-  readonly onSidebarAskSubmit?: (message: string) => Promise<void> | void;
+  readonly onSidebarAskSubmit?: (
+    message: string,
+    options?: { inputMode?: 'text' | 'voice' },
+  ) => Promise<void> | void;
   readonly sceneSidebarAskThread?: SceneSidebarAskBubble[];
   readonly sceneSidebarAskLiveSpeech?: string | null;
   readonly sceneSidebarAskThinking?: boolean;

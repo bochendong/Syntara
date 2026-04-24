@@ -55,7 +55,10 @@ interface SceneSidebarProps {
   readonly onSceneSelect?: (sceneId: string) => void;
   readonly onRetryOutline?: (outlineId: string) => Promise<void>;
   readonly onAskActivate?: () => Promise<void> | void;
-  readonly onAskSubmit?: (message: string) => Promise<void> | void;
+  readonly onAskSubmit?: (
+    message: string,
+    options?: { inputMode?: 'text' | 'voice' },
+  ) => Promise<void> | void;
   /** 开启虚拟讲师且处于播放语境时传入，用于「虚拟讲师」标签页 */
   readonly live2dPresenter?: TalkingAvatarOverlayState;
   /** 与画布工具条一致；开始播放时自动切到虚拟讲师页，从播放切到暂停/空闲时回到导航；其余时候可手动切换 */
@@ -295,7 +298,7 @@ export function SceneSidebar({
         }
         setSidebarTab('ask');
         void onAskActivate?.();
-        void onAskSubmit?.(transcript);
+        void onAskSubmit?.(transcript, { inputMode: 'voice' });
       },
       onError: (error) => {
         toast.error(error);
@@ -418,7 +421,7 @@ export function SceneSidebar({
     const message = askValue.trim();
     if (!message) return;
     setAskValue('');
-    void onAskSubmit?.(message);
+    void onAskSubmit?.(message, { inputMode: 'text' });
   }, [askValue, onAskSubmit]);
 
   const handleAskVoiceToggle = useCallback(() => {
@@ -894,11 +897,11 @@ export function SceneSidebar({
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-0 pt-1">
               {showAskStatus ? (
                 <div className="shrink-0 px-3 pb-2">
-                  <div className="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-3 py-3 shadow-sm dark:border-sky-500/20 dark:bg-gradient-to-br dark:from-sky-500/10 dark:via-slate-950/40 dark:to-cyan-500/5">
-                    <div className="flex items-start gap-3">
-                      <div className="relative mt-0.5 shrink-0">
+                  <div className="rounded-xl border border-sky-200/70 bg-sky-50/70 px-3 py-2 shadow-sm dark:border-sky-500/20 dark:bg-sky-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="relative shrink-0">
                         <Avatar
-                          className="h-10 w-10 border-2 shadow-[0_10px_24px_rgba(14,165,233,0.18)]"
+                          className="h-9 w-9 border-2 shadow-[0_8px_20px_rgba(14,165,233,0.15)]"
                           style={{ borderColor: askSpeakerColor || '#38bdf8' }}
                         >
                           {askSpeakerAvatar &&
@@ -923,51 +926,44 @@ export function SceneSidebar({
                           </>
                         ) : null}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
-                          <span>{askSpeakerName || t('chat.sidebarAskAiLabel')}</span>
-                          <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-sky-700 dark:text-sky-200">
-                            {askThinking ? '思考中' : askPaused ? '已暂停' : '正在回答'}
-                          </span>
+                      <div className="min-w-0 flex flex-1 items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
+                            <span className="truncate">{askSpeakerName || t('chat.sidebarAskAiLabel')}</span>
+                            <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-sky-700 dark:text-sky-200">
+                              {askThinking ? '思考中' : askPaused ? '已暂停' : '正在回答'}
+                            </span>
+                          </div>
+                          {isAskSpeaking ? (
+                            <div className="mt-1 flex items-end gap-1.5">
+                              <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite]" />
+                              <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.15s]" />
+                              <span className="h-4 w-1 rounded-full bg-cyan-500/90 animate-[askWave_1.1s_ease-in-out_infinite_0.3s]" />
+                              <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.45s]" />
+                              <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite_0.6s]" />
+                            </div>
+                          ) : null}
                         </div>
-                        {isAskSpeaking ? (
-                          <div className="mt-1 flex items-end gap-1.5">
-                            <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite]" />
-                            <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.15s]" />
-                            <span className="h-4 w-1 rounded-full bg-cyan-500/90 animate-[askWave_1.1s_ease-in-out_infinite_0.3s]" />
-                            <span className="h-3 w-1 rounded-full bg-sky-500/85 animate-[askWave_1.1s_ease-in-out_infinite_0.45s]" />
-                            <span className="h-2 w-1 rounded-full bg-sky-400/80 animate-[askWave_1.1s_ease-in-out_infinite_0.6s]" />
-                          </div>
-                        ) : null}
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 dark:text-slate-100">
-                          {askLiveSpeech?.trim()
-                            ? askLiveSpeech
-                            : askThinking
-                              ? '正在结合当前课堂内容组织回答...'
-                              : '正在生成回复...'}
-                        </p>
                         {!askThinking && (onAskPause || onAskResume) ? (
-                          <div className="mt-2 flex items-center gap-2">
-                            {askPaused ? (
-                              <button
-                                type="button"
-                                onClick={onAskResume}
-                                className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
-                              >
-                                <Play className="h-3.5 w-3.5" />
-                                继续回答
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={onAskPause}
-                                className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
-                              >
-                                <Pause className="h-3.5 w-3.5" />
-                                暂停回答
-                              </button>
-                            )}
-                          </div>
+                          askPaused ? (
+                            <button
+                              type="button"
+                              onClick={onAskResume}
+                              className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
+                            >
+                              <Play className="h-3.5 w-3.5" />
+                              继续
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={onAskPause}
+                              className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white/85 px-2.5 py-1 text-[11px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/25 dark:bg-slate-900/60 dark:text-sky-200 dark:hover:bg-slate-900"
+                            >
+                              <Pause className="h-3.5 w-3.5" />
+                              暂停
+                            </button>
+                          )
                         ) : null}
                       </div>
                     </div>
@@ -980,10 +976,10 @@ export function SceneSidebar({
               >
                 <div
                   className={cn(
-                    'rounded-2xl border border-white/70 bg-white/75 p-3 dark:border-white/10 dark:bg-slate-950/30',
+                    'rounded-2xl p-3',
                     askThread.length > 0
                       ? 'space-y-3'
-                      : 'flex min-h-[200px] flex-col items-center justify-center px-4 py-8 text-center',
+                      : 'flex h-full min-h-[200px] flex-col items-center justify-center px-4 py-8 text-center',
                   )}
                 >
                   {askThread.length === 0 ? (
@@ -1006,14 +1002,34 @@ export function SceneSidebar({
                                 : 'bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-950',
                             )}
                           >
-                            <div className="mb-1 flex items-center gap-2 text-[11px] font-medium opacity-70">
-                              <span>
-                                {isAssistant ? t('chat.sidebarAskAiLabel') : t('common.you')}
-                              </span>
-                              {message.pending ? (
-                                <Loader2 className="size-3 shrink-0 animate-spin" />
-                              ) : null}
-                            </div>
+                            {isAssistant ? (
+                              <div className="mb-1 flex items-center gap-2 text-[11px] font-medium opacity-70">
+                                <Avatar className="h-6 w-6 shrink-0 border border-sky-200/70 dark:border-sky-500/30">
+                                  {askSpeakerAvatar &&
+                                  (askSpeakerAvatar.startsWith('http') ||
+                                    askSpeakerAvatar.startsWith('/') ||
+                                    askSpeakerAvatar.startsWith('data:')) ? (
+                                    <AvatarImage
+                                      src={askSpeakerAvatar}
+                                      alt={askSpeakerName || t('chat.sidebarAskAiLabel')}
+                                    />
+                                  ) : null}
+                                  <AvatarFallback
+                                    className="text-[11px]"
+                                    style={{
+                                      backgroundColor: `${askSpeakerColor || '#38bdf8'}20`,
+                                      color: askSpeakerColor || '#0369a1',
+                                    }}
+                                  >
+                                    {askSpeakerAvatar || (askSpeakerName || 'AI').slice(0, 1)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{askSpeakerName || t('chat.sidebarAskAiLabel')}</span>
+                                {message.pending ? (
+                                  <Loader2 className="size-3 shrink-0 animate-spin" />
+                                ) : null}
+                              </div>
+                            ) : null}
                             <p className="whitespace-pre-wrap break-words">{message.content}</p>
                           </div>
                         </div>
@@ -1023,7 +1039,7 @@ export function SceneSidebar({
                 </div>
               </div>
 
-              <div className="shrink-0 border-t border-slate-900/[0.08] bg-white/88 px-3 py-3 backdrop-blur-md dark:border-white/[0.08] dark:bg-[#0f1115]/90">
+              <div className="shrink-0 px-3 py-3">
                 <div className="rounded-[20px] border border-slate-900/[0.08] bg-white/88 p-2 shadow-[0_10px_28px_rgba(15,23,42,0.07)] dark:border-white/[0.08] dark:bg-black/20 dark:shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
                   <div className="flex items-end gap-2">
                     <Textarea
@@ -1089,9 +1105,6 @@ export function SceneSidebar({
                       <SendHorizonal className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="mt-2 px-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-                    {t('chat.askHint')}
-                  </p>
                   {isRecording ? (
                     <p className="px-2 text-[11px] leading-5 text-rose-500 dark:text-rose-300">
                       正在录音 {Math.floor(recordingTime / 60)}:

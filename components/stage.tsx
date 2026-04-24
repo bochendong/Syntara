@@ -59,11 +59,19 @@ import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-vo
 import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
 import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
+import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
 
 const RAW_DATA_BASE_TYPES: SceneType[] = ['slide', 'quiz', 'interactive'];
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 type SlideEditTab = 'canvas' | 'narration';
 type SlideEditorSidebarTab = 'ai' | 'manual';
+const LIVE2D_PRESENTER_AVATAR_BY_ID = {
+  haru: '/liv2d_poster/haru-avator.png',
+  hiyori: '/liv2d_poster/hiyori-avator.png',
+  mark: '/liv2d_poster/mark-avator.png',
+  mao: '/liv2d_poster/mao-avator.png',
+  rice: '/liv2d_poster/rice-avator.png',
+} as const;
 
 function createRepairMessageId(role: 'user' | 'assistant') {
   return `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -440,6 +448,8 @@ export function Stage({
   // Layout state from settings store (persisted via localStorage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore((s) => s.setSidebarCollapsed);
+  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
+  const live2dPresenterModelId = useSettingsStore((s) => s.live2dPresenterModelId);
 
   // PlaybackEngine state
   const [engineMode, setEngineMode] = useState<EngineMode>('idle');
@@ -567,6 +577,7 @@ export function Stage({
   const discussionAbortRef = useRef<AbortController | null>(null);
   const sidebarAskAbortRef = useRef<AbortController | null>(null);
   const classroomQuestionLoopRef = useRef<(message: string) => void>(() => {});
+  const sidebarAskVoiceReplyRef = useRef(false);
   // Guard to prevent double flash when manual stop triggers onDiscussionEnd
   const manualStopRef = useRef(false);
   // Monotonic counter incremented on each scene switch — used to discard stale SSE callbacks
@@ -1085,12 +1096,28 @@ export function Stage({
   );
 
   const executeSidebarAskLoop = useCallback(
-    async (initialMessages: UIMessage<ChatMessageMetadata>[]) => {
+    async (
+      initialMessages: UIMessage<ChatMessageMetadata>[],
+      options?: { speakReply?: boolean },
+    ) => {
       const modelConfig = getCurrentModelConfig();
       if (!modelConfig.isServerConfigured) {
         toast.error(t('settings.setupNeeded'), {
           description: '系统 OpenAI 模型尚未配置，请联系管理员。',
         });
+        setSceneSidebarAskMessages((prev) => [
+          ...prev,
+          {
+            id: `config-missing-${Date.now()}`,
+            role: 'assistant',
+            parts: [{ type: 'text', text: '当前模型未配置，暂时无法回答问题。' }],
+            metadata: {
+              senderName: '系统',
+              originalRole: 'agent',
+              createdAt: Date.now(),
+            },
+          },
+        ]);
         return;
       }
 
@@ -1103,9 +1130,11 @@ export function Stage({
       setIsCueUser(false);
       setIsTopicPending(false);
 
-      const agentIds = selectedAgentIds.length > 0 ? selectedAgentIds : ['default-1'];
+      const registry = useAgentRegistry.getState();
+      const availableSelectedAgentIds = selectedAgentIds.filter((id) => Boolean(registry.getAgent(id)));
+      const agentIds = availableSelectedAgentIds.length > 0 ? availableSelectedAgentIds : ['default-1'];
       const agentConfigs = agentIds
-        .map((id) => useAgentRegistry.getState().getAgent(id))
+        .map((id) => registry.getAgent(id))
         .filter((agent): agent is AgentConfig => Boolean(agent))
         .filter((agent) => !agent.id.startsWith('default-'))
         .map((agent) => ({
@@ -1121,6 +1150,7 @@ export function Stage({
           boundStageId: agent.boundStageId,
         }));
       let finalAssistantText = '';
+      let hasAssistantReply = false;
 
       try {
         await runCourseSideChatLoop({
@@ -1150,11 +1180,27 @@ export function Stage({
             setLiveSpeech(answerText || null);
             setSpeakingAgentId(lastAssistant?.metadata?.agentId || null);
             if (messages.some((m) => m.role === 'assistant')) {
+              hasAssistantReply = true;
               setThinkingState(null);
             }
           },
         });
-        if (!controller.signal.aborted && finalAssistantText.trim()) {
+        if (!controller.signal.aborted && !hasAssistantReply) {
+          setSceneSidebarAskMessages((prev) => [
+            ...prev,
+            {
+              id: `empty-${Date.now()}`,
+              role: 'assistant',
+              parts: [{ type: 'text', text: '我暂时没有生成有效回复，请再试一次。' }],
+              metadata: {
+                senderName: '系统',
+                originalRole: 'agent',
+                createdAt: Date.now(),
+              },
+            },
+          ]);
+        }
+        if (!controller.signal.aborted && options?.speakReply && finalAssistantText.trim()) {
           speakSidebarAnswer(finalAssistantText);
         }
       } catch (error) {
@@ -1190,11 +1236,12 @@ export function Stage({
   );
 
   const runSidebarAskLoop = useCallback(
-    async (message: string) => {
+    async (message: string, options?: { inputMode?: 'text' | 'voice' }) => {
       const trimmed = message.trim();
       if (!trimmed) return;
 
       abortSidebarAskLoop(true);
+      sidebarAskVoiceReplyRef.current = options?.inputMode === 'voice';
 
       const now = Date.now();
       const userMessage: UIMessage<ChatMessageMetadata> = {
@@ -1214,7 +1261,9 @@ export function Stage({
         return nextMessages;
       });
 
-      await executeSidebarAskLoop(nextMessages);
+      await executeSidebarAskLoop(nextMessages, {
+        speakReply: sidebarAskVoiceReplyRef.current,
+      });
     },
     [abortSidebarAskLoop, executeSidebarAskLoop, t],
   );
@@ -1237,7 +1286,9 @@ export function Stage({
   const handleSidebarAskResume = useCallback(async () => {
     if (sidebarAskAbortRef.current || sceneSidebarAskMessages.length === 0) return;
     setIsDiscussionPaused(false);
-    await executeSidebarAskLoop(sceneSidebarAskMessages);
+    await executeSidebarAskLoop(sceneSidebarAskMessages, {
+      speakReply: sidebarAskVoiceReplyRef.current,
+    });
   }, [executeSidebarAskLoop, sceneSidebarAskMessages]);
 
   /** 侧栏提问框聚焦：暂停讲解/回答，让用户在左侧栏接着追问。 */
@@ -1253,7 +1304,7 @@ export function Stage({
   }, [chatIsStreaming, doSoftPause]);
 
   const handleSidebarQuestionSend = useCallback(
-    (msg: string) => {
+    (msg: string, options?: { inputMode?: 'text' | 'voice' }) => {
       const trimmed = msg.trim();
       if (!trimmed) return;
       if (isTopicPending) {
@@ -1261,7 +1312,7 @@ export function Stage({
         setLiveSpeech(null);
         setSpeakingAgentId(null);
       }
-      void runSidebarAskLoop(trimmed);
+      void runSidebarAskLoop(trimmed, options);
       setIsCueUser(false);
       setIsDiscussionPaused(false);
     },
@@ -1282,30 +1333,41 @@ export function Stage({
   }, [speakingAgentId]);
 
   const sceneSidebarAskSpeakerName = useMemo(() => {
+    const presenterNameKey = `settings.live2dPresenterOptions.${live2dPresenterModelId}.label`;
+    const presenterNameRaw = t(presenterNameKey);
+    const presenterName =
+      presenterNameRaw && presenterNameRaw !== presenterNameKey ? presenterNameRaw : '导师';
+
     if (!speakingAgentId) {
-      return chatSessionType === 'qa' ? '老师' : null;
+      return chatSessionType === 'qa' ? presenterName : null;
     }
     const agent = useAgentRegistry.getState().getAgent(speakingAgentId);
-    if (!agent) return chatSessionType === 'qa' ? '老师' : null;
-    return agent.role === 'teacher' ? agent.name || '老师' : agent.name;
-  }, [chatSessionType, speakingAgentId]);
+    if (!agent) return chatSessionType === 'qa' ? presenterName : null;
+    return agent.role === 'teacher' ? presenterName : agent.name;
+  }, [chatSessionType, live2dPresenterModelId, speakingAgentId, t]);
 
   const sceneSidebarAskSpeakerMeta = useMemo(() => {
+    const presenterAvatar =
+      LIVE2D_PRESENTER_AVATAR_BY_ID[live2dPresenterModelId] ||
+      LIVE2D_PRESENTER_MODELS[live2dPresenterModelId]?.previewSrc ||
+      null;
     if (!speakingAgentId) {
       const teacher = selectedAgentIds
         .map((id) => useAgentRegistry.getState().getAgent(id))
         .find((agent) => agent?.role === 'teacher');
       return {
-        avatar: teacher?.avatar || null,
+        avatar: presenterAvatar || teacher?.avatar || null,
         color: teacher?.color || '#38bdf8',
       };
     }
     const agent = useAgentRegistry.getState().getAgent(speakingAgentId);
+    const avatar =
+      agent?.role === 'teacher' ? presenterAvatar || agent?.avatar || null : agent?.avatar || null;
     return {
-      avatar: agent?.avatar || null,
+      avatar,
       color: agent?.color || '#38bdf8',
     };
-  }, [selectedAgentIds, speakingAgentId]);
+  }, [live2dPresenterModelId, selectedAgentIds, speakingAgentId]);
 
   // Centralised derived playback view
   const playbackView = useMemo(
@@ -1863,14 +1925,11 @@ export function Stage({
     }
   }, [slideEditorOpen, mainClassroomView, isPendingScene, currentScene]);
 
-  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
-  /** 与幻灯片角标时代一致：不因 mode 卡在 autonomous 就隐藏侧栏入口（自主模式下为待机姿态） */
+  /** 侧栏 Live2D 标签应持续可见；问答中也保留入口，仅在白板/待生成页隐藏。 */
   const live2dSidebarEligible =
     live2dPresenterVisible &&
     !isPendingScene &&
-    !whiteboardOpen &&
-    !playbackToolbarLiveSession &&
-    !chatSessionType;
+    !whiteboardOpen;
 
   const sceneSidebarLive2d = live2dSidebarEligible
     ? mode === 'playback' && currentScene?.type === 'slide'
