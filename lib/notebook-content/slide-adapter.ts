@@ -58,7 +58,6 @@ import {
   estimateParagraphStackHeightForWidth,
   estimateProcessFlowBlockHeight,
   estimateProcessFlowStepCardHeight,
-  estimateProcessFlowSummaryHeight,
   estimateWrappedLineCount,
   getBaseBodyHeight,
   measureBulletListBlock,
@@ -1308,22 +1307,17 @@ function renderProcessFlowBlock(args: {
       }
 
       elements.push(
-        createRectShape({
+        createTextElement({
           left,
           top: cursorTop,
           width: stepWidth,
           height: stepHeight,
+          groupId,
+          html: fitted.html,
+          color: '#334155',
+          textType: 'content',
           fill: tone.fill,
           outlineColor: tone.border,
-          groupId,
-          text: createShapeText({
-            html: fitted.html,
-            color: '#334155',
-            textType: 'content',
-            lineHeight: 1.32,
-            paragraphSpace: 4,
-            align: 'top',
-          }),
         }),
       );
     });

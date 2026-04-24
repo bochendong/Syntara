@@ -15,6 +15,8 @@ import {
   Loader2,
   Pause,
   Play,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +35,19 @@ import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
 import { buildLectureNotesFromScenes } from '@/lib/utils/build-lecture-notes-from-scenes';
 import { LectureNotesView } from '@/components/chat/lecture-notes-view';
+import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
+import { useSettingsStore } from '@/lib/store/settings';
+import { toast } from 'sonner';
+import { FloatingLinesStageBackground } from '@/components/gamification/floating-lines-stage-background';
+import { LightRaysStageBackground } from '@/components/gamification/light-rays-stage-background';
+import { PixelSnowStageBackground } from '@/components/gamification/pixel-snow-stage-background';
+import { SoftAuroraStageBackground } from '@/components/gamification/soft-aurora-stage-background';
+import { LightPillarStageBackground } from '@/components/gamification/light-pillar-stage-background';
+import { PrismStageBackground } from '@/components/gamification/prism-stage-background';
+import { PlasmaWaveStageBackground } from '@/components/gamification/plasma-wave-stage-background';
+import { ColorBendsStageBackground } from '@/components/gamification/color-bends-stage-background';
+import { ParticlesStageBackground } from '@/components/gamification/particles-stage-background';
+import { EvilEyeStageBackground } from '@/components/gamification/evil-eye-stage-background';
 
 interface SceneSidebarProps {
   readonly collapsed: boolean;
@@ -59,6 +74,69 @@ interface SceneSidebarProps {
 }
 
 type SidebarMainTab = 'nav' | 'notes' | 'ask' | 'live2d';
+type StageSkinVisual = {
+  stageClass: string;
+  glowClass: string;
+};
+
+const COMPANION_STAGE_SKIN_STORAGE_KEY = 'companion-stage-skin-status';
+const DEFAULT_LIVE2D_STAGE_SKIN: StageSkinVisual = {
+  stageClass:
+    'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]',
+  glowClass: 'bg-[radial-gradient(circle,rgba(191,219,254,0.3),transparent_68%)]',
+};
+const LIVE2D_STAGE_SKIN_LOOKUP: Record<string, StageSkinVisual> = {
+  'haru-clear': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.22),transparent_38%),linear-gradient(180deg,rgba(14,24,56,0.92),rgba(12,22,46,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(125,211,252,0.32),transparent_68%)]',
+  },
+  'haru-sunrise': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.24),transparent_36%),linear-gradient(180deg,rgba(39,34,73,0.94),rgba(14,22,48,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(251,191,36,0.3),transparent_68%)]',
+  },
+  'hiyori-moon': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(216,180,254,0.22),transparent_38%),linear-gradient(180deg,rgba(34,24,62,0.94),rgba(12,20,44,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(216,180,254,0.3),transparent_68%)]',
+  },
+  'hiyori-sakura': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(244,114,182,0.22),transparent_38%),linear-gradient(180deg,rgba(49,24,55,0.94),rgba(15,23,42,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(244,114,182,0.28),transparent_68%)]',
+  },
+  'mark-command': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.2),transparent_38%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(148,163,184,0.26),transparent_68%)]',
+  },
+  'mark-sprint': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_38%),linear-gradient(180deg,rgba(12,31,52,0.96),rgba(2,8,23,0.98))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(56,189,248,0.26),transparent_68%)]',
+  },
+  'mao-pop': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(251,113,133,0.22),transparent_38%),linear-gradient(180deg,rgba(60,24,62,0.94),rgba(24,18,48,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(251,113,133,0.28),transparent_68%)]',
+  },
+  'mao-spark': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.24),transparent_36%),linear-gradient(180deg,rgba(65,31,74,0.94),rgba(16,24,48,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(250,204,21,0.28),transparent_68%)]',
+  },
+  'rice-warm': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(253,186,116,0.22),transparent_38%),linear-gradient(180deg,rgba(55,34,48,0.94),rgba(18,22,42,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(253,186,116,0.28),transparent_68%)]',
+  },
+  'rice-dusk': {
+    stageClass:
+      'bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.22),transparent_38%),linear-gradient(180deg,rgba(59,30,50,0.94),rgba(18,20,42,0.96))]',
+    glowClass: 'bg-[radial-gradient(circle,rgba(251,146,60,0.28),transparent_68%)]',
+  },
+};
 
 const DEFAULT_WIDTH = 300;
 const MIN_WIDTH = 200;
@@ -98,6 +176,9 @@ export function SceneSidebar({
   const [askValue, setAskValue] = useState('');
   const askTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const askThreadScrollRef = useRef<HTMLDivElement | null>(null);
+  const asrEnabled = useSettingsStore((state) => state.asrEnabled);
+  const live2dPresenterModelId = useSettingsStore((state) => state.live2dPresenterModelId);
+  const [stageSkinRecord, setStageSkinRecord] = useState<Record<string, string>>({});
 
   const handleRetryOutline = async (outlineId: string) => {
     if (!onRetryOutline) return;
@@ -172,6 +253,66 @@ export function SceneSidebar({
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [askThread, tabsValue]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const readStageSkins = () => {
+      try {
+        const raw = window.localStorage.getItem(COMPANION_STAGE_SKIN_STORAGE_KEY);
+        setStageSkinRecord(raw ? (JSON.parse(raw) as Record<string, string>) : {});
+      } catch {
+        setStageSkinRecord({});
+      }
+    };
+
+    readStageSkins();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === COMPANION_STAGE_SKIN_STORAGE_KEY) {
+        readStageSkins();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    if (tabsValue !== 'live2d' || typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(COMPANION_STAGE_SKIN_STORAGE_KEY);
+      setStageSkinRecord(raw ? (JSON.parse(raw) as Record<string, string>) : {});
+    } catch {
+      setStageSkinRecord({});
+    }
+  }, [tabsValue]);
+
+  const { isRecording, isProcessing, recordingTime, startRecording, stopRecording, cancelRecording } =
+    useAudioRecorder({
+      onTranscription: (text) => {
+        const transcript = text.trim();
+        if (!transcript) {
+          toast.info('未检测到有效语音输入');
+          return;
+        }
+        setSidebarTab('ask');
+        void onAskActivate?.();
+        void onAskSubmit?.(transcript);
+      },
+      onError: (error) => {
+        toast.error(error);
+      },
+    });
+
+  useEffect(() => {
+    return () => {
+      cancelRecording();
+    };
+  }, [cancelRecording]);
+
+  useEffect(() => {
+    if (tabsValue !== 'ask' && isRecording) {
+      cancelRecording();
+    }
+  }, [cancelRecording, isRecording, tabsValue]);
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
@@ -280,8 +421,29 @@ export function SceneSidebar({
     void onAskSubmit?.(message);
   }, [askValue, onAskSubmit]);
 
+  const handleAskVoiceToggle = useCallback(() => {
+    if (!asrEnabled || isProcessing) return;
+    setSidebarTab('ask');
+    void onAskActivate?.();
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    void startRecording();
+  }, [asrEnabled, isProcessing, isRecording, onAskActivate, startRecording, stopRecording]);
+
   const showAskStatus = askThinking || Boolean(askLiveSpeech) || (askStreaming && askThread.length > 0);
   const isAskSpeaking = !askThinking && Boolean(askLiveSpeech?.trim());
+  const selectedLive2dSkinId = useMemo(
+    () => stageSkinRecord[live2dPresenterModelId] ?? null,
+    [live2dPresenterModelId, stageSkinRecord],
+  );
+  const live2dStageSkin = useMemo(
+    () =>
+      (selectedLive2dSkinId && LIVE2D_STAGE_SKIN_LOOKUP[selectedLive2dSkinId]) ||
+      DEFAULT_LIVE2D_STAGE_SKIN,
+    [selectedLive2dSkinId],
+  );
 
   return (
     <div
@@ -721,7 +883,7 @@ export function SceneSidebar({
             className="mt-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none data-[state=inactive]:hidden"
           >
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-0 pt-1">
-              <LectureNotesView notes={lectureNotes} currentSceneId={currentSceneId} />
+              <LectureNotesView notes={lectureNotes} currentSceneId={currentSceneId} currentOnly />
             </div>
           </TabsContent>
 
@@ -891,6 +1053,29 @@ export function SceneSidebar({
                     />
                     <button
                       type="button"
+                      onClick={handleAskVoiceToggle}
+                      disabled={!asrEnabled || isProcessing}
+                      className={cn(
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all duration-200',
+                        isRecording
+                          ? 'bg-rose-500 text-white shadow-[0_10px_24px_rgba(244,63,94,0.32)] hover:bg-rose-600'
+                          : asrEnabled
+                            ? 'bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-500/20 dark:text-sky-200 dark:hover:bg-sky-500/30'
+                            : 'bg-slate-200/80 text-slate-400 dark:bg-white/[0.08] dark:text-white/30',
+                      )}
+                      aria-label={isRecording ? '停止录音' : '语音输入'}
+                      title={!asrEnabled ? '请在设置中开启语音输入' : isRecording ? '停止录音' : '语音输入'}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isRecording ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleAskSend}
                       disabled={!askValue.trim()}
                       className={cn(
@@ -907,6 +1092,17 @@ export function SceneSidebar({
                   <p className="mt-2 px-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
                     {t('chat.askHint')}
                   </p>
+                  {isRecording ? (
+                    <p className="px-2 text-[11px] leading-5 text-rose-500 dark:text-rose-300">
+                      正在录音 {Math.floor(recordingTime / 60)}:
+                      {(recordingTime % 60).toString().padStart(2, '0')}，再次点击麦克风结束
+                    </p>
+                  ) : null}
+                  {!isRecording && isProcessing ? (
+                    <p className="px-2 text-[11px] leading-5 text-sky-600 dark:text-sky-300">
+                      正在转写语音...
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -920,11 +1116,26 @@ export function SceneSidebar({
               onMouseMove={handleLive2dMouseMove}
               onMouseLeave={handleLive2dMouseLeave}
             >
-              <TalkingAvatarOverlay
-                layout="sidebar"
-                pointerInteraction={live2dPointerInteraction}
-                {...live2dPresenter}
-              />
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-[20px]">
+                <div className={cn('absolute inset-0 z-0', live2dStageSkin.stageClass)} />
+                <div className="absolute inset-0 z-0">{renderLive2dStageEffect(selectedLive2dSkinId)}</div>
+                <div
+                  className={cn(
+                    'pointer-events-none absolute inset-x-6 bottom-5 z-0 h-24 rounded-full blur-2xl',
+                    live2dStageSkin.glowClass,
+                  )}
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-6 z-0 flex justify-center">
+                  <div className="h-20 w-[72%] rounded-full border border-white/10 bg-[radial-gradient(circle,rgba(255,255,255,0.16),transparent_66%)] blur-xl" />
+                </div>
+                <div className="relative z-[1] h-full">
+                  <TalkingAvatarOverlay
+                    layout="sidebar"
+                    pointerInteraction={live2dPointerInteraction}
+                    {...live2dPresenter}
+                  />
+                </div>
+              </div>
               <div className="mt-auto shrink-0" />
             </TabsContent>
           ) : null}
@@ -936,4 +1147,184 @@ export function SceneSidebar({
 
 function clampInteraction(value: number) {
   return Math.max(-1, Math.min(1, value));
+}
+
+function renderLive2dStageEffect(skinId: string | null) {
+  if (skinId === 'haru-clear') {
+    return (
+      <PrismStageBackground
+        className="pointer-events-none absolute inset-0 opacity-70"
+        timeScale={0.5}
+        height={3.5}
+        baseWidth={5.5}
+        scale={3.6}
+        hueShift={0}
+        colorFrequency={1}
+        noise={0}
+        glow={1}
+        bloom={1}
+      />
+    );
+  }
+  if (skinId === 'hiyori-moon') {
+    return (
+      <LightPillarStageBackground
+        className="pointer-events-none absolute inset-0 opacity-60"
+        topColor="#7C4DFF"
+        bottomColor="#F7A8FF"
+        intensity={1}
+        rotationSpeed={0.3}
+        glowAmount={0.002}
+        pillarWidth={3}
+        pillarHeight={0.4}
+        noiseIntensity={0.5}
+        pillarRotation={25}
+        interactive={false}
+        mixBlendMode="screen"
+        quality="high"
+      />
+    );
+  }
+  if (skinId === 'hiyori-sakura') {
+    return (
+      <PixelSnowStageBackground
+        className="pointer-events-none absolute inset-0 opacity-65"
+        color="#ffffff"
+        flakeSize={0.01}
+        minFlakeSize={1.25}
+        pixelResolution={200}
+        speed={1.25}
+        density={0.3}
+        direction={125}
+        brightness={1}
+        depthFade={8}
+        farPlane={20}
+        gamma={0.4545}
+        variant="square"
+      />
+    );
+  }
+  if (skinId === 'haru-sunrise') {
+    return (
+      <FloatingLinesStageBackground
+        className="pointer-events-none absolute inset-0 opacity-55"
+        interactive
+        animationSpeed={1}
+        gradientStart="#e945f5"
+        gradientMid="#6f6f6f"
+        gradientEnd="#6a6a6a"
+        mixBlendMode="screen"
+      />
+    );
+  }
+  if (skinId === 'mark-command') {
+    return (
+      <LightRaysStageBackground
+        className="pointer-events-none absolute inset-0 opacity-60"
+        raysOrigin="top-center"
+        raysColor="#ffffff"
+        raysSpeed={1}
+        lightSpread={0.5}
+        rayLength={3}
+        followMouse
+        mouseInfluence={0.1}
+        noiseAmount={0}
+        distortion={0}
+        pulsating={false}
+        fadeDistance={1}
+        saturation={1}
+      />
+    );
+  }
+  if (skinId === 'mark-sprint') {
+    return (
+      <SoftAuroraStageBackground
+        className="pointer-events-none absolute inset-0 opacity-55"
+        speed={0.6}
+        scale={1.5}
+        brightness={1}
+        color1="#f7f7f7"
+        color2="#e100ff"
+        noiseFrequency={2.5}
+        noiseAmplitude={1}
+        bandHeight={0.5}
+        bandSpread={1}
+        octaveDecay={0.1}
+        layerOffset={0}
+        colorSpeed={1}
+        enableMouseInteraction
+        mouseInfluence={0.25}
+      />
+    );
+  }
+  if (skinId === 'mao-pop') {
+    return (
+      <ParticlesStageBackground
+        className="pointer-events-none absolute inset-0 opacity-65"
+        particleColors={['#ffffff']}
+        particleCount={200}
+        particleSpread={10}
+        speed={0.1}
+        particleBaseSize={100}
+        moveParticlesOnHover
+        alphaParticles={false}
+        disableRotation={false}
+        pixelRatio={1}
+      />
+    );
+  }
+  if (skinId === 'mao-spark') {
+    return (
+      <EvilEyeStageBackground
+        className="pointer-events-none absolute inset-0 opacity-75"
+        eyeColor="#FF6F37"
+        intensity={1.5}
+        pupilSize={0.6}
+        irisWidth={0.25}
+        glowIntensity={0.35}
+        scale={0.8}
+        noiseScale={1}
+        pupilFollow={1}
+        flameSpeed={1}
+        backgroundColor="#120F17"
+      />
+    );
+  }
+  if (skinId === 'rice-warm') {
+    return (
+      <ColorBendsStageBackground
+        className="pointer-events-none absolute inset-0 opacity-70"
+        colors={['#ff5c7a', '#8a5cff', '#00ffd1']}
+        rotation={90}
+        speed={0.2}
+        scale={1}
+        frequency={1}
+        warpStrength={1}
+        mouseInfluence={1}
+        noise={0.15}
+        parallax={0.5}
+        iterations={1}
+        intensity={1.5}
+        bandWidth={6}
+        transparent
+        autoRotate={0}
+      />
+    );
+  }
+  if (skinId === 'rice-dusk') {
+    return (
+      <PlasmaWaveStageBackground
+        className="pointer-events-none absolute inset-0 opacity-70"
+        colors={['#A855F7', '#06B6D4']}
+        speed1={0.05}
+        speed2={0.05}
+        focalLength={0.8}
+        bend1={1}
+        bend2={0.5}
+        dir2={1}
+        rotationDeg={0}
+      />
+    );
+  }
+  return null;
 }

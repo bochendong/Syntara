@@ -598,11 +598,30 @@ function reflowFollowingElements(args: {
       const element = elements[index];
       const range = getElementRange(element);
       const horizontallyRelated = rangesOverlap([range.minX, range.maxX], args.anchorXRange, 10);
-      const isDownstream = range.minY >= args.oldBottom - 2;
+      const isDownstream =
+        element.type === 'line'
+          ? range.maxY >= args.oldBottom - 2
+          : range.minY >= args.oldBottom - 2;
       if (!horizontallyRelated || !isDownstream) continue;
       elements[index] = translateElement(element, delta);
     }
     return elements;
+  }
+
+  const anchorWidth = args.anchorXRange[1] - args.anchorXRange[0];
+  const isBroadAnchor = anchorWidth >= DEFAULT_VIEWPORT.width * 0.65;
+  if (isBroadAnchor) {
+    return elements.map((element, index) => {
+      if (index <= args.startIndex) return element;
+      const range = getElementRange(element);
+      const horizontallyRelated = rangesOverlap([range.minX, range.maxX], args.anchorXRange, 10);
+      const isDownstream =
+        element.type === 'line'
+          ? range.maxY >= args.oldBottom - 2
+          : range.minY >= args.oldBottom - 2;
+      if (!horizontallyRelated || !isDownstream) return element;
+      return translateElement(element, delta);
+    });
   }
 
   let laneBottom = args.newBottom;
@@ -612,7 +631,10 @@ function reflowFollowingElements(args: {
     const horizontallyRelated = rangesOverlap([range.minX, range.maxX], args.anchorXRange, 10);
     const verticallyBlocked =
       range.minY < laneBottom + REPAIR_GAP_PX && range.maxY > args.oldBottom - 2;
-    const isDownstream = range.minY >= args.oldBottom - 2;
+    const isDownstream =
+      element.type === 'line'
+        ? range.maxY >= args.oldBottom - 2
+        : range.minY >= args.oldBottom - 2;
 
     if (!horizontallyRelated || !verticallyBlocked || !isDownstream) continue;
 

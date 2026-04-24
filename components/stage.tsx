@@ -10,16 +10,12 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import {
-  resolveNotebookContentProfile,
-  type NotebookContentProfile,
-} from '@/lib/notebook-content';
+import { resolveNotebookContentProfile, type NotebookContentProfile } from '@/lib/notebook-content';
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { Header } from './header';
 import { ProblemBankView } from '@/components/problem-bank/problem-bank-view';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
 import { CanvasArea } from '@/components/canvas/canvas-area';
-import { Roundtable } from '@/components/roundtable';
 import { PlaybackEngine, computePlaybackView } from '@/lib/playback';
 import type { EngineMode, TriggerEvent, Effect } from '@/lib/playback';
 import { ActionEngine } from '@/lib/action/engine';
@@ -32,8 +28,9 @@ import {
   normalizeAzureVisemesToMouthCues,
   resolveCurrentMouthCueFrame,
 } from '@/lib/audio/mouth-cues';
+import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
 // Playback state persistence removed — refresh always starts from the beginning
-import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
+import type { ChatAreaRef } from '@/components/chat/chat-area';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { getActionsForRole } from '@/lib/orchestration/registry/types';
 import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
@@ -62,9 +59,6 @@ import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-vo
 import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
 import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
-
-/** Bottom Roundtable strip in playback classroom — off until we ship the layout again. */
-const SHOW_CLASSROOM_ROUNDTABLE = false;
 
 const RAW_DATA_BASE_TYPES: SceneType[] = ['slide', 'quiz', 'interactive'];
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
@@ -248,14 +242,12 @@ function inferRepairTargetLanguage(args: {
   const hasAnyNormalized = (patterns: RegExp[]) =>
     patterns.some((pattern) => pattern.test(normalized));
 
-  const rejectChinese = hasAny([
-    /不要.{0,6}(中文|汉语|汉字|简体中文)/i,
-    /别.{0,6}(中文|汉语|汉字|简体中文)/i,
-  ]) || hasAnyNormalized([/\bdo not\b.{0,12}\bchinese\b/i, /\bdon't\b.{0,12}\bchinese\b/i]);
-  const rejectEnglish = hasAny([
-    /不要.{0,6}(英文|英语)/i,
-    /别.{0,6}(英文|英语)/i,
-  ]) || hasAnyNormalized([/\bdo not\b.{0,12}\benglish\b/i, /\bdon't\b.{0,12}\benglish\b/i]);
+  const rejectChinese =
+    hasAny([/不要.{0,6}(中文|汉语|汉字|简体中文)/i, /别.{0,6}(中文|汉语|汉字|简体中文)/i]) ||
+    hasAnyNormalized([/\bdo not\b.{0,12}\bchinese\b/i, /\bdon't\b.{0,12}\bchinese\b/i]);
+  const rejectEnglish =
+    hasAny([/不要.{0,6}(英文|英语)/i, /别.{0,6}(英文|英语)/i]) ||
+    hasAnyNormalized([/\bdo not\b.{0,12}\benglish\b/i, /\bdon't\b.{0,12}\benglish\b/i]);
 
   const wantsChinese =
     !rejectChinese &&
@@ -448,10 +440,6 @@ export function Stage({
   // Layout state from settings store (persisted via localStorage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore((s) => s.setSidebarCollapsed);
-  const chatAreaWidth = useSettingsStore((s) => s.chatAreaWidth);
-  const setChatAreaWidth = useSettingsStore((s) => s.setChatAreaWidth);
-  const chatAreaCollapsed = useSettingsStore((s) => s.chatAreaCollapsed);
-  const setChatAreaCollapsed = useSettingsStore((s) => s.setChatAreaCollapsed);
 
   // PlaybackEngine state
   const [engineMode, setEngineMode] = useState<EngineMode>('idle');
@@ -578,6 +566,7 @@ export function Stage({
   const lectureActionCounterRef = useRef(0);
   const discussionAbortRef = useRef<AbortController | null>(null);
   const sidebarAskAbortRef = useRef<AbortController | null>(null);
+  const classroomQuestionLoopRef = useRef<(message: string) => void>(() => {});
   // Guard to prevent double flash when manual stop triggers onDiscussionEnd
   const manualStopRef = useRef(false);
   // Monotonic counter incremented on each scene switch — used to discard stale SSE callbacks
@@ -863,8 +852,8 @@ export function Stage({
         }
       },
       onUserInterrupt: (text) => {
-        // User interrupted → continue in the classroom sidebar ask thread
-        void runSidebarAskLoop(text);
+        // User interrupted → continue through the unified classroom Q&A session.
+        classroomQuestionLoopRef.current(text);
       },
       isAgentSelected: (agentId) => {
         const ids = useSettingsStore.getState().selectedAgentIds;
@@ -1054,24 +1043,43 @@ export function Stage({
     };
   }, [currentScene, ttsEnabled, ttsProviderId, ttsVoice, ttsSpeed, updateScene]);
 
+  const speakSidebarAnswer = useCallback((text: string) => {
+    const spokenText = verbalizeNarrationText(text).trim();
+    if (!spokenText || typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const settings = useSettingsStore.getState();
+    if (!settings.ttsEnabled || settings.ttsMuted || settings.ttsVolume <= 0) return;
+
+    const utterance = new SpeechSynthesisUtterance(spokenText);
+    utterance.rate = settings.ttsSpeed ?? 1;
+    utterance.volume = settings.ttsVolume ?? 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    const configuredVoice =
+      settings.ttsVoice && settings.ttsVoice !== 'default'
+        ? voices.find((voice) => voice.voiceURI === settings.ttsVoice)
+        : undefined;
+    if (configuredVoice) {
+      utterance.voice = configuredVoice;
+      utterance.lang = configuredVoice.lang;
+    } else {
+      const cjkRatio = (spokenText.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / spokenText.length;
+      utterance.lang = cjkRatio > 0.3 ? 'zh-CN' : 'en-US';
+    }
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   /**
    * Handle discussion SSE — POST /api/chat and push events to engine
    */
   const handleDiscussionSSE = useCallback(
-    async (topic: string, prompt?: string, agentId?: string) => {
-      // Start discussion display in ChatArea (lecture speech is preserved independently)
-      chatAreaRef.current?.startDiscussion({
-        topic,
-        prompt,
-        agentId: agentId || 'default-1',
-      });
-      // Auto-switch to chat tab when discussion starts
-      chatAreaRef.current?.switchToTab('chat');
-      // Immediately mark streaming for synchronized stop button
-      setChatIsStreaming(true);
+    async (topic: string, prompt?: string, _agentId?: string) => {
+      const seed = prompt?.trim() || topic.trim();
+      if (!seed) return;
       setChatSessionType('discussion');
-      // Optimistic thinking: show thinking dots immediately (same as onMessageSend)
-      setThinkingState({ stage: 'director' });
+      classroomQuestionLoopRef.current(seed);
     },
     [],
   );
@@ -1112,6 +1120,7 @@ export function Stage({
           isGenerated: agent.isGenerated,
           boundStageId: agent.boundStageId,
         }));
+      let finalAssistantText = '';
 
       try {
         await runCourseSideChatLoop({
@@ -1136,13 +1145,18 @@ export function Stage({
             setSceneSidebarAskMessages(messages);
             const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
             const textPart = lastAssistant?.parts.find((part) => part.type === 'text');
-            setLiveSpeech(textPart && textPart.type === 'text' ? textPart.text || null : null);
+            const answerText = textPart && textPart.type === 'text' ? textPart.text || '' : '';
+            finalAssistantText = answerText;
+            setLiveSpeech(answerText || null);
             setSpeakingAgentId(lastAssistant?.metadata?.agentId || null);
             if (messages.some((m) => m.role === 'assistant')) {
               setThinkingState(null);
             }
           },
         });
+        if (!controller.signal.aborted && finalAssistantText.trim()) {
+          speakSidebarAnswer(finalAssistantText);
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
@@ -1172,7 +1186,7 @@ export function Stage({
         }
       }
     },
-    [selectedAgentIds, t],
+    [selectedAgentIds, speakSidebarAnswer, t],
   );
 
   const runSidebarAskLoop = useCallback(
@@ -1205,6 +1219,12 @@ export function Stage({
     [abortSidebarAskLoop, executeSidebarAskLoop, t],
   );
 
+  useEffect(() => {
+    classroomQuestionLoopRef.current = (message: string) => {
+      void runSidebarAskLoop(message);
+    };
+  }, [runSidebarAskLoop]);
+
   const handleSidebarAskPause = useCallback(() => {
     if (!sidebarAskAbortRef.current) return;
     abortSidebarAskLoop(true);
@@ -1220,10 +1240,8 @@ export function Stage({
     await executeSidebarAskLoop(sceneSidebarAskMessages);
   }, [executeSidebarAskLoop, sceneSidebarAskMessages]);
 
-  /** 侧栏提问框聚焦：切到聊天 Tab、暂停讲解，但不自动展开右侧聊天区（避免一点输入框就「弹开」右栏；发送时仍会展开）。 */
+  /** 侧栏提问框聚焦：暂停讲解/回答，让用户在左侧栏接着追问。 */
   const handleSidebarInputActivate = useCallback(async () => {
-    chatAreaRef.current?.switchToTab('chat');
-
     if (chatIsStreaming) {
       await doSoftPause();
     }
@@ -1234,59 +1252,20 @@ export function Stage({
     }
   }, [chatIsStreaming, doSoftPause]);
 
-  const sendClassroomQuestion = useCallback(
-    (msg: string, options?: { revealChatArea?: boolean; restoreChatAreaCollapsed?: boolean }) => {
+  const handleSidebarQuestionSend = useCallback(
+    (msg: string) => {
       const trimmed = msg.trim();
       if (!trimmed) return;
-
-      const shouldRestoreChatArea = Boolean(options?.restoreChatAreaCollapsed && chatAreaCollapsed);
-
-      if (options?.revealChatArea) {
-        setChatAreaCollapsed(false);
-      }
-
       if (isTopicPending) {
         setIsTopicPending(false);
         setLiveSpeech(null);
         setSpeakingAgentId(null);
       }
-
-      if (
-        engineRef.current &&
-        (engineMode === 'playing' || engineMode === 'live' || engineMode === 'paused')
-      ) {
-        engineRef.current.handleUserInterrupt(trimmed);
-      } else {
-        void runSidebarAskLoop(trimmed);
-      }
-
+      void runSidebarAskLoop(trimmed);
       setIsCueUser(false);
       setIsDiscussionPaused(false);
-
-      if (shouldRestoreChatArea) {
-        window.setTimeout(() => {
-          setChatAreaCollapsed(true);
-        }, 0);
-      }
     },
-    [chatAreaCollapsed, engineMode, isTopicPending, runSidebarAskLoop, setChatAreaCollapsed],
-  );
-
-  const handleSidebarQuestionSend = useCallback(
-    (msg: string) => {
-      sendClassroomQuestion(msg, {
-        revealChatArea: true,
-        restoreChatAreaCollapsed: true,
-      });
-    },
-    [sendClassroomQuestion],
-  );
-
-  const handleChatAreaQuestionSend = useCallback(
-    (msg: string) => {
-      sendClassroomQuestion(msg, { revealChatArea: true });
-    },
-    [sendClassroomQuestion],
+    [isTopicPending, runSidebarAskLoop],
   );
 
   // First speech text for idle display (extracted here for playbackView)
@@ -2609,9 +2588,8 @@ export function Stage({
               sceneSidebarAskPaused={isDiscussionPaused}
               onSidebarAskPause={handleSidebarAskPause}
               onSidebarAskResume={() => void handleSidebarAskResume()}
-              chatCollapsed={chatAreaCollapsed}
+              chatCollapsed={true}
               onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-              onToggleChat={() => setChatAreaCollapsed(!chatAreaCollapsed)}
               onPrevSlide={handlePreviousScene}
               onNextSlide={handleNextScene}
               onPlayPause={handlePlayPause}
@@ -2643,125 +2621,7 @@ export function Stage({
           centerSlot={footerCenterSlot}
           trailingSlot={<ClassroomFooterVoiceChip />}
         />
-
-        {/* Roundtable Area */}
-        {mode === 'playback' && SHOW_CLASSROOM_ROUNDTABLE && (
-          <Roundtable
-            mode={mode}
-            initialParticipants={participants}
-            playbackView={playbackView}
-            currentSpeech={liveSpeech}
-            lectureSpeech={lectureSpeech}
-            idleText={firstSpeechText}
-            playbackCompleted={playbackCompleted}
-            discussionRequest={discussionRequest}
-            engineMode={engineMode}
-            isStreaming={chatIsStreaming}
-            sessionType={
-              chatSessionType === 'qa'
-                ? 'qa'
-                : chatSessionType === 'discussion'
-                  ? 'discussion'
-                  : undefined
-            }
-            speakingAgentId={speakingAgentId}
-            speechProgress={speechProgress}
-            showEndFlash={showEndFlash}
-            endFlashSessionType={endFlashSessionType}
-            thinkingState={thinkingState}
-            isCueUser={isCueUser}
-            isTopicPending={isTopicPending}
-            onMessageSend={handleChatAreaQuestionSend}
-            onDiscussionStart={() => {
-              // User clicks "Join" on ProactiveCard
-              engineRef.current?.confirmDiscussion();
-            }}
-            onDiscussionSkip={() => {
-              // User clicks "Skip" on ProactiveCard
-              engineRef.current?.skipDiscussion();
-            }}
-            onStopDiscussion={handleStopDiscussion}
-            onInputActivate={handleSidebarInputActivate}
-            onResumeTopic={doResumeTopic}
-            onPlayPause={handlePlayPause}
-            isDiscussionPaused={isDiscussionPaused}
-            onDiscussionPause={() => {
-              chatAreaRef.current?.pauseActiveLiveBuffer();
-              setIsDiscussionPaused(true);
-            }}
-            onDiscussionResume={() => {
-              chatAreaRef.current?.resumeActiveLiveBuffer();
-              setIsDiscussionPaused(false);
-            }}
-            totalActions={totalActions}
-            currentActionIndex={0}
-            currentSceneIndex={currentSceneIndex}
-            scenesCount={totalScenesCount}
-            whiteboardOpen={whiteboardOpen}
-            sidebarCollapsed={sidebarCollapsed}
-            chatCollapsed={chatAreaCollapsed}
-            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-            onToggleChat={() => setChatAreaCollapsed(!chatAreaCollapsed)}
-            onPrevSlide={handlePreviousScene}
-            onNextSlide={handleNextScene}
-            onWhiteboardClose={handleWhiteboardToggle}
-          />
-        )}
       </div>
-
-      {/* Chat Area */}
-      <ChatArea
-        ref={chatAreaRef}
-        width={chatAreaWidth}
-        onWidthChange={setChatAreaWidth}
-        collapsed={chatAreaCollapsed}
-        onCollapseChange={setChatAreaCollapsed}
-        activeBubbleId={activeBubbleId}
-        onActiveBubble={(id) => setActiveBubbleId(id)}
-        currentSceneId={currentSceneId}
-        onLiveSpeech={(text, agentId) => {
-          // Capture epoch at call time — discard if scene has changed since
-          const epoch = sceneEpochRef.current;
-          // Use queueMicrotask to let any pending scene-switch reset settle first
-          queueMicrotask(() => {
-            if (sceneEpochRef.current !== epoch) return; // stale — scene changed
-            setLiveSpeech(text);
-            if (agentId !== undefined) {
-              setSpeakingAgentId(agentId);
-            }
-            if (text !== null || agentId) {
-              setChatIsStreaming(true);
-              setChatSessionType(chatAreaRef.current?.getActiveSessionType?.() ?? null);
-              setIsTopicPending(false);
-            } else if (text === null && agentId === null) {
-              setChatIsStreaming(false);
-              // Don't clear chatSessionType here — it's needed by the stop
-              // button when director cues user (cue_user → done → liveSpeech null).
-              // It gets properly cleared in doSessionCleanup and scene change.
-            }
-          });
-        }}
-        onSpeechProgress={(ratio) => {
-          const epoch = sceneEpochRef.current;
-          queueMicrotask(() => {
-            if (sceneEpochRef.current !== epoch) return;
-            setSpeechProgress(ratio);
-          });
-        }}
-        onThinking={(state) => {
-          const epoch = sceneEpochRef.current;
-          queueMicrotask(() => {
-            if (sceneEpochRef.current !== epoch) return;
-            setThinkingState(state);
-          });
-        }}
-        onCueUser={(_fromAgentId, _prompt) => {
-          setIsCueUser(true);
-        }}
-        onStopSession={doSessionCleanup}
-        onInputActivate={handleSidebarInputActivate}
-        onMessageSend={handleChatAreaQuestionSend}
-      />
 
       {/* Scene switch confirmation dialog */}
       <AlertDialog
