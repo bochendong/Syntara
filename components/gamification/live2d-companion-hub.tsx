@@ -27,6 +27,10 @@ import { SoftAuroraStageBackground } from '@/components/gamification/soft-aurora
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import { LightPillarStageBackground } from '@/components/gamification/light-pillar-stage-background';
 import { PrismStageBackground } from '@/components/gamification/prism-stage-background';
+import { PlasmaWaveStageBackground } from '@/components/gamification/plasma-wave-stage-background';
+import { ColorBendsStageBackground } from '@/components/gamification/color-bends-stage-background';
+import { ParticlesStageBackground } from '@/components/gamification/particles-stage-background';
+import { EvilEyeStageBackground } from '@/components/gamification/evil-eye-stage-background';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { useAuthStore } from '@/lib/store/auth';
@@ -1307,44 +1311,13 @@ export function Live2DCompanionHub() {
     showcaseMotionPacks.filter((pack) => showcaseLevel >= pack.requiredLevel).length +
     showcaseStageSkins.filter((skin) => showcaseLevel >= skin.requiredLevel).length +
     showcaseNotificationStyles.filter((style) => showcaseLevel >= style.requiredLevel).length;
-  const showcasePendingUnlocks = [
-    ...showcaseVoicePacks
-      .filter((pack) => showcaseLevel < pack.requiredLevel)
-      .map((pack) => ({
-        id: `voice-${pack.id}`,
-        category: '语音包',
-        label: pack.label,
-        requiredLevel: pack.requiredLevel,
-        description: pack.description,
-      })),
-    ...showcaseMotionPacks
-      .filter((pack) => showcaseLevel < pack.requiredLevel)
-      .map((pack) => ({
-        id: `motion-${pack.id}`,
-        category: '动作',
-        label: pack.label,
-        requiredLevel: pack.requiredLevel,
-        description: pack.description,
-      })),
-    ...showcaseStageSkins
-      .filter((skin) => showcaseLevel < skin.requiredLevel)
-      .map((skin) => ({
-        id: `stage-background-${skin.id}`,
-        category: '舞台背景',
-        label: skin.label,
-        requiredLevel: skin.requiredLevel,
-        description: skin.description,
-      })),
-    ...showcaseNotificationStyles
-      .filter((style) => showcaseLevel < style.requiredLevel)
-      .map((style) => ({
-        id: `notification-style-${style.id}`,
-        category: '通知样式',
-        label: style.label,
-        requiredLevel: style.requiredLevel,
-        description: style.description,
-      })),
-  ].sort((a, b) => a.requiredLevel - b.requiredLevel);
+  const showcaseTrait = showcaseModelId ? LIVE2D_CHARACTER_TRAITS[showcaseModelId] : null;
+  const showcaseNotificationBonusTier = showcaseTrait
+    ? resolveBonusTier(showcaseTrait.notificationBonuses, showcaseLevel)
+    : null;
+  const showcaseSignInBonusTier = showcaseTrait
+    ? resolveBonusTier(showcaseTrait.signInBonuses, showcaseLevel)
+    : null;
   const selectedStageSkin =
     showcaseStageSkins.find(
       (skin) => skin.id === selectedStageSkinByCharacter[showcaseModelId ?? ''],
@@ -1525,6 +1498,67 @@ export function Live2DCompanionHub() {
                       colorSpeed={1}
                       enableMouseInteraction
                       mouseInfluence={0.25}
+                    />
+                  ) : null}
+                  {showcaseModelId === 'mao' && selectedStageSkin?.id === 'mao-pop' ? (
+                    <ParticlesStageBackground
+                      className="absolute inset-0 z-0 opacity-65"
+                      particleColors={['#ffffff']}
+                      particleCount={200}
+                      particleSpread={10}
+                      speed={0.1}
+                      particleBaseSize={100}
+                      moveParticlesOnHover
+                      alphaParticles={false}
+                      disableRotation={false}
+                      pixelRatio={1}
+                    />
+                  ) : null}
+                  {showcaseModelId === 'mao' && selectedStageSkin?.id === 'mao-spark' ? (
+                    <EvilEyeStageBackground
+                      className="absolute inset-0 z-0 opacity-75"
+                      eyeColor="#FF6F37"
+                      intensity={1.5}
+                      pupilSize={0.6}
+                      irisWidth={0.25}
+                      glowIntensity={0.35}
+                      scale={0.8}
+                      noiseScale={1}
+                      pupilFollow={1}
+                      flameSpeed={1}
+                      backgroundColor="#120F17"
+                    />
+                  ) : null}
+                  {showcaseModelId === 'rice' && selectedStageSkin?.id === 'rice-warm' ? (
+                    <ColorBendsStageBackground
+                      className="absolute inset-0 z-0 opacity-70"
+                      colors={['#ff5c7a', '#8a5cff', '#00ffd1']}
+                      rotation={90}
+                      speed={0.2}
+                      scale={1}
+                      frequency={1}
+                      warpStrength={1}
+                      mouseInfluence={1}
+                      noise={0.15}
+                      parallax={0.5}
+                      iterations={1}
+                      intensity={1.5}
+                      bandWidth={6}
+                      transparent
+                      autoRotate={0}
+                    />
+                  ) : null}
+                  {showcaseModelId === 'rice' && selectedStageSkin?.id === 'rice-dusk' ? (
+                    <PlasmaWaveStageBackground
+                      className="pointer-events-none absolute inset-0 z-0 opacity-70"
+                      colors={['#A855F7', '#06B6D4']}
+                      speed1={0.05}
+                      speed2={0.05}
+                      focalLength={0.8}
+                      bend1={1}
+                      bend2={0.5}
+                      dir2={1}
+                      rotationDeg={0}
                     />
                   ) : null}
 
@@ -1751,36 +1785,37 @@ export function Live2DCompanionHub() {
                                     {`已解锁 ${showcaseUnlockedCount}/${showcaseUnlockTotal}`}
                                   </p>
                                 </div>
-                                {showcasePendingUnlocks.length > 0 ? (
-                                  showcasePendingUnlocks.map((item) => (
-                                    <div
-                                      key={item.id}
-                                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 opacity-80"
-                                    >
-                                      <div className="flex items-center justify-between gap-2">
-                                        <span className="text-sm font-medium text-white">
-                                          {item.label}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
-                                          <Lock className="size-3" />
-                                          Lv{item.requiredLevel}
-                                        </span>
-                                      </div>
-                                      <p className="mt-1 text-[11px] text-slate-300/70">
-                                        {item.category}
-                                      </p>
-                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                        {item.description}
-                                      </p>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="rounded-2xl border border-emerald-200/24 bg-emerald-300/10 px-3 py-2.5">
-                                    <p className="text-xs text-emerald-100">
-                                      当前导师已解锁全部内容
-                                    </p>
-                                  </div>
-                                )}
+                                <div className="rounded-2xl border border-emerald-200/24 bg-emerald-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-emerald-100/80">通知收益</p>
+                                  <p className="mt-1 text-sm font-semibold text-white">
+                                    {showcaseNotificationBonusTier?.current?.label ?? '当前等级暂无额外通知加成'}
+                                  </p>
+                                  <p className="mt-1 text-[11px] text-emerald-100/75">
+                                    {showcaseNotificationBonusTier?.next
+                                      ? `下一档 Lv${showcaseNotificationBonusTier.next.requiredLevel}：${showcaseNotificationBonusTier.next.label}`
+                                      : '已达到该导师通知收益的最高档位'}
+                                  </p>
+                                </div>
+                                <div className="rounded-2xl border border-fuchsia-200/24 bg-fuchsia-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-fuchsia-100/80">签到收益</p>
+                                  <p className="mt-1 text-sm font-semibold text-white">
+                                    {showcaseSignInBonusTier?.current?.label ?? '当前等级暂无额外签到加成'}
+                                  </p>
+                                  <p className="mt-1 text-[11px] text-fuchsia-100/75">
+                                    {showcaseSignInBonusTier?.next
+                                      ? `下一档 Lv${showcaseSignInBonusTier.next.requiredLevel}：${showcaseSignInBonusTier.next.label}`
+                                      : '已达到该导师签到收益的最高档位'}
+                                  </p>
+                                </div>
+                                <div className="rounded-2xl border border-amber-200/24 bg-amber-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-amber-100/80">满级礼赠</p>
+                                  <p className="mt-1 text-sm font-semibold text-white">
+                                    {showcaseTrait?.maxAffinityGift ?? '该导师暂无满级礼赠配置'}
+                                  </p>
+                                  <p className="mt-1 text-[11px] text-amber-100/75">
+                                    达到亲密度上限后可领取专属主题奖励
+                                  </p>
+                                </div>
                               </>
                             ) : null}
 
