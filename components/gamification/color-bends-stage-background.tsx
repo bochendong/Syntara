@@ -346,13 +346,8 @@ export function ColorBendsStageBackground({
     <div
       ref={containerRef}
       className={className}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        ...style,
-      }}
+      // 不设置 position，以便父级传入的 absolute / inset-0 生效（通知条、舞台全幅）
+      style={{ width: '100%', height: '100%', minHeight: '100%', overflow: 'hidden', ...style }}
     />
   );
 }

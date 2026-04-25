@@ -1,6 +1,6 @@
 import type { AppNotification } from '@/lib/notifications/types';
 
-type NotificationThemePalette = {
+export type NotificationCardThemePalette = {
   topLineClass: string;
   glowClass: string;
   eyebrowClass: string;
@@ -8,58 +8,87 @@ type NotificationThemePalette = {
   amountChipClass: string;
 };
 
-const GREEN_THEME: NotificationThemePalette = {
-  topLineClass: 'from-emerald-400/0 via-emerald-400/90 to-teal-300/0',
+/** 暗色底上偏亮的青蓝系，避免纯绿在 #000 附近发闷、发灰。 */
+const GREEN_THEME: NotificationCardThemePalette = {
+  topLineClass: 'from-cyan-200/0 via-cyan-300/95 to-sky-300/0',
   glowClass:
-    'bg-[radial-gradient(circle_at_top_left,rgba(74,222,128,0.22),transparent_48%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.2),transparent_44%)]',
-  eyebrowClass: 'text-emerald-700 dark:text-emerald-200',
+    'bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.3),transparent_48%),radial-gradient(circle_at_top_right,rgba(125,211,252,0.26),transparent_44%)]',
+  eyebrowClass: 'text-cyan-100',
   amountPrimaryClass:
-    'bg-emerald-500/14 text-emerald-700 dark:bg-emerald-400/16 dark:text-emerald-100',
-  amountChipClass:
-    'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/12 dark:text-emerald-200',
+    'border border-cyan-200/30 bg-cyan-300/18 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,0.24)]',
+  amountChipClass: 'border border-cyan-200/20 bg-cyan-300/12 text-cyan-100',
 };
 
-const BLUE_THEME: NotificationThemePalette = {
+const BLUE_THEME: NotificationCardThemePalette = {
   topLineClass: 'from-sky-400/0 via-sky-400/90 to-cyan-300/0',
   glowClass:
     'bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.2),transparent_48%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.2),transparent_44%)]',
-  eyebrowClass: 'text-sky-700 dark:text-sky-200',
-  amountPrimaryClass: 'bg-sky-500/14 text-sky-700 dark:bg-sky-400/16 dark:text-sky-100',
-  amountChipClass: 'bg-sky-500/12 text-sky-700 dark:bg-sky-400/12 dark:text-sky-200',
+  eyebrowClass: 'text-sky-100',
+  amountPrimaryClass:
+    'border border-sky-200/30 bg-sky-300/18 text-sky-50 shadow-[0_0_22px_rgba(56,189,248,0.22)]',
+  amountChipClass: 'border border-sky-200/20 bg-sky-300/12 text-sky-100',
 };
 
-const YELLOW_THEME: NotificationThemePalette = {
+const YELLOW_THEME: NotificationCardThemePalette = {
   topLineClass: 'from-amber-400/0 via-amber-400/90 to-yellow-300/0',
   glowClass:
     'bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.2),transparent_48%),radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_44%)]',
-  eyebrowClass: 'text-amber-700 dark:text-amber-200',
-  amountPrimaryClass: 'bg-amber-500/14 text-amber-700 dark:bg-amber-400/16 dark:text-amber-100',
-  amountChipClass: 'bg-amber-500/12 text-amber-700 dark:bg-amber-400/12 dark:text-amber-200',
+  eyebrowClass: 'text-amber-100',
+  amountPrimaryClass:
+    'border border-amber-200/35 bg-amber-300/18 text-amber-50 shadow-[0_0_22px_rgba(251,191,36,0.2)]',
+  amountChipClass: 'border border-amber-200/25 bg-amber-300/12 text-amber-100',
 };
 
-const PURPLE_THEME: NotificationThemePalette = {
+const PURPLE_THEME: NotificationCardThemePalette = {
   topLineClass: 'from-violet-400/0 via-violet-400/90 to-indigo-300/0',
   glowClass:
     'bg-[radial-gradient(circle_at_top_left,rgba(167,139,250,0.22),transparent_48%),radial-gradient(circle_at_top_right,rgba(129,140,248,0.2),transparent_44%)]',
-  eyebrowClass: 'text-violet-700 dark:text-violet-200',
-  amountPrimaryClass: 'bg-violet-500/14 text-violet-700 dark:bg-violet-400/16 dark:text-violet-100',
-  amountChipClass: 'bg-violet-500/12 text-violet-700 dark:bg-violet-400/12 dark:text-violet-200',
+  eyebrowClass: 'text-violet-100',
+  amountPrimaryClass:
+    'border border-violet-200/30 bg-violet-300/18 text-violet-50 shadow-[0_0_22px_rgba(167,139,250,0.22)]',
+  amountChipClass: 'border border-violet-200/22 bg-violet-300/12 text-violet-100',
 };
 
-const PINK_THEME: NotificationThemePalette = {
+const PINK_THEME: NotificationCardThemePalette = {
   topLineClass: 'from-fuchsia-400/0 via-fuchsia-400/90 to-pink-300/0',
   glowClass:
     'bg-[radial-gradient(circle_at_top_left,rgba(232,121,249,0.22),transparent_48%),radial-gradient(circle_at_top_right,rgba(244,114,182,0.2),transparent_44%)]',
-  eyebrowClass: 'text-fuchsia-700 dark:text-fuchsia-200',
+  eyebrowClass: 'text-fuchsia-100',
   amountPrimaryClass:
-    'bg-fuchsia-500/14 text-fuchsia-700 dark:bg-fuchsia-400/16 dark:text-fuchsia-100',
-  amountChipClass:
-    'bg-fuchsia-500/12 text-fuchsia-700 dark:bg-fuchsia-400/12 dark:text-fuchsia-200',
+    'border border-fuchsia-200/30 bg-fuchsia-300/18 text-fuchsia-50 shadow-[0_0_22px_rgba(232,121,249,0.22)]',
+  amountChipClass: 'border border-fuchsia-200/22 bg-fuchsia-300/12 text-fuchsia-100',
 };
 
-export function getNotificationCardTheme(
+export const NOTIFICATION_STYLE_IDS = ['green', 'blue', 'yellow', 'purple', 'pink'] as const;
+export type NotificationStyleId = (typeof NOTIFICATION_STYLE_IDS)[number];
+
+export type NotificationCardStyleChoice = 'auto' | NotificationStyleId;
+
+const PALETTE_BY_ID: Record<NotificationStyleId, NotificationCardThemePalette> = {
+  green: GREEN_THEME,
+  blue: BLUE_THEME,
+  yellow: YELLOW_THEME,
+  purple: PURPLE_THEME,
+  pink: PINK_THEME,
+};
+
+export const NOTIFICATION_STYLE_PRESET_LIST: { id: NotificationStyleId; label: string }[] = [
+  { id: 'green', label: '青绿' },
+  { id: 'blue', label: '天蓝' },
+  { id: 'yellow', label: '琥珀' },
+  { id: 'purple', label: '藤紫' },
+  { id: 'pink', label: '品红' },
+];
+
+export function getNotificationStylePaletteById(
+  id: NotificationStyleId,
+): NotificationCardThemePalette {
+  return PALETTE_BY_ID[id];
+}
+
+function resolveCardThemeFromItem(
   item: Pick<AppNotification, 'sourceKind' | 'tone'> | null | undefined,
-): NotificationThemePalette {
+): NotificationCardThemePalette {
   if (!item) return GREEN_THEME;
 
   switch (item.sourceKind) {
@@ -84,4 +113,17 @@ export function getNotificationCardTheme(
     default:
       return item.tone === 'negative' ? BLUE_THEME : GREEN_THEME;
   }
+}
+
+/**
+ * 全局通知条配色。`styleChoice` 为 `auto` 时随通知 `sourceKind` 变化；否则整卡统一为所选主色。
+ */
+export function getNotificationCardTheme(
+  item: Pick<AppNotification, 'sourceKind' | 'tone'> | null | undefined,
+  styleChoice: NotificationCardStyleChoice = 'auto',
+): NotificationCardThemePalette {
+  if (styleChoice !== 'auto') {
+    return PALETTE_BY_ID[styleChoice];
+  }
+  return resolveCardThemeFromItem(item);
 }

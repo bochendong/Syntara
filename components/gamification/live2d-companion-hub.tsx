@@ -32,6 +32,7 @@ import { ColorBendsStageBackground } from '@/components/gamification/color-bends
 import { ParticlesStageBackground } from '@/components/gamification/particles-stage-background';
 import { EvilEyeStageBackground } from '@/components/gamification/evil-eye-stage-background';
 import { useSettingsStore } from '@/lib/store/settings';
+import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { useAuthStore } from '@/lib/store/auth';
 import { backendJson } from '@/lib/utils/backend-api';
@@ -126,7 +127,6 @@ const LIVE2D_CHARACTER_TRAITS: Record<
 
 const COMPANION_GIFT_CLAIM_STORAGE_KEY = 'companion-gift-claim-status';
 const COMPANION_STAGE_SKIN_STORAGE_KEY = 'companion-stage-skin-status';
-const COMPANION_NOTIFICATION_STYLE_STORAGE_KEY = 'companion-notification-style-status';
 const LIVE2D_POSTER_BY_ID: Partial<Record<Live2DPresenterModelId, string>> = {
   haru: '/liv2d_poster/haru-avator.png',
   hiyori: '/liv2d_poster/hiyori-avator.png',
@@ -147,8 +147,7 @@ type ShowcasePanelId =
   | 'voice'
   | 'motion'
   | 'skin'
-  | 'stage-background'
-  | 'notification-style';
+  | 'stage-background';
 
 type CharacterVoicePack = {
   id: string;
@@ -176,15 +175,6 @@ type CharacterStageSkin = {
   requiredLevel: number;
   stageClass: string;
   glowClass: string;
-};
-
-type CharacterNotificationStyle = {
-  id: string;
-  label: string;
-  description: string;
-  requiredLevel: number;
-  previewClass: string;
-  chipClass: string;
 };
 
 const NOTIFICATION_ACTIONS_BY_MODEL: Record<Live2DPresenterModelId, NotificationActionOption[]> = {
@@ -738,100 +728,6 @@ const CHARACTER_STAGE_SKINS: Record<Live2DPresenterModelId, CharacterStageSkin[]
   ],
 };
 
-const CHARACTER_NOTIFICATION_STYLES: Record<Live2DPresenterModelId, CharacterNotificationStyle[]> =
-  {
-    haru: [
-      {
-        id: 'haru-breeze',
-        label: '晴空蓝',
-        description: '轻快学习提醒样式。',
-        requiredLevel: 1,
-        previewClass: 'border-sky-200/60 bg-sky-50/90 text-sky-950',
-        chipClass: 'bg-sky-500 text-white',
-      },
-      {
-        id: 'haru-star',
-        label: '星轨蓝',
-        description: '高亲密度专属动效风格。',
-        requiredLevel: 10,
-        previewClass: 'border-indigo-200/60 bg-indigo-50/90 text-indigo-950',
-        chipClass: 'bg-indigo-500 text-white',
-      },
-    ],
-    hiyori: [
-      {
-        id: 'hiyori-soft',
-        label: '月光紫',
-        description: '柔和复习提醒样式。',
-        requiredLevel: 1,
-        previewClass: 'border-violet-200/60 bg-violet-50/90 text-violet-950',
-        chipClass: 'bg-violet-500 text-white',
-      },
-      {
-        id: 'hiyori-sakura',
-        label: '樱色信笺',
-        description: '夜间陪学专属通知样式。',
-        requiredLevel: 10,
-        previewClass: 'border-pink-200/60 bg-pink-50/90 text-pink-950',
-        chipClass: 'bg-pink-500 text-white',
-      },
-    ],
-    mark: [
-      {
-        id: 'mark-report',
-        label: '任务简报',
-        description: '理性、紧凑的信息卡样式。',
-        requiredLevel: 1,
-        previewClass: 'border-slate-300/70 bg-slate-50/95 text-slate-950',
-        chipClass: 'bg-slate-900 text-white',
-      },
-      {
-        id: 'mark-tactical',
-        label: '战术蓝图',
-        description: '冲刺任务专属通知样式。',
-        requiredLevel: 10,
-        previewClass: 'border-cyan-200/60 bg-cyan-50/90 text-cyan-950',
-        chipClass: 'bg-cyan-600 text-white',
-      },
-    ],
-    mao: [
-      {
-        id: 'mao-pop',
-        label: '元气粉',
-        description: '强反馈的活力提醒样式。',
-        requiredLevel: 1,
-        previewClass: 'border-rose-200/60 bg-rose-50/90 text-rose-950',
-        chipClass: 'bg-rose-500 text-white',
-      },
-      {
-        id: 'mao-combo',
-        label: '连击橙',
-        description: '连续完成任务专属样式。',
-        requiredLevel: 10,
-        previewClass: 'border-orange-200/60 bg-orange-50/90 text-orange-950',
-        chipClass: 'bg-orange-500 text-white',
-      },
-    ],
-    rice: [
-      {
-        id: 'rice-warm',
-        label: '暖灯米',
-        description: '温柔陪学通知样式。',
-        requiredLevel: 1,
-        previewClass: 'border-amber-200/60 bg-amber-50/90 text-amber-950',
-        chipClass: 'bg-amber-500 text-white',
-      },
-      {
-        id: 'rice-dusk',
-        label: '晚霞橙',
-        description: '晚间签到专属样式。',
-        requiredLevel: 10,
-        previewClass: 'border-orange-200/60 bg-orange-50/90 text-orange-950',
-        chipClass: 'bg-orange-500 text-white',
-      },
-    ],
-  };
-
 function toLive2DModelId(id: string): Live2DPresenterModelId | null {
   if (id === 'haru' || id === 'hiyori' || id === 'mark' || id === 'mao' || id === 'rice') {
     return id;
@@ -940,6 +836,7 @@ export function Live2DCompanionHub() {
   const activeNotificationUserId = useNotificationStore((s) => s.activeUserId);
   const refreshNotifications = useNotificationStore((s) => s.refreshNotifications);
   const live2dPresenterModelId = useSettingsStore((s) => s.live2dPresenterModelId);
+  const notificationCardStyle = useUserProfileStore((s) => s.notificationCardStyle);
   const notificationCompanionId = useSettingsStore((s) => s.notificationCompanionId);
   const checkInCompanionId = useSettingsStore((s) => s.checkInCompanionId);
   const setLive2DPresenterModelId = useSettingsStore((s) => s.setLive2DPresenterModelId);
@@ -973,9 +870,6 @@ export function Live2DCompanionHub() {
   const [selectedStageSkinByCharacter, setSelectedStageSkinByCharacter] = useState<
     Record<string, string>
   >(() => readStringRecordFromStorage(COMPANION_STAGE_SKIN_STORAGE_KEY));
-  const [selectedNotificationStyleByCharacter, setSelectedNotificationStyleByCharacter] = useState<
-    Record<string, string>
-  >(() => readStringRecordFromStorage(COMPANION_NOTIFICATION_STYLE_STORAGE_KEY));
 
   const handleEquip = async (characterId: string) => {
     try {
@@ -1094,7 +988,7 @@ export function Live2DCompanionHub() {
   const previewCompanionCopy = previewNotification
     ? buildNotificationCompanionCopy(previewNotification)
     : { eyebrow: '通知预览', line: '任务完成、连胜提醒、签到提示将使用当前讲师语气。' };
-  const previewCardTheme = getNotificationCardTheme(previewNotification);
+  const previewCardTheme = getNotificationCardTheme(previewNotification, notificationCardStyle);
   const previewCompanionModelId = resolveNotificationCompanionModelId(
     previewNotification,
     notificationCompanionId,
@@ -1298,19 +1192,14 @@ export function Live2DCompanionHub() {
   const showcaseVoicePacks = showcaseModelId ? CHARACTER_VOICE_PACKS[showcaseModelId] : [];
   const showcaseMotionPacks = showcaseModelId ? buildCharacterMotionPacks(showcaseModelId) : [];
   const showcaseStageSkins = showcaseModelId ? CHARACTER_STAGE_SKINS[showcaseModelId] : [];
-  const showcaseNotificationStyles = showcaseModelId
-    ? CHARACTER_NOTIFICATION_STYLES[showcaseModelId]
-    : [];
   const showcaseUnlockTotal =
     showcaseVoicePacks.length +
     showcaseMotionPacks.length +
-    showcaseStageSkins.length +
-    showcaseNotificationStyles.length;
+    showcaseStageSkins.length;
   const showcaseUnlockedCount =
     showcaseVoicePacks.filter((pack) => showcaseLevel >= pack.requiredLevel).length +
     showcaseMotionPacks.filter((pack) => showcaseLevel >= pack.requiredLevel).length +
-    showcaseStageSkins.filter((skin) => showcaseLevel >= skin.requiredLevel).length +
-    showcaseNotificationStyles.filter((style) => showcaseLevel >= style.requiredLevel).length;
+    showcaseStageSkins.filter((skin) => showcaseLevel >= skin.requiredLevel).length;
   const showcaseTrait = showcaseModelId ? LIVE2D_CHARACTER_TRAITS[showcaseModelId] : null;
   const showcaseNotificationBonusTier = showcaseTrait
     ? resolveBonusTier(showcaseTrait.notificationBonuses, showcaseLevel)
@@ -1324,13 +1213,6 @@ export function Live2DCompanionHub() {
     ) ??
     showcaseStageSkins[0] ??
     null;
-  const selectedNotificationStyle =
-    showcaseNotificationStyles.find(
-      (style) => style.id === selectedNotificationStyleByCharacter[showcaseModelId ?? ''],
-    ) ??
-    showcaseNotificationStyles[0] ??
-    null;
-
   const handlePreviewVoicePack = (pack: CharacterVoicePack) => {
     if (showcaseLevel < pack.requiredLevel) {
       toast.info(`亲密度 Lv${pack.requiredLevel} 解锁后可试听`);
@@ -1371,18 +1253,6 @@ export function Live2DCompanionHub() {
     setSelectedStageSkinByCharacter(next);
     writeStringRecordToStorage(COMPANION_STAGE_SKIN_STORAGE_KEY, next);
     toast.success(`已切换舞台背景：${skin.label}`);
-  };
-
-  const handleSelectNotificationStyle = (style: CharacterNotificationStyle) => {
-    if (!showcaseModelId) return;
-    if (showcaseLevel < style.requiredLevel) {
-      toast.info(`亲密度 Lv${style.requiredLevel} 解锁后可使用该通知样式`);
-      return;
-    }
-    const next = { ...selectedNotificationStyleByCharacter, [showcaseModelId]: style.id };
-    setSelectedNotificationStyleByCharacter(next);
-    writeStringRecordToStorage(COMPANION_NOTIFICATION_STYLE_STORAGE_KEY, next);
-    toast.success(`已选择通知样式：${style.label}`);
   };
 
   return (
@@ -1532,7 +1402,7 @@ export function Live2DCompanionHub() {
                   {showcaseModelId === 'rice' && selectedStageSkin?.id === 'rice-warm' ? (
                     <ColorBendsStageBackground
                       className="absolute inset-0 z-0 opacity-70"
-                      colors={['#ff5c7a', '#8a5cff', '#00ffd1']}
+                      colors={['#ff5c7a', '#8a5cff', '#7dd3fc']}
                       rotation={90}
                       speed={0.2}
                       scale={1}
@@ -1551,7 +1421,7 @@ export function Live2DCompanionHub() {
                   {showcaseModelId === 'rice' && selectedStageSkin?.id === 'rice-dusk' ? (
                     <PlasmaWaveStageBackground
                       className="pointer-events-none absolute inset-0 z-0 opacity-70"
-                      colors={['#A855F7', '#06B6D4']}
+                      colors={['#A855F7', '#38bdf8']}
                       speed1={0.05}
                       speed2={0.05}
                       focalLength={0.8}
@@ -1671,19 +1541,6 @@ export function Live2DCompanionHub() {
                       >
                         <ImageIcon className="size-3.5" />
                         舞台背景
-                      </button>
-                      <button
-                        type="button"
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs shadow-[0_10px_28px_rgba(15,23,42,0.25)] backdrop-blur-xl transition-colors',
-                          showcasePanel === 'notification-style'
-                            ? 'border-sky-200/45 bg-sky-300/18 text-sky-50'
-                            : 'border-white/18 bg-slate-950/34 text-slate-100 hover:bg-slate-900/52',
-                        )}
-                        onClick={() => setShowcasePanel('notification-style')}
-                      >
-                        <Bell className="size-3.5" />
-                        通知样式
                       </button>
                     </div>
                   </div>
@@ -1969,65 +1826,7 @@ export function Live2DCompanionHub() {
                                   );
                                 })
                               : null}
-
-                            {showcasePanel === 'notification-style'
-                              ? showcaseNotificationStyles.map((style) => {
-                                  const unlocked = showcaseLevel >= style.requiredLevel;
-                                  const selected = selectedNotificationStyle?.id === style.id;
-                                  return (
-                                    <button
-                                      key={style.id}
-                                      type="button"
-                                      onClick={() => handleSelectNotificationStyle(style)}
-                                      className={cn(
-                                        'w-full rounded-2xl border px-3 py-2.5 text-left transition-colors',
-                                        selected
-                                          ? 'border-emerald-200/42 bg-emerald-300/14'
-                                          : unlocked
-                                            ? 'border-emerald-200/24 bg-emerald-300/8 hover:bg-emerald-300/14'
-                                            : 'border-white/10 bg-white/5 opacity-72 hover:bg-white/8',
-                                      )}
-                                    >
-                                      <div className="flex items-center justify-between gap-2">
-                                        <span className="text-sm font-medium text-white">
-                                          {style.label}
-                                        </span>
-                                        <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-slate-300/76">
-                                          {selected ? '使用中' : `Lv${style.requiredLevel}`}
-                                        </span>
-                                      </div>
-                                      <p className="mt-1 text-xs leading-5 text-slate-300/74">
-                                        {style.description}
-                                      </p>
-                                    </button>
-                                  );
-                                })
-                              : null}
                           </div>
-
-                          {showcasePanel === 'notification-style' && selectedNotificationStyle ? (
-                            <div
-                              className={cn(
-                                'mt-3 rounded-2xl border p-3 text-left shadow-sm',
-                                selectedNotificationStyle.previewClass,
-                              )}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold">通知预览</span>
-                                <span
-                                  className={cn(
-                                    'rounded-full px-2 py-0.5 text-[10px]',
-                                    selectedNotificationStyle.chipClass,
-                                  )}
-                                >
-                                  {showcaseCharacter.name}
-                                </span>
-                              </div>
-                              <p className="mt-2 text-sm font-medium">
-                                今天的学习奖励已经到账，继续保持这个节奏。
-                              </p>
-                            </div>
-                          ) : null}
                         </div>
                         {!summary?.databaseEnabled ? (
                           <p className="mt-3 text-xs leading-5 text-slate-300/72">

@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { ArrowRight, Heart, Sparkles } from 'lucide-react';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import type { AppNotification } from '@/lib/notifications/types';
 import { buildNotificationCompanionCopy } from '@/lib/notifications/companion-copy';
 import { getNotificationCardTheme } from '@/lib/notifications/card-theme';
+import { NotificationBarStageBackground } from '@/lib/notifications/notification-bar-stage-background';
 import { resolveNotificationCompanionModelId } from '@/lib/notifications/companion-model';
 import { useNotificationStore } from '@/lib/store/notifications';
+import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useSettingsStore } from '@/lib/store/settings';
 import { cn } from '@/lib/utils';
 import {
@@ -47,13 +49,15 @@ function shouldShowCompanion(item: AppNotification): boolean {
 
 function NotificationBannerCard({ item }: { item: AppNotification }) {
   const dismissBanner = useNotificationStore((state) => state.dismissBanner);
+  const notificationBarStageId = useUserProfileStore((s) => s.notificationBarStageId);
+  const notificationCardStyle = useUserProfileStore((s) => s.notificationCardStyle);
   const notificationCompanionId = useSettingsStore((state) => state.notificationCompanionId);
   const checkInCompanionId = useSettingsStore((state) => state.checkInCompanionId);
   const primaryDetail = item.details.find((detail) =>
     ['notebook', 'scene', 'model', 'service', 'reason'].includes(detail.key),
   );
   const companionCopy = buildNotificationCompanionCopy(item);
-  const cardTheme = getNotificationCardTheme(item);
+  const cardTheme = getNotificationCardTheme(item, notificationCardStyle);
   const resolvedCompanionModelId = resolveNotificationCompanionModelId(
     item,
     notificationCompanionId,
@@ -89,71 +93,102 @@ function NotificationBannerCard({ item }: { item: AppNotification }) {
 
   return (
     <div className="pointer-events-auto animate-fade-up">
-      <div className="apple-glass-heavy relative overflow-hidden rounded-[24px] border border-white/50 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] dark:border-white/8 dark:shadow-[0_24px_70px_rgba(0,0,0,0.48)]">
+      <div className="relative overflow-hidden rounded-[24px] border border-white/12 bg-black shadow-[0_24px_70px_rgba(0,0,0,0.45)] dark:border-white/10">
+        <div className="absolute inset-0 z-0 bg-black" aria-hidden />
+        <div className={cn('absolute inset-0 z-[1]', cardTheme.glowClass)} aria-hidden />
+        <NotificationBarStageBackground id={notificationBarStageId} className="min-h-[8rem]" />
         <div
-          className={cn('absolute inset-x-0 top-0 h-px bg-gradient-to-r', cardTheme.topLineClass)}
+          className="absolute inset-0 z-[1] bg-gradient-to-b from-black/15 via-black/20 to-black/40"
+          aria-hidden
         />
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-4 top-3 h-24 rounded-[22px] blur-2xl',
-            cardTheme.glowClass,
+            'absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r',
+            cardTheme.topLineClass,
           )}
         />
-        <div className="relative flex items-start gap-3">
-          <Link href="/notifications" className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'text-[11px] font-semibold uppercase tracking-[0.18em]',
-                  cardTheme.eyebrowClass,
-                )}
-              >
-                {companionCopy.eyebrow}
-              </span>
-              <span className="text-xs text-slate-400 dark:text-slate-500">
-                {formatBannerTime(item.createdAt)}
-              </span>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold shadow-sm',
-                  cardTheme.amountPrimaryClass,
-                )}
-              >
-                {item.amountLabel}
-              </span>
-              {item.showBalance !== false ? (
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  当前余额 {formatBalanceLabel(item)}
+        <div className="relative z-10 flex items-start gap-3 p-4">
+          {formatBannerTime(item.createdAt) ? (
+            <span
+              className="pointer-events-none absolute right-4 top-4 z-20 text-xs text-slate-400/90 tabular-nums [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]"
+              aria-hidden
+            >
+              {formatBannerTime(item.createdAt)}
+            </span>
+          ) : null}
+          <Link
+            href="/notifications"
+            className={cn(
+              'group/banner min-w-0 w-full flex-1',
+              showCompanion ? 'pe-11 sm:pe-0' : 'pe-11',
+            )}
+          >
+            <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className={cn(
+                    'text-[11px] font-semibold uppercase tracking-[0.18em]',
+                    cardTheme.eyebrowClass,
+                  )}
+                >
+                  {companionCopy.eyebrow}
                 </span>
-              ) : null}
+              </div>
+              <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:shrink-0">
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold backdrop-blur-md',
+                    cardTheme.amountPrimaryClass,
+                  )}
+                >
+                  <Sparkles className="size-3.5" strokeWidth={1.9} />
+                  {item.amountLabel}
+                </span>
+                {item.showBalance !== false ? (
+                  <span className="shrink-0 text-xs text-slate-400/90">
+                    当前余额 {formatBalanceLabel(item)}
+                  </span>
+                ) : null}
+              </div>
             </div>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{companionCopy.line}</p>
-            <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-sm text-slate-100/95 [text-shadow:0_1px_12px_rgba(0,0,0,0.65)]">
+              {companionCopy.line}
+            </p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.55)]">
               {item.body}
             </p>
             {primaryDetail ? (
-              <p className="mt-2 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-2 line-clamp-1 text-xs text-slate-400/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
                 {primaryDetail.label}: {primaryDetail.value}
               </p>
             ) : null}
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium',
+                  'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-md',
                   cardTheme.amountChipClass,
                 )}
               >
                 {item.amountLabel}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{item.sourceLabel}</span>
+              <span className="text-xs text-slate-400/90 [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
+                {item.sourceLabel}
+              </span>
               {item.tone === 'positive' ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-300/10 dark:text-amber-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/24 bg-amber-300/14 px-2.5 py-1 text-[11px] font-medium text-amber-100 backdrop-blur-md">
                   <Heart className="size-3" strokeWidth={1.9} />
                   已收下
                 </span>
               ) : null}
+              <span
+                className={cn(
+                  'ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md transition-transform group-hover/banner:translate-x-0.5',
+                  cardTheme.amountPrimaryClass,
+                )}
+              >
+                查看
+                <ArrowRight className="size-3" strokeWidth={2} />
+              </span>
             </div>
           </Link>
 

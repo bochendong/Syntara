@@ -1365,7 +1365,7 @@ function renderLive2dStageEffect(skinId: string | null) {
     return (
       <ColorBendsStageBackground
         className="pointer-events-none absolute inset-0 opacity-70"
-        colors={['#ff5c7a', '#8a5cff', '#00ffd1']}
+        colors={['#ff5c7a', '#8a5cff', '#7dd3fc']}
         rotation={90}
         speed={0.2}
         scale={1}
@@ -1386,7 +1386,7 @@ function renderLive2dStageEffect(skinId: string | null) {
     return (
       <PlasmaWaveStageBackground
         className="pointer-events-none absolute inset-0 opacity-70"
-        colors={['#A855F7', '#06B6D4']}
+        colors={['#A855F7', '#38bdf8']}
         speed1={0.05}
         speed2={0.05}
         focalLength={0.8}

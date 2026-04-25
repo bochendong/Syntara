@@ -95,7 +95,31 @@ function formatPercent(value: number) {
   return `${value.toFixed(value >= 10 ? 0 : 1)}%`;
 }
 
-export function TokenUsageCard() {
+type TokenCardVariant = 'card' | 'tab';
+
+function RefreshTokenButton({
+  loading,
+  onClick,
+}: {
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      onClick={onClick}
+      disabled={loading}
+      className="h-8 gap-1.5 text-xs"
+    >
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+      刷新
+    </Button>
+  );
+}
+
+export function TokenUsageAccountPanel({ variant = 'card' }: { variant?: TokenCardVariant }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [usage, setUsage] = useState<ProfileUsageResponse | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
@@ -131,29 +155,8 @@ export function TokenUsageCard() {
     void loadUsage(1);
   }, [loadUsage]);
 
-  return (
-    <Card className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Token 用量</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            按当前账号统计模型调用、token 变化与实际扣费估算，已含 50% 平台加价
-          </p>
-        </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => void loadUsage(recordsPage)}
-          disabled={usageLoading}
-          className="h-8 gap-1.5 text-xs"
-        >
-          {usageLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-          刷新
-        </Button>
-      </div>
-
-      <div className="mt-4 space-y-3">
+  const body = (
+    <div className={variant === 'card' ? 'mt-4 space-y-3' : 'space-y-3'}>
         {!isLoggedIn ? (
           <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-background/50 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
             登录后可以查看你自己的 token 用量趋势；本地体验模式下如已填写账号，也会按当前用户 ID
@@ -381,6 +384,38 @@ export function TokenUsageCard() {
           </div>
         </div>
       </div>
+  );
+
+  if (variant === 'tab') {
+    return (
+      <>
+        <div className="mb-2 flex flex-col items-end gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <p className="w-full text-left text-xs text-muted-foreground sm:order-first sm:max-w-[28rem]">
+            按当前账号统计模型调用、token 变化与实际扣费估算，已含 50% 平台加价
+          </p>
+          <RefreshTokenButton loading={usageLoading} onClick={() => void loadUsage(recordsPage)} />
+        </div>
+        {body}
+      </>
+    );
+  }
+
+  return (
+    <Card className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Token 用量</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            按当前账号统计模型调用、token 变化与实际扣费估算，已含 50% 平台加价
+          </p>
+        </div>
+        <RefreshTokenButton loading={usageLoading} onClick={() => void loadUsage(recordsPage)} />
+      </div>
+      {body}
     </Card>
   );
+}
+
+export function TokenUsageCard() {
+  return <TokenUsageAccountPanel variant="card" />;
 }

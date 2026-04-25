@@ -132,7 +132,7 @@ export function PlasmaWaveStageBackground(props: PlasmaWaveStageBackgroundProps)
     dir2 = 1,
     bend1 = 1,
     bend2 = 0.5,
-    colors = ['#A855F7', '#06B6D4'],
+    colors = ['#A855F7', '#38bdf8'],
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);

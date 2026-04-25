@@ -47,6 +47,9 @@ interface TalkingAvatarOverlayProps extends TalkingAvatarOverlayState {
 const LIVE2D_CORE_SRC = '/live2d/live2dcubismcore.min.js';
 const LIVE2D_CORE_CDN_FALLBACK_SRC =
   'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js';
+
+/** Rice 模型在画布中 bounding box 偏小，统一略放大以与其它角色观感一致。 */
+const RICE_MODEL_DISPLAY_SCALE = 1.28;
 export type TalkingAvatarSpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
 type MouthPose = {
@@ -322,7 +325,7 @@ export function TalkingAvatarOverlay({
         const h = mount.clientHeight;
         if (w > 0 && h > 0) {
           app.renderer.resize(w, h);
-          fitModelToFrame(model, mount, baseSize, layout, cardFraming);
+          fitModelToFrame(model, mount, baseSize, layout, cardFraming, resolvedModelId);
         }
       };
 
@@ -503,15 +506,18 @@ function fitModelToFrame(
   baseSize: ModelBaseSize,
   layout: 'overlay' | 'sidebar' | 'card',
   cardFraming: 'default' | 'half' | 'stage' = 'default',
+  modelId: Live2DPresenterModelId = 'mark',
 ) {
   const width = mount.clientWidth;
   const height = mount.clientHeight;
   if (!width || !height) return;
+  const riceBoost = modelId === 'rice' ? RICE_MODEL_DISPLAY_SCALE : 1;
 
   if (layout === 'card') {
     if (cardFraming === 'stage') {
       model.anchor.set(0.5, 0.5);
-      const scale = Math.min((width * 0.9) / baseSize.width, (height * 0.9) / baseSize.height);
+      const scale =
+        Math.min((width * 0.9) / baseSize.width, (height * 0.9) / baseSize.height) * riceBoost;
       model.scale.set(scale);
       model.position.set(width * 0.5, height * 0.5);
       return;
@@ -523,7 +529,9 @@ function fitModelToFrame(
       Math.min(
         (width * (isHalf ? 1.2 : 0.96)) / baseSize.width,
         (height * (isHalf ? 1.48 : 1.18)) / baseSize.height,
-      ) * (isHalf ? 1.26 : 1.04);
+      ) *
+      (isHalf ? 1.26 : 1.04) *
+      riceBoost;
     model.scale.set(scale);
     model.position.set(width * 0.5, height * (isHalf ? 0.15 : 0.04));
     return;
@@ -532,14 +540,15 @@ function fitModelToFrame(
   if (layout === 'sidebar') {
     model.anchor.set(0.5, 0.5);
     const scale =
-      Math.min((width * 1.02) / baseSize.width, (height * 0.84) / baseSize.height) * 0.98;
+      Math.min((width * 1.02) / baseSize.width, (height * 0.84) / baseSize.height) * 0.98 * riceBoost;
     model.scale.set(scale);
     model.position.set(width * 0.5, height * 0.5);
     return;
   }
 
   model.anchor.set(0.5, 0);
-  const scale = Math.min((width * 1.04) / baseSize.width, (height * 1.12) / baseSize.height) * 1.02;
+  const scale =
+    Math.min((width * 1.04) / baseSize.width, (height * 1.12) / baseSize.height) * 1.02 * riceBoost;
   model.scale.set(scale);
   model.position.set(width * 0.52, -height * 0.02);
 }

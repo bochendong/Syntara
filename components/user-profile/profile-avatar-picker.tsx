@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import { useGamificationSummary } from '@/lib/hooks/use-gamification-summary';
@@ -8,6 +10,9 @@ import { useGamificationSummary } from '@/lib/hooks/use-gamification-summary';
 function isCustomAvatar(avatar: string) {
   return avatar.startsWith('data:');
 }
+
+/** 大卡片：桌面端 10 列×4 行=40 格/页；窄屏为 5 列 */
+const AVATARS_PER_PAGE_LG = 40;
 
 type ProfileAvatarPickerProps = {
   /** 头像圆尺寸，默认适合卡片内 */
@@ -20,9 +25,18 @@ export function ProfileAvatarPicker({ size = 'md', className }: ProfileAvatarPic
   const setAvatar = useUserProfileStore((s) => s.setAvatar);
   const { summary } = useGamificationSummary(true);
   const [page, setPage] = useState(0);
+  /** lg：与网格选择同步，点「应用」后再写入 store */
+  const [draft, setDraft] = useState(avatar);
 
-  const ring = size === 'lg' ? 'size-24' : 'size-11';
-  const chip = size === 'lg' ? 'size-16' : 'size-8';
+  const isLg = size === 'lg';
+  useEffect(() => {
+    if (isLg) setDraft(avatar);
+  }, [avatar, isLg]);
+
+  const ring = size === 'lg' ? 'size-20' : 'size-11';
+  /** lg：格内不固定 px，避免 10 列+窄容器时比列宽大导致重叠；最大 4.5rem */
+  const chipLg = 'min-w-0 w-full max-w-[4.5rem] aspect-square shrink-0';
+  const chipMd = 'size-8';
   const unlockedAvatarOptions =
     summary?.databaseEnabled && summary.avatarInventory.items.length > 0
       ? summary.avatarInventory.items.filter((item) => item.owned).map((item) => item.url)
@@ -31,53 +45,86 @@ export function ProfileAvatarPicker({ size = 'md', className }: ProfileAvatarPic
     !isCustomAvatar(avatar) && avatar && !unlockedAvatarOptions.includes(avatar)
       ? [avatar, ...unlockedAvatarOptions]
       : unlockedAvatarOptions;
-  const avatarsPerPage = size === 'lg' ? 15 : 9;
+  const avatarsPerPage = size === 'lg' ? AVATARS_PER_PAGE_LG : 9;
   const totalPages = Math.max(1, Math.ceil(availableAvatarOptions.length / avatarsPerPage));
   const safePage = Math.min(page, totalPages - 1);
   const pageStart = safePage * avatarsPerPage;
   const visibleAvatars = availableAvatarOptions.slice(pageStart, pageStart + avatarsPerPage);
+  const previewSrc = isLg ? draft : avatar;
+  const selection = isLg ? draft : avatar;
 
   return (
     <div className={cn('flex min-w-0 flex-col gap-3', className)}>
-      <div className="flex flex-col items-center gap-2">
-        <div
-          className={cn(
-            'shrink-0 rounded-full bg-gray-50 dark:bg-gray-800 overflow-hidden ring-2 ring-violet-300/50 dark:ring-violet-600/40',
-            ring,
-          )}
-          aria-hidden
-        >
-          <img src={avatar} alt="" className="size-full object-cover" />
+      {isLg ? (
+        <div className="flex w-full min-w-0 flex-col items-center">
+          <div
+            className={cn(
+              'shrink-0 rounded-full bg-gray-50 dark:bg-gray-800 overflow-hidden ring-2 ring-violet-300/50 dark:ring-violet-600/40',
+              ring,
+            )}
+            role="img"
+            aria-label="当前头像"
+          >
+            <img src={previewSrc} alt="" className="size-full object-cover" />
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">当前头像</p>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className={cn(
+              'shrink-0 rounded-full bg-gray-50 dark:bg-gray-800 overflow-hidden ring-2 ring-violet-300/50 dark:ring-violet-600/40',
+              ring,
+            )}
+            aria-hidden
+          >
+            <img src={avatar} alt="" className="size-full object-cover" />
+          </div>
+          <p className="text-xs text-muted-foreground">当前头像</p>
+        </div>
+      )}
+
+      {isLg ? <Separator className="my-0.5 bg-border/80" /> : null}
 
       <div
         className={cn(
-          'flex min-w-0 flex-wrap items-center gap-1.5',
-          size === 'lg' ? 'min-h-[12rem] gap-2.5' : undefined,
+          'min-w-0',
+          size === 'lg'
+            ? 'grid w-full min-w-0 auto-rows-min grid-cols-5 content-start items-center justify-items-stretch gap-3 sm:min-h-80 sm:grid-cols-10 sm:gap-4'
+            : 'flex flex-wrap items-center gap-1.5',
         )}
       >
         {visibleAvatars.map((url) => (
           <button
             key={url}
             type="button"
-            onClick={() => setAvatar(url)}
+            onClick={() => (isLg ? setDraft(url) : setAvatar(url))}
             className={cn(
               'rounded-full overflow-hidden bg-gray-50 dark:bg-gray-800 cursor-pointer transition-all duration-150',
-              'hover:scale-110 active:scale-95',
-              chip,
-              avatar === url
-                ? 'ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-1 ring-offset-background'
+              size === 'lg' ? ['justify-self-center', chipLg, 'active:brightness-95'] : [chipMd, 'hover:scale-110 active:scale-95'],
+              selection === url
+                ? 'ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-1 ring-offset-background z-[1]'
                 : 'hover:ring-1 hover:ring-muted-foreground/30',
             )}
             aria-label="选择此预设头像"
-            aria-pressed={avatar === url}
+            aria-pressed={selection === url}
           >
-            <img src={url} alt="" className="size-full" />
+            <img src={url} alt="" className="size-full object-cover" />
           </button>
         ))}
       </div>
+      {isLg ? (
+        <div className="flex w-full min-w-0 justify-end">
+          <Button
+            type="button"
+            size="sm"
+            className="shrink-0"
+            disabled={draft === avatar}
+            onClick={() => setAvatar(draft)}
+          >
+            应用
+          </Button>
+        </div>
+      ) : null}
       {totalPages > 1 ? (
         <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
           <button

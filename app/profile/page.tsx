@@ -1,5 +1,4 @@
-import { CreditsCard, ProfileHero, TokenUsageCard, UserProfileCard } from '@/components/user-profile';
-import { GamificationSummaryCard } from '@/components/gamification/gamification-summary-card';
+import { ProfileHero, ProfileUsageCard } from '@/components/user-profile';
 
 export default function ProfilePage() {
   return (
@@ -13,10 +12,7 @@ export default function ProfilePage() {
         <ProfileHero />
 
         <section className="flex min-w-0 flex-col gap-6">
-          <GamificationSummaryCard />
-          <UserProfileCard showAvatar={false} />
-          <CreditsCard />
-          <TokenUsageCard />
+          <ProfileUsageCard />
         </section>
       </main>
     </div>

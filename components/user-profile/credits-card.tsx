@@ -77,7 +77,31 @@ function formatAccountValue(
   }
 }
 
-export function CreditsCard() {
+type CreditsCardVariant = 'card' | 'tab';
+
+function RefreshCreditsButton({
+  loading,
+  onClick,
+}: {
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      onClick={onClick}
+      disabled={loading}
+      className="h-8 gap-1.5 text-xs"
+    >
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+      刷新
+    </Button>
+  );
+}
+
+export function CreditsAccountPanel({ variant = 'card' }: { variant?: CreditsCardVariant }) {
   const [data, setData] = useState<CreditsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,24 +129,8 @@ export function CreditsCard() {
     void loadCredits(1);
   }, [loadCredits]);
 
-  return (
-    <Card className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
-        <h2 className="text-base font-semibold text-foreground">Credits 余额</h2>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => void loadCredits(txPage)}
-          disabled={loading}
-          className="h-8 gap-1.5 text-xs"
-        >
-          {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-          刷新
-        </Button>
-      </div>
-
-      <div className="mt-4 space-y-3">
+  const body = (
+    <div className={variant === 'card' ? 'mt-4 space-y-3' : 'space-y-3'}>
         {error ? (
           <div className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3 py-3 text-xs leading-relaxed text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
             {error}
@@ -260,6 +268,30 @@ export function CreditsCard() {
           </div>
         </div>
       </div>
+  );
+
+  if (variant === 'tab') {
+    return (
+      <>
+        <div className="mb-2 flex justify-end">
+          <RefreshCreditsButton loading={loading} onClick={() => void loadCredits(txPage)} />
+        </div>
+        {body}
+      </>
+    );
+  }
+
+  return (
+    <Card className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
+        <h2 className="text-base font-semibold text-foreground">Credits 余额</h2>
+        <RefreshCreditsButton loading={loading} onClick={() => void loadCredits(txPage)} />
+      </div>
+      {body}
     </Card>
   );
+}
+
+export function CreditsCard() {
+  return <CreditsAccountPanel variant="card" />;
 }
