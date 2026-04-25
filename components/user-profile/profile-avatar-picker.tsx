@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import { useGamificationSummary } from '@/lib/hooks/use-gamification-summary';
+import { UserAvatarWithFrame } from './user-avatar-with-frame';
 
 function isCustomAvatar(avatar: string) {
   return avatar.startsWith('data:');
@@ -23,6 +24,7 @@ type ProfileAvatarPickerProps = {
 export function ProfileAvatarPicker({ size = 'md', className }: ProfileAvatarPickerProps) {
   const avatar = useUserProfileStore((s) => s.avatar);
   const setAvatar = useUserProfileStore((s) => s.setAvatar);
+  const avatarFrameId = useUserProfileStore((s) => s.avatarFrameId);
   const { summary } = useGamificationSummary(true);
   const [page, setPage] = useState(0);
   /** lg：与网格选择同步，点「应用」后再写入 store */
@@ -57,28 +59,24 @@ export function ProfileAvatarPicker({ size = 'md', className }: ProfileAvatarPic
     <div className={cn('flex min-w-0 flex-col gap-3', className)}>
       {isLg ? (
         <div className="flex w-full min-w-0 flex-col items-center">
-          <div
-            className={cn(
-              'shrink-0 rounded-full bg-gray-50 dark:bg-gray-800 overflow-hidden ring-2 ring-violet-300/50 dark:ring-violet-600/40',
-              ring,
-            )}
+          <UserAvatarWithFrame
+            src={previewSrc}
+            frameId={avatarFrameId}
+            className={cn('bg-gray-50 dark:bg-gray-800', ring)}
+            imgClassName=""
             role="img"
             aria-label="当前头像"
-          >
-            <img src={previewSrc} alt="" className="size-full object-cover" />
-          </div>
+          />
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <div
-            className={cn(
-              'shrink-0 rounded-full bg-gray-50 dark:bg-gray-800 overflow-hidden ring-2 ring-violet-300/50 dark:ring-violet-600/40',
-              ring,
-            )}
+          <UserAvatarWithFrame
+            src={avatar}
+            frameId={avatarFrameId}
+            className={cn('bg-gray-50 dark:bg-gray-800', ring)}
+            imgClassName=""
             aria-hidden
-          >
-            <img src={avatar} alt="" className="size-full object-cover" />
-          </div>
+          />
           <p className="text-xs text-muted-foreground">当前头像</p>
         </div>
       )}

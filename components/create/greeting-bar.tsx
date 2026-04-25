@@ -12,6 +12,7 @@ import {
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,6 +27,7 @@ function isCustomAvatar(src: string) {
 export function GreetingBar() {
   const { t } = useI18n();
   const avatar = useUserProfileStore((s) => s.avatar);
+  const avatarFrameId = useUserProfileStore((s) => s.avatarFrameId);
   const nickname = useUserProfileStore((s) => s.nickname);
   const bio = useUserProfileStore((s) => s.bio);
   const setAvatar = useUserProfileStore((s) => s.setAvatar);
@@ -113,9 +115,12 @@ export function GreetingBar() {
           onClick={() => setOpen(true)}
         >
           <div className="relative shrink-0">
-            <div className="size-8 overflow-hidden rounded-full ring-[1.5px] ring-border/30 transition-all duration-300 group-hover:ring-violet-400/60 dark:group-hover:ring-violet-400/40">
-              <img src={avatar} alt="" className="size-full object-cover" />
-            </div>
+            <UserAvatarWithFrame
+              src={avatar}
+              frameId={avatarFrameId}
+              className="size-8"
+              imgClassName="ring-[1.5px] ring-border/30 transition-all duration-300 group-hover:ring-violet-400/60 dark:group-hover:ring-violet-400/40"
+            />
             <div className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full border border-border/40 bg-white opacity-60 transition-opacity group-hover:opacity-100 dark:bg-slate-800">
               <Pencil className="size-[7px] text-muted-foreground/70" />
             </div>
@@ -168,9 +173,12 @@ export function GreetingBar() {
                     setAvatarPickerOpen(!avatarPickerOpen);
                   }}
                 >
-                  <div className="size-8 overflow-hidden rounded-full ring-[1.5px] ring-violet-300/70 transition-all duration-300 dark:ring-violet-500/40">
-                    <img src={avatar} alt="" className="size-full object-cover" />
-                  </div>
+                  <UserAvatarWithFrame
+                    src={avatar}
+                    frameId={avatarFrameId}
+                    className="size-8"
+                    imgClassName="ring-[1.5px] ring-violet-300/70 transition-all duration-300 dark:ring-violet-500/40"
+                  />
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}

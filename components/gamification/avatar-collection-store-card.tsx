@@ -117,21 +117,6 @@ function GachaPoolTabSwitch({
         <button
           type="button"
           role="tab"
-          aria-selected={activePool === 'avatar'}
-          onClick={() => onChange('avatar')}
-          className={cn(
-            'inline-flex min-w-0 items-center justify-center gap-1 rounded-lg px-1.5 py-0.5 text-[10px] font-semibold leading-tight transition',
-            activePool === 'avatar'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-white/80 hover:text-white',
-          )}
-        >
-          <Sparkles className="size-2.5 shrink-0 opacity-80" />
-          <span className="truncate">{BANNER_META.avatar.chip}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
           aria-selected={activePool === 'live2d'}
           onClick={() => onChange('live2d')}
           className={cn(
@@ -143,6 +128,21 @@ function GachaPoolTabSwitch({
         >
           <Shield className="size-2.5 shrink-0 opacity-80" />
           <span className="truncate">{BANNER_META.live2d.chip}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activePool === 'avatar'}
+          onClick={() => onChange('avatar')}
+          className={cn(
+            'inline-flex min-w-0 items-center justify-center gap-1 rounded-lg px-1.5 py-0.5 text-[10px] font-semibold leading-tight transition',
+            activePool === 'avatar'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-white/80 hover:text-white',
+          )}
+        >
+          <Sparkles className="size-2.5 shrink-0 opacity-80" />
+          <span className="truncate">{BANNER_META.avatar.chip}</span>
         </button>
       </div>
     </div>

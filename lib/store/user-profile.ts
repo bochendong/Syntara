@@ -6,6 +6,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULT_USER_PRESET_AVATAR, USER_AVATAR_PRESET_URLS } from '@/lib/constants/user-avatars';
+import {
+  DEFAULT_USER_AVATAR_FRAME_ID,
+  isValidUserAvatarFrameId,
+} from '@/lib/constants/user-avatar-frames';
+import type { UserAvatarFrameId } from '@/lib/constants/user-avatar-frames';
 import type { NotificationBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import { isValidNotificationBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import type { NotificationCardStyleChoice } from '@/lib/notifications/card-theme';
@@ -28,11 +33,14 @@ export interface UserProfileState {
   notificationCardStyle: NotificationCardStyleChoice;
   /** 通知弹层/预览使用的舞台动效（与 `NOTIFICATION_BAR_STAGE_OPTIONS` 一致） */
   notificationBarStageId: NotificationBarStageId;
+  /** 个人中心圆头像外框（见 `USER_AVATAR_FRAME_OPTIONS`） */
+  avatarFrameId: UserAvatarFrameId;
   setAvatar: (avatar: string) => void;
   setNickname: (nickname: string) => void;
   setBio: (bio: string) => void;
   setNotificationCardStyle: (choice: NotificationCardStyleChoice) => void;
   setNotificationBarStageId: (id: NotificationBarStageId) => void;
+  setAvatarFrameId: (id: UserAvatarFrameId) => void;
 }
 
 export const useUserProfileStore = create<UserProfileState>()(
@@ -43,6 +51,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       bio: '',
       notificationCardStyle: 'auto',
       notificationBarStageId: 'soft-aurora',
+      avatarFrameId: DEFAULT_USER_AVATAR_FRAME_ID,
       setAvatar: (avatar) => set({ avatar }),
       setNickname: (nickname) => set({ nickname }),
       setBio: (bio) => set({ bio }),
@@ -58,6 +67,12 @@ export const useUserProfileStore = create<UserProfileState>()(
             ? { notificationBarStageId: id }
             : { notificationBarStageId: 'soft-aurora' },
         ),
+      setAvatarFrameId: (id) =>
+        set(
+          isValidUserAvatarFrameId(id)
+            ? { avatarFrameId: id }
+            : { avatarFrameId: DEFAULT_USER_AVATAR_FRAME_ID },
+        ),
     }),
     {
       name: 'user-profile-storage',
@@ -68,6 +83,9 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
         if (!isValidNotificationBarStageId(next.notificationBarStageId)) {
           next.notificationBarStageId = 'soft-aurora';
+        }
+        if (!isValidUserAvatarFrameId((next as UserProfileState).avatarFrameId)) {
+          (next as UserProfileState).avatarFrameId = DEFAULT_USER_AVATAR_FRAME_ID;
         }
         return next;
       },

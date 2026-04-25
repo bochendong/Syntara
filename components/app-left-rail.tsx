@@ -41,6 +41,7 @@ import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
 import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 import { ProfileAvatarPicker } from '@/components/user-profile/profile-avatar-picker';
+import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const scrollClass = cn(
@@ -77,6 +78,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const { resolvedTheme, setTheme } = useTheme();
 
   const avatar = useUserProfileStore((s) => s.avatar);
+  const avatarFrameId = useUserProfileStore((s) => s.avatarFrameId);
   const nickname = useUserProfileStore((s) => s.nickname);
   const authName = useAuthStore((s) => s.name);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -316,10 +318,11 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                           className="block w-fit rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
                           aria-label="选择头像"
                         >
-                          <img
+                          <UserAvatarWithFrame
                             src={railAvatarSrc}
-                            alt=""
-                            className="size-[72px] rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
+                            frameId={avatarFrameId}
+                            className="size-[72px]"
+                            imgClassName="ring-1 ring-black/5 dark:ring-white/10"
                           />
                         </button>
                       )}
@@ -378,10 +381,11 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                           className="block w-fit rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
                           aria-label="选择头像"
                         >
-                          <img
+                          <UserAvatarWithFrame
                             src={railAvatarSrc}
-                            alt=""
-                            className="size-10 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
+                            frameId={avatarFrameId}
+                            className="size-10"
+                            imgClassName="ring-1 ring-black/5 dark:ring-white/10"
                           />
                         </button>
                       )}

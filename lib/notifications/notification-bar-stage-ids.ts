@@ -1,8 +1,8 @@
 export const NOTIFICATION_BAR_STAGE_IDS = [
+  'solid-black',
   'prism',
   'light-pillar',
   'pixel-snow',
-  'solid-black',
   'floating-lines',
   'light-rays',
   'soft-aurora',

@@ -1,4 +1,4 @@
-import { ProfileHero, ProfileUsageCard } from '@/components/user-profile';
+import { ProfileHero, ProfileUsageCard, NotificationCenterUsageCard } from '@/components/user-profile';
 
 export default function ProfilePage() {
   return (
@@ -13,6 +13,7 @@ export default function ProfilePage() {
 
         <section className="flex min-w-0 flex-col gap-6">
           <ProfileUsageCard />
+          <NotificationCenterUsageCard />
         </section>
       </main>
     </div>

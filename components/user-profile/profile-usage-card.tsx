@@ -3,27 +3,31 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditsAccountPanel } from './credits-card';
-import { TokenUsageAccountPanel } from './token-usage-card';
 import { ProfileAvatarPicker } from './profile-avatar-picker';
+import { ProfileAvatarFramePicker } from './profile-avatar-frame-picker';
 import { ProfileNotificationStylePicker } from './profile-notification-style-picker';
 
 /**
- * 个人中心：头像、通知样式、Credits、Token 同一卡片内可切换页签。
+ * 个人中心：通知样式、头像、头像框（Credits / Token 在下方独立卡片 `NotificationCenterUsageCard`）
  */
 export function ProfileUsageCard() {
-  const [activeTab, setActiveTab] = useState('avatar');
+  const [activeTab, setActiveTab] = useState('notification');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const applyHash = () => {
+      if (window.location.hash === '#profile-usage-card-notification') {
+        setActiveTab('notification');
+        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       if (window.location.hash === '#profile-usage-card-avatar') {
         setActiveTab('avatar');
         document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
-      if (window.location.hash === '#profile-usage-card-notification') {
-        setActiveTab('notification');
+      if (window.location.hash === '#profile-usage-card-avatar-frame') {
+        setActiveTab('avatar-frame');
         document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     };
@@ -41,30 +45,22 @@ export function ProfileUsageCard() {
         <div className="border-b border-border/60 pb-4">
           <div className="mx-auto w-full max-w-3xl">
             <TabsList
-              className="grid h-auto w-full grid-cols-2 gap-0.5 p-1 sm:grid-cols-4"
+              className="grid h-auto w-full grid-cols-1 gap-0.5 p-1 sm:grid-cols-3"
               variant="default"
               aria-label="个人中心分栏"
             >
-              <TabsTrigger value="avatar" className="px-1.5 text-xs sm:px-2 sm:text-sm">
-                头像
-              </TabsTrigger>
               <TabsTrigger value="notification" className="px-1.5 text-xs sm:px-2 sm:text-sm">
                 通知样式
               </TabsTrigger>
-              <TabsTrigger value="credits" className="px-1.5 text-xs sm:px-2 sm:text-sm">
-                Credits 余额
+              <TabsTrigger value="avatar" className="px-1.5 text-xs sm:px-2 sm:text-sm">
+                头像
               </TabsTrigger>
-              <TabsTrigger value="token" className="px-1.5 text-xs sm:px-2 sm:text-sm">
-                Token 用量
+              <TabsTrigger value="avatar-frame" className="px-1.5 text-xs sm:px-2 sm:text-sm">
+                头像框
               </TabsTrigger>
             </TabsList>
           </div>
         </div>
-        <TabsContent value="avatar" id="profile-usage-card-avatar" className="mt-4 min-w-0 scroll-mt-4">
-          <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
-            <ProfileAvatarPicker size="lg" />
-          </div>
-        </TabsContent>
         <TabsContent
           value="notification"
           id="profile-usage-card-notification"
@@ -74,11 +70,19 @@ export function ProfileUsageCard() {
             <ProfileNotificationStylePicker />
           </div>
         </TabsContent>
-        <TabsContent value="credits" className="mt-4 min-w-0">
-          <CreditsAccountPanel variant="tab" />
+        <TabsContent value="avatar" id="profile-usage-card-avatar" className="mt-4 min-w-0 scroll-mt-4">
+          <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
+            <ProfileAvatarPicker size="lg" />
+          </div>
         </TabsContent>
-        <TabsContent value="token" className="mt-4 min-w-0">
-          <TokenUsageAccountPanel variant="tab" />
+        <TabsContent
+          value="avatar-frame"
+          id="profile-usage-card-avatar-frame"
+          className="mt-4 min-w-0 scroll-mt-4"
+        >
+          <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
+            <ProfileAvatarFramePicker />
+          </div>
         </TabsContent>
       </Tabs>
     </Card>
