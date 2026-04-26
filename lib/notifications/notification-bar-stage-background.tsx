@@ -221,5 +221,55 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
           aria-hidden
         />
       );
+    case 'solid-mist':
+      return (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#e3e6ec] dark:bg-[#181b22]',
+            className,
+          )}
+          aria-hidden
+        />
+      );
+    case 'solid-cloud':
+      return (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#dde8f4] dark:bg-[#141c28]',
+            className,
+          )}
+          aria-hidden
+        />
+      );
+    case 'solid-blush':
+      return (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#f0e4e9] dark:bg-[#221a1d]',
+            className,
+          )}
+          aria-hidden
+        />
+      );
+    case 'solid-sage':
+      return (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#e2eee6] dark:bg-[#141b18]',
+            className,
+          )}
+          aria-hidden
+        />
+      );
+    case 'solid-lilac':
+      return (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#ebe4f2] dark:bg-[#1e1a26]',
+            className,
+          )}
+          aria-hidden
+        />
+      );
   }
 }

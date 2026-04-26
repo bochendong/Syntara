@@ -706,7 +706,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 <AppCoreNavList
                   collapsed
                   tooltipSide="left"
-                  grouped={false}
                   chatRightRailOrder
                   excludeKeys={[
                     'top-up',
@@ -809,7 +808,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 <AppCoreNavList
                   collapsed={false}
                   tooltipSide="left"
-                  grouped={false}
                   chatRightRailOrder
                   excludeKeys={[
                     'top-up',

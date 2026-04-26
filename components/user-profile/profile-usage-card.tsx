@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileAvatarPicker } from './profile-avatar-picker';
 import { ProfileAvatarFramePicker } from './profile-avatar-frame-picker';
 import { ProfileNotificationStylePicker } from './profile-notification-style-picker';
+import { ProfileSidebarPanel } from './profile-sidebar-panel';
 
 /**
- * 个人中心：通知样式、头像、头像框（Credits / Token 在下方独立卡片 `NotificationCenterUsageCard`）
+ * 个人中心：通知样式、头像、头像框、侧边栏（Credits / Token 在下方独立卡片 `NotificationCenterUsageCard`）
  */
 export function ProfileUsageCard() {
   const [activeTab, setActiveTab] = useState('notification');
@@ -29,6 +30,11 @@ export function ProfileUsageCard() {
       if (window.location.hash === '#profile-usage-card-avatar-frame') {
         setActiveTab('avatar-frame');
         document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (window.location.hash === '#profile-usage-card-sidebar') {
+        setActiveTab('sidebar');
+        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     };
     applyHash();
@@ -45,7 +51,7 @@ export function ProfileUsageCard() {
         <div className="border-b border-border/60 pb-4">
           <div className="mx-auto w-full max-w-3xl">
             <TabsList
-              className="grid h-auto w-full grid-cols-1 gap-0.5 p-1 sm:grid-cols-3"
+              className="grid h-auto w-full grid-cols-2 gap-0.5 p-1 sm:grid-cols-4"
               variant="default"
               aria-label="个人中心分栏"
             >
@@ -57,6 +63,9 @@ export function ProfileUsageCard() {
               </TabsTrigger>
               <TabsTrigger value="avatar-frame" className="px-1.5 text-xs sm:px-2 sm:text-sm">
                 头像框
+              </TabsTrigger>
+              <TabsTrigger value="sidebar" className="px-1.5 text-xs sm:px-2 sm:text-sm">
+                侧边栏
               </TabsTrigger>
             </TabsList>
           </div>
@@ -82,6 +91,15 @@ export function ProfileUsageCard() {
         >
           <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
             <ProfileAvatarFramePicker />
+          </div>
+        </TabsContent>
+        <TabsContent
+          value="sidebar"
+          id="profile-usage-card-sidebar"
+          className="mt-4 min-w-0 scroll-mt-4"
+        >
+          <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
+            <ProfileSidebarPanel />
           </div>
         </TabsContent>
       </Tabs>

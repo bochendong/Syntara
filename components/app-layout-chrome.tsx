@@ -5,11 +5,13 @@ import { Suspense, useState, useEffect, useLayoutEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppLeftRail } from '@/components/app-left-rail';
 import { ChatRightRail } from '@/components/chat-right-rail';
+import {
+  CHAT_RIGHT_RAIL_COLLAPSED_STORAGE_KEY,
+  LEFT_RAIL_COLLAPSED_STORAGE_KEY,
+} from '@/lib/constants/app-rail-storage';
 
 /** 与 notebook-agent-sidebar 抽屉宽度一致：展开 270px / 收起 88px，侧栏 inset left-4 / right-4 各 16px */
 const SIDEBAR_GAP = 12;
-
-const CHAT_RIGHT_RAIL_STORAGE_KEY = 'synatra-chat-right-rail-collapsed';
 
 function railOuterPaddingPx(collapsed: boolean): number {
   const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : 270;
@@ -39,17 +41,29 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const v = localStorage.getItem(CHAT_RIGHT_RAIL_STORAGE_KEY);
+      const left = localStorage.getItem(LEFT_RAIL_COLLAPSED_STORAGE_KEY);
+      if (left === '1') setSidebarCollapsed(true);
+      if (left === '0') setSidebarCollapsed(false);
+      const v = localStorage.getItem(CHAT_RIGHT_RAIL_COLLAPSED_STORAGE_KEY);
       if (v === '1') setChatRightCollapsed(true);
     } catch {
       /* ignore */
     }
   }, []);
 
+  const persistSidebarCollapsed = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    try {
+      localStorage.setItem(LEFT_RAIL_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
+
   const persistChatRightCollapsed = (collapsed: boolean) => {
     setChatRightCollapsed(collapsed);
     try {
-      localStorage.setItem(CHAT_RIGHT_RAIL_STORAGE_KEY, collapsed ? '1' : '0');
+      localStorage.setItem(CHAT_RIGHT_RAIL_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0');
     } catch {
       /* ignore */
     }
@@ -68,7 +82,10 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <AppLeftRail collapsed={sidebarCollapsed} onCollapsedChange={setSidebarCollapsed} />
+      <AppLeftRail
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={persistSidebarCollapsed}
+      />
       <SidebarInset
         leftCollapsed={sidebarCollapsed}
         rightCollapsed={chatRightCollapsed}

@@ -6,11 +6,9 @@ import { Suspense, useEffect, useState } from 'react';
 import {
   ArrowRightLeft,
   Bell,
-  Bug,
   ChevronLeft,
   ChevronRight,
   Cpu,
-  LifeBuoy,
   LogOut,
   Moon,
   Search,
@@ -39,17 +37,17 @@ import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { ChatContactsRail } from '@/components/chat-contacts-rail';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
-import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 import { ProfileAvatarPicker } from '@/components/user-profile/profile-avatar-picker';
 import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { NotificationBarStageBackground } from '@/lib/notifications/notification-bar-stage-background';
+import { isSolidColorBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 
-const scrollClass = cn(
+const leftRailScrollClass = cn(
   'min-h-0 flex-1 overflow-y-auto py-2',
   '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent',
-  '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-900/15',
-  'dark:[&::-webkit-scrollbar-thumb]:bg-white/20',
-  'hover:[&::-webkit-scrollbar-thumb]:bg-slate-900/25 dark:hover:[&::-webkit-scrollbar-thumb]:bg-white/30',
+  '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20',
+  'hover:[&::-webkit-scrollbar-thumb]:bg-white/30',
 );
 
 export interface AppLeftRailProps {
@@ -79,6 +77,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
 
   const avatar = useUserProfileStore((s) => s.avatar);
   const avatarFrameId = useUserProfileStore((s) => s.avatarFrameId);
+  const leftRailBarStageId = useUserProfileStore((s) => s.leftRailBarStageId);
   const nickname = useUserProfileStore((s) => s.nickname);
   const authName = useAuthStore((s) => s.name);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -106,17 +105,71 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const railTitle = inCourseContext ? courseName : displayName;
   const railHref = inCourseContext ? `/course/${courseId}` : '/';
   const railTooltip = inCourseContext ? '所有课程' : '首页';
-  const railSurfaceClass = cn(
-    'flex h-full flex-col overflow-hidden rounded-[20px] transition-[width,box-shadow,background,border-color] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
-    notebookSidebar
-      ? [
-          'border border-slate-900/[0.08] bg-[linear-gradient(180deg,rgba(236,244,255,0.96)_0%,rgba(244,247,255,0.92)_30%,rgba(255,255,255,0.92)_100%)] shadow-[0_24px_48px_rgba(60,92,154,0.12)]',
-          'dark:border-white/[0.08] dark:bg-[linear-gradient(180deg,rgba(11,19,40,0.96)_0%,rgba(19,28,52,0.94)_34%,rgba(14,18,31,0.95)_100%)] dark:shadow-[0_24px_48px_rgba(2,6,23,0.42)]',
-        ]
-      : 'apple-glass-heavy',
-  );
-
+  /** 仅 `/chat` 独立路由：动效/纯色只作用于左侧 `aside`，不与中间聊天区做「同套浅色」；默认仍为深色条以免与主区连成一片 */
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
+  /** 非「默认」时在主导航上叠动效；课程区与 Dashboard（如 /profile）均生效，避免在设置页点击无反馈 */
+  const showLeftRailStage = leftRailBarStageId !== 'default';
+  /** 平铺底色：外层不用黑底，避免与淡色实色叠出灰黑；WebGL 动效仍用黑底衬底+蒙版 */
+  const isLeftRailSolidColor =
+    showLeftRailStage && isSolidColorBarStageId(leftRailBarStageId);
+  /** 浅色主题下白底/浅字：排除独立聊天（默认不刷白、避免误以为改了聊天区背景；仍可在侧栏里选淡色实色等） */
+  const onDefaultWhite =
+    !showLeftRailStage && resolvedTheme === 'light' && !isChatPage;
+  const onLightRail =
+    resolvedTheme === 'light' &&
+    ((!isChatPage && !showLeftRailStage) ||
+      (isLeftRailSolidColor && leftRailBarStageId !== 'solid-black'));
+  /** 外框 + 头/底分割：随白底、淡实色、深/WebGL 四档略作区分，避免各背景下对比失当 */
+  const railDividers = (() => {
+    if (onDefaultWhite) {
+      return {
+        edge: 'border-slate-300/90',
+        b: 'border-b border-slate-300/85',
+        t: 'border-t border-slate-300/85',
+        headerRule: 'bg-slate-300/85',
+      };
+    }
+    if (onLightRail && isLeftRailSolidColor) {
+      return {
+        edge: 'border-slate-800/22',
+        b: 'border-b border-slate-800/32',
+        t: 'border-t border-slate-800/32',
+        headerRule: 'bg-slate-800/32',
+      };
+    }
+    if (showLeftRailStage && !isLeftRailSolidColor) {
+      return {
+        edge: 'border-white/20',
+        b: 'border-b border-white/28',
+        t: 'border-t border-white/35',
+        headerRule: 'bg-white/28',
+      };
+    }
+    return {
+      edge: 'border-white/18',
+      b: 'border-b border-white/24',
+      t: 'border-t border-white/24',
+      headerRule: 'bg-white/24',
+    };
+  })();
+  const railSurfaceClass = cn(
+    'flex h-full flex-col overflow-hidden rounded-[20px] border',
+    isLeftRailSolidColor
+      ? cn(
+          'bg-transparent',
+          onLightRail
+            ? 'shadow-[0_12px_40px_rgba(15,23,42,0.1)]'
+            : 'shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+        )
+      : onDefaultWhite
+        ? 'bg-white shadow-[0_12px_40px_rgba(15,23,42,0.1)]'
+        : 'bg-black shadow-[0_20px_50px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+    railDividers.edge,
+    'transition-[width,box-shadow,background,border-color] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+  );
+  const railIconPadBtn = onLightRail
+    ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
+    : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100';
 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
@@ -189,26 +242,59 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     <>
       <aside
         className={cn(
-          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)]',
+          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] overflow-hidden rounded-[20px]',
           collapsed ? 'w-[88px]' : 'w-[min(270px,calc(100vw-2rem))]',
         )}
         aria-label="主导航"
       >
-        <div className={cn('pointer-events-auto h-full', railSurfaceClass)}>
-          {notebookSidebar ? (
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(76,110,245,0.16),transparent_72%)] dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_70%)]" />
+        <div className={cn('pointer-events-auto relative h-full', railSurfaceClass)}>
+          {notebookSidebar && leftRailBarStageId === 'default' ? (
+            <div
+              className={cn(
+                'pointer-events-none absolute inset-x-0 top-0 z-0 h-24',
+                onDefaultWhite
+                  ? 'bg-[radial-gradient(ellipse_120%_100%_at_50%_0%,rgba(99,102,241,0.1),rgba(6,182,212,0.05)_40%,transparent_70%)]'
+                  : 'bg-[radial-gradient(ellipse_120%_100%_at_50%_0%,rgba(99,102,241,0.22),rgba(6,182,212,0.1)_40%,transparent_72%)]',
+              )}
+            />
           ) : null}
+          {showLeftRailStage ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[20px]"
+              aria-hidden
+            >
+              <NotificationBarStageBackground
+                id={leftRailBarStageId}
+                className={cn(
+                  '!min-h-full',
+                  isLeftRailSolidColor
+                    ? 'opacity-100'
+                    : 'opacity-[0.62] [mask-image:linear-gradient(180deg,black_0%,black_88%,transparent_100%)]',
+                )}
+              />
+            </div>
+          ) : null}
+          <div
+            className={cn(
+              'relative z-[1] flex h-full min-h-0 flex-col',
+              onLightRail ? 'text-slate-800' : 'text-zinc-200',
+            )}
+          >
           {isChatPage ? (
             <div
               className={cn(
-                'relative flex shrink-0 items-center gap-2 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
+                'relative flex shrink-0 items-center gap-2',
+                railDividers.b,
                 collapsed ? 'justify-center px-2 py-2' : 'px-2 py-2',
               )}
             >
               <button
                 type="button"
                 onClick={() => onCollapsedChange(!collapsed)}
-                className="flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground"
+                className={cn(
+                  'flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent shadow-none',
+                  railIconPadBtn,
+                )}
                 aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
               >
                 {collapsed ? (
@@ -220,7 +306,10 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               {!collapsed && (
                 <div className="relative min-w-0 flex-1">
                   <Search
-                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    className={cn(
+                      'pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2',
+                      onLightRail ? 'text-slate-400' : 'text-zinc-500',
+                    )}
                     strokeWidth={2}
                     aria-hidden
                   />
@@ -230,7 +319,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     onChange={(e) => setContactSearchQuery(e.target.value)}
                     placeholder="搜索联系人…"
                     aria-label="搜索联系人"
-                    className="h-8 border-slate-900/[0.12] bg-black/[0.03] pl-8 text-sm dark:border-white/[0.12] dark:bg-white/[0.06]"
+                    className={cn(
+                      'h-8 pl-8 text-sm',
+                      onLightRail
+                        ? 'border border-slate-200/80 bg-white/90 text-slate-900 placeholder:text-slate-400'
+                        : 'border border-white/12 bg-white/5 text-zinc-100 placeholder:text-zinc-500',
+                    )}
                   />
                 </div>
               )}
@@ -238,17 +332,18 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
           ) : (
             <div
               className={cn(
-                'relative shrink-0 border-b border-slate-900/[0.08] dark:border-white/[0.08]',
+                'relative flex shrink-0 flex-col',
                 collapsed
-                  ? 'flex flex-col items-center px-2 py-3'
-                  : 'flex flex-col items-center px-4 pb-3 pt-6',
+                  ? 'items-center px-2 py-3'
+                  : 'items-center px-4 pt-6',
               )}
             >
               <button
                 type="button"
                 onClick={() => onCollapsedChange(!collapsed)}
                 className={cn(
-                  'flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground',
+                  'flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent shadow-none',
+                  railIconPadBtn,
                   collapsed ? 'mb-2' : 'absolute left-2 top-2',
                 )}
                 aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
@@ -265,9 +360,14 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     <Link
                       href="/notifications"
                       className={cn(
-                        'absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
+                        'absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-[10px]',
+                        onLightRail
+                          ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
+                          : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100',
                         notificationsActive &&
-                          'bg-violet-600/14 text-foreground dark:bg-violet-400/[0.18]',
+                          (onLightRail
+                            ? 'bg-violet-200/60 text-violet-900'
+                            : 'bg-violet-500/20 text-violet-200'),
                       )}
                       aria-label={
                         unreadNotificationCount > 0
@@ -329,25 +429,51 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     </TooltipTrigger>
                     <TooltipContent side="right">{inCourseContext ? railTooltip : '选择头像'}</TooltipContent>
                   </Tooltip>
-                  <p className="mt-2 w-full truncate text-center text-sm font-medium text-foreground">
+                  <p
+                    className={cn(
+                      'mt-2 w-full truncate text-center text-sm font-medium',
+                      onLightRail ? 'text-slate-900' : 'text-zinc-100',
+                    )}
+                  >
                     {railTitle}
                   </p>
                   <div className="mt-2 grid w-full gap-2">
                     {balances != null ? (
                       <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-                        <div className="rounded-xl border border-amber-200/70 bg-amber-50/80 px-2 py-2 text-center text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
+                        <div
+                          className={cn(
+                            'rounded-xl border px-2 py-2 text-center',
+                            onLightRail
+                              ? 'border-amber-200/90 bg-amber-50 text-amber-950'
+                              : 'border-amber-400/25 bg-amber-500/10 text-amber-100',
+                          )}
+                        >
                           <div className="flex items-center justify-center">
                             <Wallet className="size-3" />
                           </div>
                           <div className="mt-1 font-semibold leading-none">{balances.cash}</div>
                         </div>
-                        <div className="rounded-xl border border-sky-200/70 bg-sky-50/80 px-2 py-2 text-center text-sky-900 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-100">
+                        <div
+                          className={cn(
+                            'rounded-xl border px-2 py-2 text-center',
+                            onLightRail
+                              ? 'border-sky-200/90 bg-sky-50 text-sky-950'
+                              : 'border-sky-400/25 bg-sky-500/10 text-sky-100',
+                          )}
+                        >
                           <div className="flex items-center justify-center">
                             <Cpu className="size-3" />
                           </div>
                           <div className="mt-1 font-semibold leading-none">{balances.compute}</div>
                         </div>
-                        <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/80 px-2 py-2 text-center text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-100">
+                        <div
+                          className={cn(
+                            'rounded-xl border px-2 py-2 text-center',
+                            onLightRail
+                              ? 'border-emerald-200/90 bg-emerald-50 text-emerald-950'
+                              : 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100',
+                          )}
+                        >
                           <div className="flex items-center justify-center">
                             <ShoppingBag className="size-3" />
                           </div>
@@ -397,9 +523,14 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       <Link
                         href="/notifications"
                         className={cn(
-                          'inline-flex size-8 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 transition-colors hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10',
+                          'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
+                          onLightRail
+                            ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
+                            : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
                           notificationsActive &&
-                            'border-violet-300/80 bg-violet-500/15 text-violet-700 dark:border-violet-300/30 dark:bg-violet-500/20 dark:text-violet-100',
+                            (onLightRail
+                              ? 'border-violet-300/60 bg-violet-100/80 text-violet-800'
+                              : 'border-violet-400/50 bg-violet-500/20 text-violet-200'),
                         )}
                         aria-label={
                           unreadNotificationCount > 0
@@ -428,7 +559,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex size-8 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 transition-colors hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                          className={cn(
+                            'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
+                            onLightRail
+                              ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
+                              : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
+                          )}
                         >
                           <Wallet className="size-3.5" />
                         </button>
@@ -442,6 +578,13 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                   ) : null}
                 </div>
               )}
+              <div
+                className={cn('w-full shrink-0', collapsed ? 'px-2 pt-2' : 'px-4 pt-3')}
+                role="presentation"
+                aria-hidden
+              >
+                <div className={cn('h-px w-full', railDividers.headerRule)} />
+              </div>
             </div>
           )}
 
@@ -453,10 +596,15 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               )}
               aria-label="聊天联系人"
             >
-              <div className={cn(scrollClass, 'min-h-0 flex-1 px-0')}>
+              <div className={cn(leftRailScrollClass, 'min-h-0 flex-1 px-0')}>
                 <Suspense
                   fallback={
-                    <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    <div
+                      className={cn(
+                        'px-3 py-8 text-center text-xs',
+                        onLightRail ? 'text-slate-500' : 'text-zinc-500',
+                      )}
+                    >
                       加载联系人…
                     </div>
                   }
@@ -466,6 +614,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     collapsed={collapsed}
                     courseName={courseName}
                     courseAvatarUrl={resolvedCourseAvatar}
+                    lightSolidSurface={onLightRail}
                     searchQuery={isChatPage ? contactSearchQuery : ''}
                   />
                 </Suspense>
@@ -479,11 +628,21 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               )}
               aria-label="页面导航"
             >
-              <div className={cn(scrollClass, 'px-0')}>
+              <div
+                className={cn(
+                  leftRailScrollClass,
+                  'px-0',
+                  'pt-6',
+                )}
+              >
                 <AppCoreNavList
+                  blackSurface={!onLightRail}
                   collapsed={collapsed}
                   variant={notebookSidebar ? 'notebook' : 'home'}
-                  excludeKeys={['contact-support', 'report-issue']}
+                  layout={notebookSidebar ? 'sectioned-list' : 'flat-grid'}
+                  excludeKeys={
+                    notebookSidebar ? ['contact-support', 'report-issue'] : undefined
+                  }
                   onItemClick={(key) => {
                     if (key === 'chat') expandIfCollapsed();
                   }}
@@ -492,45 +651,22 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
             </nav>
           )}
 
-          <div className="shrink-0 border-t border-slate-900/[0.08] dark:border-white/[0.08]">
+          <div className={cn('shrink-0', railDividers.t)}>
             {!collapsed ? (
               <div className="px-3 py-3">
                 <div className="flex items-center gap-0.5">
                   <div className="mr-auto min-w-0 flex-1 pl-1">
                     {!inCourseContext && userAffinityLevel != null ? (
-                      <p className="text-[11px] text-muted-foreground/90">
+                      <p
+                        className={cn(
+                          'text-[11px]',
+                          onLightRail ? 'text-slate-500' : 'text-zinc-500',
+                        )}
+                      >
                         {`Lv.${userAffinityLevel}`}
                       </p>
                     ) : null}
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <a
-                        href={CONTACT_SUPPORT_NAV_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
-                        aria-label="联系客服"
-                      >
-                        <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">联系客服</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <a
-                        href={REPORT_ISSUE_NAV_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
-                        aria-label="报告问题"
-                      >
-                        <Bug className="size-[18px]" strokeWidth={1.75} />
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">报告问题</TooltipContent>
-                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -538,7 +674,10 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         onClick={() =>
                           setTheme(resolvedTheme === 'light' ? 'dark' : 'light')
                         }
-                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-[10px] shadow-none',
+                          railIconPadBtn,
+                        )}
                         aria-label={
                           resolvedTheme === 'light'
                             ? t('settings.themeSwitchToDark')
@@ -565,9 +704,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                           type="button"
                           onClick={() => router.push('/settings')}
                           className={cn(
-                            'flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
+                            'flex size-9 shrink-0 items-center justify-center rounded-[10px] shadow-none',
+                            railIconPadBtn,
                             settingsActive &&
-                              'bg-violet-600/14 text-foreground dark:bg-violet-400/[0.18]',
+                              (onLightRail
+                                ? 'bg-violet-200/50 text-violet-900'
+                                : 'bg-violet-500/20 text-violet-200'),
                           )}
                           aria-label="设置"
                         >
@@ -584,7 +726,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         onClick={() =>
                           isLoggedIn ? void signOutAndRedirect() : router.push('/login')
                         }
-                        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-[10px] shadow-none',
+                          onLightRail
+                            ? 'text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-600'
+                            : 'text-zinc-400 transition-colors hover:bg-red-500/15 hover:text-red-400',
+                        )}
                         aria-label={isLoggedIn ? '退出登录' : '登录'}
                       >
                         <LogOut className="size-[18px]" strokeWidth={1.75} />
@@ -603,7 +750,10 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       onClick={() =>
                         setTheme(resolvedTheme === 'light' ? 'dark' : 'light')
                       }
-                      className="flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]"
+                      className={cn(
+                        'flex size-10 items-center justify-center rounded-[10px] shadow-none',
+                        railIconPadBtn,
+                      )}
                       aria-label={
                         resolvedTheme === 'light'
                           ? t('settings.themeSwitchToDark')
@@ -630,9 +780,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         type="button"
                         onClick={() => router.push('/settings')}
                         className={cn(
-                          'flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
+                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
+                          railIconPadBtn,
                           settingsActive &&
-                            'bg-violet-600/14 text-foreground dark:bg-violet-400/[0.18]',
+                            (onLightRail
+                              ? 'bg-violet-200/50 text-violet-900'
+                              : 'bg-violet-500/20 text-violet-200'),
                         )}
                         aria-label="设置"
                       >
@@ -649,7 +802,12 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       onClick={() =>
                         isLoggedIn ? void signOutAndRedirect() : router.push('/login')
                       }
-                      className="flex size-10 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+                      className={cn(
+                        'flex size-10 items-center justify-center rounded-[10px] shadow-none',
+                        onLightRail
+                          ? 'text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-600'
+                          : 'text-zinc-400 transition-colors hover:bg-red-500/15 hover:text-red-400',
+                      )}
                       aria-label={isLoggedIn ? '退出登录' : '登录'}
                     >
                       <LogOut className="size-[18px]" strokeWidth={1.75} />
@@ -659,6 +817,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 </Tooltip>
               </div>
             )}
+          </div>
           </div>
         </div>
       </aside>
