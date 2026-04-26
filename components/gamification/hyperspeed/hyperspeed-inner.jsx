@@ -440,6 +440,11 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
       }
 
       initPasses() {
+        const gl = this.renderer.getContext();
+        const glAttrs = gl && gl.getContextAttributes && gl.getContextAttributes();
+        if (gl == null || glAttrs == null) {
+          return;
+        }
         this.renderPass = new RenderPass(this.scene, this.camera);
         this.bloomPass = new EffectPass(
           this.camera,
@@ -492,7 +497,13 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
       }
 
       init() {
+        if (this.disposed) {
+          return;
+        }
         this.initPasses();
+        if (this.disposed || !this.renderPass) {
+          return;
+        }
         const options = this.options;
         this.road.init();
         this.leftCarLights.init();
@@ -1167,7 +1178,12 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
 
     const myApp = new App(container, options);
     appRef.current = myApp;
-    myApp.loadAssets().then(myApp.init);
+    myApp.loadAssets().then(() => {
+      if (appRef.current !== myApp || myApp.disposed) {
+        return;
+      }
+      myApp.init();
+    });
 
     return () => {
       if (appRef.current) {
