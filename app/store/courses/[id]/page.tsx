@@ -22,6 +22,7 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/credits';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 
 type StoreNotebook = {
   id: string;
@@ -214,6 +215,7 @@ export default function StoreCourseDetailPage() {
         },
       );
       await refreshNotifications({ silent: true });
+      notifyCreditsBalancesChanged();
       toast.success(`已购买并复制课程「${response.course.name}」`);
       router.push(`/course/${response.course.id}`);
       return true;
@@ -256,6 +258,7 @@ export default function StoreCourseDetailPage() {
         },
       );
       await refreshNotifications({ silent: true });
+      notifyCreditsBalancesChanged();
       toast.success(`已购买笔记本「${response.notebook.name}」`);
       router.push(`/classroom/${response.notebook.id}`);
       return true;

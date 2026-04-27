@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  type CreditsBalances,
+  notifyCreditsBalancesChanged,
+} from '@/lib/utils/credits-balance-events';
+
 type PersistedAuthState = {
   state?: {
     userId?: string;
@@ -7,6 +12,34 @@ type PersistedAuthState = {
     name?: string;
   };
 };
+
+function shouldNotifyCreditsAfterRequest(path: string, init?: RequestInit): boolean {
+  const method = (init?.method || 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return false;
+
+  const normalizedPath = path.split('?')[0] || path;
+  return [
+    '/api/profile/credits/convert',
+    '/api/courses/clone',
+    '/api/notebooks/clone',
+    '/api/gamification/',
+    '/api/generate/',
+    '/api/web-search',
+    '/api/notebooks/send-message',
+    '/api/classroom/repair-slide-',
+    '/api/review-route/generate',
+    '/problems/import-preview',
+  ].some((pattern) => normalizedPath.includes(pattern));
+}
+
+function extractBalancesFromResponse(data: unknown): CreditsBalances | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const maybeRecord = data as {
+    balances?: CreditsBalances;
+    summary?: { balances?: CreditsBalances };
+  };
+  return maybeRecord.balances || maybeRecord.summary?.balances;
+}
 
 function readAuthFromPersistedStore(): { userId: string; email: string; name: string } {
   if (typeof window === 'undefined') return { userId: '', email: '', name: '' };
@@ -59,5 +92,9 @@ export async function backendJson<T>(path: string, init?: RequestInit): Promise<
         : `请求失败: HTTP ${resp.status}（响应非 JSON，多为服务端 500 或未配置 DATABASE_URL）`,
     );
   }
-  return (await resp.json()) as T;
+  const data = (await resp.json()) as T;
+  if (shouldNotifyCreditsAfterRequest(path, init)) {
+    notifyCreditsBalancesChanged(extractBalancesFromResponse(data));
+  }
+  return data;
 }

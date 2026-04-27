@@ -18,7 +18,10 @@ import type { NotificationBarStageId } from '@/lib/notifications/notification-ba
 import { cn } from '@/lib/utils';
 
 export type { NotificationBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
-export { NOTIFICATION_BAR_STAGE_OPTIONS, isValidNotificationBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
+export {
+  NOTIFICATION_BAR_STAGE_OPTIONS,
+  isValidNotificationBarStageId,
+} from '@/lib/notifications/notification-bar-stage-ids';
 
 const layer = 'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full opacity-[0.88]';
 
@@ -30,7 +33,10 @@ type NotificationBarStageBackgroundProps = {
 /**
  * 与补给站 `live2d-companion-hub` 中可选舞台动效一一对应；用于通知弹层/个人中心预览，默认关闭鼠标交互以减轻顶栏与设置页压力。
  */
-export function NotificationBarStageBackground({ id, className }: NotificationBarStageBackgroundProps) {
+export function NotificationBarStageBackground({
+  id,
+  className,
+}: NotificationBarStageBackgroundProps) {
   const c = cn(layer, className);
 
   switch (id) {
@@ -225,7 +231,7 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
       return (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#e3e6ec] dark:bg-[#181b22]',
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#f3f6fb]',
             className,
           )}
           aria-hidden
@@ -235,7 +241,7 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
       return (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#dde8f4] dark:bg-[#141c28]',
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#def7ff]',
             className,
           )}
           aria-hidden
@@ -245,7 +251,7 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
       return (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#f0e4e9] dark:bg-[#221a1d]',
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#fff0f5]',
             className,
           )}
           aria-hidden
@@ -255,7 +261,7 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
       return (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#e2eee6] dark:bg-[#141b18]',
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#e8f8ef]',
             className,
           )}
           aria-hidden
@@ -265,7 +271,7 @@ export function NotificationBarStageBackground({ id, className }: NotificationBa
       return (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#ebe4f2] dark:bg-[#1e1a26]',
+            'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full bg-[#f2edff]',
             className,
           )}
           aria-hidden

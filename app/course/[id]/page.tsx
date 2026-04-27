@@ -446,7 +446,9 @@ export default function CourseDetailPage() {
                 ))}
               </div>
               {course.description ? (
-                <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">{course.description}</p>
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                  {course.description}
+                </p>
               ) : null}
               {courseHasPurchasedNotebook && !course.listedInCourseStore ? (
                 <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
@@ -493,8 +495,8 @@ export default function CourseDetailPage() {
                         actionLabel="打开笔记本"
                         onAction={() => router.push(`/classroom/${nb.id}`)}
                         onEdit={() => setEditingNotebook(nb)}
-                        tertiaryActionLabel="题库"
-                        onTertiaryAction={() => router.push(`/classroom/${nb.id}?view=quiz`)}
+                        tertiaryActionLabel="复习"
+                        onTertiaryAction={() => router.push(`/review/${nb.id}`)}
                         secondaryActionLabel={
                           nb.sourceNotebookId
                             ? undefined

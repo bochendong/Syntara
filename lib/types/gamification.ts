@@ -43,6 +43,10 @@ export interface GamificationCharacterSummary {
   badgeLabel?: string | null;
   accentColor?: string | null;
   description?: string | null;
+  story?: string | null;
+  teachingStyle?: string | null;
+  bondLine?: string | null;
+  personalityTags?: string[];
   collectionLabel?: string | null;
   nextUnlockHint?: string | null;
   fragmentCount?: number;
@@ -64,6 +68,20 @@ export interface GamificationAvatarInventoryItem {
 export interface GamificationAvatarInventorySummary {
   ownedIds: string[];
   items: GamificationAvatarInventoryItem[];
+}
+
+export interface GamificationCosmeticInventoryItem {
+  key: string;
+  kind: string;
+  id: string;
+  label: string;
+  cost: number;
+  owned: boolean;
+}
+
+export interface GamificationCosmeticInventorySummary {
+  ownedKeys: string[];
+  items: GamificationCosmeticInventoryItem[];
 }
 
 export interface GamificationGachaDrawReward {
@@ -128,6 +146,7 @@ export interface GamificationSummaryResponse {
   weeklyTasks: GamificationMissionSummary[];
   characters: GamificationCharacterSummary[];
   avatarInventory: GamificationAvatarInventorySummary;
+  cosmeticInventory: GamificationCosmeticInventorySummary;
   nudge: GamificationNudgeSummary | null;
 }
 

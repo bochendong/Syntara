@@ -20,9 +20,15 @@ import {
   ScrollText,
   ListChecks,
   Pencil,
+  Flame,
+  Gift,
+  Heart,
+  ShieldCheck,
+  WandSparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { backendJson } from '@/lib/utils/backend-api';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { createLogger } from '@/lib/logger';
@@ -42,6 +48,8 @@ import {
 } from '@/components/ui/dialog';
 import { useStageStore } from '@/lib/store';
 import { useAuthStore } from '@/lib/store/auth';
+import { useSettingsStore } from '@/lib/store/settings';
+import { useNotificationStore } from '@/lib/store/notifications';
 import {
   clearQuestionProgress,
   getQuestionProgress,
@@ -51,6 +59,30 @@ import { code } from '@streamdown/code';
 import { Streamdown } from 'streamdown';
 import type { GamificationEventResponse } from '@/lib/types/gamification';
 import { toast } from 'sonner';
+import {
+  LEARNING_CARD_DEFINITIONS,
+  MENTOR_LEARNING_CARD_PRIORITY,
+  buildQuestionHint,
+  buildRubricPeek,
+  createLearningRunState,
+  drawLearningCard,
+  pickWrongOptionToHide,
+  summarizeLearningRun,
+  type LearningCardDefinition,
+  type LearningCardId,
+  type LearningRunState,
+  type LearningRunSummary,
+} from '@/lib/learning/quiz-roguelike';
+import {
+  buildMistakeMemoryLine,
+  buildStudyCompanionNotification,
+  getLearningRunStats,
+  recordQuizMemory,
+} from '@/lib/learning/study-memory';
+import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
+import type { Live2DPresenterModelId } from '@/lib/live2d/presenter-models';
+import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
+import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
 
 const log = createLogger('QuizView');
 
@@ -75,7 +107,8 @@ export interface QuizViewProps {
     answers: Record<string, AnswerValue>;
     results: QuestionResult[];
   };
-  readonly onAttemptFinished?: () => void;
+  readonly onAttemptFinished?: (results?: QuestionResult[]) => void;
+  readonly battleHeader?: ReactNode;
   /** 课程测验中心等单题场景：顶栏在列表中上一题 / 下一题 */
   readonly onHubPrevQuestion?: () => void;
   readonly hubPrevDisabled?: boolean;
@@ -454,7 +487,11 @@ function guessShikiLanguageFromLines(lines: string[]): string {
   const first = lines.map((l) => l.trim()).find(Boolean) ?? '';
   if (/^#include\s*[<"]/.test(first)) return 'cpp';
   if (/^#lang\s+racket\b/i.test(first) || /^\(\s*define\b/.test(first)) return 'racket';
-  if (/^package\s+\w+/.test(first) || /^public\s+class\b/.test(first) || /^import\s+java\./.test(first))
+  if (
+    /^package\s+\w+/.test(first) ||
+    /^public\s+class\b/.test(first) ||
+    /^import\s+java\./.test(first)
+  )
     return 'java';
   if (/^using\s+namespace\b|^int\s+main\s*\(/.test(first)) return 'cpp';
   if (/^def\s+\w+\s*\(|^from\s+\S+\s+import\b|^import\s+\w+/.test(first)) return 'python';
@@ -472,7 +509,10 @@ function expandSmushedStatements(code: string, languageHint?: string): string {
     out = out.replace(/(?<=.)\s+(?=\bclass\b\s)/g, '\n');
   }
   if (l === 'java' || l === 'jav') {
-    out = out.replace(/;\s+(?=(?:public|private|protected|static|final|class|interface|enum|import|package)\b)/g, ';\n');
+    out = out.replace(
+      /;\s+(?=(?:public|private|protected|static|final|class|interface|enum|import|package)\b)/g,
+      ';\n',
+    );
   }
   return out;
 }
@@ -499,7 +539,10 @@ function isProbablyCodeParagraph(text: string): boolean {
   if (nonEmpty.length === 1) {
     const line = nonEmpty[0];
     if (/[\u4e00-\u9fff]/.test(line)) return false;
-    return looksLikeCodeLine(line) || (/^\s*import\s+\w+/.test(line) && (/[=.]/.test(line) || /\s/.test(line)));
+    return (
+      looksLikeCodeLine(line) ||
+      (/^\s*import\s+\w+/.test(line) && (/[=.]/.test(line) || /\s/.test(line)))
+    );
   }
   const hits = nonEmpty.filter(looksLikeCodeLine).length;
   return hits >= Math.ceil(nonEmpty.length * 0.55);
@@ -606,6 +649,7 @@ function ChoiceQuestion({
   result,
   multiSelect,
   onQuestionUpdate,
+  hiddenOptionValues = [],
 }: {
   question: QuizQuestion;
   index: number;
@@ -615,6 +659,7 @@ function ChoiceQuestion({
   result?: QuestionResult;
   multiSelect: boolean;
   onQuestionUpdate?: (questionId: string, patch: Partial<QuizQuestion>) => void;
+  hiddenOptionValues?: string[];
 }) {
   const { t } = useI18n();
   const selected = toArray(value);
@@ -654,69 +699,75 @@ function ChoiceQuestion({
         </p>
       )}
       <div className="grid gap-2">
-        {question.options?.map((opt) => {
-          const isSelected = selected.includes(opt.value);
-          const isCorrectOpt = isReview && toArray(question.answer).includes(opt.value);
-          const isWrong = isReview && isSelected && !isCorrectOpt;
-          return (
-            <button
-              key={opt.value}
-              disabled={disabled}
-              onClick={() => toggle(opt.value)}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all text-sm',
-                !isReview &&
-                  !isSelected &&
-                  'border-gray-200 dark:border-gray-600 hover:border-sky-200 dark:hover:border-sky-700 hover:bg-sky-50/50 dark:hover:bg-sky-900/30',
-                !isReview &&
-                  isSelected &&
-                  'border-sky-400 bg-sky-50 dark:bg-sky-900/30 ring-1 ring-sky-200 dark:ring-sky-700',
-                isReview &&
-                  isCorrectOpt &&
-                  'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30',
-                isReview && isWrong && 'border-red-300 bg-red-50 dark:bg-red-900/30',
-                isReview &&
-                  !isCorrectOpt &&
-                  !isSelected &&
-                  'border-gray-100 dark:border-gray-700 opacity-60',
-              )}
-            >
-              <span
+        {question.options
+          ?.filter((opt) => isReview || !hiddenOptionValues.includes(opt.value))
+          .map((opt) => {
+            const isSelected = selected.includes(opt.value);
+            const isCorrectOpt = isReview && toArray(question.answer).includes(opt.value);
+            const isWrong = isReview && isSelected && !isCorrectOpt;
+            return (
+              <button
+                key={opt.value}
+                disabled={disabled}
+                onClick={() => toggle(opt.value)}
                 className={cn(
-                  'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                  'flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all text-sm',
                   !isReview &&
                     !isSelected &&
-                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
-                  !isReview && isSelected && 'bg-sky-500 text-white',
-                  isReview && isCorrectOpt && 'bg-emerald-500 text-white',
-                  isReview && isWrong && 'bg-red-400 text-white',
+                    'border-gray-200 dark:border-gray-600 hover:border-sky-200 dark:hover:border-sky-700 hover:bg-sky-50/50 dark:hover:bg-sky-900/30',
+                  !isReview &&
+                    isSelected &&
+                    'border-sky-400 bg-sky-50 dark:bg-sky-900/30 ring-1 ring-sky-200 dark:ring-sky-700',
+                  isReview &&
+                    isCorrectOpt &&
+                    'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30',
+                  isReview && isWrong && 'border-red-300 bg-red-50 dark:bg-red-900/30',
                   isReview &&
                     !isCorrectOpt &&
                     !isSelected &&
-                    'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
+                    'border-gray-100 dark:border-gray-700 opacity-60',
                 )}
               >
-                {!isReview && multiSelect && isSelected ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  opt.value
+                <span
+                  className={cn(
+                    'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                    !isReview &&
+                      !isSelected &&
+                      'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
+                    !isReview && isSelected && 'bg-sky-500 text-white',
+                    isReview && isCorrectOpt && 'bg-emerald-500 text-white',
+                    isReview && isWrong && 'bg-red-400 text-white',
+                    isReview &&
+                      !isCorrectOpt &&
+                      !isSelected &&
+                      'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
+                  )}
+                >
+                  {!isReview && multiSelect && isSelected ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    opt.value
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'flex-1',
+                    isReview && !isCorrectOpt && !isSelected && 'text-gray-400 dark:text-gray-500',
+                  )}
+                >
+                  <RichText
+                    content={opt.label}
+                    languageHint={question.language}
+                    className="text-inherit"
+                  />
+                </span>
+                {isReview && isCorrectOpt && (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                 )}
-              </span>
-              <span
-                className={cn(
-                  'flex-1',
-                  isReview && !isCorrectOpt && !isSelected && 'text-gray-400 dark:text-gray-500',
-                )}
-              >
-                <RichText content={opt.label} languageHint={question.language} className="text-inherit" />
-              </span>
-              {isReview && isCorrectOpt && (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-              )}
-              {isReview && isWrong && <XCircle className="w-5 h-5 text-red-400 shrink-0" />}
-            </button>
-          );
-        })}
+                {isReview && isWrong && <XCircle className="w-5 h-5 text-red-400 shrink-0" />}
+              </button>
+            );
+          })}
       </div>
     </QuestionCard>
   );
@@ -821,9 +872,7 @@ function TextQuestion({
                 <p className="text-xs font-medium text-sky-600 dark:text-sky-400 mb-0.5">
                   {t('quiz.aiComment')}
                 </p>
-                <p className="text-xs text-sky-600/80 dark:text-sky-400/80">
-                  {result.aiComment}
-                </p>
+                <p className="text-xs text-sky-600/80 dark:text-sky-400/80">{result.aiComment}</p>
               </div>
               <span className="ml-auto text-xs font-bold text-sky-600 dark:text-sky-400 shrink-0">
                 {result.earned}/{question.points ?? 1}
@@ -834,7 +883,11 @@ function TextQuestion({
           {referenceContent && (
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
               <p className="text-xs font-medium mb-1">{referenceTitle}</p>
-              <RichText content={referenceContent} languageHint={question.language} className="leading-6" />
+              <RichText
+                content={referenceContent}
+                languageHint={question.language}
+                className="leading-6"
+              />
             </div>
           )}
         </div>
@@ -1062,7 +1115,8 @@ function QuestionCard({
       question: draftQuestion.trim(),
       codeSnippet: draftCodeSnippet.trim() || undefined,
       analysis: draftAnalysis.trim() || undefined,
-      points: Number.isFinite(parsedPoints) && parsedPoints > 0 ? parsedPoints : question.points ?? 1,
+      points:
+        Number.isFinite(parsedPoints) && parsedPoints > 0 ? parsedPoints : (question.points ?? 1),
     });
     setEditOpen(false);
   }, [onQuestionUpdate, question, draftQuestion, draftCodeSnippet, draftAnalysis, draftPoints]);
@@ -1097,8 +1151,7 @@ function QuestionCard({
           <span
             className={cn(
               'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
-              !isReview &&
-                'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400',
+              !isReview && 'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400',
               isReview &&
                 result.status === 'correct' &&
                 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
@@ -1144,8 +1197,12 @@ function QuestionCard({
               {locale === 'zh-CN' ? '编辑' : 'Edit'}
             </button>
           )}
-          {isReview && result.status === 'correct' && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-          {isReview && result.status === 'incorrect' && <XCircle className="w-6 h-6 text-red-400" />}
+          {isReview && result.status === 'correct' && (
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+          )}
+          {isReview && result.status === 'incorrect' && (
+            <XCircle className="w-6 h-6 text-red-400" />
+          )}
         </div>
       </div>
 
@@ -1162,13 +1219,21 @@ function QuestionCard({
           <DialogHeader>
             <DialogTitle>{locale === 'zh-CN' ? '编辑题目' : 'Edit Question'}</DialogTitle>
             <DialogDescription>
-              {locale === 'zh-CN' ? '保存后会立即更新当前题目展示与作答。' : 'Changes apply immediately to this quiz view.'}
+              {locale === 'zh-CN'
+                ? '保存后会立即更新当前题目展示与作答。'
+                : 'Changes apply immediately to this quiz view.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">{locale === 'zh-CN' ? '题干' : 'Question'}</p>
-              <Textarea value={draftQuestion} onChange={(e) => setDraftQuestion(e.target.value)} rows={3} />
+              <p className="text-xs text-muted-foreground">
+                {locale === 'zh-CN' ? '题干' : 'Question'}
+              </p>
+              <Textarea
+                value={draftQuestion}
+                onChange={(e) => setDraftQuestion(e.target.value)}
+                rows={3}
+              />
             </div>
             <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground">
@@ -1182,11 +1247,19 @@ function QuestionCard({
               />
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">{locale === 'zh-CN' ? '解析（可选）' : 'Analysis (optional)'}</p>
-              <Textarea value={draftAnalysis} onChange={(e) => setDraftAnalysis(e.target.value)} rows={3} />
+              <p className="text-xs text-muted-foreground">
+                {locale === 'zh-CN' ? '解析（可选）' : 'Analysis (optional)'}
+              </p>
+              <Textarea
+                value={draftAnalysis}
+                onChange={(e) => setDraftAnalysis(e.target.value)}
+                rows={3}
+              />
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">{locale === 'zh-CN' ? '分值' : 'Points'}</p>
+              <p className="text-xs text-muted-foreground">
+                {locale === 'zh-CN' ? '分值' : 'Points'}
+              </p>
               <input
                 type="number"
                 min={1}
@@ -1307,11 +1380,7 @@ function ScoreBanner({
   );
 }
 
-function GamificationRewardBanner({
-  reward,
-}: {
-  reward: GamificationEventResponse | null;
-}) {
+function GamificationRewardBanner({ reward }: { reward: GamificationEventResponse | null }) {
   if (!reward || (!reward.rewardedPurchaseCredits && !reward.rewardedAffinity)) return null;
 
   return (
@@ -1327,7 +1396,9 @@ function GamificationRewardBanner({
             {reward.characterName} 把这次进度帮你记下来了
           </p>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            {reward.rewardedPurchaseCredits > 0 ? `+${reward.rewardedPurchaseCredits} 购买积分` : '已记录'}
+            {reward.rewardedPurchaseCredits > 0
+              ? `+${reward.rewardedPurchaseCredits} 购买积分`
+              : '已记录'}
             {reward.rewardedAffinity > 0 ? ` · +${reward.rewardedAffinity} 亲密度` : ''}
           </p>
         </div>
@@ -1335,6 +1406,311 @@ function GamificationRewardBanner({
           Lv{reward.affinityLevel}
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+function learningCardRarityClass(rarity: LearningCardDefinition['rarity']): string {
+  switch (rarity) {
+    case 'rare':
+      return 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100';
+    case 'advanced':
+      return 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-400/25 dark:bg-fuchsia-400/10 dark:text-fuchsia-100';
+    default:
+      return 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-100';
+  }
+}
+
+function getCompanionStatusLine(args: {
+  modelId: Live2DPresenterModelId;
+  phase: Phase;
+  answeredCount: number;
+  totalCount: number;
+  currentQuestion?: QuizQuestion;
+  run: LearningRunState | null;
+  summary?: LearningRunSummary | null;
+}): string {
+  const persona = LIVE2D_PRESENTER_PERSONAS[args.modelId];
+  if (args.summary) {
+    return `这局答对 ${args.summary.correctCount} 题，最高连胜 ${args.summary.longestStreak}。解析看完后，我们再把下一关接上。`;
+  }
+  if (args.phase === 'not_started') return '准备好了就开始这一关，我会在旁边帮你盯住节奏。';
+  if (args.phase === 'grading') return '我正在帮你整理这轮答案，先别急着切走。';
+  if (args.phase === 'reviewing') return '结果已经出来了，先看错因，再决定要不要重试。';
+  if (args.run?.usedCards.length) {
+    const lastCard = args.run.usedCards[args.run.usedCards.length - 1];
+    const card = lastCard ? LEARNING_CARD_DEFINITIONS[lastCard] : null;
+    if (card) return card.teacherLine;
+  }
+  if (args.currentQuestion) {
+    return `第 ${Math.min(args.answeredCount + 1, args.totalCount)} 题我在旁边看着。先稳住题干，再动手。`;
+  }
+  return persona.bondLine;
+}
+
+function LearningCompanionPanel({
+  run,
+  currentQuestion,
+  summary,
+  modelId,
+  phase,
+  answeredCount,
+  totalCount,
+  onUseCard,
+  fullHeight = false,
+}: {
+  run: LearningRunState | null;
+  currentQuestion?: QuizQuestion;
+  summary?: LearningRunSummary | null;
+  modelId: Live2DPresenterModelId;
+  phase: Phase;
+  answeredCount: number;
+  totalCount: number;
+  onUseCard: (cardId: LearningCardId) => void;
+  fullHeight?: boolean;
+}) {
+  const model = LIVE2D_PRESENTER_MODELS[modelId];
+  const persona = LIVE2D_PRESENTER_PERSONAS[modelId];
+  const priorityCards = MENTOR_LEARNING_CARD_PRIORITY[modelId]
+    .slice(0, 4)
+    .map((cardId) => LEARNING_CARD_DEFINITIONS[cardId])
+    .filter(Boolean);
+  const usableCards = run?.hand.filter((cardId) => !run.usedCards.includes(cardId)) ?? [];
+  const usedCards = run?.hand.filter((cardId) => run.usedCards.includes(cardId)) ?? [];
+  const companionLine = getCompanionStatusLine({
+    modelId,
+    phase,
+    answeredCount,
+    totalCount,
+    currentQuestion,
+    run,
+    summary,
+  });
+  return (
+    <aside
+      className={cn(
+        'flex h-full min-h-[560px] flex-col overflow-hidden border border-rose-100/80 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/85 lg:min-h-0',
+        fullHeight ? 'rounded-none border-y-0 border-r-0' : 'rounded-3xl',
+      )}
+    >
+      <div className="relative h-64 shrink-0 overflow-hidden border-b border-rose-100 bg-[radial-gradient(circle_at_50%_20%,rgba(251,207,232,0.72),transparent_45%),linear-gradient(180deg,#fff7fb,#eff6ff)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_50%_20%,rgba(244,114,182,0.2),transparent_45%),linear-gradient(180deg,#0f172a,#020617)]">
+        <div className="absolute left-4 top-4 z-10 rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-black text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100">
+          {model.badgeLabel} · 导师陪伴
+        </div>
+        <TalkingAvatarOverlay
+          speaking={phase === 'grading'}
+          speechText={companionLine}
+          cadence={phase === 'answering' ? 'active' : phase === 'grading' ? 'fallback' : 'pause'}
+          layout="card"
+          cardFraming="half"
+          modelIdOverride={modelId}
+          showBadge={false}
+          showStatusDot={false}
+          className="absolute inset-x-0 bottom-0 h-full"
+        />
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        <div className="rounded-2xl border border-rose-100 bg-rose-50/80 p-3 text-sm leading-6 text-rose-900 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100">
+          <div className="mb-1 flex items-center gap-2 text-xs font-black opacity-70">
+            <Heart className="h-3.5 w-3.5" />
+            导师提示
+          </div>
+          {companionLine}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">本局进度</p>
+            <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+              {answeredCount}/{totalCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+            <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">
+              {summary ? '结算倍率' : '豁免次数'}
+            </p>
+            <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+              {summary ? `x${summary.finalMultiplier}` : run ? run.mistakeShield : 0}
+            </p>
+          </div>
+        </div>
+
+        {summary ? (
+          <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
+            <Gift className="h-3.5 w-3.5" />
+            预览奖励 {summary.rewardPreview}
+          </div>
+        ) : null}
+
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-black text-slate-500 dark:text-slate-400">
+              <WandSparkles className="h-3.5 w-3.5" />
+              导师卡组
+            </p>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-white/10 dark:text-slate-400">
+              {persona.personalityTags[2] ?? '陪伴型'}
+            </span>
+          </div>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {priorityCards.map((card) => (
+              <span
+                key={card.id}
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-[10px] font-bold',
+                  learningCardRarityClass(card.rarity),
+                )}
+              >
+                {card.name}
+              </span>
+            ))}
+          </div>
+          <div className="grid gap-2">
+            {usableCards.map((cardId) => {
+              const card = LEARNING_CARD_DEFINITIONS[cardId];
+              const disabled =
+                !currentQuestion ||
+                (card.effect === 'eliminateOption' && !isObjectiveQuestion(currentQuestion)) ||
+                (card.effect === 'rubricPeek' && !isTextQuestion(currentQuestion));
+              return (
+                <button
+                  key={cardId}
+                  type="button"
+                  disabled={disabled || phase !== 'answering'}
+                  onClick={() => onUseCard(cardId)}
+                  title={card.description}
+                  className={cn(
+                    'rounded-2xl border p-3 text-left text-xs transition-all',
+                    disabled || phase !== 'answering'
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
+                      : 'border-rose-200 bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:border-rose-300 hover:text-rose-700 dark:border-rose-500/20 dark:bg-slate-950 dark:text-slate-200 dark:hover:text-rose-200',
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-black">{card.name}</span>
+                    <span
+                      className={cn(
+                        'rounded-full border px-2 py-0.5 text-[10px] font-bold',
+                        learningCardRarityClass(card.rarity),
+                      )}
+                    >
+                      {card.rarity}
+                    </span>
+                  </span>
+                  <span className="mt-1 block leading-5 opacity-75">{card.description}</span>
+                </button>
+              );
+            })}
+            {usableCards.length === 0 ? (
+              <span className="rounded-2xl border border-dashed border-slate-200 px-3 py-3 text-xs leading-5 text-slate-400 dark:border-slate-700">
+                本局手牌已用完，先靠自己打完这一关。
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {usedCards.length > 0 ? (
+          <div>
+            <p className="mb-2 text-xs font-black text-slate-500 dark:text-slate-400">已使用</p>
+            <div className="flex flex-wrap gap-1.5">
+              {usedCards.map((cardId) => {
+                const card = LEARNING_CARD_DEFINITIONS[cardId];
+                return (
+                  <span
+                    key={cardId}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
+                  >
+                    {card.name}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {!run ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 p-3 text-xs leading-5 text-slate-500 dark:border-white/10 dark:text-slate-400">
+            开始答题后，这里会显示本局手牌、导师提示和临时遗物效果。
+          </div>
+        ) : null}
+      </div>
+    </aside>
+  );
+}
+
+function LearningAssistPanels({
+  question,
+  run,
+}: {
+  question: QuizQuestion;
+  run: LearningRunState | null;
+}) {
+  if (!run) return null;
+  const hint = run.hints[question.id];
+  const rubric = run.rubricPeeks[question.id];
+  if (!hint && !rubric) return null;
+  return (
+    <div className="space-y-2">
+      {hint ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-100">
+          <span className="font-semibold">撒娇提示：</span>
+          {hint}
+        </div>
+      ) : null}
+      {rubric ? (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-500/20 dark:bg-sky-950/20 dark:text-sky-100">
+          <span className="font-semibold">偷看一眼：</span>
+          {rubric}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LearningRunSummaryBanner({
+  summary,
+  unlockedCards,
+}: {
+  summary: LearningRunSummary | null;
+  unlockedCards: LearningCardDefinition[];
+}) {
+  if (!summary) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-rose-200/70 bg-gradient-to-r from-rose-50 via-white to-sky-50 p-4 dark:border-rose-500/20 dark:from-rose-950/20 dark:via-slate-900 dark:to-sky-950/20"
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">
+          <Flame className="h-3.5 w-3.5 text-orange-300" />
+          最终倍率 x{summary.finalMultiplier}
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-100">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          豁免 {summary.forgivenMistakes} 次
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-100">
+          <Gift className="h-3.5 w-3.5" />
+          局内奖励预览 {summary.rewardPreview}
+        </div>
+      </div>
+      <p className="mt-3 text-sm text-slate-700 dark:text-slate-200">
+        这局的临时卡牌已经结算啦；局外解锁会保留到你的卡池里，下一局能抽到更强的牌。
+      </p>
+      {unlockedCards.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {unlockedCards.map((card) => (
+            <span
+              key={card.id}
+              className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-100"
+            >
+              新解锁：{card.name}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </motion.div>
   );
 }
@@ -1347,6 +1723,7 @@ function renderQuestion(
   result: QuestionResult | undefined,
   locale: string,
   onQuestionUpdate?: (questionId: string, patch: Partial<QuizQuestion>) => void,
+  hiddenOptionValues: string[] = [],
 ) {
   if (isCodeQuestion(question)) {
     return (
@@ -1376,6 +1753,7 @@ function renderQuestion(
         result={result}
         multiSelect={question.type === 'multiple'}
         onQuestionUpdate={onQuestionUpdate}
+        hiddenOptionValues={hiddenOptionValues}
       />
     );
   }
@@ -1401,6 +1779,7 @@ export function QuizView({
   singleQuestionMode = false,
   initialSnapshot,
   onAttemptFinished,
+  battleHeader,
   onHubPrevQuestion,
   hubPrevDisabled = false,
   onHubNextQuestion,
@@ -1409,6 +1788,8 @@ export function QuizView({
   const { t, locale } = useI18n();
   const stageId = useStageStore((s) => s.stage?.id ?? '');
   const userId = useAuthStore((s) => (s.userId?.trim() ? s.userId : 'user-anonymous'));
+  const live2dPresenterModelId = useSettingsStore((s) => s.live2dPresenterModelId);
+  const enqueueBanner = useNotificationStore((s) => s.enqueueBanner);
 
   const initialPhase: Phase = useMemo(() => {
     if (initialSnapshot?.phase === 'reviewing') return 'reviewing';
@@ -1423,7 +1804,13 @@ export function QuizView({
   const [results, setResults] = useState<QuestionResult[]>(() => initialSnapshot?.results ?? []);
   const [answeringQuestionIndex, setAnsweringQuestionIndex] = useState(0);
   const [questionEdits, setQuestionEdits] = useState<Record<string, Partial<QuizQuestion>>>({});
-  const [gamificationReward, setGamificationReward] = useState<GamificationEventResponse | null>(null);
+  const [gamificationReward, setGamificationReward] = useState<GamificationEventResponse | null>(
+    null,
+  );
+  const [learningRun, setLearningRun] = useState<LearningRunState | null>(null);
+  const [learningRunSummary, setLearningRunSummary] = useState<LearningRunSummary | null>(null);
+  const [newlyUnlockedCards, setNewlyUnlockedCards] = useState<LearningCardDefinition[]>([]);
+  const useBattleShell = Boolean(battleHeader);
 
   const effectiveQuestions = useMemo(
     () => questions.map((q) => ({ ...q, ...(questionEdits[q.id] ?? {}) })),
@@ -1431,7 +1818,10 @@ export function QuizView({
   );
 
   const handleQuestionUpdate = useCallback((questionId: string, patch: Partial<QuizQuestion>) => {
-    setQuestionEdits((prev) => ({ ...prev, [questionId]: { ...(prev[questionId] ?? {}), ...patch } }));
+    setQuestionEdits((prev) => ({
+      ...prev,
+      [questionId]: { ...(prev[questionId] ?? {}), ...patch },
+    }));
   }, []);
 
   useEffect(() => {
@@ -1491,10 +1881,134 @@ export function QuizView({
     [updateAnswersCache],
   );
 
+  const startLearningRun = useCallback(() => {
+    const stats = getLearningRunStats(userId, stageId || sceneId);
+    setLearningRun(
+      createLearningRunState({ sceneId, userId, stats, mentorId: live2dPresenterModelId }),
+    );
+    setLearningRunSummary(null);
+    setNewlyUnlockedCards([]);
+  }, [live2dPresenterModelId, sceneId, stageId, userId]);
+
+  const handleStartQuiz = useCallback(() => {
+    setAnsweringQuestionIndex(0);
+    startLearningRun();
+    setPhase('answering');
+  }, [startLearningRun]);
+
+  useEffect(() => {
+    if (phase === 'answering' && !learningRun) {
+      startLearningRun();
+    }
+  }, [phase, learningRun, startLearningRun]);
+
   const handleSubmit = useCallback(() => {
     setPhase('grading');
     clearAnswersCache();
   }, [clearAnswersCache]);
+
+  useEffect(() => {
+    if (phase !== 'answering' || !learningRun || effectiveQuestions.length <= 1) return;
+    const milestones = [
+      Math.ceil(effectiveQuestions.length / 3),
+      Math.ceil((effectiveQuestions.length * 2) / 3),
+    ].filter((value, index, values) => value > 0 && values.indexOf(value) === index);
+    const nextMilestone = milestones.find(
+      (value) => answeredCount >= value && !learningRun.milestoneDraws.includes(value),
+    );
+    if (!nextMilestone) return;
+    const cardId = drawLearningCard({
+      sceneId,
+      userId,
+      stats: getLearningRunStats(userId, stageId || sceneId),
+      drawIndex: learningRun.milestoneDraws.length + 1,
+      excludeIds: learningRun.hand,
+      mentorId: live2dPresenterModelId,
+    });
+    setLearningRun((prev) =>
+      prev
+        ? {
+            ...prev,
+            hand: [...prev.hand, cardId],
+            milestoneDraws: [...prev.milestoneDraws, nextMilestone],
+          }
+        : prev,
+    );
+    toast.success(`宝箱掉落：${LEARNING_CARD_DEFINITIONS[cardId].name}`);
+  }, [
+    answeredCount,
+    effectiveQuestions.length,
+    learningRun,
+    live2dPresenterModelId,
+    phase,
+    sceneId,
+    stageId,
+    userId,
+  ]);
+
+  const handleUseLearningCard = useCallback(
+    (cardId: LearningCardId) => {
+      const card = LEARNING_CARD_DEFINITIONS[cardId];
+      const currentQuestion = effectiveQuestions[answeringQuestionIndex];
+      if (!card || !currentQuestion) return;
+
+      setLearningRun((prev) => {
+        if (!prev || prev.usedCards.includes(cardId)) return prev;
+        const next: LearningRunState = {
+          ...prev,
+          usedCards: [...prev.usedCards, cardId],
+          eliminatedOptions: { ...prev.eliminatedOptions },
+          hints: { ...prev.hints },
+          rubricPeeks: { ...prev.rubricPeeks },
+        };
+
+        switch (card.effect) {
+          case 'hint':
+            next.hints[currentQuestion.id] = buildQuestionHint(currentQuestion);
+            break;
+          case 'mistakeShield':
+            next.mistakeShield += 1;
+            break;
+          case 'eliminateOption': {
+            const hidden = pickWrongOptionToHide(
+              currentQuestion,
+              `${sceneId}:${currentQuestion.id}:${cardId}`,
+            );
+            if (hidden) {
+              next.eliminatedOptions[currentQuestion.id] = [
+                ...(next.eliminatedOptions[currentQuestion.id] ?? []),
+                hidden,
+              ];
+            }
+            break;
+          }
+          case 'nextCorrectBonus':
+            next.nextCorrectBonus += 0.1;
+            break;
+          case 'preserveMultiplier':
+            next.preserveMultiplier = true;
+            break;
+          case 'comboDouble':
+            next.comboDoubleQuestions = Math.max(next.comboDoubleQuestions, 3);
+            break;
+          case 'mistakeRadar':
+            next.mistakeRadar = true;
+            break;
+          case 'rubricPeek':
+            next.rubricPeeks[currentQuestion.id] = buildRubricPeek(currentQuestion);
+            break;
+          case 'bossBonus':
+            next.bossBonus = true;
+            break;
+          default:
+            break;
+        }
+        return next;
+      });
+      toast.success(`${card.name}：${card.teacherLine}`);
+    },
+    [answeringQuestionIndex, effectiveQuestions, sceneId],
+  );
 
   useEffect(() => {
     if (phase !== 'grading') return;
@@ -1534,6 +2048,51 @@ export function QuizView({
       const ordered = effectiveQuestions
         .map((question) => allResultsMap.get(question.id))
         .filter(Boolean) as QuestionResult[];
+      const runForSummary = learningRun;
+      if (runForSummary) {
+        const previousStats = getLearningRunStats(userId, stageId || sceneId);
+        const summary = summarizeLearningRun({
+          results: ordered,
+          previousStats,
+          run: runForSummary,
+        });
+        const memory = recordQuizMemory({
+          userId,
+          stageId: stageId || sceneId,
+          sceneId,
+          questions: effectiveQuestions,
+          results: ordered,
+          mistakeRadar: runForSummary.mistakeRadar,
+        });
+        setLearningRunSummary(summary);
+        setNewlyUnlockedCards(summary.unlockedCards);
+        if (memory.newWeakPoints.length > 0) {
+          const weakPoint = memory.newWeakPoints[0];
+          enqueueBanner(
+            buildStudyCompanionNotification({
+              id: `mistake-memory:${weakPoint.id}:${Date.now()}`,
+              sourceKind: 'mistake_review',
+              title: '我帮你记下来了',
+              body: buildMistakeMemoryLine(weakPoint),
+              sourceLabel: '错题记忆',
+              details: [
+                { key: 'weakPoint', label: '卡点', value: weakPoint.title },
+                { key: 'reason', label: '复习线索', value: weakPoint.reason },
+              ],
+            }),
+          );
+        } else if (summary.correctCount > 0) {
+          enqueueBanner(
+            buildStudyCompanionNotification({
+              id: `study-run:${sceneId}:${Date.now()}`,
+              sourceKind: 'study_nudge',
+              title: '这局手感我收到了',
+              body: `这局答对 ${summary.correctCount} 题，最高连胜 ${summary.longestStreak}。你刚才的推进我有好好记着，下一关继续陪你。`,
+              sourceLabel: '做题陪伴',
+            }),
+          );
+        }
+      }
       setResults(ordered);
       setPhase('reviewing');
     })();
@@ -1541,7 +2100,17 @@ export function QuizView({
     return () => {
       cancelled = true;
     };
-  }, [phase, effectiveQuestions, answers, locale]);
+  }, [
+    phase,
+    effectiveQuestions,
+    answers,
+    locale,
+    learningRun,
+    userId,
+    stageId,
+    sceneId,
+    enqueueBanner,
+  ]);
 
   const persistDoneRef = useRef(false);
 
@@ -1552,6 +2121,7 @@ export function QuizView({
   }, [singleQuestionMode, initialSnapshot]);
 
   const rewardEventDoneRef = useRef(false);
+  const attemptFinishedDoneRef = useRef(false);
 
   useEffect(() => {
     if (initialSnapshot?.phase === 'reviewing') {
@@ -1563,8 +2133,15 @@ export function QuizView({
     if (phase !== 'reviewing') {
       persistDoneRef.current = false;
       rewardEventDoneRef.current = false;
+      attemptFinishedDoneRef.current = false;
     }
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'reviewing' || results.length === 0 || attemptFinishedDoneRef.current) return;
+    attemptFinishedDoneRef.current = true;
+    onAttemptFinished?.(results);
+  }, [phase, results, onAttemptFinished]);
 
   useEffect(() => {
     if (
@@ -1594,18 +2171,7 @@ export function QuizView({
         codeReport: result.codeReport,
       },
     });
-    onAttemptFinished?.();
-  }, [
-    phase,
-    singleQuestionMode,
-    effectiveQuestions,
-    results,
-    answers,
-    sceneId,
-    stageId,
-    userId,
-    onAttemptFinished,
-  ]);
+  }, [phase, singleQuestionMode, effectiveQuestions, results, answers, sceneId, stageId, userId]);
 
   const handleRetry = useCallback(() => {
     if (singleQuestionMode && effectiveQuestions.length === 1 && stageId) {
@@ -1616,8 +2182,11 @@ export function QuizView({
     setAnswers({});
     setResults([]);
     setGamificationReward(null);
+    setLearningRun(null);
+    setLearningRunSummary(null);
+    setNewlyUnlockedCards([]);
     clearAnswersCache();
-    onAttemptFinished?.();
+    onAttemptFinished?.([]);
   }, [
     clearAnswersCache,
     singleQuestionMode,
@@ -1704,6 +2273,7 @@ export function QuizView({
           body: JSON.stringify(payload),
         });
         if (cancelled) return;
+        notifyCreditsBalancesChanged();
         setGamificationReward(reward);
         if (reward.rewardedPurchaseCredits > 0 || reward.rewardedAffinity > 0) {
           toast.success(
@@ -1748,16 +2318,41 @@ export function QuizView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex-1"
+            className="flex-1 min-h-0"
           >
-            <QuizCover
-              questionCount={effectiveQuestions.length}
-              totalPoints={totalPoints}
-              onStart={() => {
-                setAnsweringQuestionIndex(0);
-                setPhase('answering');
-              }}
-            />
+            {useBattleShell ? (
+              <div className="h-full min-h-0 bg-gradient-to-br from-rose-50/45 via-white to-sky-50/55 dark:from-rose-950/10 dark:via-slate-900 dark:to-sky-950/15">
+                <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+                  <div className="flex min-h-0 flex-col gap-3 p-3 md:p-4">
+                    {battleHeader ? <div className="shrink-0">{battleHeader}</div> : null}
+                    <div className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-gray-100 bg-white/95 shadow-sm dark:border-white/10 dark:bg-slate-900/85">
+                      <QuizCover
+                        questionCount={effectiveQuestions.length}
+                        totalPoints={totalPoints}
+                        onStart={handleStartQuiz}
+                      />
+                    </div>
+                  </div>
+                  <LearningCompanionPanel
+                    run={learningRun}
+                    currentQuestion={effectiveQuestions[0]}
+                    summary={learningRunSummary}
+                    modelId={live2dPresenterModelId}
+                    phase={phase}
+                    answeredCount={answeredCount}
+                    totalCount={effectiveQuestions.length}
+                    onUseCard={handleUseLearningCard}
+                    fullHeight
+                  />
+                </div>
+              </div>
+            ) : (
+              <QuizCover
+                questionCount={effectiveQuestions.length}
+                totalPoints={totalPoints}
+                onStart={handleStartQuiz}
+              />
+            )}
           </motion.div>
         )}
 
@@ -1767,126 +2362,164 @@ export function QuizView({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex-1 flex flex-col min-h-0"
+            className="flex-1 min-h-0"
           >
-            <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur shrink-0">
-              <div className="flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-sky-500" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {t('quiz.answering')}
-                </span>
-                <span className="text-xs text-gray-400 ml-1">
-                  {effectiveQuestions.length > 1
-                    ? locale === 'zh-CN'
-                      ? `第 ${answeringQuestionIndex + 1} / ${effectiveQuestions.length} 题 · 已答 ${answeredCount}`
-                      : `Q${answeringQuestionIndex + 1}/${effectiveQuestions.length} · ${answeredCount} answered`
-                    : `${answeredCount} / ${effectiveQuestions.length}`}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {onHubPrevQuestion && (
-                  <button
-                    type="button"
-                    onClick={onHubPrevQuestion}
-                    disabled={hubPrevDisabled}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                      hubPrevDisabled
-                        ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    {t('quiz.prevQuestion')}
-                  </button>
-                )}
-                {onHubNextQuestion && (
-                  <button
-                    type="button"
-                    onClick={onHubNextQuestion}
-                    disabled={hubNextDisabled}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                      hubNextDisabled
-                        ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    {t('quiz.nextQuestion')}
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={handleSubmit}
-                  disabled={!allAnswered}
-                  className={cn(
-                    'px-4 py-1.5 rounded-lg text-xs font-medium transition-all',
-                    allAnswered
-                      ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm hover:shadow-md hover:shadow-sky-200/50 dark:hover:shadow-sky-900/50 active:scale-[0.97]'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed',
-                  )}
-                >
-                  {t('quiz.submitAnswers')}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
-                {(effectiveQuestions.length > 1
-                  ? [{ question: effectiveQuestions[answeringQuestionIndex], index: answeringQuestionIndex }]
-                  : effectiveQuestions.map((question, index) => ({ question, index }))
-                ).map(({ question, index }) =>
-                  renderQuestion(
-                    question,
-                    index,
-                    getEffectiveAnswer(question, answers[question.id]),
-                    (value) => handleSetAnswer(question.id, value),
-                    undefined,
-                    locale,
-                    handleQuestionUpdate,
-                  ),
-                )}
-              </div>
-              {effectiveQuestions.length > 1 && (
-                <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-3 border-t border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur">
-                  <button
-                    type="button"
-                    disabled={answeringQuestionIndex <= 0}
-                    onClick={() => setAnsweringQuestionIndex((i) => Math.max(0, i - 1))}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
-                      answeringQuestionIndex <= 0
-                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    {t('quiz.prevQuestion')}
-                  </button>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-                    {answeringQuestionIndex + 1} / {effectiveQuestions.length}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={answeringQuestionIndex >= effectiveQuestions.length - 1}
-                    onClick={() =>
-                      setAnsweringQuestionIndex((i) =>
-                        Math.min(effectiveQuestions.length - 1, i + 1),
-                      )
-                    }
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
-                      answeringQuestionIndex >= effectiveQuestions.length - 1
-                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    {t('quiz.nextQuestion')}
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+            <div
+              className={cn(
+                'h-full min-h-0 bg-gradient-to-br from-rose-50/45 via-white to-sky-50/55 dark:from-rose-950/10 dark:via-slate-900 dark:to-sky-950/15',
+                useBattleShell ? 'p-0' : 'p-4',
               )}
+            >
+              <div
+                className={cn(
+                  'grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]',
+                  useBattleShell ? 'gap-0' : 'gap-4',
+                )}
+              >
+                <div
+                  className={cn('flex min-h-0 flex-col gap-3', useBattleShell ? 'p-3 md:p-4' : '')}
+                >
+                  {battleHeader ? <div className="shrink-0">{battleHeader}</div> : null}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white/95 shadow-sm dark:border-white/10 dark:bg-slate-900/85">
+                    <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/80">
+                      <div className="flex items-center gap-2">
+                        <PieChart className="h-4 w-4 text-sky-500" />
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                          {t('quiz.answering')}
+                        </span>
+                        <span className="ml-1 text-xs text-gray-400">
+                          {effectiveQuestions.length > 1
+                            ? locale === 'zh-CN'
+                              ? `第 ${answeringQuestionIndex + 1} / ${effectiveQuestions.length} 题 · 已答 ${answeredCount}`
+                              : `Q${answeringQuestionIndex + 1}/${effectiveQuestions.length} · ${answeredCount} answered`
+                            : `${answeredCount} / ${effectiveQuestions.length}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {onHubPrevQuestion && (
+                          <button
+                            type="button"
+                            onClick={onHubPrevQuestion}
+                            disabled={hubPrevDisabled}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                              hubPrevDisabled
+                                ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                                : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                            )}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            {t('quiz.prevQuestion')}
+                          </button>
+                        )}
+                        {onHubNextQuestion && (
+                          <button
+                            type="button"
+                            onClick={onHubNextQuestion}
+                            disabled={hubNextDisabled}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                              hubNextDisabled
+                                ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                                : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                            )}
+                          >
+                            {t('quiz.nextQuestion')}
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={handleSubmit}
+                          disabled={!allAnswered}
+                          className={cn(
+                            'rounded-lg px-4 py-1.5 text-xs font-medium transition-all',
+                            allAnswered
+                              ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm hover:shadow-md hover:shadow-sky-200/50 active:scale-[0.97] dark:hover:shadow-sky-900/50'
+                              : 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500',
+                          )}
+                        >
+                          {t('quiz.submitAnswers')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                      {(effectiveQuestions.length > 1
+                        ? [
+                            {
+                              question: effectiveQuestions[answeringQuestionIndex],
+                              index: answeringQuestionIndex,
+                            },
+                          ]
+                        : effectiveQuestions.map((question, index) => ({ question, index }))
+                      ).map(({ question, index }) => (
+                        <div key={question.id} className="space-y-3">
+                          <LearningAssistPanels question={question} run={learningRun} />
+                          {renderQuestion(
+                            question,
+                            index,
+                            getEffectiveAnswer(question, answers[question.id]),
+                            (value) => handleSetAnswer(question.id, value),
+                            undefined,
+                            locale,
+                            handleQuestionUpdate,
+                            learningRun?.eliminatedOptions[question.id] ?? [],
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {effectiveQuestions.length > 1 && (
+                      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-100 bg-white/90 px-6 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/90">
+                        <button
+                          type="button"
+                          disabled={answeringQuestionIndex <= 0}
+                          onClick={() => setAnsweringQuestionIndex((i) => Math.max(0, i - 1))}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                            answeringQuestionIndex <= 0
+                              ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                              : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                          )}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          {t('quiz.prevQuestion')}
+                        </button>
+                        <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                          {answeringQuestionIndex + 1} / {effectiveQuestions.length}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={answeringQuestionIndex >= effectiveQuestions.length - 1}
+                          onClick={() =>
+                            setAnsweringQuestionIndex((i) =>
+                              Math.min(effectiveQuestions.length - 1, i + 1),
+                            )
+                          }
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                            answeringQuestionIndex >= effectiveQuestions.length - 1
+                              ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                              : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                          )}
+                        >
+                          {t('quiz.nextQuestion')}
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <LearningCompanionPanel
+                  run={learningRun}
+                  currentQuestion={effectiveQuestions[answeringQuestionIndex]}
+                  summary={learningRunSummary}
+                  modelId={live2dPresenterModelId}
+                  phase={phase}
+                  answeredCount={answeredCount}
+                  totalCount={effectiveQuestions.length}
+                  onUseCard={handleUseLearningCard}
+                  fullHeight={useBattleShell}
+                />
+              </div>
             </div>
           </motion.div>
         )}
@@ -1929,74 +2562,109 @@ export function QuizView({
             key="reviewing"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex-1 flex flex-col min-h-0"
+            className="flex-1 min-h-0"
           >
-            <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur shrink-0">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {t('quiz.quizReport')}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {onHubPrevQuestion && (
-                  <button
-                    type="button"
-                    onClick={onHubPrevQuestion}
-                    disabled={hubPrevDisabled}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                      hubPrevDisabled
-                        ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    {t('quiz.prevQuestion')}
-                  </button>
+            <div
+              className={cn(
+                'h-full min-h-0 bg-gradient-to-br from-rose-50/45 via-white to-sky-50/55 dark:from-rose-950/10 dark:via-slate-900 dark:to-sky-950/15',
+                useBattleShell ? 'p-0' : 'p-4',
+              )}
+            >
+              <div
+                className={cn(
+                  'grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]',
+                  useBattleShell ? 'gap-0' : 'gap-4',
                 )}
-                {onHubNextQuestion && (
-                  <button
-                    type="button"
-                    onClick={onHubNextQuestion}
-                    disabled={hubNextDisabled}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                      hubNextDisabled
-                        ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
-                        : 'text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30',
-                    )}
-                  >
-                    {t('quiz.nextQuestion')}
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={handleRetry}
-                  className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+              >
+                <div
+                  className={cn('flex min-h-0 flex-col gap-3', useBattleShell ? 'p-3 md:p-4' : '')}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  {t('quiz.retry')}
-                </button>
+                  {battleHeader ? <div className="shrink-0">{battleHeader}</div> : null}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white/95 shadow-sm dark:border-white/10 dark:bg-slate-900/85">
+                    <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/80">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                          {t('quiz.quizReport')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {onHubPrevQuestion && (
+                          <button
+                            type="button"
+                            onClick={onHubPrevQuestion}
+                            disabled={hubPrevDisabled}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                              hubPrevDisabled
+                                ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                                : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                            )}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            {t('quiz.prevQuestion')}
+                          </button>
+                        )}
+                        {onHubNextQuestion && (
+                          <button
+                            type="button"
+                            onClick={onHubNextQuestion}
+                            disabled={hubNextDisabled}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                              hubNextDisabled
+                                ? 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                                : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/30',
+                            )}
+                          >
+                            {t('quiz.nextQuestion')}
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={handleRetry}
+                          className="flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-sky-600 dark:text-gray-400 dark:hover:text-sky-400"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          {t('quiz.retry')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                      {!(singleQuestionMode && effectiveQuestions.length === 1) && (
+                        <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
+                      )}
+                      <LearningRunSummaryBanner
+                        summary={learningRunSummary}
+                        unlockedCards={newlyUnlockedCards}
+                      />
+                      <GamificationRewardBanner reward={gamificationReward} />
+                      {effectiveQuestions.map((question, index) =>
+                        renderQuestion(
+                          question,
+                          index,
+                          getEffectiveAnswer(question, answers[question.id]),
+                          () => {},
+                          resultMap[question.id],
+                          locale,
+                          handleQuestionUpdate,
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <LearningCompanionPanel
+                  run={learningRun}
+                  currentQuestion={effectiveQuestions[0]}
+                  summary={learningRunSummary}
+                  modelId={live2dPresenterModelId}
+                  phase={phase}
+                  answeredCount={effectiveQuestions.length}
+                  totalCount={effectiveQuestions.length}
+                  onUseCard={handleUseLearningCard}
+                  fullHeight={useBattleShell}
+                />
               </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {!(singleQuestionMode && effectiveQuestions.length === 1) && (
-                <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
-              )}
-              <GamificationRewardBanner reward={gamificationReward} />
-              {effectiveQuestions.map((question, index) =>
-                renderQuestion(
-                  question,
-                  index,
-                  getEffectiveAnswer(question, answers[question.id]),
-                  () => {},
-                  resultMap[question.id],
-                  locale,
-                  handleQuestionUpdate,
-                ),
-              )}
             </div>
           </motion.div>
         )}

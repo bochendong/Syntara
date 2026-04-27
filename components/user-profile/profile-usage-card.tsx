@@ -19,22 +19,30 @@ export function ProfileUsageCard() {
     const applyHash = () => {
       if (window.location.hash === '#profile-usage-card-notification') {
         setActiveTab('notification');
-        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document
+          .getElementById('profile-usage-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
       if (window.location.hash === '#profile-usage-card-avatar') {
         setActiveTab('avatar');
-        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document
+          .getElementById('profile-usage-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
       if (window.location.hash === '#profile-usage-card-avatar-frame') {
         setActiveTab('avatar-frame');
-        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document
+          .getElementById('profile-usage-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
       if (window.location.hash === '#profile-usage-card-sidebar') {
         setActiveTab('sidebar');
-        document.getElementById('profile-usage-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document
+          .getElementById('profile-usage-card')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     };
     applyHash();
@@ -45,11 +53,11 @@ export function ProfileUsageCard() {
   return (
     <Card
       id="profile-usage-card"
-      className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80"
+      className="!gap-0 scroll-mt-24 border-muted/40 bg-white/80 p-5 shadow-xl backdrop-blur-xl dark:bg-slate-900/80"
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
         <div className="border-b border-border/60 pb-4">
-          <div className="mx-auto w-full max-w-3xl">
+          <div className="mx-auto w-full max-w-4xl">
             <TabsList
               className="grid h-auto w-full grid-cols-2 gap-0.5 p-1 sm:grid-cols-4"
               variant="default"
@@ -75,11 +83,15 @@ export function ProfileUsageCard() {
           id="profile-usage-card-notification"
           className="mt-4 min-w-0 scroll-mt-4"
         >
-          <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
+          <div className="mx-auto w-full max-w-6xl">
             <ProfileNotificationStylePicker />
           </div>
         </TabsContent>
-        <TabsContent value="avatar" id="profile-usage-card-avatar" className="mt-4 min-w-0 scroll-mt-4">
+        <TabsContent
+          value="avatar"
+          id="profile-usage-card-avatar"
+          className="mt-4 min-w-0 scroll-mt-4"
+        >
           <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
             <ProfileAvatarPicker size="lg" />
           </div>

@@ -109,10 +109,9 @@ import {
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { ProtocolMessageEnvelope } from '@/lib/types/agent-chat-protocol';
-import {
-  runNotebookGenerationTask,
-  type NotebookGenerationProgress,
-} from '@/lib/create/run-notebook-generation-task';
+import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
+import { NotebookGenerationQueuePanel } from '@/components/generation/notebook-generation-queue-panel';
+import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
 import { useOrchestratorNotebookGenStore } from '@/lib/store/orchestrator-notebook-generation';
 import {
@@ -1370,6 +1369,7 @@ export function ChatPageClient() {
   const [nbThreadHydrated, setNbThreadHydrated] = useState(false);
   const [agThread, setAgThread] = useState<UIMessage<ChatMessageMetadata>[]>([]);
   const [draft, setDraft] = useState('');
+  const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
   const [sending, setSending] = useState(false);
   const [notebookPendingAction, setNotebookPendingAction] = useState<'chat' | 'import' | null>(
     null,
@@ -2236,34 +2236,42 @@ export function ChatPageClient() {
     });
   }, []);
 
-  const onPickAttachments = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const selected = Array.from(files).slice(0, 6);
-    const built: NotebookAttachmentInput[] = [];
-    for (const file of selected) {
-      const textExcerpt = await extractTextExcerpt(file);
-      built.push({
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        size: file.size,
-        textExcerpt,
-        file,
-      });
-    }
-    setPendingAttachments((prev) => [...prev, ...built].slice(-6));
-    if (
-      isCourseOrchestrator &&
-      orchestratorViewMode === 'private' &&
-      orchestratorComposerMode === 'send-message' &&
-      built.some((attachment) => attachment.file && isNotebookPipelineSourceFile(attachment.file))
-    ) {
-      switchOrchestratorComposer('generate-notebook');
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  const onPickAttachments = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const selected = Array.from(files).slice(0, 6);
+      const built: NotebookAttachmentInput[] = [];
+      for (const file of selected) {
+        const textExcerpt = await extractTextExcerpt(file);
+        built.push({
+          id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+          textExcerpt,
+          file,
+        });
+      }
+      setPendingAttachments((prev) => [...prev, ...built].slice(-6));
+      if (
+        isCourseOrchestrator &&
+        orchestratorViewMode === 'private' &&
+        orchestratorComposerMode === 'send-message' &&
+        built.some((attachment) => attachment.file && isNotebookPipelineSourceFile(attachment.file))
+      ) {
+        switchOrchestratorComposer('generate-notebook');
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [
+      isCourseOrchestrator,
+      orchestratorComposerMode,
+      orchestratorViewMode,
+      switchOrchestratorComposer,
+    ],
+  );
 
   const handleComposerDragEnter = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
@@ -2987,113 +2995,157 @@ export function ChatPageClient() {
         if (decision.type === 'create') {
           if (parentTaskId) {
             await updateAgentTask(parentTaskId, {
-              detail: '已开始创建笔记本，正在生成大纲与页面…',
+              detail: '已加入笔记本生成队列，等待自动开始…',
               status: 'running',
             });
           }
 
           const orchGen = useOrchestratorNotebookGenStore.getState();
-          const created = await runNotebookGenerationTask({
-            courseId: courseId || undefined,
-            generationTaskId: parentTaskId,
-            requirement: mergedPrompt,
-            modelIdOverride: orchGen.modelIdOverride,
-            notebookStageModelOverrides: orchGen.notebookStageModelOverrides,
-            notebookModelMode: orchGen.notebookModelMode,
-            language: orchGen.language,
-            webSearch: orchGen.webSearch,
-            userNickname: nickname.trim() || undefined,
-            signal: controller.signal,
-            sourceFile: sourceFileForPipeline,
-            sourcePageSelection: effectiveSourcePageSelection,
-            imageGenerationEnabledOverride: orchGen.useAiImages,
-            outlinePreferences: {
-              length: orchGen.outlineLength,
-              includeQuizScenes: orchGen.includeQuizScenes,
-              workedExampleLevel: orchGen.workedExampleLevel ?? 'moderate',
+          enqueueNotebookGeneration(
+            {
+              courseId: courseId || undefined,
+              generationTaskId: parentTaskId,
+              requirement: mergedPrompt,
+              modelIdOverride: orchGen.modelIdOverride,
+              notebookStageModelOverrides: orchGen.notebookStageModelOverrides,
+              notebookModelMode: orchGen.notebookModelMode,
+              language: orchGen.language,
+              webSearch: orchGen.webSearch,
+              generateSlides: orchGen.generateSlides,
+              userNickname: nickname.trim() || undefined,
+              sourceFile: sourceFileForPipeline,
+              sourcePageSelection: effectiveSourcePageSelection,
+              imageGenerationEnabledOverride: orchGen.useAiImages,
+              outlinePreferences: {
+                length: orchGen.outlineLength,
+                includeQuizScenes: orchGen.includeQuizScenes,
+                workedExampleLevel: orchGen.workedExampleLevel ?? 'moderate',
+              },
             },
-            onProgress: (progress) => {
-              log.info('[Orchestrator] Notebook generation progress', {
-                stage: progress.stage,
-                detail: progress.detail,
-                completed: 'completed' in progress ? progress.completed : undefined,
-                total: 'total' in progress ? progress.total : undefined,
-                notebookId: 'notebookId' in progress ? progress.notebookId : undefined,
-              });
-              if (progress.stage === 'completed') {
-                return;
-              }
-              if (progress.stage === 'notebook-ready') {
-                if (courseId) {
-                  window.dispatchEvent(
-                    new CustomEvent('synatra-notebook-list-updated', {
-                      detail: { courseId, notebookId: progress.notebookId },
-                    }),
-                  );
+            {
+              onProgress: (_task, progress) => {
+                log.info('[Orchestrator] Notebook generation progress', {
+                  stage: progress.stage,
+                  detail: progress.detail,
+                  completed: 'completed' in progress ? progress.completed : undefined,
+                  total: 'total' in progress ? progress.total : undefined,
+                  notebookId: 'notebookId' in progress ? progress.notebookId : undefined,
+                });
+                if (progress.stage === 'completed') {
+                  return;
                 }
+                if (progress.stage === 'notebook-ready') {
+                  if (courseId) {
+                    window.dispatchEvent(
+                      new CustomEvent('synatra-notebook-list-updated', {
+                        detail: { courseId, notebookId: progress.notebookId },
+                      }),
+                    );
+                  }
+                  if (parentTaskId) {
+                    void updateAgentTask(parentTaskId, {
+                      detail: progress.detail,
+                      status: 'running',
+                      notebookId: progress.notebookId,
+                    });
+                  }
+                }
+                setOrchestratorPipelineProgress(progress);
                 if (parentTaskId) {
                   void updateAgentTask(parentTaskId, {
                     detail: progress.detail,
                     status: 'running',
-                    notebookId: progress.notebookId,
                   });
                 }
-              }
-              setOrchestratorPipelineProgress(progress);
-              if (parentTaskId) {
-                void updateAgentTask(parentTaskId, {
-                  detail: progress.detail,
-                  status: 'running',
+              },
+              onCompleted: (_task, created) => {
+                const generatedSlides = created.scenes.length > 0;
+                setAgThread((thread) => [
+                  ...thread,
+                  buildChatMessage(
+                    generatedSlides
+                      ? `笔记本「${created.stage.name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`
+                      : `笔记本「${created.stage.name}」已加入仓库。按你的设置，这次没有生成 PPT 课件。`,
+                    {
+                      senderName: COURSE_ORCHESTRATOR_NAME,
+                      senderAvatar: orchestratorAvatar,
+                      originalRole: 'teacher',
+                      actions: [
+                        {
+                          id: `open-notebook:${created.stage.id}`,
+                          label: '打开笔记本',
+                          variant: 'highlight',
+                        },
+                      ],
+                    },
+                  ),
+                ]);
+                log.info('[Orchestrator] Notebook generation task completed', {
+                  notebookId: created.stage.id,
+                  notebookName: created.stage.name,
+                  outlineCount: created.outlines.length,
+                  generatedSceneCount: created.scenes.length,
+                  generatedSceneOrders: created.scenes.map((scene) => scene.order),
+                  failedSceneCount: created.failedScenes?.length ?? 0,
+                  failedScenes: (created.failedScenes || []).map((item) => ({
+                    outlineId: item.outlineId,
+                    title: item.title,
+                    error: item.error,
+                  })),
                 });
-              }
+                if (courseId) {
+                  window.dispatchEvent(
+                    new CustomEvent('synatra-notebook-list-updated', {
+                      detail: { courseId, notebookId: created.stage.id },
+                    }),
+                  );
+                }
+                if (parentTaskId) {
+                  orchestratorCompletionAnnouncedRef.current = parentTaskId;
+                  void updateAgentTask(parentTaskId, {
+                    detail: `创建完成：${created.stage.name}`,
+                    status: 'done',
+                    notebookId: created.stage.id,
+                  });
+                }
+                setOrchestratorPipelineProgress(null);
+              },
+              onFailed: (_task, message) => {
+                setAgThread((thread) => [
+                  ...thread,
+                  buildChatMessage(`总控任务失败：${message}`, {
+                    senderName: '系统',
+                    originalRole: 'agent',
+                  }),
+                ]);
+                if (parentTaskId) {
+                  void updateAgentTask(parentTaskId, {
+                    status: 'failed',
+                    detail: message.slice(0, 300),
+                  });
+                }
+                setOrchestratorPipelineProgress(null);
+              },
+              onCancelled: () => {
+                if (parentTaskId) {
+                  void cancelAgentTask(parentTaskId, '任务已取消');
+                }
+                setOrchestratorPipelineProgress(null);
+              },
             },
-          });
-
+          );
           appendAgentMessage(
             buildChatMessage(
-              `笔记本「${created.stage.name}」已创建完成。现在可以直接打开它开始提问、查看内容或听讲。`,
+              orchGen.generateSlides
+                ? '已加入笔记本生成队列。你可以继续上传下一个笔记本，我会按顺序生成。'
+                : '已加入笔记本生成队列。这个任务会只加入仓库，不生成 PPT；你可以继续上传下一个笔记本。',
               {
                 senderName: COURSE_ORCHESTRATOR_NAME,
                 senderAvatar: orchestratorAvatar,
                 originalRole: 'teacher',
-                actions: [
-                  {
-                    id: `open-notebook:${created.stage.id}`,
-                    label: '打开笔记本',
-                    variant: 'highlight',
-                  },
-                ],
               },
             ),
           );
-          log.info('[Orchestrator] Notebook generation task completed', {
-            notebookId: created.stage.id,
-            notebookName: created.stage.name,
-            outlineCount: created.outlines.length,
-            generatedSceneCount: created.scenes.length,
-            generatedSceneOrders: created.scenes.map((scene) => scene.order),
-            failedSceneCount: created.failedScenes?.length ?? 0,
-            failedScenes: (created.failedScenes || []).map((item) => ({
-              outlineId: item.outlineId,
-              title: item.title,
-              error: item.error,
-            })),
-          });
-          if (courseId) {
-            window.dispatchEvent(
-              new CustomEvent('synatra-notebook-list-updated', {
-                detail: { courseId, notebookId: created.stage.id },
-              }),
-            );
-          }
-          if (parentTaskId) {
-            orchestratorCompletionAnnouncedRef.current = parentTaskId;
-            await updateAgentTask(parentTaskId, {
-              detail: `创建完成：${created.stage.name}`,
-              status: 'done',
-              notebookId: created.stage.id,
-            });
-          }
         } else if (decision.type === 'single') {
           appendAgentMessage(
             buildChatMessage(
@@ -3659,12 +3711,10 @@ export function ChatPageClient() {
             })
           : null}
 
+        {mode === 'agent' && isCourseOrchestrator ? <NotebookGenerationQueuePanel compact /> : null}
+
         {mode === 'agent' && isCourseOrchestrator && orchestratorPipelineProgress ? (
-          <OrchestratorNotebookProgressPanel
-            progress={orchestratorPipelineProgress}
-            onCancel={handleCancelOrchestratorTask}
-            cancelPending={orchestratorTaskCancelling}
-          />
+          <OrchestratorNotebookProgressPanel progress={orchestratorPipelineProgress} />
         ) : mode === 'agent' && isCourseOrchestrator && orchestratorRemoteTask ? (
           <OrchestratorRemoteTaskBanner
             detail={orchestratorRemoteTask.detail}

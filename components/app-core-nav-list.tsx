@@ -32,43 +32,43 @@ function navItemClass(
 ) {
   if (itemLayout === 'grid' && !collapsed) {
     return cn(
-      'flex min-h-[3.75rem] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[12px] border px-1.5 py-2 text-center text-[11px] font-medium leading-snug transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+      'flex min-h-[3.2rem] w-full min-w-0 items-center justify-start gap-2 rounded-[12px] border px-2.5 py-2 text-left text-[12px] font-medium leading-snug transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
       active
         ? variant === 'notebook'
           ? blackSurface
-            ? 'border-white/48 bg-[linear-gradient(135deg,rgba(99,102,241,0.3),rgba(59,130,246,0.2))] text-sky-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
-            : 'border-sky-400/80 bg-[linear-gradient(135deg,rgba(76,110,245,0.16),rgba(14,165,233,0.12))] text-[#3155D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] dark:border-sky-300/60 dark:bg-[linear-gradient(135deg,rgba(99,102,241,0.24),rgba(59,130,246,0.18))] dark:text-sky-100'
+            ? 'border-sky-300/45 bg-sky-400/14 text-sky-100 shadow-[inset_3px_0_0_rgba(125,211,252,0.75)]'
+            : 'border-sky-300/70 bg-sky-50/80 text-sky-700 shadow-[inset_3px_0_0_rgba(56,189,248,0.72)] dark:border-sky-300/45 dark:bg-sky-400/12 dark:text-sky-100'
           : blackSurface
-            ? 'border-sky-300/60 bg-[rgba(10,132,255,0.2)] text-[#5AC8FA]'
-            : 'border-blue-300 bg-[rgba(0,122,255,0.1)] text-[#007AFF] dark:border-sky-300/70 dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]'
+            ? 'border-sky-300/45 bg-sky-400/14 text-sky-100 shadow-[inset_3px_0_0_rgba(125,211,252,0.75)]'
+            : 'border-sky-300/70 bg-sky-50/80 text-sky-700 shadow-[inset_3px_0_0_rgba(56,189,248,0.72)] dark:border-sky-300/45 dark:bg-sky-400/12 dark:text-sky-100'
         : variant === 'notebook'
           ? blackSurface
-            ? 'border-white/24 font-normal text-white/78 hover:bg-white/[0.07]'
-            : 'border-slate-300 font-normal text-slate-700/90 dark:border-white/22 dark:text-white/78 hover:bg-slate-900/[0.05] dark:hover:bg-white/[0.07]'
+            ? 'border-white/12 bg-white/[0.035] font-normal text-white/76 hover:border-white/22 hover:bg-white/[0.07] hover:text-white'
+            : 'border-slate-200/85 bg-white/34 font-normal text-slate-700/90 hover:border-slate-300/90 hover:bg-white/75 hover:text-slate-950 dark:border-white/12 dark:bg-white/[0.035] dark:text-white/76 dark:hover:border-white/22 dark:hover:bg-white/[0.07] dark:hover:text-white'
           : blackSurface
-            ? 'border-white/22 font-normal text-white/75 hover:bg-white/[0.06]'
-            : 'border-slate-300 font-normal text-[#1d1d1f]/80 dark:border-white/22 dark:text-white/75 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
+            ? 'border-white/12 bg-white/[0.035] font-normal text-white/74 hover:border-white/22 hover:bg-white/[0.07] hover:text-white'
+            : 'border-slate-200/85 bg-white/34 font-normal text-[#1d1d1f]/78 hover:border-slate-300/90 hover:bg-white/75 hover:text-slate-950 dark:border-white/12 dark:bg-white/[0.035] dark:text-white/74 dark:hover:border-white/22 dark:hover:bg-white/[0.07] dark:hover:text-white',
     );
   }
 
   return cn(
-    'flex min-h-10 w-full items-center gap-3 rounded-[12px] py-2 text-left text-xs transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
-    collapsed ? 'justify-center px-2' : 'px-3',
+    'flex min-h-9 w-full items-center gap-3 rounded-[11px] py-1.5 text-left text-xs transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+    collapsed ? 'justify-center px-2' : 'px-2.5',
     active
       ? variant === 'notebook'
         ? blackSurface
-          ? 'bg-[linear-gradient(135deg,rgba(99,102,241,0.3),rgba(59,130,246,0.2))] font-medium text-sky-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
-          : 'bg-[linear-gradient(135deg,rgba(76,110,245,0.16),rgba(14,165,233,0.12))] font-medium text-[#3155D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] dark:bg-[linear-gradient(135deg,rgba(99,102,241,0.24),rgba(59,130,246,0.18))] dark:text-sky-100'
+          ? 'bg-sky-400/9 font-medium text-sky-100 shadow-[inset_2px_0_0_rgba(125,211,252,0.72)]'
+          : 'bg-sky-50/62 font-medium text-sky-700 shadow-[inset_2px_0_0_rgba(56,189,248,0.68)] dark:bg-sky-400/10 dark:text-sky-100'
         : blackSurface
-          ? 'bg-[rgba(10,132,255,0.2)] font-medium text-[#5AC8FA]'
-          : 'bg-[rgba(0,122,255,0.1)] font-medium text-[#007AFF] dark:bg-[rgba(10,132,255,0.15)] dark:text-[#0A84FF]'
+          ? 'bg-sky-400/9 font-medium text-sky-100 shadow-[inset_2px_0_0_rgba(125,211,252,0.72)]'
+          : 'bg-sky-50/62 font-medium text-sky-700 shadow-[inset_2px_0_0_rgba(56,189,248,0.68)] dark:bg-sky-400/10 dark:text-sky-100'
       : variant === 'notebook'
         ? blackSurface
-          ? 'font-normal text-white/78 hover:bg-white/[0.07] hover:translate-x-0.5'
-          : 'font-normal text-slate-700/90 dark:text-white/78 hover:bg-slate-900/[0.05] hover:translate-x-0.5 dark:hover:bg-white/[0.07]'
+          ? 'font-normal text-white/76 hover:bg-white/[0.07] hover:text-white'
+          : 'font-normal text-slate-700/90 hover:bg-slate-900/[0.04] hover:text-slate-950 dark:text-white/76 dark:hover:bg-white/[0.07] dark:hover:text-white'
         : blackSurface
-          ? 'font-normal text-white/75 hover:bg-white/[0.06] hover:translate-x-0.5'
-          : 'font-normal text-[#1d1d1f]/80 dark:text-white/75 hover:bg-black/[0.04] hover:translate-x-0.5 dark:hover:bg-white/[0.06]',
+          ? 'font-normal text-white/74 hover:bg-white/[0.07] hover:text-white'
+          : 'font-normal text-[#1d1d1f]/78 hover:bg-black/[0.04] hover:text-slate-950 dark:text-white/74 dark:hover:bg-white/[0.07] dark:hover:text-white',
   );
 }
 
@@ -168,7 +168,8 @@ export function AppCoreNavList({
   const storeLabel = inCourseContext ? '笔记本商城' : '课程商城';
 
   const live2dActive = pathname === '/live2d' || pathname?.startsWith('/live2d/');
-  const avatarStoreActive = pathname === '/store/avatars' || pathname?.startsWith('/store/avatars/');
+  const avatarStoreActive =
+    pathname === '/store/avatars' || pathname?.startsWith('/store/avatars/');
   const courseMilestoneActive =
     Boolean(pathname?.startsWith('/course/')) &&
     (pathname?.endsWith('/milestone') || pathname?.includes('/milestone/'));
@@ -489,16 +490,32 @@ export function AppCoreNavList({
                 ? { target: '_blank' as const, rel: 'noopener noreferrer' as const }
                 : {})}
             >
-              <span className="relative shrink-0">
+              <span
+                className={cn(
+                  'relative shrink-0',
+                  isGrid &&
+                    cn(
+                      'flex size-7 items-center justify-center rounded-[9px]',
+                      item.active
+                        ? blackSurface
+                          ? 'bg-sky-300/14'
+                          : 'bg-sky-100/90 dark:bg-sky-300/14'
+                        : blackSurface
+                          ? 'bg-white/[0.055]'
+                          : 'bg-slate-100/70 dark:bg-white/[0.055]',
+                    ),
+                )}
+              >
                 <Icon
-                  className={cn('shrink-0', isGrid ? 'size-5 opacity-90' : 'size-[18px] opacity-80')}
+                  className={cn(
+                    'shrink-0',
+                    isGrid ? 'size-[17px] opacity-90' : 'size-[18px] opacity-80',
+                  )}
                   strokeWidth={1.75}
                 />
               </span>
               {!collapsed && (
-                <span className={cn('truncate', isGrid && 'line-clamp-2 w-full break-words')}>
-                  {item.label}
-                </span>
+                <span className={cn('truncate', isGrid && 'min-w-0 flex-1')}>{item.label}</span>
               )}
             </Link>
           </TooltipTrigger>
@@ -512,7 +529,7 @@ export function AppCoreNavList({
 
   if (useSectioned) {
     return (
-      <div className="flex flex-col gap-3 p-0">
+      <div className="flex flex-col gap-2.5 p-0">
         {visibleSections.map((section, sectionIndex) => (
           <div
             key={section.key}
@@ -548,12 +565,38 @@ export function AppCoreNavList({
   const ordered = chatRightRailOrder ? sortChatRightRailItems(rawFlat) : rawFlat;
   const itemLayout = collapsed ? 'list' : 'grid';
 
+  if (!collapsed && !chatRightRailOrder) {
+    return (
+      <div className="flex flex-col gap-2.5 p-0">
+        {visibleSections.map((section) => (
+          <div key={section.key} className="min-w-0">
+            <div
+              className={cn(
+                'mb-0.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em]',
+                blackSurface ? 'text-white/42' : 'text-slate-500/75 dark:text-white/42',
+              )}
+            >
+              {section.label}
+            </div>
+            <ul className="flex flex-col gap-0.5 p-0">
+              {section.items.map((item) => renderItem(item, 'list'))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col p-0">
       <ul
         className={cn(
           'p-0',
-          collapsed ? 'flex flex-col gap-0.5' : 'grid grid-cols-3 gap-1.5',
+          collapsed
+            ? 'flex flex-col gap-0.5'
+            : chatRightRailOrder
+              ? 'grid grid-cols-3 gap-1.5'
+              : 'grid grid-cols-2 gap-1.5',
         )}
       >
         {ordered.map((item) => renderItem(item, itemLayout))}

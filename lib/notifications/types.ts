@@ -1,4 +1,4 @@
-export type AppNotificationKind = 'credit_gain' | 'credit_spent';
+export type AppNotificationKind = 'credit_gain' | 'credit_spent' | 'study_nudge';
 
 export type AppNotificationTone = 'positive' | 'negative';
 

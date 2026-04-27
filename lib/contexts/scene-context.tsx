@@ -75,17 +75,19 @@ export function SceneProvider({ children }: { children: React.ReactNode }) {
     (updater: (draft: unknown) => void) => {
       if (!currentScene) return;
 
-      const newContent = produce(currentScene.content, updater);
-      if (
-        currentScene.type === 'slide' &&
-        currentScene.content.type === 'slide' &&
-        newContent?.type === 'slide' &&
-        newContent.semanticDocument
-      ) {
-        newContent.semanticRenderMode = 'manual';
-        newContent.semanticRenderVersion =
-          newContent.semanticRenderVersion ?? SEMANTIC_SLIDE_RENDER_VERSION;
-      }
+      const newContent = produce(currentScene.content, (draft) => {
+        updater(draft);
+        if (
+          currentScene.type === 'slide' &&
+          currentScene.content.type === 'slide' &&
+          draft?.type === 'slide' &&
+          draft.semanticDocument
+        ) {
+          draft.semanticRenderMode = 'manual';
+          draft.semanticRenderVersion =
+            draft.semanticRenderVersion ?? SEMANTIC_SLIDE_RENDER_VERSION;
+        }
+      });
       updateScene(currentScene.id, {
         content: newContent,
       });

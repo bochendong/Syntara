@@ -10,16 +10,35 @@ import {
   LEFT_RAIL_COLLAPSED_STORAGE_KEY,
 } from '@/lib/constants/app-rail-storage';
 
-/** 与 notebook-agent-sidebar 抽屉宽度一致：展开 270px / 收起 88px，侧栏 inset left-4 / right-4 各 16px */
+/** 侧栏 inset left-4 / right-4 各 16px；左侧 Dashboard 导航略宽，右侧聊天栏保持 270px。 */
 const SIDEBAR_GAP = 12;
+const LEFT_RAIL_EXPANDED_WIDTH = 288;
+const RIGHT_RAIL_EXPANDED_WIDTH = 270;
+const RAIL_COLLAPSED_WIDTH = 88;
 
-function railOuterPaddingPx(collapsed: boolean): number {
-  const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : 270;
-  const w = collapsed ? 88 : Math.min(270, maxW);
+function railOuterPaddingPx(collapsed: boolean, expandedWidth: number): number {
+  const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : expandedWidth;
+  const w = collapsed ? RAIL_COLLAPSED_WIDTH : Math.min(expandedWidth, maxW);
   return 16 + w + SIDEBAR_GAP;
 }
 
-function MainShellNoRail({ children }: { children: ReactNode }) {
+function MainShellNoRail({
+  children,
+  balancedInset = false,
+}: {
+  children: ReactNode;
+  balancedInset?: boolean;
+}) {
+  if (balancedInset) {
+    return (
+      <div className="box-border min-h-dvh px-4 py-4">
+        <div className="h-[calc(100dvh-2rem)] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-[20px]">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="box-border min-h-dvh px-4 pt-4 pb-0">
       <div className="h-[calc(100dvh-1rem)] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-[20px]">
@@ -36,6 +55,8 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLanding = pathname === '/';
   const isClassroom = pathname?.startsWith('/classroom/');
   const isAdmin = pathname?.startsWith('/admin');
+  const isReviewImmersive =
+    pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatRightCollapsed, setChatRightCollapsed] = useState(false);
 
@@ -76,16 +97,17 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
+  if (isReviewImmersive) {
+    return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
+  }
+
   if (isClassroom || isAdmin) {
     return <MainShellNoRail>{children}</MainShellNoRail>;
   }
 
   return (
     <>
-      <AppLeftRail
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={persistSidebarCollapsed}
-      />
+      <AppLeftRail collapsed={sidebarCollapsed} onCollapsedChange={persistSidebarCollapsed} />
       <SidebarInset
         leftCollapsed={sidebarCollapsed}
         rightCollapsed={chatRightCollapsed}
@@ -95,7 +117,10 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
       </SidebarInset>
       {isChatPage ? (
         <Suspense fallback={null}>
-          <ChatRightRail collapsed={chatRightCollapsed} onCollapsedChange={persistChatRightCollapsed} />
+          <ChatRightRail
+            collapsed={chatRightCollapsed}
+            onCollapsedChange={persistChatRightCollapsed}
+          />
         </Suspense>
       ) : null}
     </>
@@ -113,15 +138,15 @@ function SidebarInset({
   isChatPage: boolean;
   children: ReactNode;
 }) {
-  const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false));
+  const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH));
   const [padRight, setPadRight] = useState(() =>
-    isChatPage ? railOuterPaddingPx(false) : 16,
+    isChatPage ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
   );
 
   useLayoutEffect(() => {
     const sync = () => {
-      setPadLeft(railOuterPaddingPx(leftCollapsed));
-      setPadRight(isChatPage ? railOuterPaddingPx(rightCollapsed) : 16);
+      setPadLeft(railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH));
+      setPadRight(isChatPage ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH) : 16);
     };
     sync();
     window.addEventListener('resize', sync);

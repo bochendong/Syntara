@@ -9,7 +9,7 @@ import { createLogger } from '@/lib/logger';
 import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
 import { queueWriteStageDraftSnapshot } from '@/lib/utils/stage-draft-snapshot';
 import {
-  readPersistedStageOutlines,
+  readPersistedStageOutlinesAsync,
   writePersistedStageOutlines,
 } from '@/lib/utils/stage-outline-storage';
 
@@ -451,7 +451,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       const { loadStageData } = await import('@/lib/utils/stage-storage');
       const data = await loadStageData(stageId);
 
-      const outlines = readPersistedStageOutlines(stageId);
+      const outlines = await readPersistedStageOutlinesAsync(stageId);
 
       if (data) {
         const loadedScenes = Array.isArray(data.scenes) ? data.scenes : [];

@@ -21,12 +21,21 @@ import type {
   GamificationMissionSummary,
   GamificationSummaryResponse,
 } from '@/lib/types/gamification';
-import { DEFAULT_LIVE2D_PRESENTER_MODEL_ID } from '@/lib/live2d/presenter-models';
+import {
+  DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
+  type Live2DPresenterModelId,
+} from '@/lib/live2d/presenter-models';
+import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
 import {
   DEFAULT_UNLOCKED_USER_AVATAR_IDS,
   USER_AVATAR_GACHA_CATALOG,
   type UserAvatarCatalogItem,
 } from '@/lib/constants/user-avatars';
+import {
+  DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS,
+  PROFILE_COSMETIC_ITEMS,
+  getProfileCosmeticItem,
+} from '@/lib/constants/profile-cosmetics';
 
 type GamificationDbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -58,6 +67,7 @@ const AVATAR_RARITY_RATES: Record<GamificationAvatarRarity, number> = {
 type AvatarInventoryState = {
   ownedIds: string[];
   fragmentCounts: Record<string, number>;
+  cosmeticUnlocks: string[];
 };
 
 const REWARD_RULES = {
@@ -73,6 +83,17 @@ const REWARD_RULES = {
     14: 100,
   } as Record<number, number>,
 } as const;
+
+function getLive2DPersonaMetadata(id: Live2DPresenterModelId): Prisma.InputJsonObject {
+  const persona = LIVE2D_PRESENTER_PERSONAS[id];
+  return {
+    description: persona.description,
+    story: persona.story,
+    teachingStyle: persona.teachingStyle,
+    bondLine: persona.bondLine,
+    personalityTags: [...persona.personalityTags],
+  };
+}
 
 const AFFINITY_LEVEL_THRESHOLDS = [0, 30, 80, 160, 300] as const;
 
@@ -148,10 +169,10 @@ const DEFAULT_CATALOG: Array<{
     sortOrder: 10,
     isDefault: false,
     metadata: {
+      ...getLive2DPersonaMetadata('haru'),
       previewSrc: '/live2d/previews/haru.jpg',
       badgeLabel: 'Haru',
       accentColor: '#38bdf8',
-      description: '新手陪伴搭子，会用轻轻的节奏把你拉回学习状态。',
     },
   },
   {
@@ -163,10 +184,10 @@ const DEFAULT_CATALOG: Array<{
     sortOrder: 20,
     isDefault: false,
     metadata: {
+      ...getLive2DPersonaMetadata('hiyori'),
       previewSrc: '/live2d/previews/hiyori.jpg',
       badgeLabel: 'Hiyori',
       accentColor: '#fb7185',
-      description: '更温柔、更会安慰人的搭子，适合晚间复习和低门槛开做。',
     },
   },
   {
@@ -178,10 +199,10 @@ const DEFAULT_CATALOG: Array<{
     sortOrder: 30,
     isDefault: true,
     metadata: {
+      ...getLive2DPersonaMetadata('mark'),
       previewSrc: '/live2d/previews/mark.jpg',
       badgeLabel: 'Mark',
       accentColor: '#f59e0b',
-      description: '更偏策略型的学习搭子，适合你想稳定冲刺的时候。',
     },
   },
   {
@@ -193,10 +214,10 @@ const DEFAULT_CATALOG: Array<{
     sortOrder: 40,
     isDefault: false,
     metadata: {
+      ...getLive2DPersonaMetadata('mao'),
       previewSrc: '/live2d/previews/mao.jpg',
       badgeLabel: 'Mao',
       accentColor: '#fb7185',
-      description: '元气更足、表情更亮的课堂搭子，适合轻松活泼的讲解场景。',
     },
   },
   {
@@ -208,10 +229,10 @@ const DEFAULT_CATALOG: Array<{
     sortOrder: 60,
     isDefault: false,
     metadata: {
+      ...getLive2DPersonaMetadata('rice'),
       previewSrc: '/live2d/previews/rice.jpg',
       badgeLabel: 'Rice',
       accentColor: '#a78bfa',
-      description: '更轻盈柔和的陪伴型讲师，适合鼓励式、慢节奏的课堂体验。',
     },
   },
   {
@@ -324,6 +345,16 @@ function getMetadataString(metadata: Prisma.JsonValue | null | undefined, key: s
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function getMetadataStringArray(
+  metadata: Prisma.JsonValue | null | undefined,
+  key: string,
+): string[] {
+  if (!isJsonObject(metadata)) return [];
+  const value = metadata[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+}
+
 function getInputMetadataString(
   metadata: Prisma.InputJsonObject | null | undefined,
   key: string,
@@ -365,11 +396,13 @@ function normalizeAvatarInventoryState(
   value: Prisma.JsonValue | null | undefined,
 ): AvatarInventoryState {
   const baseOwned = new Set(DEFAULT_UNLOCKED_USER_AVATAR_IDS);
+  const baseCosmeticUnlocks = new Set(DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS);
   const baseFragments: Record<string, number> = {};
   if (!isJsonObject(value)) {
     return {
       ownedIds: [...baseOwned],
       fragmentCounts: baseFragments,
+      cosmeticUnlocks: [...baseCosmeticUnlocks],
     };
   }
 
@@ -386,9 +419,15 @@ function normalizeAvatarInventoryState(
     });
   }
 
+  const cosmeticRaw = Array.isArray(value.cosmeticUnlocks) ? value.cosmeticUnlocks : [];
+  for (const key of cosmeticRaw) {
+    if (typeof key === 'string' && key.trim()) baseCosmeticUnlocks.add(key.trim());
+  }
+
   return {
     ownedIds: [...baseOwned],
     fragmentCounts: baseFragments,
+    cosmeticUnlocks: [...baseCosmeticUnlocks],
   };
 }
 
@@ -397,6 +436,7 @@ function toAvatarInventoryJson(state: AvatarInventoryState): Prisma.InputJsonObj
     version: 1,
     ownedIds: [...new Set(state.ownedIds)].sort(),
     fragmentCounts: state.fragmentCounts,
+    cosmeticUnlocks: [...new Set(state.cosmeticUnlocks)].sort(),
   };
 }
 
@@ -415,6 +455,17 @@ function buildAvatarInventorySummary(
       fragmentCount: Math.max(0, inventory.fragmentCounts[item.id] ?? 0),
       fragmentTarget: item.fragmentTarget,
       directUnlock: item.directUnlock,
+    })),
+  };
+}
+
+function buildCosmeticInventorySummary(inventory: AvatarInventoryState) {
+  const owned = new Set([...DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS, ...inventory.cosmeticUnlocks]);
+  return {
+    ownedKeys: [...owned],
+    items: PROFILE_COSMETIC_ITEMS.map((item) => ({
+      ...item,
+      owned: owned.has(item.key),
     })),
   };
 }
@@ -1045,6 +1096,11 @@ function mapCharacterSummary(
     metadata && typeof metadata.accentColor === 'string' ? metadata.accentColor : null;
   const description =
     metadata && typeof metadata.description === 'string' ? metadata.description : null;
+  const story = metadata && typeof metadata.story === 'string' ? metadata.story : null;
+  const teachingStyle =
+    metadata && typeof metadata.teachingStyle === 'string' ? metadata.teachingStyle : null;
+  const bondLine = metadata && typeof metadata.bondLine === 'string' ? metadata.bondLine : null;
+  const personalityTags = getMetadataStringArray(row.character.metadata, 'personalityTags');
   const collectionLabel =
     metadata && typeof metadata.collectionLabel === 'string' ? metadata.collectionLabel : null;
 
@@ -1069,6 +1125,10 @@ function mapCharacterSummary(
     badgeLabel,
     accentColor,
     description,
+    story,
+    teachingStyle,
+    bondLine,
+    personalityTags,
     collectionLabel,
     nextUnlockHint,
     fragmentCount:
@@ -1128,6 +1188,7 @@ export async function getGamificationSummary(
     weeklyTasks,
     characters: characterProgress.map(mapCharacterSummary),
     avatarInventory: buildAvatarInventorySummary(avatarInventory),
+    cosmeticInventory: buildCosmeticInventorySummary(avatarInventory),
     nudge,
   };
 }
@@ -1673,6 +1734,77 @@ export async function selectPreferredGamificationCharacter(
   return getGamificationSummary(db, userId);
 }
 
+export async function unlockProfileCosmetic(
+  db: GamificationDbClient,
+  userId: string,
+  cosmeticKey: string,
+): Promise<GamificationSummaryResponse> {
+  const [kind, ...idParts] = cosmeticKey.split(':');
+  const id = idParts.join(':');
+  const cosmetic = getProfileCosmeticItem(kind, id);
+  if (!cosmetic || cosmetic.key !== cosmeticKey) {
+    throw new Error('外观项目不存在');
+  }
+
+  await ensureCatalogSeeded(db);
+  await ensureUserCharacterProgress(db, userId);
+  const profile = await normalizeEngagementProfile(db, userId);
+  const inventory = normalizeAvatarInventoryState(profile.avatarInventory);
+  if (inventory.cosmeticUnlocks.includes(cosmetic.key)) {
+    return getGamificationSummary(db, userId);
+  }
+
+  const balances = await getUserCreditBalances(db, userId);
+  if (balances.purchaseCreditsBalance < cosmetic.cost) {
+    throw new Error('购买积分不足，先去完成几组题再回来解锁吧');
+  }
+
+  if (cosmetic.cost > 0) {
+    await applyCreditDelta(db, {
+      userId,
+      delta: -cosmetic.cost,
+      kind: CreditTransactionKind.AVATAR_UNLOCK_SPEND,
+      accountType: 'PURCHASE',
+      description: `Unlock profile cosmetic: ${cosmetic.label}`,
+      referenceType: 'profile_cosmetic_unlock',
+      referenceId: cosmetic.key,
+      metadata: {
+        cosmeticKey: cosmetic.key,
+        cosmeticKind: cosmetic.kind,
+        cosmeticId: cosmetic.id,
+        label: cosmetic.label,
+      },
+    });
+  }
+
+  const nextInventory: AvatarInventoryState = {
+    ...inventory,
+    cosmeticUnlocks: [...new Set([...inventory.cosmeticUnlocks, cosmetic.key])],
+  };
+  await db.userEngagementProfile.update({
+    where: { userId },
+    data: {
+      avatarInventory: toAvatarInventoryJson(nextInventory),
+    },
+  });
+  await db.learningActionLog.create({
+    data: {
+      userId,
+      actionType: LearningActionType.AVATAR_UNLOCK,
+      rewardedPurchaseCredits: 0,
+      rewardedAffinity: 0,
+      metadata: {
+        cosmeticKey: cosmetic.key,
+        cosmeticKind: cosmetic.kind,
+        cosmeticId: cosmetic.id,
+        cost: cosmetic.cost,
+      },
+    },
+  });
+
+  return getGamificationSummary(db, userId);
+}
+
 async function drawLive2dReward(
   db: GamificationDbClient,
   userId: string,
@@ -1805,6 +1937,7 @@ function drawAvatarRewardFromInventory(inventory: AvatarInventoryState): {
   const nextInventory: AvatarInventoryState = {
     ownedIds: [...inventory.ownedIds],
     fragmentCounts: { ...inventory.fragmentCounts },
+    cosmeticUnlocks: [...inventory.cosmeticUnlocks],
   };
 
   if (item.directUnlock) {
@@ -2018,6 +2151,14 @@ export function buildGamificationDisabledSummary(): GamificationSummaryResponse 
       badgeLabel: String(item.metadata.badgeLabel ?? ''),
       accentColor: String(item.metadata.accentColor ?? ''),
       description: String(item.metadata.description ?? ''),
+      story: String(item.metadata.story ?? ''),
+      teachingStyle: String(item.metadata.teachingStyle ?? ''),
+      bondLine: String(item.metadata.bondLine ?? ''),
+      personalityTags: Array.isArray(item.metadata.personalityTags)
+        ? item.metadata.personalityTags.filter(
+            (tag): tag is string => typeof tag === 'string' && tag.trim() !== '',
+          )
+        : [],
       collectionLabel: String(item.metadata.collectionLabel ?? ''),
       nextUnlockHint: item.isDefault
         ? null
@@ -2035,6 +2176,7 @@ export function buildGamificationDisabledSummary(): GamificationSummaryResponse 
       unlockViaGacha: true,
     })),
     avatarInventory: buildAvatarInventorySummary(normalizeAvatarInventoryState(null)),
+    cosmeticInventory: buildCosmeticInventorySummary(normalizeAvatarInventoryState(null)),
     nudge: {
       title: '登录并启用同步后，陪伴系统就会开始记录',
       body: '数据库启用后才能保存连续学习、亲密度、任务进度和角色解锁状态。',

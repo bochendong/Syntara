@@ -276,6 +276,8 @@ export default function StorePage() {
                     schoolLine={schoolLine}
                     countUnit="页"
                     coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
+                    tertiaryActionLabel={needsJoin ? undefined : '复习'}
+                    onTertiaryAction={needsJoin ? undefined : () => router.push(`/review/${nb.id}`)}
                   />
                 );
               })}
@@ -316,6 +318,8 @@ export default function StorePage() {
                     schoolLine={schoolLine}
                     countUnit="页"
                     coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
+                    tertiaryActionLabel="复习"
+                    onTertiaryAction={() => router.push(`/review/${nb.id}`)}
                   />
                 );
               })}

@@ -43,15 +43,8 @@ function contactRowClass(collapsed: boolean, active: boolean, lightSolidSurface 
   );
 }
 
-function CourseAgentThumb({
-  avatarUrl,
-  label,
-}: {
-  avatarUrl?: string | null;
-  label: string;
-}) {
-  const src =
-    avatarUrl && isImageAvatar(avatarUrl) ? avatarUrl : COURSE_ORCHESTRATOR_AVATAR;
+function CourseAgentThumb({ avatarUrl, label }: { avatarUrl?: string | null; label: string }) {
+  const src = avatarUrl && isImageAvatar(avatarUrl) ? avatarUrl : COURSE_ORCHESTRATOR_AVATAR;
   return (
     <img
       src={src}
@@ -62,7 +55,13 @@ function CourseAgentThumb({
   );
 }
 
-function NotebookThumb({ stage, lightSolidSurface }: { stage: StageListItem; lightSolidSurface?: boolean }) {
+function NotebookThumb({
+  stage,
+  lightSolidSurface,
+}: {
+  stage: StageListItem;
+  lightSolidSurface?: boolean;
+}) {
   if (stage.avatarUrl && isImageAvatar(stage.avatarUrl)) {
     return (
       <img
@@ -76,9 +75,7 @@ function NotebookThumb({ stage, lightSolidSurface }: { stage: StageListItem; lig
     <div
       className={cn(
         'flex size-9 shrink-0 items-center justify-center rounded-lg border',
-        lightSolidSurface
-          ? 'border-slate-200/80 bg-white/60'
-          : 'border-white/12 bg-white/5',
+        lightSolidSurface ? 'border-slate-200/80 bg-white/60' : 'border-white/12 bg-white/5',
       )}
     >
       <BookOpen
@@ -94,9 +91,7 @@ function GroupChatThumb({ lightSolidSurface }: { lightSolidSurface?: boolean }) 
     <div
       className={cn(
         'flex size-9 shrink-0 items-center justify-center rounded-lg border',
-        lightSolidSurface
-          ? 'border-slate-200/80 bg-white/60'
-          : 'border-white/12 bg-white/5',
+        lightSolidSurface ? 'border-slate-200/80 bg-white/60' : 'border-white/12 bg-white/5',
       )}
     >
       <MessagesSquare
@@ -110,11 +105,7 @@ function GroupChatThumb({ lightSolidSurface }: { lightSolidSurface?: boolean }) 
 const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
 const NOTEBOOK_LIST_UPDATED_EVENT = 'synatra-notebook-list-updated';
 
-function matchesContactSearch(
-  needle: string,
-  nb: StageListItem,
-  lastPreview?: string,
-): boolean {
+function matchesContactSearch(needle: string, nb: StageListItem, lastPreview?: string): boolean {
   if (!needle) return true;
   if (nb.name.toLowerCase().includes(needle)) return true;
   if (nb.description?.toLowerCase().includes(needle)) return true;
@@ -247,7 +238,8 @@ export function ChatContactsRail({
       })();
     };
     window.addEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
-    return () => window.removeEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
+    return () =>
+      window.removeEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
   }, [courseId]);
 
   useEffect(() => {
@@ -301,7 +293,10 @@ export function ChatContactsRail({
     };
     window.addEventListener(NOTEBOOK_LIST_UPDATED_EVENT, onNotebookListUpdated as EventListener);
     return () =>
-      window.removeEventListener(NOTEBOOK_LIST_UPDATED_EVENT, onNotebookListUpdated as EventListener);
+      window.removeEventListener(
+        NOTEBOOK_LIST_UPDATED_EVENT,
+        onNotebookListUpdated as EventListener,
+      );
   }, [courseId, refreshNotebooks]);
 
   useEffect(() => {
@@ -330,10 +325,9 @@ export function ChatContactsRail({
   const needle = searchQuery.trim().toLowerCase();
   const filteredNotebooks = useMemo(() => {
     if (!courseId) return [];
-    const visible = notebooks.filter((nb) => nb.sceneCount > 0);
     return needle
-      ? visible.filter((nb) => matchesContactSearch(needle, nb, notebookLastPreview[nb.id]))
-      : visible;
+      ? notebooks.filter((nb) => matchesContactSearch(needle, nb, notebookLastPreview[nb.id]))
+      : notebooks;
   }, [courseId, needle, notebooks, notebookLastPreview]);
 
   /** 最近有聊天的在上；无聊天记录时用笔记本 updatedAt */
@@ -365,7 +359,8 @@ export function ChatContactsRail({
   const groupChatHref = `${orchestratorHref}&view=group`;
   const orchestratorActive =
     selAgent === COURSE_ORCHESTRATOR_ID && !selNotebook && chatView !== 'group';
-  const groupChatActive = selAgent === COURSE_ORCHESTRATOR_ID && !selNotebook && chatView === 'group';
+  const groupChatActive =
+    selAgent === COURSE_ORCHESTRATOR_ID && !selNotebook && chatView === 'group';
   const orchestratorBusy = busyKeys.has(`agent:${COURSE_ORCHESTRATOR_ID}`);
   const groupChatLabel = '群聊';
 
@@ -373,10 +368,7 @@ export function ChatContactsRail({
     <section aria-label="课程 Agent">
       {!collapsed && (
         <h3
-          className={cn(
-            'mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide',
-            railMuted,
-          )}
+          className={cn('mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide', railMuted)}
         >
           课程 Agent
         </h3>
@@ -393,14 +385,19 @@ export function ChatContactsRail({
                 <CourseAgentThumb avatarUrl={courseAvatarUrl} label={courseAgentLabel} />
                 {!collapsed && (
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                    <span className="w-full truncate font-medium leading-tight">{courseAgentLabel}</span>
+                    <span className="w-full truncate font-medium leading-tight">
+                      {courseAgentLabel}
+                    </span>
                     <span className={cn('w-full truncate text-[10px] font-normal', railMuted)}>
                       {COURSE_ORCHESTRATOR_NAME}
                     </span>
                   </span>
                 )}
                 {orchestratorBusy ? (
-                  <span className="size-2.5 shrink-0 rounded-full bg-amber-500" aria-label="处理中" />
+                  <span
+                    className="size-2.5 shrink-0 rounded-full bg-amber-500"
+                    aria-label="处理中"
+                  />
                 ) : null}
               </Link>
             </TooltipTrigger>
@@ -419,10 +416,7 @@ export function ChatContactsRail({
     <section aria-label="群聊">
       {!collapsed && (
         <h3
-          className={cn(
-            'mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide',
-            railMuted,
-          )}
+          className={cn('mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide', railMuted)}
         >
           群聊
         </h3>
@@ -440,21 +434,24 @@ export function ChatContactsRail({
                   <GroupChatThumb lightSolidSurface={lightSolidSurface} />
                   {!collapsed && (
                     <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                      <span className="w-full truncate font-medium leading-tight">{groupChatLabel}</span>
+                      <span className="w-full truncate font-medium leading-tight">
+                        {groupChatLabel}
+                      </span>
                       <span className={cn('w-full truncate text-[10px] font-normal', railMuted)}>
                         课程内协作会话
                       </span>
                     </span>
                   )}
                   {orchestratorBusy ? (
-                    <span className="size-2.5 shrink-0 rounded-full bg-amber-500" aria-label="处理中" />
+                    <span
+                      className="size-2.5 shrink-0 rounded-full bg-amber-500"
+                      aria-label="处理中"
+                    />
                   ) : null}
                 </Link>
               </TooltipTrigger>
               {collapsed && (
-                <TooltipContent side="right">
-                  {groupChatLabel} · 课程内协作会话
-                </TooltipContent>
+                <TooltipContent side="right">{groupChatLabel} · 课程内协作会话</TooltipContent>
               )}
             </Tooltip>
           </li>
@@ -495,13 +492,9 @@ export function ChatContactsRail({
           </h3>
         )}
         {notebooks.length === 0 ? (
-          !collapsed && (
-            <p className={cn('px-2 text-xs', railMuted)}>本课程暂无笔记本</p>
-          )
+          !collapsed && <p className={cn('px-2 text-xs', railMuted)}>本课程暂无笔记本</p>
         ) : displayNotebooks.length === 0 ? (
-          !collapsed && (
-            <p className={cn('px-2 text-xs', railMuted)}>无匹配的笔记本或联系人</p>
-          )
+          !collapsed && <p className={cn('px-2 text-xs', railMuted)}>无匹配的笔记本或联系人</p>
         ) : (
           <ul className="flex list-none flex-col gap-0.5 p-0">
             {displayNotebooks.map((nb) => {
@@ -524,7 +517,10 @@ export function ChatContactsRail({
                             <span className="truncate font-medium leading-tight">{nb.name}</span>
                             {lastPreview ? (
                               <span
-                                className={cn('line-clamp-2 text-left text-[10px] leading-snug', railMuted)}
+                                className={cn(
+                                  'line-clamp-2 text-left text-[10px] leading-snug',
+                                  railMuted,
+                                )}
                                 title={lastPreview}
                               >
                                 {lastPreview}
@@ -555,7 +551,10 @@ export function ChatContactsRail({
                           </span>
                         )}
                         {busy ? (
-                          <span className="size-2.5 shrink-0 rounded-full bg-amber-500" aria-label="处理中" />
+                          <span
+                            className="size-2.5 shrink-0 rounded-full bg-amber-500"
+                            aria-label="处理中"
+                          />
                         ) : null}
                       </Link>
                     </TooltipTrigger>

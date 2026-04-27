@@ -1552,6 +1552,9 @@ export function Stage({
               label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
               done={0}
               total={missingCount}
+              active={0}
+              parallelism={Math.min(6, missingCount)}
+              parallelLabel={locale === 'zh-CN' ? '并发' : 'active'}
             />,
           );
           setSpeechAudioPreparing(true);
@@ -1560,12 +1563,15 @@ export function Stage({
             ttsReady = await ensureMissingSpeechAudioForScene(
               sceneForTts,
               undefined,
-              ({ done, total }) => {
+              ({ done, total, active, parallelism }) => {
                 toast.loading(
                   <SpeechGenerationIndicator
                     label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
                     done={done}
                     total={total}
+                    active={active}
+                    parallelism={parallelism}
+                    parallelLabel={locale === 'zh-CN' ? '并发' : 'active'}
                   />,
                   { id: loadingId },
                 );

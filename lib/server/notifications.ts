@@ -17,6 +17,8 @@ const TOKEN_USAGE_GROUP_WINDOW_MS = 3 * 60 * 1000;
 const NOTEBOOK_GENERATION_GROUP_IDLE_GAP_MS = 5 * 60 * 1000;
 const CREDIT_TRANSFER_GROUP_WINDOW_MS = 15 * 1000;
 const QUIZ_REWARD_GROUP_WINDOW_MS = 60 * 1000;
+const LOW_COMPUTE_BALANCE_THRESHOLD = 100;
+const LOW_PURCHASE_BALANCE_THRESHOLD = 30;
 
 const NOTEBOOK_GENERATION_OPERATION_CODES = new Set([
   'notebook_metadata_generation',
@@ -523,7 +525,7 @@ function mapNotebookGenerationGroupToNotification(group: NotebookGenerationGroup
       Math.abs(totalDelta),
     )}，当前余额 ${formatAccountValue(newestRow.accountType, newestRow.balanceAfter)}。`,
     tone: 'negative',
-    presentation: 'banner',
+    presentation: 'feed',
     amountLabel: `-${formatAccountCompactValue(newestRow.accountType, Math.abs(totalDelta))}`,
     delta: totalDelta,
     balanceAfter: newestRow.balanceAfter,
@@ -564,7 +566,7 @@ function mapTokenUsageGroupToNotification(group: TokenUsageGroup): AppNotificati
       Math.abs(totalDelta),
     )}，当前余额 ${formatAccountValue(newestRow.accountType, newestRow.balanceAfter)}。`,
     tone: 'negative',
-    presentation: 'banner',
+    presentation: 'feed',
     amountLabel: `-${formatAccountCompactValue(newestRow.accountType, Math.abs(totalDelta))}`,
     delta: totalDelta,
     balanceAfter: newestRow.balanceAfter,
@@ -704,7 +706,7 @@ export function mapCreditTransactionToNotification(row: CreditNotificationRow): 
     title: buildNotificationTitle(row),
     body: buildNotificationBody(row),
     tone,
-    presentation: 'banner',
+    presentation: row.delta < 0 ? 'feed' : 'banner',
     amountLabel: `${row.delta > 0 ? '+' : row.delta < 0 ? '-' : ''}${formatAccountCompactValue(
       row.accountType,
       Math.abs(row.delta),
@@ -716,6 +718,36 @@ export function mapCreditTransactionToNotification(row: CreditNotificationRow): 
     sourceLabel: buildSourceLabel(row),
     createdAt: row.createdAt.toISOString(),
     details: buildNotificationDetails(row),
+  };
+}
+
+function buildLowBalanceNotification(args: {
+  userId: string;
+  accountType: 'COMPUTE' | 'PURCHASE';
+  balance: number;
+}): AppNotification {
+  const accountLabel = args.accountType === 'COMPUTE' ? '算力积分' : '奖励币';
+  const formatted =
+    args.accountType === 'COMPUTE'
+      ? formatComputeCreditsLabel(args.balance)
+      : formatPurchaseCreditsLabel(args.balance);
+
+  return {
+    id: `low-balance:${args.accountType}:${args.userId}:${new Date().toISOString().slice(0, 10)}`,
+    kind: 'study_nudge',
+    title: `${accountLabel}快不够啦`,
+    body: `我先提醒你一下，当前${accountLabel}只剩 ${formatted}。普通陪伴提醒不会扣你的钱，但生成路线图、专属关卡包时可能会受影响。`,
+    tone: 'negative',
+    presentation: 'banner',
+    amountLabel: formatted,
+    delta: 0,
+    balanceAfter: args.balance,
+    accountType: args.accountType,
+    sourceKind: 'low_balance',
+    sourceLabel: '余额提醒',
+    createdAt: new Date().toISOString(),
+    details: [{ key: 'account', label: '账户', value: accountLabel }],
+    showBalance: false,
   };
 }
 
@@ -929,5 +961,32 @@ export async function listUserNotifications(
   flushNotebookGenerationGroup();
   flushCreditTransferGroup();
   flushQuizRewardGroup();
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      computeCreditsBalance: true,
+      purchaseCreditsBalance: true,
+    },
+  });
+  if (user) {
+    if (user.computeCreditsBalance <= LOW_COMPUTE_BALANCE_THRESHOLD) {
+      notifications.unshift(
+        buildLowBalanceNotification({
+          userId,
+          accountType: 'COMPUTE',
+          balance: user.computeCreditsBalance,
+        }),
+      );
+    }
+    if (user.purchaseCreditsBalance <= LOW_PURCHASE_BALANCE_THRESHOLD) {
+      notifications.unshift(
+        buildLowBalanceNotification({
+          userId,
+          accountType: 'PURCHASE',
+          balance: user.purchaseCreditsBalance,
+        }),
+      );
+    }
+  }
   return notifications.slice(0, Math.max(1, Math.min(limit, 100)));
 }

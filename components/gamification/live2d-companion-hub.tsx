@@ -45,10 +45,12 @@ import {
   formatComputeCreditsLabel,
   formatPurchaseCreditsLabel,
 } from '@/lib/utils/credits';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 import {
   LIVE2D_PRESENTER_MODELS,
   type Live2DPresenterModelId,
 } from '@/lib/live2d/presenter-models';
+import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
 
 const LIVE2D_CHARACTER_TRAITS: Record<
   Live2DPresenterModelId,
@@ -142,12 +144,7 @@ type NotificationActionOption = {
   motionIndex?: number;
 };
 
-type ShowcasePanelId =
-  | 'mentor-info'
-  | 'voice'
-  | 'motion'
-  | 'skin'
-  | 'stage-background';
+type ShowcasePanelId = 'mentor-info' | 'benefit' | 'voice' | 'motion' | 'skin' | 'stage-background';
 
 type CharacterVoicePack = {
   id: string;
@@ -778,6 +775,10 @@ type CharacterShowcaseItem = {
   affinityExp: number;
   previewSrc?: string | null;
   description?: string | null;
+  story?: string | null;
+  teachingStyle?: string | null;
+  bondLine?: string | null;
+  personalityTags?: string[];
   nextUnlockHint?: string | null;
   modelId: Live2DPresenterModelId | null;
   posterSrc: string;
@@ -908,7 +909,21 @@ export function Live2DCompanionHub() {
           affinityLevel: character.affinityLevel,
           affinityExp: character.affinityExp,
           previewSrc: character.previewSrc,
-          description: character.description,
+          description: modelId
+            ? (character.description ?? LIVE2D_PRESENTER_PERSONAS[modelId].description)
+            : character.description,
+          story: modelId ? (character.story ?? LIVE2D_PRESENTER_PERSONAS[modelId].story) : null,
+          teachingStyle: modelId
+            ? (character.teachingStyle ?? LIVE2D_PRESENTER_PERSONAS[modelId].teachingStyle)
+            : null,
+          bondLine: modelId
+            ? (character.bondLine ?? LIVE2D_PRESENTER_PERSONAS[modelId].bondLine)
+            : null,
+          personalityTags: modelId
+            ? character.personalityTags?.length
+              ? character.personalityTags
+              : [...LIVE2D_PRESENTER_PERSONAS[modelId].personalityTags]
+            : [],
           nextUnlockHint: character.nextUnlockHint,
           modelId,
           posterSrc: modelId
@@ -927,7 +942,11 @@ export function Live2DCompanionHub() {
       affinityLevel: model.id === checkInCompanionId ? 1 : 0,
       affinityExp: 0,
       previewSrc: model.previewSrc,
-      description: '可设为课堂讲解角色；解锁数据库同步后还能承担通知与签到成长职责。',
+      description: LIVE2D_PRESENTER_PERSONAS[model.id].description,
+      story: LIVE2D_PRESENTER_PERSONAS[model.id].story,
+      teachingStyle: LIVE2D_PRESENTER_PERSONAS[model.id].teachingStyle,
+      bondLine: LIVE2D_PRESENTER_PERSONAS[model.id].bondLine,
+      personalityTags: [...LIVE2D_PRESENTER_PERSONAS[model.id].personalityTags],
       nextUnlockHint: null,
       modelId: model.id,
       posterSrc: resolveLive2DPoster(model.id, model.previewSrc),
@@ -1123,6 +1142,7 @@ export function Live2DCompanionHub() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: 1, targetAccountType: 'PURCHASE' }),
           });
+          notifyCreditsBalancesChanged();
           break;
         case 'mock-convert-compute':
           await backendJson('/api/profile/credits/convert', {
@@ -1130,6 +1150,7 @@ export function Live2DCompanionHub() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: 1, targetAccountType: 'COMPUTE' }),
           });
+          notifyCreditsBalancesChanged();
           break;
         case 'mock-lesson-reward':
           await sendEvent({
@@ -1193,14 +1214,27 @@ export function Live2DCompanionHub() {
   const showcaseMotionPacks = showcaseModelId ? buildCharacterMotionPacks(showcaseModelId) : [];
   const showcaseStageSkins = showcaseModelId ? CHARACTER_STAGE_SKINS[showcaseModelId] : [];
   const showcaseUnlockTotal =
-    showcaseVoicePacks.length +
-    showcaseMotionPacks.length +
-    showcaseStageSkins.length;
+    showcaseVoicePacks.length + showcaseMotionPacks.length + showcaseStageSkins.length;
   const showcaseUnlockedCount =
     showcaseVoicePacks.filter((pack) => showcaseLevel >= pack.requiredLevel).length +
     showcaseMotionPacks.filter((pack) => showcaseLevel >= pack.requiredLevel).length +
     showcaseStageSkins.filter((skin) => showcaseLevel >= skin.requiredLevel).length;
   const showcaseTrait = showcaseModelId ? LIVE2D_CHARACTER_TRAITS[showcaseModelId] : null;
+  const showcasePersona = showcaseModelId ? LIVE2D_PRESENTER_PERSONAS[showcaseModelId] : null;
+  const showcasePersonaTitle = showcasePersona?.title ?? '成长型学习导师';
+  const showcaseStory =
+    showcaseCharacter?.story ?? showcasePersona?.story ?? '这位导师的故事还在编写中。';
+  const showcaseStoryParagraphs = showcaseStory
+    .split(/\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const showcaseTeachingStyle =
+    showcaseCharacter?.teachingStyle ?? showcasePersona?.teachingStyle ?? null;
+  const showcaseBondLine = showcaseCharacter?.bondLine ?? showcasePersona?.bondLine ?? null;
+  const showcasePersonalityTags =
+    showcaseCharacter?.personalityTags && showcaseCharacter.personalityTags.length > 0
+      ? showcaseCharacter.personalityTags
+      : (showcasePersona?.personalityTags ?? []);
   const showcaseNotificationBonusTier = showcaseTrait
     ? resolveBonusTier(showcaseTrait.notificationBonuses, showcaseLevel)
     : null;
@@ -1494,6 +1528,19 @@ export function Live2DCompanionHub() {
                         type="button"
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs shadow-[0_10px_28px_rgba(15,23,42,0.25)] backdrop-blur-xl transition-colors',
+                          showcasePanel === 'benefit'
+                            ? 'border-sky-200/45 bg-sky-300/18 text-sky-50'
+                            : 'border-white/18 bg-slate-950/34 text-slate-100 hover:bg-slate-900/52',
+                        )}
+                        onClick={() => setShowcasePanel('benefit')}
+                      >
+                        <Heart className="size-3.5" />
+                        收益效果
+                      </button>
+                      <button
+                        type="button"
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs shadow-[0_10px_28px_rgba(15,23,42,0.25)] backdrop-blur-xl transition-colors',
                           showcasePanel === 'voice'
                             ? 'border-sky-200/45 bg-sky-300/18 text-sky-50'
                             : 'border-white/18 bg-slate-950/34 text-slate-100 hover:bg-slate-900/52',
@@ -1606,6 +1653,9 @@ export function Live2DCompanionHub() {
                           <h2 className="truncate text-2xl font-semibold tracking-tight md:text-[32px]">
                             {showcaseCharacter.name}
                           </h2>
+                          <p className="mt-1 truncate text-xs text-sky-100/74">
+                            {showcasePersonaTitle}
+                          </p>
                         </div>
                         <div className="min-w-[96px] rounded-2xl border border-white/12 bg-white/8 px-3 py-2 text-right">
                           <p className="text-sm font-semibold">
@@ -1636,6 +1686,53 @@ export function Live2DCompanionHub() {
                           <div className="space-y-2">
                             {showcasePanel === 'mentor-info' ? (
                               <>
+                                <div className="rounded-2xl border border-white/12 bg-white/8 px-3 py-3">
+                                  <p className="text-xs text-sky-100/78">人物小传</p>
+                                  <div className="mt-2 space-y-2.5">
+                                    {showcaseStoryParagraphs.map((paragraph, index) => (
+                                      <p
+                                        key={`${showcaseCharacter.id}-story-${index}`}
+                                        className="text-sm leading-6 text-white/90"
+                                      >
+                                        {paragraph}
+                                      </p>
+                                    ))}
+                                  </div>
+                                  {showcasePersonalityTags.length > 0 ? (
+                                    <div className="mt-3 flex flex-wrap gap-1.5">
+                                      {showcasePersonalityTags.map((tag) => (
+                                        <span
+                                          key={`${showcaseCharacter.id}-persona-${tag}`}
+                                          className="rounded-full border border-white/12 bg-white/8 px-2 py-0.5 text-[10px] text-slate-200/82"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                {showcaseTeachingStyle || showcaseBondLine ? (
+                                  <div className="rounded-2xl border border-violet-200/24 bg-violet-300/10 px-3 py-2.5">
+                                    {showcaseTeachingStyle ? (
+                                      <>
+                                        <p className="text-xs text-violet-100/78">陪伴方式</p>
+                                        <p className="mt-1 text-xs leading-5 text-slate-200/82">
+                                          {showcaseTeachingStyle}
+                                        </p>
+                                      </>
+                                    ) : null}
+                                    {showcaseBondLine ? (
+                                      <p className="mt-2 text-xs leading-5 text-violet-100/82">
+                                        {showcaseBondLine}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </>
+                            ) : null}
+
+                            {showcasePanel === 'benefit' ? (
+                              <>
                                 <div className="rounded-2xl border border-sky-200/24 bg-sky-300/10 px-3 py-2.5">
                                   <p className="text-xs text-slate-200/82">成长解锁进度</p>
                                   <p className="mt-1 text-sm font-semibold text-white">
@@ -1645,7 +1742,8 @@ export function Live2DCompanionHub() {
                                 <div className="rounded-2xl border border-emerald-200/24 bg-emerald-300/10 px-3 py-2.5">
                                   <p className="text-xs text-emerald-100/80">通知收益</p>
                                   <p className="mt-1 text-sm font-semibold text-white">
-                                    {showcaseNotificationBonusTier?.current?.label ?? '当前等级暂无额外通知加成'}
+                                    {showcaseNotificationBonusTier?.current?.label ??
+                                      '当前等级暂无额外通知加成'}
                                   </p>
                                   <p className="mt-1 text-[11px] text-emerald-100/75">
                                     {showcaseNotificationBonusTier?.next
@@ -1656,7 +1754,8 @@ export function Live2DCompanionHub() {
                                 <div className="rounded-2xl border border-fuchsia-200/24 bg-fuchsia-300/10 px-3 py-2.5">
                                   <p className="text-xs text-fuchsia-100/80">签到收益</p>
                                   <p className="mt-1 text-sm font-semibold text-white">
-                                    {showcaseSignInBonusTier?.current?.label ?? '当前等级暂无额外签到加成'}
+                                    {showcaseSignInBonusTier?.current?.label ??
+                                      '当前等级暂无额外签到加成'}
                                   </p>
                                   <p className="mt-1 text-[11px] text-fuchsia-100/75">
                                     {showcaseSignInBonusTier?.next

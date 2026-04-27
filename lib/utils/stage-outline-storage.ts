@@ -1,4 +1,5 @@
 import type { SceneOutline } from '@/lib/types/generation';
+import { db } from '@/lib/utils/database';
 
 const SESSION_KEY_PREFIX = 'stage-outlines:';
 const PERSISTENT_KEY_PREFIX = 'stage-outlines-persistent:';
@@ -31,12 +32,16 @@ function parsePersistedOutlines(raw: string | null): PersistedStageOutlines | nu
 
 export function writePersistedStageOutlines(stageId: string, outlines: SceneOutline[]): void {
   if (typeof window === 'undefined') return;
-  const payload = JSON.stringify({
-    savedAt: Date.now(),
-    outlines,
-  } satisfies PersistedStageOutlines);
-  sessionStorage.setItem(`${SESSION_KEY_PREFIX}${stageId}`, payload);
-  localStorage.setItem(`${PERSISTENT_KEY_PREFIX}${stageId}`, payload);
+  void db.stageOutlines
+    .put({
+      stageId,
+      outlines,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    .catch(() => {
+      /* Outline persistence should never block generation. */
+    });
 }
 
 export function readPersistedStageOutlines(stageId: string): SceneOutline[] {
@@ -56,8 +61,18 @@ export function readPersistedStageOutlines(stageId: string): SceneOutline[] {
   return preferred?.outlines ?? [];
 }
 
+export async function readPersistedStageOutlinesAsync(stageId: string): Promise<SceneOutline[]> {
+  if (typeof window === 'undefined') return [];
+  const row = await db.stageOutlines.get(stageId).catch(() => null);
+  if (row?.outlines?.length) return row.outlines;
+  return readPersistedStageOutlines(stageId);
+}
+
 export function clearPersistedStageOutlines(stageId: string): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(`${SESSION_KEY_PREFIX}${stageId}`);
   localStorage.removeItem(`${PERSISTENT_KEY_PREFIX}${stageId}`);
+  void db.stageOutlines.delete(stageId).catch(() => {
+    /* ignore */
+  });
 }

@@ -1,4 +1,8 @@
-import { ProfileHero, ProfileUsageCard, NotificationCenterUsageCard } from '@/components/user-profile';
+import {
+  ProfileHero,
+  ProfileUsageCard,
+  NotificationCenterUsageCard,
+} from '@/components/user-profile';
 
 export default function ProfilePage() {
   return (
@@ -8,7 +12,7 @@ export default function ProfilePage() {
         <div className="animate-orb-2 absolute bottom-[-10rem] right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(88,86,214,0.08)_0%,transparent_72%)]" />
       </div>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-12 pt-8 md:px-8">
+      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-12 pt-8 md:px-8">
         <ProfileHero />
 
         <section className="flex min-w-0 flex-col gap-6">

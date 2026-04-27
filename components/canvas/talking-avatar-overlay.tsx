@@ -65,12 +65,22 @@ type ModelBaseSize = {
 type PixiModule = typeof import('pixi.js');
 type Live2DModule = typeof import('pixi-live2d-display/cubism4');
 type Live2DModelInstance = InstanceType<Live2DModule['Live2DModel']>;
+type Live2DRuntimeInstance = {
+  app: import('pixi.js').Application;
+  model: Live2DModelInstance;
+  resizeObserver: ResizeObserver | null;
+  detachPoseHook: (() => void) | null;
+  unregisterRuntimeInstance: (() => void) | null;
+  destroyed?: boolean;
+};
 
 declare global {
   interface Window {
     PIXI?: PixiModule;
     Live2DCubismCore?: unknown;
     __synatraLive2DCorePromise?: Promise<void>;
+    __synatraLive2DModelLoadQueue?: Promise<void>;
+    __synatraLive2DActiveInstances?: number;
   }
 }
 
@@ -112,12 +122,7 @@ export function TalkingAvatarOverlay({
     normalizedX: 0,
     normalizedY: 0,
   });
-  const instanceRef = useRef<{
-    app: import('pixi.js').Application;
-    model: Live2DModelInstance;
-    resizeObserver: ResizeObserver | null;
-    detachPoseHook: (() => void) | null;
-  } | null>(null);
+  const instanceRef = useRef<Live2DRuntimeInstance | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const wasSpeakingRef = useRef(false);
 
@@ -235,78 +240,111 @@ export function TalkingAvatarOverlay({
 
       setStatus('loading');
 
-      await ensureCubismCoreRuntimeWithFallback(
-        resolvedCoreSrc,
-        LIVE2D_CORE_CDN_FALLBACK_SRC,
-        modelConfig.id,
-      );
+      const loaded = await withLive2DModelLoadLock(async () => {
+        if (cancelled || !mountElement) return null;
 
-      const PIXI = await import('pixi.js');
-      window.PIXI = PIXI;
+        await ensureCubismCoreRuntimeWithFallback(
+          resolvedCoreSrc,
+          LIVE2D_CORE_CDN_FALLBACK_SRC,
+          modelConfig.id,
+        );
 
-      const live2dModule = (await import('pixi-live2d-display/cubism4')) as Live2DModule & {
-        config?: { sound?: boolean };
-        SoundManager?: { destroy?: () => void };
-      };
-      const { Live2DModel } = live2dModule;
-      if (live2dModule.config) {
-        live2dModule.config.sound = false;
-      }
-      live2dModule.SoundManager?.destroy?.();
+        const PIXI = await import('pixi.js');
+        window.PIXI = PIXI;
 
-      if (cancelled || !mountElement) return;
-
-      const app = new PIXI.Application({
-        antialias: true,
-        autoDensity: true,
-        autoStart: true,
-        backgroundAlpha: 0,
-        powerPreference: 'high-performance',
-        resizeTo: mount,
-        resolution: Math.min(window.devicePixelRatio || 1, 2),
-      });
-
-      mount.replaceChildren(app.view as HTMLCanvasElement);
-
-      let model: Live2DModelInstance;
-      try {
-        model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
-      } catch (initialLoadError) {
-        const normalizedInitialError = normalizeUnknownError(initialLoadError);
-        if (!/CubismMoc\.create\(\)/.test(normalizedInitialError.message)) {
-          throw initialLoadError;
+        const live2dModule = (await import('pixi-live2d-display/cubism4')) as Live2DModule & {
+          config?: { sound?: boolean };
+        };
+        const { Live2DModel } = live2dModule;
+        if (live2dModule.config) {
+          live2dModule.config.sound = false;
         }
 
-        console.warn('Live2D model load failed at CubismMoc.create(), reloading Cubism Core', {
-          modelId: modelConfig.id,
-          modelSrc: modelConfig.modelSrc,
-          resolvedModelSrc,
-          coreSrc: resolvedCoreSrc,
-          error: normalizedInitialError,
+        if (cancelled || !mountElement) return null;
+
+        const app = new PIXI.Application({
+          antialias: true,
+          autoDensity: true,
+          autoStart: true,
+          backgroundAlpha: 0,
+          powerPreference: 'high-performance',
+          resizeTo: mount,
+          resolution: Math.min(window.devicePixelRatio || 1, 2),
         });
 
+        mount.replaceChildren(app.view as HTMLCanvasElement);
+
+        let model: Live2DModelInstance;
         try {
-          await forceReloadCubismCore(resolvedCoreSrc);
-          model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
-        } catch (reloadError) {
-          const normalizedReloadError = normalizeUnknownError(reloadError);
-          const fallbackCoreSrc = LIVE2D_CORE_CDN_FALLBACK_SRC;
-          console.warn('Local Cubism Core retry failed, trying CDN fallback core', {
+          model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc, app.ticker);
+        } catch (initialLoadError) {
+          const normalizedInitialError = normalizeUnknownError(initialLoadError);
+          if (!/CubismMoc\.create\(\)/.test(normalizedInitialError.message)) {
+            throw initialLoadError;
+          }
+
+          const activeInstanceCount = getActiveLive2DInstanceCount();
+          console.warn('Live2D model load failed at CubismMoc.create(), retrying safely', {
             modelId: modelConfig.id,
             modelSrc: modelConfig.modelSrc,
             resolvedModelSrc,
             coreSrc: resolvedCoreSrc,
-            fallbackCoreSrc,
-            error: normalizedReloadError,
+            activeInstanceCount,
+            error: normalizedInitialError,
           });
 
-          await forceReloadCubismCore(fallbackCoreSrc);
-          model = await loadPresenterModel(Live2DModel, modelConfig, resolvedModelSrc);
+          try {
+            if (activeInstanceCount > 0) {
+              model = await loadPresenterModel(
+                Live2DModel,
+                modelConfig,
+                resolvedModelSrc,
+                app.ticker,
+              );
+            } else {
+              await forceReloadCubismCore(resolvedCoreSrc);
+              model = await loadPresenterModel(
+                Live2DModel,
+                modelConfig,
+                resolvedModelSrc,
+                app.ticker,
+              );
+            }
+          } catch (reloadError) {
+            const normalizedReloadError = normalizeUnknownError(reloadError);
+            if (activeInstanceCount > 0) {
+              throw reloadError;
+            }
+
+            const fallbackCoreSrc = LIVE2D_CORE_CDN_FALLBACK_SRC;
+            console.warn('Local Cubism Core retry failed, trying CDN fallback core', {
+              modelId: modelConfig.id,
+              modelSrc: modelConfig.modelSrc,
+              resolvedModelSrc,
+              coreSrc: resolvedCoreSrc,
+              fallbackCoreSrc,
+              error: normalizedReloadError,
+            });
+
+            await forceReloadCubismCore(fallbackCoreSrc);
+            model = await loadPresenterModel(
+              Live2DModel,
+              modelConfig,
+              resolvedModelSrc,
+              app.ticker,
+            );
+          }
         }
-      }
+
+        return { app, model };
+      });
+
+      if (!loaded) return;
+
+      const { app, model } = loaded;
 
       if (cancelled) {
-        app.destroy(true, { children: true });
+        destroyLive2DApplication(app, model);
         return;
       }
 
@@ -314,6 +352,7 @@ export function TalkingAvatarOverlay({
 
       app.stage.addChild(model);
       model.eventMode = 'none';
+      const unregisterRuntimeInstance = registerLive2DRuntimeInstance();
 
       const baseSize: ModelBaseSize = {
         width: Math.max(model.width, 1),
@@ -351,6 +390,7 @@ export function TalkingAvatarOverlay({
         model,
         resizeObserver,
         detachPoseHook,
+        unregisterRuntimeInstance,
       };
       setStatus('ready');
     };
@@ -371,20 +411,7 @@ export function TalkingAvatarOverlay({
       cancelled = true;
       const instance = instanceRef.current;
       instanceRef.current = null;
-      instance?.resizeObserver?.disconnect();
-      instance?.detachPoseHook?.();
-      if (instance?.app) {
-        instance.app.destroy(true, { children: true });
-      }
-      if (syncCubismCoreRuntime()) {
-        void import('pixi-live2d-display/cubism4')
-          .then((live2dModule) => {
-            (live2dModule as { SoundManager?: { destroy?: () => void } }).SoundManager?.destroy?.();
-          })
-          .catch(() => {
-            // Ignore cleanup failures for optional motion audio.
-          });
-      }
+      destroyLive2DInstance(instance);
       if (mountElement) {
         mountElement.replaceChildren();
       }
@@ -458,10 +485,12 @@ async function loadPresenterModel(
     idleMotionGroup: string;
   },
   resolvedModelSrc: string,
+  ticker: import('pixi.js').Ticker,
 ): Promise<Live2DModelInstance> {
   const baseOptions = {
     autoFocus: false,
     autoHitTest: false,
+    ticker,
   } as const;
 
   try {
@@ -497,6 +526,98 @@ async function loadPresenterModel(
         motionPreload: 0,
       } as unknown as Parameters<typeof Live2DModel.from>[1])) as Live2DModelInstance;
     }
+  }
+}
+
+function destroyLive2DInstance(instance: Live2DRuntimeInstance | null | undefined) {
+  if (!instance || instance.destroyed) return;
+  instance.destroyed = true;
+
+  try {
+    instance.resizeObserver?.disconnect();
+  } catch {
+    // Best-effort cleanup; the Pixi app cleanup below is more important.
+  }
+  try {
+    instance.detachPoseHook?.();
+  } catch {
+    // Pose hooks are best-effort and may already be detached during hot reload.
+  }
+  try {
+    instance.unregisterRuntimeInstance?.();
+  } catch {
+    // Runtime counters should never block component unmount.
+  }
+
+  destroyLive2DApplication(instance.app, instance.model);
+}
+
+function destroyLive2DApplication(
+  app: import('pixi.js').Application | null | undefined,
+  model?: Live2DModelInstance | null,
+) {
+  if (!app) return;
+
+  const appLike = app as import('pixi.js').Application & {
+    renderer?: import('pixi.js').Renderer | null;
+    stage?: import('pixi.js').Container | null;
+    stop?: () => void;
+  };
+  if (!appLike.renderer && !appLike.stage) return;
+
+  try {
+    appLike.stop?.();
+  } catch {
+    // The ticker can already be partially destroyed during React strict-mode remounts.
+  }
+
+  destroyLive2DModelBeforeTicker(appLike, model);
+
+  try {
+    appLike.stage?.removeChildren?.();
+  } catch {
+    // Removing children is only to avoid recursive child destroy in Application.destroy.
+  }
+
+  try {
+    appLike.destroy(true, { children: false });
+  } catch (error) {
+    console.warn('Live2D presenter cleanup skipped a partially destroyed Pixi app', {
+      error: normalizeUnknownError(error),
+    });
+  }
+}
+
+function destroyLive2DModelBeforeTicker(
+  app: import('pixi.js').Application & {
+    stage?: import('pixi.js').Container | null;
+  },
+  model?: Live2DModelInstance | null,
+) {
+  if (!model) return;
+
+  const modelLike = model as Live2DModelInstance & {
+    destroyed?: boolean;
+    parent?: import('pixi.js').Container | null;
+  };
+  if (modelLike.destroyed) return;
+
+  try {
+    modelLike.parent?.removeChild?.(model);
+  } catch {
+    try {
+      app.stage?.removeChild?.(model);
+    } catch {
+      // The model may have already been detached by Pixi.
+    }
+  }
+
+  try {
+    model.destroy({ children: true });
+  } catch (error) {
+    console.warn('Live2D presenter model cleanup was already partially complete', {
+      error: normalizeUnknownError(error),
+    });
   }
 }
 
@@ -540,7 +661,9 @@ function fitModelToFrame(
   if (layout === 'sidebar') {
     model.anchor.set(0.5, 0.5);
     const scale =
-      Math.min((width * 1.02) / baseSize.width, (height * 0.84) / baseSize.height) * 0.98 * riceBoost;
+      Math.min((width * 1.02) / baseSize.width, (height * 0.84) / baseSize.height) *
+      0.98 *
+      riceBoost;
     model.scale.set(scale);
     model.position.set(width * 0.5, height * 0.5);
     return;
@@ -821,6 +944,62 @@ async function playPresenterMotion(
   } catch {
     // Motion playback is best-effort; our parameter animation still runs.
   }
+}
+
+async function withLive2DModelLoadLock<T>(task: () => Promise<T>): Promise<T> {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) {
+    return task();
+  }
+
+  const previousTask = browserWindow.__synatraLive2DModelLoadQueue ?? Promise.resolve();
+  let releaseCurrentTask: (() => void) | undefined;
+  const currentTask = new Promise<void>((resolve) => {
+    releaseCurrentTask = resolve;
+  });
+
+  const chainedTask = previousTask
+    .catch(() => {
+      // A failed earlier load should not block later Live2D instances.
+    })
+    .then(() => currentTask);
+  browserWindow.__synatraLive2DModelLoadQueue = chainedTask;
+
+  await previousTask.catch(() => {
+    // The active task will surface its own error to its caller.
+  });
+
+  try {
+    return await task();
+  } finally {
+    releaseCurrentTask?.();
+    if (browserWindow.__synatraLive2DModelLoadQueue === chainedTask) {
+      browserWindow.__synatraLive2DModelLoadQueue = undefined;
+    }
+  }
+}
+
+function registerLive2DRuntimeInstance() {
+  const browserWindow = getLive2dBrowserWindow();
+  if (!browserWindow) return null;
+
+  browserWindow.__synatraLive2DActiveInstances =
+    (browserWindow.__synatraLive2DActiveInstances ?? 0) + 1;
+
+  let unregistered = false;
+  return () => {
+    if (unregistered) return;
+    unregistered = true;
+    browserWindow.__synatraLive2DActiveInstances = Math.max(
+      0,
+      (browserWindow.__synatraLive2DActiveInstances ?? 1) - 1,
+    );
+  };
+}
+
+function getActiveLive2DInstanceCount() {
+  const browserWindow = getLive2dBrowserWindow();
+  return browserWindow?.__synatraLive2DActiveInstances ?? 0;
 }
 
 async function ensureCubismCore(coreSrc: string) {

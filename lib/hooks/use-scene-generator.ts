@@ -24,7 +24,8 @@ import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('SceneGenerator');
-const MAX_TTS_PARALLELISM = 3;
+const MAX_TTS_PARALLELISM = 6;
+const MAX_PARALLEL_SCENE_CONTENT = 2;
 
 export interface SpeechAudioProgress {
   done: number;
@@ -41,6 +42,26 @@ interface SceneContentResult {
   effectiveOutlines?: SceneOutline[];
   fallbackUsed?: boolean;
   error?: string;
+}
+
+type SceneContentJobResult =
+  | { success: true; result: SceneContentResult }
+  | { success: false; error: string };
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : fallback;
+}
+
+function createLinkedAbortController(parent?: AbortSignal): AbortController {
+  const controller = new AbortController();
+  if (!parent) return controller;
+  if (parent.aborted) {
+    controller.abort();
+  } else {
+    parent.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  return controller;
 }
 
 interface SceneActionsResult {
@@ -137,9 +158,11 @@ function summarizeSceneContentDiagnostics(details: string | undefined): string |
 async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    const data = (await response.json().catch(() => null)) as
-      | { error?: string; message?: string; details?: string }
-      | null;
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+      message?: string;
+      details?: string;
+    } | null;
     const diagnosticsSummary = summarizeSceneContentDiagnostics(data?.details);
     const baseMessage = data?.message?.trim() || data?.error?.trim() || '';
     if (baseMessage && diagnosticsSummary) return `${baseMessage} (${diagnosticsSummary})`;
@@ -533,10 +556,78 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           .map((a) => a.text);
       }
 
-      // Serial generation loop — two-step per outline
+      let sceneContentGeneration = 0;
+      let sceneContentCursor = 0;
+      const sceneContentJobs = new Map<
+        string,
+        {
+          generation: number;
+          abortController: AbortController;
+          promise: Promise<SceneContentJobResult>;
+        }
+      >();
+
+      const enqueueSceneContentJob = (outline: SceneOutline) => {
+        if (sceneContentJobs.has(outline.id)) return;
+        const generation = sceneContentGeneration;
+        const allOutlinesSnapshot = outlines;
+        const abortController = createLinkedAbortController(signal);
+        const promise = fetchSceneContent(
+          {
+            outline,
+            allOutlines: allOutlinesSnapshot,
+            stageId: stage.id,
+            pdfImages: params.pdfImages,
+            imageMapping: params.imageMapping,
+            stageInfo: params.stageInfo,
+            agents: params.agents,
+            courseContext: params.courseContext,
+          },
+          abortController.signal,
+        )
+          .then((result): SceneContentJobResult => ({ success: true, result }))
+          .catch(
+            (error): SceneContentJobResult => ({
+              success: false,
+              error: errorMessage(error, 'Content generation failed'),
+            }),
+          );
+
+        sceneContentJobs.set(outline.id, {
+          generation,
+          abortController,
+          promise,
+        });
+      };
+
+      const fillSceneContentQueue = () => {
+        while (
+          sceneContentJobs.size < MAX_PARALLEL_SCENE_CONTENT &&
+          sceneContentCursor < pending.length
+        ) {
+          const pendingOutline = pending[sceneContentCursor];
+          const outline =
+            outlines.find((currentOutline) => currentOutline.id === pendingOutline.id) ||
+            pendingOutline;
+          enqueueSceneContentJob(outline);
+          sceneContentCursor += 1;
+        }
+      };
+
+      const resetSceneContentQueue = (nextPendingIndex: number) => {
+        sceneContentGeneration += 1;
+        for (const job of sceneContentJobs.values()) {
+          job.abortController.abort();
+        }
+        sceneContentJobs.clear();
+        sceneContentCursor = nextPendingIndex;
+      };
+
+      // Content generation is prefetched with bounded parallelism; actions still run in order.
       try {
         let pausedByFailureOrAbort = false;
-        for (const pendingOutline of pending) {
+        for (let pendingIndex = 0; pendingIndex < pending.length; pendingIndex += 1) {
+          const pendingOutline = pending[pendingIndex];
           const outline =
             outlines.find((currentOutline) => currentOutline.id === pendingOutline.id) ||
             pendingOutline;
@@ -550,19 +641,28 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
 
           // Step 1: Generate content
           options.onPhaseChange?.('content', outline);
-          const contentResult = await fetchSceneContent(
-            {
-              outline,
-              allOutlines: outlines,
-              stageId: stage.id,
-              pdfImages: params.pdfImages,
-              imageMapping: params.imageMapping,
-              stageInfo: params.stageInfo,
-              agents: params.agents,
-              courseContext: params.courseContext,
-            },
-            signal,
-          );
+          fillSceneContentQueue();
+          let contentJob = sceneContentJobs.get(outline.id);
+          if (!contentJob) {
+            enqueueSceneContentJob(outline);
+            contentJob = sceneContentJobs.get(outline.id);
+          }
+          if (!contentJob) {
+            throw new Error('Content generation task could not be created');
+          }
+
+          const contentJobResult = await contentJob.promise;
+          sceneContentJobs.delete(outline.id);
+          fillSceneContentQueue();
+
+          if (contentJob.generation !== sceneContentGeneration) {
+            pendingIndex -= 1;
+            continue;
+          }
+
+          const contentResult = contentJobResult.success
+            ? contentJobResult.result
+            : ({ success: false, error: contentJobResult.error } satisfies SceneContentResult);
 
           if (!contentResult.success || !contentResult.content) {
             log.warn(
@@ -598,6 +698,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             outlines = spliced.outlines;
             effectiveOutlines = spliced.effectiveOutlines;
             store.getState().setOutlines(outlines);
+            resetSceneContentQueue(pendingIndex + 1);
           }
 
           let pageFailed = false;

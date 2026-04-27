@@ -33,9 +33,7 @@ import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
 import { getElementListRange } from '@/lib/utils/element';
 import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
 import { FlowTimelineOverlay } from '../../components/FlowTimelineOverlay';
-import {
-  CanvasViewportMetricsProvider,
-} from './canvas-viewport-metrics-context';
+import { CanvasViewportMetricsProvider } from './canvas-viewport-metrics-context';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -64,11 +62,7 @@ function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
     if (element.left < LEGACY_FULL_ROW_MIN_LEFT || element.left > LEGACY_FULL_ROW_MAX_LEFT) {
       return element;
     }
-    if (
-      isTextElement &&
-      element.textType !== 'title' &&
-      element.textType !== 'notes'
-    ) {
+    if (isTextElement && element.textType !== 'title' && element.textType !== 'notes') {
       return element;
     }
     return {
@@ -95,8 +89,14 @@ function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
     if (!horizontalSplit) continue;
     const first = byId.get(a.id);
     const second = byId.get(b.id);
-    const firstHeight = first && typeof (first as { height?: unknown }).height === 'number' ? (first as { height: number }).height : 0;
-    const secondHeight = second && typeof (second as { height?: unknown }).height === 'number' ? (second as { height: number }).height : 0;
+    const firstHeight =
+      first && typeof (first as { height?: unknown }).height === 'number'
+        ? (first as { height: number }).height
+        : 0;
+    const secondHeight =
+      second && typeof (second as { height?: unknown }).height === 'number'
+        ? (second as { height: number }).height
+        : 0;
     const oldBottom = Math.max(a.top + firstHeight, b.top + secondHeight);
     const alignedTop = Math.min(a.top, b.top);
     const ae = first;
@@ -156,7 +156,7 @@ export function Canvas(_props: CanvasProps) {
 
   // Subscribe to specific parts for performance optimization
   const rawElements = useSceneSelector<SlideContent, PPTElement[]>(
-    (content) => content.canvas.elements.filter((element) => element.type !== 'shape'),
+    (content) => content.canvas.elements,
   );
   const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
 
@@ -304,7 +304,8 @@ export function Canvas(_props: CanvasProps) {
     setLinkDialogVisible(true);
   };
 
-  const { pasteElement, selectAllElements, deleteAllElements, deleteElement } = useCanvasOperations();
+  const { pasteElement, selectAllElements, deleteAllElements, deleteElement } =
+    useCanvasOperations();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -413,110 +414,109 @@ export function Canvas(_props: CanvasProps) {
           )}
 
           <CanvasViewportMetricsProvider value={viewportMetrics}>
-          {/* Viewport wrapper */}
-          <div
-            className="viewport-wrapper absolute shadow-[0_0_0_1px_rgba(0,0,0,0.01),0_0_12px_0_rgba(0,0,0,0.1)]"
-            style={{
-              width: `${fittedCanvasWidth}px`,
-              height: `${fittedCanvasHeight}px`,
-              left: `${fittedCanvasLeft}px`,
-              top: `${viewportStyles.top}px`,
-            }}
-          >
-            {/* Operations layer - alignment lines and selection handles */}
-            <div className="operates absolute top-0 left-0 w-full h-full pointer-events-none">
-              {/* Alignment lines */}
-              {alignmentLines.map((line, index) => (
-                <AlignmentLine
-                  key={`${line.type}-${line.axis.x}-${line.axis.y}-${index}`}
-                  type={line.type}
-                  axis={line.axis}
-                  length={line.length}
-                  canvasScale={fittedCanvasScale}
-                />
-              ))}
-
-              {/* Multi-select operations */}
-              {activeElementIdList.length > 1 && (
-                <MultiSelectOperate
-                  elementList={elementList}
-                  scaleMultiElement={scaleMultiElement}
-                />
-              )}
-
-              {/* Single element operations */}
-              {elementList.map(
-                (element: PPTElement) =>
-                  !hiddenElementIdList.includes(element.id) && (
-                    <Operate
-                      key={element.id}
-                      elementInfo={element}
-                      isSelected={activeElementIdList.includes(element.id)}
-                      isActive={handleElementId === element.id}
-                      isActiveGroupElement={activeGroupElementId === element.id}
-                      isMultiSelect={activeElementIdList.length > 1}
-                      rotateElement={rotateElement}
-                      scaleElement={scaleElement}
-                      dragLineElement={dragLineElement}
-                      moveShapeKeypoint={moveShapeKeypoint}
-                      openLinkDialog={openLinkDialog}
-                    />
-                  ),
-              )}
-
-              <ViewportBackground />
-            </div>
-
-            {/* Viewport - the actual slide canvas */}
+            {/* Viewport wrapper */}
             <div
-              ref={viewportRef}
-              className="viewport absolute top-0 left-0 origin-top-left"
+              className="viewport-wrapper absolute shadow-[0_0_0_1px_rgba(0,0,0,0.01),0_0_12px_0_rgba(0,0,0,0.1)]"
               style={{
-                width: `${viewportStyles.width}px`,
-                height: `${contentHeight}px`,
-                transform: `scale(${fittedCanvasScale})`,
+                width: `${fittedCanvasWidth}px`,
+                height: `${fittedCanvasHeight}px`,
+                left: `${fittedCanvasLeft}px`,
+                top: `${viewportStyles.top}px`,
               }}
             >
-              {/* Grid lines */}
-              {gridLineSize > 0 && <GridLines />}
-
-              {/* Mouse selection rectangle */}
-              {mouseSelectionVisible && (
-                <MouseSelection
-                  top={mouseSelection.top}
-                  left={mouseSelection.left}
-                  width={mouseSelection.width}
-                  height={mouseSelection.height}
-                  quadrant={mouseSelectionQuadrant}
-                  canvasScale={fittedCanvasScale}
-                />
-              )}
-
-              {/* Render all elements */}
-              {elementList.map((element: PPTElement, index: number) =>
-                !hiddenElementIdList.includes(element.id) ? (
-                  <EditableElement
-                    key={element.id}
-                    elementInfo={element}
-                    elementIndex={index + 1}
-                    isMultiSelect={activeElementIdList.length > 1}
-                    selectElement={selectElement}
-                    openLinkDialog={openLinkDialog}
+              {/* Operations layer - alignment lines and selection handles */}
+              <div className="operates absolute top-0 left-0 w-full h-full pointer-events-none">
+                {/* Alignment lines */}
+                {alignmentLines.map((line, index) => (
+                  <AlignmentLine
+                    key={`${line.type}-${line.axis.x}-${line.axis.y}-${index}`}
+                    type={line.type}
+                    axis={line.axis}
+                    length={line.length}
+                    canvasScale={fittedCanvasScale}
                   />
-                ) : null,
-              )}
+                ))}
 
-              <FlowTimelineOverlay
-                elements={elementList}
-                viewportWidth={viewportStyles.width}
-                contentHeight={contentHeight}
-              />
+                {/* Multi-select operations */}
+                {activeElementIdList.length > 1 && (
+                  <MultiSelectOperate
+                    elementList={elementList}
+                    scaleMultiElement={scaleMultiElement}
+                  />
+                )}
+
+                {/* Single element operations */}
+                {elementList.map(
+                  (element: PPTElement) =>
+                    !hiddenElementIdList.includes(element.id) && (
+                      <Operate
+                        key={element.id}
+                        elementInfo={element}
+                        isSelected={activeElementIdList.includes(element.id)}
+                        isActive={handleElementId === element.id}
+                        isActiveGroupElement={activeGroupElementId === element.id}
+                        isMultiSelect={activeElementIdList.length > 1}
+                        rotateElement={rotateElement}
+                        scaleElement={scaleElement}
+                        dragLineElement={dragLineElement}
+                        moveShapeKeypoint={moveShapeKeypoint}
+                        openLinkDialog={openLinkDialog}
+                      />
+                    ),
+                )}
+
+                <ViewportBackground />
+              </div>
+
+              {/* Viewport - the actual slide canvas */}
+              <div
+                ref={viewportRef}
+                className="viewport absolute top-0 left-0 origin-top-left"
+                style={{
+                  width: `${viewportStyles.width}px`,
+                  height: `${contentHeight}px`,
+                  transform: `scale(${fittedCanvasScale})`,
+                }}
+              >
+                {/* Grid lines */}
+                {gridLineSize > 0 && <GridLines />}
+
+                {/* Mouse selection rectangle */}
+                {mouseSelectionVisible && (
+                  <MouseSelection
+                    top={mouseSelection.top}
+                    left={mouseSelection.left}
+                    width={mouseSelection.width}
+                    height={mouseSelection.height}
+                    quadrant={mouseSelectionQuadrant}
+                    canvasScale={fittedCanvasScale}
+                  />
+                )}
+
+                {/* Render all elements */}
+                {elementList.map((element: PPTElement, index: number) =>
+                  !hiddenElementIdList.includes(element.id) ? (
+                    <EditableElement
+                      key={element.id}
+                      elementInfo={element}
+                      elementIndex={index + 1}
+                      isMultiSelect={activeElementIdList.length > 1}
+                      selectElement={selectElement}
+                      openLinkDialog={openLinkDialog}
+                    />
+                  ) : null,
+                )}
+
+                <FlowTimelineOverlay
+                  elements={elementList}
+                  viewportWidth={viewportStyles.width}
+                  contentHeight={contentHeight}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Ruler */}
-          {showRuler && <Ruler viewportStyles={viewportStyles} elementList={elementList} />}
-
+            {/* Ruler */}
+            {showRuler && <Ruler viewportStyles={viewportStyles} elementList={elementList} />}
           </CanvasViewportMetricsProvider>
 
           {/* Drag mask when space key is pressed */}

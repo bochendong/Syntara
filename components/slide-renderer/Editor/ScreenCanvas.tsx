@@ -63,10 +63,16 @@ function alignTwoCardLayoutRows(elements: PPTElement[]): PPTElement[] {
     const [a, b] = cards;
     const horizontalSplit = Math.abs(a.left - b.left) > Math.min(a.width, b.width) * 0.45;
     if (!horizontalSplit) continue;
-    const oldBottom = Math.max(a.top, b.top) + Math.max(
-      (byId.get(a.id) && hasBoxGeometry(byId.get(a.id) as PPTElement) ? (byId.get(a.id) as PPTElement & BoxGeometry).height : 0),
-      (byId.get(b.id) && hasBoxGeometry(byId.get(b.id) as PPTElement) ? (byId.get(b.id) as PPTElement & BoxGeometry).height : 0),
-    );
+    const oldBottom =
+      Math.max(a.top, b.top) +
+      Math.max(
+        byId.get(a.id) && hasBoxGeometry(byId.get(a.id) as PPTElement)
+          ? (byId.get(a.id) as PPTElement & BoxGeometry).height
+          : 0,
+        byId.get(b.id) && hasBoxGeometry(byId.get(b.id) as PPTElement)
+          ? (byId.get(b.id) as PPTElement & BoxGeometry).height
+          : 0,
+      );
     const top = Math.min(a.top, b.top);
     const ae = byId.get(a.id);
     const be = byId.get(b.id);
@@ -122,8 +128,8 @@ function getPercentageGeometryForElement(
 
 export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
-  const rawElements = useSceneSelector<SlideContent, PPTElement[]>((content) =>
-    content.canvas.elements.filter((element) => element.type !== 'shape'),
+  const rawElements = useSceneSelector<SlideContent, PPTElement[]>(
+    (content) => content.canvas.elements,
   );
   const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
 
@@ -135,8 +141,7 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
     const baselineAdjusted = elements.map((element) => {
       if (!hasBoxGeometry(element)) return element;
       const isTextFullRow =
-        element.type === 'text' &&
-        (element.textType === 'title' || element.textType === 'notes');
+        element.type === 'text' && (element.textType === 'title' || element.textType === 'notes');
       const isLatexFullRow = element.type === 'latex';
       if (!isTextFullRow && !isLatexFullRow) return element;
       if (element.width < FULL_ROW_SNAP_MIN_WIDTH) return element;
@@ -167,7 +172,9 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
         typeof (source as { top?: unknown }).top === 'number' &&
         typeof (target as { top?: unknown }).top === 'number'
       ) {
-        elementTopDelta = Math.abs((target as { top: number }).top - (source as { top: number }).top);
+        elementTopDelta = Math.abs(
+          (target as { top: number }).top - (source as { top: number }).top,
+        );
         maxTopDelta = Math.max(maxTopDelta, elementTopDelta);
       }
       if (
@@ -263,11 +270,7 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
         }}
       >
         {adjustedElements.map((element, index) => (
-          <ScreenElement
-            key={element.id}
-            elementInfo={element}
-            elementIndex={index + 1}
-          />
+          <ScreenElement key={element.id} elementInfo={element} elementIndex={index + 1} />
         ))}
 
         <FlowTimelineOverlay

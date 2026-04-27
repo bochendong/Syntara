@@ -38,6 +38,10 @@ import type {
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import type { PdfSourceSelection } from '@/lib/pdf/page-selection';
 import { backendFetch } from '@/lib/utils/backend-api';
+import {
+  confirmComputeCreditsForGeneration,
+  estimateNotebookGenerationComputeCredits,
+} from '@/lib/utils/generation-credit-preflight';
 import { writePersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 
 type NotebookMetadata = {
@@ -72,6 +76,8 @@ type OutlineStreamEvent =
   | { type: 'done'; outlines?: SceneOutline[] }
   | { type: 'error'; error: string };
 
+const MAX_PARALLEL_SCENE_CONTENT = 2;
+
 export type NotebookGenerationProgress =
   | { stage: 'preparing'; detail: string }
   | { stage: 'pdf-analysis'; detail: string }
@@ -96,6 +102,8 @@ export type NotebookGenerationTaskInput = {
   notebookModelMode?: NotebookGenerationModelMode;
   language?: 'zh-CN' | 'en-US';
   webSearch?: boolean;
+  /** 默认 true；关闭时只创建仓库笔记本，不生成 agents / 大纲 / PPT 页面 */
+  generateSlides?: boolean;
   userNickname?: string;
   userBio?: string;
   signal?: AbortSignal;
@@ -1236,19 +1244,43 @@ async function repairOutlinesIfNeeded(args: {
   return currentOutlines;
 }
 
-async function generateSingleScene(args: {
+type GeneratedSceneContentBundle = {
+  contents: unknown[];
+  effectiveOutlines: SceneOutline[];
+  allOutlinesForActions: SceneOutline[];
+};
+
+type SceneContentJobResult =
+  | { success: true; bundle: GeneratedSceneContentBundle }
+  | { success: false; error: string };
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : fallback;
+}
+
+function createLinkedAbortController(parent?: AbortSignal): AbortController {
+  const controller = new AbortController();
+  if (!parent) return controller;
+  if (parent.aborted) {
+    controller.abort();
+  } else {
+    parent.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  return controller;
+}
+
+async function generateSceneContentBundle(args: {
   outline: SceneOutline;
   allOutlines: SceneOutline[];
   stage: Stage;
   agents: AgentInfo[];
-  previousSpeeches: string[];
-  userProfile?: string;
   courseContext?: CoursePersonalizationContext;
   signal?: AbortSignal;
   pdfImages?: PdfImage[];
   imageMapping?: ImageMapping;
   getHeaders?: () => HeadersInit;
-}): Promise<{ scenes: Scene[]; effectiveOutlines: SceneOutline[]; previousSpeeches: string[] }> {
+}): Promise<GeneratedSceneContentBundle> {
   const suggestedIds = args.outline.suggestedImageIds || [];
   const filteredPdfImages =
     suggestedIds.length > 0
@@ -1341,6 +1373,26 @@ async function generateSingleScene(args: {
         })()
       : args.allOutlines;
 
+  return {
+    contents,
+    effectiveOutlines,
+    allOutlinesForActions,
+  };
+}
+
+async function generateSceneActionsFromContent(args: {
+  bundle: GeneratedSceneContentBundle;
+  outline: SceneOutline;
+  stage: Stage;
+  agents: AgentInfo[];
+  previousSpeeches: string[];
+  userProfile?: string;
+  courseContext?: CoursePersonalizationContext;
+  signal?: AbortSignal;
+  getHeaders?: () => HeadersInit;
+}): Promise<{ scenes: Scene[]; effectiveOutlines: SceneOutline[]; previousSpeeches: string[] }> {
+  const { contents, effectiveOutlines, allOutlinesForActions } = args.bundle;
+
   const scenes: Scene[] = [];
   let previousSpeeches = args.previousSpeeches;
 
@@ -1400,6 +1452,7 @@ export async function runNotebookGenerationTask(
 
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
+  const generateSlides = input.generateSlides ?? true;
   const settings = useSettingsStore.getState();
   const effectiveMediaFlags: EffectiveMediaFlags = {
     imageEnabled:
@@ -1408,6 +1461,15 @@ export async function runNotebookGenerationTask(
         : (settings.imageGenerationEnabled ?? false),
     videoEnabled: settings.videoGenerationEnabled ?? false,
   };
+  const estimatedCredits = estimateNotebookGenerationComputeCredits({
+    generateSlides,
+    outlineLength: input.outlinePreferences?.length ?? 'standard',
+    workedExampleLevel: input.outlinePreferences?.workedExampleLevel ?? 'moderate',
+    includeQuizScenes: input.outlinePreferences?.includeQuizScenes ?? true,
+    webSearch,
+    imageGenerationEnabled: effectiveMediaFlags.imageEnabled,
+    sourceFileSize: sourceFile?.size ?? 0,
+  });
   const notebookGenerationSessionId = nanoid(12);
   const getHeaders = () =>
     getApiHeaders({
@@ -1424,6 +1486,10 @@ export async function runNotebookGenerationTask(
   input.onProgress?.({ stage: 'preparing', detail: '正在初始化创建任务…' });
 
   try {
+    await confirmComputeCreditsForGeneration({
+      requiredCredits: estimatedCredits,
+      actionLabel: generateSlides ? '生成笔记本' : '加入笔记本仓库',
+    });
     await ensureLegacyCourseBucket();
     const resolvedCourseId = input.courseId?.trim() || LEGACY_COURSE_ID;
     const currentCourse = await getCourse(resolvedCourseId);
@@ -1558,9 +1624,29 @@ export async function runNotebookGenerationTask(
     });
     input.onProgress?.({
       stage: 'notebook-ready',
-      detail: `已进入教室「${stage.name}」，正在准备讲解角色与页面内容…`,
+      detail: generateSlides
+        ? `已进入教室「${stage.name}」，正在准备讲解角色与页面内容…`
+        : `已创建笔记本「${stage.name}」，正在保存到仓库…`,
       notebookId: stage.id,
     });
+
+    if (!generateSlides) {
+      writePersistedStageOutlines(stage.id, []);
+      input.onProgress?.({ stage: 'saving', detail: '正在保存笔记本到仓库…' });
+      input.onProgress?.({
+        stage: 'completed',
+        detail: `已加入仓库：${stage.name}（未生成 PPT 课件）`,
+        notebookId: stage.id,
+        notebookName: stage.name,
+      });
+      return {
+        stage,
+        scenes: [],
+        outlines: [],
+        agents: [],
+        researchSources,
+      };
+    }
 
     input.onProgress?.({ stage: 'agents', detail: '正在准备讲解角色…' });
     const agents = await maybeGenerateAgents({
@@ -1652,26 +1738,109 @@ export async function runNotebookGenerationTask(
         ? `Student: ${input.userNickname || 'Unknown'}${input.userBio ? ` — ${input.userBio}` : ''}`
         : undefined;
 
+    let sceneContentGeneration = 0;
+    let sceneContentCursor = 0;
+    const sceneContentJobs = new Map<
+      string,
+      {
+        generation: number;
+        abortController: AbortController;
+        promise: Promise<SceneContentJobResult>;
+      }
+    >();
+
+    const enqueueSceneContentJob = (outline: SceneOutline) => {
+      if (sceneContentJobs.has(outline.id)) return;
+      const generation = sceneContentGeneration;
+      const allOutlinesSnapshot = outlines;
+      const abortController = createLinkedAbortController(input.signal);
+      const promise = generateSceneContentBundle({
+        outline,
+        allOutlines: allOutlinesSnapshot,
+        stage,
+        agents,
+        courseContext,
+        signal: abortController.signal,
+        pdfImages,
+        imageMapping,
+        getHeaders,
+      })
+        .then((bundle): SceneContentJobResult => ({ success: true, bundle }))
+        .catch(
+          (error): SceneContentJobResult => ({
+            success: false,
+            error: errorMessage(error, '页面内容生成失败'),
+          }),
+        );
+
+      sceneContentJobs.set(outline.id, {
+        generation,
+        abortController,
+        promise,
+      });
+    };
+
+    const fillSceneContentQueue = () => {
+      while (
+        sceneContentJobs.size < MAX_PARALLEL_SCENE_CONTENT &&
+        sceneContentCursor < outlines.length
+      ) {
+        const outline = outlines[sceneContentCursor];
+        enqueueSceneContentJob(outline);
+        sceneContentCursor += 1;
+      }
+    };
+
+    const resetSceneContentQueue = (nextIndex: number) => {
+      sceneContentGeneration += 1;
+      for (const job of sceneContentJobs.values()) {
+        job.abortController.abort();
+      }
+      sceneContentJobs.clear();
+      sceneContentCursor = nextIndex;
+    };
+
     for (let i = 0; i < outlines.length; i += 1) {
       const outline = outlines[i];
       input.onProgress?.({
         stage: 'scene',
-        detail: `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}`,
+        detail:
+          language === 'zh-CN'
+            ? `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}（并行准备后续页面内容）`
+            : `Generating page ${i + 1}/${outlines.length}: ${outline.title} (preparing later page content in parallel)`,
         completed: i,
         total: outlines.length,
       });
       try {
-        const result = await generateSingleScene({
+        fillSceneContentQueue();
+        let contentJob = sceneContentJobs.get(outline.id);
+        if (!contentJob) {
+          enqueueSceneContentJob(outline);
+          contentJob = sceneContentJobs.get(outline.id);
+        }
+        if (!contentJob) throw new Error('页面内容生成任务创建失败');
+
+        const contentResult = await contentJob.promise;
+        sceneContentJobs.delete(outline.id);
+        fillSceneContentQueue();
+
+        if (contentJob.generation !== sceneContentGeneration) {
+          i -= 1;
+          continue;
+        }
+        if (!contentResult.success) {
+          throw new Error(contentResult.error);
+        }
+
+        const result = await generateSceneActionsFromContent({
+          bundle: contentResult.bundle,
           outline,
-          allOutlines: outlines,
           stage,
           agents,
           previousSpeeches,
           userProfile,
           courseContext,
           signal: input.signal,
-          pdfImages,
-          imageMapping,
           getHeaders,
         });
         if (result.effectiveOutlines.length > 1) {
@@ -1679,6 +1848,7 @@ export async function runNotebookGenerationTask(
           outlines = spliced.outlines;
           writePersistedStageOutlines(stage.id, outlines);
           i += result.effectiveOutlines.length - 1;
+          resetSceneContentQueue(i + 1);
         }
         scenes.push(...result.scenes);
         previousSpeeches = result.previousSpeeches;

@@ -6,13 +6,25 @@ export function SpeechGenerationIndicator({
   label,
   done,
   total,
+  active,
+  parallelism,
+  parallelLabel,
   className,
 }: {
   label: string;
   done: number;
   total: number;
+  active?: number;
+  parallelism?: number;
+  parallelLabel?: string;
   className?: string;
 }) {
+  const showParallelism =
+    typeof active === 'number' &&
+    typeof parallelism === 'number' &&
+    parallelism > 1 &&
+    done < total;
+
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <span className="inline-flex h-3 items-end gap-0.5" aria-hidden>
@@ -31,6 +43,12 @@ export function SpeechGenerationIndicator({
       <span className="tabular-nums opacity-75">
         {done}/{total}
       </span>
+      {showParallelism && (
+        <span className="tabular-nums opacity-60">
+          {parallelLabel ? `${parallelLabel} ` : ''}
+          {active}/{parallelism}
+        </span>
+      )}
       <style jsx>{`
         @keyframes speech-gen-bars {
           from {

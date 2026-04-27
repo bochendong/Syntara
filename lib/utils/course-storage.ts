@@ -1,5 +1,6 @@
 import type { CommunityCourseListItem, CoursePurpose, CourseRecord } from '@/lib/utils/database';
 import { backendJson } from '@/lib/utils/backend-api';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 
 /** 已切换到后端数据库；保留常量兼容旧代码引用 */
 export const LEGACY_COURSE_ID = 'synatra-legacy-course';
@@ -85,6 +86,7 @@ export async function cloneCourseFromStore(sourceCourseId: string): Promise<Cour
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sourceCourseId }),
   });
+  notifyCreditsBalancesChanged();
   return data.course;
 }
 

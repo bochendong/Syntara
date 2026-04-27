@@ -17,7 +17,9 @@ interface ThumbnailSlideProps {
   readonly visible?: boolean;
 }
 
-function hasBoxGeometry(element: PPTElement): element is PPTElement & { top: number; left: number; width: number; height: number } {
+function hasBoxGeometry(
+  element: PPTElement,
+): element is PPTElement & { top: number; left: number; width: number; height: number } {
   return (
     typeof (element as { top?: unknown }).top === 'number' &&
     typeof (element as { left?: unknown }).left === 'number' &&
@@ -27,7 +29,10 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & { top: num
 }
 
 function alignTwoCardLayoutRows(elements: PPTElement[]): PPTElement[] {
-  const groups = new Map<string, Array<{ id: string; left: number; top: number; width: number; height: number }>>();
+  const groups = new Map<
+    string,
+    Array<{ id: string; left: number; top: number; width: number; height: number }>
+  >();
   elements.forEach((element) => {
     if (!hasBoxGeometry(element)) return;
     if (!element.groupId?.startsWith('layout_cards_')) return;
@@ -98,10 +103,7 @@ export function ThumbnailSlide({
   // Calculate scale ratio
   const scale = useMemo(() => size / viewportSize, [size, viewportSize]);
   const elements = useMemo(
-    () =>
-      alignTwoCardLayoutRows(
-        stripLegacyVerticalFlowMarkers(slide.elements.filter((element) => element.type !== 'shape')),
-      ),
+    () => alignTwoCardLayoutRows(stripLegacyVerticalFlowMarkers(slide.elements)),
     [slide.elements],
   );
 

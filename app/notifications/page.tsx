@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CheckCheck, Coins } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/auth';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { Button } from '@/components/ui/button';
@@ -24,19 +24,16 @@ function accountTheme(accountType: 'CASH' | 'COMPUTE' | 'PURCHASE') {
   switch (accountType) {
     case 'COMPUTE':
       return {
-        icon: 'border-sky-300/70 bg-sky-500/12 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/12 dark:text-sky-200',
         badge: 'bg-sky-500/12 text-sky-700 dark:bg-sky-400/12 dark:text-sky-200',
         chip: 'bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-100',
       };
     case 'PURCHASE':
       return {
-        icon: 'border-emerald-300/70 bg-emerald-500/12 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/12 dark:text-emerald-200',
         badge: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/12 dark:text-emerald-200',
         chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-100',
       };
     default:
       return {
-        icon: 'border-amber-300/70 bg-amber-500/12 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/12 dark:text-amber-200',
         badge: 'bg-amber-500/12 text-amber-700 dark:bg-amber-400/12 dark:text-amber-200',
         chip: 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-100',
       };
@@ -55,7 +52,8 @@ export default function NotificationsPage() {
   const readByUser = useNotificationStore((state) => state.readByUser);
   const refreshNotifications = useNotificationStore((state) => state.refreshNotifications);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const deleteNotification = useNotificationStore((state) => state.deleteNotification);
+  const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -101,12 +99,12 @@ export default function NotificationsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => markAllAsRead()}
-                disabled={notifications.length === 0 || unreadCount === 0}
+                onClick={() => clearNotifications()}
+                disabled={notifications.length === 0}
                 className="gap-2 rounded-full"
               >
-                <CheckCheck className="size-4" strokeWidth={1.8} />
-                全部标为已读
+                <Trash2 className="size-4" strokeWidth={1.8} />
+                清除所有通知
               </Button>
             </div>
           </div>
@@ -147,17 +145,7 @@ export default function NotificationsPage() {
                       : 'border-white/40',
                   )}
                 >
-                  <div className="flex gap-4">
-                    <div
-                      className={cn(
-                        'flex size-12 shrink-0 items-center justify-center rounded-2xl border',
-                        theme.icon,
-                      )}
-                    >
-                      <Coins className="size-5" strokeWidth={1.8} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -205,6 +193,16 @@ export default function NotificationsPage() {
                             标记已读
                           </Button>
                         ) : null}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteNotification(item.id)}
+                          className="h-8 rounded-full px-3 text-xs text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-400/10 dark:hover:text-rose-100"
+                        >
+                          <Trash2 className="mr-1 size-3.5" strokeWidth={1.8} />
+                          删除
+                        </Button>
                       </div>
 
                       {item.details.length > 0 ? (
@@ -229,8 +227,7 @@ export default function NotificationsPage() {
                           ))}
                         </div>
                       ) : null}
-                    </div>
-                  </div>
+                </div>
                 </article>
               );
             })}

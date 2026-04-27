@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { backendJson } from '@/lib/utils/backend-api';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 import type {
   GamificationClaimKind,
   GamificationGachaBannerId,
@@ -46,6 +47,7 @@ export function useGamificationSummary(autoLoad = true) {
     try {
       const data = await backendJson<GamificationSummaryResponse>('/api/gamification/summary');
       setSummary(data);
+      notifyCreditsBalancesChanged(data.balances);
       return data;
     } catch (err) {
       const message = err instanceof Error ? err.message : '加载成长数据失败';
@@ -84,6 +86,7 @@ export function useGamificationSummary(autoLoad = true) {
       },
     );
     setSummary(data);
+    notifyCreditsBalancesChanged(data.balances);
     return data;
   }, []);
 
@@ -97,6 +100,7 @@ export function useGamificationSummary(autoLoad = true) {
       },
     );
     setSummary(data);
+    notifyCreditsBalancesChanged(data.balances);
     return data;
   }, []);
 
@@ -110,6 +114,7 @@ export function useGamificationSummary(autoLoad = true) {
       },
     );
     setSummary(data);
+    notifyCreditsBalancesChanged(data.balances);
     return data;
   }, []);
 
@@ -120,6 +125,21 @@ export function useGamificationSummary(autoLoad = true) {
       body: JSON.stringify({ bannerId, drawCount }),
     });
     setSummary(data.summary);
+    notifyCreditsBalancesChanged(data.summary.balances);
+    return data;
+  }, []);
+
+  const unlockCosmetic = useCallback(async (cosmeticKey: string) => {
+    const data = await backendJson<GamificationSummaryResponse>(
+      '/api/gamification/unlock-cosmetic',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cosmeticKey }),
+      },
+    );
+    setSummary(data);
+    notifyCreditsBalancesChanged(data.balances);
     return data;
   }, []);
 
@@ -146,6 +166,7 @@ export function useGamificationSummary(autoLoad = true) {
     equipCharacter,
     selectPreferredCharacter,
     drawGacha,
+    unlockCosmetic,
     sendEvent,
   };
 }

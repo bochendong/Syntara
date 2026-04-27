@@ -71,6 +71,8 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
   ) => {
     const editorViewRef = useRef<HTMLDivElement>(null);
     const editorView = useRef<EditorView | null>(null);
+    const latestValueRef = useRef(value);
+    const latestOnUpdateRef = useRef(onUpdate);
 
     const handleElementId = useCanvasStore.use.handleElementId();
     const textFormatPainter = useCanvasStore.use.textFormatPainter();
@@ -81,27 +83,39 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
     const setTextFormatPainter = useCanvasStore.use.setTextFormatPainter();
     const ctrlOrShiftKeyActive = useKeyboardStore((state) => state.ctrlOrShiftKeyActive());
 
-    // Handle input with debounce
+    useEffect(() => {
+      latestValueRef.current = value;
+    }, [value]);
 
+    useEffect(() => {
+      latestOnUpdateRef.current = onUpdate;
+    }, [onUpdate]);
+
+    const emitCurrentContent = useCallback((isHandleHistory = false) => {
+      if (!editorView.current) return;
+      const nextValue = editorView.current.dom.innerHTML;
+      if (latestValueRef.current.replace(/ style=""/g, '') === nextValue.replace(/ style=""/g, ''))
+        return;
+
+      latestValueRef.current = nextValue;
+      latestOnUpdateRef.current?.({
+        value: nextValue,
+        ignore: isHandleHistory,
+      });
+    }, []);
+
+    // Handle input with debounce. This reads latest props from refs because
+    // ProseMirror event handlers are registered once when the EditorView mounts.
     const handleInput = useMemo(
       () =>
         debounce(
           (isHandleHistory = false) => {
-            if (!editorView.current) return;
-            if (
-              value.replace(/ style=""/g, '') ===
-              editorView.current.dom.innerHTML.replace(/ style=""/g, '')
-            )
-              return;
-            onUpdate?.({
-              value: editorView.current.dom.innerHTML,
-              ignore: isHandleHistory,
-            });
+            emitCurrentContent(isHandleHistory);
           },
           300,
           { trailing: true },
         ),
-      [value, onUpdate],
+      [emitCurrentContent],
     );
 
     // Handle focus
@@ -115,9 +129,10 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
 
     // Handle blur
     const handleBlur = useCallback(() => {
+      handleInput.flush();
       setDisableHotkeysState(false);
       onBlur?.();
-    }, [setDisableHotkeysState, onBlur]);
+    }, [handleInput, setDisableHotkeysState, onBlur]);
 
     // Handle click
     // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce returns a stable function reference
@@ -390,6 +405,19 @@ export const ProsemirrorEditor = forwardRef<ProsemirrorEditorRef, ProsemirrorEdi
       if (!editorViewRef.current) return;
 
       editorView.current = initProsemirrorEditor(editorViewRef.current, value, {
+        dispatchTransaction: (transaction) => {
+          const view = editorView.current;
+          if (!view) return;
+          const nextState = view.state.apply(transaction);
+          view.updateState(nextState);
+          if (transaction.docChanged) {
+            if (inspectorSurface) {
+              emitCurrentContent();
+              return;
+            }
+            handleInput();
+          }
+        },
         handleDOMEvents: {
           focus: handleFocus,
           blur: handleBlur,

@@ -92,6 +92,11 @@ function resolveCardThemeFromItem(
   if (!item) return GREEN_THEME;
 
   switch (item.sourceKind) {
+    case 'study_nudge':
+    case 'question_memory':
+    case 'mistake_review':
+    case 'route_unlock':
+      return PINK_THEME;
     case 'LESSON_REWARD':
     case 'STREAK_BONUS':
       return GREEN_THEME;

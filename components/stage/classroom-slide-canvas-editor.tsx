@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { SceneProvider } from '@/lib/contexts/scene-context';
+import { useCanvasStore } from '@/lib/store/canvas';
 import type { Scene } from '@/lib/types/stage';
 import type { SlideRepairChatMessage } from '@/lib/types/slide-repair';
 import { cn } from '@/lib/utils';
@@ -31,11 +33,33 @@ export function ClassroomSlideCanvasEditor({
   repairInputFocusNonce,
   onCloseInspector,
 }: ClassroomSlideCanvasEditorProps) {
+  const setCanvasPercentage = useCanvasStore.use.setCanvasPercentage();
+  const setCanvasDragged = useCanvasStore.use.setCanvasDragged();
+  const setViewportSize = useCanvasStore.use.setViewportSize();
+  const setViewportRatio = useCanvasStore.use.setViewportRatio();
   const viewportRatio =
     currentScene.type === 'slide' && currentScene.content.type === 'slide'
-      ? currentScene.content.canvas.viewportRatio ?? 0.5625
+      ? (currentScene.content.canvas.viewportRatio ?? 0.5625)
       : 0.5625;
+  const viewportSize =
+    currentScene.type === 'slide' && currentScene.content.type === 'slide'
+      ? (currentScene.content.canvas.viewportSize ?? 1000)
+      : 1000;
   const slideAspectRatio = 1 / viewportRatio;
+
+  useEffect(() => {
+    setViewportSize(viewportSize);
+    setViewportRatio(viewportRatio);
+    setCanvasPercentage(92);
+    setCanvasDragged(false);
+  }, [
+    setCanvasDragged,
+    setCanvasPercentage,
+    setViewportRatio,
+    setViewportSize,
+    viewportRatio,
+    viewportSize,
+  ]);
 
   return (
     <div
@@ -48,10 +72,7 @@ export function ClassroomSlideCanvasEditor({
       <SceneProvider>
         <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-3">
           <div className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden">
-            <div
-              className="relative h-full"
-              style={{ aspectRatio: `${slideAspectRatio}` }}
-            >
+            <div className="relative h-full" style={{ aspectRatio: `${slideAspectRatio}` }}>
               <div className="relative h-full w-full overflow-hidden rounded-[24px] border border-slate-900/[0.08] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]">
                 <Canvas />
               </div>

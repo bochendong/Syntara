@@ -31,6 +31,9 @@ export function UserAvatarWithFrame({
   'aria-hidden': ariaHidden,
 }: UserAvatarWithFrameProps) {
   const def = userAvatarFrameDef(frameId);
+  const haloClassName = 'haloClassName' in def ? def.haloClassName : null;
+  const overlayClassName = 'overlayClassName' in def ? def.overlayClassName : null;
+  const sparkleClassName = 'sparkleClassName' in def ? def.sparkleClassName : null;
   const wrapProps: HTMLAttributes<HTMLDivElement> = {
     ...(role ? { role, 'aria-label': ariaLabel } : {}),
     ...(ariaHidden !== undefined ? { 'aria-hidden': ariaHidden } : {}),
@@ -38,11 +41,23 @@ export function UserAvatarWithFrame({
 
   return (
     <div className={cn('shrink-0', def.outerClassName, className)} {...wrapProps}>
+      {haloClassName ? (
+        <span className={cn('pointer-events-none', haloClassName)} aria-hidden />
+      ) : null}
       <img
         src={src}
         alt={alt}
-        className={cn('size-full min-h-0 min-w-0 rounded-full object-cover', imgClassName)}
+        className={cn(
+          'relative z-10 size-full min-h-0 min-w-0 rounded-full object-cover',
+          imgClassName,
+        )}
       />
+      {overlayClassName ? (
+        <span className={cn('pointer-events-none', overlayClassName)} aria-hidden />
+      ) : null}
+      {sparkleClassName ? (
+        <span className={cn('pointer-events-none', sparkleClassName)} aria-hidden />
+      ) : null}
     </div>
   );
 }

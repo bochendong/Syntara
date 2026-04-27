@@ -7,6 +7,15 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,6 +33,7 @@ import type {
   GamificationGachaDrawReward,
 } from '@/lib/types/gamification';
 import { cn } from '@/lib/utils';
+import { formatPurchaseCreditsLabel } from '@/lib/utils/credits';
 
 function isSupportedLive2DCharacterId(id: string): boolean {
   return id === 'haru' || id === 'hiyori' || id === 'mark' || id === 'mao' || id === 'rice';
@@ -471,207 +481,209 @@ function AvatarWishBanner({
   const catalogItems = useMemo(() => {
     const order = { SSR: 3, SR: 2, R: 1 } as const;
     return [...allInventoryItems].sort(
-      (a, b) =>
-        order[b.rarity] - order[a.rarity] || a.name.localeCompare(b.name, 'zh-Hans-CN'),
+      (a, b) => order[b.rarity] - order[a.rarity] || a.name.localeCompare(b.name, 'zh-Hans-CN'),
     );
   }, [allInventoryItems]);
 
   return (
     <>
-    <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[2.25rem] border border-fuchsia-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(15,23,42,0.4)] dark:border-fuchsia-300/15">
-      <img
-        src="/pool_poster/avator.jpeg"
-        alt=""
-        className="absolute inset-0 size-full object-cover"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_82%_10%,rgba(56,189,248,0.1),transparent_24%),radial-gradient(circle_at_78%_80%,rgba(192,38,211,0.14),transparent_36%),linear-gradient(128deg,rgba(15,23,42,0.55)_0%,rgba(30,27,75,0.5)_40%,rgba(55,20,80,0.38)_70%,rgba(15,23,42,0.6)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_28%,rgba(196,181,253,0.07),transparent_22%),radial-gradient(circle_at_22%_78%,rgba(45,212,191,0.06),transparent_20%)]" />
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-indigo-200/6 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/65 via-slate-950/38 to-transparent" />
+      <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[2.25rem] border border-fuchsia-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(15,23,42,0.4)] dark:border-fuchsia-300/15">
+        <img
+          src="/pool_poster/avator.jpeg"
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_82%_10%,rgba(56,189,248,0.1),transparent_24%),radial-gradient(circle_at_78%_80%,rgba(192,38,211,0.14),transparent_36%),linear-gradient(128deg,rgba(15,23,42,0.55)_0%,rgba(30,27,75,0.5)_40%,rgba(55,20,80,0.38)_70%,rgba(15,23,42,0.6)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_28%,rgba(196,181,253,0.07),transparent_22%),radial-gradient(circle_at_22%_78%,rgba(45,212,191,0.06),transparent_20%)]" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-indigo-200/6 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/65 via-slate-950/38 to-transparent" />
 
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-between gap-8 p-5 md:p-7">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-xl">
-            <GachaPoolTabSwitch activePool={activePool} onChange={onActivePoolChange} />
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.32em] text-fuchsia-200/85">
-              Avatar Starlight Supply
-            </p>
-            <h3 className="mt-2 text-4xl font-semibold tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] md:text-6xl">
-              {meta.title}
-            </h3>
-            <p className="mt-4 max-w-md text-sm leading-6 text-fuchsia-50/80 md:text-base">
-              {meta.subtitle}
-            </p>
-          </div>
-
-          <div className="w-full rounded-[1.65rem] border border-white/15 bg-black/25 p-4 shadow-[0_20px_80px_rgba(36,8,44,0.32)] backdrop-blur-md md:w-72">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.24em] text-fuchsia-200">
-                  头像收集
-                </p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
-                  {ownedCount}
-                  <span className="ml-1 text-base font-medium text-white/50">/ {totalCount}</span>
-                </p>
-              </div>
-              <Gem className="size-8 text-fuchsia-200 drop-shadow-[0_0_18px_rgba(244,114,182,0.72)]" />
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-between gap-8 p-5 md:p-7">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-xl">
+              <GachaPoolTabSwitch activePool={activePool} onChange={onActivePoolChange} />
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.32em] text-fuchsia-200/85">
+                Avatar Starlight Supply
+              </p>
+              <h3 className="mt-2 text-4xl font-semibold tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] md:text-6xl">
+                {meta.title}
+              </h3>
+              <p className="mt-4 max-w-md text-sm leading-6 text-fuchsia-50/80 md:text-base">
+                {meta.subtitle}
+              </p>
             </div>
-            <Progress value={progress} className="mt-4 bg-white/15" />
-            <p className="mt-3 text-xs leading-5 text-white/60">
-              R 头像直接加入库存；SR / SSR 会以碎片推进，凑满后自动合成，不会重复掉落完整头像。
-            </p>
-          </div>
-        </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_22rem] lg:items-end">
-          <div className="flex flex-wrap content-start items-end justify-start gap-x-3 gap-y-2.5">
-            {highlights.slice(0, 5).map((item) => (
-              <div key={item.id} className="group shrink-0">
-                <div
-                  className={cn(
-                    'relative size-12 overflow-hidden rounded-full border p-0.5 transition duration-200 group-hover:scale-105 md:size-14',
-                    gachaAvatarHighlightRingClass(item.rarity),
-                  )}
-                >
+            <div className="w-full rounded-[1.65rem] border border-white/15 bg-black/25 p-4 shadow-[0_20px_80px_rgba(36,8,44,0.32)] backdrop-blur-md md:w-72">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-fuchsia-200">
+                    头像收集
+                  </p>
+                  <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+                    {ownedCount}
+                    <span className="ml-1 text-base font-medium text-white/50">/ {totalCount}</span>
+                  </p>
+                </div>
+                <Gem className="size-8 text-fuchsia-200 drop-shadow-[0_0_18px_rgba(244,114,182,0.72)]" />
+              </div>
+              <Progress value={progress} className="mt-4 bg-white/15" />
+              <p className="mt-3 text-xs leading-5 text-white/60">
+                R 头像直接加入库存；SR / SSR 会以碎片推进，凑满后自动合成，不会重复掉落完整头像。
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1fr_22rem] lg:items-end">
+            <div className="flex flex-wrap content-start items-end justify-start gap-x-3 gap-y-2.5">
+              {highlights.slice(0, 5).map((item) => (
+                <div key={item.id} className="group shrink-0">
                   <div
                     className={cn(
-                      'pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br opacity-35',
-                      rarityAccent(item.rarity),
+                      'relative size-12 overflow-hidden rounded-full border p-0.5 transition duration-200 group-hover:scale-105 md:size-14',
+                      gachaAvatarHighlightRingClass(item.rarity),
                     )}
-                  />
-                  <img
-                    src={item.url}
-                    alt=""
-                    className="relative size-full rounded-full object-cover"
-                  />
+                  >
+                    <div
+                      className={cn(
+                        'pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br opacity-35',
+                        rarityAccent(item.rarity),
+                      )}
+                    />
+                    <img
+                      src={item.url}
+                      alt=""
+                      className="relative size-full rounded-full object-cover"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-            {showMoreInPool ? (
-              <button
-                type="button"
-                onClick={() => setAvatarCatalogOpen(true)}
-                className="flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-white/30 bg-white/5 text-[0.7rem] font-bold leading-none tracking-tight text-white/55 transition hover:border-white/45 hover:bg-white/10 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/50 md:size-14 md:text-xs"
-                title="查看全部头像"
-                aria-label="打开图鉴，查看全部头像"
-              >
-                <span aria-hidden className="pb-0.5">
-                  ...
-                </span>
-              </button>
-            ) : null}
-          </div>
-
-          <div className="rounded-[1.75rem] border border-white/16 bg-white/10 p-4 shadow-[0_22px_80px_rgba(36,8,44,0.32)] backdrop-blur-xl">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-fuchsia-100/72">
-              星辉补给
-            </p>
-            <div className="mt-4 grid gap-3">
-              <Button
-                type="button"
-                size="lg"
-                className="h-[3.25rem] justify-between rounded-2xl bg-white px-5 text-slate-950 shadow-[0_18px_50px_rgba(255,255,255,0.18)] hover:bg-fuchsia-50"
-                disabled={disabled}
-                onClick={() => onDraw('avatar', 1)}
-              >
-                <span>单抽</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Ticket className="size-4" />
-                  {meta.singleCost}
-                </span>
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className="h-[3.25rem] justify-between rounded-2xl border-white/30 bg-white/10 px-5 text-white backdrop-blur-sm hover:bg-white/[0.18] hover:text-white"
-                disabled={disabled}
-                onClick={() => onDraw('avatar', 10)}
-              >
-                <span>十连</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Gem className="size-4" />
-                  {meta.tenCost}
-                </span>
-              </Button>
+              ))}
+              {showMoreInPool ? (
+                <button
+                  type="button"
+                  onClick={() => setAvatarCatalogOpen(true)}
+                  className="flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-white/30 bg-white/5 text-[0.7rem] font-bold leading-none tracking-tight text-white/55 transition hover:border-white/45 hover:bg-white/10 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/50 md:size-14 md:text-xs"
+                  title="查看全部头像"
+                  aria-label="打开图鉴，查看全部头像"
+                >
+                  <span aria-hidden className="pb-0.5">
+                    ...
+                  </span>
+                </button>
+              ) : null}
             </div>
-            <div className="mt-3 flex items-start gap-2">
-              <p className="min-w-0 flex-1 text-[11px] leading-5 text-white/55">
-                十连享受 9 抽价格，结果会直接写回头像库存、碎片进度和余额。
+
+            <div className="rounded-[1.75rem] border border-white/16 bg-white/10 p-4 shadow-[0_22px_80px_rgba(36,8,44,0.32)] backdrop-blur-xl">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-fuchsia-100/72">
+                星辉补给
               </p>
-              <button
-                type="button"
-                onClick={onOpenDropRules}
-                aria-label="掉落规则"
-                title="掉落规则"
-                className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white/85 shadow-sm backdrop-blur-sm transition hover:bg-white/16"
-              >
-                <Star className="size-2.5 opacity-90" strokeWidth={2.25} />
-              </button>
+              <div className="mt-4 grid gap-3">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-[3.25rem] justify-between rounded-2xl bg-white px-5 text-slate-950 shadow-[0_18px_50px_rgba(255,255,255,0.18)] hover:bg-fuchsia-50"
+                  disabled={disabled}
+                  onClick={() => onDraw('avatar', 1)}
+                >
+                  <span>单抽</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Ticket className="size-4" />
+                    {meta.singleCost}
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="h-[3.25rem] justify-between rounded-2xl border-white/30 bg-white/10 px-5 text-white backdrop-blur-sm hover:bg-white/[0.18] hover:text-white"
+                  disabled={disabled}
+                  onClick={() => onDraw('avatar', 10)}
+                >
+                  <span>十连</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Gem className="size-4" />
+                    {meta.tenCost}
+                  </span>
+                </Button>
+              </div>
+              <div className="mt-3 flex items-start gap-2">
+                <p className="min-w-0 flex-1 text-[11px] leading-5 text-white/55">
+                  十连享受 9 抽价格，结果会直接写回头像库存、碎片进度和余额。
+                </p>
+                <button
+                  type="button"
+                  onClick={onOpenDropRules}
+                  aria-label="掉落规则"
+                  title="掉落规则"
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white/85 shadow-sm backdrop-blur-sm transition hover:bg-white/16"
+                >
+                  <Star className="size-2.5 opacity-90" strokeWidth={2.25} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <Dialog open={avatarCatalogOpen} onOpenChange={setAvatarCatalogOpen}>
-      <DialogContent className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden border-slate-200/80 p-0 sm:max-w-lg dark:border-white/10">
-        <DialogHeader className="shrink-0 space-y-1 border-b border-slate-200/70 px-6 py-4 text-left dark:border-white/10">
-          <DialogTitle className="text-base">星辉头像图鉴</DialogTitle>
-          <DialogDescription className="text-left text-xs text-slate-600 dark:text-slate-400">
-            共 {totalCount} 款；已拥有 {ownedCount} 款
-          </DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
-          {catalogItems.length === 0 ? (
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400">暂无图鉴数据</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
-              {catalogItems.map((item) => (
-                <div key={item.id} className="flex flex-col items-center gap-1.5 text-center">
-                  <div className="relative size-16 shrink-0 sm:size-[4.5rem]">
-                    <div
-                      className={cn(
-                        'relative size-full overflow-hidden rounded-full border p-0.5',
-                        gachaAvatarHighlightRingClass(item.rarity),
-                        !item.owned && 'opacity-50 grayscale-[0.35]',
-                      )}
-                    >
+      <Dialog open={avatarCatalogOpen} onOpenChange={setAvatarCatalogOpen}>
+        <DialogContent className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden border-slate-200/80 p-0 sm:max-w-lg dark:border-white/10">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-200/70 px-6 py-4 text-left dark:border-white/10">
+            <DialogTitle className="text-base">星辉头像图鉴</DialogTitle>
+            <DialogDescription className="text-left text-xs text-slate-600 dark:text-slate-400">
+              共 {totalCount} 款；已拥有 {ownedCount} 款
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            {catalogItems.length === 0 ? (
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400">暂无图鉴数据</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
+                {catalogItems.map((item) => (
+                  <div key={item.id} className="flex flex-col items-center gap-1.5 text-center">
+                    <div className="relative size-16 shrink-0 sm:size-[4.5rem]">
                       <div
                         className={cn(
-                          'pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br opacity-30',
-                          rarityAccent(item.rarity),
+                          'relative size-full overflow-hidden rounded-full border p-0.5',
+                          gachaAvatarHighlightRingClass(item.rarity),
+                          !item.owned && 'opacity-50 grayscale-[0.35]',
                         )}
-                      />
-                      <img
-                        src={item.url}
-                        alt=""
-                        className="relative size-full rounded-full object-cover"
-                      />
+                      >
+                        <div
+                          className={cn(
+                            'pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br opacity-30',
+                            rarityAccent(item.rarity),
+                          )}
+                        />
+                        <img
+                          src={item.url}
+                          alt=""
+                          className="relative size-full rounded-full object-cover"
+                        />
+                      </div>
+                      {item.owned ? (
+                        <span className="absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full border border-fuchsia-300/30 bg-fuchsia-500 text-white shadow-sm dark:border-fuchsia-400/20">
+                          <Check className="size-3" strokeWidth={2.5} />
+                        </span>
+                      ) : null}
                     </div>
-                    {item.owned ? (
-                      <span className="absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full border border-fuchsia-300/30 bg-fuchsia-500 text-white shadow-sm dark:border-fuchsia-400/20">
-                        <Check className="size-3" strokeWidth={2.5} />
-                      </span>
+                    <p
+                      className="w-full max-w-full truncate text-xs font-medium text-slate-800 dark:text-slate-200"
+                      title={item.name}
+                    >
+                      {item.name}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.rarity}</p>
+                    {!item.owned && item.fragmentTarget > 0 ? (
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        碎片 {item.fragmentCount}/{item.fragmentTarget}
+                      </p>
                     ) : null}
                   </div>
-                  <p className="w-full max-w-full truncate text-xs font-medium text-slate-800 dark:text-slate-200" title={item.name}>
-                    {item.name}
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.rarity}</p>
-                  {!item.owned && item.fragmentTarget > 0 ? (
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      碎片 {item.fragmentCount}/{item.fragmentTarget}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -837,6 +849,10 @@ export function AvatarCollectionStoreCard() {
   const [drawing, setDrawing] = useState(false);
   const [dropRulesOpen, setDropRulesOpen] = useState(false);
   const [gachaPoolTab, setGachaPoolTab] = useState<GamificationGachaBannerId>('live2d');
+  const [pendingDraw, setPendingDraw] = useState<{
+    bannerId: GamificationGachaBannerId;
+    drawCount: 1 | 10;
+  } | null>(null);
 
   const ownedAvatarCount = summary?.avatarInventory.items.filter((item) => item.owned).length ?? 0;
   const totalAvatarCount = summary?.avatarInventory.items.length ?? 0;
@@ -845,6 +861,10 @@ export function AvatarCollectionStoreCard() {
       (character) => character.assetType === 'LIVE2D' && isSupportedLive2DCharacterId(character.id),
     ) ?? [];
   const unlockedLive2dCount = live2dCharacters.filter((character) => character.isUnlocked).length;
+
+  const confirmDraw = (bannerId: GamificationGachaBannerId, drawCount: 1 | 10) => {
+    setPendingDraw({ bannerId, drawCount });
+  };
 
   const handleDraw = async (bannerId: GamificationGachaBannerId, drawCount: 1 | 10) => {
     if (drawing) return;
@@ -885,37 +905,37 @@ export function AvatarCollectionStoreCard() {
     <>
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
         <Card className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden border-muted/40 bg-white/85 p-0 backdrop-blur-xl dark:bg-slate-900/80">
-        {!summary ? null : !summary.databaseEnabled ? (
-          <div className="px-5 py-6 text-sm text-muted-foreground md:px-6">
-            当前环境还没有数据库同步，补给站暂时不可用。
-          </div>
-        ) : (
-          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col px-5 py-5 md:px-6">
-            {gachaPoolTab === 'avatar' ? (
-              <AvatarWishBanner
-                ownedCount={ownedAvatarCount}
-                totalCount={totalAvatarCount}
-                highlights={avatarHighlights}
-                allInventoryItems={summary.avatarInventory.items}
-                disabled={drawing}
-                onDraw={handleDraw}
-                onOpenDropRules={() => setDropRulesOpen(true)}
-                activePool={gachaPoolTab}
-                onActivePoolChange={setGachaPoolTab}
-              />
-            ) : (
-              <InstructorWishBanner
-                characters={live2dCharacters}
-                unlockedCount={unlockedLive2dCount}
-                disabled={drawing}
-                onDraw={handleDraw}
-                onOpenDropRules={() => setDropRulesOpen(true)}
-                activePool={gachaPoolTab}
-                onActivePoolChange={setGachaPoolTab}
-              />
-            )}
-          </div>
-        )}
+          {!summary ? null : !summary.databaseEnabled ? (
+            <div className="px-5 py-6 text-sm text-muted-foreground md:px-6">
+              当前环境还没有数据库同步，补给站暂时不可用。
+            </div>
+          ) : (
+            <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col px-5 py-5 md:px-6">
+              {gachaPoolTab === 'avatar' ? (
+                <AvatarWishBanner
+                  ownedCount={ownedAvatarCount}
+                  totalCount={totalAvatarCount}
+                  highlights={avatarHighlights}
+                  allInventoryItems={summary.avatarInventory.items}
+                  disabled={drawing}
+                  onDraw={confirmDraw}
+                  onOpenDropRules={() => setDropRulesOpen(true)}
+                  activePool={gachaPoolTab}
+                  onActivePoolChange={setGachaPoolTab}
+                />
+              ) : (
+                <InstructorWishBanner
+                  characters={live2dCharacters}
+                  unlockedCount={unlockedLive2dCount}
+                  disabled={drawing}
+                  onDraw={confirmDraw}
+                  onOpenDropRules={() => setDropRulesOpen(true)}
+                  activePool={gachaPoolTab}
+                  onActivePoolChange={setGachaPoolTab}
+                />
+              )}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -936,6 +956,78 @@ export function AvatarCollectionStoreCard() {
           </DialogHeader>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(pendingDraw)}
+        onOpenChange={(open) => !open && setPendingDraw(null)}
+      >
+        <AlertDialogContent className="max-w-[min(100vw-2rem,30rem)] rounded-[24px] border-white/60 bg-[rgba(255,255,255,0.94)] p-0 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(18,22,31,0.95)]">
+          <div className="p-6">
+            <AlertDialogHeader className="items-start text-left">
+              <div className="mb-4 flex size-11 items-center justify-center rounded-2xl border border-fuchsia-300/50 bg-fuchsia-500/10 text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/12 dark:text-fuchsia-200">
+                <Ticket className="size-5" strokeWidth={1.8} />
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold text-slate-950 dark:text-white">
+                确认抽取补给
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                你即将进行
+                <span className="font-semibold text-slate-950 dark:text-white">
+                  {pendingDraw?.drawCount === 10 ? '十连抽' : '单抽'}
+                </span>
+                ，确认后会立即扣除购买积分。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {pendingDraw ? (
+              <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white/70 p-4 text-sm dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-3 py-2">
+                  <span className="text-slate-500 dark:text-slate-400">补给池</span>
+                  <span className="font-semibold text-slate-950 dark:text-white">
+                    {BANNER_META[pendingDraw.bannerId].title}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200/70 py-2 dark:border-white/10">
+                  <span className="text-slate-500 dark:text-slate-400">当前购买积分</span>
+                  <span className="font-semibold text-slate-950 dark:text-white">
+                    {formatPurchaseCreditsLabel(summary?.balances.purchase ?? 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200/70 py-2 dark:border-white/10">
+                  <span className="text-slate-500 dark:text-slate-400">本次扣除</span>
+                  <span className="font-semibold text-rose-600 dark:text-rose-300">
+                    -
+                    {formatPurchaseCreditsLabel(
+                      pendingDraw.drawCount === 10
+                        ? BANNER_META[pendingDraw.bannerId].tenCost
+                        : BANNER_META[pendingDraw.bannerId].singleCost,
+                    )}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <AlertDialogFooter className="border-t border-slate-200/70 px-6 py-4 dark:border-white/10">
+            <AlertDialogCancel type="button" className="rounded-full" disabled={drawing}>
+              取消
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              className="rounded-full"
+              disabled={drawing || !pendingDraw}
+              onClick={async () => {
+                if (!pendingDraw) return;
+                const nextDraw = pendingDraw;
+                setPendingDraw(null);
+                await handleDraw(nextDraw.bannerId, nextDraw.drawCount);
+              }}
+            >
+              {drawing ? '处理中…' : '确认抽取'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GachaRevealDialog
         open={drawOpen}

@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowRightLeft, Coins, Cpu, Loader2, ShoppingBag, Sparkles, Wallet } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  Coins,
+  Cpu,
+  Loader2,
+  ShoppingBag,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,6 +26,7 @@ import {
   formatUsdLabel,
   usdFromCredits,
 } from '@/lib/utils/credits';
+import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 import {
   APPROX_USD_TO_CAD,
   APPROX_USD_TO_CNY,
@@ -84,6 +94,7 @@ export default function TopUpPage() {
     try {
       const response = await backendJson<CreditsResponse>('/api/profile/credits');
       setBalances(response.balances);
+      notifyCreditsBalancesChanged(response.balances);
     } catch {
       setBalances(null);
     } finally {
@@ -237,14 +248,17 @@ export default function TopUpPage() {
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#5b6270] dark:text-slate-300">
                 现金积分、算力积分、购买积分都和真实美元强绑定，统一按{' '}
                 <span className="font-medium text-[#1d1d1f] dark:text-slate-100">{`${TOP_UP_CREDITS_PER_USD} credits = ${formatUsdLabel(1)}`}</span>{' '}
-                来算。平台里的任何 AI 算力消耗都会扣算力积分；课程和商城内容购买则扣购买积分；现金积分可以 1:1 转换到另外两类。
+                来算。平台里的任何 AI
+                算力消耗都会扣算力积分；课程和商城内容购买则扣购买积分；现金积分可以 1:1
+                转换到另外两类。
               </p>
               <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[#5b6270] dark:text-slate-400">
                 <span className="font-medium text-[#1d1d1f] dark:text-slate-200">
                   200 算力积分大概啥概念？
                 </span>
-                200 credits 现在就是 {formatUsdLabel(usdFromCredits(200))}。如果主要是轻量对话、改讲义、微调课件，
-                大致可以覆盖 200 轮对话左右，或者支撑一次 10-20 页笔记本生成预算。
+                200 credits 现在就是 {formatUsdLabel(usdFromCredits(200))}
+                。如果主要是轻量对话、改讲义、微调课件， 大致可以覆盖 200 轮对话左右，或者支撑一次
+                10-20 页笔记本生成预算。
               </p>
               <div className="mt-4 flex flex-wrap gap-3 text-xs">
                 <div className="rounded-full border border-sky-200/70 bg-sky-50/80 px-3 py-1.5 font-medium text-sky-800 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-100">
@@ -270,16 +284,31 @@ export default function TopUpPage() {
                 ) : (
                   <div className="mt-3 grid gap-3">
                     <div className="flex items-center justify-between rounded-2xl bg-amber-50/80 px-3 py-2 text-sm dark:bg-amber-400/10">
-                      <span className="inline-flex items-center gap-2"><Wallet className="size-4" />现金积分</span>
-                      <span className="font-semibold">{balances ? formatCashCreditsLabel(balances.cash) : '--'}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <Wallet className="size-4" />
+                        现金积分
+                      </span>
+                      <span className="font-semibold">
+                        {balances ? formatCashCreditsLabel(balances.cash) : '--'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-sky-50/80 px-3 py-2 text-sm dark:bg-sky-400/10">
-                      <span className="inline-flex items-center gap-2"><Cpu className="size-4" />算力积分</span>
-                      <span className="font-semibold">{balances ? formatComputeCreditsLabel(balances.compute) : '--'}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <Cpu className="size-4" />
+                        算力积分
+                      </span>
+                      <span className="font-semibold">
+                        {balances ? formatComputeCreditsLabel(balances.compute) : '--'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-emerald-50/80 px-3 py-2 text-sm dark:bg-emerald-400/10">
-                      <span className="inline-flex items-center gap-2"><ShoppingBag className="size-4" />购买积分</span>
-                      <span className="font-semibold">{balances ? formatPurchaseCreditsLabel(balances.purchase) : '--'}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <ShoppingBag className="size-4" />
+                        购买积分
+                      </span>
+                      <span className="font-semibold">
+                        {balances ? formatPurchaseCreditsLabel(balances.purchase) : '--'}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -305,7 +334,9 @@ export default function TopUpPage() {
                   只支持把现金积分按 1:1 转成算力积分或购买积分，其他积分不能转回现金积分。
                 </p>
               </div>
-              <div className="text-xs text-muted-foreground">三种积分统一按 100 分 = {formatUsdLabel(1)}</div>
+              <div className="text-xs text-muted-foreground">
+                三种积分统一按 100 分 = {formatUsdLabel(1)}
+              </div>
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[220px_1fr_1fr]">

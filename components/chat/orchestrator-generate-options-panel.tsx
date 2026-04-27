@@ -31,7 +31,9 @@ import {
   type NotebookGenerationModelMode,
 } from '@/lib/constants/notebook-generation-model-presets';
 
-function defaultWorkedExampleLevelForPurpose(purpose: CoursePurpose | null): OrchestratorWorkedExampleLevel {
+function defaultWorkedExampleLevelForPurpose(
+  purpose: CoursePurpose | null,
+): OrchestratorWorkedExampleLevel {
   if (purpose === 'university') return 'heavy';
   if (purpose === 'research' || purpose === 'daily') return 'none';
   return 'moderate';
@@ -89,7 +91,9 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
   const setNotebookModelMode = useOrchestratorNotebookGenStore((s) => s.setNotebookModelMode);
   const modelIdOverride = useOrchestratorNotebookGenStore((s) => s.modelIdOverride);
   const setModelIdOverride = useOrchestratorNotebookGenStore((s) => s.setModelIdOverride);
-  const notebookStageModelOverrides = useOrchestratorNotebookGenStore((s) => s.notebookStageModelOverrides);
+  const notebookStageModelOverrides = useOrchestratorNotebookGenStore(
+    (s) => s.notebookStageModelOverrides,
+  );
   const setNotebookStageModelOverride = useOrchestratorNotebookGenStore(
     (s) => s.setNotebookStageModelOverride,
   );
@@ -97,6 +101,8 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
   const setLanguage = useOrchestratorNotebookGenStore((s) => s.setLanguage);
   const webSearch = useOrchestratorNotebookGenStore((s) => s.webSearch);
   const setWebSearch = useOrchestratorNotebookGenStore((s) => s.setWebSearch);
+  const generateSlides = useOrchestratorNotebookGenStore((s) => s.generateSlides);
+  const setGenerateSlides = useOrchestratorNotebookGenStore((s) => s.setGenerateSlides);
   const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
   const setOutlineLength = useOrchestratorNotebookGenStore((s) => s.setOutlineLength);
   const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
@@ -206,7 +212,9 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
               className="w-full rounded-lg border border-slate-900/[0.06] bg-white/30 p-2 dark:border-white/[0.08] dark:bg-black/15"
             >
               <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-black/[0.03] dark:hover:bg-white/[0.06]">
-                <span className="text-[11px] font-semibold text-foreground/90">分阶段模型（可选）</span>
+                <span className="text-[11px] font-semibold text-foreground/90">
+                  分阶段模型（可选）
+                </span>
                 <ChevronDownIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-2.5 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0">
@@ -263,84 +271,125 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
           </Select>
         </FieldBlock>
 
-        <FieldBlock label="篇幅">
-          <Select value={outlineLength} onValueChange={(v) => setOutlineLength(v as typeof outlineLength)}>
-            <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="minimal" textValue="极简">
-                极简（5 页以下）
-              </SelectItem>
-              <SelectItem value="compact" textValue="简短">
-                简短（10 页以下）
-              </SelectItem>
-              <SelectItem value="standard" textValue="中等">
-                中等（10–20 页）
-              </SelectItem>
-              <SelectItem value="extended" textValue="深入">
-                深入（20 页以上）
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </FieldBlock>
+        {generateSlides ? (
+          <>
+            <FieldBlock label="篇幅">
+              <Select
+                value={outlineLength}
+                onValueChange={(v) => setOutlineLength(v as typeof outlineLength)}
+              >
+                <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minimal" textValue="极简">
+                    极简（5 页以下）
+                  </SelectItem>
+                  <SelectItem value="compact" textValue="简短">
+                    简短（10 页以下）
+                  </SelectItem>
+                  <SelectItem value="standard" textValue="中等">
+                    中等（10–20 页）
+                  </SelectItem>
+                  <SelectItem value="extended" textValue="深入">
+                    深入（20 页以上）
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldBlock>
 
-        <FieldBlock label="例题数量">
-          <Select
-            value={workedExampleLevel ?? 'moderate'}
-            onValueChange={(v) => setWorkedExampleLevel(v as OrchestratorWorkedExampleLevel)}
-          >
-            <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none" textValue="无">
-                无（不讲完整例题走读）
-              </SelectItem>
-              <SelectItem value="light" textValue="少量">
-                少量（约 0–1 组完整例题）
-              </SelectItem>
-              <SelectItem value="moderate" textValue="中等">
-                中等（约 2–4 组）
-              </SelectItem>
-              <SelectItem value="heavy" textValue="丰富">
-                丰富（约 5 组及以上）
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </FieldBlock>
+            <FieldBlock label="例题数量">
+              <Select
+                value={workedExampleLevel ?? 'moderate'}
+                onValueChange={(v) => setWorkedExampleLevel(v as OrchestratorWorkedExampleLevel)}
+              >
+                <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" textValue="无">
+                    无（不讲完整例题走读）
+                  </SelectItem>
+                  <SelectItem value="light" textValue="少量">
+                    少量（约 0–1 组完整例题）
+                  </SelectItem>
+                  <SelectItem value="moderate" textValue="中等">
+                    中等（约 2–4 组）
+                  </SelectItem>
+                  <SelectItem value="heavy" textValue="丰富">
+                    丰富（约 5 组及以上）
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldBlock>
+          </>
+        ) : null}
 
-        <FieldBlock label="朗读音色">
-          <ComposerVoiceSelector
-            onSettingsOpen={openSettings}
-            triggerClassName={SIDEBAR_CHOICE_TRIGGER}
-          />
-        </FieldBlock>
+        {generateSlides ? (
+          <FieldBlock label="朗读音色">
+            <ComposerVoiceSelector
+              onSettingsOpen={openSettings}
+              triggerClassName={SIDEBAR_CHOICE_TRIGGER}
+            />
+          </FieldBlock>
+        ) : null}
 
         <div className="flex flex-col gap-3 border-t border-slate-900/[0.06] pt-3 dark:border-white/[0.08]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
+              <Label className="text-[11px] font-semibold">生成 PPT 课件</Label>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                关闭后只把笔记本加入仓库，不生成页面、口播或讲解角色。
+              </p>
+            </div>
+            <Switch
+              checked={generateSlides}
+              onCheckedChange={setGenerateSlides}
+              aria-label="生成 PPT 课件"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <Label className="text-[11px] font-semibold">联网搜索</Label>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">创建前补充外部资料（需配置搜索提供商）。</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                创建前补充外部资料（需配置搜索提供商）。
+              </p>
             </div>
             <Switch checked={webSearch} onCheckedChange={setWebSearch} aria-label="联网搜索" />
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <Label className="text-[11px] font-semibold">AI 生成配图</Label>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">允许在大纲中规划 AI 插图（仍受设置里图像模型影响）。</p>
-            </div>
-            <Switch checked={useAiImages} onCheckedChange={setUseAiImages} aria-label="AI 生成配图" />
-          </div>
+          {generateSlides ? (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <Label className="text-[11px] font-semibold">AI 生成配图</Label>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    允许在大纲中规划 AI 插图（仍受设置里图像模型影响）。
+                  </p>
+                </div>
+                <Switch
+                  checked={useAiImages}
+                  onCheckedChange={setUseAiImages}
+                  aria-label="AI 生成配图"
+                />
+              </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <Label className="text-[11px] font-semibold">包含测验 / 题目页</Label>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">关闭则尽量不生成独立 quiz 场景，以讲解 slide 为主。</p>
-            </div>
-            <Switch checked={includeQuizScenes} onCheckedChange={setIncludeQuizScenes} aria-label="包含测验场景" />
-          </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <Label className="text-[11px] font-semibold">包含测验 / 题目页</Label>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    关闭则尽量不生成独立 quiz 场景，以讲解 slide 为主。
+                  </p>
+                </div>
+                <Switch
+                  checked={includeQuizScenes}
+                  onCheckedChange={setIncludeQuizScenes}
+                  aria-label="包含测验场景"
+                />
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

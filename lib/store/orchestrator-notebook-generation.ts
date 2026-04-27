@@ -20,15 +20,20 @@ export interface OrchestratorNotebookGenState {
   notebookStageModelOverrides: NotebookStageModelOverrides;
   language: 'zh-CN' | 'en-US';
   webSearch: boolean;
+  generateSlides: boolean;
   outlineLength: OrchestratorOutlineLength;
   workedExampleLevel: OrchestratorWorkedExampleLevel;
   includeQuizScenes: boolean;
   useAiImages: boolean;
   setNotebookModelMode: (v: NotebookGenerationModelMode) => void;
   setModelIdOverride: (v: string | null) => void;
-  setNotebookStageModelOverride: (stage: NotebookGenerationModelStage, modelId: string | null) => void;
+  setNotebookStageModelOverride: (
+    stage: NotebookGenerationModelStage,
+    modelId: string | null,
+  ) => void;
   setLanguage: (v: 'zh-CN' | 'en-US') => void;
   setWebSearch: (v: boolean) => void;
+  setGenerateSlides: (v: boolean) => void;
   setOutlineLength: (v: OrchestratorOutlineLength) => void;
   setWorkedExampleLevel: (v: OrchestratorWorkedExampleLevel) => void;
   setIncludeQuizScenes: (v: boolean) => void;
@@ -43,6 +48,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       notebookStageModelOverrides: {},
       language: 'zh-CN',
       webSearch: true,
+      generateSlides: true,
       outlineLength: 'standard',
       workedExampleLevel: 'moderate',
       includeQuizScenes: true,
@@ -61,6 +67,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
         }),
       setLanguage: (language) => set({ language }),
       setWebSearch: (webSearch) => set({ webSearch }),
+      setGenerateSlides: (generateSlides) => set({ generateSlides }),
       setOutlineLength: (outlineLength) => set({ outlineLength }),
       setWorkedExampleLevel: (workedExampleLevel) => set({ workedExampleLevel }),
       setIncludeQuizScenes: (includeQuizScenes) => set({ includeQuizScenes }),

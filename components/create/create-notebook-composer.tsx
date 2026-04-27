@@ -15,32 +15,34 @@ import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { toast } from 'sonner';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
-import {
-  buildGenerationSessionState,
-  persistGenerationSession,
-} from '@/lib/create/build-generation-session';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
 import {
   ComposerInputShell,
   composerTextareaClassName,
 } from '@/components/ui/composer-input-shell';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { GreetingBar } from '@/components/create/greeting-bar';
 import {
   PDF_PAGE_SELECTION_MAX_BYTES,
   getPdfSourceFileSignature,
   type PdfSourceSelection,
 } from '@/lib/pdf/page-selection';
+import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
+import { NotebookGenerationQueuePanel } from '@/components/generation/notebook-generation-queue-panel';
 
 const log = createLogger('CreateNotebookComposer');
 
 const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled';
 const LANGUAGE_STORAGE_KEY = 'generationLanguage';
+const GENERATE_SLIDES_STORAGE_KEY = 'generationGenerateSlides';
 
 interface FormState {
   sourceFile: File | null;
   requirement: string;
   language: 'zh-CN' | 'en-US';
   webSearch: boolean;
+  generateSlides: boolean;
 }
 
 const initialFormState: FormState = {
@@ -48,6 +50,7 @@ const initialFormState: FormState = {
   requirement: '',
   language: 'zh-CN',
   webSearch: false,
+  generateSlides: true,
 };
 
 function isPdfSourceFile(file: File): boolean {
@@ -63,9 +66,7 @@ export interface CreateNotebookComposerProps {
   className?: string;
 }
 
-/**
- * 与 `/create?courseId=` 相同的底部输入区与生成逻辑（写入 generationSession 并跳转预览页）。
- */
+/** 与 `/create?courseId=` 相同的底部输入区；提交后进入当前标签页的生成队列。 */
 export function CreateNotebookComposer({
   courseId,
   compact,
@@ -80,13 +81,16 @@ export function CreateNotebookComposer({
     useDraftCache<string>({ key: 'requirementDraft' });
 
   const currentModelId = useSettingsStore((s) => s.modelId);
+  const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
 
   useEffect(() => {
     try {
       const savedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY);
       const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      const savedGenerateSlides = localStorage.getItem(GENERATE_SLIDES_STORAGE_KEY);
       const updates: Partial<FormState> = {};
       if (savedWebSearch === 'true') updates.webSearch = true;
+      if (savedGenerateSlides === 'false') updates.generateSlides = false;
       if (savedLanguage === 'zh-CN' || savedLanguage === 'en-US') {
         updates.language = savedLanguage;
       } else {
@@ -142,6 +146,9 @@ export function CreateNotebookComposer({
     try {
       if (field === 'webSearch') localStorage.setItem(WEB_SEARCH_STORAGE_KEY, String(value));
       if (field === 'language') localStorage.setItem(LANGUAGE_STORAGE_KEY, String(value));
+      if (field === 'generateSlides') {
+        localStorage.setItem(GENERATE_SLIDES_STORAGE_KEY, String(value));
+      }
       if (field === 'requirement') updateRequirementCache(value as string);
     } catch {
       /* ignore */
@@ -223,35 +230,57 @@ export function CreateNotebookComposer({
 
     try {
       const userProfile = useUserProfileStore.getState();
-      const settings = useSettingsStore.getState();
-      let pdfProviderId: string | undefined;
-      let pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
-      if (settings.pdfProviderId) {
-        pdfProviderId = settings.pdfProviderId;
-        const providerCfg = settings.pdfProvidersConfig?.[settings.pdfProviderId];
-        if (providerCfg) {
-          pdfProviderConfig = {
-            apiKey: providerCfg.apiKey,
-            baseUrl: providerCfg.baseUrl,
-          };
-        }
-      }
-
-      const sessionState = await buildGenerationSessionState({
-        courseId: cid,
-        requirement: form.requirement,
-        language: form.language,
-        webSearch: form.webSearch,
-        sourceFile: form.sourceFile,
-        sourcePageSelection: effectiveSelection,
-        userNickname: userProfile.nickname || undefined,
-        userBio: userProfile.bio || undefined,
-        pdfProviderId,
-        pdfProviderConfig,
-      });
-
-      persistGenerationSession(sessionState);
-      router.push('/generation-preview');
+      enqueueNotebookGeneration(
+        {
+          courseId: cid,
+          requirement: form.requirement,
+          language: form.language,
+          webSearch: form.webSearch,
+          generateSlides: form.generateSlides,
+          sourceFile: form.sourceFile,
+          sourcePageSelection: effectiveSelection,
+          userNickname: userProfile.nickname || undefined,
+          userBio: userProfile.bio || undefined,
+          outlinePreferences: {
+            length: 'standard',
+            includeQuizScenes: true,
+            workedExampleLevel: 'moderate',
+          },
+        },
+        {
+          onProgress: (_task, progress) => {
+            if (progress.stage === 'notebook-ready') {
+              window.dispatchEvent(
+                new CustomEvent('synatra-notebook-list-updated', {
+                  detail: { courseId: cid, notebookId: progress.notebookId },
+                }),
+              );
+            }
+          },
+          onCompleted: (_task, result) => {
+            window.dispatchEvent(
+              new CustomEvent('synatra-notebook-list-updated', {
+                detail: { courseId: cid, notebookId: result.stage.id },
+              }),
+            );
+            toast.success(
+              result.scenes.length > 0
+                ? `笔记本「${result.stage.name}」已创建完成`
+                : `笔记本「${result.stage.name}」已加入仓库`,
+            );
+          },
+          onFailed: (_task, message) => {
+            toast.error(`笔记本生成失败：${message}`);
+          },
+          onCancelled: () => {
+            toast.info('已取消笔记本生成任务');
+          },
+        },
+      );
+      toast.success(form.generateSlides ? '已加入生成队列' : '已加入仓库队列');
+      setForm((prev) => ({ ...prev, requirement: '', sourceFile: null }));
+      updateRequirementCache('');
+      setSourcePageSelection(null);
     } catch (err) {
       log.error('Error preparing generation:', err);
       setError(err instanceof Error ? err.message : t('upload.generateFailed'));
@@ -273,6 +302,7 @@ export function CreateNotebookComposer({
 
   return (
     <div className={cn('w-full', className)}>
+      <NotebookGenerationQueuePanel className="mb-3" />
       <PdfPageSelectionDialog
         open={pageSelectionDialogOpen}
         file={form.sourceFile}
@@ -302,6 +332,21 @@ export function CreateNotebookComposer({
           rows={4}
           disabled={busy}
         />
+
+        <div className="flex items-center justify-between gap-3 border-t border-slate-900/[0.06] px-4 py-2 dark:border-white/[0.08]">
+          <div className="min-w-0 flex-1">
+            <Label className="text-[11px] font-semibold">生成 PPT 课件</Label>
+            <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+              关闭后只把笔记本加入仓库，不生成页面、口播或讲解角色。
+            </p>
+          </div>
+          <Switch
+            checked={form.generateSlides}
+            onCheckedChange={(v) => updateForm('generateSlides', v)}
+            aria-label="生成 PPT 课件"
+            disabled={busy}
+          />
+        </div>
 
         <div className="flex items-end gap-2 px-3 pb-3">
           <div className="min-w-0 flex-1">
@@ -346,7 +391,9 @@ export function CreateNotebookComposer({
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
               <>
-                <span className="text-xs font-medium">{t('toolbar.enterClassroom')}</span>
+                <span className="text-xs font-medium">
+                  {form.generateSlides ? t('toolbar.enterClassroom') : '加入仓库'}
+                </span>
                 <ArrowUp className="size-3.5" />
               </>
             )}

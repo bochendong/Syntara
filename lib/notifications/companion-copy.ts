@@ -173,6 +173,29 @@ const DEFAULT_POSITIVE_LINES = [
   '奖励到账完成，今天的学习势头很棒。',
 ] as const;
 
+const STUDY_NUDGE_LINES = [
+  '我把你的学习节奏记着呢，今天先陪你打一小关。',
+  '这里不用硬撑，我已经帮你把卡点收好了。',
+  '你负责往前走一点点，剩下的复习路线我来盯。',
+  '刚才的努力我看见啦，这个小进度会算数的。',
+  '别急着重来整节课，我们先把最小的一块补稳。',
+] as const;
+
+const MISTAKE_REVIEW_LINES = [
+  '这题不是失败，是我帮你抓到的复习线索。',
+  '错题我已经收进小本本了，下次回来会更稳。',
+  '这个小卡点我替你圈住啦，不会让它白白溜走。',
+  '先别泄气，我会把它放进后面的复习路线里。',
+  '这次反馈很有用，我们把它变成下一次的加分点。',
+] as const;
+
+const ROUTE_UNLOCK_LINES = [
+  '这本笔记的路线图已经铺好啦，今天从哪一关开始呢？',
+  '我把学习地图整理好了，先挑一条轻一点的路走。',
+  '路线图已生成，后面的关卡我会陪你一格一格推。',
+  '这本笔记的副本入口开啦，先打一小关热热手。',
+] as const;
+
 export function buildNotificationCompanionCopy(item: AppNotification): CompanionCopy {
   const seed = `${item.id}|${item.sourceKind}|${item.createdAt}`;
 
@@ -191,6 +214,13 @@ export function buildNotificationCompanionCopy(item: AppNotification): Companion
   }
 
   switch (item.sourceKind) {
+    case 'study_nudge':
+    case 'question_memory':
+      return { eyebrow: '老师的小本本', line: pickBySeed(STUDY_NUDGE_LINES, seed) };
+    case 'mistake_review':
+      return { eyebrow: '错题记忆', line: pickBySeed(MISTAKE_REVIEW_LINES, seed) };
+    case 'route_unlock':
+      return { eyebrow: '学习路线图', line: pickBySeed(ROUTE_UNLOCK_LINES, seed) };
     case 'PRACTICE_SUBMISSION': {
       const tier = item.details.find((detail) => detail.key === 'resultTier')?.value || 'retry';
       const lines =
