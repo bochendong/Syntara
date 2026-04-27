@@ -12,7 +12,11 @@ import {
   CONTENT_WIDTH,
   CJK_TEXT_REGEX,
 } from './layout-constants';
-import { estimateCodeBlockHeight, estimateLatexDisplayHeight, matrixBlockToLatex } from './block-utils';
+import {
+  estimateCodeBlockHeight,
+  estimateLatexDisplayHeight,
+  matrixBlockToLatex,
+} from './block-utils';
 import { renderInlineLatexToHtml } from './inline-html';
 import type { NotebookContentBlock } from './schema';
 
@@ -668,7 +672,10 @@ export function assessExpandedBlockHeight(
       columns: block.columns,
     });
     const normalizedColumns = Number(block.columns);
-    const textChars = block.items.reduce((sum, item) => sum + item.text.length + item.title.length, 0);
+    const textChars = block.items.reduce(
+      (sum, item) => sum + item.text.length + item.title.length,
+      0,
+    );
     const compactPenalty = normalizedColumns === 2 && block.items.length >= 4 ? 0.75 : 0.35;
     return {
       height: measured.totalHeight + (block.title ? 34 : 0) + 12,
@@ -758,6 +765,15 @@ export function assessExpandedBlockHeight(
     return {
       height: 34 + (block.caption ? 24 : 0) + CARD_INSET_Y * 2 + 10,
       densityDelta: 1.05,
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'visual') {
+    return {
+      height: 220,
+      densityDelta: 1.2,
       consumesVisualCard: true,
       measuredWithDom: false,
     };

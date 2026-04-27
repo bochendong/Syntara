@@ -7,9 +7,23 @@
 
 import type { ActionType } from './action';
 import type { MediaGenerationRequest } from '@/lib/media/types';
-import type { NotebookContentProfile } from '@/lib/notebook-content';
+import type {
+  NotebookContentDensity,
+  NotebookContentLayoutFamily,
+  NotebookContentOverflowPolicy,
+  NotebookContentProfile,
+  NotebookContentVisualRole,
+} from '@/lib/notebook-content';
 
 export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'bridge' | 'summary';
+
+export interface SceneLayoutIntent {
+  layoutFamily: NotebookContentLayoutFamily;
+  density?: NotebookContentDensity;
+  visualRole?: NotebookContentVisualRole;
+  overflowPolicy?: NotebookContentOverflowPolicy;
+  preserveFullProblemStatement?: boolean;
+}
 
 export interface SceneContinuation {
   rootOutlineId: string;
@@ -105,6 +119,7 @@ export interface SceneOutline {
   type: 'slide' | 'quiz' | 'interactive' | 'pbl';
   contentProfile?: NotebookContentProfile;
   archetype?: SceneArchetype;
+  layoutIntent?: SceneLayoutIntent;
   continuation?: SceneContinuation;
   title: string;
   description: string; // 1-2 sentences describing the purpose

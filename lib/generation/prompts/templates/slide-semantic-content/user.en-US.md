@@ -10,7 +10,12 @@
 
 {{contentProfileContext}}
 {{archetypeContext}}
+{{layoutIntentContext}}
 {{workedExampleContext}}
+## Available Images / Visual Slots
+
+{{assignedImages}}
+
 {{teacherContext}}
 {{coursePersonalization}}
 {{rewriteContext}}
@@ -28,5 +33,8 @@ Important:
 5. Every generated block, heading, title, bullet, and paragraph must be entirely in `{{language}}`
 6. If the scene contains formulas, worked examples, matrix operations, code, or tables, use the corresponding structured blocks instead of plain paragraphs whenever possible
 7. Set `profile` to `math` for matrix / proof / derivation-heavy slides, `code` for programming walkthroughs, otherwise `general`
-8. Prioritize fitting into a single readable page: compress wording before increasing block count
-9. Keep block density compact (especially `layout_cards`, `process_flow`, `table`) and avoid long paragraph-style cells or step descriptions
+8. Set `layoutFamily`, `density`, `visualRole`, and `overflowPolicy`; if the layout intent supplies a value, follow it
+9. Prioritize fitting into a single readable page: compress wording before increasing block count
+10. Keep block density compact (especially `layout_cards`, `process_flow`, `table`) and avoid long paragraph-style cells or step descriptions
+11. If `preserveFullProblemStatement=true`, keep the problem readable and complete; do not remove key conditions, data, code, or asks just to compress
+12. Only output `visualSlot` or a `visual` block when Available Images / Visual Slots provides an image ID

@@ -99,7 +99,10 @@ export function deriveGridHeadingFromText(text: string, language: 'zh-CN' | 'en-
   return text.replace(/\s+/g, ' ').trim();
 }
 
-export function blockToGridHeading(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): string {
+export function blockToGridHeading(
+  language: 'zh-CN' | 'en-US',
+  block: NotebookContentBlock,
+): string {
   if (block.cardTitle?.trim()) {
     return block.cardTitle.trim();
   }
@@ -138,12 +141,17 @@ export function blockToGridHeading(language: 'zh-CN' | 'en-US', block: NotebookC
       return language === 'en-US' ? 'Chemical Formula' : '化学式';
     case 'chem_equation':
       return language === 'en-US' ? 'Chemical Equation' : '化学方程式';
+    case 'visual':
+      return block.title || block.caption || (language === 'en-US' ? 'Visual' : '图示');
     default:
       return language === 'en-US' ? 'Content' : '内容';
   }
 }
 
-export function blockToGridBody(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): string[] {
+export function blockToGridBody(
+  language: 'zh-CN' | 'en-US',
+  block: NotebookContentBlock,
+): string[] {
   switch (block.type) {
     case 'heading':
       return [];
@@ -185,17 +193,22 @@ export function blockToGridBody(language: 'zh-CN' | 'en-US', block: NotebookCont
     case 'example':
       return [
         block.problem,
-        ...block.steps.slice(0, 3).map(
-          (step, idx) => `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${step}`,
-        ),
+        ...block.steps
+          .slice(0, 3)
+          .map(
+            (step, idx) =>
+              `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${step}`,
+          ),
       ];
     case 'process_flow':
       return [
         ...block.context.slice(0, 3).map((item) => `${item.label}: ${item.text}`),
-        ...block.steps.slice(0, 3).map(
-          (step, idx) =>
-            `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${step.title} - ${step.detail}`,
-        ),
+        ...block.steps
+          .slice(0, 3)
+          .map(
+            (step, idx) =>
+              `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${step.title} - ${step.detail}`,
+          ),
         ...(block.summary ? [block.summary] : []),
       ];
     case 'layout_cards':
@@ -204,6 +217,8 @@ export function blockToGridBody(language: 'zh-CN' | 'en-US', block: NotebookCont
       return [block.formula, ...(block.caption ? [block.caption] : [])];
     case 'chem_equation':
       return [block.equation, ...(block.caption ? [block.caption] : [])];
+    case 'visual':
+      return [block.alt || '', ...(block.caption ? [block.caption] : [])].filter(Boolean);
     default:
       return [];
   }

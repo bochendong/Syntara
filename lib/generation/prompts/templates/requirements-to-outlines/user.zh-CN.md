@@ -92,11 +92,12 @@ By default:
 2. **If images are available**, add `suggestedImageIds` to relevant slide scenes
 3. **Interactive scenes**: If a concept benefits from hands-on simulation/visualization, use `"type": "interactive"` with an `interactiveConfig` object containing `conceptName`, `conceptOverview`, `designIdea`, and `subject`. Limit to 1-2 per course.
 4. **Scene count**: Based on inferred duration, typically 1-2 scenes per minute
-5. **Quiz placement**:
+5. **Slide layout intent**: Every slide scene must include `layoutIntent` with `layoutFamily`, `density`, `visualRole`, `overflowPolicy`, and `preserveFullProblemStatement`. Avoid the same `layoutFamily` for 3 consecutive slide scenes.
+6. **Quiz placement**:
    - Do not add quizzes by default to every course.
    - Prefer quizzes for university/homework/exam-prep style notebooks, or when the user explicitly asks for assessment/practice.
    - Use slide scenes, not quiz scenes, for teacher-led worked-example explanation.
-6. **Worked examples and question explanation**:
+7. **Worked examples and question explanation**:
    - Mainly add these for university-oriented courses or when the user explicitly asks for them.
    - Use `slide` scenes with `workedExampleConfig` for teacher-led example explanation.
    - The first scene of an example sequence should usually be a `problem_statement` scene that clearly shows the question before solving it.
@@ -109,14 +110,14 @@ By default:
    - For math / quantitative worked examples, `problemStatement` and `walkthroughSteps` must contain the actual equations, matrices, transformations, intermediate results, or concrete conclusions — not only generic labels such as "do elimination" or "compute the product".
    - For other subjects, use subject-appropriate explanation such as case analysis, source interpretation, essay structure, evidence chains, or problem decomposition.
    - If the user asks for homework, exercises, exam prep, interview prep, practice,刷题, tracing, proving, or solving problems, increase the proportion of worked-example scenes first; add quiz scenes only when student practice is also desired.
-7. **Long questions / long examples**:
+8. **Long questions / long examples**:
    - If a problem statement is too long for one slide, split it into multiple consecutive scenes.
    - Use one slide for setup/question text, then follow with slides for constraints, solving plan, step-by-step walkthrough, and takeaway.
    - Never overload one slide with the full long problem plus the full solution.
-8. **Language**: Strictly output all content in the specified course language
-9. **If no suitable PDF images exist** for a slide scene that would benefit from visuals, add `mediaGenerations` array with image generation prompts. Write prompts in English. Use `elementId` format like "gen_img_1", "gen_img_2" — IDs must be **globally unique across all scenes** (do NOT restart numbering per scene). To reuse a generated image in a different scene, reference the same elementId without re-declaring it in mediaGenerations. Each generated image should be visually distinct — avoid near-identical media across slides.
-10. **If web search results are provided**, reference specific findings and sources in scene descriptions and keyPoints. The search results provide up-to-date information — incorporate it to make the course content current and accurate.
-11. **Course container context has higher priority than generic defaults**:
+9. **Language**: Strictly output all content in the specified course language
+10. **If no suitable PDF images exist** for a slide scene that would benefit from visuals, add `mediaGenerations` array with image generation prompts. Write prompts in English. Use `elementId` format like "gen_img_1", "gen_img_2" — IDs must be **globally unique across all scenes** (do NOT restart numbering per scene). To reuse a generated image in a different scene, reference the same elementId without re-declaring it in mediaGenerations. Each generated image should be visually distinct — avoid near-identical media across slides.
+11. **If web search results are provided**, reference specific findings and sources in scene descriptions and keyPoints. The search results provide up-to-date information — incorporate it to make the course content current and accurate.
+12. **Course container context has higher priority than generic defaults**:
    - If course tags exist, align examples and terminology with those tags when relevant.
    - If course purpose/university/courseCode is provided, keep the scope and prerequisite level aligned with that context.
    - Do not conflict with the user requirement; treat course context as guardrails and personalization hints.

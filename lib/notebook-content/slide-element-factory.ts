@@ -2,6 +2,7 @@ import katex from 'katex';
 import { nanoid } from 'nanoid';
 import type {
   PPTElement,
+  PPTImageElement,
   PPTLatexElement,
   PPTLineElement,
   PPTShapeElement,
@@ -130,6 +131,42 @@ export function createCircleShape(args: {
     path: 'M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z',
     fill: args.fill,
     fixedRatio: false,
+  };
+}
+
+export function createImageElement(args: {
+  src: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  groupId?: string;
+  radius?: number;
+  outlineColor?: string;
+  shadow?: PPTImageElement['shadow'];
+  imageType?: PPTImageElement['imageType'];
+}): PPTImageElement {
+  return {
+    id: `image_${nanoid(8)}`,
+    type: 'image',
+    left: args.left,
+    top: args.top,
+    groupId: args.groupId,
+    width: args.width,
+    height: args.height,
+    rotate: 0,
+    fixedRatio: false,
+    src: args.src,
+    radius: args.radius ?? 8,
+    imageType: args.imageType || 'pageFigure',
+    outline: args.outlineColor
+      ? {
+          color: args.outlineColor,
+          width: 1,
+          style: 'solid',
+        }
+      : undefined,
+    shadow: args.shadow,
   };
 }
 

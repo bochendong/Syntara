@@ -182,6 +182,11 @@ function buildFallbackDocumentFromSlideContent(args: {
     language: args.language,
     profile: 'math',
     layout: { mode: 'stack' },
+    layoutFamily: 'formula_focus',
+    density: 'standard',
+    visualRole: 'none',
+    overflowPolicy: 'compress_first',
+    preserveFullProblemStatement: false,
     archetype: 'definition',
     title: args.sceneTitle,
     blocks:
@@ -400,11 +405,11 @@ function extractStandaloneFormulaLatex(text: string): string | null {
   return looksLikeBareStandaloneFormula(trimmed) ? normalizeLatexSource(trimmed) : null;
 }
 
-function sanitizeEquationBlock(block: Extract<NotebookContentDocument['blocks'][number], { type: 'equation' }>) {
+function sanitizeEquationBlock(
+  block: Extract<NotebookContentDocument['blocks'][number], { type: 'equation' }>,
+) {
   const raw = block.latex.trim().replace(/\${3,}/g, '$$');
-  const extractCaptionedMath = (
-    pattern: RegExp,
-  ): { latex: string; caption?: string } | null => {
+  const extractCaptionedMath = (pattern: RegExp): { latex: string; caption?: string } | null => {
     const match = raw.match(pattern);
     if (!match?.[2]) return null;
 
@@ -440,8 +445,7 @@ function sanitizeEquationBlock(block: Extract<NotebookContentDocument['blocks'][
   }
 
   const wrappedMatch =
-    raw.match(/^(.*?)\\\[([\s\S]+?)\\\](.*)$/) ||
-    raw.match(/^(.*?)\\\(([\s\S]+?)\\\)(.*)$/);
+    raw.match(/^(.*?)\\\[([\s\S]+?)\\\](.*)$/) || raw.match(/^(.*?)\\\(([\s\S]+?)\\\)(.*)$/);
 
   if (wrappedMatch?.[2]) {
     const prefix = wrappedMatch[1]?.trim() || '';

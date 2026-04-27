@@ -1,8 +1,9 @@
 import {
   inferNotebookContentProfileFromText,
+  type NotebookContentLayoutFamily,
   type NotebookContentProfile,
 } from '@/lib/notebook-content';
-import type { SceneArchetype, SceneOutline } from '@/lib/types/generation';
+import type { SceneArchetype, SceneLayoutIntent, SceneOutline } from '@/lib/types/generation';
 
 function collectOutlineSignals(outline: SceneOutline): string[] {
   const signals = [outline.title, outline.description, ...(outline.keyPoints || [])];
@@ -103,11 +104,83 @@ export function inferSceneArchetype(outline: SceneOutline): SceneArchetype {
   return 'concept';
 }
 
+function inferSceneLayoutFamily(
+  outline: SceneOutline,
+  profile: NotebookContentProfile,
+  archetype: SceneArchetype,
+): NotebookContentLayoutFamily {
+  if (outline.layoutIntent?.layoutFamily) return outline.layoutIntent.layoutFamily;
+
+  const text = collectOutlineSignals(outline).join('\n');
+  const worked = outline.workedExampleConfig;
+  const hasMedia = Boolean(outline.suggestedImageIds?.length || outline.mediaGenerations?.length);
+
+  if (archetype === 'intro') return outline.order <= 1 ? 'cover' : 'section';
+  if (archetype === 'summary') return 'summary';
+
+  if (worked?.role === 'problem_statement') return 'problem_statement';
+  if (worked?.kind === 'code' || profile === 'code') return 'code_walkthrough';
+  if (worked?.kind === 'proof' || worked?.kind === 'math') {
+    return worked.role === 'walkthrough' ? 'derivation' : 'problem_solution';
+  }
+  if (worked) return worked.role === 'summary' ? 'summary' : 'problem_solution';
+
+  if (hasMedia) return 'visual_split';
+  if (matchesAny(text, [/(推导|证明|derive|derivation|proof|row operation|行变换)/i])) {
+    return 'derivation';
+  }
+  if (profile === 'math' && matchesAny(text, [/(公式|方程|矩阵|matrix|equation|formula)/i])) {
+    return 'formula_focus';
+  }
+  if (matchesAny(text, [/(比较|对比|分类|矩阵|表格|compare|comparison|taxonomy|table)/i])) {
+    return 'comparison';
+  }
+  if (matchesAny(text, [/(流程|步骤|机制|路径|timeline|process|flow|sequence|pipeline)/i])) {
+    return 'timeline';
+  }
+  if (archetype === 'bridge') return 'comparison';
+  if (archetype === 'definition' && profile === 'math') return 'formula_focus';
+
+  return 'concept_cards';
+}
+
+function inferSceneLayoutIntent(
+  outline: SceneOutline,
+  profile: NotebookContentProfile,
+  archetype: SceneArchetype,
+): SceneLayoutIntent {
+  const layoutFamily = inferSceneLayoutFamily(outline, profile, archetype);
+  const hasSourceImage = Boolean(outline.suggestedImageIds?.length);
+  const hasGeneratedImage = Boolean(
+    outline.mediaGenerations?.some((media) => media.type === 'image'),
+  );
+  const preserveFullProblemStatement =
+    outline.layoutIntent?.preserveFullProblemStatement ??
+    Boolean(outline.workedExampleConfig?.role === 'problem_statement');
+
+  return {
+    layoutFamily,
+    density:
+      outline.layoutIntent?.density ??
+      (layoutFamily === 'cover' || layoutFamily === 'section' ? 'light' : 'standard'),
+    visualRole:
+      outline.layoutIntent?.visualRole ??
+      (hasSourceImage ? 'source_image' : hasGeneratedImage ? 'generated_image' : 'none'),
+    overflowPolicy:
+      outline.layoutIntent?.overflowPolicy ??
+      (preserveFullProblemStatement ? 'preserve_then_paginate' : 'compress_first'),
+    preserveFullProblemStatement,
+  };
+}
+
 export function normalizeSceneOutlineContentProfile(outline: SceneOutline): SceneOutline {
+  const contentProfile = inferSceneContentProfile(outline);
+  const archetype = inferSceneArchetype(outline);
   return {
     ...outline,
-    contentProfile: inferSceneContentProfile(outline),
-    archetype: inferSceneArchetype(outline),
+    contentProfile,
+    archetype,
+    layoutIntent: inferSceneLayoutIntent(outline, contentProfile, archetype),
   };
 }
 

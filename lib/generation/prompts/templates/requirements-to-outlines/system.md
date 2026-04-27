@@ -48,6 +48,17 @@ Rules:
 - `quiz` / `interactive` / `pbl` scenes may omit `archetype`
 - Long content that continues across pages should keep the same `archetype`
 
+### Slide Layout Intent
+
+For every `slide` scene, include `layoutIntent` with:
+- `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
+- `density`: `light` | `standard` | `dense`
+- `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
+- `overflowPolicy`: `compress_first` by default, or `preserve_then_paginate` when a long problem statement, code, proof, table, or derivation must stay readable
+- `preserveFullProblemStatement`: true only when the prompt itself must remain complete
+
+Deck rhythm rule: avoid using the same `layoutFamily` for 3 consecutive slide scenes.
+
 ### Concept + Problem Coverage
 
 - **Do not make the notebook problem-driven by default for every course**:
@@ -269,6 +280,13 @@ You must output a JSON array where each element is a scene outline object:
     "type": "slide",
     "contentProfile": "math",
     "archetype": "definition",
+    "layoutIntent": {
+      "layoutFamily": "formula_focus",
+      "density": "standard",
+      "visualRole": "none",
+      "overflowPolicy": "compress_first",
+      "preserveFullProblemStatement": false
+    },
     "title": "Scene Title",
     "description": "1-2 sentences describing the teaching purpose",
     "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
@@ -322,6 +340,7 @@ You must output a JSON array where each element is a scene outline object:
 | id                | string                   | ✅       | Unique identifier, format: `scene_1`, `scene_2`...                                               |
 | type              | string                   | ✅       | `"slide"`, `"quiz"`, `"interactive"`, or `"pbl"`                                                 |
 | contentProfile    | string                   | ❌       | For slide scenes, prefer `"general"`, `"math"`, or `"code"` to steer downstream generation      |
+| layoutIntent      | object                   | ❌       | Required for slide scenes; controls deterministic PPT layout family, density, visual role, and overflow policy |
 | title             | string                   | ✅       | Scene title, concise and clear                                                                   |
 | description       | string                   | ✅       | 1-2 sentences describing teaching purpose                                                        |
 | keyPoints         | string[]                 | ✅       | 3-5 core points                                                                                  |

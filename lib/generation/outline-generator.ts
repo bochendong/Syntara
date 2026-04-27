@@ -20,6 +20,47 @@ import type { AICallFn, GenerationResult, GenerationCallbacks } from './pipeline
 import { createLogger } from '@/lib/logger';
 const log = createLogger('Generation');
 
+function pickAlternateLayoutFamily(
+  family: NonNullable<SceneOutline['layoutIntent']>['layoutFamily'],
+  index: number,
+): NonNullable<SceneOutline['layoutIntent']>['layoutFamily'] {
+  if (family === 'concept_cards') return index % 2 === 0 ? 'comparison' : 'timeline';
+  if (family === 'comparison') return 'concept_cards';
+  if (family === 'timeline') return 'concept_cards';
+  if (family === 'visual_split') return 'concept_cards';
+  if (family === 'formula_focus') return 'derivation';
+  if (family === 'derivation') return 'formula_focus';
+  return 'concept_cards';
+}
+
+function normalizeSlideLayoutRhythm(outlines: SceneOutline[]): SceneOutline[] {
+  const result: SceneOutline[] = [];
+  for (const outline of outlines) {
+    if (outline.type !== 'slide' || !outline.layoutIntent) {
+      result.push(outline);
+      continue;
+    }
+
+    const previousSlides = result.filter((item) => item.type === 'slide');
+    const prevOne = previousSlides[previousSlides.length - 1]?.layoutIntent?.layoutFamily;
+    const prevTwo = previousSlides[previousSlides.length - 2]?.layoutIntent?.layoutFamily;
+    const current = outline.layoutIntent.layoutFamily;
+    const shouldBreakRun = prevOne === current && prevTwo === current;
+    result.push(
+      shouldBreakRun
+        ? {
+            ...outline,
+            layoutIntent: {
+              ...outline.layoutIntent,
+              layoutFamily: pickAlternateLayoutFamily(current, result.length),
+            },
+          }
+        : outline,
+    );
+  }
+  return result;
+}
+
 /**
  * Generate scene outlines from user requirements
  * Now uses simplified UserRequirements with just requirement text and language
@@ -149,7 +190,7 @@ export async function generateSceneOutlinesFromRequirements(
     }));
 
     // Replace sequential gen_img_N/gen_vid_N with globally unique IDs
-    const result = uniquifyMediaElementIds(enriched);
+    const result = uniquifyMediaElementIds(normalizeSlideLayoutRhythm(enriched));
 
     callbacks?.onProgress?.({
       currentStage: 1,

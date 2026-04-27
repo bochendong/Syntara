@@ -48,6 +48,32 @@ Rules:
 - `quiz` / `interactive` / `pbl` scenes may omit `archetype`
 - Long content that continues across pages should keep the same `archetype`
 
+### Slide Layout Intent
+
+For every `slide` scene, include a `layoutIntent` object. This is how the deck avoids a single repeated card layout while staying editable and deterministic.
+
+Allowed `layoutFamily` values:
+- `cover`: opening title / course orientation
+- `section`: section divider or transition marker
+- `concept_cards`: compact concept explanation with 2-4 editable cards
+- `visual_split`: controlled image/diagram + text split
+- `comparison`: comparison matrix, classification, table, pros/cons
+- `timeline`: process, sequence, mechanism, algorithm stages
+- `problem_statement`: problem prompt page; preserve the full readable statement
+- `problem_solution`: solution plan, key steps, answer, pitfalls
+- `derivation`: proof or symbolic derivation chain
+- `code_walkthrough`: code + execution/explanation
+- `formula_focus`: one important formula/matrix with compact explanation
+- `summary`: recap and takeaways
+
+Also set:
+- `density`: `"light"`, `"standard"`, or `"dense"`
+- `visualRole`: `"none"`, `"source_image"`, `"generated_image"`, or `"diagram"`
+- `overflowPolicy`: `"compress_first"` by default; use `"preserve_then_paginate"` for long problem statements, code, proofs, tables, and derivations where readability matters more than one-page compression
+- `preserveFullProblemStatement`: true only when the problem statement itself must remain complete and readable
+
+Deck rhythm rule: avoid using the same `layoutFamily` for 3 consecutive slide scenes. Prefer alternating concept, visual/comparison, and process/problem layouts when the material allows it.
+
 ### Concept + Problem Coverage
 
 - **Do not make the notebook problem-driven by default for every course**:
@@ -269,6 +295,13 @@ You must output a JSON array where each element is a scene outline object:
     "type": "slide",
     "contentProfile": "math",
     "archetype": "definition",
+    "layoutIntent": {
+      "layoutFamily": "formula_focus",
+      "density": "standard",
+      "visualRole": "none",
+      "overflowPolicy": "compress_first",
+      "preserveFullProblemStatement": false
+    },
     "title": "Scene Title",
     "description": "1-2 sentences describing the teaching purpose",
     "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
@@ -322,6 +355,7 @@ You must output a JSON array where each element is a scene outline object:
 | id                | string                   | ✅       | Unique identifier, format: `scene_1`, `scene_2`...                                               |
 | type              | string                   | ✅       | `"slide"`, `"quiz"`, `"interactive"`, or `"pbl"`                                                 |
 | contentProfile    | string                   | ❌       | For slide scenes, prefer `"general"`, `"math"`, or `"code"` to steer downstream generation      |
+| layoutIntent      | object                   | ❌       | Required for slide scenes; controls deterministic PPT layout family, density, visual role, and overflow policy |
 | title             | string                   | ✅       | Scene title, concise and clear                                                                   |
 | description       | string                   | ✅       | 1-2 sentences describing teaching purpose                                                        |
 | keyPoints         | string[]                 | ✅       | 3-5 core points                                                                                  |

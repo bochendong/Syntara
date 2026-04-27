@@ -113,6 +113,11 @@ function buildFallbackDocumentFromSlideContent(args: {
     language: args.language,
     profile: 'code',
     layout: { mode: 'stack' },
+    layoutFamily: 'code_walkthrough',
+    density: 'standard',
+    visualRole: 'none',
+    overflowPolicy: 'compress_first',
+    preserveFullProblemStatement: false,
     archetype: 'example',
     title: args.sceneTitle,
     blocks:

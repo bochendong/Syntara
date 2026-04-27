@@ -4,9 +4,12 @@ import type {
   NotebookContentDocument,
   NotebookContentGridLayout,
   NotebookContentLayout,
+  NotebookContentLayoutFamily,
+  NotebookContentOverflowPolicy,
   NotebookContentProfile,
   NotebookSlideArchetype,
 } from './schema';
+import type { PrepareBlocksForPaginationOptions } from './slide-pagination-blocks';
 import { CONTENT_BOTTOM } from './layout-constants';
 import {
   assessExpandedBlockHeight,
@@ -27,8 +30,12 @@ type ArchetypeLayoutSettings = {
 
 export interface NotebookPaginationDeps {
   resolveNotebookContentProfile: (document: NotebookContentDocument) => NotebookContentProfile;
-  resolveDocumentArchetype: (document: Pick<NotebookContentDocument, 'archetype'>) => NotebookSlideArchetype;
-  resolveDocumentLayout: (document: Pick<NotebookContentDocument, 'layout'>) => NotebookContentLayout;
+  resolveDocumentArchetype: (
+    document: Pick<NotebookContentDocument, 'archetype'>,
+  ) => NotebookSlideArchetype;
+  resolveDocumentLayout: (
+    document: Pick<NotebookContentDocument, 'layout'>,
+  ) => NotebookContentLayout;
   resolveGridLayout: (
     layout: NotebookContentGridLayout,
     args: { blockCount: number; bodyHeight: number },
@@ -37,6 +44,7 @@ export interface NotebookPaginationDeps {
   prepareBlocksForPagination: (
     blocks: NotebookContentDocument['blocks'],
     language: 'zh-CN' | 'en-US',
+    options?: PrepareBlocksForPaginationOptions,
   ) => NotebookContentBlock[];
 }
 
@@ -58,6 +66,7 @@ export interface NotebookDocumentPaginationResult {
 }
 
 const SOFT_PAGE_HEIGHT_RATIO = 1.5;
+const PRESERVE_PAGE_HEIGHT_RATIO = 1.08;
 const PAGINATION_REBALANCE_HEIGHT_RATIO = 1.6;
 const PAGINATION_REBALANCE_DENSITY_RATIO = 1.18;
 
@@ -106,6 +115,90 @@ function getArchetypeBlockBudget(archetype: NotebookSlideArchetype): number {
   }
 }
 
+function getEffectiveOverflowPolicy(
+  document: NotebookContentDocument,
+): NotebookContentOverflowPolicy {
+  if (document.overflowPolicy === 'preserve_then_paginate') return 'preserve_then_paginate';
+  if (document.preserveFullProblemStatement) return 'preserve_then_paginate';
+  if (
+    document.layoutFamily === 'problem_statement' ||
+    document.layoutFamily === 'derivation' ||
+    document.layoutFamily === 'code_walkthrough'
+  ) {
+    return 'preserve_then_paginate';
+  }
+  return 'compress_first';
+}
+
+function getDocumentSoftPageHeightRatio(document: NotebookContentDocument): number {
+  const policy = getEffectiveOverflowPolicy(document);
+  if (policy === 'preserve_then_paginate') return PRESERVE_PAGE_HEIGHT_RATIO;
+  if (document.density === 'light') return 1.28;
+  if (document.density === 'dense') return SOFT_PAGE_HEIGHT_RATIO;
+  return 1.42;
+}
+
+function getLayoutFamilyBlockBudget(
+  family: NotebookContentLayoutFamily | undefined,
+): number | null {
+  switch (family) {
+    case 'problem_statement':
+      return 2;
+    case 'formula_focus':
+    case 'visual_split':
+      return 4;
+    case 'derivation':
+    case 'code_walkthrough':
+    case 'problem_solution':
+    case 'comparison':
+    case 'timeline':
+    case 'summary':
+      return 5;
+    case 'cover':
+    case 'section':
+    case 'concept_cards':
+      return 4;
+    default:
+      return null;
+  }
+}
+
+function getDocumentDensityBudget(
+  document: NotebookContentDocument,
+  profile: NotebookContentProfile,
+  archetype: NotebookSlideArchetype,
+): number {
+  let budget = getArchetypeDensityBudget(profile, archetype);
+  if (document.density === 'light') budget -= 0.75;
+  if (document.density === 'dense') budget += 0.45;
+  if (getEffectiveOverflowPolicy(document) === 'preserve_then_paginate') budget -= 0.75;
+  return Math.max(3.2, budget);
+}
+
+function getDocumentBlockBudget(
+  document: NotebookContentDocument,
+  archetype: NotebookSlideArchetype,
+): number {
+  let budget =
+    getLayoutFamilyBlockBudget(document.layoutFamily) ?? getArchetypeBlockBudget(archetype);
+  if (document.density === 'light') budget -= 1;
+  if (document.density === 'dense' && getEffectiveOverflowPolicy(document) === 'compress_first') {
+    budget += 1;
+  }
+  return Math.max(1, budget);
+}
+
+function getDocumentPaginationOptions(
+  document: NotebookContentDocument,
+): PrepareBlocksForPaginationOptions {
+  return {
+    layoutFamily: document.layoutFamily,
+    overflowPolicy: getEffectiveOverflowPolicy(document),
+    preserveFullProblemStatement:
+      document.preserveFullProblemStatement || document.layoutFamily === 'problem_statement',
+  };
+}
+
 function collectDenseBlockReasons(
   blocks: NotebookContentBlock[],
   language: 'zh-CN' | 'en-US',
@@ -149,7 +242,10 @@ function collectDenseBlockReasons(
         reasons.push(`table_rows_exceed:${rowCount}/6`);
       }
       const hasLongCell = block.rows.some((row) =>
-        row.some((cell) => cell.length > maxTableCellLength || estimateWrappedLineCount(cell, language, 20) > 3),
+        row.some(
+          (cell) =>
+            cell.length > maxTableCellLength || estimateWrappedLineCount(cell, language, 20) > 3,
+        ),
       );
       if (hasLongCell) {
         reasons.push(`table_cell_too_dense:${maxTableCellLength}`);
@@ -160,9 +256,9 @@ function collectDenseBlockReasons(
   return Array.from(new Set(reasons));
 }
 
-function getSoftPageBottomLimit(layout: ArchetypeLayoutSettings): number {
+function getSoftPageBottomLimit(layout: ArchetypeLayoutSettings, heightRatio: number): number {
   const bodyHeight = Math.max(1, CONTENT_BOTTOM - layout.bodyTop);
-  return layout.bodyTop + bodyHeight * SOFT_PAGE_HEIGHT_RATIO;
+  return layout.bodyTop + bodyHeight * heightRatio;
 }
 
 function rebalancePaginatedPages(args: {
@@ -171,12 +267,19 @@ function rebalancePaginatedPages(args: {
   layout: ArchetypeLayoutSettings;
   maxBlocksPerPage: number;
   maxDensityScore: number;
+  softHeightRatio: number;
 }): NotebookContentBlock[][] {
   if (args.pages.length <= 1) return args.pages;
   const pages = args.pages.map((page) => [...page]);
   const baseBodyHeight = getBaseBodyHeight(args.layout.bodyTop);
   const rebalanceBottomLimit =
-    args.layout.bodyTop + baseBodyHeight * Math.max(SOFT_PAGE_HEIGHT_RATIO, PAGINATION_REBALANCE_HEIGHT_RATIO);
+    args.layout.bodyTop +
+    baseBodyHeight * Math.max(SOFT_PAGE_HEIGHT_RATIO, PAGINATION_REBALANCE_HEIGHT_RATIO);
+  const policyBottomLimit = args.layout.bodyTop + baseBodyHeight * args.softHeightRatio;
+  const effectiveBottomLimit =
+    args.softHeightRatio < SOFT_PAGE_HEIGHT_RATIO
+      ? policyBottomLimit
+      : Math.max(policyBottomLimit, rebalanceBottomLimit);
   const rebalanceDensityLimit = args.maxDensityScore * PAGINATION_REBALANCE_DENSITY_RATIO;
 
   const canAccept = (blocks: NotebookContentBlock[]) => {
@@ -187,7 +290,7 @@ function rebalancePaginatedPages(args: {
       language: args.language,
       layout: args.layout,
     });
-    if (usage.estimatedBottom > rebalanceBottomLimit) return false;
+    if (usage.estimatedBottom > effectiveBottomLimit) return false;
     if (usage.densityScore > rebalanceDensityLimit) return false;
     return true;
   };
@@ -261,7 +364,7 @@ export function assessNotebookContentDocumentForSlideWithDeps(
   const profile = deps.resolveNotebookContentProfile(document);
   const archetype = deps.resolveDocumentArchetype(document);
   const documentLayout = deps.resolveDocumentLayout(document);
-  if (documentLayout.mode === 'grid') {
+  if (documentLayout.mode === 'grid' && !document.layoutFamily) {
     const archetypeLayout = deps.getArchetypeLayoutSettings(archetype);
     const grid = deps.resolveGridLayout(documentLayout, {
       blockCount: document.blocks.length,
@@ -283,10 +386,15 @@ export function assessNotebookContentDocumentForSlideWithDeps(
     };
   }
   const layout = deps.getArchetypeLayoutSettings(archetype);
-  const softBottomLimit = getSoftPageBottomLimit(layout);
-  const blocks = deps.prepareBlocksForPagination(document.blocks, language);
-  const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
-  const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
+  const softHeightRatio = getDocumentSoftPageHeightRatio(document);
+  const softBottomLimit = getSoftPageBottomLimit(layout, softHeightRatio);
+  const blocks = deps.prepareBlocksForPagination(
+    document.blocks,
+    language,
+    getDocumentPaginationOptions(document),
+  );
+  const maxDensityScore = getDocumentDensityBudget(document, profile, archetype);
+  const maxBlocksPerPage = getDocumentBlockBudget(document, archetype);
 
   let cursorTop = layout.bodyTop;
   let visualBlockIndex = 0;
@@ -310,9 +418,9 @@ export function assessNotebookContentDocumentForSlideWithDeps(
   const reasons: string[] = [];
 
   if (overflowPx > 0) {
-      reasons.push(
-        `estimated_content_height_overflow_soft_${SOFT_PAGE_HEIGHT_RATIO.toFixed(2)}x:${Math.ceil(overflowPx)}`,
-      );
+    reasons.push(
+      `estimated_content_height_overflow_soft_${softHeightRatio.toFixed(2)}x:${Math.ceil(overflowPx)}`,
+    );
   }
 
   if (densityScore > maxDensityScore) {
@@ -347,7 +455,7 @@ export function paginateNotebookContentDocumentWithDeps(
   const profile = deps.resolveNotebookContentProfile(args.document);
   const archetype = deps.resolveDocumentArchetype(args.document);
   const documentLayout = deps.resolveDocumentLayout(args.document);
-  if (documentLayout.mode === 'grid') {
+  if (documentLayout.mode === 'grid' && !args.document.layoutFamily) {
     const archetypeLayout = deps.getArchetypeLayoutSettings(archetype);
     const grid = deps.resolveGridLayout(documentLayout, {
       blockCount: args.document.blocks.length,
@@ -394,10 +502,15 @@ export function paginateNotebookContentDocumentWithDeps(
     };
   }
   const layout = deps.getArchetypeLayoutSettings(archetype);
-  const softBottomLimit = getSoftPageBottomLimit(layout);
-  const maxDensityScore = getArchetypeDensityBudget(profile, archetype);
-  const maxBlocksPerPage = getArchetypeBlockBudget(archetype);
-  const blocks = deps.prepareBlocksForPagination(args.document.blocks, language);
+  const softHeightRatio = getDocumentSoftPageHeightRatio(args.document);
+  const softBottomLimit = getSoftPageBottomLimit(layout, softHeightRatio);
+  const maxDensityScore = getDocumentDensityBudget(args.document, profile, archetype);
+  const maxBlocksPerPage = getDocumentBlockBudget(args.document, archetype);
+  const blocks = deps.prepareBlocksForPagination(
+    args.document.blocks,
+    language,
+    getDocumentPaginationOptions(args.document),
+  );
 
   const pages: NotebookContentBlock[][] = [];
   const unpageableBlockTypes = new Set<NotebookContentBlock['type']>();
@@ -451,6 +564,19 @@ export function paginateNotebookContentDocumentWithDeps(
       measuredWithDom: blockEstimateOnEmpty.measuredWithDom,
     });
     if (layout.bodyTop + blockBudgetHeightOnEmpty > softBottomLimit) {
+      const shouldKeepOversizedPreservedBlock =
+        getEffectiveOverflowPolicy(args.document) === 'preserve_then_paginate' &&
+        currentBlocks.length === 0 &&
+        (block.type === 'paragraph' ||
+          block.type === 'code_block' ||
+          block.type === 'code_walkthrough' ||
+          block.type === 'equation' ||
+          block.type === 'matrix');
+      if (shouldKeepOversizedPreservedBlock) {
+        currentBlocks.push(block);
+        pushPage();
+        continue;
+      }
       unpageableBlockTypes.add(block.type);
       continue;
     }
@@ -480,6 +606,7 @@ export function paginateNotebookContentDocumentWithDeps(
     layout,
     maxBlocksPerPage,
     maxDensityScore,
+    softHeightRatio,
   });
 
   const totalParts = balancedPages.length;

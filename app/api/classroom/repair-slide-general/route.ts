@@ -112,6 +112,11 @@ function buildFallbackDocumentFromSlideContent(args: {
     language: args.language,
     profile: 'general',
     layout: { mode: 'stack' },
+    layoutFamily: 'concept_cards',
+    density: 'standard',
+    visualRole: 'none',
+    overflowPolicy: 'compress_first',
+    preserveFullProblemStatement: false,
     archetype: 'concept',
     title: args.sceneTitle,
     blocks:

@@ -1,11 +1,19 @@
-import type { NotebookContentBlock, NotebookContentDocument } from './schema';
+import type {
+  NotebookContentBlock,
+  NotebookContentDocument,
+  NotebookContentLayoutFamily,
+  NotebookContentOverflowPolicy,
+} from './schema';
 import { CARD_INSET_Y } from './layout-constants';
-import {
-  estimateParagraphStackHeight,
-  estimateProcessFlowBlockHeight,
-} from './measure';
+import { estimateParagraphStackHeight, estimateProcessFlowBlockHeight } from './measure';
 
 type ProcessFlowBlock = Extract<NotebookContentBlock, { type: 'process_flow' }>;
+
+export interface PrepareBlocksForPaginationOptions {
+  layoutFamily?: NotebookContentLayoutFamily;
+  overflowPolicy?: NotebookContentOverflowPolicy;
+  preserveFullProblemStatement?: boolean;
+}
 
 export function expandBlocks(
   blocks: NotebookContentDocument['blocks'],
@@ -143,13 +151,28 @@ function splitCodeWalkthroughBlockForPagination(
   return chunks;
 }
 
-function splitProcessFlowBlockForPagination(
-  block: ProcessFlowBlock,
+function splitCodeBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'code_block' }>,
 ): NotebookContentBlock[] {
+  const maxLinesPerPage = 18;
+  const lines = block.code.replace(/\r\n/g, '\n').split('\n');
+  if (lines.length <= maxLinesPerPage) return [block];
+
+  const chunks: NotebookContentBlock[] = [];
+  for (let index = 0; index < lines.length; index += maxLinesPerPage) {
+    chunks.push({
+      ...block,
+      code: lines.slice(index, index + maxLinesPerPage).join('\n'),
+      caption: index === 0 ? block.caption : undefined,
+    });
+  }
+  return chunks;
+}
+
+function splitProcessFlowBlockForPagination(block: ProcessFlowBlock): NotebookContentBlock[] {
   if (block.orientation === 'horizontal') {
     const hasDenseStep = block.steps.some(
-      (step) =>
-        step.title.length > 28 || step.detail.length > 100 || (step.note?.length ?? 0) > 72,
+      (step) => step.title.length > 28 || step.detail.length > 100 || (step.note?.length ?? 0) > 72,
     );
     const maxStepsPerPage = hasDenseStep || block.context.length >= 3 ? 3 : 4;
     if (block.steps.length <= maxStepsPerPage) return [block];
@@ -198,9 +221,7 @@ function splitProcessFlowBlockForPagination(
     });
 
     if (currentSteps.length > 0 && candidateHeight > maxBlockHeight) {
-      chunks.push(
-        buildCandidate(currentSteps, chunks.length === 0, false),
-      );
+      chunks.push(buildCandidate(currentSteps, chunks.length === 0, false));
       currentSteps = [step];
       continue;
     }
@@ -209,9 +230,7 @@ function splitProcessFlowBlockForPagination(
   }
 
   if (currentSteps.length > 0) {
-    chunks.push(
-      buildCandidate(currentSteps, chunks.length === 0, Boolean(block.summary)),
-    );
+    chunks.push(buildCandidate(currentSteps, chunks.length === 0, Boolean(block.summary)));
   }
 
   if (chunks.length <= 1) {
@@ -243,13 +262,47 @@ function splitProcessFlowBlockForPagination(
   return balancedChunks;
 }
 
+function shouldPreserveProblemStatement(
+  options: PrepareBlocksForPaginationOptions | undefined,
+): boolean {
+  return Boolean(
+    options?.preserveFullProblemStatement || options?.layoutFamily === 'problem_statement',
+  );
+}
+
+function buildProblemStatementBlocks(
+  block: Extract<NotebookContentBlock, { type: 'example' }>,
+  language: 'zh-CN' | 'en-US',
+): NotebookContentBlock[] {
+  const blocks: NotebookContentBlock[] = [
+    {
+      type: 'paragraph',
+      text: `${language === 'en-US' ? 'Problem: ' : '题目：'}${block.problem}`,
+    },
+  ];
+  const givens = [...block.givens, ...(block.goal ? [block.goal] : [])];
+  if (givens.length > 0) {
+    blocks.push({
+      type: 'bullet_list',
+      items: givens.map((item) => `${language === 'en-US' ? 'Given' : '已知'}: ${item}`),
+    });
+  }
+  return blocks;
+}
+
 export function prepareBlocksForPagination(
   blocks: NotebookContentDocument['blocks'],
   language: 'zh-CN' | 'en-US',
+  options?: PrepareBlocksForPaginationOptions,
 ): NotebookContentBlock[] {
   const preSplitBlocks: NotebookContentBlock[] = [];
 
   for (const block of blocks) {
+    if (block.type === 'example' && shouldPreserveProblemStatement(options)) {
+      preSplitBlocks.push(...buildProblemStatementBlocks(block, language));
+      continue;
+    }
+
     if (block.type === 'bullet_list') {
       preSplitBlocks.push(...splitBulletListBlockForPagination(block));
       continue;
@@ -257,6 +310,11 @@ export function prepareBlocksForPagination(
 
     if (block.type === 'table') {
       preSplitBlocks.push(...splitTableBlockForPagination(block));
+      continue;
+    }
+
+    if (block.type === 'code_block') {
+      preSplitBlocks.push(...splitCodeBlockForPagination(block));
       continue;
     }
 

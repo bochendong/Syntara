@@ -40,6 +40,7 @@ Use:
 - `example` for worked examples with explicit problem + steps + answer
 - `process_flow` for ordered explanation flows, question-solving pipelines, algorithm steps, or staged teaching sequences
 - `callout` for warnings / takeaways
+- `visual` only for a controlled image/diagram slot when available media materially supports the teaching point
 - `chem_formula` / `chem_equation` for chemistry-style expressions
 
 Do not output:
@@ -95,6 +96,12 @@ Return ONE JSON object in this exact top-level shape:
   "version": 1,
   "language": "{{language}}",
   "profile": "general",
+  "layoutFamily": "concept_cards",
+  "density": "standard",
+  "visualRole": "none",
+  "overflowPolicy": "compress_first",
+  "preserveFullProblemStatement": false,
+  "visualSlot": {"source":"img_1 or gen_img_1","alt":"optional","caption":"optional","role":"source_image","fit":"contain","emphasis":"supporting"},
   "layout": {"mode":"stack"},
   "pattern": "auto",
   "archetype": "concept",
@@ -112,6 +119,14 @@ Return ONE JSON object in this exact top-level shape:
 {"mode":"stack"}
 {"mode":"grid","columns":2,"rows":2}
 ```
+
+受控版式字段：
+- `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
+- `density`: `light` | `standard` | `dense`
+- `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
+- `overflowPolicy`: `compress_first` | `preserve_then_paginate`
+- `preserveFullProblemStatement`: 题干页为 true，表示题干完整可读性高于压缩。
+- `visualSlot`: 只引用 Available Images 或 AI-generated image placeholders 中给出的 ID；不要编造图片 ID。
 
 可选页面 pattern（用于版式样例）：
 - `auto`: 默认自动布局
@@ -170,6 +185,7 @@ Supported block shapes:
 {"type":"callout","tone":"info|success|warning|danger|tip","title":"optional","text":"..."}
 {"type":"example","title":"optional","problem":"...","givens":["..."],"goal":"optional","steps":["..."],"answer":"optional","pitfalls":["..."]}
 {"type":"process_flow","title":"optional","orientation":"horizontal|vertical","context":[{"label":"题目","text":"...","tone":"neutral|info|warning|success"}],"steps":[{"title":"步骤标题","detail":"具体操作或推理","note":"optional"}],"summary":"optional"}
+{"type":"visual","source":"img_1 or gen_img_1","title":"optional","alt":"optional","caption":"optional","role":"source_image|generated_image|diagram","fit":"contain|cover","emphasis":"primary|supporting"}
 {"type":"chem_formula","formula":"...","caption":"optional"}
 {"type":"chem_equation","equation":"...","caption":"optional"}
 ```
@@ -194,7 +210,7 @@ Supported block shapes:
 - 避免输出由许多零碎小片段拼成的伪流程图、关系图或概念图，优先使用稳定的教学结构
 - Do not invent unrelated sections
 - Do not mention teacher identity inside the content
-- Do not include images; this semantic mode is for text/formula/code/table/example content only
+- 可以使用 `visualSlot` 或 `visual` block 引用可用图片/生成图片 ID，但不要输出坐标，也不要把整页做成截图。
 - 当 `paragraph` / `bullet_list` / `callout` / `example.steps` 等文本字段里出现数学表达时，必须使用 KaTeX 可识别定界符包裹：
   - 行内公式：`\\(...\\)` 或 `$...$`
   - 独立公式：`$$...$$` 或单独使用 `equation` block

@@ -26,7 +26,10 @@ type PlacedGridBlock = {
 };
 
 export const DEFAULT_ARCHETYPE: NotebookSlideArchetype = 'concept';
-export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookContentBlock['type'][]> = {
+export const ARCHETYPE_ALLOWED_BLOCKS: Record<
+  NotebookSlideArchetype,
+  NotebookContentBlock['type'][]
+> = {
   intro: [
     'heading',
     'paragraph',
@@ -38,6 +41,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'table',
     'process_flow',
     'layout_cards',
+    'visual',
   ],
   concept: [
     'heading',
@@ -56,6 +60,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'theorem',
     'chem_formula',
     'chem_equation',
+    'visual',
   ],
   definition: [
     'heading',
@@ -72,6 +77,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'theorem',
     'chem_formula',
     'chem_equation',
+    'visual',
   ],
   example: [
     'heading',
@@ -91,6 +97,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'layout_cards',
     'chem_formula',
     'chem_equation',
+    'visual',
   ],
   bridge: [
     'heading',
@@ -105,6 +112,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'theorem',
     'chem_formula',
     'chem_equation',
+    'visual',
   ],
   summary: [
     'heading',
@@ -119,6 +127,7 @@ export const ARCHETYPE_ALLOWED_BLOCKS: Record<NotebookSlideArchetype, NotebookCo
     'theorem',
     'chem_formula',
     'chem_equation',
+    'visual',
   ],
 };
 
@@ -293,7 +302,9 @@ export function arrangeGridBlocksByPlacement(
   return placed;
 }
 
-export function getArchetypeLayoutSettings(archetype: NotebookSlideArchetype): ArchetypeLayoutSettings {
+export function getArchetypeLayoutSettings(
+  archetype: NotebookSlideArchetype,
+): ArchetypeLayoutSettings {
   switch (archetype) {
     case 'intro':
       return {

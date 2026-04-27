@@ -1,18 +1,15 @@
 import { nanoid } from 'nanoid';
-import type {
-  PPTElement,
-  PPTShapeElement,
-  PPTTextElement,
-  Slide,
-} from '@/lib/types/slides';
+import type { PPTElement, PPTShapeElement, PPTTextElement, Slide } from '@/lib/types/slides';
 import { normalizeLatexSource } from '@/lib/latex-utils';
 import type {
   NotebookContentBlock,
   NotebookContentDocument,
   NotebookContentLayout,
+  NotebookContentLayoutFamily,
   NotebookContentProfile,
   NotebookContentTextTemplate,
   NotebookContentTitleTone,
+  NotebookContentVisualSlot,
 } from './schema';
 import {
   estimateCodeBlockHeight,
@@ -56,6 +53,7 @@ import {
 import { applyAutoHeightReflow } from '@/lib/slide-layout-reflow';
 import {
   createCircleShape,
+  createImageElement,
   createLatexElement,
   createLineElement,
   createRectShape,
@@ -130,7 +128,8 @@ function buildFlowPatternBlock(args: {
     orientation: args.orientation,
     context: [],
     steps,
-    summary: args.language === 'en-US' ? 'Follow this sequence in class.' : '授课时按这个顺序推进。',
+    summary:
+      args.language === 'en-US' ? 'Follow this sequence in class.' : '授课时按这个顺序推进。',
   };
 }
 
@@ -268,7 +267,10 @@ function createBoundContentCard(args: {
   });
 }
 
-function splitCaptionedEquation(rawLatex: string, caption?: string): { latex: string; caption?: string } {
+function splitCaptionedEquation(
+  rawLatex: string,
+  caption?: string,
+): { latex: string; caption?: string } {
   const raw = normalizeLatexSource(rawLatex.trim()).replace(/\${3,}/g, '$$');
   const envMatch = raw.match(/^(.*?)(\\begin\{([a-zA-Z*]+)\}[\s\S]+?\\end\{\3\})(.*)$/);
   if (envMatch?.[2]) {
@@ -382,7 +384,10 @@ function renderLayoutCardsBlock(args: {
               fontSizePx: 13,
               lineHeightPx: 18,
             });
-            rowHeights[row] = Math.max(rowHeights[row], Math.max(72, title.height + body.height + 18));
+            rowHeights[row] = Math.max(
+              rowHeights[row],
+              Math.max(72, title.height + body.height + 18),
+            );
           });
           return {
             columns: normalizedColumns,
@@ -391,7 +396,8 @@ function renderLayoutCardsBlock(args: {
             gapY,
             rowHeights,
             totalHeight:
-              rowHeights.reduce((sum, value) => sum + value, 0) + Math.max(0, rowHeights.length - 1) * gapY,
+              rowHeights.reduce((sum, value) => sum + value, 0) +
+              Math.max(0, rowHeights.length - 1) * gapY,
           };
         })();
   if (effectiveLayout.columns === 0) {
@@ -492,7 +498,6 @@ function fitProcessFlowSummaryCard(args: {
   };
 }
 
-
 function fitProcessFlowStepCard(args: {
   step: ProcessFlowBlock['steps'][number];
   stepIndex: number;
@@ -535,14 +540,14 @@ function fitProcessFlowStepCard(args: {
       }).html
     : '';
 
-  const height = (showStepLabel ? 18 : 6) + titleFit.height + detailFit.height + (args.step.note ? 22 : 0);
+  const height =
+    (showStepLabel ? 18 : 6) + titleFit.height + detailFit.height + (args.step.note ? 22 : 0);
 
   return {
     html: [labelHtml, titleFit.html, detailFit.html, noteHtml].filter(Boolean).join(''),
     height: Math.max(72, height),
   };
 }
-
 
 function renderProcessFlowBlock(args: {
   block: ProcessFlowBlock;
@@ -878,7 +883,10 @@ function expandSingleOccupancyRows(elements: PPTElement[]): PPTElement[] {
     const single = row.items[0];
     const source = single.element;
     if (source.width < 180 || source.width >= CONTENT_WIDTH * 0.9) return;
-    if (source.left < CONTENT_LEFT - 24 || source.left + source.width > CONTENT_LEFT + CONTENT_WIDTH + 24) {
+    if (
+      source.left < CONTENT_LEFT - 24 ||
+      source.left + source.width > CONTENT_LEFT + CONTENT_WIDTH + 24
+    ) {
       return;
     }
     if (source.type === 'text' && source.textType === 'notes' && source.width <= 80) return;
@@ -1019,7 +1027,10 @@ function computeAdaptiveGridRowHeights(args: {
   bodyHeight: number;
   rowDesiredHeights: number[];
 }): { rowHeights: number[]; rowTops: number[] } {
-  const usedRows = Math.max(1, Math.min(args.gridRows, Math.ceil(args.blockCount / args.gridColumns)));
+  const usedRows = Math.max(
+    1,
+    Math.min(args.gridRows, Math.ceil(args.blockCount / args.gridColumns)),
+  );
   const gapTotal = Math.max(0, usedRows - 1) * GRID_GAP_Y;
   const availableHeight = Math.max(usedRows * 48, args.bodyHeight - gapTotal);
   const baseMinHeight = Math.max(72, Math.floor(availableHeight / usedRows) - 2);
@@ -1054,6 +1065,805 @@ function computeAdaptiveGridRowHeights(args: {
   }
 
   return { rowHeights, rowTops };
+}
+
+type VisualSlotWithTitle = NotebookContentVisualSlot & { title?: string };
+
+function isVisualBlock(
+  block: NotebookContentBlock,
+): block is Extract<NotebookContentBlock, { type: 'visual' }> {
+  return block.type === 'visual';
+}
+
+function stripVisualBlocks(blocks: NotebookContentBlock[]): NotebookContentBlock[] {
+  return blocks.filter((block) => !isVisualBlock(block));
+}
+
+function resolveDocumentVisualSlot(document: NotebookContentDocument): VisualSlotWithTitle | null {
+  if (document.visualSlot) return document.visualSlot;
+  const visualBlock = document.blocks.find(isVisualBlock);
+  return visualBlock || null;
+}
+
+function inferLayoutFamilyFromDocument(args: {
+  document: NotebookContentDocument;
+  archetype: ReturnType<typeof resolveDocumentArchetype>;
+  blocks: NotebookContentBlock[];
+}): NotebookContentLayoutFamily {
+  if (args.document.layoutFamily) return args.document.layoutFamily;
+  if (args.archetype === 'intro') return 'cover';
+  if (args.archetype === 'summary') return 'summary';
+  if (args.document.visualSlot || args.blocks.some(isVisualBlock)) return 'visual_split';
+  if (
+    args.blocks.some((block) => block.type === 'code_walkthrough' || block.type === 'code_block')
+  ) {
+    return 'code_walkthrough';
+  }
+  if (args.blocks.some((block) => block.type === 'derivation_steps')) return 'derivation';
+  if (args.blocks.some((block) => block.type === 'equation' || block.type === 'matrix')) {
+    return 'formula_focus';
+  }
+  if (args.blocks.some((block) => block.type === 'table')) return 'comparison';
+  if (args.blocks.some((block) => block.type === 'process_flow')) return 'timeline';
+  if (args.archetype === 'bridge') return 'comparison';
+  if (args.archetype === 'example') return 'problem_solution';
+  return 'concept_cards';
+}
+
+function createSlideFromFamilyElements(args: {
+  elements: PPTElement[];
+  tokens: ReturnType<typeof getProfileTokens>;
+  backgroundIndex?: number;
+}): Slide {
+  const backgroundIndex = args.backgroundIndex ?? 0;
+  return {
+    id: `slide_${nanoid(8)}`,
+    viewportSize: CANVAS_WIDTH,
+    viewportRatio: CANVAS_HEIGHT / CANVAS_WIDTH,
+    theme: {
+      backgroundColor:
+        args.tokens.backgroundColors[backgroundIndex] || args.tokens.backgroundColors[0],
+      themeColors: args.tokens.themeColors,
+      fontColor: args.tokens.titleText,
+      fontName: 'Microsoft YaHei',
+    },
+    elements: normalizeSlideTextLayout(args.elements, {
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    }),
+    background: {
+      type: 'gradient',
+      gradient: {
+        type: 'linear',
+        rotate: 135,
+        colors: [
+          {
+            pos: 0,
+            color: args.tokens.backgroundColors[backgroundIndex] || args.tokens.backgroundColors[0],
+          },
+          { pos: 58, color: args.tokens.backgroundColors[1] },
+          { pos: 100, color: args.tokens.backgroundColors[2] },
+        ],
+      },
+    },
+    type: 'content',
+  };
+}
+
+function createFamilyTitleElements(args: {
+  title: string;
+  language: 'zh-CN' | 'en-US';
+  family: NotebookContentLayoutFamily;
+  tokens: ReturnType<typeof getProfileTokens>;
+  continuation?: NotebookContentDocument['continuation'];
+}): PPTElement[] {
+  const titleTop = args.family === 'cover' ? 126 : args.family === 'section' ? 116 : 38;
+  const titleHeight = args.family === 'cover' ? 110 : args.family === 'section' ? 88 : 52;
+  const titleSize = args.family === 'cover' ? 46 : args.family === 'section' ? 38 : 30;
+  const width = args.family === 'cover' || args.family === 'section' ? 760 : CONTENT_WIDTH;
+  const elements: PPTElement[] = [
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: titleTop,
+      width,
+      height: titleHeight,
+      html: `<p style="font-size:${titleSize}px;line-height:${Math.round(titleSize * 1.16)}px;color:${args.tokens.titleText};font-weight:800;">${renderInlineLatexToHtml(args.title)}</p>`,
+      color: args.tokens.titleText,
+      textType: 'title',
+    }),
+  ];
+
+  if (args.family !== 'cover' && args.family !== 'section') {
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top: titleTop + titleHeight + 2,
+        width: 160,
+        height: 8,
+        html: '<p style="font-size:1px;"> </p>',
+        fill: args.tokens.titleAccent,
+        color: args.tokens.titleAccent,
+        textType: 'notes',
+      }),
+    );
+  }
+
+  if (args.continuation) {
+    const chipLabel =
+      args.language === 'en-US'
+        ? `Part ${args.continuation.partNumber} of ${args.continuation.totalParts}`
+        : `续 ${args.continuation.partNumber}/${args.continuation.totalParts}`;
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT + CONTENT_WIDTH - 170,
+        top: 42,
+        width: 150,
+        height: 26,
+        html: `<p style="font-size:12px;color:${args.tokens.titleAccent};text-align:center;"><strong>${escapeHtml(chipLabel)}</strong></p>`,
+        color: args.tokens.titleAccent,
+        fill: '#ffffff',
+        outlineColor: '#dbeafe',
+        textType: 'notes',
+      }),
+    );
+  }
+
+  return elements;
+}
+
+function blockSummaryLines(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): string[] {
+  if (block.type === 'paragraph') return [block.text];
+  if (block.type === 'bullet_list') return block.items;
+  if (block.type === 'callout') return [block.text];
+  if (block.type === 'definition' || block.type === 'theorem') {
+    return [block.text, ...(block.type === 'theorem' && block.proofIdea ? [block.proofIdea] : [])];
+  }
+  return blockToGridBody(language, block);
+}
+
+function createBlockCard(args: {
+  block: NotebookContentBlock;
+  language: 'zh-CN' | 'en-US';
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  tone: ContentCardTone;
+  titleColor?: string;
+  bodyFontSize?: number;
+}): PPTTextElement {
+  const title = blockToGridHeading(args.language, args.block);
+  const titleFit = fitGridHeadingToHeight({
+    text: title,
+    widthPx: Math.max(120, args.width - CARD_INSET_X * 2),
+    maxHeightPx: 52,
+    color: args.titleColor || args.tone.accent,
+  });
+  const lines = blockSummaryLines(args.language, args.block);
+  const bodyFontSize = args.bodyFontSize ?? 14;
+  const bodyHtml = lines
+    .slice(0, 6)
+    .map((line, index) => {
+      const prefix =
+        lines.length > 1
+          ? `<span style="color:${args.tone.accent};font-weight:700;">${index + 1}.</span> `
+          : '';
+      return `<p style="font-size:${bodyFontSize}px;line-height:${Math.round(bodyFontSize * 1.42)}px;color:#334155;">${prefix}${renderInlineLatexToHtml(line)}</p>`;
+    })
+    .join('');
+
+  return createTextElement({
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    html: `${titleFit.html}${bodyHtml}`,
+    color: '#334155',
+    fill: args.block.backgroundColor || args.tone.fill,
+    outlineColor: args.block.borderColor || args.tone.border,
+    shadow: {
+      h: 0,
+      v: 8,
+      blur: 24,
+      color: 'rgba(15,23,42,0.08)',
+    },
+    textType: 'content',
+  });
+}
+
+function renderVisualPanel(args: {
+  visual: VisualSlotWithTitle | null;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  tokens: ReturnType<typeof getProfileTokens>;
+}): PPTElement[] {
+  const groupId = createCardGroupId('visual_slot');
+  if (args.visual?.source) {
+    const imageHeight = args.visual.caption ? args.height - 32 : args.height;
+    const elements: PPTElement[] = [
+      createImageElement({
+        src: args.visual.source,
+        left: args.left,
+        top: args.top,
+        width: args.width,
+        height: imageHeight,
+        groupId,
+        outlineColor: '#dbeafe',
+        shadow: {
+          h: 0,
+          v: 10,
+          blur: 28,
+          color: 'rgba(15,23,42,0.13)',
+        },
+      }),
+    ];
+    if (args.visual.caption) {
+      elements.push(
+        createTextElement({
+          left: args.left,
+          top: args.top + imageHeight + 8,
+          width: args.width,
+          height: 24,
+          html: `<p style="font-size:12px;color:#475569;text-align:center;">${escapeHtml(args.visual.caption)}</p>`,
+          color: '#475569',
+          textType: 'notes',
+        }),
+      );
+    }
+    return elements;
+  }
+
+  const lines = args.blocks
+    .flatMap((block) => [
+      blockToGridHeading(args.language, block),
+      ...blockSummaryLines(args.language, block),
+    ])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  const stepHeight = Math.max(48, Math.floor((args.height - 28) / Math.max(1, lines.length)));
+  const elements: PPTElement[] = [
+    createTextElement({
+      left: args.left,
+      top: args.top,
+      width: args.width,
+      height: args.height,
+      groupId,
+      html: `<p style="font-size:14px;color:${args.tokens.titleAccent};"><strong>${escapeHtml(
+        args.language === 'en-US' ? 'Concept Map' : '结构图解',
+      )}</strong></p>`,
+      color: args.tokens.titleAccent,
+      fill: '#ffffff',
+      outlineColor: '#dbeafe',
+      textType: 'content',
+    }),
+  ];
+  lines.forEach((line, index) => {
+    const top = args.top + 34 + index * stepHeight;
+    elements.push(
+      createTextElement({
+        left: args.left + 18,
+        top,
+        width: args.width - 36,
+        height: Math.max(40, stepHeight - 10),
+        groupId,
+        html: `<p style="font-size:14px;line-height:19px;color:#334155;"><span style="color:${args.tokens.titleAccent};font-weight:700;">${index + 1}</span> ${renderInlineLatexToHtml(line)}</p>`,
+        color: '#334155',
+        fill: index % 2 === 0 ? '#f8fafc' : '#f5f9ff',
+        outlineColor: index % 2 === 0 ? '#e2e8f0' : '#d9e6ff',
+        textType: 'content',
+      }),
+    );
+  });
+  return elements;
+}
+
+function findFirstBlock<T extends NotebookContentBlock['type']>(
+  blocks: NotebookContentBlock[],
+  type: T,
+): Extract<NotebookContentBlock, { type: T }> | undefined {
+  return blocks.find(
+    (block): block is Extract<NotebookContentBlock, { type: T }> => block.type === type,
+  );
+}
+
+function createTableCards(args: {
+  block: Extract<NotebookContentBlock, { type: 'table' }>;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  tokens: ReturnType<typeof getProfileTokens>;
+}): PPTElement[] {
+  const rowCount = args.block.rows.length + (args.block.headers?.length ? 1 : 0);
+  const colCount = Math.max(
+    args.block.headers?.length || 0,
+    ...args.block.rows.map((row) => row.length),
+    1,
+  );
+  const cellGap = 4;
+  const cellWidth = (args.width - Math.max(0, colCount - 1) * cellGap) / colCount;
+  const cellHeight = Math.min(
+    58,
+    (args.height - Math.max(0, rowCount - 1) * cellGap) / Math.max(1, rowCount),
+  );
+  const elements: PPTElement[] = [];
+  const rows = args.block.headers?.length
+    ? [args.block.headers, ...args.block.rows]
+    : args.block.rows;
+  rows
+    .slice(0, Math.max(1, Math.floor(args.height / (cellHeight + cellGap))))
+    .forEach((row, rowIndex) => {
+      row.slice(0, colCount).forEach((cell, colIndex) => {
+        const isHeader = Boolean(args.block.headers?.length && rowIndex === 0);
+        elements.push(
+          createTextElement({
+            left: args.left + colIndex * (cellWidth + cellGap),
+            top: args.top + rowIndex * (cellHeight + cellGap),
+            width: cellWidth,
+            height: cellHeight,
+            html: `<p style="font-size:${isHeader ? 13 : 12}px;line-height:17px;color:${isHeader ? args.tokens.titleAccent : '#334155'};"><strong>${isHeader ? renderInlineLatexToHtml(cell) : ''}</strong>${isHeader ? '' : renderInlineLatexToHtml(cell)}</p>`,
+            color: isHeader ? args.tokens.titleAccent : '#334155',
+            fill: isHeader ? '#eef2ff' : '#ffffff',
+            outlineColor: isHeader ? '#c7d2fe' : '#e2e8f0',
+            textType: 'content',
+          }),
+        );
+      });
+    });
+  return elements;
+}
+
+function renderStructuredLayoutFamilySlide(args: {
+  document: NotebookContentDocument;
+  fallbackTitle: string;
+  family: NotebookContentLayoutFamily;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+}): Slide {
+  const title = args.document.title || args.fallbackTitle;
+  const elements: PPTElement[] = [];
+  const titleElements = createFamilyTitleElements({
+    title,
+    language: args.language,
+    family: args.family,
+    tokens: args.tokens,
+    continuation: args.document.continuation,
+  });
+  elements.push(...titleElements);
+
+  const contentBlocks = args.blocks.length > 0 ? args.blocks : [];
+  const cardPalettes = args.tokens.cardPalettes;
+
+  if (args.family === 'cover' || args.family === 'section') {
+    const bodyText = contentBlocks
+      .flatMap((block) => blockSummaryLines(args.language, block))
+      .slice(0, 4);
+    const top = args.family === 'cover' ? 260 : 230;
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top,
+        width: 720,
+        height: 118,
+        html: bodyText
+          .map(
+            (line) =>
+              `<p style="font-size:18px;line-height:26px;color:#334155;">${renderInlineLatexToHtml(line)}</p>`,
+          )
+          .join(''),
+        color: '#334155',
+        textType: 'subtitle',
+      }),
+    );
+    if (contentBlocks.length > 1) {
+      elements.push(
+        ...contentBlocks.slice(0, 3).map((block, index) =>
+          createBlockCard({
+            block,
+            language: args.language,
+            left: CONTENT_LEFT + index * 286,
+            top: 410,
+            width: 270,
+            height: 82,
+            tone: cardPalettes[index % cardPalettes.length],
+            bodyFontSize: 12,
+          }),
+        ),
+      );
+    }
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  const bodyTop = 112;
+  const bodyHeight = CONTENT_BOTTOM - bodyTop;
+
+  if (args.family === 'visual_split') {
+    const visualWidth = 360;
+    const textWidth = CONTENT_WIDTH - visualWidth - 26;
+    const cardHeight = Math.max(
+      82,
+      Math.floor((bodyHeight - 24) / Math.max(1, Math.min(3, contentBlocks.length))),
+    );
+    elements.push(
+      ...renderVisualPanel({
+        visual: args.visual,
+        blocks: contentBlocks,
+        language: args.language,
+        left: CONTENT_LEFT + textWidth + 26,
+        top: bodyTop,
+        width: visualWidth,
+        height: bodyHeight,
+        tokens: args.tokens,
+      }),
+    );
+    contentBlocks.slice(0, 4).forEach((block, index) => {
+      elements.push(
+        createBlockCard({
+          block,
+          language: args.language,
+          left: CONTENT_LEFT,
+          top: bodyTop + index * (cardHeight + 10),
+          width: textWidth,
+          height: cardHeight,
+          tone: cardPalettes[index % cardPalettes.length],
+        }),
+      );
+    });
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'comparison') {
+    const tableBlock = findFirstBlock(contentBlocks, 'table');
+    if (tableBlock) {
+      elements.push(
+        ...createTableCards({
+          block: tableBlock,
+          left: CONTENT_LEFT,
+          top: bodyTop,
+          width: CONTENT_WIDTH,
+          height: bodyHeight,
+          tokens: args.tokens,
+        }),
+      );
+    } else {
+      const columns = 2;
+      const rows = Math.max(1, Math.ceil(Math.min(4, contentBlocks.length) / columns));
+      const cardWidth = (CONTENT_WIDTH - GRID_GAP_X) / 2;
+      const cardHeight = (bodyHeight - Math.max(0, rows - 1) * GRID_GAP_Y) / rows;
+      contentBlocks.slice(0, 4).forEach((block, index) => {
+        elements.push(
+          createBlockCard({
+            block,
+            language: args.language,
+            left: CONTENT_LEFT + (index % columns) * (cardWidth + GRID_GAP_X),
+            top: bodyTop + Math.floor(index / columns) * (cardHeight + GRID_GAP_Y),
+            width: cardWidth,
+            height: cardHeight,
+            tone: cardPalettes[index % cardPalettes.length],
+          }),
+        );
+      });
+    }
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'timeline') {
+    const flow =
+      findFirstBlock(contentBlocks, 'process_flow') ||
+      buildFlowPatternBlock({
+        language: args.language,
+        orientation: 'vertical',
+        blocks: contentBlocks,
+      });
+    const rendered = renderProcessFlowBlock({
+      block: { ...flow, orientation: flow.steps.length <= 4 ? flow.orientation : 'vertical' },
+      top: bodyTop,
+      language: args.language,
+      titleAccent: args.tokens.titleAccent,
+      cardPalettes,
+    });
+    elements.push(...rendered.elements);
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'code_walkthrough') {
+    const walkthrough = findFirstBlock(contentBlocks, 'code_walkthrough');
+    const codeBlock = walkthrough || findFirstBlock(contentBlocks, 'code_block');
+    const codeText =
+      codeBlock?.type === 'code_walkthrough' ? codeBlock.code : codeBlock?.code || '';
+    const codeLeft = CONTENT_LEFT;
+    const codeWidth = 500;
+    const stepsLeft = codeLeft + codeWidth + 24;
+    elements.push(
+      createTextElement({
+        left: codeLeft,
+        top: bodyTop,
+        width: codeWidth,
+        height: bodyHeight,
+        html: codeText
+          .split('\n')
+          .slice(0, 18)
+          .map(
+            (line, index) =>
+              `<p style="font-size:12px;line-height:17px;color:${args.tokens.codeSurface.text};font-family:Menlo, Monaco, Consolas, monospace;"><span style="color:${args.tokens.codeSurface.caption};">${String(index + 1).padStart(2, '0')}</span> ${escapeHtml(line)}</p>`,
+          )
+          .join(''),
+        color: args.tokens.codeSurface.text,
+        fill: args.tokens.codeSurface.fill,
+        outlineColor: args.tokens.codeSurface.outline,
+        textType: 'content',
+      }),
+    );
+    const stepItems =
+      walkthrough?.steps.map(
+        (step) =>
+          `${step.title || step.focus || ''}${step.explanation ? `: ${step.explanation}` : ''}`,
+      ) || contentBlocks.flatMap((block) => blockSummaryLines(args.language, block)).slice(0, 5);
+    const stepHeight = Math.max(
+      70,
+      Math.floor((bodyHeight - 30) / Math.max(1, Math.min(5, stepItems.length))),
+    );
+    stepItems.slice(0, 5).forEach((item, index) => {
+      elements.push(
+        createTextElement({
+          left: stepsLeft,
+          top: bodyTop + index * (stepHeight + 8),
+          width: CONTENT_LEFT + CONTENT_WIDTH - stepsLeft,
+          height: stepHeight,
+          html: `<p style="font-size:13px;color:${args.tokens.titleAccent};"><strong>${args.language === 'en-US' ? `Step ${index + 1}` : `步骤 ${index + 1}`}</strong></p><p style="font-size:14px;line-height:20px;color:#334155;">${renderInlineLatexToHtml(item)}</p>`,
+          color: '#334155',
+          fill: cardPalettes[index % cardPalettes.length].fill,
+          outlineColor: cardPalettes[index % cardPalettes.length].border,
+          textType: 'content',
+        }),
+      );
+    });
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'problem_statement') {
+    const example = findFirstBlock(contentBlocks, 'example');
+    const summaryLines = contentBlocks.flatMap((block) => blockSummaryLines(args.language, block));
+    const problemParagraph = contentBlocks.find(
+      (block): block is Extract<NotebookContentBlock, { type: 'paragraph' }> =>
+        block.type === 'paragraph' && /^(题目|Problem)\s*[：:]/i.test(block.text.trim()),
+    );
+    const problem =
+      example?.problem ||
+      problemParagraph?.text.replace(/^(题目|Problem)\s*[：:]\s*/i, '') ||
+      summaryLines.find((line) => !/^(例题讲解|Worked Example)$/i.test(line.trim())) ||
+      title;
+    const hasExplicitProblem = Boolean(example?.problem || problemParagraph);
+    const givens = example
+      ? [...example.givens, ...(example.goal ? [example.goal] : [])]
+      : contentBlocks
+          .filter(
+            (block): block is Extract<NotebookContentBlock, { type: 'bullet_list' }> =>
+              block.type === 'bullet_list',
+          )
+          .flatMap((block) => block.items)
+          .slice(0, 4);
+    const problemFontSize =
+      problem.length > 980 ? 14 : problem.length > 700 ? 15 : problem.length > 460 ? 16 : 18;
+    const problemLineHeight = Math.round(problemFontSize * 1.52);
+    const includeGivens = givens.length > 0 && problem.length <= 760;
+    const problemHeight = includeGivens ? bodyHeight * 0.72 : bodyHeight;
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top: bodyTop,
+        width: CONTENT_WIDTH,
+        height: problemHeight,
+        html: `<p style="font-size:20px;line-height:29px;color:#0f172a;"><strong>${escapeHtml(
+          hasExplicitProblem
+            ? args.language === 'en-US'
+              ? 'Problem'
+              : '题目'
+            : args.language === 'en-US'
+              ? 'Given'
+              : '已知条件',
+        )}</strong></p><p style="font-size:${problemFontSize}px;line-height:${problemLineHeight}px;color:#334155;">${renderInlineLatexToHtml(problem)}</p>`,
+        color: '#334155',
+        fill: '#ffffff',
+        outlineColor: '#bfdbfe',
+        textType: 'content',
+      }),
+    );
+    if (includeGivens) {
+      elements.push(
+        createTextElement({
+          left: CONTENT_LEFT,
+          top: bodyTop + problemHeight + 14,
+          width: CONTENT_WIDTH,
+          height: bodyHeight - problemHeight - 14,
+          html: givens
+            .slice(0, 4)
+            .map(
+              (item) =>
+                `<p style="font-size:14px;line-height:20px;color:#334155;"><span style="color:${args.tokens.titleAccent};font-weight:700;">•</span> ${renderInlineLatexToHtml(item)}</p>`,
+            )
+            .join(''),
+          color: '#334155',
+          fill: '#f8fafc',
+          outlineColor: '#e2e8f0',
+          textType: 'content',
+        }),
+      );
+    }
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'problem_solution' || args.family === 'derivation') {
+    const derivation = findFirstBlock(contentBlocks, 'derivation_steps');
+    const example = findFirstBlock(contentBlocks, 'example');
+    const steps = derivation
+      ? derivation.steps.map(
+          (step) => `${step.expression}${step.explanation ? ` — ${step.explanation}` : ''}`,
+        )
+      : example?.steps || contentBlocks.flatMap((block) => blockSummaryLines(args.language, block));
+    const leftWidth = args.family === 'derivation' ? 520 : 420;
+    const rightWidth = CONTENT_WIDTH - leftWidth - 24;
+    const stepHeight = Math.max(
+      62,
+      Math.floor((bodyHeight - 26) / Math.max(1, Math.min(5, steps.length))),
+    );
+    steps.slice(0, 5).forEach((step, index) => {
+      elements.push(
+        createTextElement({
+          left: CONTENT_LEFT,
+          top: bodyTop + index * (stepHeight + 8),
+          width: leftWidth,
+          height: stepHeight,
+          html: `<p style="font-size:13px;color:${args.tokens.titleAccent};"><strong>${args.language === 'en-US' ? `Step ${index + 1}` : `步骤 ${index + 1}`}</strong></p><p style="font-size:15px;line-height:21px;color:#334155;">${renderInlineLatexToHtml(step)}</p>`,
+          color: '#334155',
+          fill: '#ffffff',
+          outlineColor: '#dbeafe',
+          textType: 'content',
+        }),
+      );
+    });
+    const answer = example?.answer || contentBlocks.find((block) => block.type === 'callout');
+    const answerText =
+      typeof answer === 'object' && 'text' in answer
+        ? answer.text
+        : example?.answer || steps[steps.length - 1] || '';
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT + leftWidth + 24,
+        top: bodyTop,
+        width: rightWidth,
+        height: bodyHeight,
+        html: `<p style="font-size:15px;color:${args.tokens.titleAccent};"><strong>${escapeHtml(
+          args.language === 'en-US' ? 'Key Takeaway' : '关键结论',
+        )}</strong></p><p style="font-size:18px;line-height:27px;color:#0f172a;">${renderInlineLatexToHtml(answerText)}</p>`,
+        color: '#0f172a',
+        fill: '#f5f9ff',
+        outlineColor: '#bfdbfe',
+        textType: 'content',
+      }),
+    );
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'formula_focus') {
+    const equation = findFirstBlock(contentBlocks, 'equation');
+    const matrix = findFirstBlock(contentBlocks, 'matrix');
+    const latex = equation?.latex || (matrix ? matrixBlockToLatex(matrix) : '');
+    if (latex) {
+      const groupId = createCardGroupId('formula_focus');
+      elements.push(
+        createRectShape({
+          left: CONTENT_LEFT,
+          top: bodyTop,
+          width: CONTENT_WIDTH,
+          height: 240,
+          fill: '#ffffff',
+          outlineColor: '#bfdbfe',
+          groupId,
+        }),
+        createLatexElement({
+          latex,
+          left: CONTENT_LEFT + 30,
+          top: bodyTop + 50,
+          width: CONTENT_WIDTH - 60,
+          height: 130,
+          align: 'center',
+          color: args.tokens.titleText,
+          groupId,
+        }),
+      );
+    }
+    contentBlocks
+      .filter((block) => block !== equation && block !== matrix)
+      .slice(0, 3)
+      .forEach((block, index) => {
+        const cardWidth = (CONTENT_WIDTH - 2 * GRID_GAP_X) / 3;
+        elements.push(
+          createBlockCard({
+            block,
+            language: args.language,
+            left: CONTENT_LEFT + index * (cardWidth + GRID_GAP_X),
+            top: bodyTop + 266,
+            width: cardWidth,
+            height: bodyHeight - 266,
+            tone: cardPalettes[index % cardPalettes.length],
+            bodyFontSize: 12,
+          }),
+        );
+      });
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  if (args.family === 'summary') {
+    const lines = contentBlocks
+      .flatMap((block) => blockSummaryLines(args.language, block))
+      .slice(0, 6);
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top: bodyTop,
+        width: 430,
+        height: bodyHeight,
+        html: `<p style="font-size:18px;color:${args.tokens.titleAccent};"><strong>${escapeHtml(
+          args.language === 'en-US' ? 'Takeaways' : '核心回收',
+        )}</strong></p>${lines
+          .slice(0, 4)
+          .map(
+            (line) =>
+              `<p style="font-size:18px;line-height:27px;color:#0f172a;">${renderInlineLatexToHtml(line)}</p>`,
+          )
+          .join('')}`,
+        color: '#0f172a',
+        fill: '#ffffff',
+        outlineColor: '#bfdbfe',
+        textType: 'content',
+      }),
+      createTextElement({
+        left: CONTENT_LEFT + 456,
+        top: bodyTop,
+        width: CONTENT_WIDTH - 456,
+        height: bodyHeight,
+        html: lines
+          .slice(2, 6)
+          .map(
+            (line, index) =>
+              `<p style="font-size:16px;line-height:25px;color:#334155;"><span style="color:${args.tokens.titleAccent};font-weight:700;">${index + 1}</span> ${renderInlineLatexToHtml(line)}</p>`,
+          )
+          .join(''),
+        color: '#334155',
+        fill: '#f8fafc',
+        outlineColor: '#e2e8f0',
+        textType: 'content',
+      }),
+    );
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
+  const columns = contentBlocks.length <= 2 ? contentBlocks.length || 1 : 2;
+  const rows = Math.max(1, Math.ceil(Math.min(4, contentBlocks.length) / columns));
+  const cardWidth = (CONTENT_WIDTH - Math.max(0, columns - 1) * GRID_GAP_X) / columns;
+  const cardHeight = (bodyHeight - Math.max(0, rows - 1) * GRID_GAP_Y) / rows;
+  contentBlocks.slice(0, 4).forEach((block, index) => {
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: CONTENT_LEFT + (index % columns) * (cardWidth + GRID_GAP_X),
+        top: bodyTop + Math.floor(index / columns) * (cardHeight + GRID_GAP_Y),
+        width: cardWidth,
+        height: cardHeight,
+        tone: cardPalettes[index % cardPalettes.length],
+      }),
+    );
+  });
+  return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
 }
 
 export interface NotebookDocumentArchetypeValidation {
@@ -1093,6 +1903,24 @@ export function renderNotebookContentDocumentToSlide(args: {
   const tokens = getProfileTokens(profile);
   const cardPalettes = tokens.cardPalettes;
   const orderedBlocks = sortBlocksByPlacementOrder(args.document.blocks);
+  const layoutFamily = inferLayoutFamilyFromDocument({
+    document: args.document,
+    archetype,
+    blocks: orderedBlocks,
+  });
+  const structuredBlocks = stripVisualBlocks(orderedBlocks);
+  if (layoutFamily) {
+    return renderStructuredLayoutFamilySlide({
+      document: args.document,
+      fallbackTitle: args.fallbackTitle,
+      family: layoutFamily,
+      language,
+      tokens,
+      blocks: structuredBlocks,
+      visual: resolveDocumentVisualSlot(args.document),
+    });
+  }
+
   let effectiveLayout: NotebookContentLayout = documentLayout;
   let effectiveBlocks = orderedBlocks;
   if (documentLayout.mode === 'stack' && documentPattern === 'multi_column_cards') {
@@ -1187,7 +2015,9 @@ export function renderNotebookContentDocumentToSlide(args: {
     placedBlocks.forEach((placed) => {
       const innerWidth = Math.max(
         120,
-        placed.colSpan * cellWidth + Math.max(0, placed.colSpan - 1) * GRID_GAP_X - CARD_INSET_X * 2,
+        placed.colSpan * cellWidth +
+          Math.max(0, placed.colSpan - 1) * GRID_GAP_X -
+          CARD_INSET_X * 2,
       );
       const block = placed.block;
       const heading = blockToGridHeading(language, block);
@@ -1766,7 +2596,9 @@ export function renderNotebookContentDocumentToSlide(args: {
         lineHeightPx: 21,
         color: templateTone.accent,
       });
-      const height = (measuredBodyHeight ?? estimateParagraphHeight(block.text, 36, 20)) + (block.title ? 28 : 12);
+      const height =
+        (measuredBodyHeight ?? estimateParagraphHeight(block.text, 36, 20)) +
+        (block.title ? 28 : 12);
       elements.push(
         createRectShape({
           left: CONTENT_LEFT,
@@ -1879,7 +2711,10 @@ export function renderNotebookContentDocumentToSlide(args: {
 
   const usedBottom = elements
     .filter(hasBoxGeometry)
-    .reduce((maxBottom, element) => Math.max(maxBottom, element.top + element.height), archetypeLayout.bodyTop);
+    .reduce(
+      (maxBottom, element) => Math.max(maxBottom, element.top + element.height),
+      archetypeLayout.bodyTop,
+    );
   const hasProcessFlowBlock = effectiveBlocks.some((block) => block.type === 'process_flow');
   const underfillExpansion = hasProcessFlowBlock
     ? {}

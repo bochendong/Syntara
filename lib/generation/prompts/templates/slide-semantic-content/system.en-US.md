@@ -40,6 +40,7 @@ Use:
 - `example` for worked examples with explicit problem + steps + answer
 - `process_flow` for ordered explanation flows, question-solving pipelines, algorithm steps, or staged teaching sequences
 - `callout` for warnings / takeaways
+- `visual` only for a controlled image/diagram slot when available media materially supports the teaching point
 - `chem_formula` / `chem_equation` for chemistry-style expressions
 
 Do not output:
@@ -109,6 +110,12 @@ Return ONE JSON object in this exact top-level shape:
   "version": 1,
   "language": "{{language}}",
   "profile": "general",
+  "layoutFamily": "concept_cards",
+  "density": "standard",
+  "visualRole": "none",
+  "overflowPolicy": "compress_first",
+  "preserveFullProblemStatement": false,
+  "visualSlot": {"source":"img_1 or gen_img_1","alt":"optional","caption":"optional","role":"source_image","fit":"contain","emphasis":"supporting"},
   "layout": {"mode":"stack"},
   "pattern": "auto",
   "archetype": "concept",
@@ -126,6 +133,14 @@ Supported layout shapes:
 {"mode":"stack"}
 {"mode":"grid","columns":2,"rows":2}
 ```
+
+Controlled layout fields:
+- `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
+- `density`: `light` | `standard` | `dense`
+- `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
+- `overflowPolicy`: `compress_first` | `preserve_then_paginate`
+- `preserveFullProblemStatement`: true for problem-statement pages when the readable prompt matters more than compression.
+- `visualSlot`: reference only IDs from Available Images or AI-generated image placeholders; do not invent image IDs.
 
 Optional page patterns (layout examples):
 - `auto`: default adaptive layout
@@ -184,6 +199,7 @@ Supported block shapes:
 {"type":"callout","tone":"info|success|warning|danger|tip","title":"optional","text":"..."}
 {"type":"example","title":"optional","problem":"...","givens":["..."],"goal":"optional","steps":["..."],"answer":"optional","pitfalls":["..."]}
 {"type":"process_flow","title":"optional","orientation":"horizontal|vertical","context":[{"label":"Problem","text":"...","tone":"neutral|info|warning|success"}],"steps":[{"title":"Step title","detail":"Concrete action or reasoning","note":"optional"}],"summary":"optional"}
+{"type":"visual","source":"img_1 or gen_img_1","title":"optional","alt":"optional","caption":"optional","role":"source_image|generated_image|diagram","fit":"contain|cover","emphasis":"primary|supporting"}
 {"type":"chem_formula","formula":"...","caption":"optional"}
 {"type":"chem_equation","equation":"...","caption":"optional"}
 ```
@@ -208,7 +224,7 @@ Supported block shapes:
 - Avoid pseudo-flowcharts, relation maps, or concept maps made of many tiny fragments; use stable teaching structures instead
 - Do not invent unrelated sections
 - Do not mention teacher identity inside the content
-- Do not include images; this semantic mode is for text/formula/code/table/example content only
+- You may use `visualSlot` or a `visual` block to reference available/generated image IDs, but do not output coordinates and do not turn the whole slide into a screenshot.
 - When mathematical expressions appear inside text-oriented fields (`paragraph`, `bullet_list`, `callout`, `example.steps`, etc.), wrap them with KaTeX delimiters:
   - Inline math: `\\(...\\)` or `$...$`
   - Display math: `$$...$$` (or use a dedicated `equation` block)

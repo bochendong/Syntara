@@ -3,12 +3,46 @@ import { z } from 'zod';
 export const notebookContentLanguageSchema = z.enum(['zh-CN', 'en-US']);
 export const notebookContentProfileSchema = z.enum(['general', 'math', 'code']);
 export const notebookContentLayoutModeSchema = z.enum(['stack', 'grid']);
+export const notebookContentLayoutFamilySchema = z.enum([
+  'cover',
+  'section',
+  'concept_cards',
+  'visual_split',
+  'comparison',
+  'timeline',
+  'problem_statement',
+  'problem_solution',
+  'derivation',
+  'code_walkthrough',
+  'formula_focus',
+  'summary',
+]);
+export const notebookContentDensitySchema = z.enum(['light', 'standard', 'dense']);
+export const notebookContentVisualRoleSchema = z.enum([
+  'none',
+  'source_image',
+  'generated_image',
+  'diagram',
+]);
+export const notebookContentOverflowPolicySchema = z.enum([
+  'compress_first',
+  'preserve_then_paginate',
+]);
 export const notebookContentPatternSchema = z.enum([
   'auto',
   'multi_column_cards',
   'flow_horizontal',
   'flow_vertical',
   'symmetric_split',
+  'cover_hero',
+  'section_band',
+  'visual_split',
+  'timeline',
+  'comparison_table',
+  'problem_solution',
+  'code_split',
+  'formula_focus',
+  'quote_takeaway',
 ]);
 export const notebookSlideArchetypeSchema = z.enum([
   'intro',
@@ -56,6 +90,14 @@ export const notebookContentBlockPresentationSchema = z.object({
   noteTextColor: z.string().trim().max(40).optional(),
   noteBackgroundColor: z.string().trim().max(40).optional(),
   noteBorderColor: z.string().trim().max(40).optional(),
+});
+export const notebookContentVisualSlotSchema = z.object({
+  source: z.string().trim().min(1).max(2_000_000),
+  alt: z.string().trim().max(500).optional(),
+  caption: z.string().trim().max(500).optional(),
+  role: notebookContentVisualRoleSchema.default('diagram'),
+  fit: z.enum(['contain', 'cover']).default('contain'),
+  emphasis: z.enum(['primary', 'supporting']).default('supporting'),
 });
 export const notebookContentContinuationSchema = z.object({
   rootOutlineId: z.string().trim().min(1).max(200),
@@ -221,6 +263,11 @@ export const notebookContentChemEquationBlockSchema = z.object({
   caption: z.string().trim().max(300).optional(),
 });
 
+export const notebookContentVisualBlockSchema = notebookContentVisualSlotSchema.extend({
+  type: z.literal('visual'),
+  title: z.string().trim().max(200).optional(),
+});
+
 const notebookContentBlockBaseSchema = z.discriminatedUnion('type', [
   notebookContentHeadingBlockSchema,
   notebookContentParagraphBlockSchema,
@@ -239,6 +286,7 @@ const notebookContentBlockBaseSchema = z.discriminatedUnion('type', [
   notebookContentLayoutCardsBlockSchema,
   notebookContentChemFormulaBlockSchema,
   notebookContentChemEquationBlockSchema,
+  notebookContentVisualBlockSchema,
 ]);
 export const notebookContentBlockSchema = z.intersection(
   notebookContentBlockBaseSchema,
@@ -250,6 +298,12 @@ export const notebookContentDocumentSchema = z.object({
   language: notebookContentLanguageSchema.default('zh-CN'),
   profile: notebookContentProfileSchema.default('general'),
   layout: notebookContentLayoutSchema.default({ mode: 'stack' }),
+  layoutFamily: notebookContentLayoutFamilySchema.optional(),
+  density: notebookContentDensitySchema.default('standard'),
+  visualRole: notebookContentVisualRoleSchema.default('none'),
+  overflowPolicy: notebookContentOverflowPolicySchema.default('compress_first'),
+  preserveFullProblemStatement: z.boolean().default(false),
+  visualSlot: notebookContentVisualSlotSchema.optional(),
   pattern: notebookContentPatternSchema.optional(),
   archetype: notebookSlideArchetypeSchema.default('concept'),
   continuation: notebookContentContinuationSchema.optional(),
@@ -263,6 +317,10 @@ export const notebookContentDocumentSchema = z.object({
 export type NotebookContentLanguage = z.infer<typeof notebookContentLanguageSchema>;
 export type NotebookContentProfile = z.infer<typeof notebookContentProfileSchema>;
 export type NotebookContentLayoutMode = z.infer<typeof notebookContentLayoutModeSchema>;
+export type NotebookContentLayoutFamily = z.infer<typeof notebookContentLayoutFamilySchema>;
+export type NotebookContentDensity = z.infer<typeof notebookContentDensitySchema>;
+export type NotebookContentVisualRole = z.infer<typeof notebookContentVisualRoleSchema>;
+export type NotebookContentOverflowPolicy = z.infer<typeof notebookContentOverflowPolicySchema>;
 export type NotebookContentPattern = z.infer<typeof notebookContentPatternSchema>;
 export type NotebookContentStackLayout = z.infer<typeof notebookContentStackLayoutSchema>;
 export type NotebookContentGridLayout = z.infer<typeof notebookContentGridLayoutSchema>;
@@ -298,6 +356,8 @@ export type NotebookContentChemFormulaBlock = z.infer<typeof notebookContentChem
 export type NotebookContentChemEquationBlock = z.infer<
   typeof notebookContentChemEquationBlockSchema
 >;
+export type NotebookContentVisualSlot = z.infer<typeof notebookContentVisualSlotSchema>;
+export type NotebookContentVisualBlock = z.infer<typeof notebookContentVisualBlockSchema>;
 export type NotebookContentBlock = z.infer<typeof notebookContentBlockSchema>;
 export type NotebookContentDocument = z.infer<typeof notebookContentDocumentSchema>;
 

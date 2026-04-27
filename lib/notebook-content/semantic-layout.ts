@@ -46,8 +46,9 @@ export interface PreparedNotebookSemanticLayout {
 }
 
 export function shouldLockNotebookSemanticLayout(
-  document: Pick<NotebookContentDocument, 'layout' | 'pattern'>,
+  document: Pick<NotebookContentDocument, 'layout' | 'pattern' | 'layoutFamily'>,
 ): boolean {
+  if (document.layoutFamily) return true;
   if (document.layout.mode === 'grid') return true;
 
   return document.pattern === 'multi_column_cards' || document.pattern === 'symmetric_split';

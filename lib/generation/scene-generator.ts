@@ -29,6 +29,7 @@ import {
   renderNotebookSemanticPages,
   validateNotebookContentDocumentArchetype,
   type NotebookContentDocument,
+  type NotebookContentVisualSlot,
 } from '@/lib/notebook-content';
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import { buildPrompt, PROMPT_IDS } from './prompts';
@@ -129,7 +130,6 @@ function recordFailure(
   diagnostics.failureReasons.push(reason);
 }
 
-
 export function buildValidatedFallbackSlideContent(
   outline: SceneOutline,
 ): GeneratedSlideContent | null {
@@ -164,6 +164,13 @@ function buildSemanticFallbackSlideContent(outline: SceneOutline): GeneratedSlid
     profile: outline.contentProfile || fallbackDocumentBase.profile,
     archetype: outline.archetype || fallbackDocumentBase.archetype,
     title: outline.title || fallbackDocumentBase.title,
+    layoutFamily: outline.layoutIntent?.layoutFamily,
+    density: outline.layoutIntent?.density || fallbackDocumentBase.density,
+    visualRole: outline.layoutIntent?.visualRole || fallbackDocumentBase.visualRole,
+    overflowPolicy: outline.layoutIntent?.overflowPolicy || fallbackDocumentBase.overflowPolicy,
+    preserveFullProblemStatement:
+      outline.layoutIntent?.preserveFullProblemStatement ||
+      fallbackDocumentBase.preserveFullProblemStatement,
   };
 
   const preparedLayout = prepareNotebookSemanticLayout({
@@ -390,6 +397,185 @@ function shouldUseSemanticSlideGeneration(
   return true;
 }
 
+function formatLayoutIntentForPrompt(outline: SceneOutline, language: 'zh-CN' | 'en-US'): string {
+  const intent = outline.layoutIntent;
+  if (!intent) return '';
+  if (language === 'zh-CN') {
+    return [
+      '版式意图（硬约束）：',
+      `- layoutFamily: ${intent.layoutFamily}`,
+      `- density: ${intent.density || 'standard'}`,
+      `- visualRole: ${intent.visualRole || 'none'}`,
+      `- overflowPolicy: ${intent.overflowPolicy || 'compress_first'}`,
+      `- preserveFullProblemStatement: ${intent.preserveFullProblemStatement ? 'true' : 'false'}`,
+      '- 只输出结构化内容和这些版式意图；不要输出坐标。renderer 会决定布局。',
+      '- 如果 preserveFullProblemStatement=true，题干完整性优先于压缩。',
+    ].join('\n');
+  }
+  return [
+    'Layout intent (hard constraint):',
+    `- layoutFamily: ${intent.layoutFamily}`,
+    `- density: ${intent.density || 'standard'}`,
+    `- visualRole: ${intent.visualRole || 'none'}`,
+    `- overflowPolicy: ${intent.overflowPolicy || 'compress_first'}`,
+    `- preserveFullProblemStatement: ${intent.preserveFullProblemStatement ? 'true' : 'false'}`,
+    '- Output structured content and these layout fields only; do not output coordinates.',
+    '- If preserveFullProblemStatement=true, preserve the readable problem statement before compressing.',
+  ].join('\n');
+}
+
+function buildSemanticMediaPromptContext(args: {
+  outline: SceneOutline;
+  language: 'zh-CN' | 'en-US';
+  assignedImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  visionEnabled?: boolean;
+}): { text: string; visionImages?: Array<{ id: string; src: string }> } {
+  let text = args.language === 'zh-CN' ? '无可用图片' : 'No images available';
+  let visionImages: Array<{ id: string; src: string }> | undefined;
+
+  if (args.assignedImages && args.assignedImages.length > 0) {
+    if (args.visionEnabled && args.imageMapping) {
+      const withSrc = args.assignedImages.filter((img) => args.imageMapping?.[img.id]);
+      const visionSlice = withSrc.slice(0, MAX_VISION_IMAGES);
+      const textOnlySlice = withSrc.slice(MAX_VISION_IMAGES);
+      const noSrcImages = args.assignedImages.filter((img) => !args.imageMapping?.[img.id]);
+      text = [
+        ...visionSlice.map((img) => formatImagePlaceholder(img, args.language)),
+        ...[...textOnlySlice, ...noSrcImages].map((img) =>
+          formatImageDescription(img, args.language),
+        ),
+      ].join('\n');
+      visionImages = visionSlice.map((img) => ({
+        id: img.id,
+        src: args.imageMapping![img.id],
+        width: img.width,
+        height: img.height,
+      }));
+    } else {
+      text = args.assignedImages
+        .map((img) => formatImageDescription(img, args.language))
+        .join('\n');
+    }
+  }
+
+  const generatedImages = (args.outline.mediaGenerations || [])
+    .filter((media) => media.type === 'image')
+    .map((media) => `- ${media.elementId}: "${media.prompt}"`);
+  if (generatedImages.length > 0) {
+    const generatedText =
+      args.language === 'zh-CN'
+        ? `AI 生成图片占位符（可作为 visualSlot.source 或 visual block source）：\n${generatedImages.join('\n')}`
+        : `AI-generated image placeholders (may be used as visualSlot.source or visual block source):\n${generatedImages.join('\n')}`;
+    text =
+      text.includes('无可用') || text.includes('No images')
+        ? generatedText
+        : `${text}\n\n${generatedText}`;
+  }
+
+  return { text, visionImages };
+}
+
+function resolveSemanticMediaSource(
+  source: string,
+  imageMapping?: ImageMapping,
+  generatedMediaMapping?: ImageMapping,
+): string {
+  return generatedMediaMapping?.[source] || imageMapping?.[source] || source;
+}
+
+function buildVisualSlotFromOutline(args: {
+  outline: SceneOutline;
+  assignedImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  generatedMediaMapping?: ImageMapping;
+}): NotebookContentVisualSlot | undefined {
+  const sourceImage = args.assignedImages?.[0];
+  if (sourceImage) {
+    return {
+      source: resolveSemanticMediaSource(
+        sourceImage.id,
+        args.imageMapping,
+        args.generatedMediaMapping,
+      ),
+      alt: sourceImage.description || sourceImage.id,
+      caption: sourceImage.description,
+      role: 'source_image',
+      fit: 'contain',
+      emphasis: 'supporting',
+    };
+  }
+
+  const generatedImage = args.outline.mediaGenerations?.find((media) => media.type === 'image');
+  if (!generatedImage) return undefined;
+  return {
+    source: resolveSemanticMediaSource(
+      generatedImage.elementId,
+      args.imageMapping,
+      args.generatedMediaMapping,
+    ),
+    alt: generatedImage.prompt,
+    caption: generatedImage.prompt,
+    role: 'generated_image',
+    fit: 'cover',
+    emphasis: 'supporting',
+  };
+}
+
+function applyOutlineIntentToSemanticDocument(args: {
+  document: NotebookContentDocument;
+  outline: SceneOutline;
+  assignedImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  generatedMediaMapping?: ImageMapping;
+}): NotebookContentDocument {
+  const intent = args.outline.layoutIntent;
+  const visualSlot =
+    args.document.visualSlot ||
+    buildVisualSlotFromOutline({
+      outline: args.outline,
+      assignedImages: args.assignedImages,
+      imageMapping: args.imageMapping,
+      generatedMediaMapping: args.generatedMediaMapping,
+    });
+  const resolvedVisualSlot = visualSlot
+    ? {
+        ...visualSlot,
+        source: resolveSemanticMediaSource(
+          visualSlot.source,
+          args.imageMapping,
+          args.generatedMediaMapping,
+        ),
+      }
+    : undefined;
+
+  return {
+    ...args.document,
+    layoutFamily: args.document.layoutFamily || intent?.layoutFamily,
+    density: args.document.density || intent?.density || 'standard',
+    visualRole:
+      args.document.visualRole ||
+      intent?.visualRole ||
+      (resolvedVisualSlot ? resolvedVisualSlot.role : 'none'),
+    overflowPolicy: args.document.overflowPolicy || intent?.overflowPolicy || 'compress_first',
+    preserveFullProblemStatement:
+      args.document.preserveFullProblemStatement || Boolean(intent?.preserveFullProblemStatement),
+    visualSlot: resolvedVisualSlot,
+    blocks: args.document.blocks.map((block) =>
+      block.type === 'visual'
+        ? {
+            ...block,
+            source: resolveSemanticMediaSource(
+              block.source,
+              args.imageMapping,
+              args.generatedMediaMapping,
+            ),
+          }
+        : block,
+    ),
+  };
+}
+
 function extractNotebookContentDocumentFromResponse(
   response: string,
 ): NotebookContentDocument | null {
@@ -405,10 +591,13 @@ function extractNotebookContentDocumentFromResponse(
   return wrapped;
 }
 
-
 async function generateSemanticSlideContent(
   outline: SceneOutline,
   aiCall: AICallFn,
+  assignedImages?: PdfImage[],
+  imageMapping?: ImageMapping,
+  visionEnabled?: boolean,
+  generatedMediaMapping?: ImageMapping,
   agents?: AgentInfo[],
   courseContext?: CoursePersonalizationContext,
   rewriteReason?: string,
@@ -428,6 +617,14 @@ async function generateSemanticSlideContent(
   const contentProfileContext = formatSceneContentProfileContext(outline, lang);
   const archetypeContext = formatSceneArchetypeContext(outline, lang);
   const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
+  const layoutIntentContext = formatLayoutIntentForPrompt(outline, lang);
+  const mediaContext = buildSemanticMediaPromptContext({
+    outline,
+    language: lang,
+    assignedImages,
+    imageMapping,
+    visionEnabled,
+  });
   const rewriteContext = formatSlideRewriteContext(rewriteReason, lang);
   let normalizedDocument: NotebookContentDocument | null = templateDrivenDocument;
   if (!normalizedDocument) {
@@ -438,13 +635,15 @@ async function generateSemanticSlideContent(
       keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
       contentProfileContext,
       archetypeContext,
+      layoutIntentContext,
+      assignedImages: mediaContext.text,
       teacherContext,
       coursePersonalization,
       workedExampleContext,
       rewriteContext,
     });
     if (!prompts) return null;
-    const response = await aiCall(prompts.system, prompts.user);
+    const response = await aiCall(prompts.system, prompts.user, mediaContext.visionImages);
     const contentDocumentRaw = extractNotebookContentDocumentFromResponse(response);
     normalizedDocument = contentDocumentRaw
       ? {
@@ -471,6 +670,10 @@ async function generateSemanticSlideContent(
       return generateSemanticSlideContent(
         outline,
         aiCall,
+        assignedImages,
+        imageMapping,
+        visionEnabled,
+        generatedMediaMapping,
         agents,
         courseContext,
         appendRewriteReason(rewriteReason, buildSemanticStructureRetryReason(lang)),
@@ -481,6 +684,13 @@ async function generateSemanticSlideContent(
     }
     return null;
   }
+  normalizedDocument = applyOutlineIntentToSemanticDocument({
+    document: normalizedDocument,
+    outline,
+    assignedImages,
+    imageMapping,
+    generatedMediaMapping,
+  });
   normalizedDocument = normalizeColumnLayoutBlocks(normalizedDocument);
   normalizedDocument = normalizeGridPlacementHints(normalizedDocument);
   if (hasUnexpectedCjkForLanguage(normalizedDocument, lang)) {
@@ -510,6 +720,10 @@ async function generateSemanticSlideContent(
       return generateSemanticSlideContent(
         outline,
         aiCall,
+        assignedImages,
+        imageMapping,
+        visionEnabled,
+        generatedMediaMapping,
         agents,
         courseContext,
         appendRewriteReason(rewriteReason, archetypeValidation.reasons.join('\n')),
@@ -534,9 +748,16 @@ async function generateSemanticSlideContent(
     return generateSemanticSlideContent(
       outline,
       aiCall,
+      assignedImages,
+      imageMapping,
+      visionEnabled,
+      generatedMediaMapping,
       agents,
       courseContext,
-      appendRewriteReason(rewriteReason, buildSemanticBudgetRetryReason(lang, contentBudget.reasons)),
+      appendRewriteReason(
+        rewriteReason,
+        buildSemanticBudgetRetryReason(lang, contentBudget.reasons),
+      ),
       semanticRetryCount + 1,
       true,
       diagnostics,
@@ -575,6 +796,10 @@ async function generateSemanticSlideContent(
       return generateSemanticSlideContent(
         outline,
         aiCall,
+        assignedImages,
+        imageMapping,
+        visionEnabled,
+        generatedMediaMapping,
         agents,
         courseContext,
         appendRewriteReason(rewriteReason, buildSemanticBudgetRetryReason(lang, paginationReasons)),
@@ -654,6 +879,10 @@ async function generateSlideContent(
     const semanticContent = await generateSemanticSlideContent(
       outline,
       aiCall,
+      assignedImages,
+      imageMapping,
+      visionEnabled,
+      generatedMediaMapping,
       agents,
       courseContext,
       rewriteReason,
@@ -703,6 +932,10 @@ async function generateSlideContent(
     const semanticContent = await generateSemanticSlideContent(
       outline,
       aiCall,
+      assignedImages,
+      imageMapping,
+      visionEnabled,
+      generatedMediaMapping,
       agents,
       courseContext,
       rewriteReason,
