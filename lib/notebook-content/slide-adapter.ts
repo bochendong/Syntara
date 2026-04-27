@@ -6,6 +6,7 @@ import type {
   NotebookContentDocument,
   NotebookContentLayout,
   NotebookContentLayoutFamily,
+  NotebookContentLayoutTemplate,
   NotebookContentProfile,
   NotebookContentTextTemplate,
   NotebookContentTitleTone,
@@ -1418,6 +1419,150 @@ function createTableCards(args: {
   return elements;
 }
 
+function inferLayoutTemplateFromDocument(args: {
+  document: NotebookContentDocument;
+  family: NotebookContentLayoutFamily;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+}): NotebookContentLayoutTemplate {
+  if (args.document.layoutTemplate) return args.document.layoutTemplate;
+
+  switch (args.family) {
+    case 'cover':
+      return 'cover_hero';
+    case 'section':
+      return 'section_divider';
+    case 'visual_split':
+      return args.document.continuation?.partNumber &&
+        args.document.continuation.partNumber % 2 === 0
+        ? 'visual_left'
+        : 'visual_right';
+    case 'comparison':
+      return 'comparison_matrix';
+    case 'timeline':
+      return 'timeline_road';
+    case 'problem_statement':
+      return 'problem_focus';
+    case 'problem_solution':
+    case 'derivation':
+      return 'steps_sidebar';
+    case 'code_walkthrough':
+      return 'code_split';
+    case 'formula_focus':
+      return 'formula_focus';
+    case 'summary':
+      return 'summary_board';
+    case 'concept_cards':
+    default:
+      if (args.visual) return 'visual_right';
+      if (args.blocks.length <= 1) return 'title_content';
+      if (args.blocks.length === 2) return 'two_column';
+      if (args.blocks.length === 3) return 'three_cards';
+      return 'four_grid';
+  }
+}
+
+function renderBlockCardGrid(args: {
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  columns: number;
+  maxItems: number;
+  cardPalettes: readonly ContentCardTone[];
+  bodyFontSize?: number;
+}): PPTElement[] {
+  const items = args.blocks.slice(0, args.maxItems);
+  if (items.length === 0) return [];
+  const columns = Math.max(1, Math.min(args.columns, items.length));
+  const rows = Math.max(1, Math.ceil(items.length / columns));
+  const cardWidth = (args.width - Math.max(0, columns - 1) * GRID_GAP_X) / columns;
+  const cardHeight = (args.height - Math.max(0, rows - 1) * GRID_GAP_Y) / rows;
+
+  return items.map((block, index) =>
+    createBlockCard({
+      block,
+      language: args.language,
+      left: args.left + (index % columns) * (cardWidth + GRID_GAP_X),
+      top: args.top + Math.floor(index / columns) * (cardHeight + GRID_GAP_Y),
+      width: cardWidth,
+      height: cardHeight,
+      tone: args.cardPalettes[index % args.cardPalettes.length],
+      bodyFontSize: args.bodyFontSize,
+    }),
+  );
+}
+
+function renderTitleContentTemplate(args: {
+  title: string;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  bodyTop: number;
+  bodyHeight: number;
+}): PPTElement[] {
+  const primary = args.blocks[0];
+  const lines = primary ? blockSummaryLines(args.language, primary) : [args.title];
+  const lead = lines[0] || args.title;
+  const support = [
+    ...lines.slice(1),
+    ...args.blocks.slice(1).flatMap((block) => blockSummaryLines(args.language, block)),
+  ]
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  const elements: PPTElement[] = [
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: args.bodyTop,
+      width: CONTENT_WIDTH,
+      height: support.length > 0 ? 192 : args.bodyHeight,
+      html: `<p style="font-size:25px;line-height:35px;color:#0f172a;font-weight:760;">${renderInlineLatexToHtml(lead)}</p>${
+        support.length > 0
+          ? support
+              .slice(0, 2)
+              .map(
+                (line) =>
+                  `<p style="font-size:15px;line-height:23px;color:#475569;">${renderInlineLatexToHtml(line)}</p>`,
+              )
+              .join('')
+          : ''
+      }`,
+      color: '#0f172a',
+      fill: '#ffffff',
+      outlineColor: '#bfdbfe',
+      textType: 'content',
+    }),
+  ];
+
+  if (support.length > 2 || args.blocks.length > 1) {
+    const cardBlocks = args.blocks.length > 1 ? args.blocks.slice(1) : [];
+    const syntheticBlocks: NotebookContentBlock[] =
+      cardBlocks.length > 0
+        ? cardBlocks
+        : support.slice(2).map((text) => ({ type: 'paragraph', text }));
+    elements.push(
+      ...renderBlockCardGrid({
+        blocks: syntheticBlocks,
+        language: args.language,
+        left: CONTENT_LEFT,
+        top: args.bodyTop + 214,
+        width: CONTENT_WIDTH,
+        height: args.bodyHeight - 214,
+        columns: Math.min(3, Math.max(1, syntheticBlocks.length)),
+        maxItems: 3,
+        cardPalettes: args.cardPalettes,
+        bodyFontSize: 13,
+      }),
+    );
+  }
+
+  return elements;
+}
+
 function renderStructuredLayoutFamilySlide(args: {
   document: NotebookContentDocument;
   fallbackTitle: string;
@@ -1428,6 +1573,12 @@ function renderStructuredLayoutFamilySlide(args: {
   visual: VisualSlotWithTitle | null;
 }): Slide {
   const title = args.document.title || args.fallbackTitle;
+  const template = inferLayoutTemplateFromDocument({
+    document: args.document,
+    family: args.family,
+    blocks: args.blocks,
+    visual: args.visual,
+  });
   const elements: PPTElement[] = [];
   const titleElements = createFamilyTitleElements({
     title,
@@ -1484,9 +1635,45 @@ function renderStructuredLayoutFamilySlide(args: {
   const bodyTop = 112;
   const bodyHeight = CONTENT_BOTTOM - bodyTop;
 
+  if (args.family === 'concept_cards') {
+    if (template === 'title_content') {
+      elements.push(
+        ...renderTitleContentTemplate({
+          title,
+          blocks: contentBlocks,
+          language: args.language,
+          tokens: args.tokens,
+          cardPalettes,
+          bodyTop,
+          bodyHeight,
+        }),
+      );
+    } else {
+      const columns = template === 'three_cards' ? 3 : template === 'four_grid' ? 2 : 2;
+      const maxItems = template === 'four_grid' ? 4 : template === 'three_cards' ? 3 : 2;
+      elements.push(
+        ...renderBlockCardGrid({
+          blocks: contentBlocks,
+          language: args.language,
+          left: CONTENT_LEFT,
+          top: bodyTop,
+          width: CONTENT_WIDTH,
+          height: bodyHeight,
+          columns,
+          maxItems,
+          cardPalettes,
+        }),
+      );
+    }
+    return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+  }
+
   if (args.family === 'visual_split') {
     const visualWidth = 360;
     const textWidth = CONTENT_WIDTH - visualWidth - 26;
+    const visualOnLeft = template === 'visual_left';
+    const visualLeft = visualOnLeft ? CONTENT_LEFT : CONTENT_LEFT + textWidth + 26;
+    const textLeft = visualOnLeft ? CONTENT_LEFT + visualWidth + 26 : CONTENT_LEFT;
     const cardHeight = Math.max(
       82,
       Math.floor((bodyHeight - 24) / Math.max(1, Math.min(3, contentBlocks.length))),
@@ -1496,7 +1683,7 @@ function renderStructuredLayoutFamilySlide(args: {
         visual: args.visual,
         blocks: contentBlocks,
         language: args.language,
-        left: CONTENT_LEFT + textWidth + 26,
+        left: visualLeft,
         top: bodyTop,
         width: visualWidth,
         height: bodyHeight,
@@ -1508,7 +1695,7 @@ function renderStructuredLayoutFamilySlide(args: {
         createBlockCard({
           block,
           language: args.language,
-          left: CONTENT_LEFT,
+          left: textLeft,
           top: bodyTop + index * (cardHeight + 10),
           width: textWidth,
           height: cardHeight,
@@ -1708,6 +1895,53 @@ function renderStructuredLayoutFamilySlide(args: {
           (step) => `${step.expression}${step.explanation ? ` — ${step.explanation}` : ''}`,
         )
       : example?.steps || contentBlocks.flatMap((block) => blockSummaryLines(args.language, block));
+
+    if (template === 'formula_focus' && derivation?.steps[0]?.format === 'latex') {
+      const groupId = createCardGroupId('derivation_formula_focus');
+      elements.push(
+        createRectShape({
+          left: CONTENT_LEFT,
+          top: bodyTop,
+          width: CONTENT_WIDTH,
+          height: 238,
+          fill: '#ffffff',
+          outlineColor: '#bfdbfe',
+          groupId,
+        }),
+        createLatexElement({
+          latex: derivation.steps[0].expression,
+          left: CONTENT_LEFT + 34,
+          top: bodyTop + 54,
+          width: CONTENT_WIDTH - 68,
+          height: 122,
+          align: 'center',
+          color: args.tokens.titleText,
+          groupId,
+        }),
+      );
+      const explanationBlocks: NotebookContentBlock[] = derivation.steps
+        .slice(1, 4)
+        .map((step) => ({
+          type: 'paragraph',
+          text: step.explanation ? `${step.expression}: ${step.explanation}` : step.expression,
+        }));
+      elements.push(
+        ...renderBlockCardGrid({
+          blocks: explanationBlocks,
+          language: args.language,
+          left: CONTENT_LEFT,
+          top: bodyTop + 262,
+          width: CONTENT_WIDTH,
+          height: bodyHeight - 262,
+          columns: Math.max(1, Math.min(3, explanationBlocks.length || 1)),
+          maxItems: 3,
+          cardPalettes,
+          bodyFontSize: 13,
+        }),
+      );
+      return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
+    }
+
     const leftWidth = args.family === 'derivation' ? 520 : 420;
     const rightWidth = CONTENT_WIDTH - leftWidth - 24;
     const stepHeight = Math.max(

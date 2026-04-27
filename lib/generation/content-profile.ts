@@ -1,6 +1,7 @@
 import {
   inferNotebookContentProfileFromText,
   type NotebookContentLayoutFamily,
+  type NotebookContentLayoutTemplate,
   type NotebookContentProfile,
 } from '@/lib/notebook-content';
 import type { SceneArchetype, SceneLayoutIntent, SceneOutline } from '@/lib/types/generation';
@@ -160,6 +161,9 @@ function inferSceneLayoutIntent(
 
   return {
     layoutFamily,
+    layoutTemplate:
+      outline.layoutIntent?.layoutTemplate ||
+      inferSceneLayoutTemplate(outline, layoutFamily, profile, archetype),
     density:
       outline.layoutIntent?.density ??
       (layoutFamily === 'cover' || layoutFamily === 'section' ? 'light' : 'standard'),
@@ -171,6 +175,50 @@ function inferSceneLayoutIntent(
       (preserveFullProblemStatement ? 'preserve_then_paginate' : 'compress_first'),
     preserveFullProblemStatement,
   };
+}
+
+function inferSceneLayoutTemplate(
+  outline: SceneOutline,
+  layoutFamily: NotebookContentLayoutFamily,
+  profile: NotebookContentProfile,
+  archetype: SceneArchetype,
+): NotebookContentLayoutTemplate {
+  const hasMedia = Boolean(outline.suggestedImageIds?.length || outline.mediaGenerations?.length);
+  const keyPointCount = outline.keyPoints?.length || 0;
+  const order = Number.isFinite(outline.order) ? outline.order : 1;
+  const parity = order % 2;
+
+  switch (layoutFamily) {
+    case 'cover':
+      return 'cover_hero';
+    case 'section':
+      return 'section_divider';
+    case 'visual_split':
+      return parity === 0 ? 'visual_left' : 'visual_right';
+    case 'comparison':
+      return 'comparison_matrix';
+    case 'timeline':
+      return 'timeline_road';
+    case 'problem_statement':
+      return 'problem_focus';
+    case 'problem_solution':
+    case 'derivation':
+      return profile === 'math' && parity === 0 ? 'formula_focus' : 'steps_sidebar';
+    case 'code_walkthrough':
+      return 'code_split';
+    case 'formula_focus':
+      return 'formula_focus';
+    case 'summary':
+      return 'summary_board';
+    case 'concept_cards':
+    default:
+      if (hasMedia) return parity === 0 ? 'visual_left' : 'visual_right';
+      if (archetype === 'definition') return 'title_content';
+      if (keyPointCount <= 2) return 'title_content';
+      if (keyPointCount === 3) return 'three_cards';
+      if (keyPointCount >= 4) return order % 3 === 0 ? 'four_grid' : 'two_column';
+      return 'two_column';
+  }
 }
 
 export function normalizeSceneOutlineContentProfile(outline: SceneOutline): SceneOutline {

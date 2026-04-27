@@ -92,7 +92,7 @@ By default:
 2. **If images are available**, add `suggestedImageIds` to relevant slide scenes
 3. **Interactive scenes**: If a concept benefits from hands-on simulation/visualization, use `"type": "interactive"` with an `interactiveConfig` object containing `conceptName`, `conceptOverview`, `designIdea`, and `subject`. Limit to 1-2 per course.
 4. **Scene count**: Based on inferred duration, typically 1-2 scenes per minute
-5. **Slide layout intent**: Every slide scene must include `layoutIntent` with `layoutFamily`, `density`, `visualRole`, `overflowPolicy`, and `preserveFullProblemStatement`. Avoid the same `layoutFamily` for 3 consecutive slide scenes.
+5. **Slide layout intent**: Every slide scene must include `layoutIntent` with `layoutFamily`, `layoutTemplate`, `density`, `visualRole`, `overflowPolicy`, and `preserveFullProblemStatement`. Avoid the same `layoutFamily` or `layoutTemplate` for 3 consecutive slide scenes.
 6. **Quiz placement**:
    - Do not add quizzes by default to every course.
    - Prefer quizzes for university/homework/exam-prep style notebooks, or when the user explicitly asks for assessment/practice.

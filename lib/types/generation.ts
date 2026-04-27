@@ -10,6 +10,7 @@ import type { MediaGenerationRequest } from '@/lib/media/types';
 import type {
   NotebookContentDensity,
   NotebookContentLayoutFamily,
+  NotebookContentLayoutTemplate,
   NotebookContentOverflowPolicy,
   NotebookContentProfile,
   NotebookContentVisualRole,
@@ -19,6 +20,7 @@ export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'b
 
 export interface SceneLayoutIntent {
   layoutFamily: NotebookContentLayoutFamily;
+  layoutTemplate?: NotebookContentLayoutTemplate;
   density?: NotebookContentDensity;
   visualRole?: NotebookContentVisualRole;
   overflowPolicy?: NotebookContentOverflowPolicy;

@@ -43,7 +43,10 @@ export interface GamificationCharacterSummary {
   badgeLabel?: string | null;
   accentColor?: string | null;
   description?: string | null;
+  worldview?: string | null;
   story?: string | null;
+  gathering?: string | null;
+  linkLine?: string | null;
   teachingStyle?: string | null;
   bondLine?: string | null;
   personalityTags?: string[];

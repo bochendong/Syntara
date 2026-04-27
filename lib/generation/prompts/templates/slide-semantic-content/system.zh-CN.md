@@ -97,6 +97,7 @@ Return ONE JSON object in this exact top-level shape:
   "language": "{{language}}",
   "profile": "general",
   "layoutFamily": "concept_cards",
+  "layoutTemplate": "two_column",
   "density": "standard",
   "visualRole": "none",
   "overflowPolicy": "compress_first",
@@ -122,6 +123,7 @@ Return ONE JSON object in this exact top-level shape:
 
 受控版式字段：
 - `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
+- `layoutTemplate`: `cover_hero` | `section_divider` | `title_content` | `two_column` | `three_cards` | `four_grid` | `visual_left` | `visual_right` | `comparison_matrix` | `timeline_road` | `problem_focus` | `steps_sidebar` | `code_split` | `formula_focus` | `summary_board`
 - `density`: `light` | `standard` | `dense`
 - `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
 - `overflowPolicy`: `compress_first` | `preserve_then_paginate`

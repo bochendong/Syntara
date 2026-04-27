@@ -88,7 +88,10 @@ function getLive2DPersonaMetadata(id: Live2DPresenterModelId): Prisma.InputJsonO
   const persona = LIVE2D_PRESENTER_PERSONAS[id];
   return {
     description: persona.description,
+    worldview: persona.worldview,
     story: persona.story,
+    gathering: persona.gathering,
+    linkLine: persona.linkLine,
     teachingStyle: persona.teachingStyle,
     bondLine: persona.bondLine,
     personalityTags: [...persona.personalityTags],
@@ -1096,7 +1099,10 @@ function mapCharacterSummary(
     metadata && typeof metadata.accentColor === 'string' ? metadata.accentColor : null;
   const description =
     metadata && typeof metadata.description === 'string' ? metadata.description : null;
+  const worldview = metadata && typeof metadata.worldview === 'string' ? metadata.worldview : null;
   const story = metadata && typeof metadata.story === 'string' ? metadata.story : null;
+  const gathering = metadata && typeof metadata.gathering === 'string' ? metadata.gathering : null;
+  const linkLine = metadata && typeof metadata.linkLine === 'string' ? metadata.linkLine : null;
   const teachingStyle =
     metadata && typeof metadata.teachingStyle === 'string' ? metadata.teachingStyle : null;
   const bondLine = metadata && typeof metadata.bondLine === 'string' ? metadata.bondLine : null;
@@ -1125,7 +1131,10 @@ function mapCharacterSummary(
     badgeLabel,
     accentColor,
     description,
+    worldview,
     story,
+    gathering,
+    linkLine,
     teachingStyle,
     bondLine,
     personalityTags,
@@ -2151,7 +2160,10 @@ export function buildGamificationDisabledSummary(): GamificationSummaryResponse 
       badgeLabel: String(item.metadata.badgeLabel ?? ''),
       accentColor: String(item.metadata.accentColor ?? ''),
       description: String(item.metadata.description ?? ''),
+      worldview: String(item.metadata.worldview ?? ''),
       story: String(item.metadata.story ?? ''),
+      gathering: String(item.metadata.gathering ?? ''),
+      linkLine: String(item.metadata.linkLine ?? ''),
       teachingStyle: String(item.metadata.teachingStyle ?? ''),
       bondLine: String(item.metadata.bondLine ?? ''),
       personalityTags: Array.isArray(item.metadata.personalityTags)

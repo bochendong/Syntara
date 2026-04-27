@@ -6,39 +6,8 @@ import { Bell, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/auth';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { Button } from '@/components/ui/button';
+import { NotificationBannerCard } from '@/components/notifications/notification-banner-card';
 import { cn } from '@/lib/utils';
-
-function formatNotificationTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
-
-function accountTheme(accountType: 'CASH' | 'COMPUTE' | 'PURCHASE') {
-  switch (accountType) {
-    case 'COMPUTE':
-      return {
-        badge: 'bg-sky-500/12 text-sky-700 dark:bg-sky-400/12 dark:text-sky-200',
-        chip: 'bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-100',
-      };
-    case 'PURCHASE':
-      return {
-        badge: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/12 dark:text-emerald-200',
-        chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-100',
-      };
-    default:
-      return {
-        badge: 'bg-amber-500/12 text-amber-700 dark:bg-amber-400/12 dark:text-amber-200',
-        chip: 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-100',
-      };
-  }
-}
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -133,101 +102,78 @@ export default function NotificationsPage() {
           <div className="space-y-4">
             {notifications.map((item) => {
               const isUnread = !currentReadSet.has(item.id);
-              const theme = accountTheme(item.accountType);
 
               return (
                 <article
                   key={item.id}
                   className={cn(
-                    'apple-glass rounded-[26px] border p-5 transition-colors',
+                    'rounded-[30px] border bg-white/50 p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors dark:bg-white/5',
                     isUnread
-                      ? 'border-sky-300/60 shadow-[0_18px_50px_rgba(59,130,246,0.10)] dark:border-sky-400/20'
-                      : 'border-white/40',
+                      ? 'border-sky-300/60 ring-2 ring-sky-300/20 dark:border-sky-400/25 dark:ring-sky-400/10'
+                      : 'border-white/60 dark:border-white/10',
                   )}
                 >
-                  <div className="min-w-0">
-                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                              {item.title}
-                            </h2>
-                            {isUnread ? (
-                              <span className="inline-flex items-center rounded-full bg-sky-500/12 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:bg-sky-400/12 dark:text-sky-200">
-                                未读
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            {item.body}
-                          </p>
-                        </div>
+                  <NotificationBannerCard
+                    item={item}
+                    onDismiss={deleteNotification}
+                    disableLink
+                    hideViewAction
+                    className="w-full"
+                  />
 
-                        <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
-                          <span
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isUnread ? (
+                        <span className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-400/12 dark:text-sky-200">
+                          未读
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-white/8 dark:text-slate-400">
+                          已读
+                        </span>
+                      )}
+                      {item.details.length > 0 ? (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {item.details.length} 条明细
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {isUnread ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => markAsRead(item.id)}
+                        className="h-8 rounded-full px-3 text-xs"
+                      >
+                        标记已读
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {item.details.length > 0 ? (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {item.details.map((detail) => (
+                        <div
+                          key={`${item.id}:${detail.key}`}
+                          className="rounded-2xl border border-black/5 bg-white/55 px-3 py-2 dark:border-white/8 dark:bg-white/5"
+                        >
+                          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                            {detail.label}
+                          </div>
+                          <div
                             className={cn(
-                              'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium',
-                              theme.badge,
+                              'mt-1 text-sm text-slate-700 dark:text-slate-200',
+                              detail.key === 'model' ? 'font-mono text-[13px]' : '',
                             )}
                           >
-                            {item.amountLabel}
-                          </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatNotificationTime(item.createdAt)}
-                          </span>
+                            {detail.value}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-full px-2.5 py-1 text-xs', theme.chip)}>
-                          {item.sourceLabel}
-                        </span>
-                        {isUnread ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => markAsRead(item.id)}
-                            className="h-8 rounded-full px-3 text-xs"
-                          >
-                            标记已读
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteNotification(item.id)}
-                          className="h-8 rounded-full px-3 text-xs text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-400/10 dark:hover:text-rose-100"
-                        >
-                          <Trash2 className="mr-1 size-3.5" strokeWidth={1.8} />
-                          删除
-                        </Button>
-                      </div>
-
-                      {item.details.length > 0 ? (
-                        <div className="mt-4 grid gap-2 md:grid-cols-2">
-                          {item.details.map((detail) => (
-                            <div
-                              key={`${item.id}:${detail.key}`}
-                              className="rounded-2xl border border-black/5 bg-white/45 px-3 py-2 dark:border-white/8 dark:bg-white/5"
-                            >
-                              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                                {detail.label}
-                              </div>
-                              <div
-                                className={cn(
-                                  'mt-1 text-sm text-slate-700 dark:text-slate-200',
-                                  detail.key === 'model' ? 'font-mono text-[13px]' : '',
-                                )}
-                              >
-                                {detail.value}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

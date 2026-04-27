@@ -56,6 +56,7 @@ type NotificationBannerCardProps = {
   previewStageId?: NotificationBarStageId;
   previewCardStyle?: NotificationCardStyleChoice;
   disableLink?: boolean;
+  hideViewAction?: boolean;
 };
 
 export function NotificationBannerCard({
@@ -66,6 +67,7 @@ export function NotificationBannerCard({
   previewStageId,
   previewCardStyle,
   disableLink = false,
+  hideViewAction = false,
 }: NotificationBannerCardProps) {
   const notificationBarStageId = useUserProfileStore((s) => s.notificationBarStageId);
   const notificationCardStyle = useUserProfileStore((s) => s.notificationCardStyle);
@@ -193,28 +195,30 @@ export function NotificationBannerCard({
           </span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
-          {disableLink ? (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md',
-                amountPrimaryClass,
-              )}
-            >
-              查看
-              <ArrowRight className="size-3" strokeWidth={2} />
-            </span>
-          ) : (
-            <Link
-              href="/notifications"
-              className={cn(
-                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md transition-transform hover:translate-x-0.5',
-                amountPrimaryClass,
-              )}
-            >
-              查看
-              <ArrowRight className="size-3" strokeWidth={2} />
-            </Link>
-          )}
+          {!hideViewAction ? (
+            disableLink ? (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md',
+                  amountPrimaryClass,
+                )}
+              >
+                查看
+                <ArrowRight className="size-3" strokeWidth={2} />
+              </span>
+            ) : (
+              <Link
+                href="/notifications"
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md transition-transform hover:translate-x-0.5',
+                  amountPrimaryClass,
+                )}
+              >
+                查看
+                <ArrowRight className="size-3" strokeWidth={2} />
+              </Link>
+            )
+          ) : null}
           {showCloseButton ? (
             <button
               type="button"

@@ -104,7 +104,13 @@ export type NotificationActionOption = {
   motionIndex?: number;
 };
 
-export type ShowcasePanelId = 'mentor-info' | 'benefit' | 'voice' | 'motion' | 'skin' | 'stage-background';
+export type ShowcasePanelId =
+  | 'mentor-info'
+  | 'benefit'
+  | 'voice'
+  | 'motion'
+  | 'skin'
+  | 'stage-background';
 
 export type CharacterVoicePack = {
   id: string;
@@ -134,7 +140,10 @@ export type CharacterStageSkin = {
   glowClass: string;
 };
 
-export const NOTIFICATION_ACTIONS_BY_MODEL: Record<Live2DPresenterModelId, NotificationActionOption[]> = {
+export const NOTIFICATION_ACTIONS_BY_MODEL: Record<
+  Live2DPresenterModelId,
+  NotificationActionOption[]
+> = {
   haru: [
     {
       id: 'haru-bow',
@@ -735,7 +744,10 @@ export type CharacterShowcaseItem = {
   affinityExp: number;
   previewSrc?: string | null;
   description?: string | null;
+  worldview?: string | null;
   story?: string | null;
+  gathering?: string | null;
+  linkLine?: string | null;
   teachingStyle?: string | null;
   bondLine?: string | null;
   personalityTags?: string[];
@@ -745,7 +757,10 @@ export type CharacterShowcaseItem = {
   source: 'summary' | 'local';
 };
 
-export function resolveLive2DPoster(modelId: Live2DPresenterModelId, previewSrc?: string | null): string {
+export function resolveLive2DPoster(
+  modelId: Live2DPresenterModelId,
+  previewSrc?: string | null,
+): string {
   return LIVE2D_POSTER_BY_ID[modelId] ?? previewSrc ?? LIVE2D_PRESENTER_MODELS[modelId].previewSrc;
 }
 
@@ -786,4 +801,3 @@ export function playCharacterVoicePack(
     toast.error('语音播放失败，请确认浏览器允许播放音频');
   });
 }
-

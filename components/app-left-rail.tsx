@@ -297,333 +297,67 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
               onLightRail ? 'text-slate-800' : 'text-zinc-200',
             )}
           >
-            {isChatPage ? (
-              <div
-                className={cn(
-                  'relative flex shrink-0 items-center gap-2',
-                  railDividers.b,
-                  collapsed ? 'justify-center px-2 py-2' : 'px-2 py-2',
-                )}
-              >
+            <div
+              className={cn(
+                'relative flex shrink-0 flex-col',
+                collapsed ? 'items-center px-2 py-3' : 'items-stretch px-3 pb-0 pt-3',
+              )}
+            >
+              {collapsed ? (
                 <button
                   type="button"
-                  onClick={() => onCollapsedChange(!collapsed)}
+                  onClick={() => onCollapsedChange(false)}
                   className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent shadow-none',
+                    'mb-2 flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent shadow-none',
                     railIconPadBtn,
                   )}
-                  aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+                  aria-label="展开侧栏"
                 >
-                  {collapsed ? (
-                    <ChevronRight className="size-4" strokeWidth={1.75} />
-                  ) : (
-                    <ChevronLeft className="size-4" strokeWidth={1.75} />
-                  )}
+                  <ChevronRight className="size-4" strokeWidth={1.75} />
                 </button>
-                {!collapsed && (
-                  <div className="relative min-w-0 flex-1">
-                    <Search
-                      className={cn(
-                        'pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2',
-                        onLightRail ? 'text-slate-400' : 'text-zinc-500',
-                      )}
-                      strokeWidth={2}
-                      aria-hidden
-                    />
-                    <Input
-                      type="search"
-                      value={contactSearchQuery}
-                      onChange={(e) => setContactSearchQuery(e.target.value)}
-                      placeholder="搜索联系人…"
-                      aria-label="搜索联系人"
-                      className={cn(
-                        'h-8 pl-8 text-sm',
-                        onLightRail
-                          ? 'border border-slate-200/80 bg-white/90 text-slate-900 placeholder:text-slate-400'
-                          : 'border border-white/12 bg-white/5 text-zinc-100 placeholder:text-zinc-500',
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  'relative flex shrink-0 flex-col',
-                  collapsed ? 'items-center px-2 py-3' : 'items-stretch px-3 pb-0 pt-3',
-                )}
-              >
-                {collapsed ? (
-                  <button
-                    type="button"
-                    onClick={() => onCollapsedChange(false)}
-                    className={cn(
-                      'mb-2 flex size-8 items-center justify-center rounded-[10px] border-0 bg-transparent shadow-none',
-                      railIconPadBtn,
-                    )}
-                    aria-label="展开侧栏"
-                  >
-                    <ChevronRight className="size-4" strokeWidth={1.75} />
-                  </button>
-                ) : null}
+              ) : null}
 
-                {!collapsed && (
-                  <div
-                    className={cn(
-                      'relative w-full rounded-[18px] border p-3 shadow-sm backdrop-blur-md',
-                      onLightRail
-                        ? 'border-slate-200/70 bg-white/60 shadow-slate-950/[0.035]'
-                        : 'border-white/10 bg-white/[0.055] shadow-black/15',
-                    )}
-                  >
-                    <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => onCollapsedChange(true)}
-                            className={cn(
-                              'inline-flex size-8 items-center justify-center rounded-[10px]',
-                              onLightRail
-                                ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
-                                : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100',
-                            )}
-                            aria-label="收起侧栏"
-                          >
-                            <ChevronLeft className="size-[17px]" strokeWidth={1.75} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">收起侧栏</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href="/notifications"
-                            className={cn(
-                              'inline-flex size-8 items-center justify-center rounded-[10px]',
-                              onLightRail
-                                ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
-                                : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100',
-                              notificationsActive &&
-                                (onLightRail
-                                  ? 'bg-violet-200/60 text-violet-900'
-                                  : 'bg-violet-500/20 text-violet-200'),
-                            )}
-                            aria-label={
-                              unreadNotificationCount > 0
-                                ? `通知，${unreadNotificationCount} 条未读`
-                                : '通知'
-                            }
-                          >
-                            <span className="relative inline-flex">
-                              <Bell className="size-[17px]" strokeWidth={1.75} />
-                              {unreadNotificationCount > 0 ? (
-                                <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white shadow-[0_6px_16px_rgba(244,63,94,0.38)]">
-                                  {unreadNotificationLabel}
-                                </span>
-                              ) : null}
-                            </span>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          {unreadNotificationCount > 0
-                            ? `通知 · ${unreadNotificationCount} 条未读`
-                            : '通知'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    <div className="flex min-w-0 items-center gap-3 pr-[4.75rem]">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {inCourseContext ? (
-                            <Link
-                              href={railHref}
-                              className="block shrink-0 rounded-2xl outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                            >
-                              <img
-                                src={railAvatarSrc}
-                                alt=""
-                                className="size-12 rounded-2xl object-cover ring-1 ring-black/5 dark:ring-white/10"
-                              />
-                            </Link>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setAvatarPickerOpen(true)}
-                              className="block shrink-0 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                              aria-label="选择头像"
-                            >
-                              <UserAvatarWithFrame
-                                src={railAvatarSrc}
-                                frameId={avatarFrameId}
-                                className="size-12"
-                                imgClassName="ring-1 ring-black/5 dark:ring-white/10"
-                              />
-                            </button>
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          {inCourseContext ? railTooltip : '选择头像'}
-                        </TooltipContent>
-                      </Tooltip>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={cn(
-                            'truncate text-[15px] font-semibold leading-5',
-                            onLightRail ? 'text-slate-950' : 'text-zinc-50',
-                          )}
-                        >
-                          {railTitle}
-                        </p>
-                        {inCourseContext ? (
-                          <p
-                            className={cn(
-                              'mt-0.5 truncate text-[11px] leading-4',
-                              onLightRail ? 'text-slate-500' : 'text-zinc-400',
-                            )}
-                          >
-                            课程工作区
-                          </p>
-                        ) : userAffinityLevel != null ? (
-                          <p
-                            className={cn(
-                              'mt-0.5 truncate text-[11px] leading-4',
-                              onLightRail ? 'text-slate-500' : 'text-zinc-400',
-                            )}
-                          >
-                            {`成长等级 Lv.${userAffinityLevel}`}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {balances != null ? (
-                      <div
-                        className={cn(
-                          'mt-3 grid min-w-0 grid-cols-3 gap-1.5',
-                          onLightRail ? 'text-slate-900' : 'text-zinc-50',
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                            onLightRail
-                              ? 'border-slate-200/80 bg-white/48'
-                              : 'border-white/10 bg-black/12',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'flex size-5 shrink-0 items-center justify-center rounded-full',
-                              onLightRail
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-amber-400/12 text-amber-100',
-                            )}
-                          >
-                            <Wallet className="size-3" strokeWidth={1.75} />
-                          </span>
-                          <span className="truncate text-sm font-semibold leading-none">
-                            {balances.cash}
-                          </span>
-                        </div>
-                        <div
-                          className={cn(
-                            'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                            onLightRail
-                              ? 'border-slate-200/80 bg-white/48'
-                              : 'border-white/10 bg-black/12',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'flex size-5 shrink-0 items-center justify-center rounded-full',
-                              onLightRail
-                                ? 'bg-sky-100 text-sky-700'
-                                : 'bg-sky-400/12 text-sky-100',
-                            )}
-                          >
-                            <Cpu className="size-3" strokeWidth={1.75} />
-                          </span>
-                          <span className="truncate text-sm font-semibold leading-none">
-                            {balances.compute}
-                          </span>
-                        </div>
-                        <div
-                          className={cn(
-                            'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                            onLightRail
-                              ? 'border-slate-200/80 bg-white/48'
-                              : 'border-white/10 bg-black/12',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'flex size-5 shrink-0 items-center justify-center rounded-full',
-                              onLightRail
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-emerald-400/12 text-emerald-100',
-                            )}
-                          >
-                            <ShoppingBag className="size-3" strokeWidth={1.75} />
-                          </span>
-                          <span className="truncate text-sm font-semibold leading-none">
-                            {balances.purchase}
-                          </span>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {collapsed && (
-                  <div className="flex flex-col items-center gap-2">
+              {!collapsed && (
+                <div
+                  className={cn(
+                    'relative w-full rounded-[18px] border p-3 shadow-sm backdrop-blur-md',
+                    onLightRail
+                      ? 'border-slate-200/70 bg-white/60 shadow-slate-950/[0.035]'
+                      : 'border-white/10 bg-white/[0.055] shadow-black/15',
+                  )}
+                >
+                  <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        {inCourseContext ? (
-                          <Link
-                            href={railHref}
-                            className="block w-fit rounded-xl outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                          >
-                            <img
-                              src={railAvatarSrc}
-                              alt=""
-                              className="size-10 rounded-xl object-cover ring-1 ring-black/5 dark:ring-white/10"
-                            />
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAvatarPickerOpen(true)}
-                            className="block w-fit rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                            aria-label="选择头像"
-                          >
-                            <UserAvatarWithFrame
-                              src={railAvatarSrc}
-                              frameId={avatarFrameId}
-                              className="size-10"
-                              imgClassName="ring-1 ring-black/5 dark:ring-white/10"
-                            />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => onCollapsedChange(true)}
+                          className={cn(
+                            'inline-flex size-8 items-center justify-center rounded-[10px]',
+                            onLightRail
+                              ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
+                              : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100',
+                          )}
+                          aria-label="收起侧栏"
+                        >
+                          <ChevronLeft className="size-[17px]" strokeWidth={1.75} />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">
-                        {inCourseContext ? railTooltip : '选择头像'}
-                      </TooltipContent>
+                      <TooltipContent side="right">收起侧栏</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
                           href="/notifications"
                           className={cn(
-                            'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
+                            'inline-flex size-8 items-center justify-center rounded-[10px]',
                             onLightRail
-                              ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
-                              : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
+                              ? 'text-slate-500 transition-colors hover:bg-black/[0.05] hover:text-slate-900'
+                              : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100',
                             notificationsActive &&
                               (onLightRail
-                                ? 'border-violet-300/60 bg-violet-100/80 text-violet-800'
-                                : 'border-violet-400/50 bg-violet-500/20 text-violet-200'),
+                                ? 'bg-violet-200/60 text-violet-900'
+                                : 'bg-violet-500/20 text-violet-200'),
                           )}
                           aria-label={
                             unreadNotificationCount > 0
@@ -632,10 +366,10 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                           }
                         >
                           <span className="relative inline-flex">
-                            <Bell className="size-3.5" />
+                            <Bell className="size-[17px]" strokeWidth={1.75} />
                             {unreadNotificationCount > 0 ? (
-                              <span className="absolute -right-2 -top-2 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-semibold leading-4 text-white">
-                                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                              <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white shadow-[0_6px_16px_rgba(244,63,94,0.38)]">
+                                {unreadNotificationLabel}
                               </span>
                             ) : null}
                           </span>
@@ -647,39 +381,252 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                           : '通知'}
                       </TooltipContent>
                     </Tooltip>
-                    {balances != null ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                  </div>
+
+                  <div className="flex min-w-0 items-center gap-3 pr-[4.75rem]">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {inCourseContext ? (
+                          <Link
+                            href={railHref}
+                            className="block shrink-0 rounded-2xl outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
+                          >
+                            <img
+                              src={railAvatarSrc}
+                              alt=""
+                              className="size-12 rounded-2xl object-cover ring-1 ring-black/5 dark:ring-white/10"
+                            />
+                          </Link>
+                        ) : (
                           <button
                             type="button"
-                            className={cn(
-                              'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
-                              onLightRail
-                                ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
-                                : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
-                            )}
+                            onClick={() => setAvatarPickerOpen(true)}
+                            className="block shrink-0 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
+                            aria-label="选择头像"
                           >
-                            <Wallet className="size-3.5" />
+                            <UserAvatarWithFrame
+                              src={railAvatarSrc}
+                              frameId={avatarFrameId}
+                              className="size-12"
+                              imgClassName="ring-1 ring-black/5 dark:ring-white/10"
+                            />
                           </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          {`${formatCashCreditsLabel(balances.cash)} · ${formatComputeCreditsLabel(
-                            balances.compute,
-                          )} · ${formatPurchaseCreditsLabel(balances.purchase)}`}
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : null}
+                        )}
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        {inCourseContext ? railTooltip : '选择头像'}
+                      </TooltipContent>
+                    </Tooltip>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          'truncate text-[15px] font-semibold leading-5',
+                          onLightRail ? 'text-slate-950' : 'text-zinc-50',
+                        )}
+                      >
+                        {railTitle}
+                      </p>
+                      {inCourseContext ? (
+                        <p
+                          className={cn(
+                            'mt-0.5 truncate text-[11px] leading-4',
+                            onLightRail ? 'text-slate-500' : 'text-zinc-400',
+                          )}
+                        >
+                          课程工作区
+                        </p>
+                      ) : userAffinityLevel != null ? (
+                        <p
+                          className={cn(
+                            'mt-0.5 truncate text-[11px] leading-4',
+                            onLightRail ? 'text-slate-500' : 'text-zinc-400',
+                          )}
+                        >
+                          {`成长等级 Lv.${userAffinityLevel}`}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                )}
-                <div
-                  className={cn('w-full shrink-0', collapsed ? 'px-2 pt-2' : 'px-4 pt-3')}
-                  role="presentation"
-                  aria-hidden
-                >
-                  <div className={cn('h-px w-full', railDividers.headerRule)} />
+
+                  {balances != null ? (
+                    <div
+                      className={cn(
+                        'mt-3 grid min-w-0 grid-cols-3 gap-1.5',
+                        onLightRail ? 'text-slate-900' : 'text-zinc-50',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
+                          onLightRail
+                            ? 'border-slate-200/80 bg-white/48'
+                            : 'border-white/10 bg-black/12',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex size-5 shrink-0 items-center justify-center rounded-full',
+                            onLightRail
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-amber-400/12 text-amber-100',
+                          )}
+                        >
+                          <Wallet className="size-3" strokeWidth={1.75} />
+                        </span>
+                        <span className="truncate text-sm font-semibold leading-none">
+                          {balances.cash}
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
+                          onLightRail
+                            ? 'border-slate-200/80 bg-white/48'
+                            : 'border-white/10 bg-black/12',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex size-5 shrink-0 items-center justify-center rounded-full',
+                            onLightRail ? 'bg-sky-100 text-sky-700' : 'bg-sky-400/12 text-sky-100',
+                          )}
+                        >
+                          <Cpu className="size-3" strokeWidth={1.75} />
+                        </span>
+                        <span className="truncate text-sm font-semibold leading-none">
+                          {balances.compute}
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
+                          onLightRail
+                            ? 'border-slate-200/80 bg-white/48'
+                            : 'border-white/10 bg-black/12',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex size-5 shrink-0 items-center justify-center rounded-full',
+                            onLightRail
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-emerald-400/12 text-emerald-100',
+                          )}
+                        >
+                          <ShoppingBag className="size-3" strokeWidth={1.75} />
+                        </span>
+                        <span className="truncate text-sm font-semibold leading-none">
+                          {balances.purchase}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
+              )}
+
+              {collapsed && (
+                <div className="flex flex-col items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {inCourseContext ? (
+                        <Link
+                          href={railHref}
+                          className="block w-fit rounded-xl outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
+                        >
+                          <img
+                            src={railAvatarSrc}
+                            alt=""
+                            className="size-10 rounded-xl object-cover ring-1 ring-black/5 dark:ring-white/10"
+                          />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setAvatarPickerOpen(true)}
+                          className="block w-fit rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
+                          aria-label="选择头像"
+                        >
+                          <UserAvatarWithFrame
+                            src={railAvatarSrc}
+                            frameId={avatarFrameId}
+                            className="size-10"
+                            imgClassName="ring-1 ring-black/5 dark:ring-white/10"
+                          />
+                        </button>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {inCourseContext ? railTooltip : '选择头像'}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href="/notifications"
+                        className={cn(
+                          'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
+                          onLightRail
+                            ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
+                            : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
+                          notificationsActive &&
+                            (onLightRail
+                              ? 'border-violet-300/60 bg-violet-100/80 text-violet-800'
+                              : 'border-violet-400/50 bg-violet-500/20 text-violet-200'),
+                        )}
+                        aria-label={
+                          unreadNotificationCount > 0
+                            ? `通知，${unreadNotificationCount} 条未读`
+                            : '通知'
+                        }
+                      >
+                        <span className="relative inline-flex">
+                          <Bell className="size-3.5" />
+                          {unreadNotificationCount > 0 ? (
+                            <span className="absolute -right-2 -top-2 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-semibold leading-4 text-white">
+                              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                            </span>
+                          ) : null}
+                        </span>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {unreadNotificationCount > 0
+                        ? `通知 · ${unreadNotificationCount} 条未读`
+                        : '通知'}
+                    </TooltipContent>
+                  </Tooltip>
+                  {balances != null ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
+                            onLightRail
+                              ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
+                              : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
+                          )}
+                        >
+                          <Wallet className="size-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        {`${formatCashCreditsLabel(balances.cash)} · ${formatComputeCreditsLabel(
+                          balances.compute,
+                        )} · ${formatPurchaseCreditsLabel(balances.purchase)}`}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                </div>
+              )}
+              <div
+                className={cn('w-full shrink-0', collapsed ? 'px-2 pt-2' : 'px-4 pt-3')}
+                role="presentation"
+                aria-hidden
+              >
+                <div className={cn('h-px w-full', railDividers.headerRule)} />
               </div>
-            )}
+            </div>
 
             {isChatPage ? (
               <nav
@@ -689,6 +636,33 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 )}
                 aria-label="聊天联系人"
               >
+                {!collapsed ? (
+                  <div className="px-2 pb-1 pt-3">
+                    <div className="relative">
+                      <Search
+                        className={cn(
+                          'pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2',
+                          onLightRail ? 'text-slate-400' : 'text-zinc-500',
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                      <Input
+                        type="search"
+                        value={contactSearchQuery}
+                        onChange={(e) => setContactSearchQuery(e.target.value)}
+                        placeholder="搜索联系人…"
+                        aria-label="搜索联系人"
+                        className={cn(
+                          'h-9 rounded-full pl-8 text-sm',
+                          onLightRail
+                            ? 'border border-slate-200/80 bg-white/72 text-slate-900 placeholder:text-slate-400'
+                            : 'border border-white/12 bg-white/5 text-zinc-100 placeholder:text-zinc-500',
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 <div className={cn(leftRailScrollClass, 'min-h-0 flex-1 px-0')}>
                   <Suspense
                     fallback={
@@ -747,44 +721,40 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         : 'border-white/10 bg-white/[0.055] shadow-sm shadow-black/20',
                     )}
                   >
-                    {!isChatPage ? (
-                      <>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Link
-                              href={CONTACT_SUPPORT_NAV_URL}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={cn(
-                                'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
-                                railIconPadBtn,
-                              )}
-                              aria-label="联系客服"
-                            >
-                              <LifeBuoy className="size-[17px]" strokeWidth={1.75} />
-                            </Link>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">联系客服</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Link
-                              href={REPORT_ISSUE_NAV_URL}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={cn(
-                                'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
-                                railIconPadBtn,
-                              )}
-                              aria-label="报告问题"
-                            >
-                              <Bug className="size-[17px]" strokeWidth={1.75} />
-                            </Link>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">报告问题</TooltipContent>
-                        </Tooltip>
-                      </>
-                    ) : null}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={CONTACT_SUPPORT_NAV_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            railIconPadBtn,
+                          )}
+                          aria-label="联系客服"
+                        >
+                          <LifeBuoy className="size-[17px]" strokeWidth={1.75} />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">联系客服</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={REPORT_ISSUE_NAV_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            railIconPadBtn,
+                          )}
+                          aria-label="报告问题"
+                        >
+                          <Bug className="size-[17px]" strokeWidth={1.75} />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">报告问题</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
@@ -861,44 +831,40 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 px-2 py-3">
-                  {!isChatPage ? (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href={CONTACT_SUPPORT_NAV_URL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                              'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                              railIconPadBtn,
-                            )}
-                            aria-label="联系客服"
-                          >
-                            <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">联系客服</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href={REPORT_ISSUE_NAV_URL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                              'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                              railIconPadBtn,
-                            )}
-                            aria-label="报告问题"
-                          >
-                            <Bug className="size-[18px]" strokeWidth={1.75} />
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">报告问题</TooltipContent>
-                      </Tooltip>
-                    </>
-                  ) : null}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={CONTACT_SUPPORT_NAV_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
+                          railIconPadBtn,
+                        )}
+                        aria-label="联系客服"
+                      >
+                        <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">联系客服</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={REPORT_ISSUE_NAV_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
+                          railIconPadBtn,
+                        )}
+                        aria-label="报告问题"
+                      >
+                        <Bug className="size-[18px]" strokeWidth={1.75} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">报告问题</TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button

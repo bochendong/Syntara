@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Bell,
-  CalendarCheck2,
-  Lock,
-  Mic2,
-} from 'lucide-react';
+import { Bell, CalendarCheck2, Lock, Mic2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -97,7 +92,16 @@ export function Live2DCompanionHub() {
           description: modelId
             ? (character.description ?? LIVE2D_PRESENTER_PERSONAS[modelId].description)
             : character.description,
+          worldview: modelId
+            ? (character.worldview ?? LIVE2D_PRESENTER_PERSONAS[modelId].worldview)
+            : null,
           story: modelId ? (character.story ?? LIVE2D_PRESENTER_PERSONAS[modelId].story) : null,
+          gathering: modelId
+            ? (character.gathering ?? LIVE2D_PRESENTER_PERSONAS[modelId].gathering)
+            : null,
+          linkLine: modelId
+            ? (character.linkLine ?? LIVE2D_PRESENTER_PERSONAS[modelId].linkLine)
+            : null,
           teachingStyle: modelId
             ? (character.teachingStyle ?? LIVE2D_PRESENTER_PERSONAS[modelId].teachingStyle)
             : null,
@@ -128,7 +132,10 @@ export function Live2DCompanionHub() {
       affinityExp: 0,
       previewSrc: model.previewSrc,
       description: LIVE2D_PRESENTER_PERSONAS[model.id].description,
+      worldview: LIVE2D_PRESENTER_PERSONAS[model.id].worldview,
       story: LIVE2D_PRESENTER_PERSONAS[model.id].story,
+      gathering: LIVE2D_PRESENTER_PERSONAS[model.id].gathering,
+      linkLine: LIVE2D_PRESENTER_PERSONAS[model.id].linkLine,
       teachingStyle: LIVE2D_PRESENTER_PERSONAS[model.id].teachingStyle,
       bondLine: LIVE2D_PRESENTER_PERSONAS[model.id].bondLine,
       personalityTags: [...LIVE2D_PRESENTER_PERSONAS[model.id].personalityTags],
@@ -142,7 +149,6 @@ export function Live2DCompanionHub() {
     () => showcaseCharacters.filter((character) => character.isUnlocked),
     [showcaseCharacters],
   );
-
 
   useEffect(() => {
     if (!summary?.databaseEnabled) return;
@@ -266,12 +272,18 @@ export function Live2DCompanionHub() {
   const showcaseTrait = showcaseModelId ? LIVE2D_CHARACTER_TRAITS[showcaseModelId] : null;
   const showcasePersona = showcaseModelId ? LIVE2D_PRESENTER_PERSONAS[showcaseModelId] : null;
   const showcasePersonaTitle = showcasePersona?.title ?? '成长型学习导师';
+  const showcaseWorldview =
+    showcaseCharacter?.worldview ?? showcasePersona?.worldview ?? '这个世界观还在编写中。';
   const showcaseStory =
     showcaseCharacter?.story ?? showcasePersona?.story ?? '这位导师的故事还在编写中。';
   const showcaseStoryParagraphs = showcaseStory
     .split(/\n+/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
+  const showcaseGathering =
+    showcaseCharacter?.gathering ?? showcasePersona?.gathering ?? '这段集结故事还在编写中。';
+  const showcaseLinkLine =
+    showcaseCharacter?.linkLine ?? showcasePersona?.linkLine ?? '这位导师的联动关系还在编写中。';
   const showcaseTeachingStyle =
     showcaseCharacter?.teachingStyle ?? showcasePersona?.teachingStyle ?? null;
   const showcaseBondLine = showcaseCharacter?.bondLine ?? showcasePersona?.bondLine ?? null;
@@ -500,6 +512,12 @@ export function Live2DCompanionHub() {
                           <div className="space-y-2">
                             {showcasePanel === 'mentor-info' ? (
                               <>
+                                <div className="rounded-2xl border border-cyan-200/20 bg-cyan-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-cyan-100/78">世界观</p>
+                                  <p className="mt-1.5 text-xs leading-5 text-slate-200/84">
+                                    {showcaseWorldview}
+                                  </p>
+                                </div>
                                 <div className="rounded-2xl border border-white/12 bg-white/8 px-3 py-3">
                                   <p className="text-xs text-sky-100/78">人物小传</p>
                                   <div className="mt-2 space-y-2.5">
@@ -524,6 +542,18 @@ export function Live2DCompanionHub() {
                                       ))}
                                     </div>
                                   ) : null}
+                                </div>
+                                <div className="rounded-2xl border border-amber-200/22 bg-amber-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-amber-100/78">集结契机</p>
+                                  <p className="mt-1.5 text-xs leading-5 text-slate-200/84">
+                                    {showcaseGathering}
+                                  </p>
+                                </div>
+                                <div className="rounded-2xl border border-emerald-200/22 bg-emerald-300/10 px-3 py-2.5">
+                                  <p className="text-xs text-emerald-100/78">联动关系</p>
+                                  <p className="mt-1.5 text-xs leading-5 text-slate-200/84">
+                                    {showcaseLinkLine}
+                                  </p>
                                 </div>
                                 {showcaseTeachingStyle || showcaseBondLine ? (
                                   <div className="rounded-2xl border border-violet-200/24 bg-violet-300/10 px-3 py-2.5">

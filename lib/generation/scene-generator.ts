@@ -165,6 +165,7 @@ function buildSemanticFallbackSlideContent(outline: SceneOutline): GeneratedSlid
     archetype: outline.archetype || fallbackDocumentBase.archetype,
     title: outline.title || fallbackDocumentBase.title,
     layoutFamily: outline.layoutIntent?.layoutFamily,
+    layoutTemplate: outline.layoutIntent?.layoutTemplate,
     density: outline.layoutIntent?.density || fallbackDocumentBase.density,
     visualRole: outline.layoutIntent?.visualRole || fallbackDocumentBase.visualRole,
     overflowPolicy: outline.layoutIntent?.overflowPolicy || fallbackDocumentBase.overflowPolicy,
@@ -404,6 +405,7 @@ function formatLayoutIntentForPrompt(outline: SceneOutline, language: 'zh-CN' | 
     return [
       '版式意图（硬约束）：',
       `- layoutFamily: ${intent.layoutFamily}`,
+      `- layoutTemplate: ${intent.layoutTemplate || 'auto'}`,
       `- density: ${intent.density || 'standard'}`,
       `- visualRole: ${intent.visualRole || 'none'}`,
       `- overflowPolicy: ${intent.overflowPolicy || 'compress_first'}`,
@@ -415,6 +417,7 @@ function formatLayoutIntentForPrompt(outline: SceneOutline, language: 'zh-CN' | 
   return [
     'Layout intent (hard constraint):',
     `- layoutFamily: ${intent.layoutFamily}`,
+    `- layoutTemplate: ${intent.layoutTemplate || 'auto'}`,
     `- density: ${intent.density || 'standard'}`,
     `- visualRole: ${intent.visualRole || 'none'}`,
     `- overflowPolicy: ${intent.overflowPolicy || 'compress_first'}`,
@@ -552,6 +555,7 @@ function applyOutlineIntentToSemanticDocument(args: {
   return {
     ...args.document,
     layoutFamily: args.document.layoutFamily || intent?.layoutFamily,
+    layoutTemplate: args.document.layoutTemplate || intent?.layoutTemplate,
     density: args.document.density || intent?.density || 'standard',
     visualRole:
       args.document.visualRole ||

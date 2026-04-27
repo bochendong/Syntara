@@ -33,6 +33,54 @@ function pickAlternateLayoutFamily(
   return 'concept_cards';
 }
 
+function pickDefaultTemplateForFamily(
+  family: NonNullable<SceneOutline['layoutIntent']>['layoutFamily'],
+  index: number,
+): NonNullable<SceneOutline['layoutIntent']>['layoutTemplate'] {
+  switch (family) {
+    case 'cover':
+      return 'cover_hero';
+    case 'section':
+      return 'section_divider';
+    case 'visual_split':
+      return index % 2 === 0 ? 'visual_left' : 'visual_right';
+    case 'comparison':
+      return 'comparison_matrix';
+    case 'timeline':
+      return 'timeline_road';
+    case 'problem_statement':
+      return 'problem_focus';
+    case 'problem_solution':
+    case 'derivation':
+      return 'steps_sidebar';
+    case 'code_walkthrough':
+      return 'code_split';
+    case 'formula_focus':
+      return 'formula_focus';
+    case 'summary':
+      return 'summary_board';
+    case 'concept_cards':
+    default:
+      return index % 3 === 0 ? 'four_grid' : index % 3 === 1 ? 'two_column' : 'three_cards';
+  }
+}
+
+function pickAlternateLayoutTemplate(
+  template: NonNullable<SceneOutline['layoutIntent']>['layoutTemplate'] | undefined,
+  family: NonNullable<SceneOutline['layoutIntent']>['layoutFamily'],
+  index: number,
+): NonNullable<SceneOutline['layoutIntent']>['layoutTemplate'] {
+  if (!template) return pickDefaultTemplateForFamily(family, index);
+  if (template === 'visual_left') return 'visual_right';
+  if (template === 'visual_right') return 'visual_left';
+  if (template === 'two_column') return 'three_cards';
+  if (template === 'three_cards') return 'four_grid';
+  if (template === 'four_grid') return 'title_content';
+  if (template === 'steps_sidebar') return family === 'derivation' ? 'formula_focus' : 'two_column';
+  if (template === 'formula_focus') return 'steps_sidebar';
+  return pickDefaultTemplateForFamily(family, index + 1);
+}
+
 function normalizeSlideLayoutRhythm(outlines: SceneOutline[]): SceneOutline[] {
   const result: SceneOutline[] = [];
   for (const outline of outlines) {
@@ -44,15 +92,26 @@ function normalizeSlideLayoutRhythm(outlines: SceneOutline[]): SceneOutline[] {
     const previousSlides = result.filter((item) => item.type === 'slide');
     const prevOne = previousSlides[previousSlides.length - 1]?.layoutIntent?.layoutFamily;
     const prevTwo = previousSlides[previousSlides.length - 2]?.layoutIntent?.layoutFamily;
+    const prevTemplateOne = previousSlides[previousSlides.length - 1]?.layoutIntent?.layoutTemplate;
+    const prevTemplateTwo = previousSlides[previousSlides.length - 2]?.layoutIntent?.layoutTemplate;
     const current = outline.layoutIntent.layoutFamily;
+    const currentTemplate =
+      outline.layoutIntent.layoutTemplate || pickDefaultTemplateForFamily(current, result.length);
     const shouldBreakRun = prevOne === current && prevTwo === current;
+    const shouldBreakTemplateRun =
+      prevTemplateOne === currentTemplate && prevTemplateTwo === currentTemplate;
+    const nextFamily = shouldBreakRun ? pickAlternateLayoutFamily(current, result.length) : current;
     result.push(
-      shouldBreakRun
+      shouldBreakRun || shouldBreakTemplateRun || !outline.layoutIntent.layoutTemplate
         ? {
             ...outline,
             layoutIntent: {
               ...outline.layoutIntent,
-              layoutFamily: pickAlternateLayoutFamily(current, result.length),
+              layoutFamily: nextFamily,
+              layoutTemplate:
+                shouldBreakRun || !outline.layoutIntent.layoutTemplate
+                  ? pickDefaultTemplateForFamily(nextFamily, result.length)
+                  : pickAlternateLayoutTemplate(currentTemplate, nextFamily, result.length),
             },
           }
         : outline,

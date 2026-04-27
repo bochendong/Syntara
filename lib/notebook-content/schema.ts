@@ -17,6 +17,23 @@ export const notebookContentLayoutFamilySchema = z.enum([
   'formula_focus',
   'summary',
 ]);
+export const notebookContentLayoutTemplateSchema = z.enum([
+  'cover_hero',
+  'section_divider',
+  'title_content',
+  'two_column',
+  'three_cards',
+  'four_grid',
+  'visual_left',
+  'visual_right',
+  'comparison_matrix',
+  'timeline_road',
+  'problem_focus',
+  'steps_sidebar',
+  'code_split',
+  'formula_focus',
+  'summary_board',
+]);
 export const notebookContentDensitySchema = z.enum(['light', 'standard', 'dense']);
 export const notebookContentVisualRoleSchema = z.enum([
   'none',
@@ -299,6 +316,7 @@ export const notebookContentDocumentSchema = z.object({
   profile: notebookContentProfileSchema.default('general'),
   layout: notebookContentLayoutSchema.default({ mode: 'stack' }),
   layoutFamily: notebookContentLayoutFamilySchema.optional(),
+  layoutTemplate: notebookContentLayoutTemplateSchema.optional(),
   density: notebookContentDensitySchema.default('standard'),
   visualRole: notebookContentVisualRoleSchema.default('none'),
   overflowPolicy: notebookContentOverflowPolicySchema.default('compress_first'),
@@ -318,6 +336,7 @@ export type NotebookContentLanguage = z.infer<typeof notebookContentLanguageSche
 export type NotebookContentProfile = z.infer<typeof notebookContentProfileSchema>;
 export type NotebookContentLayoutMode = z.infer<typeof notebookContentLayoutModeSchema>;
 export type NotebookContentLayoutFamily = z.infer<typeof notebookContentLayoutFamilySchema>;
+export type NotebookContentLayoutTemplate = z.infer<typeof notebookContentLayoutTemplateSchema>;
 export type NotebookContentDensity = z.infer<typeof notebookContentDensitySchema>;
 export type NotebookContentVisualRole = z.infer<typeof notebookContentVisualRoleSchema>;
 export type NotebookContentOverflowPolicy = z.infer<typeof notebookContentOverflowPolicySchema>;

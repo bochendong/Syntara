@@ -67,12 +67,13 @@ Allowed `layoutFamily` values:
 - `summary`: recap and takeaways
 
 Also set:
+- `layoutTemplate`: choose one common editable PPT template: `cover_hero`, `section_divider`, `title_content`, `two_column`, `three_cards`, `four_grid`, `visual_left`, `visual_right`, `comparison_matrix`, `timeline_road`, `problem_focus`, `steps_sidebar`, `code_split`, `formula_focus`, or `summary_board`
 - `density`: `"light"`, `"standard"`, or `"dense"`
 - `visualRole`: `"none"`, `"source_image"`, `"generated_image"`, or `"diagram"`
 - `overflowPolicy`: `"compress_first"` by default; use `"preserve_then_paginate"` for long problem statements, code, proofs, tables, and derivations where readability matters more than one-page compression
 - `preserveFullProblemStatement`: true only when the problem statement itself must remain complete and readable
 
-Deck rhythm rule: avoid using the same `layoutFamily` for 3 consecutive slide scenes. Prefer alternating concept, visual/comparison, and process/problem layouts when the material allows it.
+Deck rhythm rule: avoid using the same `layoutFamily` or `layoutTemplate` for 3 consecutive slide scenes. Prefer alternating concept, visual/comparison, and process/problem layouts when the material allows it.
 
 ### Concept + Problem Coverage
 
@@ -297,6 +298,7 @@ You must output a JSON array where each element is a scene outline object:
     "archetype": "definition",
     "layoutIntent": {
       "layoutFamily": "formula_focus",
+      "layoutTemplate": "formula_focus",
       "density": "standard",
       "visualRole": "none",
       "overflowPolicy": "compress_first",
@@ -355,7 +357,7 @@ You must output a JSON array where each element is a scene outline object:
 | id                | string                   | ✅       | Unique identifier, format: `scene_1`, `scene_2`...                                               |
 | type              | string                   | ✅       | `"slide"`, `"quiz"`, `"interactive"`, or `"pbl"`                                                 |
 | contentProfile    | string                   | ❌       | For slide scenes, prefer `"general"`, `"math"`, or `"code"` to steer downstream generation      |
-| layoutIntent      | object                   | ❌       | Required for slide scenes; controls deterministic PPT layout family, density, visual role, and overflow policy |
+| layoutIntent      | object                   | ❌       | Required for slide scenes; controls deterministic PPT layout family, reusable template, density, visual role, and overflow policy |
 | title             | string                   | ✅       | Scene title, concise and clear                                                                   |
 | description       | string                   | ✅       | 1-2 sentences describing teaching purpose                                                        |
 | keyPoints         | string[]                 | ✅       | 3-5 core points                                                                                  |
