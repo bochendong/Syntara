@@ -1,8 +1,5 @@
 import { nanoid } from 'nanoid';
-import type {
-  SceneOutline,
-  GeneratedSlideContent,
-} from '@/lib/types/generation';
+import type { SceneOutline, GeneratedSlideContent } from '@/lib/types/generation';
 import type {
   PPTElement,
   PPTLineElement,
@@ -78,7 +75,11 @@ export function buildFallbackSlideContentFromOutline(outline: SceneOutline): Gen
       });
       titlePanel.text = {
         content: toTextHtml(
-          splitIntoLines(outline.title || (lang === 'zh-CN' ? '未命名页面' : 'Untitled Slide'), 30, 2),
+          splitIntoLines(
+            outline.title || (lang === 'zh-CN' ? '未命名页面' : 'Untitled Slide'),
+            30,
+            2,
+          ),
           {
             fontSize: 30,
             color: '#0f172a',
@@ -413,21 +414,25 @@ export function createLineElement(args: {
   color: string;
   width?: number;
 }): PPTLineElement {
+  const left = Math.min(args.start[0], args.end[0]);
+  const top = Math.min(args.start[1], args.end[1]);
+  const start: [number, number] = [args.start[0] - left, args.start[1] - top];
+  const end: [number, number] = [args.end[0] - left, args.end[1] - top];
+
   return {
     id: `line_${nanoid(8)}`,
     type: 'line',
     name: args.name,
-    left: 0,
-    top: 0,
+    left,
+    top,
     width: args.width ?? 2,
-    start: args.start,
-    end: args.end,
+    start,
+    end,
     style: 'solid',
     color: args.color,
     points: ['', ''],
   };
 }
-
 
 export function getRolePalette(role: NonNullable<SceneOutline['workedExampleConfig']>['role']): {
   accent: string;
@@ -539,10 +544,7 @@ export function buildInfoCard(
   return [card];
 }
 
-function alignNamedShapeRow(
-  elements: PPTElement[],
-  shapeNames: string[],
-): PPTElement[] {
+function alignNamedShapeRow(elements: PPTElement[], shapeNames: string[]): PPTElement[] {
   const indices = elements
     .map((element, index) => ({ element, index }))
     .filter(
@@ -573,4 +575,3 @@ export function alignFallbackCardRows(elements: PPTElement[]): PPTElement[] {
 
   return rows.reduce((acc, rowNames) => alignNamedShapeRow(acc, rowNames), elements);
 }
-

@@ -1,9 +1,5 @@
-import katex from 'katex';
-import {
-  getDirectUnicodeMathSymbol,
-  normalizeLatexSource,
-  replaceCommonRawLatexText,
-} from '@/lib/latex-utils';
+import { normalizeMathSource, renderMathToHtml, renderTextWithMathToHtml } from '@/lib/math-engine';
+import { replaceCommonRawLatexText } from '@/lib/latex-utils';
 
 export function escapeHtml(text: string): string {
   return text
@@ -14,59 +10,28 @@ export function escapeHtml(text: string): string {
 }
 
 export function renderInlineLatexToHtml(text: string): string {
-  const pattern = /(\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]|\$([^\n$]+?)\$)/g;
   const rawLatexFragmentPattern =
     /([A-Za-z0-9()[\]{}.+\-*/=,:]*\\[a-zA-Z]+[A-Za-z0-9()[\]{}.+\-*/=,:]*)/g;
-  let result = '';
-  let lastIndex = 0;
-  let renderedAny = false;
 
-  for (const match of text.matchAll(pattern)) {
-    const fullMatch = match[0];
-    const start = match.index ?? 0;
-    const end = start + fullMatch.length;
-    const expression = normalizeLatexSource(match[2] ?? match[3] ?? match[4] ?? match[5] ?? '');
-
-    result += escapeHtml(text.slice(lastIndex, start));
-    const directSymbol = getDirectUnicodeMathSymbol(expression);
-    result +=
-      directSymbol ??
-      katex.renderToString(expression, {
-        displayMode: false,
-        throwOnError: false,
-        output: 'html',
-        strict: 'ignore',
-      });
-    lastIndex = end;
-    renderedAny = true;
-  }
-
-  if (renderedAny) {
-    result += escapeHtml(text.slice(lastIndex));
-    return result;
+  const rendered = renderTextWithMathToHtml(text, { forceInline: true });
+  if (rendered) {
+    return rendered;
   }
 
   // Fallback: handle obvious raw latex fragments that missed delimiters,
   // e.g. "FV=100(1.01)^{12}=112.68\\approx113".
-  lastIndex = 0;
-  result = '';
+  let lastIndex = 0;
+  let result = '';
+  let renderedAny = false;
   for (const match of text.matchAll(rawLatexFragmentPattern)) {
     const fragment = match[0];
     const start = match.index ?? 0;
     const end = start + fragment.length;
-    const expression = normalizeLatexSource(fragment);
+    const expression = normalizeMathSource(fragment);
 
     result += escapeHtml(text.slice(lastIndex, start));
     try {
-      const directSymbol = getDirectUnicodeMathSymbol(expression);
-      result +=
-        directSymbol ??
-        katex.renderToString(expression, {
-          displayMode: false,
-          throwOnError: false,
-          output: 'html',
-          strict: 'ignore',
-        });
+      result += renderMathToHtml(expression, { forceInline: true });
     } catch {
       result += escapeHtml(fragment);
     }

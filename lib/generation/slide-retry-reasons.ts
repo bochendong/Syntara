@@ -28,6 +28,12 @@ function formatLayoutIssueForRetry(
         return '文字样式存在非法度量，例如过小的 line-height，导致整行文字被压扁';
       case 'element_overlap':
         return '多个组件发生重叠，页面结构过于拥挤';
+      case 'layout_compile_failed':
+        return `模板 slot 编译失败：${issue.message}`;
+      case 'line_coordinate_sanity':
+        return '线条坐标异常，必须改用模板内置连线或更简单的结构';
+      case 'title_body_collision':
+        return '标题区与正文/卡片发生碰撞，需要减少标题长度、换模板或拆页';
       default:
         return issue.message;
     }
@@ -48,6 +54,12 @@ function formatLayoutIssueForRetry(
       return 'text metrics are invalid, such as a line-height that crushes the glyphs';
     case 'element_overlap':
       return 'multiple slide components overlap each other';
+    case 'layout_compile_failed':
+      return `template slot compilation failed: ${issue.message}`;
+    case 'line_coordinate_sanity':
+      return 'line coordinates are invalid; use template-owned connectors or a simpler structure';
+    case 'title_body_collision':
+      return 'the title collides with body content; shorten the title, change template, or split the slide';
     default:
       return issue.message;
   }
@@ -103,7 +115,10 @@ export function buildSemanticStructureRetryReason(language: 'zh-CN' | 'en-US'): 
   ].join('\n');
 }
 
-export function buildSemanticBudgetRetryReason(language: 'zh-CN' | 'en-US', reasons: string[]): string {
+export function buildSemanticBudgetRetryReason(
+  language: 'zh-CN' | 'en-US',
+  reasons: string[],
+): string {
   const reasonText = reasons.join(language === 'zh-CN' ? '；' : '; ');
   if (language === 'zh-CN') {
     return [

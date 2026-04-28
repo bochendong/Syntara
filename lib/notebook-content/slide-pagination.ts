@@ -451,6 +451,15 @@ export function paginateNotebookContentDocumentWithDeps(
   },
   deps: NotebookPaginationDeps,
 ): NotebookDocumentPaginationResult {
+  if (args.document.version === 2 && args.document.slots?.length) {
+    return {
+      pages: [args.document],
+      wasSplit: false,
+      reasons: [],
+      unpageableBlockTypes: [],
+    };
+  }
+
   const language = args.document.language || 'zh-CN';
   const profile = deps.resolveNotebookContentProfile(args.document);
   const archetype = deps.resolveDocumentArchetype(args.document);

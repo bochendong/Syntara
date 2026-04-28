@@ -5,7 +5,9 @@ import {
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 
-export function normalizeColumnLayoutBlocks(document: NotebookContentDocument): NotebookContentDocument {
+export function normalizeColumnLayoutBlocks(
+  document: NotebookContentDocument,
+): NotebookContentDocument {
   const nextBlocks = document.blocks.flatMap<NotebookContentDocument['blocks'][number]>((block) => {
     if (block.type !== 'process_flow' || block.context.length === 0) {
       return [block];
@@ -40,7 +42,9 @@ export function normalizeColumnLayoutBlocks(document: NotebookContentDocument): 
   };
 }
 
-export function normalizeGridPlacementHints(document: NotebookContentDocument): NotebookContentDocument {
+export function normalizeGridPlacementHints(
+  document: NotebookContentDocument,
+): NotebookContentDocument {
   if (document.layout.mode !== 'grid') return document;
   const maxRows = document.layout.rows ?? 3;
   const maxCols = document.layout.columns;
@@ -203,7 +207,10 @@ function buildIntroTemplateDocument(
                 orientation: 'horizontal',
                 context: [],
                 steps: toTemplateFlowSteps(points, language),
-                summary: language === 'en-US' ? 'Follow this sequence in class.' : '按此顺序推进课堂讲解。',
+                summary:
+                  language === 'en-US'
+                    ? 'Follow this sequence in class.'
+                    : '按此顺序推进课堂讲解。',
                 templateId: 'warningCard',
                 cardTitle: language === 'en-US' ? 'Class Flow' : '课堂推进顺序',
                 titleTone: 'accent',
@@ -301,7 +308,10 @@ function buildSummaryTemplateDocument(
               orientation: 'vertical',
               context: [],
               steps: toTemplateFlowSteps(points, language),
-              summary: language === 'en-US' ? 'Use this as your final review path.' : '将此流程作为期末回顾路径。',
+              summary:
+                language === 'en-US'
+                  ? 'Use this as your final review path.'
+                  : '将此流程作为期末回顾路径。',
               templateId: 'accentCard',
               cardTitle: language === 'en-US' ? 'Review Sequence' : '复习顺序',
               titleTone: 'accent',
@@ -386,6 +396,8 @@ export function buildTemplateDrivenSemanticDocument(
   outline: SceneOutline,
   language: 'zh-CN' | 'en-US',
 ): NotebookContentDocument | null {
+  const slotOnlyTemplateChainEnabled = false;
+  if (!slotOnlyTemplateChainEnabled) return null;
   if (outline.type !== 'slide') return null;
   const archetype = outline.archetype || 'concept';
   if (archetype !== 'intro' && archetype !== 'summary') return null;

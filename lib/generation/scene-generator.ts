@@ -24,6 +24,8 @@ import {
   buildNotebookContentDocumentFromInsert,
   prepareNotebookSemanticLayout,
   parseNotebookContentDocument,
+  compileSyntaraMarkupToNotebookDocument,
+  extractSyntaraMarkup,
   measureNotebookSemanticLayout,
   paginateNotebookSemanticLayout,
   renderNotebookSemanticPages,
@@ -90,8 +92,8 @@ import {
 } from './semantic-slide-templates';
 const log = createLogger('Generation');
 const SLIDE_LAYOUT_VIEWPORT = { width: 1000, height: 562.5 } as const;
-const MAX_SLIDE_LAYOUT_RETRIES = 1;
-const MAX_SEMANTIC_SLIDE_RETRIES = 1;
+const MAX_SLIDE_LAYOUT_RETRIES = 2;
+const MAX_SEMANTIC_SLIDE_RETRIES = 2;
 
 export function materializeSemanticGeneratedSlidePageContent(
   content: GeneratedSlidePageContent,
@@ -591,12 +593,34 @@ function applyOutlineIntentToSemanticDocument(args: {
           }
         : block,
     ),
+    slots: args.document.slots?.map((slot) => ({
+      ...slot,
+      blocks: slot.blocks.map((block) =>
+        block.type === 'visual'
+          ? {
+              ...block,
+              source: resolveSemanticMediaSource(
+                block.source,
+                args.imageMapping,
+                args.generatedMediaMapping,
+              ),
+            }
+          : block,
+      ),
+    })),
   };
 }
 
 function extractNotebookContentDocumentFromResponse(
   response: string,
+  defaults: Partial<Pick<NotebookContentDocument, 'language' | 'title'>> = {},
 ): NotebookContentDocument | null {
+  const markup = extractSyntaraMarkup(response);
+  if (markup) {
+    const document = compileSyntaraMarkupToNotebookDocument(markup, defaults);
+    if (document) return document;
+  }
+
   const parsed = parseJsonResponse<unknown>(response);
   if (!parsed || typeof parsed !== 'object') return null;
 
@@ -662,7 +686,10 @@ async function generateSemanticSlideContent(
     });
     if (!prompts) return null;
     const response = await aiCall(prompts.system, prompts.user, mediaContext.visionImages);
-    const contentDocumentRaw = extractNotebookContentDocumentFromResponse(response);
+    const contentDocumentRaw = extractNotebookContentDocumentFromResponse(response, {
+      language: lang,
+      title: outline.title,
+    });
     normalizedDocument = contentDocumentRaw
       ? {
           ...contentDocumentRaw,
@@ -709,8 +736,10 @@ async function generateSemanticSlideContent(
     imageMapping,
     generatedMediaMapping,
   });
-  normalizedDocument = normalizeColumnLayoutBlocks(normalizedDocument);
-  normalizedDocument = normalizeGridPlacementHints(normalizedDocument);
+  if (normalizedDocument.version !== 2) {
+    normalizedDocument = normalizeColumnLayoutBlocks(normalizedDocument);
+    normalizedDocument = normalizeGridPlacementHints(normalizedDocument);
+  }
   if (hasUnexpectedCjkForLanguage(normalizedDocument, lang)) {
     log.warn(`Semantic slide content language mismatch for: ${outline.title}`);
     recordFailure(diagnostics, 'semantic_language', 'language mismatch in semantic document');
@@ -845,11 +874,41 @@ async function generateSemanticSlideContent(
   const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
   if (invalidPage) {
     log.warn(
-      `Semantic slide content layout invalid but allowed: ${outline.title}`,
+      `Semantic slide content layout rejected: ${outline.title}`,
       invalidPage.layoutValidation.issues.map((issue) => issue.message),
     );
-    // User-requested behavior: do not block generation on layout overlap/overflow.
-    // Keep the slide for inspection even when layout validation reports issues.
+    if (diagnostics) {
+      diagnostics.semanticRetryCount = Math.max(
+        diagnostics.semanticRetryCount,
+        semanticRetryCount + 1,
+      );
+    }
+    recordFailure(
+      diagnostics,
+      'semantic_layout',
+      invalidPage.layoutValidation.issues.map((issue) => issue.code).join(', '),
+    );
+    if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
+      return generateSemanticSlideContent(
+        outline,
+        aiCall,
+        assignedImages,
+        imageMapping,
+        visionEnabled,
+        generatedMediaMapping,
+        agents,
+        courseContext,
+        appendRewriteReason(
+          rewriteReason,
+          buildLayoutRetryReason(invalidPage.layoutValidation, lang),
+        ),
+        semanticRetryCount + 1,
+        true,
+        diagnostics,
+      );
+    }
+    log.error(`Semantic slide content rejected after layout retries: ${outline.title}`);
+    return null;
   }
 
   const [primaryPage, ...continuationPages] = renderedPages;

@@ -29,7 +29,10 @@ export interface SlideLayoutValidationIssue {
     | 'contained_element_overflow'
     | 'detached_container_content'
     | 'invalid_text_metrics'
-    | 'element_overlap';
+    | 'element_overlap'
+    | 'layout_compile_failed'
+    | 'line_coordinate_sanity'
+    | 'title_body_collision';
   elementId?: string;
   shapeId?: string;
   otherElementId?: string;
@@ -632,9 +635,7 @@ function reflowFollowingElements(args: {
     const verticallyBlocked =
       range.minY < laneBottom + REPAIR_GAP_PX && range.maxY > args.oldBottom - 2;
     const isDownstream =
-      element.type === 'line'
-        ? range.maxY >= args.oldBottom - 2
-        : range.minY >= args.oldBottom - 2;
+      element.type === 'line' ? range.maxY >= args.oldBottom - 2 : range.minY >= args.oldBottom - 2;
 
     if (!horizontallyRelated || !verticallyBlocked || !isDownstream) continue;
 
@@ -901,6 +902,85 @@ function validateElementOverlaps(elements: PPTElement[]): SlideLayoutValidationI
   return issues;
 }
 
+function validateLineCoordinateSanity(
+  elements: PPTElement[],
+  viewport: SlideViewport,
+): SlideLayoutValidationIssue[] {
+  const issues: SlideLayoutValidationIssue[] = [];
+
+  for (const element of elements) {
+    if (element.type !== 'line') continue;
+    const values = [
+      element.left,
+      element.top,
+      element.start[0],
+      element.start[1],
+      element.end[0],
+      element.end[1],
+    ];
+    if (values.some((value) => !Number.isFinite(value))) {
+      issues.push({
+        code: 'line_coordinate_sanity',
+        elementId: element.id,
+        message: `Line ${element.id} contains non-finite coordinates.`,
+      });
+      continue;
+    }
+
+    const maxRelativeCoordinate = Math.max(
+      Math.abs(element.start[0]),
+      Math.abs(element.start[1]),
+      Math.abs(element.end[0]),
+      Math.abs(element.end[1]),
+    );
+    const maxExpected = Math.max(viewport.width, viewport.height) + 24;
+    if (maxRelativeCoordinate > maxExpected) {
+      issues.push({
+        code: 'line_coordinate_sanity',
+        elementId: element.id,
+        message: `Line ${element.id} has relative coordinates larger than the slide viewport.`,
+      });
+    }
+  }
+
+  return issues;
+}
+
+function validateTitleBodyCollision(elements: PPTElement[]): SlideLayoutValidationIssue[] {
+  const issues: SlideLayoutValidationIssue[] = [];
+  const titles = elements.filter(
+    (element): element is PPTTextElement => element.type === 'text' && element.textType === 'title',
+  );
+  if (titles.length === 0) return issues;
+
+  for (const title of titles) {
+    const titleRange = getElementRange(title);
+    for (const element of elements) {
+      if (element.id === title.id || element.type === 'line') continue;
+      if (element.type === 'text' && element.textType === 'title') continue;
+      const range = getElementRange(element);
+      const overlapWidth = getHorizontalOverlapWidth(
+        [titleRange.minX, titleRange.maxX],
+        [range.minX, range.maxX],
+      );
+      const overlapHeight = getVerticalOverlapHeight(
+        [titleRange.minY, titleRange.maxY],
+        [range.minY, range.maxY],
+      );
+      if (overlapWidth * overlapHeight > 120) {
+        issues.push({
+          code: 'title_body_collision',
+          elementId: title.id,
+          otherElementId: element.id,
+          message: `Title ${title.id} collides with element ${element.id}.`,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
 export function normalizeSlideTextLayout(
   elements: PPTElement[],
   viewport: SlideViewport = DEFAULT_VIEWPORT,
@@ -952,6 +1032,8 @@ export function validateSlideTextLayout(
       message: `Elements exceed viewport ${viewport.width}x${viewport.height}.`,
     });
   }
+
+  issues.push(...validateLineCoordinateSanity(elements, viewport));
 
   for (const element of elements) {
     if (element.type === 'shape' && hasShapeTextContent(element)) {
@@ -1017,6 +1099,7 @@ export function validateSlideTextLayout(
 
   issues.push(...validateDetachedContainerContent(elements));
   issues.push(...validateElementOverlaps(elements));
+  issues.push(...validateTitleBodyCollision(elements));
 
   return {
     isValid: issues.length === 0,

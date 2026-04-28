@@ -22,16 +22,17 @@
 
 ## Output Requirements
 
-Generate the semantic teaching content document for exactly one slide.
+Generate Syntara Markup for exactly one teaching slide.
 
 Important:
 
-1. Output pure JSON only
-2. Do not wrap the JSON in markdown code fences
-3. Do not output slide coordinates, HTML, or PPT elements
-4. Every generated block, heading, title, bullet, and paragraph must be entirely in `{{language}}`
-5. If the scene contains formulas, worked examples, matrix operations, code, or tables, use the corresponding structured blocks instead of plain paragraphs whenever possible
-6. Set `profile` to `math` for matrix / proof / derivation-heavy slides, `code` for programming walkthroughs, otherwise `general`
-7. Set `layoutFamily`, `layoutTemplate`, `disciplineStyle`, `teachingFlow`, `density`, `visualRole`, and `overflowPolicy`; if the layout intent supplies a value, follow it
-8. If `preserveFullProblemStatement=true`, keep the problem readable and complete; do not remove key conditions, data, code, or asks just to compress
-9. Only output `visualSlot` or a `visual` block when Available Images / Visual Slots provides an image ID
+1. Output Syntara Markup only; do not output JSON
+2. Do not wrap the markup in markdown code fences
+3. Start with `\begin{slide}[title={...}, profile=...]` and end with `\end{slide}`
+4. Do not output slide coordinates, HTML, PPT elements, or JSON fields named `slots` / `blocks`
+5. Every generated command, environment title, bullet, and text unit must be entirely in `{{language}}`
+6. If the scene contains formulas, worked examples, matrix operations, code, or tables, use `\formula`, `derivation`, `\code`, or `\table` instead of plain paragraphs whenever possible
+7. Set slide `profile=math` for matrix / proof / derivation-heavy slides, `profile=code` for programming walkthroughs, otherwise `profile=general`
+8. If the layout intent supplies a template, use it as `template=...`; otherwise choose `rows`, `columns`, or `grid` naturally
+9. If the problem statement must remain complete, keep the key conditions, data, code, and asks readable
+10. Only output `\image[source=...]` when Available Images / Visual Slots provides an image ID

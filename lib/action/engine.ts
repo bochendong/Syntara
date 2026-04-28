@@ -30,8 +30,8 @@ import type {
   WbDeleteAction,
   WbDrawLineAction,
 } from '@/lib/types/action';
-import katex from 'katex';
 import { createLogger } from '@/lib/logger';
+import { normalizeMathSource, renderMathToHtml } from '@/lib/math-engine';
 
 const log = createLogger('ActionEngine');
 
@@ -366,11 +366,8 @@ export class ActionEngine {
     if (!wb.success || !wb.data) return;
 
     try {
-      const html = katex.renderToString(action.latex, {
-        throwOnError: false,
-        displayMode: true,
-        output: 'html',
-      });
+      const latex = normalizeMathSource(action.latex);
+      const html = renderMathToHtml(latex, { displayMode: true });
 
       this.stageAPI.whiteboard.addElement(
         {
@@ -381,7 +378,7 @@ export class ActionEngine {
           width: action.width ?? 400,
           height: action.height ?? 80,
           rotate: 0,
-          latex: action.latex,
+          latex,
           html,
           color: action.color ?? '#000000',
           fixedRatio: true,

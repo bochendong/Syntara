@@ -52,7 +52,7 @@ Rules:
 
 For every `slide` scene, include `layoutIntent` with:
 - `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
-- `layoutTemplate`: choose one common editable PPT template: `cover_hero` | `section_divider` | `title_content` | `two_column` | `three_cards` | `four_grid` | `visual_left` | `visual_right` | `comparison_matrix` | `timeline_road` | `problem_focus` | `steps_sidebar` | `code_split` | `formula_focus` | `summary_board`
+- `layoutTemplate`: choose one common editable PPT template: `cover_hero` | `section_divider` | `title_content` | `two_column` | `three_cards` | `four_grid` | `visual_left` | `visual_right` | `comparison_matrix` | `timeline_road` | `problem_focus` | `steps_sidebar` | `code_split` | `formula_focus` | `summary_board` | `definition_board` | `concept_map` | `two_column_explain` | `process_steps` | `problem_walkthrough` | `derivation_ladder` | `graph_explain` | `data_insight` | `thesis_evidence` | `quote_analysis` | `source_close_reading` | `case_analysis` | `argument_map` | `compare_perspectives`
 - `density`: `light` | `standard` | `dense`
 - `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
 - `overflowPolicy`: `compress_first` by default, or `preserve_then_paginate` when a long problem statement, code, proof, table, or derivation must stay readable

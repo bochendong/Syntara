@@ -22,19 +22,19 @@
 
 ## Output Requirements
 
-Generate the semantic teaching content document for exactly one slide.
+为这一页生成 Syntara Markup。
 
 Important:
 
-1. Output pure JSON only
-2. Do not wrap the JSON in markdown code fences
-3. Do not output slide coordinates, HTML, or PPT elements
-4. Do not output KaTeX HTML (for example `<span class="katex">...</span>`); keep formulas as plain LaTeX text in semantic fields
-5. Every generated block, heading, title, bullet, and paragraph must be entirely in `{{language}}`
-6. If the scene contains formulas, worked examples, matrix operations, code, or tables, use the corresponding structured blocks instead of plain paragraphs whenever possible
-7. Set `profile` to `math` for matrix / proof / derivation-heavy slides, `code` for programming walkthroughs, otherwise `general`
-8. 必须设置 `layoutFamily`、`layoutTemplate`、`disciplineStyle`、`teachingFlow`、`density`、`visualRole`、`overflowPolicy`；如果版式意图里给了值，以版式意图为准
-9. 优先保证单页可读：先压缩表述，再考虑增加块数量
-10. 控制块密度（尤其 `layout_cards`、`process_flow`、`table`），避免把长段落直接塞进单个单元或步骤
-11. 如果 `preserveFullProblemStatement=true`，题干必须完整清楚；不要为了压缩删掉关键条件、数据、代码或所求
-12. 只有在 Available Images / Visual Slots 提供了图片 ID 时，才可以输出 `visualSlot` 或 `visual` block
+1. 只输出 Syntara Markup；不要输出 JSON
+2. 不要用 markdown code fence 包裹输出
+3. 必须以 `\begin{slide}[title={...}, profile=...]` 开始，以 `\end{slide}` 结束
+4. 不要输出坐标、HTML、PPT 元素，或名为 `slots` / `blocks` 的 JSON 字段
+5. 不要输出 KaTeX HTML；公式必须保留为 `\formula{...}` 或数学定界符中的普通 LaTeX
+6. 每个命令、环境标题、bullet 和文本单元都必须完全使用 `{{language}}`
+7. 如果场景包含公式、讲题、矩阵运算、代码或表格，优先使用 `\formula`、`derivation`、`\code` 或 `\table`
+8. 矩阵 / 证明 / 推导页设置 slide `profile=math`，代码页设置 `profile=code`，其他为 `profile=general`
+9. 如果版式意图给出了模板，用 `template=...`；否则自然选择 `rows`、`columns` 或 `grid`
+10. 优先保证单页可读：先压缩表述，再考虑增加块数量
+11. 如果题干必须完整，保留关键条件、数据、代码和问题要求
+12. 只有 Available Images / Visual Slots 提供图片 ID 时，才输出 `\image[source=...]`

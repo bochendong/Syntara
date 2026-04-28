@@ -15,6 +15,7 @@ import type { Slide } from '@/lib/types/slides';
 import type { NotebookContentDocument } from './schema';
 import {
   assessNotebookContentDocumentForSlide,
+  isNotebookSlotLayoutError,
   paginateNotebookContentDocument,
   renderNotebookContentDocumentToSlide,
   type NotebookDocumentPaginationResult,
@@ -75,13 +76,45 @@ export function renderNotebookSemanticPages(args: {
   const viewport = args.viewport || DEFAULT_SEMANTIC_LAYOUT_VIEWPORT;
 
   return args.pageDocuments.map((pageDocument) => {
-    const renderedSlide = renderNotebookContentDocumentToSlide({
-      document: pageDocument,
-      fallbackTitle: args.fallbackTitle,
-    });
+    let renderedSlide: Slide;
+    let compileIssues: SlideLayoutValidationResult['issues'] = [];
+    try {
+      renderedSlide = renderNotebookContentDocumentToSlide({
+        document: pageDocument,
+        fallbackTitle: args.fallbackTitle,
+      });
+    } catch (error) {
+      const message = isNotebookSlotLayoutError(error)
+        ? error.issues.map((issue) => issue.message).join('; ')
+        : error instanceof Error
+          ? error.message
+          : 'Unknown layout compile failure.';
+      compileIssues = [
+        {
+          code: 'layout_compile_failed',
+          message,
+        },
+      ];
+      renderedSlide = {
+        id: 'slide_layout_compile_failed',
+        viewportSize: viewport.width,
+        viewportRatio: viewport.height / viewport.width,
+        theme: {
+          backgroundColor: '#f8fbff',
+          themeColors: ['#2563eb', '#0f172a', '#334155', '#64748b'],
+          fontColor: '#0f172a',
+          fontName: 'Microsoft YaHei',
+        },
+        elements: [],
+        type: 'content',
+      };
+    }
     const normalizedElements = shouldLockNotebookSemanticLayout(pageDocument)
       ? renderedSlide.elements
       : normalizeSlideTextLayout(renderedSlide.elements, viewport);
+    const layoutValidation = validateSlideTextLayout(normalizedElements, viewport);
+    layoutValidation.issues.push(...compileIssues);
+    layoutValidation.isValid = layoutValidation.issues.length === 0;
     const slide: Slide = {
       ...renderedSlide,
       elements: normalizedElements,
@@ -90,7 +123,7 @@ export function renderNotebookSemanticPages(args: {
     return {
       document: pageDocument,
       slide,
-      layoutValidation: validateSlideTextLayout(normalizedElements, viewport),
+      layoutValidation,
     };
   });
 }

@@ -346,29 +346,104 @@ export const notebookContentBlockSchema = z.intersection(
   notebookContentBlockPresentationSchema,
 );
 
-export const notebookContentDocumentSchema = z.object({
-  version: z.literal(1).default(1),
-  language: notebookContentLanguageSchema.default('zh-CN'),
-  profile: notebookContentProfileSchema.default('general'),
-  disciplineStyle: notebookContentDisciplineStyleSchema.default('general'),
-  teachingFlow: notebookContentTeachingFlowSchema.default('standalone'),
-  layout: notebookContentLayoutSchema.default({ mode: 'stack' }),
-  layoutFamily: notebookContentLayoutFamilySchema.optional(),
-  layoutTemplate: notebookContentLayoutTemplateSchema.optional(),
-  density: notebookContentDensitySchema.default('standard'),
-  visualRole: notebookContentVisualRoleSchema.default('none'),
-  overflowPolicy: notebookContentOverflowPolicySchema.default('compress_first'),
-  preserveFullProblemStatement: z.boolean().default(false),
-  visualSlot: notebookContentVisualSlotSchema.optional(),
-  pattern: notebookContentPatternSchema.optional(),
-  archetype: notebookSlideArchetypeSchema.default('concept'),
-  continuation: notebookContentContinuationSchema.optional(),
-  title: z.string().trim().max(300).optional(),
-  titleTextColor: z.string().trim().max(40).optional(),
-  titleBackgroundColor: z.string().trim().max(40).optional(),
-  titleBorderColor: z.string().trim().max(40).optional(),
-  blocks: z.array(notebookContentBlockSchema).min(1).max(64),
+export const notebookContentSlotSchema = z.object({
+  slotId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z][a-z0-9_]*$/),
+  role: z.string().trim().max(120).optional(),
+  priority: z.number().int().min(0).max(100).default(0),
+  preserve: z.boolean().default(false),
+  blocks: z.array(notebookContentBlockBaseSchema).min(1).max(8),
 });
+
+function materializeSlotBlocks(input: unknown): unknown {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+
+  const record = input as Record<string, unknown>;
+  const slots = Array.isArray(record.slots) ? record.slots : [];
+  if (slots.length === 0) return input;
+
+  const hasExplicitVersion = typeof record.version === 'number';
+  const hasBlocks = Array.isArray(record.blocks) && record.blocks.length > 0;
+  const blocks = hasBlocks
+    ? record.blocks
+    : slots.flatMap((slot) =>
+        slot && typeof slot === 'object' && Array.isArray((slot as { blocks?: unknown }).blocks)
+          ? ((slot as { blocks: unknown[] }).blocks ?? [])
+          : [],
+      );
+
+  return {
+    ...record,
+    version: hasExplicitVersion ? record.version : 2,
+    blocks,
+  };
+}
+
+const notebookContentDocumentBaseSchema = z
+  .object({
+    version: z.union([z.literal(1), z.literal(2)]).default(1),
+    language: notebookContentLanguageSchema.default('zh-CN'),
+    profile: notebookContentProfileSchema.default('general'),
+    disciplineStyle: notebookContentDisciplineStyleSchema.default('general'),
+    teachingFlow: notebookContentTeachingFlowSchema.default('standalone'),
+    layout: notebookContentLayoutSchema.default({ mode: 'stack' }),
+    layoutFamily: notebookContentLayoutFamilySchema.optional(),
+    layoutTemplate: notebookContentLayoutTemplateSchema.optional(),
+    density: notebookContentDensitySchema.default('standard'),
+    visualRole: notebookContentVisualRoleSchema.default('none'),
+    overflowPolicy: notebookContentOverflowPolicySchema.default('compress_first'),
+    preserveFullProblemStatement: z.boolean().default(false),
+    visualSlot: notebookContentVisualSlotSchema.optional(),
+    pattern: notebookContentPatternSchema.optional(),
+    archetype: notebookSlideArchetypeSchema.default('concept'),
+    continuation: notebookContentContinuationSchema.optional(),
+    title: z.string().trim().max(300).optional(),
+    titleTextColor: z.string().trim().max(40).optional(),
+    titleBackgroundColor: z.string().trim().max(40).optional(),
+    titleBorderColor: z.string().trim().max(40).optional(),
+    slots: z.array(notebookContentSlotSchema).min(1).max(16).optional(),
+    blocks: z.array(notebookContentBlockSchema).min(1).max(64),
+  })
+  .superRefine((document, ctx) => {
+    if (document.version !== 2) return;
+
+    if (!document.layoutTemplate) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['layoutTemplate'],
+        message: 'Slot-only semantic documents require layoutTemplate.',
+      });
+    }
+
+    if (!document.slots || document.slots.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['slots'],
+        message: 'Slot-only semantic documents require at least one slot.',
+      });
+    }
+
+    document.blocks.forEach((block, index) => {
+      const presentation = block as { placement?: unknown; templateId?: unknown };
+      if (presentation.placement || presentation.templateId) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['blocks', index],
+          message:
+            'Slot-only semantic blocks must not include block-level placement/template hints.',
+        });
+      }
+    });
+  });
+
+export const notebookContentDocumentSchema = z.preprocess(
+  materializeSlotBlocks,
+  notebookContentDocumentBaseSchema,
+);
 
 export type NotebookContentLanguage = z.infer<typeof notebookContentLanguageSchema>;
 export type NotebookContentProfile = z.infer<typeof notebookContentProfileSchema>;
@@ -418,6 +493,7 @@ export type NotebookContentChemEquationBlock = z.infer<
 export type NotebookContentVisualSlot = z.infer<typeof notebookContentVisualSlotSchema>;
 export type NotebookContentVisualBlock = z.infer<typeof notebookContentVisualBlockSchema>;
 export type NotebookContentBlock = z.infer<typeof notebookContentBlockSchema>;
+export type NotebookContentSlot = z.infer<typeof notebookContentSlotSchema>;
 export type NotebookContentDocument = z.infer<typeof notebookContentDocumentSchema>;
 
 function decodeHtmlEntities(input: string): string {
@@ -472,7 +548,53 @@ function sanitizeNotebookContentValue(value: unknown): unknown {
   return value;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isSlotOnlyDocumentInput(input: unknown): boolean {
+  if (!isRecord(input)) return false;
+  return input.version === 2 || Array.isArray(input.slots);
+}
+
+const SLOT_ONLY_FORBIDDEN_KEYS = new Set([
+  'left',
+  'top',
+  'width',
+  'height',
+  'html',
+  'elements',
+  'placement',
+  'templateId',
+  'layout',
+  'pattern',
+]);
+
+function findForbiddenSlotOnlyKey(value: unknown, path: string[] = []): string | null {
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = findForbiddenSlotOnlyKey(value[index], [...path, String(index)]);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (!isRecord(value)) return null;
+
+  for (const [key, child] of Object.entries(value)) {
+    if (SLOT_ONLY_FORBIDDEN_KEYS.has(key)) return [...path, key].join('.');
+    const found = findForbiddenSlotOnlyKey(child, [...path, key]);
+    if (found) return found;
+  }
+
+  return null;
+}
+
 export function parseNotebookContentDocument(input: unknown): NotebookContentDocument | null {
+  if (isSlotOnlyDocumentInput(input) && findForbiddenSlotOnlyKey(input)) {
+    return null;
+  }
+
   const parsed = notebookContentDocumentSchema.safeParse(input);
   if (!parsed.success) return null;
   const sanitized = sanitizeNotebookContentValue(parsed.data);

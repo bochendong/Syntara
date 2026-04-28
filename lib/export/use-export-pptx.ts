@@ -5,6 +5,7 @@ import pptxgen from 'pptxgenjs';
 import tinycolor from 'tinycolor2';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import { toPng } from 'html-to-image';
 
 import { useStageStore } from '@/lib/store';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -12,6 +13,8 @@ import { useMediaGenerationStore, isMediaPlaceholder } from '@/lib/store/media-g
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type {
   Slide,
+  PPTTextElement,
+  ShapeText,
   PPTElementOutline,
   PPTElementShadow,
   PPTElementLink,
@@ -23,6 +26,8 @@ import { type AST, toAST } from '@/lib/export/html-parser';
 import { type SvgPoints, toPoints, getSvgPathRange } from '@/lib/export/svg-path-parser';
 import { svg2Base64 } from '@/lib/export/svg2base64';
 import { latexToOmml } from '@/lib/export/latex-to-omml';
+import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
+import { containsMathSyntax } from '@/lib/math-engine';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ExportPPTX');
@@ -43,6 +48,142 @@ function formatColor(_color: string) {
 }
 
 type FormatColor = ReturnType<typeof formatColor>;
+
+function htmlContainsMath(html: string): boolean {
+  if (!html) return false;
+  if (/data-syntara-math=|class=["'][^"']*\bkatex\b/i.test(html)) return true;
+  if (typeof document === 'undefined') {
+    return containsMathSyntax(html.replace(/<[^>]+>/g, ' '));
+  }
+
+  const root = document.createElement('div');
+  root.innerHTML = html;
+  return containsMathSyntax(root.textContent || '');
+}
+
+function applyOutlineStyle(node: HTMLElement, outline?: PPTElementOutline) {
+  if (!outline?.width || !outline.color) return;
+  node.style.border = `${outline.width}px ${outline.style === 'dashed' ? 'dashed' : outline.style === 'dotted' ? 'dotted' : 'solid'} ${outline.color}`;
+}
+
+async function renderHtmlBoxToPng(args: {
+  html: string;
+  width: number;
+  height: number;
+  fontFace?: string;
+  color?: string;
+  fill?: string;
+  opacity?: number;
+  outline?: PPTElementOutline;
+  lineHeight?: number;
+  charSpacing?: number;
+  paragraphSpace?: number;
+  paddingPx?: number;
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+}): Promise<string | null> {
+  if (typeof document === 'undefined') return null;
+
+  const outer = document.createElement('div');
+  const padding = args.paddingPx ?? 10;
+  const justifyContent =
+    args.verticalAlign === 'bottom'
+      ? 'flex-end'
+      : args.verticalAlign === 'middle'
+        ? 'center'
+        : 'flex-start';
+
+  outer.style.position = 'absolute';
+  outer.style.left = '-100000px';
+  outer.style.top = '0';
+  outer.style.width = `${args.width}px`;
+  outer.style.height = `${args.height}px`;
+  outer.style.boxSizing = 'border-box';
+  outer.style.overflow = 'hidden';
+  outer.style.padding = `${padding}px`;
+  outer.style.background = args.fill || 'transparent';
+  outer.style.opacity = String(args.opacity ?? 1);
+  outer.style.color = args.color || '#000000';
+  outer.style.fontFamily = args.fontFace || DEFAULT_FONT_FAMILY;
+  outer.style.lineHeight = String(args.lineHeight ?? 1.5);
+  outer.style.letterSpacing = `${args.charSpacing || 0}px`;
+  outer.style.wordBreak = 'break-word';
+  outer.style.whiteSpace = 'normal';
+  outer.style.display = 'flex';
+  outer.style.flexDirection = 'column';
+  outer.style.justifyContent = justifyContent;
+  outer.style.pointerEvents = 'none';
+  outer.style.setProperty('--paragraphSpace', `${args.paragraphSpace ?? 5}px`);
+  applyOutlineStyle(outer, args.outline);
+
+  const inner = document.createElement('div');
+  inner.className =
+    'ProseMirror-static [&_ol]:my-0 [&_p]:m-0 [&_p:not(:last-child)]:mb-[var(--paragraphSpace)] [&_ul]:my-0';
+  inner.style.width = '100%';
+  inner.innerHTML = renderHtmlWithLatex(args.html || '<p>&nbsp;</p>');
+  inner.querySelectorAll<HTMLElement>('p').forEach((node, index, nodes) => {
+    node.style.margin = '0';
+    if (index < nodes.length - 1) node.style.marginBottom = `${args.paragraphSpace ?? 5}px`;
+  });
+  inner.querySelectorAll<HTMLElement>('ol, ul').forEach((node) => {
+    node.style.marginTop = '0';
+    node.style.marginBottom = '0';
+  });
+  inner.querySelectorAll<HTMLElement>('.katex-display').forEach((node) => {
+    node.style.margin = '0';
+  });
+  outer.appendChild(inner);
+
+  document.body.appendChild(outer);
+  try {
+    return await toPng(outer, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: args.fill || undefined,
+    });
+  } catch (error) {
+    log.warn('Failed to render math text box to image', error);
+    return null;
+  } finally {
+    document.body.removeChild(outer);
+  }
+}
+
+async function renderTextElementToPng(element: PPTTextElement): Promise<string | null> {
+  return renderHtmlBoxToPng({
+    html: element.content,
+    width: element.width,
+    height: element.height,
+    fontFace: element.defaultFontName,
+    color: element.defaultColor,
+    fill: element.fill,
+    opacity: element.opacity,
+    outline: element.outline,
+    lineHeight: element.lineHeight,
+    charSpacing: element.wordSpace,
+    paragraphSpace: element.paragraphSpace,
+    verticalAlign: 'top',
+  });
+}
+
+async function renderShapeTextToPng(
+  text: ShapeText,
+  width: number,
+  height: number,
+): Promise<string | null> {
+  return renderHtmlBoxToPng({
+    html: text.content,
+    width,
+    height,
+    fontFace: text.defaultFontName,
+    color: text.defaultColor,
+    lineHeight: text.lineHeight,
+    charSpacing: text.wordSpace,
+    paragraphSpace: text.paragraphSpace,
+    fill: 'transparent',
+    paddingPx: 10,
+    verticalAlign: text.align,
+  });
+}
 
 // ── HTML → pptxgenjs TextProps ──
 
@@ -427,6 +568,27 @@ async function buildPptxBlob(
     for (const el of slide.elements) {
       // ── TEXT ──
       if (el.type === 'text') {
+        if (htmlContainsMath(el.content)) {
+          const data = await renderTextElementToPng(el);
+          if (data) {
+            const imageOptions: pptxgen.ImageProps = {
+              data,
+              x: el.left / ratioPx2Inch,
+              y: el.top / ratioPx2Inch,
+              w: el.width / ratioPx2Inch,
+              h: el.height / ratioPx2Inch,
+            };
+            if (el.rotate) imageOptions.rotate = el.rotate;
+            if (el.link) {
+              const linkOption = getLinkOption(el.link, slides);
+              if (linkOption) imageOptions.hyperlink = linkOption;
+            }
+            pptxSlide.addImage(imageOptions);
+            continue;
+          }
+          log.warn(`Falling back to editable text export for math text element ${el.id}`);
+        }
+
         const textProps = formatHTML(el.content, ratioPx2Pt);
         const options: pptxgen.TextPropsOptions = {
           x: el.left / ratioPx2Inch,
@@ -620,23 +782,45 @@ async function buildPptxBlob(
 
         // Shape text overlay
         if (el.text) {
-          const textProps = formatHTML(el.text.content, ratioPx2Pt);
-          const textOptions: pptxgen.TextPropsOptions = {
-            x: el.left / ratioPx2Inch,
-            y: el.top / ratioPx2Inch,
-            w: el.width / ratioPx2Inch,
-            h: el.height / ratioPx2Inch,
-            fontSize: DEFAULT_FONT_SIZE / ratioPx2Pt,
-            fontFace: DEFAULT_FONT_FAMILY,
-            color: '#000000',
-            paraSpaceBefore: 5 / ratioPx2Pt,
-            valign: el.text.align,
-          };
-          if (el.rotate) textOptions.rotate = el.rotate;
-          if (el.text.defaultColor) textOptions.color = formatColor(el.text.defaultColor).color;
-          if (el.text.defaultFontName) textOptions.fontFace = el.text.defaultFontName;
+          let renderedShapeTextAsImage = false;
+          if (htmlContainsMath(el.text.content)) {
+            const data = await renderShapeTextToPng(el.text, el.width, el.height);
+            if (data) {
+              const textImageOptions: pptxgen.ImageProps = {
+                data,
+                x: el.left / ratioPx2Inch,
+                y: el.top / ratioPx2Inch,
+                w: el.width / ratioPx2Inch,
+                h: el.height / ratioPx2Inch,
+              };
+              if (el.rotate) textImageOptions.rotate = el.rotate;
+              pptxSlide.addImage(textImageOptions);
+              renderedShapeTextAsImage = true;
+            }
+            if (!renderedShapeTextAsImage) {
+              log.warn(`Falling back to editable text export for math shape text ${el.id}`);
+            }
+          }
 
-          pptxSlide.addText(textProps, textOptions);
+          if (!renderedShapeTextAsImage) {
+            const textProps = formatHTML(el.text.content, ratioPx2Pt);
+            const textOptions: pptxgen.TextPropsOptions = {
+              x: el.left / ratioPx2Inch,
+              y: el.top / ratioPx2Inch,
+              w: el.width / ratioPx2Inch,
+              h: el.height / ratioPx2Inch,
+              fontSize: DEFAULT_FONT_SIZE / ratioPx2Pt,
+              fontFace: DEFAULT_FONT_FAMILY,
+              color: '#000000',
+              paraSpaceBefore: 5 / ratioPx2Pt,
+              valign: el.text.align,
+            };
+            if (el.rotate) textOptions.rotate = el.rotate;
+            if (el.text.defaultColor) textOptions.color = formatColor(el.text.defaultColor).color;
+            if (el.text.defaultFontName) textOptions.fontFace = el.text.defaultFontName;
+
+            pptxSlide.addText(textProps, textOptions);
+          }
         }
 
         // Pattern overlay

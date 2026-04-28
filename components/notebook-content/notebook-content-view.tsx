@@ -1,14 +1,9 @@
 'use client';
 
-import katex from 'katex';
 import { memo } from 'react';
 import type { BundledLanguage } from 'shiki';
 import { cn } from '@/lib/utils';
-import {
-  getDirectUnicodeMathSymbol,
-  normalizeLatexSource,
-  wrapBareLatexEnvironments,
-} from '@/lib/latex-utils';
+import { renderMathToHtml, renderTextWithMathToHtml } from '@/lib/math-engine';
 import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-block';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
 import { chemistryTextToHtml } from '@/lib/notebook-content';
@@ -29,49 +24,17 @@ function escapeHtml(text: string): string {
 }
 
 function FormulaBlock({ latex, display = true }: { latex: string; display?: boolean }) {
-  const normalizedLatex = normalizeLatexSource(latex);
-  const directSymbol = getDirectUnicodeMathSymbol(normalizedLatex);
-  const html =
-    directSymbol ??
-    katex.renderToString(normalizedLatex, {
-      displayMode: display,
-      throwOnError: false,
-      output: 'html',
-      strict: 'ignore',
-    });
+  const html = renderMathToHtml(latex, { displayMode: display });
   return <div className="[&_.katex-display]:my-1" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 function renderInlineMathHtml(text: string): string {
-  const normalizedText = wrapBareLatexEnvironments(text);
-  const pattern = /(\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]|\$([^\n$]+?)\$)/g;
-  let result = '';
-  let lastIndex = 0;
-
-  for (const match of normalizedText.matchAll(pattern)) {
-    const fullMatch = match[0];
-    const start = match.index ?? 0;
-    const end = start + fullMatch.length;
-    const expression = normalizeLatexSource(match[2] ?? match[3] ?? match[4] ?? match[5] ?? '');
-
-    result += escapeHtml(normalizedText.slice(lastIndex, start));
-    const directSymbol = getDirectUnicodeMathSymbol(expression);
-    result +=
-      directSymbol ??
-      katex.renderToString(expression, {
-        displayMode: false,
-        throwOnError: false,
-        output: 'html',
-        strict: 'ignore',
-      });
-    lastIndex = end;
-  }
-
-  result += escapeHtml(normalizedText.slice(lastIndex));
-  return result;
+  return renderTextWithMathToHtml(text, { forceInline: true, rawFallback: true }) || '';
 }
 
-function cardTitleToneClass(titleTone: NotebookContentDocument['blocks'][number]['titleTone']): string {
+function cardTitleToneClass(
+  titleTone: NotebookContentDocument['blocks'][number]['titleTone'],
+): string {
   switch (titleTone) {
     case 'neutral':
       return 'text-foreground';
@@ -459,7 +422,8 @@ export const NotebookContentView = memo(function NotebookContentView({
             );
           case 'process_flow': {
             const contextToneClass = {
-              neutral: 'border-slate-200 bg-slate-50/80 text-slate-900 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-100',
+              neutral:
+                'border-slate-200 bg-slate-50/80 text-slate-900 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-100',
               info: 'border-blue-200 bg-blue-50/80 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-100',
               warning:
                 'border-amber-200 bg-amber-50/80 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100',
@@ -613,12 +577,17 @@ export const NotebookContentView = memo(function NotebookContentView({
                 ) : null}
                 <div
                   className="grid gap-3"
-                  style={{ gridTemplateColumns: `repeat(${Math.max(1, visualColumns)}, minmax(0, 1fr))` }}
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.max(1, visualColumns)}, minmax(0, 1fr))`,
+                  }}
                 >
                   {block.items.map((item, itemIdx) => (
                     <div
                       key={itemIdx}
-                      className={cn('rounded-xl border px-3 py-2.5', toneClass[item.tone || 'neutral'])}
+                      className={cn(
+                        'rounded-xl border px-3 py-2.5',
+                        toneClass[item.tone || 'neutral'],
+                      )}
                     >
                       <p
                         className="text-xs font-semibold uppercase tracking-wide"

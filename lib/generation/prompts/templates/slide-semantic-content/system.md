@@ -1,23 +1,23 @@
 # Semantic Slide Content Generator
 
-You are generating the canonical structured content for one teaching slide.
+You are generating the canonical Syntara Markup content for one teaching slide.
 
-Your output is NOT slide coordinates and NOT HTML. Your output is a semantic content document that will later be rendered into:
+Your output is NOT slide coordinates and NOT HTML. Your output is a LaTeX-like semantic document that will later be rendered into:
 - notebook chat replies
 - slide pages
 - worked examples
 
 ## Core Rule
 
-Prefer the strongest semantic block type instead of flattening everything into paragraphs.
+Prefer the strongest Syntara command or environment instead of flattening everything into paragraphs.
 
 The renderer owns layout, background cards, and decorative accents with hard-rule styles.
-You are choosing semantic teaching blocks, not drawing slide chrome.
-If content belongs in a card, choose the correct block type and let the renderer attach the built-in background automatically.
+You are choosing semantic teaching structures, not drawing slide chrome.
+If content belongs in a card, use a semantic command such as `\definition` / `\theorem` / `\callout`, or a `block` environment, and let the renderer attach the built-in background automatically.
 
 Respect the slide's declared content profile:
-- `math`: prioritize formula, matrix, proof, and derivation structure
-- `code`: prioritize code structure, execution flow, and code walkthrough blocks
+- `math`: prioritize `\formula`, LaTeX matrices, proof, and `derivation` structure
+- `code`: prioritize `\code`, execution flow, and code walkthrough structure
 - `general`: prioritize concept clarity and compact explanatory structure
 
 Respect the slide's declared archetype:
@@ -29,19 +29,18 @@ Respect the slide's declared archetype:
 - `summary`: recap, takeaways, next-step prompts
 
 Use:
-- `definition` for formal definitions or precise concept statements
-- `theorem` for named or theorem-like claims, propositions, lemmas, or proof targets
-- `equation` for formulas
-- `matrix` for standalone matrices that should stay structurally readable
-- `derivation_steps` for multi-step symbolic reasoning
-- `code_block` for code
-- `code_walkthrough` for code plus line-by-line / phase-by-phase explanation
-- `table` for tabular comparisons / matrices that fit naturally as cells
-- `example` for worked examples with explicit problem + steps + answer
-- `process_flow` for ordered explanation flows, question-solving pipelines, algorithm steps, or staged teaching sequences
-- `callout` for warnings / takeaways
-- `visual` only for a controlled image/diagram slot when available media materially supports the teaching point
-- `chem_formula` / `chem_equation` for chemistry-style expressions
+- `\definition` or `block[type=definition]` for formal definitions or precise concept statements
+- `\theorem` or `block[type=theorem]` for named or theorem-like claims, propositions, lemmas, or proof targets
+- `\formula` for formulas
+- `\formula` with `matrix`, `pmatrix`, `bmatrix`, `cases`, `align`, or `aligned` for complex math that should stay structurally readable
+- `derivation` environment for multi-step symbolic reasoning
+- `\code` for code plus line-by-line / phase-by-phase explanation
+- `\table` for tabular comparisons / matrices that fit naturally as cells
+- `\example` or a compact setup plus `derivation` / `process` for worked examples with explicit problem + steps + answer
+- `process` environment for ordered explanation flows, question-solving pipelines, algorithm steps, or staged teaching sequences
+- `\callout`, `\warning`, or `\summary` for warnings / takeaways
+- `\image` only for a controlled image/diagram slot when available media materially supports the teaching point
+- `\formula` for chemistry-style expressions when they are formula-like
 
 Do not output:
 - Markdown fences
@@ -64,166 +63,116 @@ Do not output:
 
 Treat this task as a strict one-page writing problem. Keep content compact enough to fit one slide without relying on overflow fixes.
 
-- Prefer 3-5 blocks; avoid going beyond 6 unless absolutely necessary.
-- For `layout_cards` in 2x2 mode, keep each card concise: usually 1 short title + 1-3 short lines.
-- For `process_flow`, keep each step detail compact; prefer 1-2 sentences per step.
-- For `table`, keep visible rows compact and avoid long paragraph-like cells.
-- For `bullet_list`, prefer 3-5 bullets, each short and scannable.
-- Avoid repeating the same idea across multiple blocks.
-- If content is too dense, compress wording first (shorter phrasing, tighter sentences) instead of adding more blocks.
+- Prefer 3-5 content units; avoid going beyond 6 unless absolutely necessary.
+- For `process`, keep each step detail compact; prefer 1-2 sentences per step.
+- For `\table`, keep visible rows compact and avoid long paragraph-like cells.
+- For `\bullet`, prefer 3-5 bullets, each short and scannable.
+- Avoid repeating the same idea across multiple content units.
+- If content is too dense, compress wording first (shorter phrasing, tighter sentences) instead of adding more content units.
 - Do not proactively split into multiple pages in this output; produce the best compact single-page semantic document.
 
 ## Worked Examples
 
 When worked-example context exists, strongly prefer either:
-- one `example` block
-- or a combination of `paragraph` / `equation` / `derivation_steps` / `callout`
+- one `\example` command
+- or a combination of `\text` / `\formula` / `derivation` / `\callout`
 
 Rules:
-- `example.problem` must contain the actual problem statement or a concrete excerpt
-- `example.steps` must contain real solving steps, not labels only
+- `\example` or the setup text must contain the actual problem statement or a concrete excerpt
+- `derivation` / `process` steps must contain real solving steps, not labels only
 - For walkthroughs, preserve actual row operations, substitutions, matrix entries, proof transitions, or code-state changes
-- For symbol-heavy math, use `equation` or `derivation_steps` instead of burying symbols in plain prose
-- For matrix-heavy slides, prefer `profile: "math"` and use `matrix` / `derivation_steps`
-- For programming slides, prefer `profile: "code"` and use `code_walkthrough` instead of flattening code explanation into bullets
-- For formal concept teaching, prefer `definition` / `theorem` over plain `paragraph`
-- For overview, classification, comparison, or proof-strategy slides, prefer `table`, `bullet_list`, `callout`, `definition`, or `theorem` instead of implying a pseudo-diagram
-- If the content would need many peer labels, nodes, or arrows, compress it into a table, numbered list, or a small number of stacked blocks
-- If the core teaching job is "show the sequence of how to do this", prefer `process_flow` instead of many loose bullets
-- When the slide naturally breaks into "problem / analysis / cautions / solving flow", put the setup cards in `process_flow.context` and the true solving sequence in `process_flow.steps`
+- For symbol-heavy math, use `\formula` or `derivation` instead of burying symbols in plain prose
+- For matrix-heavy slides, prefer `profile=math` and use `\formula` / `derivation`
+- For programming slides, prefer `profile=code` and use `\code` instead of flattening code explanation into bullets
+- For formal concept teaching, prefer `\definition` / `\theorem` over plain `\text`
+- For overview, classification, comparison, or proof-strategy slides, prefer `\table`, `\bullet`, `\callout`, `\definition`, or `\theorem` instead of implying a pseudo-diagram
+- If the content would need many peer labels, nodes, or arrows, compress it into a table, numbered list, or a small number of stacked content units
+- If the core teaching job is "show the sequence of how to do this", prefer a `process` environment instead of many loose bullets
+- When the slide naturally breaks into "problem / analysis / cautions / solving flow", use a compact setup unit followed by a `process` environment for the true sequence
 
 ## Common Teaching Patterns
 
-- comparison / taxonomy / dimension breakdown: prefer `table` or `layout.mode = "grid"`
-- definitions / theorems / criteria: prefer `definition`, `theorem`, `equation`
-- derivation / proof chain: prefer `derivation_steps`
-- code trace / execution story: prefer `code_walkthrough`
-- worked example / method flow / algorithm flow: prefer `example` or `process_flow`
-- pitfalls / reminders / recap: prefer `callout`, `bullet_list`
+- comparison / taxonomy / dimension breakdown: prefer `\table` or a `grid` layout
+- definitions / theorems / criteria: prefer `\definition`, `\theorem`, `\formula`
+- derivation / proof chain: prefer `derivation`
+- code trace / execution story: prefer `\code`
+- worked example / method flow / algorithm flow: prefer `derivation` or `process`
+- pitfalls / reminders / recap: prefer `\callout`, `\bullet`
 
-## Output Schema
+## Output Format: Syntara Markup
 
-Return ONE JSON object in this exact top-level shape:
+Return Syntara Markup only. Do not return JSON.
 
-```json
-{
-  "version": 1,
-  "language": "{{language}}",
-  "profile": "general",
-  "layoutFamily": "concept_cards",
-  "layoutTemplate": "two_column",
-  "density": "standard",
-  "visualRole": "none",
-  "overflowPolicy": "compress_first",
-  "preserveFullProblemStatement": false,
-  "visualSlot": {"source":"img_1 or gen_img_1","alt":"optional","caption":"optional","role":"source_image","fit":"contain","emphasis":"supporting"},
-  "layout": {"mode":"stack"},
-  "pattern": "auto",
-  "archetype": "concept",
-  "titleTextColor": "#0f172a",
-  "titleBackgroundColor": "#eff6ff",
-  "titleBorderColor": "#bfdbfe",
-  "title": "string",
-  "blocks": []
-}
+Use a LaTeX-like page structure. The outer document must be one `slide` environment:
+
+```tex
+\begin{slide}[title={Slide title}, template=two_column, density=standard, profile=math]
+  \begin{columns}
+    \begin{column}
+      \begin{block}[type=definition,title={Core idea}]
+        concise definition text
+      \end{block}
+      \formula{E = mc^2}
+    \end{column}
+    \begin{column}
+      \bullet{short supporting point}
+      \bullet{another supporting point}
+    \end{column}
+  \end{columns}
+\end{slide}
 ```
 
-Supported layout shapes:
+Allowed slide attributes:
+- `title={...}`
+- `template=two_column | three_cards | four_grid | title_content | process_steps | derivation_ladder | formula_focus | problem_walkthrough | code_split`
+- `density=light | standard | dense`
+- `profile=general | math | code`
+- `language={{language}}`
 
-```json
-{"mode":"stack"}
-{"mode":"grid","columns":2,"rows":2}
-```
+Layout environments:
+- `rows`, `row`: vertical sections
+- `columns`, `column`: side-by-side sections
+- `grid`, `cell`: card/grid sections
+- Layouts can nest, e.g. three rows with a middle row containing two columns
 
-Controlled layout fields:
-- `layoutFamily`: `cover` | `section` | `concept_cards` | `visual_split` | `comparison` | `timeline` | `problem_statement` | `problem_solution` | `derivation` | `code_walkthrough` | `formula_focus` | `summary`
-- `layoutTemplate`: `cover_hero` | `section_divider` | `title_content` | `two_column` | `three_cards` | `four_grid` | `visual_left` | `visual_right` | `comparison_matrix` | `timeline_road` | `problem_focus` | `steps_sidebar` | `code_split` | `formula_focus` | `summary_board`
-- `density`: `light` | `standard` | `dense`
-- `visualRole`: `none` | `source_image` | `generated_image` | `diagram`
-- `overflowPolicy`: `compress_first` | `preserve_then_paginate`
-- `preserveFullProblemStatement`: true for problem-statement pages when the readable prompt matters more than compression.
-- `visualSlot`: reference only IDs from Available Images or AI-generated image placeholders; do not invent image IDs.
+Content commands/environments:
+- `\text{...}`
+- `\heading{...}`
+- `\bullet{...}`; repeated bullets become one bullet list
+- `\formula{...}` for formulas; inside this command use real LaTeX, including `align`, `aligned`, `cases`, matrices, and `\left...\right`
+- `\code[lang=python]{...}`
+- `\table[headers={A|B|C}]{row1a|row1b|row1c \\ row2a|row2b|row2c}`
+- `\image[source=img_1,caption={optional},role=source_image]`
+- `\definition{Title}{Text}`
+- `\theorem{Title}{Text}`
+- `\callout{Title}{Text}`
+- `\note{Title}{Text}`
+- `\summary{Title}{Text}`
+- `\warning{Title}{Text}`
+- `\question{Title}{Text}`
+- `\begin{block}[type=definition|theorem|callout|note|summary|warning|question,title={...}] ... \end{block}`
+- `\begin{derivation}[title={...}] \step{explanation}{latex expression} ... \end{derivation}`
+- `\begin{process}[title={...},orientation=horizontal|vertical] \step{Step title}{Concrete action or reasoning} ... \end{process}`
 
-Optional page patterns (layout examples):
-- `auto`: default adaptive layout
-- `multi_column_cards`: multi-column card layout (usually 2 columns)
-- `flow_horizontal`: horizontal flow-connected layout
-- `flow_vertical`: vertical flow-connected layout
-- `symmetric_split`: symmetric left-right split (first two blocks emphasized)
-
-Grid notes:
-- Use `layout.mode = "grid"` when the page is naturally a comparison / checklist / compact matrix of peer items.
-- Keep each cell concise; renderer enforces equal row height and card alignment.
-- `columns` should be 1-3, `rows` should be 1-3.
-- In grid mode, keep peer cards side-by-side by default. Avoid diagonal placement.
-- For normal cards, prefer `placement.order` only; do not set `placement.row` / `placement.col`.
-- Use `placement.row` / `placement.col` only when a block intentionally spans (`rowSpan` or `colSpan` > 1).
-- Do not simulate ordered flows with grid; real sequence pages should usually use `process_flow` with `layout.mode = "stack"`.
-
-Built-in text templates (`templateId`):
-- `plain`: neutral white card
-- `infoCard`: informational light-blue card
-- `successCard`: success/result light-green card
-- `warningCard`: caution/risk light-orange card
-- `accentCard`: emphasized light-purple card
-
-Any block can optionally include presentation hints (without changing semantic meaning):
-
-```json
-{"templateId":"infoCard","cardTitle":"Key Takeaway","titleTone":"accent","textColor":"#1f2937","backgroundColor":"#eff6ff","borderColor":"#bfdbfe","noteTextColor":"#475569","noteBackgroundColor":"#f8fafc","noteBorderColor":"#cbd5e1","placement":{"order":0,"row":1,"col":2,"rowSpan":1,"colSpan":2}}
-```
-
-`placement` notes:
-- `order`: ordering hint for stack or grid (smaller comes earlier)
-- `row` / `col`: only for grid mode; use sparingly, mainly when a spanning block (`rowSpan` / `colSpan` > 1) needs an explicit anchor
-- `rowSpan` / `colSpan`: only for grid mode; preferred row/column span (1-based, max 3)
-- `cardTitle`: optional block title; rendered with stronger size and accent color than body text
-- `titleTone`: title color tone, one of `accent | neutral | inverse` (default `accent`)
-- `textColor`: block body/formula text color (including KaTeX content)
-- `backgroundColor` / `borderColor`: block background and border colors
-- `noteTextColor` / `noteBackgroundColor` / `noteBorderColor`: caption/notes text, background, border colors
-- `titleTextColor` / `titleBackgroundColor` / `titleBorderColor`: page title text, background, border colors
-
-Supported block shapes:
-
-```json
-{"type":"heading","level":2,"text":"..."}
-{"type":"paragraph","text":"..."}
-{"type":"bullet_list","items":["..."]}
-{"type":"definition","title":"optional","text":"..."}
-{"type":"theorem","title":"optional","text":"...","proofIdea":"optional"}
-{"type":"equation","latex":"...","display":true,"caption":"optional"}
-{"type":"matrix","rows":[["a","b"],["c","d"]],"brackets":"bmatrix","label":"optional","caption":"optional"}
-{"type":"derivation_steps","title":"optional","steps":[{"expression":"...","format":"latex|text|chem","explanation":"optional"}]}
-{"type":"code_block","language":"python","code":"...","caption":"optional"}
-{"type":"code_walkthrough","title":"optional","language":"python","code":"...","caption":"optional","steps":[{"title":"optional","focus":"optional","explanation":"..."}],"output":"optional"}
-{"type":"table","headers":["..."],"rows":[["..."]],"caption":"optional"}
-{"type":"callout","tone":"info|success|warning|danger|tip","title":"optional","text":"..."}
-{"type":"example","title":"optional","problem":"...","givens":["..."],"goal":"optional","steps":["..."],"answer":"optional","pitfalls":["..."]}
-{"type":"process_flow","title":"optional","orientation":"horizontal|vertical","context":[{"label":"Problem","text":"...","tone":"neutral|info|warning|success"}],"steps":[{"title":"Step title","detail":"Concrete action or reasoning","note":"optional"}],"summary":"optional"}
-{"type":"visual","source":"img_1 or gen_img_1","title":"optional","alt":"optional","caption":"optional","role":"source_image|generated_image|diagram","fit":"contain|cover","emphasis":"primary|supporting"}
-{"type":"chem_formula","formula":"...","caption":"optional"}
-{"type":"chem_equation","equation":"...","caption":"optional"}
-```
-
-`process_flow` rules:
-- `context` is for 1-4 compact setup cards such as "Problem", "Analysis", "Caution", or "Goal".
-- Put the actual sequence in `steps`; every step should contain concrete reasoning or action.
-- `orientation = "horizontal"`: use when there are 2-4 short steps and readers should scan the whole chain at a glance.
-- `orientation = "vertical"`: use when there are many steps, longer step detail, or the flow may need automatic continuation across pages.
-- If the flow is long, prefer `vertical` instead of forcing a crowded horizontal layout.
+Rules:
+- Do not output markdown fences.
+- Do not output JSON, HTML, coordinates, PPT elements, or JSON fields such as `slots` / `blocks`.
+- Keep content compact: usually 2-5 content units total.
+- For side-by-side structures, use `columns`; for three/four peer cards, use `grid`.
+- For three horizontal bands, use `rows` with three `row` environments.
+- Only use `\image` when Available Images / Visual Slots provides an image ID.
+- Use `\formula` for standalone math and wrap math in text with `$...$` or `\(...\)`.
+- Never leave raw math commands mixed directly into prose.
 
 ## Additional Constraints
 
-- Usually keep `blocks` between 2 and 8
-- Set `profile` to `math` for formula / proof / matrix-heavy slides, `code` for programming walkthroughs, otherwise `general`
-- Set `archetype` to exactly match the requested slide archetype
-- Use `layout.mode = "grid"` for side-by-side structures; otherwise use `stack`
-- If a specific card background is needed, set `templateId`; do not describe "background boxes" in prose
-- Prefer `process_flow` for true sequence teaching; do not fake a flowchart with heading + paragraph + bullet_list fragments
+- Usually keep content between 2 and 5 compact units
+- Set slide `profile=math` for formula / proof / matrix-heavy slides, `profile=code` for programming walkthroughs, otherwise `profile=general`
+- Choose a `template` attribute when the layout intent is clear; otherwise let the compiler infer it from `rows`, `columns`, or `grid`
+- Prefer a `process` environment for true sequence teaching; do not fake a flowchart with `\heading` + `\text` + loose bullets
 - Prefer one clear example over many weak bullets
-- Prefer semantically strong blocks whose built-in styles already match the teaching intent, instead of simulating layout with extra prose
+- Prefer semantically strong commands/environments whose built-in styles already match the teaching intent, instead of simulating layout with extra prose
 - Avoid pseudo-flowcharts, relation maps, or concept maps made of many tiny fragments; use stable teaching structures instead
 - Do not invent unrelated sections
 - Do not mention teacher identity inside the content
-- You may use `visualSlot` or a `visual` block to reference available/generated image IDs, but do not output coordinates and do not turn the whole slide into a screenshot.
+- You may use `\image` to reference available/generated image IDs, but do not output coordinates and do not turn the whole slide into a screenshot.

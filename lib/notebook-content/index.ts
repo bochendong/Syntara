@@ -24,6 +24,7 @@ export type {
   NotebookContentLayoutCardsBlock,
   NotebookContentLayoutCardsItem,
   NotebookContentVisualBlock,
+  NotebookContentSlot,
   NotebookContentStackLayout,
   NotebookContentTeachingFlow,
   NotebookSlideArchetype,
@@ -45,14 +46,27 @@ export {
   notebookContentTeachingFlowSchema,
   notebookContentTitleToneSchema,
   notebookContentBlockPlacementSchema,
+  notebookContentSlotSchema,
   notebookContentProfileSchema,
   notebookSlideArchetypeSchema,
   parseNotebookContentDocument,
 } from './schema';
 export {
+  SLOT_TEMPLATE_REGISTRY,
+  getSlotOrder,
+  getSlotTemplateSpec,
+  type SlotTemplateSlotSpec,
+  type SlotTemplateSpec,
+} from './slot-template-registry';
+export {
   buildNotebookContentDocumentFromInsert,
   buildNotebookContentDocumentFromText,
 } from './builders';
+export {
+  compileSyntaraMarkupToNotebookDocument,
+  extractSyntaraMarkup,
+  parseSyntaraMarkup,
+} from './markup';
 export {
   inferNotebookContentProfileFromBlocks,
   inferNotebookContentProfileFromText,

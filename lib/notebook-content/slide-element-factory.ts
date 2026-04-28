@@ -1,4 +1,3 @@
-import katex from 'katex';
 import { nanoid } from 'nanoid';
 import type {
   PPTElement,
@@ -11,7 +10,7 @@ import type {
   ShapeText,
   TableCell,
 } from '@/lib/types/slides';
-import { getDirectUnicodeMathSymbol, normalizeLatexSource } from '@/lib/latex-utils';
+import { normalizeMathSource, renderMathToHtml } from '@/lib/math-engine';
 import { escapeHtml } from './inline-html';
 import { CONTENT_LEFT, CONTENT_WIDTH } from './layout-constants';
 
@@ -178,15 +177,20 @@ export function createLineElement(args: {
   points?: [PPTLineElement['points'][0], PPTLineElement['points'][1]];
   groupId?: string;
 }): PPTLineElement {
+  const left = Math.min(args.start[0], args.end[0]);
+  const top = Math.min(args.start[1], args.end[1]);
+  const start: [number, number] = [args.start[0] - left, args.start[1] - top];
+  const end: [number, number] = [args.end[0] - left, args.end[1] - top];
+
   return {
     id: `line_${nanoid(8)}`,
     type: 'line',
-    left: 0,
-    top: 0,
+    left,
+    top,
     groupId: args.groupId,
     width: args.width ?? 2,
-    start: args.start,
-    end: args.end,
+    start,
+    end,
     style: 'solid',
     color: args.color,
     points: args.points || ['', ''],
@@ -205,8 +209,7 @@ export function createLatexElement(args: {
   fill?: string;
   outlineColor?: string;
 }): PPTLatexElement {
-  const latex = normalizeLatexSource(args.latex);
-  const directSymbol = getDirectUnicodeMathSymbol(latex);
+  const latex = normalizeMathSource(args.latex);
 
   return {
     id: `latex_${nanoid(8)}`,
@@ -218,14 +221,7 @@ export function createLatexElement(args: {
     height: args.height,
     rotate: 0,
     latex,
-    html:
-      directSymbol ??
-      katex.renderToString(latex, {
-        displayMode: true,
-        throwOnError: false,
-        output: 'html',
-        strict: 'ignore',
-      }),
+    html: renderMathToHtml(latex, { displayMode: true }),
     align: args.align || 'left',
     color: args.color,
     fill: args.fill,

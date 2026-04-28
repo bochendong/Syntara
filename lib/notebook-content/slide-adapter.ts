@@ -9,6 +9,7 @@ import type {
   NotebookContentLayoutFamily,
   NotebookContentLayoutTemplate,
   NotebookContentProfile,
+  NotebookContentSlot,
   NotebookContentTeachingFlow,
   NotebookContentTextTemplate,
   NotebookContentTitleTone,
@@ -83,6 +84,7 @@ import {
   fitGridHeadingToHeight,
   fitParagraphBlockToHeight,
 } from './slide-grid-copy';
+import { getSlotOrder, getSlotTemplateSpec, type SlotTemplateSpec } from './slot-template-registry';
 
 type ContentCardTone = {
   fill: string;
@@ -91,6 +93,39 @@ type ContentCardTone = {
 };
 type ProcessFlowBlock = Extract<NotebookContentBlock, { type: 'process_flow' }>;
 type LayoutCardsBlock = Extract<NotebookContentBlock, { type: 'layout_cards' }>;
+
+export type NotebookSlotLayoutIssue = {
+  code:
+    | 'unknown_template'
+    | 'unknown_slot'
+    | 'slot_block_type'
+    | 'slot_block_count'
+    | 'slot_weight'
+    | 'template_block_count'
+    | 'template_weight';
+  slotId?: string;
+  message: string;
+};
+
+export class NotebookSlotLayoutError extends Error {
+  readonly code = 'LAYOUT_COMPILE_FAILED';
+  readonly issues: NotebookSlotLayoutIssue[];
+
+  constructor(message: string, issues: NotebookSlotLayoutIssue[]) {
+    super(message);
+    this.name = 'NotebookSlotLayoutError';
+    this.issues = issues;
+  }
+}
+
+export function isNotebookSlotLayoutError(error: unknown): error is NotebookSlotLayoutError {
+  return error instanceof NotebookSlotLayoutError;
+}
+
+function isSlotOnlyDocument(document: NotebookContentDocument): boolean {
+  return document.version === 2 && Boolean(document.slots?.length);
+}
+
 function toFlowStepLabel(
   language: 'zh-CN' | 'en-US',
   block: NotebookContentBlock,
@@ -1130,10 +1165,7 @@ function createSlideFromFamilyElements(args: {
       fontColor: args.tokens.titleText,
       fontName: 'Microsoft YaHei',
     },
-    elements: normalizeSlideTextLayout(args.elements, {
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-    }),
+    elements: args.elements,
     background: {
       type: 'gradient',
       gradient: {
@@ -1245,6 +1277,155 @@ function blockSummaryLines(language: 'zh-CN' | 'en-US', block: NotebookContentBl
     return [block.text, ...(block.type === 'theorem' && block.proofIdea ? [block.proofIdea] : [])];
   }
   return blockToGridBody(language, block);
+}
+
+function estimateSlotBlockWeight(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): number {
+  if (block.type === 'code_block') {
+    return block.code.split('\n').length * 34 + block.code.length * 0.35;
+  }
+  if (block.type === 'code_walkthrough') {
+    return (
+      block.code.split('\n').length * 26 +
+      block.steps.reduce((sum, step) => sum + step.explanation.length, 0) * 0.9
+    );
+  }
+  if (block.type === 'derivation_steps') {
+    return block.steps.reduce(
+      (sum, step) => sum + step.expression.length * 1.15 + (step.explanation?.length || 0) * 0.8,
+      0,
+    );
+  }
+  if (block.type === 'equation') return block.latex.length * 1.35;
+  if (block.type === 'matrix') return matrixBlockToLatex(block).length * 1.2;
+  if (block.type === 'table') {
+    return [
+      ...(block.headers || []),
+      ...block.rows.flatMap((row) => row),
+      block.caption || '',
+    ].join('').length;
+  }
+  if (block.type === 'process_flow') {
+    return (
+      block.context.reduce((sum, item) => sum + item.label.length + item.text.length, 0) +
+      block.steps.reduce((sum, step) => sum + step.title.length + step.detail.length, 0) +
+      (block.summary?.length || 0)
+    );
+  }
+  if (block.type === 'example') {
+    return (
+      block.problem.length +
+      block.givens.join('').length +
+      (block.goal?.length || 0) +
+      block.steps.join('').length +
+      (block.answer?.length || 0)
+    );
+  }
+
+  return blockSummaryLines(language, block).join('').length;
+}
+
+function estimateSlotWeight(language: 'zh-CN' | 'en-US', slot: NotebookContentSlot): number {
+  return slot.blocks.reduce((sum, block) => sum + estimateSlotBlockWeight(language, block), 0);
+}
+
+function validateSlotTemplateDocument(args: {
+  document: NotebookContentDocument;
+  language: 'zh-CN' | 'en-US';
+  spec: SlotTemplateSpec | undefined;
+}): SlotTemplateSpec {
+  const issues: NotebookSlotLayoutIssue[] = [];
+  const template = args.document.layoutTemplate;
+
+  if (!template || !args.spec) {
+    issues.push({
+      code: 'unknown_template',
+      message: `Unknown slot template: ${template || 'missing'}.`,
+    });
+  }
+
+  const slots = args.document.slots || [];
+  const slotSpecs = new Map(args.spec?.slots.map((slot) => [slot.slotId, slot]) || []);
+  const totalBlocks = slots.reduce((sum, slot) => sum + slot.blocks.length, 0);
+  const totalWeight = slots.reduce((sum, slot) => sum + estimateSlotWeight(args.language, slot), 0);
+
+  if (args.spec && totalBlocks > args.spec.maxBlocks) {
+    issues.push({
+      code: 'template_block_count',
+      message: `Template ${args.spec.template} accepts ${args.spec.maxBlocks} blocks; received ${totalBlocks}.`,
+    });
+  }
+
+  if (args.spec && totalWeight > args.spec.maxTotalWeight) {
+    issues.push({
+      code: 'template_weight',
+      message: `Template ${args.spec.template} capacity ${args.spec.maxTotalWeight}; estimated content weight ${Math.round(
+        totalWeight,
+      )}.`,
+    });
+  }
+
+  slots.forEach((slot) => {
+    const slotSpec = slotSpecs.get(slot.slotId);
+    const slotWeight = estimateSlotWeight(args.language, slot);
+    if (!slotSpec) {
+      issues.push({
+        code: 'unknown_slot',
+        slotId: slot.slotId,
+        message: `Slot ${slot.slotId} is not allowed in template ${template}.`,
+      });
+      return;
+    }
+
+    if (slot.blocks.length > slotSpec.maxBlocks) {
+      issues.push({
+        code: 'slot_block_count',
+        slotId: slot.slotId,
+        message: `Slot ${slot.slotId} accepts ${slotSpec.maxBlocks} blocks; received ${slot.blocks.length}.`,
+      });
+    }
+
+    if (slotWeight > slotSpec.maxWeight) {
+      issues.push({
+        code: 'slot_weight',
+        slotId: slot.slotId,
+        message: `Slot ${slot.slotId} capacity ${slotSpec.maxWeight}; estimated content weight ${Math.round(
+          slotWeight,
+        )}.`,
+      });
+    }
+
+    if (slotSpec.allowedBlockTypes) {
+      const invalid = slot.blocks.find(
+        (block) => !slotSpec.allowedBlockTypes?.includes(block.type),
+      );
+      if (invalid) {
+        issues.push({
+          code: 'slot_block_type',
+          slotId: slot.slotId,
+          message: `Slot ${slot.slotId} does not allow block type ${invalid.type}.`,
+        });
+      }
+    }
+  });
+
+  if (issues.length > 0) {
+    throw new NotebookSlotLayoutError('Slot template compile failed.', issues);
+  }
+
+  return args.spec as SlotTemplateSpec;
+}
+
+function flattenSlotBlocksForTemplate(
+  document: NotebookContentDocument & { slots: NotebookContentSlot[] },
+  spec: SlotTemplateSpec,
+): NotebookContentBlock[] {
+  return [...document.slots]
+    .sort((a, b) => {
+      const orderDelta = getSlotOrder(spec, a.slotId) - getSlotOrder(spec, b.slotId);
+      if (orderDelta !== 0) return orderDelta;
+      return a.priority - b.priority;
+    })
+    .flatMap((slot) => slot.blocks);
 }
 
 function createBlockCard(args: {
@@ -2489,149 +2670,6 @@ function collectCoverLines(language: 'zh-CN' | 'en-US', blocks: NotebookContentB
     .filter(Boolean);
 }
 
-function renderCoverFunctionVisual(args: {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  tokens: ReturnType<typeof getProfileTokens>;
-  language: 'zh-CN' | 'en-US';
-}): PPTElement[] {
-  const groupId = createCardGroupId('cover_function_visual');
-  const circleSize = 112;
-  const aLeft = args.left + 18;
-  const bLeft = args.left + args.width - circleSize - 18;
-  const circleTop = args.top + 98;
-  const aCenterX = aLeft + circleSize / 2;
-  const bCenterX = bLeft + circleSize / 2;
-  const centerY = circleTop + circleSize / 2;
-  const nodePairs = [
-    { fromY: centerY - 28, toY: centerY - 18 },
-    { fromY: centerY, toY: centerY + 2 },
-    { fromY: centerY + 28, toY: centerY + 24 },
-  ];
-
-  const elements: PPTElement[] = [
-    createRectShape({
-      left: args.left,
-      top: args.top,
-      width: args.width,
-      height: args.height,
-      fill: 'rgba(255,255,255,0.62)',
-      outlineColor: '#dbeafe',
-      groupId,
-      shadow: {
-        h: 0,
-        v: 12,
-        blur: 30,
-        color: 'rgba(15,23,42,0.08)',
-      },
-    }),
-    createTextElement({
-      left: args.left + 24,
-      top: args.top + 22,
-      width: args.width - 48,
-      height: 36,
-      groupId,
-      html: `<p style="font-size:14px;color:${args.tokens.titleAccent};font-weight:760;">${escapeHtml(
-        args.language === 'en-US' ? 'Function View' : '函数视角',
-      )}</p>`,
-      color: args.tokens.titleAccent,
-      textType: 'content',
-    }),
-    createLatexElement({
-      latex: 'f: A \\to B',
-      left: args.left + 54,
-      top: args.top + 54,
-      width: args.width - 108,
-      height: 46,
-      align: 'center',
-      color: args.tokens.titleText,
-      groupId,
-    }),
-    createCircleShape({
-      left: aLeft,
-      top: circleTop,
-      size: circleSize,
-      fill: '#eef2ff',
-      groupId,
-    }),
-    createCircleShape({
-      left: bLeft,
-      top: circleTop,
-      size: circleSize,
-      fill: '#ecfdf5',
-      groupId,
-    }),
-    createTextElement({
-      left: aLeft + 38,
-      top: circleTop + 36,
-      width: 38,
-      height: 36,
-      groupId,
-      html: `<p style="font-size:24px;color:${args.tokens.titleText};font-weight:760;text-align:center;">A</p>`,
-      color: args.tokens.titleText,
-      textType: 'content',
-    }),
-    createTextElement({
-      left: bLeft + 38,
-      top: circleTop + 36,
-      width: 38,
-      height: 36,
-      groupId,
-      html: `<p style="font-size:24px;color:${args.tokens.titleText};font-weight:760;text-align:center;">B</p>`,
-      color: args.tokens.titleText,
-      textType: 'content',
-    }),
-  ];
-
-  nodePairs.forEach((pair, index) => {
-    const accent = index === 0 ? '#2f6bff' : index === 1 ? '#7a5af8' : '#12b76a';
-    elements.push(
-      createCircleShape({
-        left: aCenterX - 4,
-        top: pair.fromY - 4,
-        size: 8,
-        fill: accent,
-        groupId,
-      }),
-      createCircleShape({
-        left: bCenterX - 4,
-        top: pair.toY - 4,
-        size: 8,
-        fill: accent,
-        groupId,
-      }),
-      createLineElement({
-        start: [aCenterX + 16, pair.fromY],
-        end: [bCenterX - 16, pair.toY],
-        color: accent,
-        width: 2,
-        groupId,
-      }),
-    );
-  });
-
-  elements.push(
-    createTextElement({
-      left: args.left + 26,
-      top: args.top + args.height - 54,
-      width: args.width - 52,
-      height: 36,
-      groupId,
-      html: `<p style="font-size:13px;line-height:18px;color:#475569;text-align:center;">${escapeHtml(
-        args.language === 'en-US'
-          ? 'Each input maps to exactly one output'
-          : '每个输入对应唯一输出',
-      )}</p>`,
-      color: '#475569',
-      textType: 'notes',
-    }),
-  );
-
-  return elements;
-}
-
 function renderCoverRouteStrip(args: {
   items: string[];
   language: 'zh-CN' | 'en-US';
@@ -2689,6 +2727,7 @@ function renderCoverHeroSlide(args: {
   language: 'zh-CN' | 'en-US';
   tokens: ReturnType<typeof getProfileTokens>;
   blocks: NotebookContentBlock[];
+  visual?: VisualSlotWithTitle | null;
 }): Slide {
   const title = args.document.title || args.fallbackTitle;
   const titleSize = getCoverTitleSize(title);
@@ -2703,6 +2742,7 @@ function renderCoverHeroSlide(args: {
       ),
     )
     .filter(Boolean);
+  const hasVisual = Boolean(args.visual?.source);
   const elements: PPTElement[] = [
     createTextElement({
       left: CONTENT_LEFT,
@@ -2723,19 +2763,11 @@ function renderCoverHeroSlide(args: {
     createTextElement({
       left: CONTENT_LEFT,
       top: 232,
-      width: 510,
+      width: hasVisual ? 510 : 720,
       height: 112,
       html: `<p style="font-size:17px;line-height:26px;color:#334155;">${renderInlineLatexToHtml(lead)}</p>`,
       color: '#334155',
       textType: 'subtitle',
-    }),
-    ...renderCoverFunctionVisual({
-      left: 626,
-      top: 218,
-      width: 288,
-      height: 212,
-      tokens: args.tokens,
-      language: args.language,
     }),
     ...renderCoverRouteStrip({
       items: routeItems,
@@ -2743,6 +2775,21 @@ function renderCoverHeroSlide(args: {
       tokens: args.tokens,
     }),
   ];
+
+  if (hasVisual) {
+    elements.push(
+      ...renderVisualPanel({
+        visual: args.visual || null,
+        blocks: args.blocks,
+        language: args.language,
+        left: 626,
+        top: 218,
+        width: 288,
+        height: 212,
+        tokens: args.tokens,
+      }),
+    );
+  }
 
   return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
 }
@@ -2771,6 +2818,7 @@ function renderStructuredLayoutFamilySlide(args: {
       language: args.language,
       tokens: args.tokens,
       blocks: contentBlocks,
+      visual: args.visual,
     });
   }
 
@@ -3353,10 +3401,52 @@ export function validateNotebookContentDocumentArchetype(
   };
 }
 
+function renderSlotTemplateDocumentToSlide(args: {
+  document: NotebookContentDocument;
+  fallbackTitle: string;
+}): Slide {
+  const language = args.document.language || 'zh-CN';
+  const profile = resolveNotebookContentProfile(args.document);
+  const tokens = getProfileTokens(profile);
+  const template = args.document.layoutTemplate;
+  const spec = template ? getSlotTemplateSpec(template) : undefined;
+
+  const checkedSpec = validateSlotTemplateDocument({
+    document: args.document,
+    language,
+    spec,
+  });
+
+  const slotDocument = args.document as NotebookContentDocument & {
+    layoutTemplate: NotebookContentLayoutTemplate;
+    slots: NotebookContentSlot[];
+  };
+  const blocks = flattenSlotBlocksForTemplate(slotDocument, checkedSpec);
+  const documentForRender: NotebookContentDocument = {
+    ...slotDocument,
+    layoutFamily: slotDocument.layoutFamily || checkedSpec.family,
+    blocks,
+  };
+
+  return renderStructuredLayoutFamilySlide({
+    document: documentForRender,
+    fallbackTitle: args.fallbackTitle,
+    family: documentForRender.layoutFamily || checkedSpec.family,
+    language,
+    tokens,
+    blocks: stripVisualBlocks(blocks),
+    visual: resolveDocumentVisualSlot(documentForRender),
+  });
+}
+
 export function renderNotebookContentDocumentToSlide(args: {
   document: NotebookContentDocument;
   fallbackTitle: string;
 }): Slide {
+  if (isSlotOnlyDocument(args.document)) {
+    return renderSlotTemplateDocumentToSlide(args);
+  }
+
   const language = args.document.language || 'zh-CN';
   const profile = resolveNotebookContentProfile(args.document);
   const archetype = resolveDocumentArchetype(args.document);

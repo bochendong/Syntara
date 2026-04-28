@@ -1,6 +1,5 @@
 'use client';
 
-import katex from 'katex';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,7 @@ import type {
   PPTLatexElement,
 } from '@/lib/types/slides';
 import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
+import { renderMathToHtml } from '@/lib/math-engine';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 import { ImagePlus, Loader2, PlusSquare, SendHorizonal, Trash2, Upload, X } from 'lucide-react';
@@ -45,7 +45,9 @@ function sectionTitle(title: string, description?: string) {
 }
 
 function fieldLabel(label: string) {
-  return <Label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</Label>;
+  return (
+    <Label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</Label>
+  );
 }
 
 function getElementTypeLabel(type: PPTElement['type']): string {
@@ -207,7 +209,8 @@ function normalizeMeasuredHtml(root: HTMLElement, paragraphSpacePx: number) {
   paragraphs.forEach((paragraph, index) => {
     const paragraphNode = paragraph as HTMLElement;
     paragraphNode.style.margin = '0';
-    paragraphNode.style.marginBottom = index < paragraphs.length - 1 ? `${paragraphSpacePx}px` : '0';
+    paragraphNode.style.marginBottom =
+      index < paragraphs.length - 1 ? `${paragraphSpacePx}px` : '0';
   });
 
   root.querySelectorAll('ol, ul').forEach((listNode) => {
@@ -271,11 +274,7 @@ function buildAutoSizedTextProps(
 
 function renderLatexElementHtml(latex: string) {
   try {
-    return katex.renderToString(latex, {
-      throwOnError: false,
-      displayMode: true,
-      output: 'html',
-    });
+    return renderMathToHtml(latex, { displayMode: true });
   } catch {
     return undefined;
   }
@@ -396,7 +395,9 @@ export function SlideElementInspector({
   repairInputFocusNonce = 0,
   onClose,
 }: SlideElementInspectorProps) {
-  const elements = useSceneSelector<SlideContent, PPTElement[]>((content) => content.canvas.elements);
+  const elements = useSceneSelector<SlideContent, PPTElement[]>(
+    (content) => content.canvas.elements,
+  );
   const activeElementIdList = useCanvasStore.use.activeElementIdList();
   const viewportSize = useCanvasStore.use.viewportSize();
   const viewportRatio = useCanvasStore.use.viewportRatio();
@@ -498,10 +499,10 @@ export function SlideElementInspector({
   const handleAddTextElement = useCallback(() => {
     const trimmedContent = newTextContent.trim() || '请输入文本';
     const fontSize = Number.isFinite(newTextFontSize) ? Math.max(12, newTextFontSize) : 24;
-    const contentHtml = applyTypographyToHtml(
-      plainTextToParagraphHtml(trimmedContent),
-      { fontSizePx: fontSize, fontFamily: newTextFontFamily },
-    );
+    const contentHtml = applyTypographyToHtml(plainTextToParagraphHtml(trimmedContent), {
+      fontSizePx: fontSize,
+      fontFamily: newTextFontFamily,
+    });
     const { left, top } = getNextInsertPosition(DEFAULT_TEXT_BOX_WIDTH, DEFAULT_TEXT_BOX_HEIGHT);
 
     const nextTextElement: PPTTextElement = {
@@ -867,12 +868,15 @@ export function SlideElementInspector({
               <select
                 value={text.align}
                 onChange={(e) =>
-                  updateCurrentElement({
-                    text: {
-                      ...text,
-                      align: e.target.value as NonNullable<PPTShapeElement['text']>['align'],
+                  updateCurrentElement(
+                    {
+                      text: {
+                        ...text,
+                        align: e.target.value as NonNullable<PPTShapeElement['text']>['align'],
+                      },
                     },
-                  }, true)
+                    true,
+                  )
                 }
                 className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
               >
@@ -927,10 +931,7 @@ export function SlideElementInspector({
         <select
           value={element.align || 'center'}
           onChange={(e) =>
-            updateCurrentElement(
-              { align: e.target.value as PPTLatexElement['align'] },
-              true,
-            )
+            updateCurrentElement({ align: e.target.value as PPTLatexElement['align'] }, true)
           }
           className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
         >
@@ -949,7 +950,9 @@ export function SlideElementInspector({
         {sectionTitle('表格内容', '可以逐格改表格文本，适合修正标题、数字或术语。')}
         <div className="space-y-2">
           {tableData.length === 0 ? (
-            <p className="text-xs text-muted-foreground">表格暂无单元格数据（可能为旧数据或生成不完整）。</p>
+            <p className="text-xs text-muted-foreground">
+              表格暂无单元格数据（可能为旧数据或生成不完整）。
+            </p>
           ) : (
             tableData.map((row, rowIndex) => (
               <div key={`row-${rowIndex}`} className="grid grid-cols-1 gap-2">
@@ -1272,7 +1275,9 @@ export function SlideElementInspector({
               ref={repairConversationRef}
               className={cn(
                 'rounded-2xl border border-white/70 bg-white/75 p-3 dark:border-white/10 dark:bg-slate-950/30',
-                repairConversation.length > 0 ? 'space-y-3' : 'flex min-h-[200px] flex-col items-center justify-center px-4 py-8 text-center',
+                repairConversation.length > 0
+                  ? 'space-y-3'
+                  : 'flex min-h-[200px] flex-col items-center justify-center px-4 py-8 text-center',
               )}
             >
               {repairConversation.length === 0 ? (
@@ -1414,9 +1419,15 @@ export function SlideElementInspector({
                   ) : selectedElements.length > 1 ? (
                     <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
                       <p>
-                        当前选中了 {selectedElements.length} 个组件。位置与内容编辑需单选；可先批量删除或再在画布上点选其中一个。
+                        当前选中了 {selectedElements.length}{' '}
+                        个组件。位置与内容编辑需单选；可先批量删除或再在画布上点选其中一个。
                       </p>
-                      <Button type="button" variant="destructive" size="sm" onClick={handleDeleteSelected}>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDeleteSelected}
+                      >
                         <Trash2 className="size-4" />
                         删除所选组件
                       </Button>

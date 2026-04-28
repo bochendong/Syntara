@@ -1,9 +1,6 @@
-import katex from 'katex';
 import { createLogger } from '@/lib/logger';
-import {
-  MAX_TEXT_LINE_HEIGHT_RATIO,
-  MIN_TEXT_LINE_HEIGHT_RATIO,
-} from '@/lib/slide-text-layout';
+import { normalizeMathSource, renderMathToHtml } from '@/lib/math-engine';
+import { MAX_TEXT_LINE_HEIGHT_RATIO, MIN_TEXT_LINE_HEIGHT_RATIO } from '@/lib/slide-text-layout';
 import type { ImageMapping, PdfImage } from '@/lib/types/generation';
 import type { GeneratedSlideData } from './pipeline-types';
 
@@ -305,14 +302,12 @@ export function processLatexElements(
       }
 
       try {
-        const html = katex.renderToString(latexStr, {
-          throwOnError: false,
-          displayMode: true,
-          output: 'html',
-        });
+        const latex = normalizeMathSource(latexStr);
+        const html = renderMathToHtml(latex, { displayMode: true });
 
         return {
           ...el,
+          latex,
           html,
           fixedRatio: true,
         };
