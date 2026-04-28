@@ -1,10 +1,7 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { UIMessage } from 'ai';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
-import {
-  COURSE_ORCHESTRATOR_ID,
-  COURSE_ORCHESTRATOR_NAME,
-} from '@/lib/constants/course-chat';
+import { COURSE_ORCHESTRATOR_ID, COURSE_ORCHESTRATOR_NAME } from '@/lib/constants/course-chat';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
 import { createLogger } from '@/lib/logger';
 import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
@@ -13,10 +10,7 @@ import type { ChatMessageMetadata } from '@/lib/types/chat';
 import { USER_AVATAR } from '@/lib/types/roundtable';
 import type { Scene } from '@/lib/types/stage';
 import { cancelAgentTask, createAgentTask, updateAgentTask } from '@/lib/utils/agent-task-storage';
-import {
-  toChatAgentConfig,
-  type CourseAgentListItem,
-} from '@/lib/utils/course-agents';
+import { toChatAgentConfig, type CourseAgentListItem } from '@/lib/utils/course-agents';
 import { storeChatAttachmentBlob } from '@/lib/utils/chat-attachment-blobs';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
@@ -301,6 +295,7 @@ export function useAgentChatActions({
                 language: orchGen.language,
                 webSearch: orchGen.webSearch,
                 generateSlides: orchGen.generateSlides,
+                slideGenerationRoute: orchGen.slideGenerationRoute,
                 userNickname: nickname.trim() || undefined,
                 sourceFile: sourceFileForPipeline,
                 sourcePageSelection: effectiveSourcePageSelection,

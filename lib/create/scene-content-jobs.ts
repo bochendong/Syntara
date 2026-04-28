@@ -6,13 +6,11 @@ import {
   SAFE_GENERATION_REQUEST_BYTES,
 } from '@/lib/generation/request-payload-budget';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
+import type { SlideGenerationRoute } from '@/lib/generation/slide-generation-route';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import { backendFetch } from '@/lib/utils/backend-api';
-import {
-  buildPayloadTooLargeMessage,
-  readApiErrorMessage,
-} from './api-errors';
+import { buildPayloadTooLargeMessage, readApiErrorMessage } from './api-errors';
 import { getApiHeaders } from './generation-headers';
 
 export type GeneratedSceneContentBundle = {
@@ -50,6 +48,7 @@ export async function generateSceneContentBundle(args: {
   signal?: AbortSignal;
   pdfImages?: PdfImage[];
   imageMapping?: ImageMapping;
+  slideGenerationRoute?: SlideGenerationRoute | null;
   getHeaders?: () => HeadersInit;
 }): Promise<GeneratedSceneContentBundle> {
   const suggestedIds = args.outline.suggestedImageIds || [];
@@ -69,6 +68,7 @@ export async function generateSceneContentBundle(args: {
     stageId: args.stage.id,
     agents: args.agents,
     courseContext: args.courseContext,
+    slideGenerationRoute: args.slideGenerationRoute,
   };
   const budgetedMedia = buildBudgetedGenerationMedia({
     basePayload,

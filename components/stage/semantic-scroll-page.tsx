@@ -23,6 +23,15 @@ interface SemanticScrollSection {
   readonly blocks: NotebookContentBlock[];
 }
 
+type SemanticSectionTone =
+  | 'plain'
+  | 'definition'
+  | 'process'
+  | 'formula'
+  | 'callout'
+  | 'problem'
+  | 'cards';
+
 function renderInlineMathHtml(text: string): string {
   return renderInlineMathAwareHtml(text);
 }
@@ -180,6 +189,60 @@ function documentForSection(
   };
 }
 
+function sectionTone(section: SemanticScrollSection): SemanticSectionTone {
+  const blockTypes = new Set(section.blocks.map((block) => block.type));
+  if (blockTypes.has('process_flow') || blockTypes.has('derivation_steps')) return 'process';
+  if (blockTypes.has('equation') || blockTypes.has('matrix')) return 'formula';
+  if (blockTypes.has('definition') || blockTypes.has('theorem')) return 'definition';
+  if (blockTypes.has('callout')) return 'callout';
+  if (blockTypes.has('example')) return 'problem';
+  if (blockTypes.has('layout_cards') || blockTypes.has('bullet_list')) return 'cards';
+  return 'plain';
+}
+
+function sectionChrome(tone: SemanticSectionTone, index: number) {
+  const alternatingPlain =
+    index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/55 ring-1 ring-slate-100';
+  const styles = {
+    plain: {
+      section: cn('py-2', alternatingPlain, index % 2 === 0 ? '' : 'rounded-lg px-5'),
+      label: 'text-slate-500',
+      badge: 'border-slate-200 bg-slate-50 text-slate-600',
+    },
+    definition: {
+      section: 'rounded-lg bg-blue-50/45 px-5 py-5 ring-1 ring-blue-100',
+      label: 'text-blue-700',
+      badge: 'border-blue-200 bg-blue-600 text-white',
+    },
+    process: {
+      section: 'rounded-lg bg-slate-50/90 px-5 py-5 ring-1 ring-slate-200',
+      label: 'text-slate-700',
+      badge: 'border-slate-300 bg-slate-900 text-white',
+    },
+    formula: {
+      section: 'rounded-lg bg-indigo-50/40 px-5 py-5 ring-1 ring-indigo-100',
+      label: 'text-indigo-700',
+      badge: 'border-indigo-200 bg-indigo-600 text-white',
+    },
+    callout: {
+      section: 'rounded-lg bg-emerald-50/40 px-5 py-5 ring-1 ring-emerald-100',
+      label: 'text-emerald-700',
+      badge: 'border-emerald-200 bg-emerald-600 text-white',
+    },
+    problem: {
+      section: 'rounded-lg bg-amber-50/40 px-5 py-5 ring-1 ring-amber-100',
+      label: 'text-amber-700',
+      badge: 'border-amber-200 bg-amber-600 text-white',
+    },
+    cards: {
+      section: 'rounded-lg bg-slate-50/60 px-5 py-5 ring-1 ring-slate-100',
+      label: 'text-blue-700',
+      badge: 'border-blue-200 bg-blue-50 text-blue-700',
+    },
+  } satisfies Record<SemanticSectionTone, { section: string; label: string; badge: string }>;
+  return styles[tone];
+}
+
 export function SemanticScrollPage({ document, sceneId, title }: SemanticScrollPageProps) {
   const sections = useMemo(() => buildBlockSections(document), [document]);
   const titleHtml = useMemo(
@@ -194,11 +257,8 @@ export function SemanticScrollPage({ document, sceneId, title }: SemanticScrollP
       className="h-full w-full overflow-y-auto bg-white text-slate-950"
     >
       <div className="mx-auto min-h-full w-full max-w-[980px] px-6 py-8 sm:px-10 sm:py-10 lg:px-12">
-        <header
-          data-semantic-scroll-target="true"
-          className="scroll-mt-8 border-b border-slate-200 pb-7"
-        >
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+        <header data-semantic-scroll-target="true" className="scroll-mt-8 pb-7">
+          <p className="mb-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">
             {document.profile === 'math' ? 'MATHEMATICS' : document.profile.toUpperCase()}
           </p>
           <h1
@@ -207,27 +267,35 @@ export function SemanticScrollPage({ document, sceneId, title }: SemanticScrollP
           />
         </header>
 
-        <div className="space-y-9 py-9">
+        <div className="space-y-7 py-8">
           {sections.map((section, index) => {
             const sectionDocument = documentForSection(document, section.blocks);
             const sectionTitleHtml = section.title ? renderInlineMathHtml(section.title) : null;
+            const tone = sectionTone(section);
+            const chrome = sectionChrome(tone, index);
             return (
               <section
                 key={section.id}
                 data-semantic-scroll-target="true"
                 data-semantic-scroll-index={index}
                 className={cn(
-                  'scroll-mt-8 border-t border-slate-200 pt-7 first:border-t-0 first:pt-0',
-                  'break-words',
+                  'scroll-mt-8 break-words',
+                  index > 0 && tone === 'plain' ? 'pt-2' : '',
+                  chrome.section,
                 )}
               >
                 {sectionTitleHtml ? (
                   <div className="mb-4 flex items-start gap-3">
-                    <span className="mt-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-semibold text-white">
+                    <span
+                      className={cn(
+                        'mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-xs font-semibold',
+                        chrome.badge,
+                      )}
+                    >
                       {section.eyebrow || index + 1}
                     </span>
                     <h2
-                      className="min-w-0 text-xl font-semibold leading-snug text-slate-950"
+                      className={cn('min-w-0 text-xl font-semibold leading-snug', chrome.label)}
                       dangerouslySetInnerHTML={{ __html: sectionTitleHtml }}
                     />
                   </div>

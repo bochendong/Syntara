@@ -43,6 +43,7 @@ import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-vo
 import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
 import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
+import { ClassroomSemanticSlideEditor } from '@/components/stage/classroom-semantic-slide-editor';
 import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
 import { sceneTypeTabLabel } from '@/components/stage/stage-helpers';
 import {
@@ -56,6 +57,7 @@ import {
   renderReflowedLayoutCardsScene,
   type RawSlideDataView,
 } from '@/components/stage/raw-view-helpers';
+import { normalizeSyntaraMarkupLayout, type NotebookContentDocument } from '@/lib/notebook-content';
 import {
   EditorStatusChip,
   StageTitleActions,
@@ -1589,6 +1591,14 @@ export function Stage({
     />
   );
 
+  const semanticManualEditorOpen =
+    slideEditorOpen &&
+    slideEditTab === 'canvas' &&
+    slideEditorSidebarTab === 'manual' &&
+    currentScene?.type === 'slide' &&
+    currentScene.content.type === 'slide' &&
+    Boolean(currentScene.content.semanticDocument);
+
   const editorStatusSlot = slideEditorOpen ? (
     <EditorStatusChip
       storageSaveState={storageSaveState}
@@ -1596,6 +1606,7 @@ export function Stage({
       storageSavedAt={storageSavedAt}
       storageSaveError={storageSaveError}
       slideEditTab={slideEditTab}
+      semanticEditorOpen={semanticManualEditorOpen}
     />
   ) : undefined;
 
@@ -1637,6 +1648,30 @@ export function Stage({
       setGridReflowPending(false);
     }
   }, [currentScene, updateScene]);
+  const handleSaveSemanticSlideMarkup = useCallback(
+    (markup: string, document: NotebookContentDocument) => {
+      if (!currentScene || currentScene.type !== 'slide' || currentScene.content.type !== 'slide') {
+        return;
+      }
+      const normalizedMarkup = normalizeSyntaraMarkupLayout(markup);
+      const title = document.title || currentScene.title;
+      const rendered = renderSemanticSlideContent({
+        document,
+        fallbackTitle: title,
+        preserveCanvasId: currentScene.content.canvas.id,
+        syntaraMarkup: normalizedMarkup,
+        renderMode: currentScene.content.semanticRenderMode ?? 'auto',
+      });
+
+      updateScene(currentScene.id, {
+        title,
+        content: rendered,
+        updatedAt: Date.now(),
+      });
+      toast.success('已通过 Syntara Markup 重新编译并渲染当前页。');
+    },
+    [currentScene, updateScene],
+  );
   const openRepairSidebar = useCallback(() => {
     if (!canRepairCurrentSlide) return;
 
@@ -1749,18 +1784,29 @@ export function Stage({
               onSaveActions={saveCurrentSceneActions}
             />
           ) : slideEditorOpen && slideEditTab === 'canvas' && currentScene?.type === 'slide' ? (
-            <ClassroomSlideCanvasEditor
-              currentScene={currentScene}
-              currentSceneIndex={currentSceneIndex}
-              sidebarPanel={slideEditorSidebarTab}
-              repairDraft={repairInstructions}
-              onRepairDraftChange={setCurrentSlideRepairDraft}
-              repairConversation={repairConversation}
-              onSendRepairMessage={() => void handleRepairCurrentSlide()}
-              repairPending={slideRepairPending}
-              repairInputFocusNonce={repairSidebarFocusNonce}
-              onCloseInspector={handleCloseSlideEditor}
-            />
+            currentScene.content.type === 'slide' &&
+            currentScene.content.semanticDocument &&
+            slideEditorSidebarTab === 'manual' ? (
+              <ClassroomSemanticSlideEditor
+                key={currentScene.id}
+                currentScene={currentScene}
+                onSaveMarkup={handleSaveSemanticSlideMarkup}
+                onClose={handleCloseSlideEditor}
+              />
+            ) : (
+              <ClassroomSlideCanvasEditor
+                currentScene={currentScene}
+                currentSceneIndex={currentSceneIndex}
+                sidebarPanel={slideEditorSidebarTab}
+                repairDraft={repairInstructions}
+                onRepairDraftChange={setCurrentSlideRepairDraft}
+                repairConversation={repairConversation}
+                onSendRepairMessage={() => void handleRepairCurrentSlide()}
+                repairPending={slideRepairPending}
+                repairInputFocusNonce={repairSidebarFocusNonce}
+                onCloseInspector={handleCloseSlideEditor}
+              />
+            )
           ) : (
             <CanvasArea
               currentScene={currentScene}

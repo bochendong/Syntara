@@ -95,10 +95,10 @@ function buildOrchestratorPreferencesBlock(
   };
 
   const quizZh = prefs.includeQuizScenes
-    ? '**测验与题目**：允许在每个主要知识点结束后安排一个轻量 `quiz` 场景作为即时检查；每个 quiz 通常 1–2 题即可。讲题与例题仍以 `slide` 为主，不要生成多个同主题 quiz 变体，也不要把 quiz 集中堆在结尾。'
+    ? '**测验与题目**：允许在每个主要知识点结束后安排一个轻量 `quiz` 场景作为即时检查；每个 quiz 通常 1–2 题即可。不要把 quiz 放在封面/导论/路线图之后作为第 2 页，也不要在真正讲完第一个知识点前安排 quiz。讲题与例题仍以 `slide` 为主，不要生成多个同主题 quiz 变体，也不要把 quiz 集中堆在结尾。'
     : '**测验与题目**：不要规划独立的 `quiz` 类型场景；知识点以 `slide`（及必要的 `interactive`）呈现，尽量不安排测验页。';
   const quizEn = prefs.includeQuizScenes
-    ? '**Quizzes**: You may add a lightweight `quiz` scene after each major knowledge point as an immediate check; keep each quiz to about 1-2 questions. Keep worked teaching on `slide`, do not create multiple same-topic quiz variants, and do not cluster all quizzes at the end.'
+    ? '**Quizzes**: You may add a lightweight `quiz` scene after each major knowledge point as an immediate check; keep each quiz to about 1-2 questions. Do not place a quiz directly after the cover/intro/roadmap as scene 2, and do not add any quiz before the first real knowledge point has been taught. Keep worked teaching on `slide`, do not create multiple same-topic quiz variants, and do not cluster all quizzes at the end.'
     : '**Quizzes**: Do **not** plan standalone `quiz` scenes; teach with `slide` (and `interactive` when helpful), avoid quiz pages.';
 
   const title =

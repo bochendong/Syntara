@@ -7,13 +7,7 @@ export type SlideEditTab = 'canvas' | 'narration';
 export type SlideEditorSidebarTab = 'ai' | 'manual';
 export type MainClassroomView = 'ppt' | 'quiz' | 'raw';
 
-function SegmentedShell({
-  children,
-  ariaLabel,
-}: {
-  children: ReactNode;
-  ariaLabel: string;
-}) {
+function SegmentedShell({ children, ariaLabel }: { children: ReactNode; ariaLabel: string }) {
   return (
     <div
       className={cn(
@@ -99,10 +93,16 @@ export function StageViewToggle({
 
   return (
     <SegmentedShell ariaLabel={`${labels.ppt} / ${labels.quiz} / ${labels.raw}`}>
-      <SegmentedButton active={mainClassroomView === 'ppt'} onClick={() => onMainClassroomViewChange('ppt')}>
+      <SegmentedButton
+        active={mainClassroomView === 'ppt'}
+        onClick={() => onMainClassroomViewChange('ppt')}
+      >
         {labels.ppt}
       </SegmentedButton>
-      <SegmentedButton active={mainClassroomView === 'quiz'} onClick={() => onMainClassroomViewChange('quiz')}>
+      <SegmentedButton
+        active={mainClassroomView === 'quiz'}
+        onClick={() => onMainClassroomViewChange('quiz')}
+      >
         {labels.quiz}
       </SegmentedButton>
       <SegmentedButton
@@ -124,12 +124,14 @@ export function EditorStatusChip({
   storageSavedAt,
   storageSaveError,
   slideEditTab,
+  semanticEditorOpen = false,
 }: {
   storageSaveState: string;
   storageSaveScope?: string | null;
   storageSavedAt?: number | null;
   storageSaveError?: string | null;
   slideEditTab: SlideEditTab;
+  semanticEditorOpen?: boolean;
 }) {
   return (
     <div className="apple-glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200">
@@ -145,18 +147,22 @@ export function EditorStatusChip({
       />
       <span>
         {storageSaveState === 'saving'
-          ? slideEditTab === 'canvas'
-            ? '页面改动正在保存…'
-            : '讲解改动正在保存…'
+          ? semanticEditorOpen
+            ? 'Markup 正在保存…'
+            : slideEditTab === 'canvas'
+              ? '页面改动正在保存…'
+              : '讲解改动正在保存…'
           : storageSaveState === 'error'
             ? `保存失败${storageSaveError ? `：${storageSaveError}` : ''}`
             : storageSaveState === 'saved'
               ? storageSaveScope === 'draft'
                 ? `已保存草稿${storageSavedAt ? '，刷新不会丢' : ''}`
                 : '已保存'
-              : slideEditTab === 'canvas'
-                ? '编辑模式：页面改动会自动保存'
-                : '编辑模式：讲解修改需要手动保存'}
+              : semanticEditorOpen
+                ? 'Markup 编辑模式：点击保存后重新编译当前页'
+                : slideEditTab === 'canvas'
+                  ? '编辑模式：页面改动会自动保存'
+                  : '编辑模式：讲解修改需要手动保存'}
       </span>
     </div>
   );

@@ -414,12 +414,15 @@ export function normalizeOutlineStructure(outlines: SceneOutline[]): SceneOutlin
   const maxQuizScenes = getMaxQuizScenes(mergedWorkedExamples);
   let keptQuizCount = 0;
   let previousKeptWasQuiz = false;
+  let hasKeptTeachingBeforeQuiz = false;
   const distributedItems = mainItems.flatMap((outline) => {
     if (!isQuizOutline(outline)) {
       previousKeptWasQuiz = false;
+      hasKeptTeachingBeforeQuiz = true;
       return [outline];
     }
 
+    if (!hasKeptTeachingBeforeQuiz) return [];
     if (keptQuizCount >= maxQuizScenes || previousKeptWasQuiz) return [];
 
     const group = quizGroups.get(buildQuizSignature(outline));

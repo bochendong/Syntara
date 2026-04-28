@@ -32,15 +32,43 @@ function shouldRenderAsMathAwareText(text: string): boolean {
   return /[\u3400-\u9fff]|[，。！？；]/.test(text);
 }
 
+function repairVisibleLatex(latex: string): string {
+  const normalized = latex
+    .trim()
+    .replace(/\\{2,}(?=[a-zA-Z()[\]])/g, '\\')
+    .replace(/\\dfrac/g, '\\frac');
+  const orphanEvaluation = normalized.match(
+    /^f\s*=\s*(\\frac\{1\}\{1\s*\+\s*(\(?-?\d+\)?)\s*\^\s*2\}(?:=.*)?)$/u,
+  );
+
+  if (orphanEvaluation) {
+    const arg = orphanEvaluation[2].replace(/^\((.*)\)$/u, '$1');
+    return `f(${arg}) = ${orphanEvaluation[1]}`;
+  }
+
+  return normalized.replace(
+    /^f\s*=\s*f\(-2\),?\s*\\quad\s*2\s*\\ne\s*-2/u,
+    'f(2)=f(-2),\\quad 2\\ne -2',
+  );
+}
+
+function repairVisibleInlineMathText(text: string): string {
+  return text
+    .replace(/\$f:\s*\n+\s*\{R\}\s*\n+\s*\{R\}\$/gu, '$f:\\mathbb{R}\\to\\mathbb{R}$')
+    .replace(/\$f\(x\)=\s*\n+\s*\{1\}\{1\+x\^2\}\$/gu, '$f(x)=\\frac{1}{1+x^2}$')
+    .replace(/\$\s*\n+\s*\{R\}\s*\$/gu, '$\\mathbb{R}$');
+}
+
 function FormulaBlock({ latex, display = true }: { latex: string; display?: boolean }) {
-  const html = shouldRenderAsMathAwareText(latex)
-    ? renderInlineMathHtml(latex)
-    : renderMathToHtml(latex, { displayMode: display });
+  const repairedLatex = repairVisibleLatex(latex);
+  const html = shouldRenderAsMathAwareText(repairedLatex)
+    ? renderInlineMathHtml(repairedLatex)
+    : renderMathToHtml(repairedLatex, { displayMode: display });
   return <div className="[&_.katex-display]:my-1" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 function renderInlineMathHtml(text: string): string {
-  return renderInlineMathAwareHtml(text);
+  return renderInlineMathAwareHtml(repairVisibleInlineMathText(text));
 }
 
 function cardTitleToneClass(

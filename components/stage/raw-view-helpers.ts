@@ -343,7 +343,9 @@ function blockToSyntaraMarkup(block: NotebookContentBlock, indent: string): stri
   }
 }
 
-function serializeNotebookDocumentToSyntaraMarkup(document: NotebookContentDocument): string {
+export function serializeNotebookDocumentToSyntaraMarkup(
+  document: NotebookContentDocument,
+): string {
   const attrs = [
     document.title ? `title={${escapeSyntaraText(document.title)}}` : null,
     document.layoutTemplate ? `template=${document.layoutTemplate}` : null,

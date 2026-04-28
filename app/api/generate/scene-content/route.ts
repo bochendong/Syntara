@@ -21,6 +21,7 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeadersForNotebookStage } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
+import { normalizeSlideGenerationRoute } from '@/lib/generation/slide-generation-route';
 
 const log = createLogger('Scene Content API');
 
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       stageInfo,
       stageId,
       agents,
+      slideGenerationRoute: rawSlideGenerationRoute,
     } = body as {
       outline: SceneOutline;
       allOutlines: SceneOutline[];
@@ -52,7 +54,9 @@ export async function POST(req: NextRequest) {
       agents?: AgentInfo[];
       courseContext?: CoursePersonalizationContext;
       rewriteReason?: string;
+      slideGenerationRoute?: unknown;
     };
+    const slideGenerationRoute = normalizeSlideGenerationRoute(rawSlideGenerationRoute);
 
     // Validate required fields
     if (!rawOutline) {
@@ -170,13 +174,14 @@ export async function POST(req: NextRequest) {
 
     // ── Generate content ──
     log.info(
-      `Generating content: "${effectiveOutline.title}" (${effectiveOutline.type}) [model=${modelString}]`,
+      `Generating content: "${effectiveOutline.title}" (${effectiveOutline.type}) [model=${modelString}] [route=${slideGenerationRoute}]`,
     );
 
     let content = null;
     let generationError: unknown = null;
     const generationDiagnostics = {
       pipeline: 'unknown' as 'semantic' | 'legacy' | 'interactive' | 'quiz' | 'pbl' | 'unknown',
+      slideGenerationRoute,
       failureStage: undefined as string | undefined,
       failureReasons: [] as string[],
       semanticRetryCount: 0,
@@ -195,6 +200,7 @@ export async function POST(req: NextRequest) {
         body.courseContext,
         body.rewriteReason,
         generationDiagnostics,
+        slideGenerationRoute,
       );
     } catch (error) {
       generationError = error;

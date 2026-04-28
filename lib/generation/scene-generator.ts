@@ -94,6 +94,7 @@ import {
   normalizeGridPlacementHints,
 } from './semantic-slide-templates';
 import { buildTitleCoverSlideContent, isTitleCoverOutline } from './title-cover';
+import { normalizeSlideGenerationRoute, type SlideGenerationRoute } from './slide-generation-route';
 const log = createLogger('Generation');
 const SLIDE_LAYOUT_VIEWPORT = { width: 1000, height: 562.5 } as const;
 const MAX_SLIDE_LAYOUT_RETRIES = 2;
@@ -124,6 +125,7 @@ export function materializeSemanticGeneratedSlidePageContent(
 
 export interface SceneContentDiagnostics {
   pipeline: 'semantic' | 'legacy' | 'interactive' | 'quiz' | 'pbl' | 'unknown';
+  slideGenerationRoute?: SlideGenerationRoute;
   failureStage?: string;
   failureReasons: string[];
   semanticRetryCount: number;
@@ -343,6 +345,7 @@ export async function generateSceneContent(
   courseContext?: CoursePersonalizationContext,
   rewriteReason?: string,
   diagnostics?: SceneContentDiagnostics,
+  slideGenerationRoute?: SlideGenerationRoute,
 ): Promise<
   | GeneratedSlideContent
   | GeneratedQuizContent
@@ -350,6 +353,9 @@ export async function generateSceneContent(
   | GeneratedPBLContent
   | null
 > {
+  const normalizedSlideGenerationRoute = normalizeSlideGenerationRoute(slideGenerationRoute);
+  if (diagnostics) diagnostics.slideGenerationRoute = normalizedSlideGenerationRoute;
+
   if (isTitleCoverOutline(outline)) {
     if (diagnostics) diagnostics.pipeline = 'semantic';
     return buildTitleCoverSlideContent(outline);
@@ -380,6 +386,7 @@ export async function generateSceneContent(
       0,
       false,
       diagnostics,
+      normalizedSlideGenerationRoute,
     );
   }
 
@@ -398,6 +405,7 @@ export async function generateSceneContent(
         0,
         false,
         diagnostics,
+        normalizedSlideGenerationRoute,
       );
     case 'quiz':
       if (diagnostics) diagnostics.pipeline = 'quiz';
@@ -957,9 +965,12 @@ async function generateSlideContent(
   layoutRetryCount = 0,
   skipSemanticPipeline = false,
   diagnostics?: SceneContentDiagnostics,
+  slideGenerationRoute?: SlideGenerationRoute,
 ): Promise<GeneratedSlideContent | null> {
   const lang = outline.language || 'zh-CN';
-  const useLegacyElementPipeline = false;
+  const normalizedSlideGenerationRoute = normalizeSlideGenerationRoute(slideGenerationRoute);
+  const useLegacyElementPipeline = normalizedSlideGenerationRoute === 'openmaic-legacy';
+  if (diagnostics) diagnostics.slideGenerationRoute = normalizedSlideGenerationRoute;
 
   if (!useLegacyElementPipeline) {
     if (diagnostics) diagnostics.pipeline = 'semantic';
@@ -1014,7 +1025,11 @@ async function generateSlideContent(
     }
   }
 
-  if (!skipSemanticPipeline && shouldUseSemanticSlideGeneration(outline, assignedImages)) {
+  if (
+    !useLegacyElementPipeline &&
+    !skipSemanticPipeline &&
+    shouldUseSemanticSlideGeneration(outline, assignedImages)
+  ) {
     if (diagnostics) diagnostics.pipeline = 'semantic';
     const semanticContent = await generateSemanticSlideContent(
       outline,
@@ -1045,6 +1060,8 @@ async function generateSlideContent(
       `Falling back to AI worked-example rendering for notation-rich scene: ${outline.title}`,
     );
   }
+  if (diagnostics) diagnostics.pipeline = 'legacy';
+  log.info(`Using OpenMAIC legacy element pipeline for: ${outline.title}`);
 
   // Build assigned images description for the prompt
   let assignedImagesText =
@@ -1234,6 +1251,7 @@ async function generateSlideContent(
         layoutRetryCount + 1,
         true,
         diagnostics,
+        normalizedSlideGenerationRoute,
       );
     }
 

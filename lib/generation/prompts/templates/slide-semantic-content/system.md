@@ -174,6 +174,8 @@ Rules:
 - Bad: `g∘f \neq f∘g` outside `$...$`.
 - Do not use Unicode arrows/composition symbols in prose. Inside `$...$`, prefer LaTeX commands such as `\to`, `\circ`, and `\ne`.
 - Keep connector words outside math: write `if $x\in A$ and $f(x)=y$`, not `$x\in A \qquad\text{and}\qquad f(x)=y$`.
+- Fractions, reciprocal functions, and function evaluations must keep full LaTeX structure: write `$f(x)=\frac{1}{1+x^2}$` and `$f(2)=\frac{1}{1+2^2}=\frac15$`; do not write `1/1+x^2`, `11+x^2`, or `$f=\frac{1}{1+2^2}$`.
+- In worked examples, preserve the exact function, constants, and sets from the problem; every evaluation step must include the argument, e.g. `$f(-2)=\frac{1}{1+(-2)^2}$`.
 - For graph / vertical-line-test slides, do not define "is a function" circularly as `y=f(x)` before functionhood is established. Use a relation/graph statement such as `\formula{\forall x\in X,\ \exists!\,y\in Y:\ (x,y)\in G}`.
 
 ## Additional Constraints

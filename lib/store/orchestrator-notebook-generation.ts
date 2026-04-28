@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { NotebookGenerationModelStage } from '@/lib/constants/notebook-generation-model-stages';
 import type { NotebookGenerationModelMode } from '@/lib/constants/notebook-generation-model-presets';
+import {
+  DEFAULT_SLIDE_GENERATION_ROUTE,
+  type SlideGenerationRoute,
+} from '@/lib/generation/slide-generation-route';
 
 export type OrchestratorOutlineLength = 'minimal' | 'compact' | 'standard' | 'extended';
 
@@ -21,6 +25,7 @@ export interface OrchestratorNotebookGenState {
   language: 'zh-CN' | 'en-US';
   webSearch: boolean;
   generateSlides: boolean;
+  slideGenerationRoute: SlideGenerationRoute;
   outlineLength: OrchestratorOutlineLength;
   workedExampleLevel: OrchestratorWorkedExampleLevel;
   includeQuizScenes: boolean;
@@ -34,6 +39,7 @@ export interface OrchestratorNotebookGenState {
   setLanguage: (v: 'zh-CN' | 'en-US') => void;
   setWebSearch: (v: boolean) => void;
   setGenerateSlides: (v: boolean) => void;
+  setSlideGenerationRoute: (v: SlideGenerationRoute) => void;
   setOutlineLength: (v: OrchestratorOutlineLength) => void;
   setWorkedExampleLevel: (v: OrchestratorWorkedExampleLevel) => void;
   setIncludeQuizScenes: (v: boolean) => void;
@@ -49,6 +55,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       language: 'zh-CN',
       webSearch: true,
       generateSlides: true,
+      slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
       outlineLength: 'standard',
       workedExampleLevel: 'moderate',
       includeQuizScenes: true,
@@ -68,6 +75,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       setLanguage: (language) => set({ language }),
       setWebSearch: (webSearch) => set({ webSearch }),
       setGenerateSlides: (generateSlides) => set({ generateSlides }),
+      setSlideGenerationRoute: (slideGenerationRoute) => set({ slideGenerationRoute }),
       setOutlineLength: (outlineLength) => set({ outlineLength }),
       setWorkedExampleLevel: (workedExampleLevel) => set({ workedExampleLevel }),
       setIncludeQuizScenes: (includeQuizScenes) => set({ includeQuizScenes }),

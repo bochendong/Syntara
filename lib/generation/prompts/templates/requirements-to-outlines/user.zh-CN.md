@@ -81,6 +81,7 @@ By default:
 - The final summary must be the last scene. Do not place examples, new concepts, quizzes, or continuation teaching after a summary/recap scene.
 - Do not create repeated title/theme pages. If two scenes would have the same title or teaching job, merge them into one stronger outline.
 - A quiz should close the knowledge point that immediately precedes it. Keep each quiz small, usually 1-2 questions, and do not create multiple same-topic quiz variants.
+- Never place a quiz immediately after only a cover, intro, roadmap, or agenda. The first quiz must come after at least one substantive concept / method / worked-example teaching scene.
 - Section recaps are allowed only when they introduce no new teaching and do not look like the final summary.
 
 ### Special Notes

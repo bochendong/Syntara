@@ -18,6 +18,11 @@ import {
   useOrchestratorNotebookGenStore,
   type OrchestratorWorkedExampleLevel,
 } from '@/lib/store/orchestrator-notebook-generation';
+import {
+  SLIDE_GENERATION_ROUTE_DESCRIPTIONS,
+  SLIDE_GENERATION_ROUTE_LABELS,
+  type SlideGenerationRoute,
+} from '@/lib/generation/slide-generation-route';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
@@ -103,6 +108,8 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
   const setWebSearch = useOrchestratorNotebookGenStore((s) => s.setWebSearch);
   const generateSlides = useOrchestratorNotebookGenStore((s) => s.generateSlides);
   const setGenerateSlides = useOrchestratorNotebookGenStore((s) => s.setGenerateSlides);
+  const slideGenerationRoute = useOrchestratorNotebookGenStore((s) => s.slideGenerationRoute);
+  const setSlideGenerationRoute = useOrchestratorNotebookGenStore((s) => s.setSlideGenerationRoute);
   const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
   const setOutlineLength = useOrchestratorNotebookGenStore((s) => s.setOutlineLength);
   const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
@@ -273,6 +280,30 @@ export function OrchestratorGenerateOptionsPanel({ className }: { className?: st
 
         {generateSlides ? (
           <>
+            <FieldBlock label="页面生成路线">
+              <div className="w-full space-y-1.5">
+                <Select
+                  value={slideGenerationRoute}
+                  onValueChange={(v) => setSlideGenerationRoute(v as SlideGenerationRoute)}
+                >
+                  <SelectTrigger size="sm" className={SIDEBAR_CHOICE_TRIGGER}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="syntara-semantic" textValue="Syntara 语义页">
+                      {SLIDE_GENERATION_ROUTE_LABELS['syntara-semantic']}
+                    </SelectItem>
+                    <SelectItem value="openmaic-legacy" textValue="OpenMAIC 旧版 Canvas">
+                      {SLIDE_GENERATION_ROUTE_LABELS['openmaic-legacy']}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  {SLIDE_GENERATION_ROUTE_DESCRIPTIONS[slideGenerationRoute]}
+                </p>
+              </div>
+            </FieldBlock>
+
             <FieldBlock label="篇幅">
               <Select
                 value={outlineLength}

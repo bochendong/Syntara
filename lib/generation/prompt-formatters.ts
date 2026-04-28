@@ -169,6 +169,9 @@ export function formatWorkedExampleForPrompt(
     language === 'zh-CN' ? '例题讲解上下文：' : 'Worked Example Context:',
     `${language === 'zh-CN' ? '- 题型' : '- kind'}: ${cfg.kind}`,
     `${language === 'zh-CN' ? '- 当前页角色' : '- stageRole'}: ${cfg.role}`,
+    language === 'zh-CN'
+      ? '- 公式保真：不要改写题目中的函数/常数/集合；分式和倒数函数必须使用完整 LaTeX，每一步函数求值都要保留自变量，例如 $f(2)=\\frac{1}{1+2^2}$。'
+      : '- Formula fidelity: do not rewrite the given function/constants/sets; fractions and reciprocal functions must use full LaTeX, and every function evaluation must keep its argument, e.g. $f(2)=\\frac{1}{1+2^2}$.',
   ];
 
   if (cfg.exampleId) {

@@ -57,6 +57,10 @@ import {
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
 import { ensureTitleCoverOutline } from '@/lib/generation/title-cover';
 import {
+  normalizeSlideGenerationRoute,
+  type SlideGenerationRoute,
+} from '@/lib/generation/slide-generation-route';
+import {
   createLinkedAbortController,
   errorMessage,
   generateSceneActionsFromContent,
@@ -100,6 +104,8 @@ export type NotebookGenerationTaskInput = {
   webSearch?: boolean;
   /** 默认 true；关闭时只创建仓库笔记本，不生成 agents / 大纲 / PPT 页面 */
   generateSlides?: boolean;
+  /** 页面内容生成路线：当前 Syntara 语义页或旧版 OpenMAIC Canvas */
+  slideGenerationRoute?: SlideGenerationRoute | null;
   userNickname?: string;
   userBio?: string;
   signal?: AbortSignal;
@@ -477,6 +483,7 @@ export async function runNotebookGenerationTask(
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
   const generateSlides = input.generateSlides ?? true;
+  const slideGenerationRoute = normalizeSlideGenerationRoute(input.slideGenerationRoute);
   const settings = useSettingsStore.getState();
   const effectiveMediaFlags: EffectiveMediaFlags = {
     imageEnabled:
@@ -793,6 +800,7 @@ export async function runNotebookGenerationTask(
         signal: abortController.signal,
         pdfImages,
         imageMapping,
+        slideGenerationRoute,
         getHeaders,
       })
         .then((bundle): SceneContentJobResult => ({ success: true, bundle }))
