@@ -75,6 +75,7 @@ import {
   resolveImageIds,
 } from './slide-element-normalizer';
 export { buildFallbackSlideContentFromOutline } from './slide-fallback-content';
+import { buildFallbackSlideContentFromOutline } from './slide-fallback-content';
 import {
   buildWorkedExampleSlideContent,
   shouldUseLocalWorkedExampleTemplate,
@@ -136,19 +137,21 @@ export function buildValidatedFallbackSlideContent(
   outline: SceneOutline,
 ): GeneratedSlideContent | null {
   const fallback = buildSemanticFallbackSlideContent(outline);
-  if (!fallback) return null;
-  const normalizedElements = normalizeSlideTextLayout(fallback.elements, SLIDE_LAYOUT_VIEWPORT);
+  const resolvedFallback = fallback ?? buildFallbackSlideContentFromOutline(outline);
+  const normalizedElements = normalizeSlideTextLayout(
+    resolvedFallback.elements,
+    SLIDE_LAYOUT_VIEWPORT,
+  );
   const layoutValidation = validateSlideTextLayout(normalizedElements, SLIDE_LAYOUT_VIEWPORT);
   if (!layoutValidation.isValid) {
     log.warn(
       `Fallback slide content layout invalid for: ${outline.title}`,
       layoutValidation.issues.map((issue) => issue.message),
     );
-    return null;
   }
 
   return {
-    ...fallback,
+    ...resolvedFallback,
     elements: normalizedElements,
   };
 }
@@ -874,41 +877,14 @@ async function generateSemanticSlideContent(
   const invalidPage = renderedPages.find((page) => !page.layoutValidation.isValid);
   if (invalidPage) {
     log.warn(
-      `Semantic slide content layout rejected: ${outline.title}`,
+      `Semantic slide content layout invalid but allowed: ${outline.title}`,
       invalidPage.layoutValidation.issues.map((issue) => issue.message),
     );
-    if (diagnostics) {
-      diagnostics.semanticRetryCount = Math.max(
-        diagnostics.semanticRetryCount,
-        semanticRetryCount + 1,
-      );
-    }
     recordFailure(
       diagnostics,
-      'semantic_layout',
+      'semantic_layout_warning',
       invalidPage.layoutValidation.issues.map((issue) => issue.code).join(', '),
     );
-    if (semanticRetryCount < MAX_SEMANTIC_SLIDE_RETRIES) {
-      return generateSemanticSlideContent(
-        outline,
-        aiCall,
-        assignedImages,
-        imageMapping,
-        visionEnabled,
-        generatedMediaMapping,
-        agents,
-        courseContext,
-        appendRewriteReason(
-          rewriteReason,
-          buildLayoutRetryReason(invalidPage.layoutValidation, lang),
-        ),
-        semanticRetryCount + 1,
-        true,
-        diagnostics,
-      );
-    }
-    log.error(`Semantic slide content rejected after layout retries: ${outline.title}`);
-    return null;
   }
 
   const [primaryPage, ...continuationPages] = renderedPages;
@@ -971,9 +947,9 @@ async function generateSlideContent(
       log.info(`Using semantic slide content pipeline for: ${outline.title}`);
       return semanticContent;
     }
-    log.error(`Semantic slide content failed with fallback disabled: ${outline.title}`);
+    log.error(`Semantic slide content failed, using local fallback: ${outline.title}`);
     recordFailure(diagnostics, 'slide_semantic_failed', 'semantic pipeline returned null');
-    return null;
+    return buildValidatedFallbackSlideContent(outline);
   }
 
   if (outline.workedExampleConfig && shouldUseLocalWorkedExampleTemplate(outline)) {
