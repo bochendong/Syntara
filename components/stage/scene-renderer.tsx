@@ -27,6 +27,7 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
             <SemanticScrollPage
               key={scene.id}
               document={scene.content.semanticDocument}
+              elements={scene.content.canvas.elements}
               sceneId={scene.id}
               title={scene.title}
             />

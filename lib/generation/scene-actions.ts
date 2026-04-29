@@ -50,6 +50,11 @@ export async function generateSceneActions(
     .join('\n\n');
   const finalizeActions = (actions: Action[], elements: PPTElement[] = []) =>
     verbalizeSpeechActions(processActions(actions, elements, agents), lang);
+  const finalizeSlideActions = (actions: Action[], elements: PPTElement[] = []) =>
+    verbalizeSpeechActions(
+      ensureOpeningSpotlight(processActions(actions, elements, agents), elements, lang),
+      lang,
+    );
 
   if (outline.type === 'slide' && 'elements' in content) {
     const elementsText = formatElementsForPrompt(content.elements);
@@ -79,7 +84,7 @@ export async function generateSceneActions(
         log.warn(`Slide actions language mismatch for: ${outline.title}`);
         return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
       }
-      return finalizeActions(actions, content.elements);
+      return finalizeSlideActions(actions, content.elements);
     }
 
     return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
@@ -254,6 +259,65 @@ function formatQuestionsForPrompt(questions: QuizQuestion[]): string {
     .join('\n\n');
 }
 
+function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isSpotlightableElement(element: PPTElement): boolean {
+  if (element.type === 'line' || element.type === 'audio') return false;
+  if (element.type === 'text') return stripHtml(element.content).length > 0;
+  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
+  return true;
+}
+
+function pickSpotlightTarget(elements: PPTElement[]): PPTElement | undefined {
+  const candidates = elements
+    .filter(isSpotlightableElement)
+    .sort((a, b) => a.top - b.top || a.left - b.left);
+  if (candidates.length === 0) return undefined;
+
+  return (
+    candidates.find(
+      (element) => !(element.type === 'text' && element.textType === 'title') && element.top >= 90,
+    ) ||
+    candidates.find((element) => !(element.type === 'text' && element.textType === 'title')) ||
+    candidates[0]
+  );
+}
+
+function ensureOpeningSpotlight(
+  actions: Action[],
+  elements: PPTElement[],
+  language: string,
+): Action[] {
+  const target = pickSpotlightTarget(elements);
+  if (!target) return actions;
+
+  const firstSpeechIndex = actions.findIndex((action) => action.type === 'speech');
+  const searchUntil = firstSpeechIndex >= 0 ? firstSpeechIndex : actions.length;
+  const hasOpeningSpotlight = actions
+    .slice(0, searchUntil)
+    .some((action) => action.type === 'spotlight');
+
+  if (hasOpeningSpotlight) return actions;
+
+  const spotlightAction: Action = {
+    id: `action_${nanoid(8)}`,
+    type: 'spotlight',
+    title: language === 'zh-CN' ? '聚焦当前讲解区域' : 'Focus current explanation area',
+    elementId: target.id,
+    dimOpacity: 0.55,
+  };
+
+  if (firstSpeechIndex < 0) return [spotlightAction, ...actions];
+  const nextActions = [...actions];
+  nextActions.splice(firstSpeechIndex, 0, spotlightAction);
+  return nextActions;
+}
+
 function processActions(actions: Action[], elements: PPTElement[], agents?: AgentInfo[]): Action[] {
   const elementIds = new Set(elements.map((el) => el.id));
   const agentIds = new Set(agents?.map((a) => a.id) || []);
@@ -269,10 +333,11 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
     if (processedAction.type === 'spotlight') {
       const spotlightAction = processedAction;
       if (!spotlightAction.elementId || !elementIds.has(spotlightAction.elementId)) {
-        if (elements.length > 0) {
-          spotlightAction.elementId = elements[0].id;
+        const fallbackTarget = pickSpotlightTarget(elements);
+        if (fallbackTarget) {
+          spotlightAction.elementId = fallbackTarget.id;
           log.warn(
-            `Invalid elementId, falling back to first element: ${spotlightAction.elementId}`,
+            `Invalid spotlight elementId, falling back to teaching element: ${spotlightAction.elementId}`,
           );
         }
       }
@@ -307,7 +372,7 @@ function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement
       elements.find((el) => el.name === 'walkthrough_steps_text') ||
       elements.find((el) => el.name === 'final_answer_text') ||
       elements.find((el) => el.name?.includes('solution_plan_text')) ||
-      elements.find((el) => el.type === 'text');
+      pickSpotlightTarget(elements);
 
     const speechByRole =
       lang === 'zh-CN'
@@ -351,13 +416,14 @@ function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement
   const actions: Action[] = [];
   const lang = outline.language || 'zh-CN';
 
-  const textElements = elements.filter((el) => el.type === 'text');
-  if (textElements.length > 0) {
+  const spotlightTarget = pickSpotlightTarget(elements);
+  if (spotlightTarget) {
     actions.push({
       id: `action_${nanoid(8)}`,
       type: 'spotlight',
       title: lang === 'zh-CN' ? '聚焦重点' : 'Focus key point',
-      elementId: textElements[0].id,
+      elementId: spotlightTarget.id,
+      dimOpacity: 0.55,
     });
   }
 

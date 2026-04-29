@@ -39,6 +39,7 @@ import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import type { PPTElement } from '@/lib/types/slides';
 
 const log = createLogger('PlaybackEngine');
 
@@ -48,6 +49,35 @@ const log = createLogger('PlaybackEngine');
  * numbers, and short Latin fragments (e.g. "AI课堂").
  */
 const CJK_LANG_THRESHOLD = 0.3;
+
+function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isPlaybackSpotlightCandidate(element: PPTElement): boolean {
+  if (element.type === 'line' || element.type === 'audio') return false;
+  if (element.type === 'text') return stripHtml(element.content).length > 0;
+  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
+  return true;
+}
+
+function pickPlaybackSpotlightTarget(elements: readonly PPTElement[]): PPTElement | undefined {
+  const candidates = elements
+    .filter(isPlaybackSpotlightCandidate)
+    .sort((a, b) => a.top - b.top || a.left - b.left);
+  if (candidates.length === 0) return undefined;
+
+  return (
+    candidates.find(
+      (element) => !(element.type === 'text' && element.textType === 'title') && element.top >= 90,
+    ) ||
+    candidates.find((element) => !(element.type === 'text' && element.textType === 'title')) ||
+    candidates[0]
+  );
+}
 
 export class PlaybackEngine {
   private scenes: Scene[] = [];
@@ -379,13 +409,13 @@ export class PlaybackEngine {
    * Get the current action, or null if playback is complete.
    * Advances sceneIndex automatically when a scene's actions are exhausted.
    */
-  private getCurrentAction(): { action: Action; sceneId: string } | null {
+  private getCurrentAction(): { action: Action; scene: Scene; sceneId: string } | null {
     while (this.sceneIndex < this.scenes.length) {
       const scene = this.scenes[this.sceneIndex];
       const actions = scene.actions || [];
 
       if (this.actionIndex < actions.length) {
-        return { action: actions[this.actionIndex], sceneId: scene.id };
+        return { action: actions[this.actionIndex], scene, sceneId: scene.id };
       }
 
       // Move to next scene
@@ -393,6 +423,18 @@ export class PlaybackEngine {
       this.actionIndex = 0;
     }
     return null;
+  }
+
+  private ensureSpeechSpotlight(scene: Scene): void {
+    if (scene.type !== 'slide' || scene.content.type !== 'slide') return;
+
+    const canvasStore = useCanvasStore.getState();
+    if (canvasStore.spotlightElementId) return;
+
+    const target = pickPlaybackSpotlightTarget(scene.content.canvas.elements);
+    if (!target) return;
+
+    canvasStore.setSpotlight(target.id, { dimness: 0.55 });
   }
 
   /**
@@ -418,7 +460,7 @@ export class PlaybackEngine {
       return;
     }
 
-    const { action } = current;
+    const { action, scene } = current;
 
     // Notify progress BEFORE advancing the cursor so the snapshot points at
     // the current action.  On restore the same action will be replayed — this
@@ -430,6 +472,7 @@ export class PlaybackEngine {
     switch (action.type) {
       case 'speech': {
         const speechAction = action as SpeechAction;
+        this.ensureSpeechSpotlight(scene);
         this.callbacks.onSpeechStart?.(speechAction);
 
         // onEnded → processNext; if paused, resume() will call processNext

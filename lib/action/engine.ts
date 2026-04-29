@@ -149,10 +149,13 @@ export class ActionEngine {
   // ==================== Fire-and-forget ====================
 
   private executeSpotlight(action: SpotlightAction): void {
+    if (this.effectTimer) {
+      clearTimeout(this.effectTimer);
+      this.effectTimer = null;
+    }
     useCanvasStore.getState().setSpotlight(action.elementId, {
       dimness: action.dimOpacity ?? 0.5,
     });
-    this.scheduleEffectClear();
   }
 
   private executeLaser(action: LaserAction): void {
