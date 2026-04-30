@@ -41,3 +41,6 @@ Important:
 13. Prioritize fitting into a single readable page: compress wording before increasing content-unit count
 14. If the problem statement must remain complete, keep the key conditions, data, code, and asks readable
 15. Only output `\image[source=...]` when Available Images / Visual Slots provides an image ID
+16. Math in titles, inverses, reciprocals, and congruence classes must be complete: use `$\mathbb{Z}_{41}$`, `$22^{-1}$`, `$a\equiv b\pmod n$`; never output empty `$$` or `$^{-1}$`
+17. `\formula{...}` and the second `\step` argument in `derivation` must contain pure LaTeX only; do not put nested `\formula{}`, `$...$`, prose, or connector words such as `\text{and}` inside them
+18. Congruences must use `\pmod{n}`, divisibility must use `\mid` / `\nmid`, and ellipses must stay inside math mode; never generate `\pmod n`, `±od`, raw `4^n`, or raw `\dots`

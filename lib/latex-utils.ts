@@ -148,6 +148,17 @@ export function replaceCommonRawLatexText(text: string): string {
   if (!text.includes('\\')) return text;
 
   let normalized = normalizeLatexSource(text);
+  normalized = normalized.replace(/\\not\s*\\equiv/g, '≢');
+  normalized = normalized.replace(/\\not\s*\\mid/g, '∤');
+  normalized = normalized.replace(/\\nmid/g, '∤');
+  normalized = normalized.replace(/\\equiv/g, '≡');
+  normalized = normalized.replace(/\\pmod\s*\{([^{}]+)\}/g, '(mod $1)');
+  normalized = normalized.replace(/\\pmod\s+([A-Za-z0-9_+\-*/^()]+)/g, '(mod $1)');
+  normalized = normalized.replace(/\\mod\s*\{([^{}]+)\}/g, 'mod $1');
+  normalized = normalized.replace(/\\mod\s+([A-Za-z0-9_+\-*/^()]+)/g, 'mod $1');
+  normalized = normalized.replace(/\\bmod\b/g, 'mod');
+  normalized = normalized.replace(/\\(?:dots|ldots)/g, '…');
+  normalized = normalized.replace(/\\cdots/g, '⋯');
   normalized = normalized.replace(/\\text\{([^{}]*)\}/g, '$1');
   normalized = normalized.replace(/\\text\{([^{}]*)$/g, '$1');
   normalized = normalized.replace(/\{([^{}]*[\u3400-\u9fff][^{}]*)\}/g, '$1');

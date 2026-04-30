@@ -39,3 +39,6 @@ Important:
 11. Write LaTeX/Syntara commands with one backslash, for example `\forall`, not `\\forall`
 12. If the problem statement must remain complete, keep the key conditions, data, code, and asks readable
 13. Only output `\image[source=...]` when Available Images / Visual Slots provides an image ID
+14. Math in titles, inverses, reciprocals, and congruence classes must be complete: use `$\mathbb{Z}_{41}$`, `$22^{-1}$`, `$a\equiv b\pmod n$`; never output empty `$$` or `$^{-1}$`
+15. `\formula{...}` and the second `\step` argument in `derivation` must contain pure LaTeX only; do not put nested `\formula{}`, `$...$`, prose, or connector words such as `\text{and}` inside them
+16. Congruences must use `\pmod{n}`, divisibility must use `\mid` / `\nmid`, and ellipses must stay inside math mode; never generate `\pmod n`, `±od`, raw `4^n`, or raw `\dots`

@@ -30,9 +30,15 @@ const MATH_PATTERN =
 const COMPLEX_ENV_PATTERN =
   /\\begin\{(?:align\*?|aligned|cases|array|matrix|pmatrix|bmatrix|Bmatrix|vmatrix|Vmatrix)\}/;
 const LATEX_INLINE_COMMAND_PATTERN =
-  /\\(?:d?frac|neq|ne|to|rightarrow|Rightarrow|Leftrightarrow|approx|sim|times|cdot|circ|exists|forall|in|notin|subseteq|subset|supseteq|leq|geq|mathbb|operatorname|sqrt|left|right|begin|end|alpha|beta|gamma|delta|lambda|mu|sigma|theta|omega|pi|sum|prod|int|lim|log|ln|sin|cos|tan)\b/;
-const BARE_MATH_RUN_CHARS = String.raw`A-Za-z0-9\\{}\(\)\[\]\.,+\-*/=,:^_<>|!'"’ \t→∘≠⇒≤≥∈∉⊆⊂∪∩∅`;
+  /\\(?:d?frac|neq|ne|to|rightarrow|Rightarrow|Leftrightarrow|equiv|mid|nmid|pmod|bmod|mod|dots|ldots|cdots|approx|sim|times|cdot|circ|exists|forall|in|notin|subseteq|subset|supseteq|leq|geq|mathbb|operatorname|text|sqrt|left|right|begin|end|gcd|tilde|alpha|beta|gamma|delta|lambda|mu|sigma|theta|omega|pi|sum|prod|int|lim|log|ln|sin|cos|tan)\b/;
+const BARE_MATH_RUN_CHARS = String.raw`A-Za-z0-9\\{}\(\)\[\]\.,+\-−*/=,:^_<>|!'"’ \t→∘≠⇒≤≥≡∈∉⊆⊂∪∩∅∣∤ℕℤℚℝℂ`;
 const BARE_MATH_PATTERNS = [
+  /[ℕℤℚℝℂ](?:\s*[_^]\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+))?/g,
+  /(?:\b|(?<![A-Za-z]))[A-Za-z0-9()[\]{}!^_+\-−*/.\\\s]{1,90}?\s*(?:≡|\\equiv)\s*[A-Za-z0-9()[\]{}!^_+\-−*/.\\\s]{1,90}?\s*(?:\\pmod\s*\{?[^{}\s，。！？；;]+}?|\(\s*(?:mod|\\pmod)\s*[^)]+?\s*\))/g,
+  /\b(?:\d+|[A-Za-z])\s*\^\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+)\s*(?:\\(?:pmod|bmod)\s*\{?[^{}\s，。！？；;]+}?|\(\s*mod\s+[^)]+?\s*\)|mod\s+[^，。！？；;\s]+)/g,
+  /\b(?:\d+|[A-Za-z])\s*\^\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+)(?=$|[\s，。！？；;,])/g,
+  /\b[A-Za-z0-9][A-Za-z0-9_'’]*\s*(?:∣|∤|\\mid|\\nmid)\s*\([^，。！？；;\n]+?\)/g,
+  /\b(?:gcd|\\gcd)\s*\([^，。！？；;\n]+?\)/g,
   /\b[a-z][A-Za-z0-9_'’]*\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*(?:→|->|\\to)\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\b/g,
   /\b[a-z][A-Za-z0-9_'’]*(?:\s*(?:∘|\\circ)\s*[a-z][A-Za-z0-9_'’]*)+(?:\([^，。！？；;\n]*?\))?(?:\s*(?:=|≠|\\neq|\\ne|<|>|≤|≥)\s*[a-z][A-Za-z0-9_'’]*(?:\s*(?:∘|\\circ)\s*[a-z][A-Za-z0-9_'’]*)+(?:\([^，。！？；;\n]*?\))?)?/g,
   /\b[a-z][A-Za-z0-9_'’]*(?:\s*(?:∘|\\circ)\s*[a-z][A-Za-z0-9_'’]*)+\s*\([^，。！？；;\n]*?\)\s*=\s*[A-Za-z0-9\\{}()[\].+\-*/^_ ∘→≠≤≥]+/g,
@@ -41,7 +47,7 @@ const BARE_MATH_PATTERNS = [
   /\b[A-Za-z][A-Za-z0-9_'’]*\s*(?:∈|∉|⊆|⊂|\\in|\\notin|\\subseteq|\\subset)\s*[A-Za-z][A-Za-z0-9_'’]*\b/g,
   /\b[A-Za-z][A-Za-z0-9_'’]*(?:\s*(?:\/|=|≠|\\neq|\\ne|≤|≥|<|>)\s*[A-Za-z0-9][A-Za-z0-9_'’]*)+\b/g,
   new RegExp(
-    String.raw`(?:[A-Za-z][A-Za-z0-9_'’]*(?:\s*(?:∘|\\circ)\s*[A-Za-z][A-Za-z0-9_'’]*)?(?:\([^，。！？；;\n]*?\))?\s*)?[${BARE_MATH_RUN_CHARS}]{0,60}\\(?:d?frac|neq|ne|to|rightarrow|Rightarrow|Leftrightarrow|approx|sim|times|cdot|circ|exists|forall|in|notin|subseteq|subset|supseteq|leq|geq|mathbb|operatorname|sqrt|left|right|begin|end|alpha|beta|gamma|delta|lambda|mu|sigma|theta|omega|pi|sum|prod|int|lim|log|ln|sin|cos|tan)\b[${BARE_MATH_RUN_CHARS}]{0,80}`,
+    String.raw`(?:[A-Za-z][A-Za-z0-9_'’]*(?:\s*(?:∘|\\circ)\s*[A-Za-z][A-Za-z0-9_'’]*)?(?:\([^，。！？；;\n]*?\))?\s*)?[${BARE_MATH_RUN_CHARS}]{0,60}\\(?:d?frac|neq|ne|to|rightarrow|Rightarrow|Leftrightarrow|equiv|mid|nmid|pmod|bmod|mod|dots|ldots|cdots|approx|sim|times|cdot|circ|exists|forall|in|notin|subseteq|subset|supseteq|leq|geq|mathbb|operatorname|sqrt|left|right|begin|end|gcd|tilde|alpha|beta|gamma|delta|lambda|mu|sigma|theta|omega|pi|sum|prod|int|lim|log|ln|sin|cos|tan)\b[${BARE_MATH_RUN_CHARS}]{0,80}`,
     'g',
   ),
 ];
@@ -114,7 +120,7 @@ function normalizeBrokenFunctionSignature(latex: string): string {
 function normalizeMathProseConnectors(latex: string): string {
   const source = COMPLEX_ENV_PATTERN.test(latex) ? latex : latex.replace(/\\\\\s+/g, '\\ ');
   return source
-    .replace(/\s*\\text\{\s*(?:使得|such\s+that|where)\s*\}\s*/gi, ': ')
+    .replace(/\s*\\text\{\s*(?:使|使得|such\s+that|where)\s*\}\s*/gi, ': ')
     .replace(/\s*\\text\{\s*(?:且|and)\s*\}\s*/gi, ', ')
     .replace(/\s*\\(?:qquad|quad)\s*,\s*\\(?:qquad|quad)\s*/g, ',\\ ')
     .replace(/\\exists\s*!\s*(?:\\,)?\s*/g, '\\exists!\\,');
@@ -134,6 +140,42 @@ function normalizeGraphFunctionCondition(latex: string): string {
   return latex;
 }
 
+function readBalancedBraceContent(
+  source: string,
+  openIndex: number,
+): { value: string; endIndex: number } | null {
+  if (source[openIndex] !== '{') return null;
+
+  let depth = 1;
+  let index = openIndex + 1;
+  while (index < source.length) {
+    const char = source[index];
+    const escaped = index > 0 && source[index - 1] === '\\';
+    if (!escaped && char === '{') depth += 1;
+    if (!escaped && char === '}') depth -= 1;
+    if (depth === 0) {
+      return { value: source.slice(openIndex + 1, index), endIndex: index + 1 };
+    }
+    index += 1;
+  }
+
+  return null;
+}
+
+function stripSyntaraFormulaCommand(latex: string): string {
+  const normalized = latex.trim().replace(/^\\\\(?=formula\b)/, '\\');
+  const commandMatch = normalized.match(/^\\formula\s*\{/);
+  if (commandMatch) {
+    const openIndex = commandMatch[0].length - 1;
+    const argument = readBalancedBraceContent(normalized, openIndex);
+    if (argument && normalized.slice(argument.endIndex).trim() === '') {
+      return argument.value.trim();
+    }
+  }
+
+  return normalized.replace(/^\\formula\s*/, '');
+}
+
 function escapeHtml(text: string): string {
   return text
     .replaceAll('&', '&amp;')
@@ -150,11 +192,7 @@ function looksLikeMathText(text: string): boolean {
   return /\\\(|\\\[|\$\$|\$[^$\n]+?\$|\\\\\(|\\\\\[|\\begin\{[a-zA-Z*]+\}|\\left/.test(text);
 }
 
-function trimBareMathCandidate(
-  text: string,
-  start: number,
-  end: number,
-): BareMathCandidate | null {
+function trimBareMathCandidate(text: string, start: number, end: number): BareMathCandidate | null {
   let candidateStart = start;
   let candidateEnd = end;
 
@@ -178,12 +216,12 @@ function isBareMathCandidate(value: string): boolean {
   if (text.length < 2 || text.length > 160) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;
   if (/https?:\/\//i.test(text)) return false;
-  if (!/[A-Za-z\\]/.test(text)) return false;
+  if (!/[A-Za-z\\ℕℤℚℝℂ]/.test(text) && !/\d+\s*\^/.test(text)) return false;
   if (/^[A-Za-z\s]+$/.test(text)) return false;
 
   const hasMathTrigger =
     LATEX_INLINE_COMMAND_PATTERN.test(text) ||
-    /[=^*/]|→|∘|≠|⇒|≤|≥|∈|∉|⊆|⊂|∪|∩|∅/.test(text) ||
+    /[=^*/]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|ℕ|ℤ|ℚ|ℝ|ℂ/.test(text) ||
     /\b[a-z][A-Za-z0-9_'’]*\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*(?:\\to|→|->)\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\b/.test(
       text,
     );
@@ -193,6 +231,19 @@ function isBareMathCandidate(value: string): boolean {
   if (wordCount > 10 && !LATEX_INLINE_COMMAND_PATTERN.test(text)) return false;
 
   return true;
+}
+
+function replaceUnicodeBlackboardLetters(latex: string): string {
+  return latex.replace(/[ℕℤℚℝℂ]/g, (symbol) => {
+    const letter = {
+      ℕ: 'N',
+      ℤ: 'Z',
+      ℚ: 'Q',
+      ℝ: 'R',
+      ℂ: 'C',
+    }[symbol];
+    return letter ? `\\mathbb{${letter}}` : symbol;
+  });
 }
 
 function findBareMathCandidates(text: string): BareMathCandidate[] {
@@ -229,18 +280,37 @@ function findBareMathCandidates(text: string): BareMathCandidate[] {
 }
 
 function normalizeBareMathCandidate(value: string): string {
-  let latex = normalizeDelimiterEscapes(value.trim())
+  let latex = replaceUnicodeBlackboardLetters(normalizeDelimiterEscapes(value.trim()))
+    .replace(/\s*−\s*/g, ' - ')
     .replace(/\s*->\s*/g, ' \\to ')
     .replace(/\s*→\s*/g, ' \\to ')
     .replace(/\s*⇒\s*/g, ' \\Rightarrow ')
     .replace(/\s*∘\s*/g, ' \\circ ')
     .replace(/\s*(?:≠|\\neq)\s*/g, ' \\ne ')
+    .replace(/\s*(?:≡|\\equiv)\s*/g, ' \\equiv ')
     .replace(/\s*≤\s*/g, ' \\leq ')
     .replace(/\s*≥\s*/g, ' \\geq ')
     .replace(/\s*∈\s*/g, ' \\in ')
     .replace(/\s*∉\s*/g, ' \\notin ')
     .replace(/\s*⊆\s*/g, ' \\subseteq ')
     .replace(/\s*⊂\s*/g, ' \\subset ')
+    .replace(/\s*∣\s*/g, ' \\mid ')
+    .replace(/\s*∤\s*/g, ' \\nmid ')
+    .replace(/\(\s*mod\s+([^)]+?)\s*\)/gi, (_match, modulus: string) => {
+      return `\\pmod{${modulus.trim()}}`;
+    })
+    .replace(/\(\s*\\pmod\s*\{?([^)}]+)\}?\s*\)/g, (_match, modulus: string) => {
+      return `\\pmod{${modulus.trim()}}`;
+    })
+    .replace(/\\pmod\s+([A-Za-z0-9_+\-*/^()]+)/g, (_match, modulus: string) => {
+      return `\\pmod{${modulus.trim()}}`;
+    })
+    .replace(/\\bmod\s+([A-Za-z0-9_+\-*/^()]+)/g, (_match, modulus: string) => {
+      return `\\pmod{${modulus.trim()}}`;
+    })
+    .replace(/\bmod\s+([A-Za-z0-9_+\-*/^()]+)/g, (_match, modulus: string) => {
+      return `\\pmod{${modulus.trim()}}`;
+    })
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -297,11 +367,10 @@ function shouldTreatDoubleDollarAsInline(
 }
 
 export function normalizeMathSource(text: string): string {
+  const source = stripSyntaraFormulaCommand(normalizeDelimiterEscapes(text));
   return normalizeGraphFunctionCondition(
     normalizeMathProseConnectors(
-      normalizeBrokenFunctionSignature(
-        normalizeLegacyLatexSource(normalizeDelimiterEscapes(text)),
-      ),
+      normalizeBrokenFunctionSignature(normalizeLegacyLatexSource(source)),
     ),
   )
     .replace(/\${3,}/g, '$$')

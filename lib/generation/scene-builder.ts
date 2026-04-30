@@ -25,6 +25,7 @@ import {
   generateSceneActions,
   materializeSemanticGeneratedSlidePageContent,
 } from './scene-generator';
+import { isTitleCoverOutline } from './title-cover';
 import type { AgentInfo, SceneGenerationContext, AICallFn } from './pipeline-types';
 import { createLogger } from '@/lib/logger';
 const log = createLogger('Generation');
@@ -199,7 +200,9 @@ export function buildCompleteScene(
       theme: content.theme || defaultTheme,
       elements: content.contentDocument
         ? content.elements
-        : normalizeSlideTextLayout(stripShapeElements(content.elements)),
+        : normalizeSlideTextLayout(
+            isTitleCoverOutline(outline) ? content.elements : stripShapeElements(content.elements),
+          ),
       background: content.background,
     };
 

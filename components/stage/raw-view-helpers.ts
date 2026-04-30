@@ -1,13 +1,20 @@
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import {
+  buildSemanticSpotlightSections,
+  flattenSemanticSpotlightTargets,
+  resolveSemanticSpotlightTarget,
+} from '@/lib/notebook-content/semantic-spotlight';
+import {
   normalizeSyntaraMarkupLayout,
   type NotebookContentBlock,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 import { validateSlideTextLayout } from '@/lib/slide-text-layout';
 import { normalizeLatexSource } from '@/lib/latex-utils';
+import type { Action } from '@/lib/types/action';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene, SceneType } from '@/lib/types/stage';
+import type { PPTElement } from '@/lib/types/slides';
 import { RAW_DATA_BASE_TYPES, serializeSceneForRawView } from '@/components/stage/stage-helpers';
 
 export type RawSlideDataView = 'source' | 'compiled' | 'render' | 'outline' | 'narration' | 'ui';
@@ -188,13 +195,7 @@ function buildSlideRawPayload(args: {
   }
 
   if (view === 'narration') {
-    return {
-      id: scene.id,
-      type: scene.type,
-      title: scene.title,
-      order: scene.order,
-      actions: scene.actions || [],
-    };
+    return buildReadableNarrationPayload(scene, semanticArtifacts.semanticDocument ?? null);
   }
 
   const serialized = serializeSceneForRawView(scene, {
@@ -236,6 +237,237 @@ function getSlideSemanticArtifacts(scene: Scene) {
         }
       : null,
   };
+}
+
+function buildReadableNarrationPayload(
+  scene: Scene,
+  semanticDocument: NotebookContentDocument | null,
+) {
+  const actions = Array.isArray(scene.actions) ? scene.actions : [];
+  const elements = scene.content.type === 'slide' ? scene.content.canvas.elements : [];
+  const targetLabel = createNarrationTargetResolver(semanticDocument, elements);
+  const timeline: Array<Record<string, unknown>> = [];
+  let pendingCues: string[] = [];
+  let speechIndex = 0;
+
+  for (const action of actions) {
+    switch (action.type) {
+      case 'spotlight': {
+        pendingCues.push(`聚焦：${targetLabel(action.elementId)}`);
+        break;
+      }
+      case 'laser': {
+        pendingCues.push(`激光指向：${targetLabel(action.elementId)}`);
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'visual-cue',
+          action: 'laser',
+          target: targetLabel(action.elementId),
+          color: action.color || '#ff0000',
+        });
+        break;
+      }
+      case 'play_video': {
+        pendingCues.push(`播放视频：${targetLabel(action.elementId)}`);
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'media',
+          action: 'play_video',
+          target: targetLabel(action.elementId),
+        });
+        break;
+      }
+      case 'speech': {
+        speechIndex += 1;
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'speech',
+          speechIndex,
+          focus: pendingCues.length ? pendingCues : ['沿用上一处聚焦或本页默认讲解区域'],
+          text: action.text,
+          audio: action.audioUrl
+            ? 'ready'
+            : action.audioId
+              ? 'audioId present, url missing'
+              : 'not generated',
+          voice: action.voice || null,
+          speed: action.speed || null,
+        });
+        pendingCues = [];
+        break;
+      }
+      case 'discussion': {
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'discussion',
+          topic: action.topic,
+          prompt: action.prompt || null,
+          agentId: action.agentId || null,
+        });
+        break;
+      }
+      case 'wb_open':
+      case 'wb_close':
+      case 'wb_clear': {
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'whiteboard',
+          action: action.type,
+        });
+        break;
+      }
+      case 'wb_draw_text':
+      case 'wb_draw_shape':
+      case 'wb_draw_chart':
+      case 'wb_draw_latex':
+      case 'wb_draw_table':
+      case 'wb_draw_line':
+      case 'wb_delete': {
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'whiteboard',
+          action: action.type,
+          elementId: 'elementId' in action ? action.elementId || null : null,
+          summary: summarizeWhiteboardAction(action),
+        });
+        break;
+      }
+      default:
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'unknown',
+          actionType: (action as Action).type,
+        });
+        break;
+    }
+  }
+
+  if (pendingCues.length > 0) {
+    timeline.push({
+      step: timeline.length + 1,
+      kind: 'visual-cue',
+      action: 'pending_focus',
+      focus: pendingCues,
+      note: '这些视觉动作后面没有跟随 speech，播放时会成为页面上的短暂或持续聚焦。',
+    });
+  }
+
+  return {
+    id: scene.id,
+    type: scene.type,
+    title: scene.title,
+    order: scene.order,
+    readableNarration: {
+      summary: {
+        totalActions: actions.length,
+        speechSegments: actions.filter((action) => action.type === 'speech').length,
+        visualCues: actions.filter(
+          (action) =>
+            action.type === 'spotlight' || action.type === 'laser' || action.type === 'play_video',
+        ).length,
+        discussions: actions.filter((action) => action.type === 'discussion').length,
+        speechAudioReady: actions.filter((action) => action.type === 'speech' && action.audioUrl)
+          .length,
+      },
+      timeline,
+    },
+    rawActions: actions.map(redactNarrationActionForRawView),
+    note: 'readableNarration 是给人看的讲解脚本视图；rawActions 已隐藏 audioUrl，播放器实际数据仍保存在课堂存储中。',
+  };
+}
+
+function redactNarrationActionForRawView(action: Action): Action {
+  if (action.type !== 'speech') return action;
+  const { audioUrl: _audioUrl, ...rest } = action;
+  return rest;
+}
+
+function createNarrationTargetResolver(
+  semanticDocument: NotebookContentDocument | null,
+  elements: PPTElement[],
+) {
+  const semanticSections = semanticDocument ? buildSemanticSpotlightSections(semanticDocument) : [];
+  const semanticLabels = new Map<string, string>();
+  if (semanticDocument) {
+    semanticLabels.set('header', `标题：${semanticDocument.title || '本页标题'}`);
+  }
+  for (const section of semanticSections) {
+    const text = section.text ? ` - ${truncatePlainText(section.text, 80)}` : '';
+    semanticLabels.set(section.id, `${section.title || section.id}${text}`);
+  }
+  for (const target of flattenSemanticSpotlightTargets(semanticSections)) {
+    const text = target.text ? ` - ${truncatePlainText(target.text, 80)}` : '';
+    semanticLabels.set(target.id, `${target.title || target.sectionId}${text}`);
+  }
+
+  const elementLabels = new Map(
+    elements.map((element) => [element.id, describeElementForNarration(element)] as const),
+  );
+
+  return (elementId: string) => {
+    if (!elementId) return '未指定目标';
+    const directSemantic = semanticLabels.get(elementId);
+    if (directSemantic) return directSemantic;
+
+    const resolvedSemantic = semanticDocument
+      ? resolveSemanticSpotlightTarget(elementId, elements, semanticSections)
+      : null;
+    if (resolvedSemantic && semanticLabels.has(resolvedSemantic)) {
+      return `${semanticLabels.get(resolvedSemantic)}（由 ${elementId} 映射）`;
+    }
+
+    return elementLabels.get(elementId) || elementId;
+  };
+}
+
+function stripHtmlForRawView(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function truncatePlainText(value: string, maxLength: number): string {
+  const cleaned = stripHtmlForRawView(value);
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength)}...` : cleaned;
+}
+
+function describeElementForNarration(element: PPTElement): string {
+  const name = element.name ? `${element.name} / ` : '';
+  if (element.type === 'text') {
+    return `${name}文本：${truncatePlainText(element.content, 80)}`;
+  }
+  if (element.type === 'shape') {
+    return `${name}形状：${truncatePlainText(element.text?.content || '', 80) || element.id}`;
+  }
+  if (element.type === 'latex') {
+    return `${name}公式：${truncatePlainText(element.latex, 80)}`;
+  }
+  if (element.type === 'chart') {
+    return `${name}图表：${element.chartType}`;
+  }
+  return `${name}${element.type}：${element.id}`;
+}
+
+function summarizeWhiteboardAction(action: Action): string | null {
+  switch (action.type) {
+    case 'wb_draw_text':
+      return truncatePlainText(action.content, 120);
+    case 'wb_draw_latex':
+      return truncatePlainText(action.latex, 120);
+    case 'wb_draw_shape':
+      return action.shape;
+    case 'wb_draw_chart':
+      return action.chartType;
+    case 'wb_draw_table':
+      return `${action.data.length} rows`;
+    case 'wb_draw_line':
+      return `${action.startX},${action.startY} -> ${action.endX},${action.endY}`;
+    case 'wb_delete':
+      return action.elementId;
+    default:
+      return null;
+  }
 }
 
 const SYNTARA_TEXT_MATH_PATTERN =

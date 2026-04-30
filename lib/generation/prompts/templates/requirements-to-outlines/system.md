@@ -454,4 +454,5 @@ Guidance:
 13. When a problem statement is long, keep one worked-example scene and use the page's vertical scroll instead of creating Part 1/Part 2 scenes
 14. For every worked example, include the original problem text or a faithful excerpt before solving
 15. Set `contentProfile` to `math` for formula / proof / matrix-heavy slide scenes, `code` for programming walkthrough scenes, otherwise `general`
-15. For every worked-example walkthrough page, include enough detail that the learner can follow the full reasoning or calculation, not just the section labels
+16. For every worked-example walkthrough page, include enough detail that the learner can follow the full reasoning or calculation, not just the section labels
+17. In JSON outline text fields (`title`, `description`, `keyPoints`, `problemStatement`, `walkthroughSteps`), wrap mathematical expressions with `$...$` and escape LaTeX backslashes for JSON strings. Use `\\pmod{n}`, `\\mid`, `\\nmid`, `\\equiv`, `\\dots`; for alternate quotient/remainder variables prefer `$q'$` / `$r'$`, or escape tilde as `$\\tilde{q}$`; never output raw `4^n`, `ℤ_n`, `a≡b(modn)`, `\\pmod n`, `±od`, or `ilde q`.

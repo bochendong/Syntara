@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -51,7 +51,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CommonMathSymbols } from '@/components/problem-bank/common-math-symbols';
+import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
 import { ProblemRichText } from '@/components/problem-bank/problem-rich-text';
@@ -411,7 +411,6 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
   const webSearchProviderId = useSettingsStore((state) => state.webSearchProviderId);
   const webSearchProvidersConfig = useSettingsStore((state) => state.webSearchProvidersConfig);
   const enqueueBanner = useNotificationStore((state) => state.enqueueBanner);
-  const textAnswerInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
@@ -552,34 +551,6 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       setProblems(refreshed);
     },
     [notebookId],
-  );
-
-  const insertSymbolIntoTextAnswer = useCallback(
-    (problemId: string, symbol: string) => {
-      const textarea = textAnswerInputRefs.current[problemId];
-      if (!textarea) {
-        setTextAnswer((prev) => ({
-          ...prev,
-          [problemId]: `${prev[problemId] || ''}${symbol}`,
-        }));
-        return;
-      }
-
-      const start = textarea.selectionStart ?? textarea.value.length;
-      const end = textarea.selectionEnd ?? textarea.value.length;
-      const currentValue = textAnswer[problemId] || '';
-      const nextValue = `${currentValue.slice(0, start)}${symbol}${currentValue.slice(end)}`;
-      setTextAnswer((prev) => ({
-        ...prev,
-        [problemId]: nextValue,
-      }));
-      requestAnimationFrame(() => {
-        textarea.focus();
-        const nextCursor = start + symbol.length;
-        textarea.setSelectionRange(nextCursor, nextCursor);
-      });
-    },
-    [textAnswer],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -1343,29 +1314,35 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                     {selectedProblem.type === 'short_answer' ||
                     selectedProblem.type === 'proof' ||
                     selectedProblem.type === 'calculation' ? (
-                      <CommonMathSymbols
+                      <AnswerComposer
+                        value={textAnswer[selectedProblem.id] || ''}
+                        onChange={(nextValue) =>
+                          setTextAnswer((prev) => ({
+                            ...prev,
+                            [selectedProblem.id]: nextValue,
+                          }))
+                        }
                         locale={locale}
-                        onInsert={(symbol) =>
-                          insertSymbolIntoTextAnswer(selectedProblem.id, symbol)
+                        textareaClassName="min-h-[220px]"
+                        placeholder={
+                          locale === 'zh-CN' ? '在这里输入你的答案…' : 'Write your answer here...'
                         }
                       />
-                    ) : null}
-                    <Textarea
-                      value={textAnswer[selectedProblem.id] || ''}
-                      onChange={(event) =>
-                        setTextAnswer((prev) => ({
-                          ...prev,
-                          [selectedProblem.id]: event.target.value,
-                        }))
-                      }
-                      ref={(node) => {
-                        textAnswerInputRefs.current[selectedProblem.id] = node;
-                      }}
-                      className="min-h-[220px]"
-                      placeholder={
-                        locale === 'zh-CN' ? '在这里输入你的答案…' : 'Write your answer here...'
-                      }
-                    />
+                    ) : (
+                      <Textarea
+                        value={textAnswer[selectedProblem.id] || ''}
+                        onChange={(event) =>
+                          setTextAnswer((prev) => ({
+                            ...prev,
+                            [selectedProblem.id]: event.target.value,
+                          }))
+                        }
+                        className="min-h-[220px]"
+                        placeholder={
+                          locale === 'zh-CN' ? '在这里输入你的答案…' : 'Write your answer here...'
+                        }
+                      />
+                    )}
                   </div>
                 )}
               </CardContent>

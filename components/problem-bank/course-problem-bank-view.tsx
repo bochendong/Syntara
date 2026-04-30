@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRightLeft,
@@ -52,7 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CommonMathSymbols } from '@/components/problem-bank/common-math-symbols';
+import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
 import { ProblemRichText } from '@/components/problem-bank/problem-rich-text';
@@ -250,8 +250,6 @@ export function CourseProblemBankView({
   const [previewNotebookOptions, setPreviewNotebookOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const textAnswerInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
-
   const loadAll = useCallback(async () => {
     if (!courseId) {
       setLoading(false);
@@ -676,34 +674,6 @@ export function CourseProblemBankView({
     textAnswers,
   ]);
 
-  const insertSymbolIntoTextAnswer = useCallback(
-    (problemId: string, symbol: string) => {
-      const textarea = textAnswerInputRefs.current[problemId];
-      if (!textarea) {
-        setTextAnswers((prev) => ({
-          ...prev,
-          [problemId]: `${prev[problemId] || ''}${symbol}`,
-        }));
-        return;
-      }
-
-      const start = textarea.selectionStart ?? textarea.value.length;
-      const end = textarea.selectionEnd ?? textarea.value.length;
-      const currentValue = textAnswers[problemId] || '';
-      const nextValue = `${currentValue.slice(0, start)}${symbol}${currentValue.slice(end)}`;
-      setTextAnswers((prev) => ({
-        ...prev,
-        [problemId]: nextValue,
-      }));
-      requestAnimationFrame(() => {
-        textarea.focus();
-        const nextCursor = start + symbol.length;
-        textarea.setSelectionRange(nextCursor, nextCursor);
-      });
-    },
-    [textAnswers],
-  );
-
   return (
     <div className="mx-auto flex h-full min-h-0 max-w-7xl gap-4 p-4">
       <div className="order-2 flex h-full w-[380px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-950/50">
@@ -1016,34 +986,20 @@ export function CourseProblemBankView({
                       }
                     />
                   ) : (
-                    <div className="space-y-3">
-                      {selectedProblem.type === 'short_answer' ||
-                      selectedProblem.type === 'proof' ||
-                      selectedProblem.type === 'calculation' ? (
-                        <CommonMathSymbols
-                          locale={locale}
-                          onInsert={(symbol) =>
-                            insertSymbolIntoTextAnswer(selectedProblem.id, symbol)
-                          }
-                        />
-                      ) : null}
-                      <Textarea
-                        className="min-h-[140px]"
-                        value={textAnswers[selectedProblem.id] ?? ''}
-                        onChange={(event) =>
-                          setTextAnswers((prev) => ({
-                            ...prev,
-                            [selectedProblem.id]: event.target.value,
-                          }))
-                        }
-                        ref={(node) => {
-                          textAnswerInputRefs.current[selectedProblem.id] = node;
-                        }}
-                        placeholder={
-                          locale === 'zh-CN' ? '在这里输入你的答案。' : 'Type your answer here.'
-                        }
-                      />
-                    </div>
+                    <AnswerComposer
+                      value={textAnswers[selectedProblem.id] ?? ''}
+                      onChange={(nextValue) =>
+                        setTextAnswers((prev) => ({
+                          ...prev,
+                          [selectedProblem.id]: nextValue,
+                        }))
+                      }
+                      locale={locale}
+                      textareaClassName="min-h-[140px]"
+                      placeholder={
+                        locale === 'zh-CN' ? '在这里输入你的答案。' : 'Type your answer here.'
+                      }
+                    />
                   )}
                   <div className="mt-3">
                     <Button onClick={handleSubmitInlineAnswer} disabled={submittingAnswer}>

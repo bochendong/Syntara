@@ -9,6 +9,12 @@ import type {
 import type { Action } from '@/lib/types/action';
 import type { PPTElement } from '@/lib/types/slides';
 import type { QuizQuestion } from '@/lib/types/stage';
+import type { NotebookContentDocument } from '@/lib/notebook-content';
+import {
+  buildSemanticSpotlightSections,
+  flattenSemanticSpotlightTargets,
+  semanticSpotlightTargetIds,
+} from '@/lib/notebook-content/semantic-spotlight';
 import { createLogger } from '@/lib/logger';
 import { verbalizeSpeechActions } from '@/lib/audio/spoken-text';
 import type {
@@ -48,16 +54,28 @@ export async function generateSceneActions(
   const mergedCourseContext = [buildCourseContext(ctx), personalizationText]
     .filter(Boolean)
     .join('\n\n');
-  const finalizeActions = (actions: Action[], elements: PPTElement[] = []) =>
-    verbalizeSpeechActions(processActions(actions, elements, agents), lang);
-  const finalizeSlideActions = (actions: Action[], elements: PPTElement[] = []) =>
+  const finalizeActions = (
+    actions: Action[],
+    elements: PPTElement[] = [],
+    semanticDocument?: NotebookContentDocument,
+  ) => verbalizeSpeechActions(processActions(actions, elements, agents, semanticDocument), lang);
+  const finalizeSlideActions = (
+    actions: Action[],
+    elements: PPTElement[] = [],
+    semanticDocument?: NotebookContentDocument,
+  ) =>
     verbalizeSpeechActions(
-      ensureOpeningSpotlight(processActions(actions, elements, agents), elements, lang),
+      ensureOpeningSpotlight(
+        processActions(actions, elements, agents, semanticDocument),
+        elements,
+        lang,
+        semanticDocument,
+      ),
       lang,
     );
 
   if (outline.type === 'slide' && 'elements' in content) {
-    const elementsText = formatElementsForPrompt(content.elements);
+    const elementsText = formatElementsForPrompt(content.elements, content.contentDocument);
     const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
 
     const prompts = buildPrompt(PROMPT_IDS.SLIDE_ACTIONS, {
@@ -73,7 +91,10 @@ export async function generateSceneActions(
     });
 
     if (!prompts) {
-      return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
+      return verbalizeSpeechActions(
+        generateDefaultSlideActions(outline, content.elements, content.contentDocument),
+        lang,
+      );
     }
 
     const response = await aiCall(prompts.system, prompts.user);
@@ -82,12 +103,18 @@ export async function generateSceneActions(
     if (actions.length > 0) {
       if (hasUnexpectedCjkForLanguage(actions, lang)) {
         log.warn(`Slide actions language mismatch for: ${outline.title}`);
-        return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
+        return verbalizeSpeechActions(
+          generateDefaultSlideActions(outline, content.elements, content.contentDocument),
+          lang,
+        );
       }
-      return finalizeSlideActions(actions, content.elements);
+      return finalizeSlideActions(actions, content.elements, content.contentDocument);
     }
 
-    return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
+    return verbalizeSpeechActions(
+      generateDefaultSlideActions(outline, content.elements, content.contentDocument),
+      lang,
+    );
   }
 
   if (outline.type === 'quiz' && 'questions' in content) {
@@ -193,7 +220,10 @@ export function buildFallbackSceneActions(
 ): Action[] {
   const lang = outline.language || 'zh-CN';
   if (outline.type === 'slide' && 'elements' in content) {
-    return verbalizeSpeechActions(generateDefaultSlideActions(outline, content.elements), lang);
+    return verbalizeSpeechActions(
+      generateDefaultSlideActions(outline, content.elements, content.contentDocument),
+      lang,
+    );
   }
 
   if (outline.type === 'quiz' && 'questions' in content) {
@@ -226,7 +256,26 @@ function generateDefaultPBLActions(outline: SceneOutline): Action[] {
   ];
 }
 
-function formatElementsForPrompt(elements: PPTElement[]): string {
+function formatElementsForPrompt(
+  elements: PPTElement[],
+  semanticDocument?: NotebookContentDocument,
+): string {
+  if (semanticDocument) {
+    const sections = buildSemanticSpotlightSections(semanticDocument);
+    const blockTargets = flattenSemanticSpotlightTargets(sections);
+    const targets = [
+      `- id: "header", type: "semantic-header", Content summary: "${(
+        semanticDocument.title || ''
+      ).slice(0, 80)}"`,
+      ...blockTargets.map((target) => {
+        const summary = target.text.slice(0, 120);
+        const titleHint = target.title ? `title: "${target.title}", ` : '';
+        return `- id: "${target.id}", type: "semantic-block", section: "${target.sectionId}", ${titleHint}Content summary: "${summary}${target.text.length > 120 ? '...' : ''}"`;
+      }),
+    ];
+    return targets.join('\n');
+  }
+
   return elements
     .map((el) => {
       let summary = '';
@@ -288,13 +337,22 @@ function pickSpotlightTarget(elements: PPTElement[]): PPTElement | undefined {
   );
 }
 
+function pickSemanticSpotlightTarget(document?: NotebookContentDocument): string | undefined {
+  if (!document) return undefined;
+  const sections = buildSemanticSpotlightSections(document);
+  return flattenSemanticSpotlightTargets(sections)[0]?.id || sections[0]?.id || 'header';
+}
+
 function ensureOpeningSpotlight(
   actions: Action[],
   elements: PPTElement[],
   language: string,
+  semanticDocument?: NotebookContentDocument,
 ): Action[] {
-  const target = pickSpotlightTarget(elements);
-  if (!target) return actions;
+  const semanticTargetId = pickSemanticSpotlightTarget(semanticDocument);
+  const target = semanticTargetId ? null : pickSpotlightTarget(elements);
+  const targetId = semanticTargetId || target?.id;
+  if (!targetId) return actions;
 
   const firstSpeechIndex = actions.findIndex((action) => action.type === 'speech');
   const searchUntil = firstSpeechIndex >= 0 ? firstSpeechIndex : actions.length;
@@ -308,7 +366,7 @@ function ensureOpeningSpotlight(
     id: `action_${nanoid(8)}`,
     type: 'spotlight',
     title: language === 'zh-CN' ? '聚焦当前讲解区域' : 'Focus current explanation area',
-    elementId: target.id,
+    elementId: targetId,
     dimOpacity: 0.55,
   };
 
@@ -318,8 +376,14 @@ function ensureOpeningSpotlight(
   return nextActions;
 }
 
-function processActions(actions: Action[], elements: PPTElement[], agents?: AgentInfo[]): Action[] {
+function processActions(
+  actions: Action[],
+  elements: PPTElement[],
+  agents?: AgentInfo[],
+  semanticDocument?: NotebookContentDocument,
+): Action[] {
   const elementIds = new Set(elements.map((el) => el.id));
+  const semanticTargetIds = semanticDocument ? semanticSpotlightTargetIds(semanticDocument) : null;
   const agentIds = new Set(agents?.map((a) => a.id) || []);
   const studentAgents = agents?.filter((a) => a.role === 'student') || [];
   const nonTeacherAgents = agents?.filter((a) => a.role !== 'teacher') || [];
@@ -332,10 +396,13 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
 
     if (processedAction.type === 'spotlight') {
       const spotlightAction = processedAction;
-      if (!spotlightAction.elementId || !elementIds.has(spotlightAction.elementId)) {
-        const fallbackTarget = pickSpotlightTarget(elements);
-        if (fallbackTarget) {
-          spotlightAction.elementId = fallbackTarget.id;
+      const hasValidElementTarget = elementIds.has(spotlightAction.elementId);
+      const hasValidSemanticTarget = semanticTargetIds?.has(spotlightAction.elementId) ?? false;
+      if (!spotlightAction.elementId || (!hasValidElementTarget && !hasValidSemanticTarget)) {
+        const fallbackTargetId =
+          pickSemanticSpotlightTarget(semanticDocument) || pickSpotlightTarget(elements)?.id;
+        if (fallbackTargetId) {
+          spotlightAction.elementId = fallbackTargetId;
           log.warn(
             `Invalid spotlight elementId, falling back to teaching element: ${spotlightAction.elementId}`,
           );
@@ -362,17 +429,26 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
   });
 }
 
-function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement[]): Action[] {
+function generateDefaultSlideActions(
+  outline: SceneOutline,
+  elements: PPTElement[],
+  semanticDocument?: NotebookContentDocument,
+): Action[] {
+  const semanticTargetId = pickSemanticSpotlightTarget(semanticDocument);
+
   if (outline.workedExampleConfig) {
     const cfg = outline.workedExampleConfig;
     const lang = outline.language || 'zh-CN';
     const role = cfg.role;
-    const spotlightTarget =
-      elements.find((el) => el.name === 'problem_statement_text') ||
-      elements.find((el) => el.name === 'walkthrough_steps_text') ||
-      elements.find((el) => el.name === 'final_answer_text') ||
-      elements.find((el) => el.name?.includes('solution_plan_text')) ||
-      pickSpotlightTarget(elements);
+    const spotlightTargetId =
+      semanticTargetId ||
+      (
+        elements.find((el) => el.name === 'problem_statement_text') ||
+        elements.find((el) => el.name === 'walkthrough_steps_text') ||
+        elements.find((el) => el.name === 'final_answer_text') ||
+        elements.find((el) => el.name?.includes('solution_plan_text')) ||
+        pickSpotlightTarget(elements)
+      )?.id;
 
     const speechByRole =
       lang === 'zh-CN'
@@ -396,12 +472,12 @@ function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement
           };
 
     const actions: Action[] = [];
-    if (spotlightTarget) {
+    if (spotlightTargetId) {
       actions.push({
         id: `action_${nanoid(8)}`,
         type: 'spotlight',
         title: lang === 'zh-CN' ? '聚焦讲题核心区域' : 'Focus worked-example area',
-        elementId: spotlightTarget.id,
+        elementId: spotlightTargetId,
       });
     }
     actions.push({
@@ -416,13 +492,13 @@ function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement
   const actions: Action[] = [];
   const lang = outline.language || 'zh-CN';
 
-  const spotlightTarget = pickSpotlightTarget(elements);
-  if (spotlightTarget) {
+  const spotlightTargetId = semanticTargetId || pickSpotlightTarget(elements)?.id;
+  if (spotlightTargetId) {
     actions.push({
       id: `action_${nanoid(8)}`,
       type: 'spotlight',
       title: lang === 'zh-CN' ? '聚焦重点' : 'Focus key point',
-      elementId: spotlightTarget.id,
+      elementId: spotlightTargetId,
       dimOpacity: 0.55,
     });
   }

@@ -41,3 +41,6 @@ Important:
 13. 优先保证单页可读：先压缩表述，再考虑增加块数量
 14. 如果题干必须完整，保留关键条件、数据、代码和问题要求
 15. 只有 Available Images / Visual Slots 提供图片 ID 时，才输出 `\image[source=...]`
+16. 数学标题、逆元、倒数、同余类必须写完整：如 `$\mathbb{Z}_{41}$`、`$22^{-1}$`、`$a\equiv b\pmod n$`；不要输出空公式 `$$` 或 `$^{-1}$`
+17. `\formula{...}` 和 `derivation` 的第二个 `\step` 参数只能放纯 LaTeX；不要把 `\formula{}`、`$...$`、中文讲解或 `\text{且}` 放进去
+18. 同余一律写 `\pmod{n}`，整除一律写 `\mid` / `\nmid`，省略号一律写在数学模式中；不要生成 `\pmod n`、`±od`、裸 `4^n`、裸 `\dots`

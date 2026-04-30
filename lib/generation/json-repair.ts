@@ -6,6 +6,16 @@ import { jsonrepair } from 'jsonrepair';
 import { createLogger } from '@/lib/logger';
 const log = createLogger('Generation');
 
+const JSON_VALID_ESCAPE_LATEX_COMMANDS =
+  /(?<!\\)\\(begin|bmod|bar|beta|binom|boldsymbol|boxed|frac|forall|nabla|ne|neq|nmid|not|notin|nu|rightarrow|right|rho|text|theta|tilde|times|to|tan|tau)\b/g;
+
+function protectLatexCommandsBeforeJsonParse(jsonStr: string): string {
+  return jsonStr.replace(/"((?:\\.|[^"\\])*)"/g, (_match, content: string) => {
+    const fixedContent = content.replace(JSON_VALID_ESCAPE_LATEX_COMMANDS, '\\\\$1');
+    return `"${fixedContent}"`;
+  });
+}
+
 export function parseJsonResponse<T>(response: string): T | null {
   // Strategy 1: Try to extract JSON from markdown code blocks (may have multiple)
   const codeBlockMatches = response.matchAll(/```(?:json)?\s*([\s\S]*?)```/g);
@@ -98,14 +108,24 @@ export function parseJsonResponse<T>(response: string): T | null {
  * Try to parse JSON with various fixes for common AI response issues
  */
 export function tryParseJson<T>(jsonStr: string): T | null {
-  // Attempt 1: Try parsing as-is
+  // Attempt 1: Protect LaTeX commands that start with JSON-valid escapes.
+  // Raw `\tilde`, `\text`, `\frac`, `\nmid`, etc. are valid JSON escapes
+  // (`\t`, `\f`, `\n`) plus trailing letters, so JSON.parse would silently
+  // corrupt them instead of throwing. Prefer preserving the LaTeX source.
+  try {
+    return JSON.parse(protectLatexCommandsBeforeJsonParse(jsonStr)) as T;
+  } catch {
+    // Continue to fix attempts
+  }
+
+  // Attempt 2: Try parsing as-is
   try {
     return JSON.parse(jsonStr) as T;
   } catch {
     // Continue to fix attempts
   }
 
-  // Attempt 2: Fix common JSON issues from AI responses
+  // Attempt 3: Fix common JSON issues from AI responses
   try {
     let fixed = jsonStr;
 
@@ -151,7 +171,7 @@ export function tryParseJson<T>(jsonStr: string): T | null {
     // Continue to next attempt
   }
 
-  // Attempt 3: Use jsonrepair to fix malformed JSON (e.g. unescaped quotes in Chinese text)
+  // Attempt 4: Use jsonrepair to fix malformed JSON (e.g. unescaped quotes in Chinese text)
   try {
     const repaired = jsonrepair(jsonStr);
     return JSON.parse(repaired) as T;
@@ -159,7 +179,7 @@ export function tryParseJson<T>(jsonStr: string): T | null {
     // Continue to next attempt
   }
 
-  // Attempt 4: More aggressive fixing - remove control characters
+  // Attempt 5: More aggressive fixing - remove control characters
   try {
     let fixed = jsonStr;
 

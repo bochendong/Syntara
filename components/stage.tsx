@@ -10,6 +10,10 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
+import {
+  buildTitleCoverSlideContentFromParts,
+  shouldUpgradeLegacyTitleCoverContent,
+} from '@/lib/generation/title-cover';
 import { Header } from './header';
 import { ProblemBankView } from '@/components/problem-bank/problem-bank-view';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
@@ -142,6 +146,78 @@ export function Stage({
   const outlines = useStageStore((s) => s.outlines);
 
   const currentScene = getCurrentScene();
+
+  useEffect(() => {
+    const firstScene = scenes.find((scene) => scene.order === 1);
+    const titleSignals = `${stage?.name || ''} ${stage?.description || ''} ${firstScene?.title || ''}`;
+    const firstSceneText =
+      firstScene?.content.type === 'slide'
+        ? firstScene.content.canvas.elements
+            .filter((element) => element.type === 'text')
+            .map((element) => element.content || '')
+            .join(' ')
+        : '';
+    const positiveTitleSignals = titleSignals
+      .replace(/不包含[:：][\s\S]*/g, ' ')
+      .replace(/不包括[:：][\s\S]*/g, ' ')
+      .replace(/\b(excluding|does not include|not included|do not include)\b[\s\S]*/gi, ' ');
+    const hasWrongModularCover =
+      /MODULAR ARITHMETIC/.test(firstSceneText) &&
+      !/同余|模运算|模\s*\d+|模数|余数|congruence|modular|modulo|mod\s+\d+/i.test(
+        positiveTitleSignals,
+      );
+    const hasWrongComputingCover =
+      /COMPUTING/.test(firstSceneText) &&
+      !/code|program|代码|程序|编程|python|javascript|typescript|数据结构/i.test(
+        positiveTitleSignals,
+      );
+    const hasWrongGenericMathCover =
+      /学习笔记|LEARNING NOTEBOOK/.test(firstSceneText) &&
+      /mat|proof|证明|函数|映射|linear|algebra|calculus|math|同余|模运算|整除|线性|丢番图|素数|整数|数论|最大公约数|gcd|方程/.test(
+        positiveTitleSignals,
+      );
+
+    if (
+      !stage ||
+      !firstScene ||
+      firstScene.type !== 'slide' ||
+      firstScene.content.type !== 'slide' ||
+      (!hasWrongModularCover &&
+        !hasWrongComputingCover &&
+        !hasWrongGenericMathCover &&
+        !shouldUpgradeLegacyTitleCoverContent({
+          title: titleSignals,
+          elements: firstScene.content.canvas.elements,
+        }))
+    ) {
+      return;
+    }
+
+    const content = buildTitleCoverSlideContentFromParts({
+      title: firstScene.title || stage.name,
+      description: stage.description,
+      language: (stage.language || stageLanguage) === 'en-US' ? 'en-US' : 'zh-CN',
+    });
+
+    updateScene(firstScene.id, {
+      content: {
+        ...firstScene.content,
+        canvas: {
+          ...firstScene.content.canvas,
+          theme: content.theme || firstScene.content.canvas.theme,
+          elements: content.elements,
+          background: content.background,
+          viewportSize: firstScene.content.canvas.viewportSize ?? 1000,
+          viewportRatio: firstScene.content.canvas.viewportRatio ?? 0.5625,
+        },
+        syntaraMarkup: content.syntaraMarkup,
+        semanticDocument: content.contentDocument,
+        semanticRenderMode: undefined,
+        semanticRenderVersion: undefined,
+      },
+      updatedAt: Date.now(),
+    });
+  }, [scenes, stage, stageLanguage, updateScene]);
 
   // Layout state from settings store (persisted via localStorage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);

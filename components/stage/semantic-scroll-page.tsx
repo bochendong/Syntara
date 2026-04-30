@@ -13,11 +13,12 @@ import { AnimatePresence, motion } from 'motion/react';
 import { NotebookContentView } from '@/components/notebook-content/notebook-content-view';
 import { renderInlineMathAwareHtml } from '@/lib/math-engine';
 import { useCanvasStore } from '@/lib/store/canvas';
-import type {
-  NotebookContentBlock,
-  NotebookContentDocument,
-  NotebookContentSlot,
-} from '@/lib/notebook-content';
+import type { NotebookContentBlock, NotebookContentDocument } from '@/lib/notebook-content';
+import {
+  buildSemanticSpotlightSections,
+  resolveSemanticSpotlightTarget,
+  type SemanticSpotlightSection,
+} from '@/lib/notebook-content/semantic-spotlight';
 import type { PPTElement } from '@/lib/types/slides';
 import { cn } from '@/lib/utils';
 
@@ -28,12 +29,7 @@ interface SemanticScrollPageProps {
   readonly elements?: PPTElement[];
 }
 
-interface SemanticScrollSection {
-  readonly id: string;
-  readonly title: string | null;
-  readonly eyebrow: string | null;
-  readonly blocks: NotebookContentBlock[];
-}
+type SemanticScrollSection = SemanticSpotlightSection;
 
 interface SpotlightRect {
   readonly x: number;
@@ -57,183 +53,10 @@ function renderInlineMathHtml(text: string): string {
   return renderInlineMathAwareHtml(text);
 }
 
-function stripHtml(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isSemanticSpotlightCandidate(element: PPTElement): boolean {
-  if (element.type === 'line' || element.type === 'audio') return false;
-  if (element.type === 'text') return stripHtml(element.content).length > 0;
-  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
-  return true;
-}
-
-function resolveSemanticSpotlightTarget(
-  spotlightElementId: string,
-  elements: readonly PPTElement[],
-  sections: readonly SemanticScrollSection[],
-): string | null {
-  if (!spotlightElementId) return null;
-
-  const candidates = elements
-    .filter(isSemanticSpotlightCandidate)
-    .sort((a, b) => a.top - b.top || a.left - b.left);
-  const elementIndex = candidates.findIndex((element) => element.id === spotlightElementId);
-
-  if (elementIndex <= 0) {
-    return elementIndex === 0 ? 'header' : sections[0]?.id || 'header';
-  }
-
-  const sectionIndex = Math.min(elementIndex - 1, Math.max(0, sections.length - 1));
-  return sections[sectionIndex]?.id || 'header';
-}
-
 function findSemanticTarget(root: HTMLElement | null, targetId: string | null): HTMLElement | null {
   if (!root || !targetId) return null;
   const targets = Array.from(root.querySelectorAll<HTMLElement>('[data-semantic-spotlight-id]'));
   return targets.find((target) => target.dataset.semanticSpotlightId === targetId) || null;
-}
-
-const SLOT_TITLE_LABELS = {
-  'zh-CN': {
-    context: '背景与目标',
-    definition: '定义',
-    theorem: '定理',
-    proof: '证明过程',
-    setup: '题目与目标',
-    givens: '已知条件',
-    goal: '求解目标',
-    plan: '解题思路',
-    solution: '解题过程',
-    derivation: '推导过程',
-    steps: '步骤',
-    conclusion: '结论',
-    summary: '小结',
-    callout: '提示',
-    left: '左侧内容',
-    right: '右侧内容',
-    top: '上方内容',
-    middle: '中段内容',
-    bottom: '下方内容',
-  },
-  'en-US': {
-    context: 'Context',
-    definition: 'Definition',
-    theorem: 'Theorem',
-    proof: 'Proof',
-    setup: 'Problem',
-    givens: 'Given',
-    goal: 'Goal',
-    plan: 'Plan',
-    solution: 'Solution',
-    derivation: 'Derivation',
-    steps: 'Steps',
-    conclusion: 'Conclusion',
-    summary: 'Summary',
-    callout: 'Note',
-    left: 'Left',
-    right: 'Right',
-    top: 'Top',
-    middle: 'Middle',
-    bottom: 'Bottom',
-  },
-} as const;
-
-function normalizeSlotKey(raw: string): string {
-  return raw.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
-function isInternalSlotLabel(raw: string): boolean {
-  const normalized = normalizeSlotKey(raw);
-  return (
-    /^slot\s*\d+$/.test(normalized) ||
-    /^card\s*\d+$/.test(normalized) ||
-    /^part\s*\d+/.test(normalized) ||
-    /^column\s*\d+$/.test(normalized) ||
-    /^row\s*\d+$/.test(normalized) ||
-    /^cell\s*\d+$/.test(normalized)
-  );
-}
-
-function slotTitle(slot: NotebookContentSlot, index: number, language: string): string {
-  const raw = slot.role || slot.slotId;
-  const normalized = normalizeSlotKey(raw);
-  const semanticSlotKey = normalized
-    .replace(/^part\s+\d+\s+\d+\s+/, '')
-    .replace(/^part\s+\d+\s+/, '');
-  const labels = language === 'en-US' ? SLOT_TITLE_LABELS['en-US'] : SLOT_TITLE_LABELS['zh-CN'];
-
-  if (/^card\s*\d+$/.test(semanticSlotKey)) {
-    return language === 'en-US' ? `Key Point ${index + 1}` : `要点 ${index + 1}`;
-  }
-
-  if (/^row\s*\d+$/.test(semanticSlotKey)) {
-    return language === 'en-US' ? `Row ${index + 1}` : `第 ${index + 1} 行`;
-  }
-
-  if (/^column\s*\d+$/.test(semanticSlotKey) || /^cell\s*\d+$/.test(semanticSlotKey)) {
-    return language === 'en-US' ? `Section ${index + 1}` : `第 ${index + 1} 部分`;
-  }
-
-  const mappedTitle = labels[semanticSlotKey as keyof typeof labels];
-  if (mappedTitle) return mappedTitle;
-
-  if (semanticSlotKey && !isInternalSlotLabel(raw)) return semanticSlotKey;
-  return language === 'en-US' ? `Section ${index + 1}` : `第 ${index + 1} 部分`;
-}
-
-function buildBlockSections(document: NotebookContentDocument): SemanticScrollSection[] {
-  if (document.slots?.length) {
-    return document.slots
-      .map((slot, index): SemanticScrollSection => {
-        const title = slotTitle(slot, index, document.language);
-        return {
-          id: `slot-${slot.slotId || index}`,
-          title,
-          eyebrow: null,
-          blocks: slot.blocks as NotebookContentBlock[],
-        };
-      })
-      .filter((section) => section.blocks.length > 0);
-  }
-
-  const sections: SemanticScrollSection[] = [];
-  let currentTitle: string | null = null;
-  let currentBlocks: NotebookContentBlock[] = [];
-
-  const pushCurrent = () => {
-    if (!currentTitle && currentBlocks.length === 0) return;
-    sections.push({
-      id: `block-section-${sections.length}`,
-      title: currentTitle,
-      eyebrow: null,
-      blocks: currentBlocks,
-    });
-    currentTitle = null;
-    currentBlocks = [];
-  };
-
-  for (const block of document.blocks) {
-    if (block.type === 'heading') {
-      pushCurrent();
-      currentTitle = block.text;
-      continue;
-    }
-    currentBlocks.push(block);
-  }
-  pushCurrent();
-
-  if (sections.length > 0) return sections;
-
-  return document.blocks.map((block, index) => ({
-    id: `block-${index}`,
-    title: null,
-    eyebrow: null,
-    blocks: [block],
-  }));
 }
 
 function documentForSection(
@@ -321,6 +144,7 @@ function SemanticSpotlightOverlay({
   const spotlightOptions = useCanvasStore.use.spotlightOptions();
   const containerRef = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<SpotlightRect | null>(null);
+  const trackingFrameRef = useRef<number | null>(null);
 
   const targetId = useMemo(
     () => resolveSemanticSpotlightTarget(spotlightElementId, elements, sections),
@@ -334,36 +158,71 @@ function SemanticSpotlightOverlay({
 
   const measure = useCallback(() => {
     const container = containerRef.current;
+    const scrollRoot = scrollRootRef.current;
     const target = getTarget();
-    if (!spotlightElementId || !container || !target) {
+    if (!spotlightElementId || !container || !scrollRoot || !target) {
       setRect(null);
       return;
     }
 
     const containerRect = container.getBoundingClientRect();
+    const scrollRootRect = scrollRoot.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
     if (containerRect.width === 0 || containerRect.height === 0 || targetRect.height === 0) {
       setRect(null);
       return;
     }
 
+    const visibleLeft = Math.max(targetRect.left, scrollRootRect.left);
+    const visibleTop = Math.max(targetRect.top, scrollRootRect.top);
+    const visibleRight = Math.min(targetRect.right, scrollRootRect.right);
+    const visibleBottom = Math.min(targetRect.bottom, scrollRootRect.bottom);
+
+    if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) {
+      setRect(null);
+      return;
+    }
+
     setRect({
-      x: targetRect.left - containerRect.left,
-      y: targetRect.top - containerRect.top,
-      width: targetRect.width,
-      height: targetRect.height,
+      x: visibleLeft - containerRect.left,
+      y: visibleTop - containerRect.top,
+      width: visibleRight - visibleLeft,
+      height: visibleBottom - visibleTop,
       containerWidth: containerRect.width,
       containerHeight: containerRect.height,
     });
-  }, [getTarget, spotlightElementId]);
+  }, [getTarget, scrollRootRef, spotlightElementId]);
+
+  const trackMeasureForScrollAnimation = useCallback(() => {
+    if (trackingFrameRef.current !== null) {
+      window.cancelAnimationFrame(trackingFrameRef.current);
+      trackingFrameRef.current = null;
+    }
+
+    const startedAt = performance.now();
+    const tick = () => {
+      measure();
+      if (performance.now() - startedAt < 700) {
+        trackingFrameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        trackingFrameRef.current = null;
+      }
+    };
+    trackingFrameRef.current = window.requestAnimationFrame(tick);
+  }, [measure]);
 
   useEffect(() => {
     const target = getTarget();
     if (!spotlightElementId || !target) return;
     target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    const frame = window.requestAnimationFrame(measure);
-    return () => window.cancelAnimationFrame(frame);
-  }, [getTarget, measure, spotlightElementId, targetId]);
+    trackMeasureForScrollAnimation();
+    return () => {
+      if (trackingFrameRef.current !== null) {
+        window.cancelAnimationFrame(trackingFrameRef.current);
+        trackingFrameRef.current = null;
+      }
+    };
+  }, [getTarget, spotlightElementId, targetId, trackMeasureForScrollAnimation]);
 
   useLayoutEffect(() => {
     const scrollRoot = scrollRootRef.current;
@@ -383,6 +242,10 @@ function SemanticSpotlightOverlay({
 
     return () => {
       window.cancelAnimationFrame(frame);
+      if (trackingFrameRef.current !== null) {
+        window.cancelAnimationFrame(trackingFrameRef.current);
+        trackingFrameRef.current = null;
+      }
       scrollRoot?.removeEventListener('scroll', measure);
       window.removeEventListener('resize', measure);
       resizeObserver?.disconnect();
@@ -492,7 +355,7 @@ export function SemanticScrollPage({
   title,
   elements = [],
 }: SemanticScrollPageProps) {
-  const sections = useMemo(() => buildBlockSections(document), [document]);
+  const sections = useMemo(() => buildSemanticSpotlightSections(document), [document]);
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const titleHtml = useMemo(
     () => renderInlineMathHtml(document.title || title),
@@ -556,7 +419,27 @@ export function SemanticScrollPage({
                       />
                     </div>
                   ) : null}
-                  {section.blocks.length > 0 ? (
+                  {section.blockTargets.length > 0 ? (
+                    <div className="space-y-3">
+                      {section.blockTargets.map((target) => (
+                        <div
+                          key={target.id}
+                          data-semantic-scroll-target="true"
+                          data-semantic-spotlight-id={target.id}
+                          className="scroll-mt-8"
+                        >
+                          <NotebookContentView
+                            document={documentForSection(document, [target.block])}
+                            className={cn(
+                              'text-[15px] leading-7 text-slate-800',
+                              '[&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
+                              '[&_.math-engine-display]:overflow-x-auto [&_.math-engine-display]:overflow-y-hidden',
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : section.blocks.length > 0 ? (
                     <NotebookContentView
                       document={sectionDocument}
                       className={cn(

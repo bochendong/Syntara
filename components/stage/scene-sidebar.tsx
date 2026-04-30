@@ -36,6 +36,7 @@ import { LectureNotesView } from '@/components/chat/lecture-notes-view';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from 'sonner';
+import { renderPlainTitleWithOptionalLatex } from '@/lib/render-html-with-latex';
 import { FloatingLinesStageBackground } from '@/components/gamification/floating-lines-stage-background';
 import { LightRaysStageBackground } from '@/components/gamification/light-rays-stage-background';
 import { PixelSnowStageBackground } from '@/components/gamification/pixel-snow-stage-background';
@@ -623,14 +624,18 @@ export function SceneSidebar({
                         </div>
                         <p
                           className={cn(
-                            'mt-1 line-clamp-2 text-sm font-semibold leading-snug',
+                            'mt-1 line-clamp-2 text-sm font-semibold leading-snug [&_.katex]:text-[0.95em] [&_.katex]:font-semibold',
                             isActive
                               ? 'text-slate-950 dark:text-white'
                               : 'text-slate-700 dark:text-slate-200',
                           )}
-                        >
-                          {scene.title.trim() || `${index + 1}`}
-                        </p>
+                          suppressHydrationWarning
+                          dangerouslySetInnerHTML={{
+                            __html: renderPlainTitleWithOptionalLatex(
+                              scene.title.trim() || `${index + 1}`,
+                            ),
+                          }}
+                        />
                       </div>
 
                       <button

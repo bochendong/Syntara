@@ -10,6 +10,17 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AudioPlayer');
 
+function isExpectedPlaybackInterruption(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    error.name === 'AbortError' ||
+    message.includes('play() request was interrupted') ||
+    message.includes('interrupted by a call to pause') ||
+    message.includes('interrupted by a new load request')
+  );
+}
+
 /**
  * Audio player implementation
  */
@@ -49,6 +60,9 @@ export class AudioPlayer {
       void audioId;
       return false;
     } catch (error) {
+      if (isExpectedPlaybackInterruption(error)) {
+        return true;
+      }
       log.error('Failed to play audio:', error);
       throw error;
     }
@@ -84,6 +98,7 @@ export class AudioPlayer {
     if (this.audio?.paused) {
       this.audio.playbackRate = this.playbackRate;
       this.audio.play().catch((error) => {
+        if (isExpectedPlaybackInterruption(error)) return;
         log.error('Failed to resume audio:', error);
       });
     }

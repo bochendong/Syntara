@@ -5,6 +5,7 @@ import type { QuizContent } from '@/lib/types/stage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 
 interface QuizRendererProps {
   readonly content: QuizContent;
@@ -62,11 +63,12 @@ export function QuizRenderer({ content, mode, sceneId: _sceneId }: QuizRendererP
                 </div>
               )}
               {question.type === 'short_answer' && (
-                <textarea
-                  className="w-full min-h-24 p-2 border rounded"
-                  placeholder="Enter your answer..."
+                <AnswerComposer
+                  locale="en-US"
+                  textareaClassName="min-h-24"
                   value={answers[question.id] || ''}
-                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                  onChange={(value) => handleAnswerChange(question.id, value)}
+                  placeholder="Enter your answer..."
                 />
               )}
             </CardContent>

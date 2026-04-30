@@ -40,6 +40,10 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
 import type { PPTElement } from '@/lib/types/slides';
+import {
+  buildSemanticSpotlightSections,
+  resolveSemanticSpotlightTargetForText,
+} from '@/lib/notebook-content/semantic-spotlight';
 
 const log = createLogger('PlaybackEngine');
 
@@ -425,10 +429,21 @@ export class PlaybackEngine {
     return null;
   }
 
-  private ensureSpeechSpotlight(scene: Scene): void {
+  private ensureSpeechSpotlight(scene: Scene, speechText?: string): void {
     if (scene.type !== 'slide' || scene.content.type !== 'slide') return;
 
     const canvasStore = useCanvasStore.getState();
+
+    if (scene.content.semanticDocument && scene.content.webRenderMode !== 'slide') {
+      const sections = buildSemanticSpotlightSections(scene.content.semanticDocument);
+      const semanticTargetId =
+        (speechText ? resolveSemanticSpotlightTargetForText(speechText, sections) : null) ||
+        (!canvasStore.spotlightElementId ? sections[0]?.id || 'header' : null);
+      if (!semanticTargetId) return;
+      canvasStore.setSpotlight(semanticTargetId, { dimness: 0.55 });
+      return;
+    }
+
     if (canvasStore.spotlightElementId) return;
 
     const target = pickPlaybackSpotlightTarget(scene.content.canvas.elements);
@@ -472,7 +487,7 @@ export class PlaybackEngine {
     switch (action.type) {
       case 'speech': {
         const speechAction = action as SpeechAction;
-        this.ensureSpeechSpotlight(scene);
+        this.ensureSpeechSpotlight(scene, speechAction.text);
         this.callbacks.onSpeechStart?.(speechAction);
 
         // onEnded → processNext; if paused, resume() will call processNext

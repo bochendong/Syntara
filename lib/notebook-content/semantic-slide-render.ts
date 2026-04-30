@@ -9,7 +9,7 @@ import { renderNotebookContentDocumentToSlide } from './slide-adapter';
 import { normalizeSlideTextLayout, validateSlideTextLayout } from '@/lib/slide-text-layout';
 import { normalizeMathSource } from '@/lib/math-engine';
 
-export const SEMANTIC_SLIDE_RENDER_VERSION = 38;
+export const SEMANTIC_SLIDE_RENDER_VERSION = 54;
 
 const SEMANTIC_TEXT_FIELD_KEYS = new Set([
   'answer',
@@ -31,10 +31,23 @@ const SEMANTIC_TEXT_FIELD_KEYS = new Set([
   'title',
 ]);
 
-function normalizeSemanticTextSource(text: string): string {
+function repairLostLatexCommandEscapes(text: string): string {
   return text
+    .replace(/\bilde\s*([A-Za-z])\b/g, '\\tilde{$1}')
+    .replace(/\s*(?:使得|使)\}\s*/g, ': ');
+}
+
+function normalizeSemanticTextSource(text: string): string {
+  const normalizedCommands = repairLostLatexCommandEscapes(
+    text.replace(/\\\\(?=(?:formula|bullet)\s*\{)/g, '\\'),
+  );
+  return replaceInlineSyntaraTextCommands(replaceInlineSyntaraFormulaCommands(normalizedCommands))
     .replace(/<\/?(?:begin|end)\{[^}]+\}>?/gi, '')
+    .replace(/<\/?(?:row|rows|column|columns|cell|grid|block)>/gi, '')
+    .replace(/\\n(?![A-Za-z])/g, '\n')
+    .replace(/\\t(?![A-Za-z])/g, ' ')
     .replace(/\\\\(?=[a-zA-Z()[\]])/g, '\\')
+    .replace(/(?<![A-Za-z\\])ext\{([^{}]*)\}/g, '$1')
     .replace(/\\step\{([^{}]+)\}\{([^{}]+)\}/g, '$1：$2')
     .replace(/\\step\{([^{}]+)\}/g, '$1：')
     .replace(
@@ -49,6 +62,53 @@ function normalizeSemanticTextSource(text: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
+}
+
+function replaceBraceCommandText(
+  text: string,
+  command: string,
+  render: (inner: string) => string,
+): string {
+  let output = '';
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const start = text.indexOf(command, cursor);
+    if (start === -1) {
+      output += text.slice(cursor);
+      break;
+    }
+
+    output += text.slice(cursor, start);
+    let depth = 1;
+    let index = start + command.length;
+    while (index < text.length && depth > 0) {
+      const char = text[index];
+      const escaped = index > 0 && text[index - 1] === '\\';
+      if (!escaped && char === '{') depth += 1;
+      if (!escaped && char === '}') depth -= 1;
+      index += 1;
+    }
+
+    if (depth !== 0) {
+      output += text.slice(start);
+      break;
+    }
+
+    const inner = text.slice(start + command.length, index - 1).trim();
+    output += inner ? render(inner) : '';
+    cursor = index;
+  }
+
+  return output;
+}
+
+function replaceInlineSyntaraTextCommands(text: string): string {
+  return replaceBraceCommandText(text, '\\bullet{', (inner) => `\n• ${inner}\n`);
+}
+
+function replaceInlineSyntaraFormulaCommands(text: string): string {
+  return replaceBraceCommandText(text, '\\formula{', (inner) => `\n$$\n${inner}\n$$\n`);
 }
 
 function normalizeSemanticTextFields(value: unknown, key?: string): unknown {
@@ -68,12 +128,130 @@ function normalizeSemanticTextFields(value: unknown, key?: string): unknown {
   );
 }
 
-function normalizeBlockTextFields(block: NotebookContentBlock): NotebookContentBlock {
-  return normalizeSemanticTextFields(block) as NotebookContentBlock;
+type MissingInverseContext = {
+  base: string;
+  modulus?: string;
+  inverse?: string;
+};
+
+function positiveModulo(value: number, modulus: number): number {
+  return ((value % modulus) + modulus) % modulus;
+}
+
+function computeModularInverse(base: number, modulus: number): number | null {
+  let t = 0;
+  let nextT = 1;
+  let r = modulus;
+  let nextR = positiveModulo(base, modulus);
+
+  while (nextR !== 0) {
+    const quotient = Math.floor(r / nextR);
+    [t, nextT] = [nextT, t - quotient * nextT];
+    [r, nextR] = [nextR, r - quotient * nextR];
+  }
+
+  if (r !== 1) return null;
+  return positiveModulo(t, modulus);
+}
+
+function inferMissingInverseContext(
+  document: NotebookContentDocument,
+): MissingInverseContext | null {
+  const text = collectDocumentText(document);
+  const bezoutMatch = text.match(/\b(\d{1,4})\s*x\s*(?:\+|−|-)\s*(\d{1,4})\s*y\s*=\s*1\b/u);
+  if (bezoutMatch?.[1]) {
+    const base = bezoutMatch[1];
+    const modulus = bezoutMatch[2];
+    const inverse =
+      modulus != null
+        ? computeModularInverse(Number(base), Number(modulus))?.toString()
+        : undefined;
+    return { base, modulus, inverse };
+  }
+
+  const congruenceMatch = text.match(/\b(\d{1,4})\s*x\s*\\?equiv\s*1\s*\\?pmod\{?(\d{1,4})\}?/u);
+  if (congruenceMatch?.[1]) {
+    const base = congruenceMatch[1];
+    const modulus = congruenceMatch[2];
+    const inverse =
+      modulus != null
+        ? computeModularInverse(Number(base), Number(modulus))?.toString()
+        : undefined;
+    return { base, modulus, inverse };
+  }
+
+  return null;
+}
+
+function repairMissingInverseTargetText(text: string, document: NotebookContentDocument): string {
+  if (!/(逆元|inverse|\$\s*\^\s*\{?\s*-?\s*1\s*\}?\s*\$|求\s*\${2}|逆元是\s*\${2})/i.test(text)) {
+    return text;
+  }
+  const context = inferMissingInverseContext(document);
+  if (!context) return text;
+  const { base, inverse } = context;
+  const baseClass = `$[${base}]$`;
+  const inverseClass = inverse ? `$[${inverse}]$` : `$${base}^{-1}$`;
+  const inversePower = `$[${base}]^{-1}$`;
+
+  return text
+    .replace(/求\s*\${2}\s*的逆元/g, `求 ${baseClass} 的逆元`)
+    .replace(/求\s*的逆元/g, `求 ${baseClass} 的逆元`)
+    .replace(/求\s*\${2}\s*在/g, `求 ${baseClass} 在`)
+    .replace(/在([^，,。.；;]*?)中，?\s*\${2}\s*的/g, `在$1中，${baseClass} 的`)
+    .replace(/逆元是\s*\${2}/g, `逆元是 ${inverseClass}`)
+    .replace(/所以\s*\${2}\s*一定可逆/g, `所以 ${baseClass} 一定可逆`)
+    .replace(/使得\s*\$?\[x\]\$?\s*=\s*\$?/g, `使得 $[${base}][x]=[1]$`)
+    .replace(/要求\s*\$\s*\^\s*\{?\s*-?\s*1\s*\}?\s*\$/g, `要求 ${inversePower}`)
+    .replace(/find\s*\${2}\s*(?:the\s*)?inverse/gi, `find $${base}$ inverse`)
+    .replace(/\$\s*\^\s*\{?\s*-?\s*1\s*\}?\s*\$/g, inversePower)
+    .replace(/\${2}(?=\s*(?:[，,、。.；;]|$))/g, baseClass);
+}
+
+function repairKnownSemanticMathText(text: string, document: NotebookContentDocument): string {
+  const documentText = collectDocumentText(document);
+  if (!/(费马小定理|Fermat'?s?\s+little\s+theorem)/i.test(documentText)) {
+    return text;
+  }
+
+  return text
+    .replace(/\$p\s*(?:\\mid|\||mid)\s*a\$/g, '$p\\nmid a$')
+    .replace(/p\s*(?:\\mid|\||mid)\s*a(?=\s*(?:，|,|。|;|；|$))/g, '$p\\nmid a$');
+}
+
+function repairSemanticTextFields(
+  value: unknown,
+  document: NotebookContentDocument,
+  key?: string,
+): unknown {
+  if (typeof value === 'string') {
+    return key && SEMANTIC_TEXT_FIELD_KEYS.has(key)
+      ? repairKnownSemanticMathText(repairMissingInverseTargetText(value, document), document)
+      : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => repairSemanticTextFields(item, document, key));
+  }
+  if (!value || typeof value !== 'object') return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      repairSemanticTextFields(entryValue, document, entryKey),
+    ]),
+  );
+}
+
+function normalizeBlockTextFields(
+  block: NotebookContentBlock,
+  document: NotebookContentDocument,
+): NotebookContentBlock {
+  const normalized = normalizeSemanticTextFields(block) as NotebookContentBlock;
+  return repairSemanticTextFields(normalized, document) as NotebookContentBlock;
 }
 
 function normalizeFormulaLatex(text: string): string {
-  return normalizeMathSource(text)
+  return normalizeMathSource(repairLostLatexCommandEscapes(text))
     .replace(/(?:\\{2,}|\s*\\)\s*$/g, '')
     .replace(/\s+$/g, '')
     .trim();
@@ -256,6 +434,41 @@ function repairKnownWorkedExampleExpression(
   return repaired;
 }
 
+function repairMissingInverseExpression(
+  expression: string,
+  document: NotebookContentDocument,
+): string {
+  const context = inferMissingInverseContext(document);
+  if (!context) return expression;
+  const { base, modulus, inverse } = context;
+  const normalized = expression.trim().replace(/\\\\(?=[a-zA-Z()[\]])/g, '\\');
+
+  if (!/(?:\^\s*\{?-?1|\${2}|Rightarrow\s*=|=>=|逆元|inverse)/i.test(normalized)) {
+    return expression;
+  }
+
+  if (modulus && inverse && /\\?Rightarrow\s*=|=>=/.test(normalized)) {
+    return `\\begin{aligned}
+${base}\\cdot ${inverse}&=${Number(base) * Number(inverse)}\\\\
+${Number(base) * Number(inverse)}&=${modulus}\\cdot ${Math.floor((Number(base) * Number(inverse)) / Number(modulus))}+1
+\\end{aligned}
+\\quad\\Rightarrow\\quad ${base}\\cdot ${inverse}\\equiv 1\\pmod{${modulus}}`;
+  }
+
+  if (modulus && inverse && /\\\^\s*-?1|\^\s*\{?-?1/.test(normalized)) {
+    return `\\begin{aligned}
+${base}^{-1}&\\equiv ${inverse}\\pmod{${modulus}}\\\\
+${base}\\cdot ${inverse}&\\equiv 1\\pmod{${modulus}}
+\\end{aligned}`;
+  }
+
+  return normalized
+    .replace(/\$\s*\^\s*\{?\s*-?\s*1\s*\}?\s*\$/g, `[${base}]^{-1}`)
+    .replace(/\\\^\s*-?1/g, `${base}^{-1}`)
+    .replace(/\^\s*\{?-?1\}?/g, `${base}^{-1}`)
+    .replace(/\${2}/g, inverse ? `[${inverse}]` : `[${base}]`);
+}
+
 function dedupeBulletItems(items: string[]): string[] {
   const seen = new Set<string>();
   const deduped: string[] = [];
@@ -369,7 +582,7 @@ function normalizeCompositionBridgeDocument(
 function normalizeSemanticDocumentMath(document: NotebookContentDocument): NotebookContentDocument {
   const normalizeBlocks = (blocks: NotebookContentBlock[]): NotebookContentBlock[] =>
     blocks.flatMap((block): NotebookContentBlock[] => {
-      const normalizedBlock = normalizeBlockTextFields(block);
+      const normalizedBlock = normalizeBlockTextFields(block, document);
       if (normalizedBlock.type === 'equation') {
         return normalizeEquationBlock(normalizedBlock, document);
       }
@@ -382,15 +595,32 @@ function normalizeSemanticDocumentMath(document: NotebookContentDocument): Noteb
                 ? {
                     ...step,
                     expression: normalizeFormulaLatex(
-                      repairKnownWorkedExampleExpression(step.expression, document),
+                      repairMissingInverseExpression(
+                        repairKnownWorkedExampleExpression(step.expression, document),
+                        document,
+                      ),
                     ),
                   }
-                : step,
+                : {
+                    ...step,
+                    expression:
+                      step.format === 'text'
+                        ? normalizeSemanticTextSource(
+                            repairKnownSemanticMathText(
+                              repairMissingInverseTargetText(step.expression, document),
+                              document,
+                            ),
+                          )
+                        : step.expression,
+                  },
             ),
           },
         ];
       }
-      if (normalizedBlock.type === 'paragraph' && isTrivialConnectorText(normalizedBlock.text)) {
+      if (
+        normalizedBlock.type === 'paragraph' &&
+        (!normalizedBlock.text.trim() || isTrivialConnectorText(normalizedBlock.text))
+      ) {
         return [];
       }
       if (normalizedBlock.type !== 'definition' && normalizedBlock.type !== 'theorem') {
@@ -425,9 +655,14 @@ function normalizeSemanticDocumentMath(document: NotebookContentDocument): Noteb
     : document.layoutTemplate === 'title_content' && hasDefinition && hasFormula
       ? 'definition_board'
       : document.layoutTemplate;
+  const normalizedTitle = repairMissingInverseTargetText(
+    normalizeSemanticTextSource(document.title || ''),
+    document,
+  );
 
   return {
     ...document,
+    title: normalizedTitle || document.title,
     blocks,
     ...(slots ? { slots } : {}),
     ...(layoutTemplate ? { layoutTemplate } : {}),
@@ -511,8 +746,9 @@ export function renderSemanticSlideContent(args: {
 }
 
 export function shouldAutoRefreshSemanticSlideContent(content: SlideContent): boolean {
-  if (!content.semanticDocument) return false;
+  if (!content.semanticDocument && !content.syntaraMarkup) return false;
   if (hasMathRenderError(content)) return true;
+  if (hasBrokenSemanticSource(content)) return true;
   if (content.semanticRenderMode === 'manual') return false;
   return content.semanticRenderVersion !== SEMANTIC_SLIDE_RENDER_VERSION;
 }
@@ -522,32 +758,51 @@ function hasMathRenderError(content: SlideContent): boolean {
   return /katex-error|KaTeX parse error|ParseError: KaTeX/.test(elementsJson);
 }
 
+function hasBrokenSemanticSource(content: SlideContent): boolean {
+  const documentJson = [JSON.stringify(content.semanticDocument ?? {}), content.syntaraMarkup || '']
+    .filter(Boolean)
+    .join('\n');
+  return /<\\?\/?row>|<\/?row>|\\formula(?:\{|[A-Za-z0-9])|\\bullet\{|\\pmod\s+[A-Za-z0-9]|\$\s*\^\s*\{?\s*-?\s*1\s*\}?\s*\$|求\s*\${2}\s*的逆元|逆元是\s*\${2}|=>=|\\Rightarrow\s*=/.test(
+    documentJson,
+  );
+}
+
 export function refreshSemanticSlideScene(scene: Scene): Scene {
   if (scene.type !== 'slide' || scene.content.type !== 'slide') {
     return scene;
   }
 
   const { content } = scene;
-  if (!shouldAutoRefreshSemanticSlideContent(content) || !content.semanticDocument) {
+  if (!shouldAutoRefreshSemanticSlideContent(content)) {
     return scene;
   }
   const markupSource = content.syntaraMarkup;
-  const shouldCompileFromMarkup = Boolean(markupSource && !content.semanticDocument.continuation);
-  const sourceDocument = shouldCompileFromMarkup
+  const shouldCompileFromMarkup = Boolean(
+    markupSource && (!content.semanticDocument || !content.semanticDocument.continuation),
+  );
+  const compiledDocument = shouldCompileFromMarkup
     ? compileSyntaraMarkupToNotebookDocument(markupSource || '', {
-        title: content.semanticDocument.title || scene.title,
-        language: content.semanticDocument.language,
-      }) || normalizeSemanticDocumentForRender(content.semanticDocument)
-    : normalizeSemanticDocumentForRender(content.semanticDocument);
+        title: content.semanticDocument?.title || scene.title,
+        language: content.semanticDocument?.language,
+      })
+    : null;
+  const sourceDocument =
+    compiledDocument ||
+    (content.semanticDocument
+      ? normalizeSemanticDocumentForRender(content.semanticDocument)
+      : null);
+  if (!sourceDocument) return scene;
   const syntaraMarkup = shouldCompileFromMarkup
     ? normalizeSyntaraMarkupLayout(markupSource || '')
     : markupSource;
+  const renderDocument = normalizeSemanticDocumentForRender(sourceDocument);
 
   return {
     ...scene,
+    title: renderDocument.title || scene.title,
     content: renderSemanticSlideContent({
-      document: sourceDocument,
-      fallbackTitle: sourceDocument.title || scene.title,
+      document: renderDocument,
+      fallbackTitle: renderDocument.title || scene.title,
       preserveCanvasId: content.canvas.id,
       syntaraMarkup,
       renderMode: content.semanticRenderMode ?? 'auto',

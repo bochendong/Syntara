@@ -13,6 +13,7 @@ import {
   writePersistedStageOutlines,
 } from '@/lib/utils/stage-outline-storage';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
+import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 
 const log = createLogger('StageStore');
 
@@ -668,6 +669,19 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       // (e.g. navigated from generation-preview with fresh in-memory data)
       const currentState = get();
       if (currentState.stage?.id === stageId && currentState.scenes.length > 0) {
+        const refreshedScenes = normalizeSceneStructure(
+          currentState.scenes.map((scene) => refreshSemanticSlideScene(scene)),
+        );
+        const resolvedCurrentSceneId =
+          currentState.currentSceneId &&
+          refreshedScenes.some((scene) => scene.id === currentState.currentSceneId)
+            ? currentState.currentSceneId
+            : refreshedScenes[0]?.id || null;
+        set({
+          scenes: refreshedScenes,
+          currentSceneId: resolvedCurrentSceneId,
+        });
+        writeDraftSnapshotForState(currentState.stage, refreshedScenes, resolvedCurrentSceneId);
         log.info('Stage already loaded in memory, skipping IndexedDB load:', stageId);
         return;
       }

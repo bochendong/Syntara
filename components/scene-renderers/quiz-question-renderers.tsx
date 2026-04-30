@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import {
   getDisplayQuestionText,
   normalizeMarkdownForHighlightedCode,
@@ -406,33 +407,35 @@ function TextQuestion({
         </div>
       )}
       {!isReview ? (
-        <div className="relative">
-          <Textarea
-            value={value ?? ''}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            placeholder={
-              isProof
-                ? locale === 'zh-CN'
-                  ? '请写出你的证明过程...'
-                  : 'Write your proof here...'
-                : t('quiz.inputPlaceholder')
-            }
-            className={cn('w-full pb-10 rounded-xl', isProof ? 'min-h-[180px]' : 'min-h-[120px]')}
-          />
-          <SpeechButton
-            size="sm"
-            disabled={disabled}
-            className="absolute bottom-3 left-3"
-            onTranscription={(text) => {
-              const cur = valueRef.current ?? '';
-              onChange(cur + (cur ? ' ' : '') + text);
-            }}
-          />
-          <span className="absolute bottom-3 right-3 text-xs text-gray-300 dark:text-gray-600">
-            {(value ?? '').length} {t('quiz.charCount')}
-          </span>
-        </div>
+        <AnswerComposer
+          value={value ?? ''}
+          onChange={onChange}
+          locale={locale === 'zh-CN' ? 'zh-CN' : 'en-US'}
+          disabled={disabled}
+          placeholder={
+            isProof
+              ? locale === 'zh-CN'
+                ? '请写出你的证明过程...'
+                : 'Write your proof here...'
+              : t('quiz.inputPlaceholder')
+          }
+          textareaClassName={isProof ? 'min-h-[180px]' : 'min-h-[120px]'}
+          footerStart={
+            <SpeechButton
+              size="sm"
+              disabled={disabled}
+              onTranscription={(text) => {
+                const cur = valueRef.current ?? '';
+                onChange(cur + (cur ? ' ' : '') + text);
+              }}
+            />
+          }
+          footerEnd={
+            <span className="text-xs text-gray-300 dark:text-gray-600">
+              {(value ?? '').length} {t('quiz.charCount')}
+            </span>
+          }
+        />
       ) : (
         <div className="space-y-3">
           <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">
@@ -825,9 +828,7 @@ function QuestionCard({
               </p>
               <Textarea
                 value={activeDraft.question}
-                onChange={(e) =>
-                  setDraftState({ ...activeDraft, question: e.target.value })
-                }
+                onChange={(e) => setDraftState({ ...activeDraft, question: e.target.value })}
                 rows={3}
               />
             </div>
@@ -837,9 +838,7 @@ function QuestionCard({
               </p>
               <Textarea
                 value={activeDraft.codeSnippet}
-                onChange={(e) =>
-                  setDraftState({ ...activeDraft, codeSnippet: e.target.value })
-                }
+                onChange={(e) => setDraftState({ ...activeDraft, codeSnippet: e.target.value })}
                 rows={6}
                 className="font-mono text-xs"
               />
@@ -850,9 +849,7 @@ function QuestionCard({
               </p>
               <Textarea
                 value={activeDraft.analysis}
-                onChange={(e) =>
-                  setDraftState({ ...activeDraft, analysis: e.target.value })
-                }
+                onChange={(e) => setDraftState({ ...activeDraft, analysis: e.target.value })}
                 rows={3}
               />
             </div>
