@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
 import { Loader2 } from 'lucide-react';
@@ -34,11 +28,10 @@ import {
 import {
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
+  createNotebookHref,
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
-import { NotebookGenerationQueuePanel } from '@/components/generation/notebook-generation-queue-panel';
-import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
 import {
   OrchestratorNotebookProgressPanel,
@@ -107,7 +100,6 @@ export function ChatPageClient() {
   const [nbThreadHydrated, setNbThreadHydrated] = useState(false);
   const [agThread, setAgThread] = useState<UIMessage<ChatMessageMetadata>[]>([]);
   const [draft, setDraft] = useState('');
-  const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
   const [sending, setSending] = useState(false);
   const [notebookPendingAction, setNotebookPendingAction] = useState<'chat' | 'import' | null>(
     null,
@@ -147,40 +139,16 @@ export function ChatPageClient() {
   );
   const abortRef = useRef<AbortController | null>(null);
 
-  const switchOrchestratorComposer = useCallback(
-    (mode: OrchestratorComposerMode) => {
-      setOrchestratorComposerMode(mode);
-      const next = new URLSearchParams(searchParams.toString());
-      next.set('composer', mode);
-      router.replace(`/chat?${next.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
-
   useEffect(() => {
     const comp = searchParams.get('composer');
-    if (comp !== 'generate-notebook' && comp !== 'send-message') return;
     if (agentId !== COURSE_ORCHESTRATOR_ID) return;
+    if (comp === 'generate-notebook') {
+      router.replace(createNotebookHref(courseId), { scroll: false });
+      return;
+    }
+    if (comp !== 'send-message') return;
     setOrchestratorComposerMode(comp as OrchestratorComposerMode);
-  }, [searchParams, agentId]);
-
-  const notebookGenerationInFlight =
-    agentId === COURSE_ORCHESTRATOR_ID &&
-    (chatView === 'group' ? 'group' : 'private') === 'private' &&
-    orchestratorComposerMode === 'generate-notebook' &&
-    sending;
-
-  useEffect(() => {
-    if (!notebookGenerationInFlight || typeof window === 'undefined') return;
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [notebookGenerationInFlight]);
+  }, [searchParams, agentId, courseId, router]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   /** 总控「创建笔记本」任务 id，用于轮询检测完成并补发气泡 */
@@ -212,8 +180,7 @@ export function ChatPageClient() {
     : agentId
       ? ('agent' as const)
       : ('none' as const);
-  const supportsComposerAttachments =
-    mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator);
+  const supportsComposerAttachments = mode === 'notebook';
 
   const {
     fileInputRef,
@@ -230,10 +197,6 @@ export function ChatPageClient() {
   } = useChatAttachments({
     supportsComposerAttachments,
     sending,
-    isCourseOrchestrator,
-    orchestratorViewMode,
-    orchestratorComposerMode,
-    switchOrchestratorComposer,
   });
 
   const handleCancelOrchestratorTask = useCallback(async () => {
@@ -321,7 +284,7 @@ export function ChatPageClient() {
       const v = searchParams.get('view');
       if (v) next.set('view', v);
       const comp = searchParams.get('composer');
-      if (comp === 'generate-notebook' || comp === 'send-message') next.set('composer', comp);
+      if (comp === 'send-message') next.set('composer', comp);
       router.replace(`/chat?${next.toString()}`);
       setPickContactDone(true);
     })();
@@ -801,7 +764,6 @@ export function ChatPageClient() {
     pendingAttachments,
     orchestratorViewMode,
     orchestratorComposerMode,
-    switchOrchestratorComposer,
     setOrchestratorPdfSelectionFile,
     setOrchestratorPdfSelectionDialogOpen,
     abortRef,
@@ -813,10 +775,8 @@ export function ChatPageClient() {
     setPendingAttachments,
     setSending,
     courseId,
-    enqueueNotebookGeneration,
     trackedOrchestratorCreateTaskIdRef,
     setActiveOrchestratorTaskId,
-    orchestratorCompletionAnnouncedRef,
     setOrchestratorPipelineProgress,
     orchestratorAvatar,
     shouldRenderGroupReplies,
@@ -860,7 +820,7 @@ export function ChatPageClient() {
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {mode === 'none' && courseId && pickContactDone ? (
           <p className="text-center text-sm text-muted-foreground">
-            本课程下还没有笔记本或 Agent。请先创建笔记本，或从生成流程创建课程角色。
+            本课程下还没有笔记本或 Agent。请回到课程页新建笔记本，或从课程内创建界面开始生成。
           </p>
         ) : null}
         {mode === 'none' && courseId && !pickContactDone ? (
@@ -875,9 +835,7 @@ export function ChatPageClient() {
           <p className="mx-auto max-w-md px-2 text-center text-sm leading-relaxed text-muted-foreground">
             {orchestratorViewMode === 'group'
               ? '这里是课程内协作群聊，会显示课程总控与被调度笔记本的协作过程。'
-              : orchestratorComposerMode === 'send-message'
-                ? '在此直接向课程总控提问：课程安排、概念解释、与笔记本无关的答疑等。不会自动创建笔记本或调度多笔记本协作。'
-                : `生成笔记本：在下方选择「生成笔记本」，填写需求、可添加 PDF、Markdown 或其它附件后发送。将走创建管线（与「${t('toolbar.enterClassroom')}」一致），进度在输入区上方与右侧「进行中」同步。`}
+              : '在此直接向课程总控提问：课程安排、概念解释、与笔记本无关的答疑等。创建笔记本请使用课程内创建界面。'}
           </p>
         ) : null}
 
@@ -908,8 +866,6 @@ export function ChatPageClient() {
             deleteAgentMessageById={deleteAgentMessageById}
           />
         ) : null}
-
-        {mode === 'agent' && isCourseOrchestrator ? <NotebookGenerationQueuePanel compact /> : null}
 
         {mode === 'agent' && isCourseOrchestrator && orchestratorPipelineProgress ? (
           <OrchestratorNotebookProgressPanel progress={orchestratorPipelineProgress} />
@@ -952,8 +908,6 @@ export function ChatPageClient() {
         mode={mode}
         isCourseOrchestrator={isCourseOrchestrator}
         orchestratorViewMode={orchestratorViewMode}
-        orchestratorComposerMode={orchestratorComposerMode}
-        switchOrchestratorComposer={switchOrchestratorComposer}
         supportsComposerAttachments={supportsComposerAttachments}
         isComposerDragging={isComposerDragging}
         handleComposerDragEnter={handleComposerDragEnter}

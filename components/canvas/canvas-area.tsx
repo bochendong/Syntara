@@ -275,11 +275,11 @@ export function CanvasArea({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute inset-0 z-[102] flex items-center justify-center pointer-events-none"
+                  className="absolute inset-0 z-[102] pointer-events-none"
                 >
                   <motion.div
                     className={cn(
-                      'opacity-50 group-hover/canvas:opacity-100 transition-opacity duration-300 pointer-events-auto',
+                      'absolute bottom-5 right-5 opacity-0 group-hover/canvas:opacity-90 transition-opacity duration-300 pointer-events-auto',
                       playPauseDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
                     )}
                     exit={{ pointerEvents: 'none' }}
@@ -302,13 +302,13 @@ export function CanvasArea({
                           ease: 'easeInOut',
                         },
                       }}
-                      className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-[0_6px_32px_rgba(0,122,255,0.2),inset_0_0_0_1px_rgba(255,255,255,0.8)] dark:bg-[#2c2c2e]/95 dark:shadow-[0_6px_36px_rgba(10,132,255,0.25),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white/92 shadow-[0_6px_24px_rgba(15,23,42,0.16),inset_0_0_0_1px_rgba(255,255,255,0.8)] backdrop-blur dark:bg-[#2c2c2e]/92 dark:shadow-[0_6px_28px_rgba(10,132,255,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                       style={{ willChange: 'transform' }}
                     >
                       {playPauseBusy ? (
-                        <Loader2 className="h-7 w-7 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />
+                        <Loader2 className="h-5 w-5 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />
                       ) : (
-                        <Play className="ml-0.5 h-7 w-7 fill-[#007AFF]/90 text-[#007AFF] dark:fill-[#0A84FF]/90 dark:text-[#0A84FF]" />
+                        <Play className="ml-0.5 h-5 w-5 fill-[#007AFF]/90 text-[#007AFF] dark:fill-[#0A84FF]/90 dark:text-[#0A84FF]" />
                       )}
                     </motion.div>
                   </motion.div>

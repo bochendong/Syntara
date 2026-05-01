@@ -10,17 +10,21 @@ import {
   Ellipsis,
   FileUp,
   Globe2,
+  ImagePlus,
   Loader2,
   Pencil,
   Save,
   Trash2,
   ExternalLink,
+  Type,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
+import { cn } from '@/lib/utils';
 import {
   notebookProblemImportDraftSchema,
   type NotebookProblemImportDraft,
@@ -52,10 +56,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AnswerComposer } from '@/components/problem-bank/answer-composer';
+import {
+  AnswerComposer,
+  AnswerComposerToolbar,
+  useAnswerComposerController,
+} from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
-import { ProblemRichText } from '@/components/problem-bank/problem-rich-text';
+import { ProblemRichText, ProblemTitleText } from '@/components/problem-bank/problem-rich-text';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -153,6 +161,143 @@ function renderProblemStem(problem: NotebookProblemClientRecord): string {
   return '';
 }
 
+type TextAnswerMode = 'text' | 'photo';
+
+type PhotoAnswerDraft = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
+};
+
+const MAX_PHOTO_ANSWER_FILES = 4;
+const MAX_PHOTO_ANSWER_BYTES = 4 * 1024 * 1024;
+const PROBLEM_BANK_PRIMARY_BUTTON_CLASS =
+  'bg-sky-600 text-white shadow-sm shadow-sky-100/70 hover:bg-sky-700 dark:bg-sky-500 dark:text-slate-950 dark:shadow-none dark:hover:bg-sky-400';
+const PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS =
+  'border-sky-200 text-sky-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-sky-500/25 dark:text-sky-200 dark:hover:border-sky-400/40 dark:hover:bg-sky-500/10 dark:hover:text-sky-100';
+
+function supportsPhotoAnswer(problem: NotebookProblemClientRecord | null): boolean {
+  if (!problem) return false;
+  return (
+    problem.type === 'short_answer' || problem.type === 'proof' || problem.type === 'calculation'
+  );
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatFileSize(bytes: number, locale: 'zh-CN' | 'en-US') {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  return `${(kb / 1024).toFixed(locale === 'zh-CN' ? 1 : 1)} MB`;
+}
+
+function PhotoAnswerUploader({
+  inputId,
+  photos,
+  disabled,
+  locale,
+  onAddFiles,
+  onRemovePhoto,
+}: {
+  inputId: string;
+  photos: PhotoAnswerDraft[];
+  disabled?: boolean;
+  locale: 'zh-CN' | 'en-US';
+  onAddFiles: (files: FileList | File[]) => void;
+  onRemovePhoto: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <label
+        htmlFor={inputId}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (disabled) return;
+          onAddFiles(event.dataTransfer.files);
+        }}
+        className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center transition-colors ${
+          disabled
+            ? 'pointer-events-none border-slate-200 bg-slate-50 opacity-60 dark:border-slate-800 dark:bg-slate-900/50'
+            : 'border-slate-300 bg-slate-50 hover:border-sky-300 hover:bg-sky-50/70 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-sky-700 dark:hover:bg-sky-950/30'
+        }`}
+      >
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          disabled={disabled}
+          onChange={(event) => {
+            if (event.currentTarget.files) onAddFiles(event.currentTarget.files);
+            event.currentTarget.value = '';
+          }}
+        />
+        <span className="mb-3 inline-flex size-11 items-center justify-center rounded-full bg-white text-sky-600 shadow-sm ring-1 ring-sky-100 dark:bg-slate-950 dark:text-sky-300 dark:ring-sky-500/25">
+          <ImagePlus className="h-5 w-5" />
+        </span>
+        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          {locale === 'zh-CN' ? '上传照片答案' : 'Upload photo answer'}
+        </span>
+        <span className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          {locale === 'zh-CN'
+            ? `点击选择或拖入图片，最多 ${MAX_PHOTO_ANSWER_FILES} 张，每张不超过 4 MB。`
+            : `Choose or drop images. Up to ${MAX_PHOTO_ANSWER_FILES} photos, 4 MB each.`}
+        </span>
+      </label>
+
+      {photos.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {photos.map((photo) => (
+            <div
+              key={photo.id}
+              className="group overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950"
+            >
+              <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-900">
+                <img
+                  src={photo.dataUrl}
+                  alt={photo.name}
+                  className="h-full w-full object-contain"
+                />
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onRemovePhoto(photo.id)}
+                  aria-label={locale === 'zh-CN' ? '移除照片' : 'Remove photo'}
+                  className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-50 dark:bg-slate-950/90 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-red-950/60 dark:hover:text-red-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="min-w-0 px-3 py-2">
+                <p className="truncate text-xs font-medium text-slate-800 dark:text-slate-100">
+                  {photo.name}
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  {formatFileSize(photo.size, locale)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function createManualProblemDraft(
   locale: 'zh-CN' | 'en-US',
   notebookId?: string | null,
@@ -207,7 +352,9 @@ export function CourseProblemBankView({
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [deletingProblem, setDeletingProblem] = useState(false);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
+  const [answerModes, setAnswerModes] = useState<Record<string, TextAnswerMode>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
+  const [photoAnswers, setPhotoAnswers] = useState<Record<string, PhotoAnswerDraft[]>>({});
   const [choiceAnswers, setChoiceAnswers] = useState<Record<string, string[]>>({});
   const [blankAnswers, setBlankAnswers] = useState<Record<string, Record<string, string>>>({});
   const [codeAnswers, setCodeAnswers] = useState<Record<string, string>>({});
@@ -316,6 +463,39 @@ export function CourseProblemBankView({
     filteredProblems.find((problem) => problem.id === selectedProblemId) ||
     problems.find((problem) => problem.id === selectedProblemId) ||
     null;
+  const selectedAnswerMode: TextAnswerMode = selectedProblem
+    ? (answerModes[selectedProblem.id] ?? 'text')
+    : 'text';
+  const selectedTextAnswerValue = selectedProblem ? (textAnswers[selectedProblem.id] ?? '') : '';
+  const selectedTextAnswerId = selectedProblem?.id;
+  const setSelectedTextAnswer = useCallback(
+    (nextValue: string) => {
+      if (!selectedTextAnswerId) return;
+      setTextAnswers((prev) => ({
+        ...prev,
+        [selectedTextAnswerId]: nextValue,
+      }));
+    },
+    [selectedTextAnswerId],
+  );
+  const selectedAnswerController = useAnswerComposerController({
+    value: selectedTextAnswerValue,
+    onChange: setSelectedTextAnswer,
+  });
+  const showSidebarAnswerTools =
+    selectedAnswerMode === 'text' &&
+    (selectedProblem?.type === 'short_answer' || selectedProblem?.type === 'proof');
+
+  useEffect(() => {
+    if (!selectedProblemId) return;
+    setAnswerModes((prev) => {
+      if (prev[selectedProblemId] === 'text') return prev;
+      return {
+        ...prev,
+        [selectedProblemId]: 'text',
+      };
+    });
+  }, [selectedProblemId]);
 
   useEffect(() => {
     setMoveNotebookId(selectedProblem?.notebookId || '__unassigned__');
@@ -581,6 +761,83 @@ export function CourseProblemBankView({
     setEditProblemOpen(true);
   }, [selectedProblem]);
 
+  const handleAddPhotoAnswerFiles = useCallback(
+    async (files: FileList | File[]) => {
+      if (!selectedProblem) return;
+      const problemId = selectedProblem.id;
+      const existingCount = photoAnswers[problemId]?.length ?? 0;
+      const remainingSlots = MAX_PHOTO_ANSWER_FILES - existingCount;
+      if (remainingSlots <= 0) {
+        toast.error(
+          locale === 'zh-CN'
+            ? `最多只能上传 ${MAX_PHOTO_ANSWER_FILES} 张照片。`
+            : `You can upload up to ${MAX_PHOTO_ANSWER_FILES} photos.`,
+        );
+        return;
+      }
+
+      const incoming = Array.from(files);
+      const imageFiles = incoming.filter((file) => file.type.startsWith('image/'));
+      if (imageFiles.length === 0) {
+        toast.error(locale === 'zh-CN' ? '请选择图片文件。' : 'Choose image files.');
+        return;
+      }
+
+      const accepted = imageFiles
+        .filter((file) => {
+          if (file.size <= MAX_PHOTO_ANSWER_BYTES) return true;
+          toast.error(
+            locale === 'zh-CN'
+              ? `${file.name} 超过 4 MB，已跳过。`
+              : `${file.name} is larger than 4 MB and was skipped.`,
+          );
+          return false;
+        })
+        .slice(0, remainingSlots);
+
+      if (imageFiles.length > accepted.length) {
+        toast.error(
+          locale === 'zh-CN'
+            ? `已达到最多 ${MAX_PHOTO_ANSWER_FILES} 张照片的限制。`
+            : `Only ${MAX_PHOTO_ANSWER_FILES} photos are allowed.`,
+        );
+      }
+      if (accepted.length === 0) return;
+
+      try {
+        const nextPhotos = await Promise.all(
+          accepted.map(async (file) => ({
+            id: crypto.randomUUID(),
+            name: file.name,
+            mimeType: file.type || 'image/*',
+            size: file.size,
+            dataUrl: await readFileAsDataUrl(file),
+          })),
+        );
+        setPhotoAnswers((prev) => ({
+          ...prev,
+          [problemId]: [...(prev[problemId] ?? []), ...nextPhotos].slice(0, MAX_PHOTO_ANSWER_FILES),
+        }));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to read image');
+      }
+    },
+    [locale, photoAnswers, selectedProblem],
+  );
+
+  const handleRemovePhotoAnswer = useCallback(
+    (photoId: string) => {
+      if (!selectedProblem) return;
+      setPhotoAnswers((prev) => ({
+        ...prev,
+        [selectedProblem.id]: (prev[selectedProblem.id] ?? []).filter(
+          (photo) => photo.id !== photoId,
+        ),
+      }));
+    },
+    [selectedProblem],
+  );
+
   const handleUpdateProblem = useCallback(
     async (patch: {
       title?: string;
@@ -639,6 +896,12 @@ export function CourseProblemBankView({
       );
       return;
     }
+    const photoMode = supportsPhotoAnswer(selectedProblem) && selectedAnswerMode === 'photo';
+    const selectedPhotos = photoAnswers[selectedProblem.id] ?? [];
+    if (photoMode && selectedPhotos.length === 0) {
+      toast.error(locale === 'zh-CN' ? '请先上传照片答案。' : 'Upload a photo answer first.');
+      return;
+    }
     setSubmittingAnswer(true);
     try {
       const payload =
@@ -648,7 +911,9 @@ export function CourseProblemBankView({
             ? { blanks: blankAnswers[selectedProblem.id] ?? {} }
             : selectedProblem.type === 'code'
               ? { code: codeAnswers[selectedProblem.id] ?? '' }
-              : { text: textAnswers[selectedProblem.id] ?? '' };
+              : photoMode
+                ? { images: selectedPhotos }
+                : { text: textAnswers[selectedProblem.id] ?? '' };
       await submitNotebookProblem({
         notebookId: selectedProblem.notebookId,
         problemId: selectedProblem.id,
@@ -669,22 +934,28 @@ export function CourseProblemBankView({
     codeAnswers,
     loadAll,
     locale,
+    photoAnswers,
     selectedProblem,
+    selectedAnswerMode,
     submittingAnswer,
     textAnswers,
   ]);
 
   return (
-    <div className="mx-auto flex h-full min-h-0 max-w-7xl gap-4 p-4">
-      <div className="order-2 flex h-full w-[380px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-950/50">
-        <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800">
+    <div className="flex h-full min-h-0 w-full gap-3 p-3">
+      <div className="order-1 flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 2xl:w-[360px] dark:border-slate-800 dark:bg-slate-950/50">
+        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {courseName || (locale === 'zh-CN' ? '课程题库' : 'Course problem bank')}
               </h1>
             </div>
-            <Button size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+            <Button
+              size="sm"
+              className={cn('gap-2', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
+              onClick={() => setImportOpen(true)}
+            >
               <FileUp className="h-4 w-4" />
               {locale === 'zh-CN' ? '导入题目' : 'Import'}
             </Button>
@@ -716,7 +987,7 @@ export function CourseProblemBankView({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
           {loading ? (
             <div className="flex items-center justify-center py-12 text-sm text-slate-500">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -782,9 +1053,10 @@ export function CourseProblemBankView({
                                 onClick={() => setSelectedProblemId(problem.id)}
                                 className="min-w-0 flex-1 text-left"
                               >
-                                <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                  {problem.title}
-                                </p>
+                                <ProblemTitleText
+                                  content={problem.title}
+                                  className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100"
+                                />
                                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                   {typeLabel(problem.type, locale)} ·{' '}
                                   {difficultyLabel(problem.difficulty, locale)} ·{' '}
@@ -804,19 +1076,25 @@ export function CourseProblemBankView({
         </div>
       </div>
 
-      <div className="order-1 min-h-0 min-w-0 flex-1">
+      <div className="order-2 min-h-0 min-w-0 flex-1">
         {!selectedProblem ? (
-          <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
+          <div className="flex h-full w-full items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
             {locale === 'zh-CN' ? '请选择一道题查看详情。' : 'Select a problem to inspect.'}
           </div>
         ) : (
           <>
-            <Card className="h-full">
-              <CardHeader className="space-y-3">
+            <Card className="h-full w-full">
+              <CardHeader className="space-y-3 overflow-hidden">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="line-clamp-1 text-xl" title={selectedProblem.title}>
-                      {selectedProblem.title}
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <CardTitle
+                      className="w-full max-w-full overflow-hidden pr-2 text-xl leading-snug"
+                      title={selectedProblem.title}
+                    >
+                      <ProblemTitleText
+                        content={selectedProblem.title}
+                        className="line-clamp-2 max-w-full break-words"
+                      />
                     </CardTitle>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="outline">
@@ -839,47 +1117,49 @@ export function CourseProblemBankView({
                       </Badge>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
-                      >
-                        <Ellipsis className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem onClick={openEditProblemDialog}>
-                        <Pencil className="h-4 w-4" />
-                        {locale === 'zh-CN' ? '编辑题目' : 'Edit problem'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
-                        <ArrowRightLeft className="h-4 w-4" />
-                        {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
-                      </DropdownMenuItem>
-                      {selectedProblem.notebookId ? (
-                        <DropdownMenuItem
-                          onClick={() => router.push(`/classroom/${selectedProblem.notebookId}`)}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={openEditProblemDialog}>
+                      <Pencil className="h-4 w-4" />
+                      {locale === 'zh-CN' ? '编辑题目' : 'Edit problem'}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
                         >
-                          <ExternalLink className="h-4 w-4" />
-                          {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                          <Ellipsis className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
+                          <ArrowRightLeft className="h-4 w-4" />
+                          {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
                         </DropdownMenuItem>
-                      ) : null}
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={handleDeleteProblem}
-                        disabled={deletingProblem}
-                      >
-                        {deletingProblem ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                        {locale === 'zh-CN' ? '删除题目' : 'Delete'}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {selectedProblem.notebookId ? (
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/classroom/${selectedProblem.notebookId}`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={handleDeleteProblem}
+                          disabled={deletingProblem}
+                        >
+                          {deletingProblem ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto">
@@ -895,6 +1175,51 @@ export function CourseProblemBankView({
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/40">
+                  {supportsPhotoAnswer(selectedProblem) ? (
+                    <div className="mb-3 flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900/70">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          'gap-1.5',
+                          selectedAnswerMode === 'text'
+                            ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                            : 'text-slate-600 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-200',
+                        )}
+                        onClick={() =>
+                          setAnswerModes((prev) => ({
+                            ...prev,
+                            [selectedProblem.id]: 'text',
+                          }))
+                        }
+                      >
+                        <Type className="h-4 w-4" />
+                        {locale === 'zh-CN' ? '文字输入' : 'Text'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          'gap-1.5',
+                          selectedAnswerMode === 'photo'
+                            ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                            : 'text-slate-600 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-200',
+                        )}
+                        onClick={() =>
+                          setAnswerModes((prev) => ({
+                            ...prev,
+                            [selectedProblem.id]: 'photo',
+                          }))
+                        }
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        {locale === 'zh-CN' ? '照片上传' : 'Photos'}
+                      </Button>
+                    </div>
+                  ) : null}
+
                   {selectedProblem.type === 'choice' &&
                   selectedProblem.publicContent.type === 'choice' ? (
                     <div className="space-y-2">
@@ -985,15 +1310,22 @@ export function CourseProblemBankView({
                           : 'Write code here and submit.'
                       }
                     />
+                  ) : supportsPhotoAnswer(selectedProblem) && selectedAnswerMode === 'photo' ? (
+                    <PhotoAnswerUploader
+                      inputId={`photo-answer-${selectedProblem.id}`}
+                      photos={photoAnswers[selectedProblem.id] ?? []}
+                      disabled={submittingAnswer}
+                      locale={locale}
+                      onAddFiles={handleAddPhotoAnswerFiles}
+                      onRemovePhoto={handleRemovePhotoAnswer}
+                    />
                   ) : (
                     <AnswerComposer
                       value={textAnswers[selectedProblem.id] ?? ''}
-                      onChange={(nextValue) =>
-                        setTextAnswers((prev) => ({
-                          ...prev,
-                          [selectedProblem.id]: nextValue,
-                        }))
-                      }
+                      onChange={setSelectedTextAnswer}
+                      controller={showSidebarAnswerTools ? selectedAnswerController : undefined}
+                      showToolbar
+                      showToolbarPanels={!showSidebarAnswerTools}
                       locale={locale}
                       textareaClassName="min-h-[140px]"
                       placeholder={
@@ -1002,7 +1334,11 @@ export function CourseProblemBankView({
                     />
                   )}
                   <div className="mt-3">
-                    <Button onClick={handleSubmitInlineAnswer} disabled={submittingAnswer}>
+                    <Button
+                      onClick={handleSubmitInlineAnswer}
+                      disabled={submittingAnswer}
+                      className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                    >
                       {submittingAnswer ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -1041,7 +1377,11 @@ export function CourseProblemBankView({
                     ))}
                   </select>
                   <div className="flex justify-end">
-                    <Button onClick={handleSaveAssignment} disabled={savingAssignment}>
+                    <Button
+                      onClick={handleSaveAssignment}
+                      disabled={savingAssignment}
+                      className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                    >
                       {savingAssignment ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -1065,6 +1405,20 @@ export function CourseProblemBankView({
         )}
       </div>
 
+      {showSidebarAnswerTools ? (
+        <div className="order-3 flex h-full w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 2xl:w-[300px] dark:border-slate-800 dark:bg-slate-950/50">
+          <div className="min-h-0 flex-1 overflow-hidden p-2">
+            <AnswerComposerToolbar
+              controller={selectedAnswerController}
+              locale={locale}
+              fillPanels
+              showControls={false}
+              className="bg-white dark:bg-slate-950/40"
+            />
+          </div>
+        </div>
+      ) : null}
+
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
@@ -1082,6 +1436,11 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'text' ? 'default' : 'outline'}
+              className={
+                importMode === 'text'
+                  ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
+              }
               onClick={() => setImportMode('text')}
             >
               {locale === 'zh-CN' ? '文本' : 'Text'}
@@ -1089,6 +1448,11 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'pdf' ? 'default' : 'outline'}
+              className={
+                importMode === 'pdf'
+                  ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
+              }
               onClick={() => setImportMode('pdf')}
             >
               PDF
@@ -1096,6 +1460,11 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'web' ? 'default' : 'outline'}
+              className={
+                importMode === 'web'
+                  ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
+              }
               onClick={() => setImportMode('web')}
             >
               <Globe2 className="mr-2 h-4 w-4" />
@@ -1104,6 +1473,11 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'manual' ? 'default' : 'outline'}
+              className={
+                importMode === 'manual'
+                  ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
+              }
               onClick={() => setImportMode('manual')}
             >
               {locale === 'zh-CN' ? '手动添加题目' : 'Manual draft'}
@@ -1163,7 +1537,11 @@ export function CourseProblemBankView({
           )}
 
           <div className="flex justify-end">
-            <Button onClick={handlePreviewImport} disabled={previewLoading || commitLoading}>
+            <Button
+              onClick={handlePreviewImport}
+              disabled={previewLoading || commitLoading}
+              className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+            >
               {previewLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -1183,7 +1561,7 @@ export function CourseProblemBankView({
             <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
               <div className="flex items-start gap-3">
                 {(previewLoading || commitLoading) && importProcessingStage !== 'completed' ? (
-                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-violet-600" />
+                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-sky-600" />
                 ) : (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
                 )}
@@ -1202,7 +1580,7 @@ export function CourseProblemBankView({
                     </p>
                   )}
                   {importUsage ? (
-                    <p className="mt-2 text-xs text-violet-700 dark:text-violet-200">
+                    <p className="mt-2 text-xs text-sky-700 dark:text-sky-200">
                       {locale === 'zh-CN'
                         ? `本次导题扣费 ${importUsage.estimatedCostCredits ?? 0} 算力积分`
                         : `Import charged ${importUsage.estimatedCostCredits ?? 0} compute credits`}
@@ -1221,7 +1599,7 @@ export function CourseProblemBankView({
           ) : null}
 
           {importSummaryNote ? (
-            <div className="rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 text-sm text-violet-900 dark:border-violet-900/50 dark:bg-violet-950/20 dark:text-violet-100">
+            <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-sky-900 dark:border-sky-500/30 dark:bg-sky-950/25 dark:text-sky-100">
               {importSummaryNote}
             </div>
           ) : null}
@@ -1261,6 +1639,7 @@ export function CourseProblemBankView({
                         type="button"
                         variant="outline"
                         size="sm"
+                        className={PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS}
                         onClick={() => {
                           setEditingDraftId(draft.draftId);
                           setDraftEditorText(JSON.stringify(draft, null, 2));
@@ -1348,7 +1727,11 @@ export function CourseProblemBankView({
                       onChange={(event) => setDraftEditorText(event.target.value)}
                     />
                     <div className="mt-3 flex justify-end">
-                      <Button type="button" onClick={handleSaveDraftEditor}>
+                      <Button
+                        type="button"
+                        onClick={handleSaveDraftEditor}
+                        className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                      >
                         <Save className="mr-2 h-4 w-4" />
                         {locale === 'zh-CN' ? '保存草稿' : 'Save draft'}
                       </Button>
@@ -1361,7 +1744,11 @@ export function CourseProblemBankView({
 
           {drafts.length > 0 ? (
             <div className="flex justify-end">
-              <Button onClick={handleCommitImport} disabled={commitLoading}>
+              <Button
+                onClick={handleCommitImport}
+                disabled={commitLoading}
+                className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+              >
                 {commitLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

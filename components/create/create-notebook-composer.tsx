@@ -8,7 +8,6 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { createLogger } from '@/lib/logger';
 import { cn } from '@/lib/utils';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
-import { AgentBar } from '@/components/agent/agent-bar';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -20,9 +19,6 @@ import {
   ComposerInputShell,
   composerTextareaClassName,
 } from '@/components/ui/composer-input-shell';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { GreetingBar } from '@/components/create/greeting-bar';
 import {
   PDF_PAGE_SELECTION_MAX_BYTES,
   getPdfSourceFileSignature,
@@ -30,27 +26,18 @@ import {
 } from '@/lib/pdf/page-selection';
 import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
 import { NotebookGenerationQueuePanel } from '@/components/generation/notebook-generation-queue-panel';
+import { useOrchestratorNotebookGenStore } from '@/lib/store/orchestrator-notebook-generation';
 
 const log = createLogger('CreateNotebookComposer');
-
-const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled';
-const LANGUAGE_STORAGE_KEY = 'generationLanguage';
-const GENERATE_SLIDES_STORAGE_KEY = 'generationGenerateSlides';
 
 interface FormState {
   sourceFile: File | null;
   requirement: string;
-  language: 'zh-CN' | 'en-US';
-  webSearch: boolean;
-  generateSlides: boolean;
 }
 
 const initialFormState: FormState = {
   sourceFile: null,
   requirement: '',
-  language: 'zh-CN',
-  webSearch: false,
-  generateSlides: true,
 };
 
 function isPdfSourceFile(file: File): boolean {
@@ -66,7 +53,7 @@ export interface CreateNotebookComposerProps {
   className?: string;
 }
 
-/** 与 `/create?courseId=` 相同的底部输入区；提交后进入当前标签页的生成队列。 */
+/** 课程内创建界面的需求输入区；提交后进入当前标签页的生成队列。 */
 export function CreateNotebookComposer({
   courseId,
   compact,
@@ -82,28 +69,19 @@ export function CreateNotebookComposer({
 
   const currentModelId = useSettingsStore((s) => s.modelId);
   const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
-
-  useEffect(() => {
-    try {
-      const savedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY);
-      const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      const savedGenerateSlides = localStorage.getItem(GENERATE_SLIDES_STORAGE_KEY);
-      const updates: Partial<FormState> = {};
-      if (savedWebSearch === 'true') updates.webSearch = true;
-      if (savedGenerateSlides === 'false') updates.generateSlides = false;
-      if (savedLanguage === 'zh-CN' || savedLanguage === 'en-US') {
-        updates.language = savedLanguage;
-      } else {
-        const detected = navigator.language?.startsWith('zh') ? 'zh-CN' : 'en-US';
-        updates.language = detected;
-      }
-      if (Object.keys(updates).length > 0) {
-        setForm((prev) => ({ ...prev, ...updates }));
-      }
-    } catch {
-      /* localStorage unavailable */
-    }
-  }, []);
+  const notebookModelMode = useOrchestratorNotebookGenStore((s) => s.notebookModelMode);
+  const modelIdOverride = useOrchestratorNotebookGenStore((s) => s.modelIdOverride);
+  const notebookStageModelOverrides = useOrchestratorNotebookGenStore(
+    (s) => s.notebookStageModelOverrides,
+  );
+  const language = useOrchestratorNotebookGenStore((s) => s.language);
+  const webSearch = useOrchestratorNotebookGenStore((s) => s.webSearch);
+  const generateSlides = useOrchestratorNotebookGenStore((s) => s.generateSlides);
+  const slideGenerationRoute = useOrchestratorNotebookGenStore((s) => s.slideGenerationRoute);
+  const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
+  const includeQuizScenes = useOrchestratorNotebookGenStore((s) => s.includeQuizScenes);
+  const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
+  const useAiImages = useOrchestratorNotebookGenStore((s) => s.useAiImages);
 
   useEffect(() => {
     useMediaGenerationStore.getState().revokeObjectUrls();
@@ -144,11 +122,6 @@ export function CreateNotebookComposer({
   const updateForm = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     try {
-      if (field === 'webSearch') localStorage.setItem(WEB_SEARCH_STORAGE_KEY, String(value));
-      if (field === 'language') localStorage.setItem(LANGUAGE_STORAGE_KEY, String(value));
-      if (field === 'generateSlides') {
-        localStorage.setItem(GENERATE_SLIDES_STORAGE_KEY, String(value));
-      }
       if (field === 'requirement') updateRequirementCache(value as string);
     } catch {
       /* ignore */
@@ -234,17 +207,22 @@ export function CreateNotebookComposer({
         {
           courseId: cid,
           requirement: form.requirement,
-          language: form.language,
-          webSearch: form.webSearch,
-          generateSlides: form.generateSlides,
+          notebookModelMode,
+          modelIdOverride,
+          notebookStageModelOverrides,
+          language,
+          webSearch,
+          generateSlides,
+          slideGenerationRoute,
           sourceFile: form.sourceFile,
           sourcePageSelection: effectiveSelection,
           userNickname: userProfile.nickname || undefined,
           userBio: userProfile.bio || undefined,
+          imageGenerationEnabledOverride: useAiImages,
           outlinePreferences: {
-            length: 'standard',
-            includeQuizScenes: true,
-            workedExampleLevel: 'moderate',
+            length: outlineLength,
+            includeQuizScenes,
+            workedExampleLevel,
           },
         },
         {
@@ -277,7 +255,7 @@ export function CreateNotebookComposer({
           },
         },
       );
-      toast.success(form.generateSlides ? '已加入生成队列' : '已加入仓库队列');
+      toast.success(generateSlides ? '已加入生成队列' : '已加入仓库队列');
       setForm((prev) => ({ ...prev, requirement: '', sourceFile: null }));
       updateRequirementCache('');
       setSourcePageSelection(null);
@@ -299,6 +277,10 @@ export function CreateNotebookComposer({
   };
 
   const textareaBox = compact ? 'min-h-[100px] max-h-[220px]' : 'min-h-[140px] max-h-[300px]';
+  const createNotebookPlaceholder =
+    language === 'zh-CN'
+      ? '描述这本笔记本要怎么生成，例如：\n「围绕上传资料整理成 10 页复习笔记」\n「重点讲清定义、证明思路和常见误区」\n「每个概念配 1 道例题和 1 道练习」'
+      : 'Describe the notebook you want to create, e.g.\n"Turn the uploaded material into a 10-page review notebook"\n"Focus on definitions, proof ideas, and common mistakes"\n"Add one worked example and one practice problem per concept"';
 
   return (
     <div className={cn('w-full', className)}>
@@ -306,7 +288,7 @@ export function CreateNotebookComposer({
       <PdfPageSelectionDialog
         open={pageSelectionDialogOpen}
         file={form.sourceFile}
-        language={form.language}
+        language={language}
         onOpenChange={setPageSelectionDialogOpen}
         onConfirm={(selection) => {
           setSourcePageSelection(selection);
@@ -315,17 +297,10 @@ export function CreateNotebookComposer({
         }}
       />
       <ComposerInputShell className="w-full">
-        <div className="relative z-20 flex items-start justify-between">
-          <GreetingBar />
-          <div className="shrink-0 pr-3 pt-3.5">
-            <AgentBar />
-          </div>
-        </div>
-
         <textarea
           ref={textareaRef}
-          placeholder={t('upload.requirementPlaceholder')}
-          className={cn(composerTextareaClassName, 'px-4 pb-2 pt-1 text-[13px]', textareaBox)}
+          placeholder={createNotebookPlaceholder}
+          className={cn(composerTextareaClassName, 'px-4 pb-2 pt-4 text-[13px]', textareaBox)}
           value={form.requirement}
           onChange={(e) => updateForm('requirement', e.target.value)}
           onKeyDown={handleKeyDown}
@@ -333,31 +308,10 @@ export function CreateNotebookComposer({
           disabled={busy}
         />
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-900/[0.06] px-4 py-2 dark:border-white/[0.08]">
-          <div className="min-w-0 flex-1">
-            <Label className="text-[11px] font-semibold">生成 PPT 课件</Label>
-            <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
-              关闭后只把笔记本加入仓库，不生成页面、口播或讲解角色。
-            </p>
-          </div>
-          <Switch
-            checked={form.generateSlides}
-            onCheckedChange={(v) => updateForm('generateSlides', v)}
-            aria-label="生成 PPT 课件"
-            disabled={busy}
-          />
-        </div>
-
         <div className="flex items-end gap-2 px-3 pb-3">
           <div className="min-w-0 flex-1">
             <GenerationToolbar
-              language={form.language}
-              onLanguageChange={(lang) => updateForm('language', lang)}
-              webSearch={form.webSearch}
-              onWebSearchChange={(v) => updateForm('webSearch', v)}
-              onSettingsOpen={(section) => {
-                openSettings(section);
-              }}
+              language={language}
               sourceFile={form.sourceFile}
               onSourceFileChange={(f) => updateForm('sourceFile', f)}
               onSourceFileError={setError}
@@ -392,7 +346,7 @@ export function CreateNotebookComposer({
             ) : (
               <>
                 <span className="text-xs font-medium">
-                  {form.generateSlides ? t('toolbar.enterClassroom') : '加入仓库'}
+                  {generateSlides ? t('toolbar.enterClassroom') : '加入仓库'}
                 </span>
                 <ArrowUp className="size-3.5" />
               </>

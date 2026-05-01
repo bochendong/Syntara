@@ -2,7 +2,8 @@
 
 import type { PPTImageElement, ImageElementClip } from '@/lib/types/slides';
 import type { ImageClipedEmitData } from '@/lib/types/edit';
-import { useCanvasStore } from '@/lib/store';
+import type { CSSProperties } from 'react';
+import { useCanvasStore, useStageStore } from '@/lib/store';
 import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
 import { useHistorySnapshot } from '@/lib/hooks/use-history-snapshot';
 import { useElementShadow } from '../hooks/useElementShadow';
@@ -12,12 +13,32 @@ import { useFilter } from './useFilter';
 import { ImageOutline } from './ImageOutline';
 import { ImageClipHandler } from './ImageClipHandler';
 import { isMediaPlaceholder } from '@/lib/store/media-generation';
+import { findMediaGenerationRequestByElementId } from '@/lib/media/media-generation-requests';
 import { mediaPlaceholderUi } from '../media-placeholder-ui';
 import { ImageIcon } from 'lucide-react';
 
 export interface ImageElementProps {
   elementInfo: PPTImageElement;
   selectElement?: (e: React.MouseEvent | React.TouchEvent, element: PPTImageElement) => void;
+}
+
+const promptPreviewStyle: CSSProperties = {
+  display: '-webkit-box',
+  WebkitBoxOrient: 'vertical',
+  WebkitLineClamp: 4,
+  overflow: 'hidden',
+};
+
+function PromptPreview({ prompt }: { prompt?: string }) {
+  if (!prompt?.trim()) return null;
+  return (
+    <p
+      className="max-w-full text-center text-[10px] font-medium leading-snug text-[#5f5661] dark:text-[#d1d1d6]"
+      style={promptPreviewStyle}
+    >
+      {prompt.trim()}
+    </p>
+  );
 }
 
 /**
@@ -35,6 +56,16 @@ export function ImageElement({ elementInfo, selectElement }: ImageElementProps) 
   const { filter } = useFilter(elementInfo.filters);
 
   const isCliping = clipingImageElementId === elementInfo.id;
+  const isPlaceholder = isMediaPlaceholder(elementInfo.src);
+  const placeholderPrompt = useStageStore((s) => {
+    if (!isPlaceholder) return '';
+    return (
+      findMediaGenerationRequestByElementId(
+        [...s.outlines, ...s.generatingOutlines, ...s.failedOutlines],
+        elementInfo.src,
+      )?.prompt || ''
+    );
+  });
 
   const handleSelectElement = (e: React.MouseEvent | React.TouchEvent) => {
     if (elementInfo.lock) return;
@@ -131,9 +162,12 @@ export function ImageElement({ elementInfo, selectElement }: ImageElementProps) 
               className="image-content w-full h-full overflow-hidden relative"
               style={{ clipPath: clipShape.style }}
             >
-              {isMediaPlaceholder(elementInfo.src) ? (
+              {isPlaceholder ? (
                 <div className={mediaPlaceholderUi.imageIdleWrap}>
-                  <ImageIcon className={mediaPlaceholderUi.imageIdleIcon} strokeWidth={1.5} />
+                  <div className="flex max-w-[92%] flex-col items-center gap-2 px-3 text-center">
+                    <ImageIcon className={mediaPlaceholderUi.imageIdleIcon} strokeWidth={1.5} />
+                    <PromptPreview prompt={placeholderPrompt} />
+                  </div>
                 </div>
               ) : (
                 <img

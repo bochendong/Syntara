@@ -6,6 +6,7 @@ import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
 import { evaluateNotebookNonCodeProblem } from '@/lib/server/notebook-problems/evaluate';
 import { judgeNotebookCodeProblem } from '@/lib/server/notebook-problems/judge';
+import { notebookProblemAttemptImageSchema } from '@/lib/problem-bank';
 import {
   createNotebookProblemAttempt,
   getNotebookProblemForUser,
@@ -16,6 +17,7 @@ const submitSchema = z.object({
   selectedOptionIds: z.array(z.string().trim().min(1).max(64)).max(12).optional(),
   blanks: z.record(z.string(), z.string().max(4000)).optional(),
   code: z.string().max(120000).optional(),
+  images: z.array(notebookProblemAttemptImageSchema).max(4).optional(),
   language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
 });
 
@@ -42,6 +44,7 @@ export async function POST(
       selectedOptionIds: payload.data.selectedOptionIds,
       blanks: payload.data.blanks,
       code: payload.data.code,
+      images: payload.data.images,
     };
 
     const evaluated = await runWithRequestContext(

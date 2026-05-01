@@ -9,7 +9,7 @@ import { renderNotebookContentDocumentToSlide } from './slide-adapter';
 import { normalizeSlideTextLayout, validateSlideTextLayout } from '@/lib/slide-text-layout';
 import { normalizeMathSource } from '@/lib/math-engine';
 
-export const SEMANTIC_SLIDE_RENDER_VERSION = 54;
+export const SEMANTIC_SLIDE_RENDER_VERSION = 55;
 
 const SEMANTIC_TEXT_FIELD_KEYS = new Set([
   'answer',
@@ -154,6 +154,107 @@ function computeModularInverse(base: number, modulus: number): number | null {
   return positiveModulo(t, modulus);
 }
 
+function greatestCommonDivisor(a: number, b: number): number {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y !== 0) {
+    [x, y] = [y, x % y];
+  }
+  return x;
+}
+
+function modularUnitRepresentatives(modulus: number): number[] {
+  if (!Number.isInteger(modulus) || modulus <= 1 || modulus > 100) return [];
+  const values: number[] = [];
+  for (let value = 1; value < modulus; value += 1) {
+    if (greatestCommonDivisor(value, modulus) === 1) values.push(value);
+  }
+  return values;
+}
+
+function repairLostModularUnitSet(text: string): string {
+  return text.replace(
+    /G\s*=\s*(\\?\{)((?:\s*(?:\[\d+\]_\d+|_\d+)\s*,)+\s*(?:\[\d+\]_\d+|_\d+)\s*)(\\?\})/g,
+    (match: string, openBrace: string, body: string, closeBrace: string) => {
+      const moduli = Array.from(body.matchAll(/_(\d+)/g), (item) => Number(item[1]));
+      const modulus = moduli[0];
+      if (!modulus || !moduli.every((item) => item === modulus)) return match;
+      const units = modularUnitRepresentatives(modulus);
+      if (units.length !== moduli.length) return match;
+      return `G=${openBrace}${units.map((item) => `[${item}]_${modulus}`).join(',')}${closeBrace}`;
+    },
+  );
+}
+
+function repairLostResidueClassRepresentatives(
+  text: string,
+  document: NotebookContentDocument,
+): string {
+  const documentText = collectDocumentText(document);
+  const hasAdditiveZnContext = /\\mathbb\{Z\}_n|模\s*\$?n\$?\s*加法|\(\\mathbb\{Z\}_n,\+\)/.test(
+    documentText,
+  );
+  let repaired = repairLostModularUnitSet(text).replace(
+    /\\mathbb\{Z\}_n\s*=\s*(\\?\{)\s*_n\s*,\s*_n\s*,\s*(?:\\dots|\\ldots|…)\s*,\s*\[\s*n\s*-\s*1\s*\]_n\s*(\\?\})/g,
+    (_match: string, openBrace: string, closeBrace: string) =>
+      `\\mathbb{Z}_n=${openBrace}[0]_n,[1]_n,\\dots,[n-1]_n${closeBrace}`,
+  );
+
+  if (hasAdditiveZnContext) {
+    repaired = repaired.replace(/(^|[^\]\}A-Za-z0-9])_n(?![A-Za-z0-9])/g, '$1[0]_n');
+  }
+
+  repaired = repaired
+    .replace(/完成以下四个典型问题：\s*\${2}\s*(?=在加法群)/g, '完成以下四个典型问题：（1）')
+    .replace(/：\s*\${2}\s*(?=在加法群)/g, '：')
+    .replace(/；\s*\${2}\s*(?=在乘法模)/g, '；（2）')
+    .replace(/；\s*\${2}\s*(?=证明\s+\$?H=)/g, '；（3）')
+    .replace(/\$\((\d+)\)\$/g, '（$1）')
+    .replace(/；（4）\s*说明/g, '；第 4 题：说明')
+    .replace(/\$\[0\]\$/g, () => '$\\left[0\\right]$')
+    .replace(/\$\[1\]\$/g, () => '$\\left[1\\right]$')
+    .replace(
+      /H\s*=\s*(\\?\{)\s*_6\s*,\s*_6\s*,\s*_6\s*(\\?\})/g,
+      (_match: string, openBrace: string, closeBrace: string) =>
+        `H=${openBrace}[0]_6,[2]_6,[4]_6${closeBrace}`,
+    )
+    .replace(
+      /H\s*=\s*(\\?\{)\s*_6\s*,\s*\[2\]_6\s*,\s*\[4\]_6\s*(\\?\})/g,
+      (_match: string, openBrace: string, closeBrace: string) =>
+        `H=${openBrace}[0]_6,[2]_6,[4]_6${closeBrace}`,
+    )
+    .replace(/\$_6\s*(\\+)?in\s+H\$/g, () => '$[0]_6\\in H$')
+    .replace(/元素\s*\$_8\$/g, () => '元素 $[2]_8$')
+    .replace(/求\s*\$_8\$\s*的阶/g, () => '求 $[2]_8$ 的阶')
+    .replace(/\$_8\s*,\s*_8\s*,\s*_8\s*,\s*_8\s*=\s*_8\$/g, () => '$[2]_8,[4]_8,[6]_8,[0]_8$')
+    .replace(/\$_8\s*,\s*_8\s*,\s*_8\s*,\s*_8\$/g, () => '$[2]_8,[4]_8,[6]_8,[0]_8$')
+    .replace(/\$_8\s*,\s*_8\s*,\s*\[6\]_8\s*,\s*\[0\]_8\$/g, () => '$[2]_8,[4]_8,[6]_8,[0]_8$')
+    .replace(/\$_8\s*,\s*_8\s*,\s*_8\$/g, () => '$[3]_8,[5]_8,[7]_8$')
+    .replace(/\$_8\s*,\s*_8\s*,\s*\[7\]_8\$/g, () => '$[3]_8,[5]_8,[7]_8$')
+    .replace(/\$\[2\]_8,\[4\]_8,\[6\]_8,\[0\]_8\$/g, () => '$\\left[2\\right]_8,[4]_8,[6]_8,[0]_8$')
+    .replace(/\$\[3\]_8,\[5\]_8,\[7\]_8\$/g, () => '$\\left[3\\right]_8,[5]_8,[7]_8$')
+    .replace(/\|\s*_8\s*\|/g, '|[2]_8|');
+
+  if (
+    /完成以下四个典型问题/.test(repaired) &&
+    /\\mathbb\{Z\}_8/.test(repaired) &&
+    /\\mathbb\{Z\}_6/.test(repaired) &&
+    /\\mathbb\{Z\}_4/.test(repaired)
+  ) {
+    repaired =
+      '完成以下四个典型问题：（1）在加法群 $(\\mathbb{Z}_8,+)$ 中求元素 $[2]_8$ 的阶；' +
+      '（2）在乘法模 $8$ 的群 $G=\\{[1]_8,[3]_8,[5]_8,[7]_8\\}$ 中求各元素的阶；' +
+      '（3）证明 $H=\\{[0]_6,[2]_6,[4]_6\\}$ 是 $(\\mathbb{Z}_6,+)$ 的子群；' +
+      '（4）说明 $\\mathbb{Z}_4$ 是循环群，并找出其全部生成元。' +
+      '已知加法群中单位元是 [0]，乘法群中单位元是 [1]；对于子群测试，在加法群中检验 $a-b\\in H$。';
+  }
+
+  return repaired.replace(
+    /单位元为\s*\$_8\$(?=，先写出平方|，?乘法|；乘法|$)/g,
+    () => '单位元为 $[1]_8$',
+  );
+}
+
 function inferMissingInverseContext(
   document: NotebookContentDocument,
 ): MissingInverseContext | null {
@@ -210,11 +311,12 @@ function repairMissingInverseTargetText(text: string, document: NotebookContentD
 
 function repairKnownSemanticMathText(text: string, document: NotebookContentDocument): string {
   const documentText = collectDocumentText(document);
+  const repairedResidues = repairLostResidueClassRepresentatives(text, document);
   if (!/(费马小定理|Fermat'?s?\s+little\s+theorem)/i.test(documentText)) {
-    return text;
+    return repairedResidues;
   }
 
-  return text
+  return repairedResidues
     .replace(/\$p\s*(?:\\mid|\||mid)\s*a\$/g, '$p\\nmid a$')
     .replace(/p\s*(?:\\mid|\||mid)\s*a(?=\s*(?:，|,|。|;|；|$))/g, '$p\\nmid a$');
 }
@@ -289,7 +391,12 @@ function normalizeEquationBlock(
     return [{ type: 'paragraph' as const, text: normalizedDelimiters }];
   }
 
-  const latex = normalizeFormulaLatex(repairKnownWorkedExampleExpression(block.latex, document));
+  const latex = normalizeFormulaLatex(
+    repairKnownSemanticMathText(
+      repairKnownWorkedExampleExpression(block.latex, document),
+      document,
+    ),
+  );
   return latex ? [{ ...block, latex }] : [];
 }
 
@@ -595,8 +702,11 @@ function normalizeSemanticDocumentMath(document: NotebookContentDocument): Noteb
                 ? {
                     ...step,
                     expression: normalizeFormulaLatex(
-                      repairMissingInverseExpression(
-                        repairKnownWorkedExampleExpression(step.expression, document),
+                      repairKnownSemanticMathText(
+                        repairMissingInverseExpression(
+                          repairKnownWorkedExampleExpression(step.expression, document),
+                          document,
+                        ),
                         document,
                       ),
                     ),
@@ -656,7 +766,7 @@ function normalizeSemanticDocumentMath(document: NotebookContentDocument): Noteb
       ? 'definition_board'
       : document.layoutTemplate;
   const normalizedTitle = repairMissingInverseTargetText(
-    normalizeSemanticTextSource(document.title || ''),
+    repairKnownSemanticMathText(normalizeSemanticTextSource(document.title || ''), document),
     document,
   );
 

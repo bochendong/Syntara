@@ -1,6 +1,9 @@
 'use client';
 
-import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
+import {
+  renderHtmlWithLatex,
+  renderPlainTitleWithOptionalLatex,
+} from '@/lib/render-html-with-latex';
 import { cn } from '@/lib/utils';
 
 function escapeHtml(text: string): string {
@@ -28,6 +31,19 @@ export function ProblemRichText({ content, className }: { content?: string; clas
         className,
       )}
       dangerouslySetInnerHTML={{ __html: textToHtml(content) }}
+    />
+  );
+}
+
+export function ProblemTitleText({ content, className }: { content?: string; className?: string }) {
+  if (!content?.trim()) return null;
+  return (
+    <span
+      className={cn(
+        'inline [&_.katex]:text-[1em] [&_.katex]:leading-none [&_.math-engine-inline]:align-baseline',
+        className,
+      )}
+      dangerouslySetInnerHTML={{ __html: renderPlainTitleWithOptionalLatex(content) }}
     />
   );
 }

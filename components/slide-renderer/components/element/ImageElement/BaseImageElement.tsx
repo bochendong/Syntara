@@ -1,6 +1,7 @@
 'use client';
 
 import type { PPTImageElement } from '@/lib/types/slides';
+import type { CSSProperties } from 'react';
 import { useElementShadow } from '../hooks/useElementShadow';
 import { useElementFlip } from '../hooks/useElementFlip';
 import { useClipImage } from './useClipImage';
@@ -8,8 +9,10 @@ import { useFilter } from './useFilter';
 import { ImageOutline } from './ImageOutline';
 import { useMediaGenerationStore, isMediaPlaceholder } from '@/lib/store/media-generation';
 import { useSettingsStore } from '@/lib/store/settings';
+import { useStageStore } from '@/lib/store';
 import { useMediaStageId } from '@/lib/contexts/media-stage-context';
 import { retryMediaTask } from '@/lib/media/media-orchestrator';
+import { findMediaGenerationRequestByElementId } from '@/lib/media/media-generation-requests';
 import { RotateCcw, Paintbrush, ShieldAlert, ImageOff, ImageIcon } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { mediaPlaceholderUi } from '../media-placeholder-ui';
@@ -17,6 +20,25 @@ import { academyPaperBackground, academyPaperTheme } from '../academyPaperTheme'
 
 export interface BaseImageElementProps {
   elementInfo: PPTImageElement;
+}
+
+const promptPreviewStyle: CSSProperties = {
+  display: '-webkit-box',
+  WebkitBoxOrient: 'vertical',
+  WebkitLineClamp: 4,
+  overflow: 'hidden',
+};
+
+function PromptPreview({ prompt }: { prompt?: string }) {
+  if (!prompt?.trim()) return null;
+  return (
+    <p
+      className="max-w-full text-center text-[10px] font-medium leading-snug text-[#5f5661] dark:text-[#d1d1d6]"
+      style={promptPreviewStyle}
+    >
+      {prompt.trim()}
+    </p>
+  );
 }
 
 /**
@@ -42,6 +64,16 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   });
 
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
+  const placeholderPrompt = useStageStore((s) => {
+    if (!isPlaceholder) return '';
+    return (
+      findMediaGenerationRequestByElementId(
+        [...s.outlines, ...s.generatingOutlines, ...s.failedOutlines],
+        elementInfo.src,
+      )?.prompt || ''
+    );
+  });
+  const prompt = task?.prompt || placeholderPrompt;
   // Resolve actual src: use objectUrl from store if available, otherwise original src
   const resolvedSrc =
     task?.status === 'done' && task.objectUrl
@@ -93,28 +125,32 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
             }}
           >
             {showDisabled ? (
-              <div className={mediaPlaceholderUi.disabledWrap}>
+              <div className={`${mediaPlaceholderUi.disabledWrap} flex-col gap-2 px-3`}>
                 <div className={mediaPlaceholderUi.caption}>
                   <ImageOff className="w-3 h-3 shrink-0" />
                   <span>{t('settings.mediaGenerationDisabled')}</span>
                 </div>
+                <PromptPreview prompt={prompt} />
               </div>
             ) : showSkeleton ? (
               <div className={mediaPlaceholderUi.skeletonWrap}>
                 <style>{`
                   @keyframes img-pulse-ring { 0%, 100% { opacity: 0.15; transform: scale(0.85); } 50% { opacity: 0.35; transform: scale(1.1); } }
                 `}</style>
-                <div className="relative w-12 h-12">
-                  <div
-                    className={mediaPlaceholderUi.pulseRing}
-                    style={{
-                      animation: 'img-pulse-ring 2.4s ease-in-out infinite',
-                    }}
-                  />
-                  <Paintbrush
-                    className={`${mediaPlaceholderUi.skeletonIcon} stroke-current`}
-                    strokeWidth={1.5}
-                  />
+                <div className="flex max-w-[92%] flex-col items-center gap-2 px-3 text-center">
+                  <div className="relative w-12 h-12">
+                    <div
+                      className={mediaPlaceholderUi.pulseRing}
+                      style={{
+                        animation: 'img-pulse-ring 2.4s ease-in-out infinite',
+                      }}
+                    />
+                    <Paintbrush
+                      className={`${mediaPlaceholderUi.skeletonIcon} stroke-current`}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <PromptPreview prompt={prompt} />
                 </div>
               </div>
             ) : showError ? (
@@ -142,10 +178,14 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     {t('settings.mediaRetry')}
                   </button>
                 )}
+                <PromptPreview prompt={prompt} />
               </div>
             ) : showIdle ? (
               <div className={mediaPlaceholderUi.imageIdleWrap}>
-                <ImageIcon className={mediaPlaceholderUi.imageIdleIcon} strokeWidth={1.5} />
+                <div className="flex max-w-[92%] flex-col items-center gap-2 px-3 text-center">
+                  <ImageIcon className={mediaPlaceholderUi.imageIdleIcon} strokeWidth={1.5} />
+                  <PromptPreview prompt={prompt} />
+                </div>
               </div>
             ) : resolvedSrc ? (
               <>

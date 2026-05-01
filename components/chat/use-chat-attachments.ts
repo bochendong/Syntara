@@ -1,18 +1,6 @@
-import {
-  useCallback,
-  useRef,
-  useState,
-  type DragEvent as ReactDragEvent,
-} from 'react';
-import {
-  extractTextExcerpt,
-  isNotebookPipelineSourceFile,
-} from './chat-attachment-utils';
-import type {
-  NotebookAttachmentInput,
-  OrchestratorComposerMode,
-  OrchestratorViewMode,
-} from './chat-page-types';
+import { useCallback, useRef, useState, type DragEvent as ReactDragEvent } from 'react';
+import { extractTextExcerpt } from './chat-attachment-utils';
+import type { NotebookAttachmentInput } from './chat-page-types';
 
 function isFileDragEvent(event: Pick<ReactDragEvent<HTMLDivElement>, 'dataTransfer'>) {
   return Array.from(event.dataTransfer?.types ?? []).includes('Files');
@@ -21,17 +9,9 @@ function isFileDragEvent(event: Pick<ReactDragEvent<HTMLDivElement>, 'dataTransf
 export function useChatAttachments({
   supportsComposerAttachments,
   sending,
-  isCourseOrchestrator,
-  orchestratorViewMode,
-  orchestratorComposerMode,
-  switchOrchestratorComposer,
 }: {
   supportsComposerAttachments: boolean;
   sending: boolean;
-  isCourseOrchestrator: boolean;
-  orchestratorViewMode: OrchestratorViewMode;
-  orchestratorComposerMode: OrchestratorComposerMode;
-  switchOrchestratorComposer: (mode: OrchestratorComposerMode) => void;
 }) {
   const [pendingAttachments, setPendingAttachments] = useState<NotebookAttachmentInput[]>([]);
   const [isComposerDragging, setIsComposerDragging] = useState(false);
@@ -46,42 +26,26 @@ export function useChatAttachments({
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const onPickAttachments = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      const selected = Array.from(files).slice(0, 6);
-      const built: NotebookAttachmentInput[] = [];
-      for (const file of selected) {
-        const textExcerpt = await extractTextExcerpt(file);
-        built.push({
-          id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-          textExcerpt,
-          file,
-        });
-      }
-      setPendingAttachments((prev) => [...prev, ...built].slice(-6));
-      if (
-        isCourseOrchestrator &&
-        orchestratorViewMode === 'private' &&
-        orchestratorComposerMode === 'send-message' &&
-        built.some((attachment) => attachment.file && isNotebookPipelineSourceFile(attachment.file))
-      ) {
-        switchOrchestratorComposer('generate-notebook');
-      }
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    },
-    [
-      isCourseOrchestrator,
-      orchestratorComposerMode,
-      orchestratorViewMode,
-      switchOrchestratorComposer,
-    ],
-  );
+  const onPickAttachments = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const selected = Array.from(files).slice(0, 6);
+    const built: NotebookAttachmentInput[] = [];
+    for (const file of selected) {
+      const textExcerpt = await extractTextExcerpt(file);
+      built.push({
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        textExcerpt,
+        file,
+      });
+    }
+    setPendingAttachments((prev) => [...prev, ...built].slice(-6));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
 
   const handleComposerDragEnter = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {

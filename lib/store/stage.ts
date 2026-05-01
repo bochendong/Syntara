@@ -276,6 +276,72 @@ function orderOutlines(outlines: SceneOutline[]): SceneOutline[] {
     .map(({ outline }) => outline);
 }
 
+function compactPageTitle(value: string | undefined): string {
+  return (value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s"'`“”‘’：:，,。.!！?？、;；()[\]{}<>《》【】（）\-_/|]+/g, '')
+    .trim();
+}
+
+function getSceneTitleKeys(scene: Scene): Set<string> {
+  const titles = [scene.title];
+  if (scene.type === 'slide' && scene.content.type === 'slide') {
+    titles.push(scene.content.semanticDocument?.title || '');
+  }
+
+  return new Set(titles.map(compactPageTitle).filter(Boolean));
+}
+
+function chooseNearestOutlineIndex(
+  candidates: Array<{ outline: SceneOutline; index: number }>,
+  scene: Scene,
+): number | null {
+  if (candidates.length === 0) return null;
+
+  return candidates
+    .map((candidate) => ({
+      ...candidate,
+      distance: Math.abs((candidate.outline.order || 0) - (scene.order || 0)),
+    }))
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)[0].index;
+}
+
+function getRepresentedOutlineIndexes(outlines: SceneOutline[], scenes: Scene[]): Set<number> {
+  const represented = new Set<number>();
+  const orderedScenes = orderScenes(scenes);
+
+  for (const scene of orderedScenes) {
+    const sceneTitleKeys = getSceneTitleKeys(scene);
+    const titleMatchedIndex = chooseNearestOutlineIndex(
+      outlines
+        .map((outline, index) => ({ outline, index }))
+        .filter(
+          ({ outline, index }) =>
+            !represented.has(index) && sceneTitleKeys.has(compactPageTitle(outline.title)),
+        ),
+      scene,
+    );
+
+    const orderMatchedIndex =
+      titleMatchedIndex ??
+      outlines.findIndex(
+        (outline, index) => !represented.has(index) && outline.order === scene.order,
+      );
+
+    if (orderMatchedIndex >= 0) {
+      represented.add(orderMatchedIndex);
+    }
+  }
+
+  return represented;
+}
+
+function getPendingOutlines(outlines: SceneOutline[], scenes: Scene[]): SceneOutline[] {
+  const representedIndexes = getRepresentedOutlineIndexes(outlines, scenes);
+  return outlines.filter((_, index) => !representedIndexes.has(index));
+}
+
 type ToolbarState = 'design' | 'ai';
 
 interface StageState {
@@ -505,20 +571,16 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   discardPendingOutlines: () => {
     const state = get();
-    const completedOrders = new Set(state.scenes.map((scene) => scene.order));
-    const pendingOrders = new Set(
-      state.outlines
-        .filter((outline) => !completedOrders.has(outline.order))
-        .map((outline) => outline.order),
-    );
-    if (pendingOrders.size === 0) return 0;
+    const pendingOutlines = getPendingOutlines(state.outlines, state.scenes);
+    const pendingOutlineIds = new Set(pendingOutlines.map((outline) => outline.id));
+    if (pendingOutlineIds.size === 0) return 0;
 
-    const nextOutlines = state.outlines.filter((outline) => completedOrders.has(outline.order));
+    const nextOutlines = state.outlines.filter((outline) => !pendingOutlineIds.has(outline.id));
     const nextGeneratingOutlines = state.generatingOutlines.filter(
-      (outline) => !pendingOrders.has(outline.order),
+      (outline) => !pendingOutlineIds.has(outline.id),
     );
     const nextFailedOutlines = state.failedOutlines.filter(
-      (outline) => !pendingOrders.has(outline.order),
+      (outline) => !pendingOutlineIds.has(outline.id),
     );
     const nextCurrentSceneId =
       state.currentSceneId === PENDING_SCENE_ID
@@ -542,7 +604,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
     writeDraftSnapshotForState(state.stage, state.scenes, nextCurrentSceneId);
     debouncedSave();
-    return pendingOrders.size;
+    return pendingOutlineIds.size;
   },
 
   addFailedOutline: (outline) => {
@@ -697,9 +759,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       if (data) {
         const loadedScenes = Array.isArray(data.scenes) ? normalizeSceneStructure(data.scenes) : [];
         const loadedChats = Array.isArray(data.chats) ? data.chats : [];
-        const pendingOutlines = outlines.filter(
-          (o) => !loadedScenes.some((s) => s.order === o.order),
-        );
+        const pendingOutlines = getPendingOutlines(outlines, loadedScenes);
         const resolvedCurrentSceneId =
           data.currentSceneId && loadedScenes.some((scene) => scene.id === data.currentSceneId)
             ? data.currentSceneId

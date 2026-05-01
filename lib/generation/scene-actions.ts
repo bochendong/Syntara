@@ -32,6 +32,7 @@ import {
   formatWorkedExampleForPrompt,
 } from './prompt-formatters';
 import { hasUnexpectedCjkForLanguage } from './language-guard';
+import { buildTitleCoverOpeningActions, isTitleCoverOutline } from './title-cover';
 
 const log = createLogger('Generation');
 
@@ -75,6 +76,19 @@ export async function generateSceneActions(
     );
 
   if (outline.type === 'slide' && 'elements' in content) {
+    if (isTitleCoverOutline(outline)) {
+      return verbalizeSpeechActions(
+        buildTitleCoverOpeningActions({
+          title: outline.title,
+          description: outline.description,
+          keyPoints: outline.keyPoints,
+          language: lang,
+          elements: content.elements,
+        }),
+        lang,
+      );
+    }
+
     const elementsText = formatElementsForPrompt(content.elements, content.contentDocument);
     const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
 

@@ -53,7 +53,6 @@ Rules:
 For every `slide` scene, include a `layoutIntent` object. This is how the deck avoids a single repeated card layout while staying editable and deterministic.
 
 Allowed `layoutFamily` values:
-- `cover`: opening title / course orientation
 - `section`: section divider or transition marker
 - `concept_cards`: compact concept explanation with 2-4 editable cards
 - `visual_split`: controlled image/diagram + text split
@@ -67,7 +66,8 @@ Allowed `layoutFamily` values:
 - `summary`: recap and takeaways
 
 Also set:
-- `layoutTemplate`: choose one common editable PPT template: `cover_hero`, `section_divider`, `title_content`, `two_column`, `three_cards`, `four_grid`, `visual_left`, `visual_right`, `comparison_matrix`, `timeline_road`, `problem_focus`, `steps_sidebar`, `code_split`, `formula_focus`, `summary_board`, `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, or `compare_perspectives`
+- Do not generate a separate cover/title/orientation scene. The system inserts a unified opening cover automatically before these outlines.
+- `layoutTemplate`: choose one common editable PPT template: `section_divider`, `title_content`, `two_column`, `three_cards`, `four_grid`, `visual_left`, `visual_right`, `comparison_matrix`, `timeline_road`, `problem_focus`, `steps_sidebar`, `code_split`, `formula_focus`, `summary_board`, `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, or `compare_perspectives`
 - `density`: `"light"`, `"standard"`, or `"dense"`
 - `visualRole`: `"none"`, `"source_image"`, `"generated_image"`, or `"diagram"`
 - `overflowPolicy`: `"compress_first"` by default; use `"preserve_then_paginate"` for long problem statements, code, proofs, tables, and derivations where readability matters more than one-page compression
@@ -106,8 +106,6 @@ Deck rhythm rule: avoid using the same `layoutFamily` or `layoutTemplate` for 3 
 - **Other subjects**:
   - Include question explanation in a subject-appropriate form, such as case analysis, source/text interpretation, essay structure, evidence chains, lab reasoning, or problem decomposition
   - Explain how to approach the question, what a strong answer looks like, and what mistakes to avoid
-
----
 
 ## Default Assumption Rules
 

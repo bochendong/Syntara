@@ -9,6 +9,7 @@ import {
   useNotebookGenerationQueueStore,
   type NotebookGenerationQueueTask,
 } from '@/lib/store/notebook-generation-queue';
+import { OrchestratorNotebookProgressPanel } from '@/components/chat/orchestrator-notebook-progress';
 
 function taskTitle(task: NotebookGenerationQueueTask): string {
   const trimmed = task.notebookName?.trim() || task.requirement.trim();
@@ -68,12 +69,14 @@ export function NotebookGenerationQueuePanel({
 
   if (tasks.length === 0) return null;
 
-  const visibleTasks = compact ? tasks.slice(-4) : tasks;
   const queuedTasks = tasks.filter((task) => task.status === 'queued');
   const hasFinished = tasks.some(
     (task) =>
       task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled',
   );
+  const animatedTask = tasks.find((task) => task.status === 'running' && task.progress);
+  const listTasks = animatedTask ? tasks.filter((task) => task.id !== animatedTask.id) : tasks;
+  const visibleTasks = compact ? listTasks.slice(-4) : listTasks;
 
   return (
     <section
@@ -90,70 +93,82 @@ export function NotebookGenerationQueuePanel({
             一次生成一本，已排队的上传会自动接续。
           </p>
         </div>
-        {hasFinished ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-[11px]"
-            onClick={clearFinished}
-          >
-            清理完成项
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-1.5">
+          {hasFinished ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              onClick={clearFinished}
+            >
+              清理完成项
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        {visibleTasks.map((task) => {
-          const queueIndex = queuedTasks.findIndex((item) => item.id === task.id);
-          return (
-            <div
-              key={task.id}
-              className="flex items-center gap-2 rounded-lg border border-slate-900/[0.06] bg-white/70 px-2.5 py-2 text-xs dark:border-white/[0.08] dark:bg-white/[0.04]"
-            >
-              <span
-                className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-full',
-                  task.status === 'completed'
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                    : task.status === 'failed'
-                      ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300'
-                      : task.status === 'cancelled'
-                        ? 'bg-slate-500/10 text-muted-foreground'
-                        : 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
-                )}
+      {animatedTask?.progress ? (
+        <OrchestratorNotebookProgressPanel
+          progress={animatedTask.progress}
+          onCancel={() => cancel(animatedTask.id)}
+          className="mb-3"
+        />
+      ) : null}
+
+      {visibleTasks.length > 0 ? (
+        <div className="space-y-1.5">
+          {visibleTasks.map((task) => {
+            const queueIndex = queuedTasks.findIndex((item) => item.id === task.id);
+            return (
+              <div
+                key={task.id}
+                className="flex items-center gap-2 rounded-lg border border-slate-900/[0.06] bg-white/70 px-2.5 py-2 text-xs dark:border-white/[0.08] dark:bg-white/[0.04]"
               >
-                <StatusIcon task={task} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-foreground">{taskTitle(task)}</p>
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {taskDetail(task, Math.max(0, queueIndex))}
-                  {task.fileName ? ` · ${task.fileName}` : ''}
-                </p>
+                <span
+                  className={cn(
+                    'flex size-6 shrink-0 items-center justify-center rounded-full',
+                    task.status === 'completed'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      : task.status === 'failed'
+                        ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300'
+                        : task.status === 'cancelled'
+                          ? 'bg-slate-500/10 text-muted-foreground'
+                          : 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+                  )}
+                >
+                  <StatusIcon task={task} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">{taskTitle(task)}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {taskDetail(task, Math.max(0, queueIndex))}
+                    {task.fileName ? ` · ${task.fileName}` : ''}
+                  </p>
+                </div>
+                {task.status === 'completed' && task.notebookId ? (
+                  <Link
+                    href={`/classroom/${encodeURIComponent(task.notebookId)}`}
+                    className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-500/15 dark:text-violet-200"
+                  >
+                    打开
+                  </Link>
+                ) : null}
+                {task.status === 'queued' || task.status === 'running' ? (
+                  <button
+                    type="button"
+                    onClick={() => cancel(task.id)}
+                    className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
+                    aria-label="取消生成任务"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                ) : null}
               </div>
-              {task.status === 'completed' && task.notebookId ? (
-                <Link
-                  href={`/classroom/${encodeURIComponent(task.notebookId)}`}
-                  className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-500/15 dark:text-violet-200"
-                >
-                  打开
-                </Link>
-              ) : null}
-              {task.status === 'queued' || task.status === 'running' ? (
-                <button
-                  type="button"
-                  onClick={() => cancel(task.id)}
-                  className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
-                  aria-label="取消生成任务"
-                >
-                  <X className="size-3.5" />
-                </button>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }

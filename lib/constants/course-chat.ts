@@ -1,12 +1,20 @@
-import { pickStableCourseAvatarUrl, resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
+import {
+  pickStableCourseAvatarUrl,
+  resolveCourseAvatarDisplayUrl,
+} from '@/lib/constants/course-avatars';
 
 export const COURSE_ORCHESTRATOR_ID = 'course-orchestrator';
 export const COURSE_ORCHESTRATOR_NAME = '课程总控Agent';
 
-/** 与聊天页总控底部 Tabs 的 value 一致，用于 `?composer=` 深链 */
+export function createNotebookHref(courseId: string | null | undefined): string {
+  const cid = courseId?.trim();
+  return cid ? `/course/${encodeURIComponent(cid)}/create-notebook` : '/my-courses';
+}
+
+/** 历史聊天深链保留兼容；创建笔记本请使用课程内的 `createNotebookHref(courseId)`。 */
 export type CourseOrchestratorComposerTab = 'send-message' | 'generate-notebook';
 
-/** 进入聊天页并打开课程总控；可选指定底部「发送消息 / 生成笔记本」Tab */
+/** 进入聊天页并打开课程总控；`generate-notebook` 会在聊天页被迁移到课程内创建界面。 */
 export function courseOrchestratorChatHref(composer?: CourseOrchestratorComposerTab): string {
   const q = new URLSearchParams();
   q.set('agent', COURSE_ORCHESTRATOR_ID);
@@ -15,7 +23,9 @@ export function courseOrchestratorChatHref(composer?: CourseOrchestratorComposer
 }
 
 /** 无课程上下文时的占位（与历史 assist 解耦，仍为稳定本地图） */
-export const COURSE_ORCHESTRATOR_AVATAR = pickStableCourseAvatarUrl('course-orchestrator-legacy-fallback');
+export const COURSE_ORCHESTRATOR_AVATAR = pickStableCourseAvatarUrl(
+  'course-orchestrator-legacy-fallback',
+);
 
 /** 课程总控在 UI 中使用的头像：优先课程已保存的 `avatarUrl`，否则按课程 id 稳定映射。 */
 export function resolveCourseOrchestratorAvatar(

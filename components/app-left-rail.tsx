@@ -49,12 +49,16 @@ import { NotificationBarStageBackground } from '@/components/notifications/notif
 import { isSolidColorBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 
-const leftRailScrollClass = cn(
-  'min-h-0 flex-1 overflow-y-auto py-2 pb-24',
-  '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent',
-  '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20',
-  'hover:[&::-webkit-scrollbar-thumb]:bg-white/30',
-);
+function leftRailScrollClass(lightSurface: boolean) {
+  return cn(
+    'min-h-0 flex-1 overflow-y-auto py-2 pb-24',
+    '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent',
+    '[&::-webkit-scrollbar-thumb]:rounded-full',
+    lightSurface
+      ? '[&::-webkit-scrollbar-thumb]:bg-slate-900/15 hover:[&::-webkit-scrollbar-thumb]:bg-slate-900/25'
+      : '[&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30',
+  );
+}
 
 export interface AppLeftRailProps {
   collapsed: boolean;
@@ -111,18 +115,17 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const railTitle = inCourseContext ? courseName : displayName;
   const railHref = inCourseContext ? `/course/${courseId}` : '/';
   const railTooltip = inCourseContext ? '所有课程' : '首页';
-  /** 仅 `/chat` 独立路由：动效/纯色只作用于左侧 `aside`，不与中间聊天区做「同套浅色」；默认仍为深色条以免与主区连成一片 */
+  /** 聊天页也跟随全局主题，避免左侧联系人栏和聊天主体割裂。 */
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
   /** 非「默认」时在主导航上叠动效；课程区与 Dashboard（如 /profile）均生效，避免在设置页点击无反馈 */
   const showLeftRailStage = leftRailBarStageId !== 'default';
   /** 平铺底色：外层不用黑底，避免与淡色实色叠出灰黑；WebGL 动效仍用黑底衬底+蒙版 */
   const isLeftRailSolidColor = showLeftRailStage && isSolidColorBarStageId(leftRailBarStageId);
-  /** 浅色主题下白底/浅字：排除独立聊天（默认不刷白、避免误以为改了聊天区背景；仍可在侧栏里选淡色实色等） */
-  const onDefaultWhite = !showLeftRailStage && resolvedTheme === 'light' && !isChatPage;
+  /** 浅色主题下使用浅色玻璃侧栏；动效/纯色仍优先尊重用户选择。 */
+  const onDefaultWhite = !showLeftRailStage && resolvedTheme === 'light';
   const onLightRail =
     resolvedTheme === 'light' &&
-    ((!isChatPage && !showLeftRailStage) ||
-      (isLeftRailSolidColor && leftRailBarStageId !== 'solid-black'));
+    (!showLeftRailStage || (isLeftRailSolidColor && leftRailBarStageId !== 'solid-black'));
   /** 外框 + 头/底分割：随白底、淡实色、深/WebGL 四档略作区分，避免各背景下对比失当 */
   const railDividers = (() => {
     if (onDefaultWhite) {
@@ -663,7 +666,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                     </div>
                   </div>
                 ) : null}
-                <div className={cn(leftRailScrollClass, 'min-h-0 flex-1 px-0')}>
+                <div className={cn(leftRailScrollClass(onLightRail), 'min-h-0 flex-1 px-0')}>
                   <Suspense
                     fallback={
                       <div
@@ -695,7 +698,13 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 )}
                 aria-label="页面导航"
               >
-                <div className={cn(leftRailScrollClass, 'px-0', collapsed ? 'pt-3' : 'pt-4')}>
+                <div
+                  className={cn(
+                    leftRailScrollClass(onLightRail),
+                    'px-0',
+                    collapsed ? 'pt-3' : 'pt-4',
+                  )}
+                >
                   <AppCoreNavList
                     blackSurface={!onLightRail}
                     collapsed={collapsed}

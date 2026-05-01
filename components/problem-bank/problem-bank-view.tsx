@@ -54,7 +54,7 @@ import {
 import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
-import { ProblemRichText } from '@/components/problem-bank/problem-rich-text';
+import { ProblemRichText, ProblemTitleText } from '@/components/problem-bank/problem-rich-text';
 
 function typeLabel(type: NotebookProblemClientRecord['type'], locale: 'zh-CN' | 'en-US') {
   const zh = {
@@ -169,7 +169,7 @@ function AttemptSummary({
             {locale === 'zh-CN' ? `得分 ${attempt.score}` : `Score ${attempt.score}`}
           </span>
           {attempt.kind === 'answer' ? (
-            <span className="rounded-full bg-violet-100 px-2.5 py-1 font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">
+            <span className="rounded-full bg-sky-100 px-2.5 py-1 font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
               {locale === 'zh-CN' ? 'AI / 自动评分已完成' : 'AI / auto grading completed'}
             </span>
           ) : null}
@@ -1013,9 +1013,10 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         onClick={() => setSelectedProblemId(problem.id)}
                         className="block w-full min-w-0 text-left"
                       >
-                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {problem.title}
-                        </p>
+                        <ProblemTitleText
+                          content={problem.title}
+                          className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100"
+                        />
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                           {typeLabel(problem.type, locale)} ·{' '}
                           {difficultyLabel(problem.difficulty, locale)} ·{' '}
@@ -1068,8 +1069,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             <Card>
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-xl">{selectedProblem.title}</CardTitle>
+                  <div className="min-w-0">
+                    <CardTitle className="text-xl" title={selectedProblem.title}>
+                      <ProblemTitleText
+                        content={selectedProblem.title}
+                        className="block truncate"
+                      />
+                    </CardTitle>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="secondary">{typeLabel(selectedProblem.type, locale)}</Badge>
                       <Badge variant="secondary">
@@ -1101,7 +1107,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                       ) : null}
                       {selectedProblem.type === 'short_answer' ||
                       selectedProblem.type === 'proof' ? (
-                        <Badge className="border-0 bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">
+                        <Badge className="border-0 bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
                           {locale === 'zh-CN' ? '提交后 AI 评分' : 'AI graded on submit'}
                         </Badge>
                       ) : null}
@@ -1299,7 +1305,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                           </span>
                           {(selectedProblem.type === 'short_answer' ||
                             selectedProblem.type === 'proof') && (
-                            <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">
+                            <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
                               {locale === 'zh-CN' ? '由 AI 评分' : 'AI graded'}
                             </span>
                           )}
@@ -1509,7 +1515,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
               <div className="flex items-start gap-3">
                 {(previewLoading || commitLoading) && importProcessingStage !== 'completed' ? (
-                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-violet-600" />
+                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-sky-600" />
                 ) : (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
                 )}
@@ -1531,7 +1537,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                         <div
-                          className="h-full rounded-full bg-violet-500 transition-all"
+                          className="h-full rounded-full bg-sky-500 transition-all"
                           style={{
                             width: `${Math.max(
                               8,
@@ -1563,7 +1569,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                           ? ` · ${locale === 'zh-CN' ? '缓存输入' : 'Cached'} ${importUsage.cachedInputTokens}`
                           : ''}
                       </div>
-                      <div className="mt-1 font-medium text-violet-700 dark:text-violet-200">
+                      <div className="mt-1 font-medium text-sky-700 dark:text-sky-200">
                         {importUsage.estimatedCostCredits != null
                           ? locale === 'zh-CN'
                             ? `${importUsage.estimatedCostCredits} 算力积分`
@@ -1620,7 +1626,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                           className={cn(
                             'rounded-full px-2.5 py-1',
                             isActive
-                              ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200'
+                              ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200'
                               : isDone
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
                                 : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
@@ -1637,7 +1643,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
           ) : null}
 
           {importSummaryNote ? (
-            <div className="rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 text-sm text-violet-900 dark:border-violet-900/50 dark:bg-violet-950/20 dark:text-violet-100">
+            <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-sky-900 dark:border-sky-500/30 dark:bg-sky-950/25 dark:text-sky-100">
               {importSummaryNote}
             </div>
           ) : null}

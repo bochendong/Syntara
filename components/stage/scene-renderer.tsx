@@ -7,6 +7,7 @@ import { QuizView } from '../scene-renderers/quiz-view';
 import { InteractiveRenderer } from '../scene-renderers/interactive-renderer';
 import { PBLRenderer } from '../scene-renderers/pbl-renderer';
 import { SemanticScrollPage } from './semantic-scroll-page';
+import { normalizeSemanticDocumentForRender } from '@/lib/notebook-content/semantic-slide-render';
 
 interface SceneRendererProps {
   readonly scene: Scene;
@@ -23,10 +24,11 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
           scene.content.semanticRenderMode !== 'manual' &&
           scene.content.webRenderMode !== 'slide'
         ) {
+          const document = normalizeSemanticDocumentForRender(scene.content.semanticDocument);
           return (
             <SemanticScrollPage
               key={scene.id}
-              document={scene.content.semanticDocument}
+              document={document}
               elements={scene.content.canvas.elements}
               sceneId={scene.id}
               title={scene.title}

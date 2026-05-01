@@ -17,7 +17,14 @@ import { formatImageDescription, formatImagePlaceholder } from './prompt-formatt
 import { parseJsonResponse } from './json-repair';
 import { uniquifyMediaElementIds } from './scene-builder';
 import { normalizeOutlineStructure } from './outline-structure';
-import type { AICallFn, GenerationResult, GenerationCallbacks } from './pipeline-types';
+import { formatOutlineDisciplineGuidanceForPrompt } from './discipline-packs';
+import { formatPurposeGuidanceForPrompt } from './purpose-packs';
+import type {
+  AICallFn,
+  CoursePersonalizationContext,
+  GenerationResult,
+  GenerationCallbacks,
+} from './pipeline-types';
 import { createLogger } from '@/lib/logger';
 const log = createLogger('Generation');
 
@@ -153,6 +160,7 @@ export async function generateSceneOutlinesFromRequirements(
     videoGenerationEnabled?: boolean;
     researchContext?: string;
     teacherContext?: string;
+    courseContext?: CoursePersonalizationContext;
   },
 ): Promise<GenerationResult<SceneOutline[]>> {
   // Build available images description for the prompt
@@ -212,6 +220,19 @@ export async function generateSceneOutlinesFromRequirements(
   }
 
   // Use simplified prompt variables
+  const disciplineGuidance = formatOutlineDisciplineGuidanceForPrompt({
+    language: requirements.language,
+    requirement: requirements.requirement,
+    pdfText,
+    researchContext: options?.researchContext,
+    purpose: options?.courseContext?.purpose,
+    courseContext: options?.courseContext,
+  });
+  const purposeGuidance = formatPurposeGuidanceForPrompt({
+    language: requirements.language,
+    purpose: options?.courseContext?.purpose,
+    stage: 'outline',
+  });
   const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
     // New simplified variables
     requirement: requirements.requirement,
@@ -231,6 +252,8 @@ export async function generateSceneOutlinesFromRequirements(
     purposePolicy: '',
     courseContext: requirements.language === 'zh-CN' ? '无' : 'N/A',
     orchestratorPreferences: '',
+    purposeGuidance,
+    disciplineGuidance,
   });
 
   if (!prompts) {

@@ -24,6 +24,23 @@ function getOutlineRootId(outline: SceneOutline): string {
   return outline.continuation?.rootOutlineId || outline.id;
 }
 
+function compactPageTitle(value: string | undefined): string {
+  return (value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s"'`“”‘’：:，,。.!！?？、;；()[\]{}<>《》【】（）\-_/|]+/g, '')
+    .trim();
+}
+
+function getSceneTitleKeys(
+  scene: Scene,
+  semanticDocument: NotebookContentDocument | null,
+): Set<string> {
+  return new Set(
+    [scene.title, semanticDocument?.title || ''].map(compactPageTitle).filter(Boolean),
+  );
+}
+
 function resolveContinuationFromSources(args: {
   outline: SceneOutline | null;
   semanticDocument: NotebookContentDocument | null;
@@ -65,11 +82,14 @@ export function getCurrentPageGenerationData(args: {
   if (!scene) return null;
 
   const semanticDocument =
-    scene.type === 'slide' && scene.content.type === 'slide' ? scene.content.semanticDocument || null : null;
+    scene.type === 'slide' && scene.content.type === 'slide'
+      ? scene.content.semanticDocument || null
+      : null;
 
+  const sceneTitleKeys = getSceneTitleKeys(scene, semanticDocument);
   const currentOutline =
+    args.outlines.find((outline) => sceneTitleKeys.has(compactPageTitle(outline.title))) ||
     args.outlines.find((outline) => outline.order === scene.order) ||
-    args.outlines.find((outline) => outline.title === scene.title) ||
     null;
 
   const rootOutlineId =

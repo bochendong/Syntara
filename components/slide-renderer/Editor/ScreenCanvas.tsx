@@ -7,7 +7,7 @@ import { LaserOverlay } from './LaserOverlay';
 import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style';
 import { useCanvasStore } from '@/lib/store';
 import { useSceneSelector } from '@/lib/contexts/scene-context';
-import { getElementListRange, getElementRange } from '@/lib/utils/element';
+import { getElementRange } from '@/lib/utils/element';
 import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
 import { FlowTimelineOverlay } from '../components/FlowTimelineOverlay';
 import type { SlideContent } from '@/lib/types/stage';
@@ -22,12 +22,13 @@ export interface ScreenCanvasProps {
   readonly containerRef: RefObject<HTMLDivElement | null>;
 }
 
-const CONTENT_BOTTOM_PADDING = 24;
 const TITLE_BASELINE_LEFT = 64;
 const FULL_ROW_BASELINE_WIDTH = 872;
 const FULL_ROW_SNAP_MIN_WIDTH = 800;
 const LEGACY_FULL_ROW_MIN_LEFT = 80;
 const LEGACY_FULL_ROW_MAX_LEFT = 100;
+const LEGACY_COVER_REFLOW_TOP = 340;
+const LEGACY_COVER_REFLOW_DELTA = 260;
 
 type BoxGeometry = {
   left: number;
@@ -43,6 +44,44 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometr
     typeof (element as { width?: unknown }).width === 'number' &&
     typeof (element as { height?: unknown }).height === 'number'
   );
+}
+
+function isTitleCoverVersionMarker(element: PPTElement): boolean {
+  return element.type === 'text' && /syntara-cover-v\d+/i.test(element.content || '');
+}
+
+function isLegacyCoverMarker(element: PPTElement): boolean {
+  return element.type === 'text' && /syntara-cover-v[2-8]/i.test(element.content || '');
+}
+
+function splitLegacyCoverTitle(content: string): string {
+  if (/<br\s*\/?>/i.test(content)) return content;
+  return content.replace(/(：|:)/, '$1<br/>');
+}
+
+function reflowLegacyCoverElements(elements: PPTElement[]): PPTElement[] {
+  const legacyCoverElements = elements.filter((element) => !isTitleCoverVersionMarker(element));
+  if (!elements.some(isLegacyCoverMarker)) {
+    return legacyCoverElements.length === elements.length ? elements : legacyCoverElements;
+  }
+
+  return legacyCoverElements.map((element) => {
+    if (!hasBoxGeometry(element)) return element;
+    if (element.type === 'text' && element.textType === 'title') {
+      return {
+        ...element,
+        content: splitLegacyCoverTitle(element.content),
+        width: Math.max(element.width, 700),
+        height: Math.max(element.height, 150),
+        top: Math.max(0, element.top - LEGACY_COVER_REFLOW_DELTA),
+      };
+    }
+    if (element.top < LEGACY_COVER_REFLOW_TOP) return element;
+    return {
+      ...element,
+      top: Math.max(0, element.top - LEGACY_COVER_REFLOW_DELTA),
+    };
+  });
 }
 
 function alignTwoCardLayoutRows(elements: PPTElement[]): PPTElement[] {
@@ -138,7 +177,8 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
     // Screen playback is now a pure projection of stored geometry.
     // We keep deterministic baseline snapping here, but do not measure DOM and
     // do not mutate height/top after mount.
-    const baselineAdjusted = elements.map((element) => {
+    const legacyCoverAdjusted = reflowLegacyCoverElements(elements);
+    const baselineAdjusted = legacyCoverAdjusted.map((element) => {
       if (!hasBoxGeometry(element)) return element;
       const isTextFullRow =
         element.type === 'text' && (element.textType === 'title' || element.textType === 'notes');
@@ -202,20 +242,11 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   );
   const { backgroundStyle } = useSlideBackgroundStyle(background);
 
-  const contentHeight = useMemo(() => {
-    if (!adjustedElements.length) return viewportStyles.height;
-    const { maxY } = getElementListRange(adjustedElements);
-    return Math.max(viewportStyles.height, maxY + CONTENT_BOTTOM_PADDING);
-  }, [adjustedElements, viewportStyles.height]);
-  const fitScale = useMemo(
-    () => Math.min(1, viewportStyles.height / contentHeight),
-    [contentHeight, viewportStyles.height],
-  );
-  const fittedCanvasScale = canvasScale * fitScale;
+  const contentHeight = viewportStyles.height;
+  const fittedCanvasScale = canvasScale;
   const fittedCanvasWidth = viewportStyles.width * fittedCanvasScale;
-  const fittedCanvasHeight = contentHeight * fittedCanvasScale;
-  const fittedCanvasLeft =
-    viewportStyles.left + (viewportStyles.width * canvasScale - fittedCanvasWidth) / 2;
+  const fittedCanvasHeight = viewportStyles.height * fittedCanvasScale;
+  const fittedCanvasLeft = viewportStyles.left;
 
   // Get visual effect state
   const laserElementId = useCanvasStore.use.laserElementId();

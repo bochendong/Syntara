@@ -42,6 +42,8 @@ export const stageZhCN = {
     cancelPendingGenerationSuccess: '已取消后续生成，并删除所有未完成页面。',
     generateMediaButton: '生成媒体',
     generateMediaTooltip: '只在点击后，为当前笔记本里声明的图片或视频资源开始生成。',
+    generatePageImagesButton: '生成本页图片',
+    generatePageImagesTooltip: '只为当前页已经放入版式的 AI 图片占位符生成图片。',
     openSceneList: '展开幻灯片列表',
     toolbarToggleSceneSidebar: '展开或收起左侧场景列表',
     toolbarToggleNotesChat: '展开或收起右侧笔记与对话',
@@ -267,6 +269,9 @@ export const stageEnUS = {
     generateMediaButton: 'Generate media',
     generateMediaTooltip:
       'Only runs when clicked: starts generating declared images or videos for this notebook.',
+    generatePageImagesButton: 'Generate page images',
+    generatePageImagesTooltip:
+      'Generate images only for AI image placeholders already placed on the current page.',
     openSceneList: 'Show slide list',
     toolbarToggleSceneSidebar: 'Show or hide the left scene list',
     toolbarToggleNotesChat: 'Show or hide the notes and chat panel',

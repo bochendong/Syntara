@@ -45,11 +45,28 @@ export async function gradeNotebookTextProblem(args: {
   model: LanguageModel;
   language: 'zh-CN' | 'en-US';
 }): Promise<{
-  status: 'passed' | 'failed' | 'partial' | 'error';
+  status: 'pending' | 'passed' | 'failed' | 'partial' | 'error';
   score: number;
   result: NotebookProblemAttemptResult;
 }> {
   const userAnswer = args.answer.text?.trim() || '';
+  const imageAnswers = args.answer.images ?? [];
+  if (!userAnswer && imageAnswers.length > 0) {
+    return {
+      status: 'pending',
+      score: 0,
+      result: {
+        correct: null,
+        feedback:
+          args.language === 'zh-CN'
+            ? `已收到 ${imageAnswers.length} 张照片答案，需要教师人工查看。`
+            : `${imageAnswers.length} photo answer(s) received. Manual review is needed.`,
+        earnedPoints: 0,
+        publicCases: [],
+      },
+    };
+  }
+
   if (!userAnswer) {
     return {
       status: 'error',
@@ -148,11 +165,34 @@ export async function evaluateNotebookNonCodeProblem(args: {
   model?: LanguageModel;
   language: 'zh-CN' | 'en-US';
 }): Promise<{
-  status: 'passed' | 'failed' | 'partial' | 'error';
+  status: 'pending' | 'passed' | 'failed' | 'partial' | 'error';
   score: number;
   result: NotebookProblemAttemptResult;
 }> {
   const { problem, answer } = args;
+  const imageAnswers = answer.images ?? [];
+  const photoOnlyAnswer = imageAnswers.length > 0 && !(answer.text ?? '').trim();
+
+  if (
+    photoOnlyAnswer &&
+    (isNotebookCalculationProblemRecord(problem) ||
+      isNotebookShortAnswerProblemRecord(problem) ||
+      isNotebookProofProblemRecord(problem))
+  ) {
+    return {
+      status: 'pending',
+      score: 0,
+      result: {
+        correct: null,
+        feedback:
+          args.language === 'zh-CN'
+            ? `已收到 ${imageAnswers.length} 张照片答案，需要教师人工查看。`
+            : `${imageAnswers.length} photo answer(s) received. Manual review is needed.`,
+        earnedPoints: 0,
+        publicCases: [],
+      },
+    };
+  }
 
   if (isNotebookChoiceProblemRecord(problem)) {
     const selected = (answer.selectedOptionIds ?? []).map((item) => item.trim()).filter(Boolean);

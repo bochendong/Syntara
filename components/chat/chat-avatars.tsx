@@ -1,4 +1,5 @@
 import { BookOpen } from 'lucide-react';
+import { createNotebookHref } from '@/lib/constants/course-chat';
 import { USER_AVATAR } from '@/lib/types/roundtable';
 import { cn } from '@/lib/utils';
 
@@ -110,6 +111,9 @@ export function actionHref(actionId: string): string | null {
   }
   if (actionId.startsWith('open-agent:')) {
     return `/chat?agent=${encodeURIComponent(actionId.replace('open-agent:', ''))}`;
+  }
+  if (actionId.startsWith('create-notebook:')) {
+    return createNotebookHref(actionId.replace('create-notebook:', ''));
   }
   return null;
 }

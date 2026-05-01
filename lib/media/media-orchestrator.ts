@@ -36,22 +36,29 @@ export async function generateMediaForOutlines(
   notebookName?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
+  const requests = outlines.flatMap((outline) => outline.mediaGenerations || []);
+  return generateMediaRequests(requests, stageId, notebookName, abortSignal);
+}
+
+export async function generateMediaRequests(
+  requests: MediaGenerationRequest[],
+  stageId: string,
+  notebookName?: string,
+  abortSignal?: AbortSignal,
+): Promise<void> {
   const settings = useSettingsStore.getState();
   const store = useMediaGenerationStore.getState();
 
   // Collect all media requests
   const allRequests: MediaGenerationRequest[] = [];
-  for (const outline of outlines) {
-    if (!outline.mediaGenerations) continue;
-    for (const mg of outline.mediaGenerations) {
-      // Filter by enabled flags
-      if (mg.type === 'image' && !settings.imageGenerationEnabled) continue;
-      if (mg.type === 'video' && !settings.videoGenerationEnabled) continue;
-      // Skip anything already tracked to keep manual retries idempotent.
-      const existing = store.getTask(mg.elementId);
-      if (existing) continue;
-      allRequests.push(mg);
-    }
+  for (const mg of requests) {
+    // Filter by enabled flags
+    if (mg.type === 'image' && !settings.imageGenerationEnabled) continue;
+    if (mg.type === 'video' && !settings.videoGenerationEnabled) continue;
+    // Skip anything already tracked to keep manual retries idempotent.
+    const existing = store.getTask(mg.elementId);
+    if (existing) continue;
+    allRequests.push(mg);
   }
 
   if (allRequests.length === 0) return;

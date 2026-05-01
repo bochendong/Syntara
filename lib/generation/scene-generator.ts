@@ -82,6 +82,8 @@ import {
   buildWorkedExampleSlideContent,
   shouldUseLocalWorkedExampleTemplate,
 } from './slide-worked-example-template';
+import { formatSemanticDisciplineGuidanceForPrompt } from './discipline-packs';
+import { formatPurposeGuidanceForPrompt } from './purpose-packs';
 import {
   appendRewriteReason,
   buildLayoutRetryReason,
@@ -689,6 +691,16 @@ async function generateSemanticSlideContent(
   const archetypeContext = formatSceneArchetypeContext(outline, lang);
   const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
   const layoutIntentContext = formatLayoutIntentForPrompt(outline, lang);
+  const disciplineGuidance = formatSemanticDisciplineGuidanceForPrompt({
+    language: lang,
+    outline,
+    courseContext,
+  });
+  const purposeGuidance = formatPurposeGuidanceForPrompt({
+    language: lang,
+    purpose: courseContext?.purpose,
+    stage: 'semantic',
+  });
   const mediaContext = buildSemanticMediaPromptContext({
     outline,
     language: lang,
@@ -713,6 +725,8 @@ async function generateSemanticSlideContent(
       coursePersonalization,
       workedExampleContext,
       rewriteContext,
+      purposeGuidance,
+      disciplineGuidance,
     });
     if (!prompts) return null;
     const response = await aiCall(prompts.system, prompts.user, mediaContext.visionImages);

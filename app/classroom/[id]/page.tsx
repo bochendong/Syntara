@@ -13,7 +13,8 @@ import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
 import { createLogger } from '@/lib/logger';
 import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
-import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
+import { generateMediaRequests } from '@/lib/media/media-orchestrator';
+import { collectMediaGenerationRequestsForScene } from '@/lib/media/media-generation-requests';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SpeechAction } from '@/lib/types/action';
 import type { PdfImage } from '@/lib/types/generation';
@@ -24,15 +25,13 @@ import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { syncStageFromSource } from '@/lib/utils/stage-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 import { readGenerationContext } from '@/lib/utils/generation-context-storage';
+import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
 
 const log = createLogger('Classroom');
 
 function summarizeSpeechProgress(scenes: Array<{ actions?: Array<{ type: string }> }>) {
-  const speechActions = scenes.flatMap(
-    (scene) =>
-      (scene.actions || []).filter(
-        (action): action is SpeechAction => action.type === 'speech',
-      ),
+  const speechActions = scenes.flatMap((scene) =>
+    (scene.actions || []).filter((action): action is SpeechAction => action.type === 'speech'),
   );
   const speechReadyCount = speechActions.filter((action) => Boolean(action.audioUrl)).length;
   return {
@@ -57,7 +56,6 @@ export default function ClassroomDetailPage() {
   const discardPendingOutlines = useStageStore((s) => s.discardPendingOutlines);
   const mediaTasks = useMediaGenerationStore((s) => s.tasks);
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
-  const videoGenerationEnabled = useSettingsStore((s) => s.videoGenerationEnabled);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,27 +73,40 @@ export default function ClassroomDetailPage() {
   });
 
   const pendingOutlineCount = useMemo(() => {
-    const completedOrders = new Set(scenes.map((scene) => scene.order));
-    return outlines.filter((outline) => !completedOrders.has(outline.order)).length;
-  }, [outlines, scenes]);
+    return generatingOutlines.length;
+  }, [generatingOutlines.length]);
+
+  const currentPageGenerationData = useMemo(
+    () => getCurrentPageGenerationData({ scenes, outlines, sceneId: currentSceneId }),
+    [currentSceneId, outlines, scenes],
+  );
+
+  const currentPageImageRequests = useMemo(() => {
+    if (!currentPageGenerationData) return [];
+    return collectMediaGenerationRequestsForScene({
+      scene: currentPageGenerationData.scene,
+      outlines,
+      preferredOutlines: [
+        currentPageGenerationData.currentOutline,
+        currentPageGenerationData.rootOutline,
+        ...currentPageGenerationData.relatedOutlines,
+      ],
+      type: 'image',
+    });
+  }, [currentPageGenerationData, outlines]);
 
   const actionableMediaCount = useMemo(() => {
-    let count = 0;
-    for (const outline of outlines) {
-      for (const media of outline.mediaGenerations || []) {
-        if (media.type === 'image' && !imageGenerationEnabled) continue;
-        if (media.type === 'video' && !videoGenerationEnabled) continue;
-        const task = mediaTasks[media.elementId];
-        if (task) continue;
-        count += 1;
-      }
-    }
-    return count;
-  }, [outlines, mediaTasks, imageGenerationEnabled, videoGenerationEnabled]);
+    if (!imageGenerationEnabled) return 0;
+    return currentPageImageRequests.filter((media) => !mediaTasks[media.elementId]).length;
+  }, [currentPageImageRequests, imageGenerationEnabled, mediaTasks]);
 
   const mediaGenerationInFlight = useMemo(
-    () => Object.values(mediaTasks).some((task) => task.status === 'pending' || task.status === 'generating'),
-    [mediaTasks],
+    () =>
+      currentPageImageRequests.some((media) => {
+        const task = mediaTasks[media.elementId];
+        return task?.status === 'pending' || task?.status === 'generating';
+      }),
+    [currentPageImageRequests, mediaTasks],
   );
 
   const handleResumeGeneration = useCallback(async () => {
@@ -131,7 +142,9 @@ export default function ClassroomDetailPage() {
         setCurrentSceneId(PENDING_SCENE_ID);
       }
 
-      const storageIds = (params.pdfImages || []).map((img) => img.storageId).filter(Boolean) as string[];
+      const storageIds = (params.pdfImages || [])
+        .map((img) => img.storageId)
+        .filter(Boolean) as string[];
       const imageMapping = await loadImageMapping(storageIds);
       await generateRemaining({
         pdfImages: params.pdfImages,
@@ -171,15 +184,15 @@ export default function ClassroomDetailPage() {
     if (actionableMediaCount === 0) {
       toast.success(
         locale === 'zh-CN'
-          ? '当前没有待生成媒体资源。'
-          : 'There is no pending media to generate.',
+          ? '当前页没有待生成图片。'
+          : 'There are no pending images on this page.',
       );
       return;
     }
 
     setGenerateMediaBusy(true);
     try {
-      await generateMediaForOutlines(outlines, stage.id, stage.name);
+      await generateMediaRequests(currentPageImageRequests, stage.id, stage.name);
     } catch (mediaError) {
       toast.error(
         locale === 'zh-CN'
@@ -191,10 +204,10 @@ export default function ClassroomDetailPage() {
     }
   }, [
     actionableMediaCount,
+    currentPageImageRequests,
     generateMediaBusy,
     locale,
     mediaGenerationInFlight,
-    outlines,
     stage,
   ]);
 
@@ -213,9 +226,12 @@ export default function ClassroomDetailPage() {
   const loadClassroom = useCallback(async () => {
     try {
       setSourceNotebookId(null);
-      const notebookMetaResponse = await fetch(`/api/notebooks/${encodeURIComponent(classroomId)}`, {
-        credentials: 'same-origin',
-      });
+      const notebookMetaResponse = await fetch(
+        `/api/notebooks/${encodeURIComponent(classroomId)}`,
+        {
+          credentials: 'same-origin',
+        },
+      );
       if (notebookMetaResponse.ok) {
         const notebookMeta = (await notebookMetaResponse.json()) as {
           notebook?: { sourceNotebookId?: string | null };
@@ -307,9 +323,7 @@ export default function ClassroomDetailPage() {
       await loadClassroom();
       reloaded = true;
       toast.success(
-        locale === 'zh-CN'
-          ? '已同步发布者最新内容'
-          : 'Synced to the latest publisher content.',
+        locale === 'zh-CN' ? '已同步发布者最新内容' : 'Synced to the latest publisher content.',
       );
     } catch (syncError) {
       toast.error(
@@ -453,9 +467,17 @@ export default function ClassroomDetailPage() {
             onClick={() => void handleSyncFromSource()}
             disabled={syncFromSourceBusy}
             className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-70 dark:border-emerald-500/30 dark:bg-emerald-950/35 dark:text-emerald-200 dark:hover:bg-emerald-950/55"
-            title={locale === 'zh-CN' ? '用发布者最新版本覆盖当前笔记本' : 'Overwrite with the latest publisher version'}
+            title={
+              locale === 'zh-CN'
+                ? '用发布者最新版本覆盖当前笔记本'
+                : 'Overwrite with the latest publisher version'
+            }
           >
-            {syncFromSourceBusy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+            {syncFromSourceBusy ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3.5" />
+            )}
             {locale === 'zh-CN' ? '更新笔记本' : 'Update notebook'}
           </button>
         ) : null}
@@ -488,18 +510,18 @@ export default function ClassroomDetailPage() {
           </button>
         ) : null}
 
-        {(actionableMediaCount > 0 || mediaGenerationInFlight) ? (
+        {actionableMediaCount > 0 || mediaGenerationInFlight ? (
           <button
             type="button"
             onClick={() => void handleGenerateMedia()}
             disabled={generateMediaBusy || mediaGenerationInFlight}
             className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition-all hover:bg-cyan-100 disabled:cursor-wait disabled:opacity-70 dark:border-cyan-500/30 dark:bg-cyan-950/35 dark:text-cyan-200 dark:hover:bg-cyan-950/55"
-            title={t('stage.generateMediaTooltip')}
+            title={t('stage.generatePageImagesTooltip')}
           >
             {generateMediaBusy || mediaGenerationInFlight ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : null}
-            {t('stage.generateMediaButton')}
+            {t('stage.generatePageImagesButton')}
             {actionableMediaCount > 0 ? ` (${actionableMediaCount})` : ''}
           </button>
         ) : null}

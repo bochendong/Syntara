@@ -11,16 +11,11 @@ import {
   GenerationModelSelector,
 } from '@/components/generation/generation-toolbar';
 import { SpeechButton } from '@/components/audio/speech-button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { SettingsSection } from '@/lib/types/settings';
 import type { CourseAgentListItem } from '@/lib/utils/course-agents';
 import { cn } from '@/lib/utils';
-import type {
-  NotebookAttachmentInput,
-  OrchestratorComposerMode,
-  OrchestratorViewMode,
-} from './chat-page-types';
+import type { NotebookAttachmentInput, OrchestratorViewMode } from './chat-page-types';
 
 type ChatMode = 'notebook' | 'agent' | 'none';
 
@@ -28,8 +23,6 @@ export function ChatComposer({
   mode,
   isCourseOrchestrator,
   orchestratorViewMode,
-  orchestratorComposerMode,
-  switchOrchestratorComposer,
   supportsComposerAttachments,
   isComposerDragging,
   handleComposerDragEnter,
@@ -53,8 +46,6 @@ export function ChatComposer({
   mode: ChatMode;
   isCourseOrchestrator: boolean;
   orchestratorViewMode: OrchestratorViewMode;
-  orchestratorComposerMode: OrchestratorComposerMode;
-  switchOrchestratorComposer: (mode: OrchestratorComposerMode) => void;
   supportsComposerAttachments: boolean;
   isComposerDragging: boolean;
   handleComposerDragEnter: (event: ReactDragEvent<HTMLDivElement>) => void;
@@ -79,27 +70,6 @@ export function ChatComposer({
 
   return (
     <footer className="shrink-0 border-t border-slate-900/[0.06] px-4 pb-4 pt-3 dark:border-white/[0.06]">
-      {mode === 'agent' && isCourseOrchestrator && orchestratorViewMode === 'private' ? (
-        <Tabs
-          value={orchestratorComposerMode}
-          onValueChange={(v) => {
-            const mode = v as OrchestratorComposerMode;
-            switchOrchestratorComposer(mode);
-          }}
-          className="mb-2 w-full"
-        >
-          <TabsList variant="default" className="grid min-h-9 w-full min-w-0 grid-cols-2 gap-0 p-[3px]">
-            <TabsTrigger value="send-message" className="text-xs">
-              发送消息
-            </TabsTrigger>
-            <TabsTrigger value="generate-notebook" className="text-xs">
-              生成笔记本
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="send-message" className="hidden" tabIndex={-1} aria-hidden />
-          <TabsContent value="generate-notebook" className="hidden" tabIndex={-1} aria-hidden />
-        </Tabs>
-      ) : null}
       <ComposerInputShell
         className={cn(
           'relative transition-all',
@@ -120,8 +90,7 @@ export function ChatComposer({
             </div>
           </div>
         ) : null}
-        {(mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator)) &&
-        pendingAttachments.length > 0 ? (
+        {mode === 'notebook' && pendingAttachments.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2">
             {pendingAttachments.map((a) => (
               <span
@@ -154,9 +123,7 @@ export function ChatComposer({
                 : isCourseOrchestrator
                   ? orchestratorViewMode === 'group'
                     ? '在课程协作群聊中发起多方协作…'
-                    : orchestratorComposerMode === 'send-message'
-                      ? '向课程总控提问：概念、安排、答疑等（不自动创建笔记本）…'
-                      : '描述要生成的笔记本主题与要求，可添加 PDF、Markdown 等附件…'
+                    : '向课程总控提问：概念、安排、答疑等…'
                   : `与 ${selectedAgent?.name ?? 'Agent'} 对话…`
           }
           disabled={mode === 'none' || sending}
@@ -221,26 +188,6 @@ export function ChatComposer({
               </div>
             ) : mode === 'agent' && isCourseOrchestrator ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
-                  onClick={openAttachmentPicker}
-                  disabled={sending}
-                >
-                  <Paperclip className="mr-1 size-3.5" />
-                  添加附件
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    void onPickAttachments(e.target.files);
-                  }}
-                />
                 <GenerationModelSelector onSettingsOpen={openSettings} />
                 <ComposerVoiceSelector onSettingsOpen={openSettings} />
               </div>
@@ -252,10 +199,7 @@ export function ChatComposer({
             disabled={
               mode === 'none' ||
               sending ||
-              (mode === 'agent' &&
-                isCourseOrchestrator &&
-                !draft.trim() &&
-                pendingAttachments.length === 0)
+              (mode === 'agent' && isCourseOrchestrator && !draft.trim())
             }
             onTranscription={(text) => {
               setDraft((prev) => {
@@ -271,9 +215,7 @@ export function ChatComposer({
               mode === 'none' ||
               sending ||
               (mode === 'notebook' && !draft.trim()) ||
-              (mode === 'agent' &&
-                !draft.trim() &&
-                (!isCourseOrchestrator || pendingAttachments.length === 0))
+              (mode === 'agent' && !draft.trim())
             }
             onClick={() => {
               if (mode === 'notebook') void handleSendNotebook();
@@ -281,9 +223,7 @@ export function ChatComposer({
             }}
             className={cn(
               'shrink-0 flex h-8 items-center justify-center gap-1.5 rounded-lg px-3 transition-all',
-              mode !== 'none' &&
-                !sending &&
-                (draft.trim() || (isCourseOrchestrator && pendingAttachments.length > 0))
+              mode !== 'none' && !sending && draft.trim()
                 ? 'cursor-pointer bg-primary text-primary-foreground shadow-sm hover:opacity-90'
                 : 'cursor-not-allowed bg-muted text-muted-foreground/40',
             )}

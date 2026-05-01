@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Bot, ChevronLeft, ChevronRight, Loader2, NotebookPen, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
@@ -12,7 +12,7 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
-  courseOrchestratorChatHref,
+  createNotebookHref,
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import { OrchestratorGenerateOptionsPanel } from '@/components/chat/orchestrator-generate-options-panel';
@@ -46,9 +46,7 @@ const profileSectionLabel = cn(
   'text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#a1a1a6]',
 );
 
-const profileBodyText = cn(
-  'text-[13px] leading-relaxed text-[#1d1d1f]/88 dark:text-white/[0.82]',
-);
+const profileBodyText = cn('text-[13px] leading-relaxed text-[#1d1d1f]/88 dark:text-white/[0.82]');
 
 const sceneLikeItemClass = cn(
   'group relative flex cursor-pointer flex-col rounded-[12px] p-2 transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
@@ -79,7 +77,7 @@ function isImageAvatar(src: string) {
   );
 }
 
-/** 已绑定笔记本时进入互动教室；否则进入创建页；无课程时回退到聊天。 */
+/** 已绑定笔记本时进入互动教室；否则进入课程内创建界面；无课程时回退到聊天。 */
 function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecord): string {
   const nid = t.notebookId?.trim();
   if (nid && t.status === 'done') {
@@ -87,7 +85,7 @@ function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecor
   }
   const cid = courseId?.trim();
   if (cid) {
-    return courseOrchestratorChatHref('generate-notebook');
+    return createNotebookHref(cid);
   }
   if (t.contactKind === 'notebook') {
     return `/chat?notebook=${encodeURIComponent(t.contactId)}`;
@@ -106,13 +104,15 @@ function isMockTaskLike(task: Pick<AgentTaskRecord, 'title' | 'detail'>): boolea
 export interface ChatRightRailProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
+  mode?: 'chat' | 'notebook-create';
 }
 
 /**
  * 聊天页右侧玻璃侧栏：Tab「当前」展示会话对象资料；Tab「进行中」展示课程内活跃 Agent 任务。
  */
-export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailProps) {
+export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: ChatRightRailProps) {
   const searchParams = useSearchParams();
+  const isNotebookCreateMode = mode === 'notebook-create';
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseAvatarUrl = useCurrentCourseStore((s) => s.avatarUrl);
   const orchestratorAgentLive = useMemo((): CourseAgentListItem => {
@@ -121,7 +121,8 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
       name: COURSE_ORCHESTRATOR_NAME,
       avatar: resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl),
       role: 'teacher',
-      persona: '课程总控，主要用于直接创建笔记本；也可并行调度本课程下的多个笔记本与子任务。',
+      persona:
+        '课程总控，用于课程安排、概念解释、跨笔记本协作与学习答疑。创建笔记本请使用课程内创建界面。',
       color: '#007AFF',
       priority: 100,
       isGenerated: false,
@@ -129,9 +130,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
   }, [courseId, courseAvatarUrl]);
   const notebookId = searchParams.get('notebook');
   const agentId = searchParams.get('agent');
-  const composer = searchParams.get('composer');
-  const isOrchestratorGenerateMode =
-    agentId === COURSE_ORCHESTRATOR_ID && !notebookId && composer === 'generate-notebook';
 
   const [notebookStage, setNotebookStage] = useState<StageListItem | null>(null);
   const [resolvedAgent, setResolvedAgent] = useState<CourseAgentListItem | null>(null);
@@ -142,23 +140,15 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
   const [tasksLoading, setTasksLoading] = useState(false);
   const [notebookScenes, setNotebookScenes] = useState<Scene[]>([]);
   const [notebookScenesLoading, setNotebookScenesLoading] = useState(false);
-  const [railTab, setRailTab] = useState('profile');
-  const prevOrchestratorGenRef = useRef(false);
-
-  const createHref = courseId ? courseOrchestratorChatHref('generate-notebook') : '/create';
+  const [railTab, setRailTab] = useState(isNotebookCreateMode ? 'generate-options' : 'profile');
 
   useEffect(() => {
-    if (isOrchestratorGenerateMode && !prevOrchestratorGenRef.current) {
+    if (isNotebookCreateMode) {
       setRailTab('generate-options');
+      return;
     }
-    prevOrchestratorGenRef.current = isOrchestratorGenerateMode;
-  }, [isOrchestratorGenerateMode]);
-
-  useEffect(() => {
-    if (!isOrchestratorGenerateMode && railTab === 'generate-options') {
-      setRailTab('profile');
-    }
-  }, [isOrchestratorGenerateMode, railTab]);
+    setRailTab((current) => (current === 'generate-options' ? 'profile' : current));
+  }, [isNotebookCreateMode]);
 
   useEffect(() => {
     if (!courseId) {
@@ -228,8 +218,9 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
   }, [notebookId]);
 
   useEffect(() => {
-    if (!courseId) {
+    if (!courseId || isNotebookCreateMode) {
       setActiveTasks([]);
+      setTasksLoading(false);
       return;
     }
     let alive = true;
@@ -251,7 +242,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
       alive = false;
       window.clearInterval(t);
     };
-  }, [courseId]);
+  }, [courseId, isNotebookCreateMode]);
 
   const activeTaskCount = activeTasks.length;
 
@@ -298,9 +289,14 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
   const taskActorLabel = (t: AgentTaskRecord): string => {
     if (t.contactKind === 'agent') {
       if (t.contactId === COURSE_ORCHESTRATOR_ID) return COURSE_ORCHESTRATOR_NAME;
-      return courseAgents.find((a) => a.id === t.contactId)?.name || `Agent · ${t.contactId.slice(0, 10)}`;
+      return (
+        courseAgents.find((a) => a.id === t.contactId)?.name ||
+        `Agent · ${t.contactId.slice(0, 10)}`
+      );
     }
-    return courseStages.find((s) => s.id === t.contactId)?.name || `笔记本 · ${t.contactId.slice(0, 10)}`;
+    return (
+      courseStages.find((s) => s.id === t.contactId)?.name || `笔记本 · ${t.contactId.slice(0, 10)}`
+    );
   };
 
   const profileBody = () => {
@@ -353,7 +349,10 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   />
                 ) : (
                   <div className="flex size-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-[#0a1c33]/80 dark:to-[#0d2240]/60">
-                    <NotebookPen className="size-8 text-[#007AFF]/70 dark:text-[#0A84FF]/75" strokeWidth={1.5} />
+                    <NotebookPen
+                      className="size-8 text-[#007AFF]/70 dark:text-[#0A84FF]/75"
+                      strokeWidth={1.5}
+                    />
                   </div>
                 )}
               </div>
@@ -406,7 +405,10 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
       if (!resolvedAgent) {
         return (
           <div className="px-1 py-4 text-center">
-            <Bot className="mx-auto mb-3 size-9 text-[#86868b] dark:text-[#a1a1a6]" strokeWidth={1.5} />
+            <Bot
+              className="mx-auto mb-3 size-9 text-[#86868b] dark:text-[#a1a1a6]"
+              strokeWidth={1.5}
+            />
             <p className={cn(profileBodyText, 'text-[12px] text-[#86868b] dark:text-[#a1a1a6]')}>
               未在课程 Agent 列表中解析到该 ID，可能为旧链接或注册表未同步。
             </p>
@@ -450,14 +452,19 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
           </div>
 
           {resolvedAgent.isGenerated ? (
-            <p className="mt-3 shrink-0 text-[11px] text-[#86868b] dark:text-[#a1a1a6]">课程生成角色</p>
+            <p className="mt-3 shrink-0 text-[11px] text-[#86868b] dark:text-[#a1a1a6]">
+              课程生成角色
+            </p>
           ) : null}
         </div>
       );
     }
     return (
       <div className="px-1 py-4 text-center">
-        <Bot className="mx-auto mb-3 size-9 text-[#86868b] opacity-70 dark:text-[#a1a1a6]" strokeWidth={1.5} />
+        <Bot
+          className="mx-auto mb-3 size-9 text-[#86868b] opacity-70 dark:text-[#a1a1a6]"
+          strokeWidth={1.5}
+        />
         <p className={cn(profileBodyText, 'text-[12px] text-[#86868b] dark:text-[#a1a1a6]')}>
           请在左侧选择笔记本或课程 Agent，将在此显示头像与说明。
         </p>
@@ -487,7 +494,9 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
     if (activeTasks.length === 0) {
       return activeTasksEmptyWrap(
         <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          当前没有运行中或等待中的 Agent 任务。向总控发指令或触发笔记本生成后，会在此列出。
+          {isNotebookCreateMode
+            ? '当前没有运行中或等待中的创建任务。提交新笔记本后，会在此列出。'
+            : '当前没有运行中或等待中的 Agent 任务。向总控发指令，或在课程内创建页生成笔记本后，会在此列出。'}
         </p>,
       );
     }
@@ -497,7 +506,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
           <li key={t.id}>
             <Link
               href={taskProgressHref(courseId, t)}
-              title="进入互动教室查看生成进度"
+              title="查看任务进度"
               className="block rounded-[12px] border border-slate-900/[0.08] bg-white/50 p-2.5 transition-colors hover:bg-white/80 dark:border-white/[0.1] dark:bg-black/20 dark:hover:bg-black/35"
             >
               <div className="flex items-start gap-2.5">
@@ -653,7 +662,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
         'pointer-events-none fixed right-4 top-4 z-[1290] h-[calc(100dvh-2rem)]',
         collapsed ? 'w-[88px]' : 'w-[min(270px,calc(100vw-2rem))]',
       )}
-      aria-label="聊天信息侧栏"
+      aria-label={isNotebookCreateMode ? '创建笔记本设置侧栏' : '聊天信息侧栏'}
     >
       <div className={cn('pointer-events-auto h-full', surfaceClass)}>
         {collapsed ? (
@@ -684,16 +693,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 <li>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href={createHref} className={rowClass(true)}>
-                        <NotebookPen className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">创建笔记本</TooltipContent>
-                  </Tooltip>
-                </li>
-                <li>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
                       <Link href="/settings" className={rowClass(true)}>
                         <Settings className="size-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
                       </Link>
@@ -702,27 +701,46 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                   </Tooltip>
                 </li>
               </ul>
-              <div className="border-t border-slate-900/[0.08] pt-2 dark:border-white/[0.08]">
-                <AppCoreNavList
-                  collapsed
-                  tooltipSide="left"
-                  chatRightRailOrder
-                  excludeKeys={[
-                    'top-up',
-                    'credits-market',
-                    'store',
-                    'chat',
-                    'notifications',
-                    'live2d',
-                    'profile',
-                    'settings',
-                    'contact-support',
-                    'report-issue',
-                  ]}
-                />
-              </div>
+              {!isNotebookCreateMode ? (
+                <div className="border-t border-slate-900/[0.08] pt-2 dark:border-white/[0.08]">
+                  <AppCoreNavList
+                    collapsed
+                    tooltipSide="left"
+                    chatRightRailOrder
+                    excludeKeys={[
+                      'top-up',
+                      'credits-market',
+                      'store',
+                      'chat',
+                      'notifications',
+                      'live2d',
+                      'profile',
+                      'settings',
+                      'contact-support',
+                      'report-issue',
+                    ]}
+                  />
+                </div>
+              ) : null}
             </div>
           </nav>
+        ) : isNotebookCreateMode ? (
+          <>
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-900/[0.08] px-3 py-2.5 dark:border-white/[0.08]">
+              <p className="min-w-0 truncate text-sm font-semibold text-foreground">创建设置</p>
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(true)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground"
+                aria-label="收起右侧栏"
+              >
+                <ChevronRight className="size-4" strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">
+              <OrchestratorGenerateOptionsPanel />
+            </div>
+          </>
         ) : (
           <>
             <Tabs
@@ -734,15 +752,10 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 <TabsList
                   className={cn(
                     'grid min-h-9 min-w-0 flex-1',
-                    isOrchestratorGenerateMode || notebookId ? 'grid-cols-3' : 'grid-cols-2',
+                    notebookId ? 'grid-cols-3' : 'grid-cols-2',
                   )}
                   variant="default"
                 >
-                  {isOrchestratorGenerateMode ? (
-                    <TabsTrigger value="generate-options" className="text-xs">
-                      生成选项
-                    </TabsTrigger>
-                  ) : null}
                   <TabsTrigger value="profile" className="text-xs">
                     当前对象
                   </TabsTrigger>
@@ -777,14 +790,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 </button>
               </div>
 
-              {isOrchestratorGenerateMode ? (
-                <TabsContent
-                  value="generate-options"
-                  className={cn(profileTabShellClass, 'min-h-0 overflow-y-auto', thinScrollbarClass)}
-                >
-                  <OrchestratorGenerateOptionsPanel />
-                </TabsContent>
-              ) : null}
               <TabsContent value="profile" className={profileTabShellClass}>
                 {profileBody()}
               </TabsContent>
@@ -803,27 +808,25 @@ export function ChatRightRail({ collapsed, onCollapsedChange }: ChatRightRailPro
                 </TabsContent>
               ) : null}
             </Tabs>
-            {railTab !== 'generate-options' ? (
-              <div className="shrink-0 border-t border-slate-900/[0.08] px-2 py-2 dark:border-white/[0.08]">
-                <AppCoreNavList
-                  collapsed={false}
-                  tooltipSide="left"
-                  chatRightRailOrder
-                  excludeKeys={[
-                    'top-up',
-                    'credits-market',
-                    'store',
-                    'chat',
-                    'notifications',
-                    'live2d',
-                    'profile',
-                    'settings',
-                    'contact-support',
-                    'report-issue',
-                  ]}
-                />
-              </div>
-            ) : null}
+            <div className="shrink-0 border-t border-slate-900/[0.08] px-2 py-2 dark:border-white/[0.08]">
+              <AppCoreNavList
+                collapsed={false}
+                tooltipSide="left"
+                chatRightRailOrder
+                excludeKeys={[
+                  'top-up',
+                  'credits-market',
+                  'store',
+                  'chat',
+                  'notifications',
+                  'live2d',
+                  'profile',
+                  'settings',
+                  'contact-support',
+                  'report-issue',
+                ]}
+              />
+            </div>
           </>
         )}
       </div>

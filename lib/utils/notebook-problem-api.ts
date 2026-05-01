@@ -3,6 +3,7 @@
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import type {
+  NotebookProblemAttemptAnswer,
   NotebookProblemAttemptRecord,
   NotebookProblemImportDraft,
   NotebookProblemGrading,
@@ -326,6 +327,7 @@ export async function submitNotebookProblem(args: {
   selectedOptionIds?: string[];
   blanks?: Record<string, string>;
   code?: string;
+  images?: NotebookProblemAttemptAnswer['images'];
   language: 'zh-CN' | 'en-US';
 }) {
   return backendJson<{

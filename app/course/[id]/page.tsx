@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { BookOpen, HardDrive, Loader2, Plus } from 'lucide-react';
 import {
   CourseGalleryCard,
   courseGalleryListGridClassName,
 } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
+import { CourseMaterialsPanel } from '@/components/courses/course-materials-panel';
 import { EditNotebookForm } from '@/components/courses/edit-notebook-form';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -31,7 +33,7 @@ import { cn } from '@/lib/utils';
 import { listCourses } from '@/lib/utils/course-storage';
 import { toast } from 'sonner';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
-import { courseOrchestratorChatHref } from '@/lib/constants/course-chat';
+import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import {
   Dialog,
@@ -61,6 +63,29 @@ function purposeLabel(p: CourseRecord['purpose']): string {
   return '日常使用';
 }
 
+type CourseWorkspaceTab = 'notebooks' | 'materials';
+
+function CreateNotebookGridLink({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group flex h-full min-h-[29rem] min-w-0 flex-col items-center justify-center rounded-[30px]',
+        'border-2 border-dashed border-slate-300/90 bg-white/45 text-slate-500 shadow-[0_20px_60px_rgba(15,23,42,0.04)] backdrop-blur-xl',
+        'transition-all duration-300 hover:-translate-y-1 hover:border-slate-500/70 hover:bg-white/72 hover:text-slate-900 hover:shadow-[0_26px_80px_rgba(15,23,42,0.1)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/25 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
+        'dark:border-white/20 dark:bg-white/[0.045] dark:text-white/55 dark:hover:border-white/45 dark:hover:bg-white/[0.075] dark:hover:text-white dark:focus-visible:ring-white/30',
+      )}
+      aria-label="新建笔记本"
+    >
+      <span className="flex size-20 items-center justify-center rounded-full border border-dashed border-current/45 bg-white/60 transition-transform duration-300 group-hover:scale-105 dark:bg-white/10">
+        <Plus className="size-10" strokeWidth={1.8} />
+      </span>
+      <span className="mt-5 text-sm font-medium">新建笔记本</span>
+    </Link>
+  );
+}
+
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -73,6 +98,7 @@ export default function CourseDetailPage() {
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [moveTargets, setMoveTargets] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>('notebooks');
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [editingNotebook, setEditingNotebook] = useState<StageListItem | null>(null);
   const [publishTarget, setPublishTarget] = useState<
@@ -416,7 +442,7 @@ export default function CourseDetailPage() {
                     asChild
                     className="h-11 rounded-xl bg-slate-900 text-white hover:opacity-90 dark:bg-white dark:text-slate-900"
                   >
-                    <Link href={courseOrchestratorChatHref('generate-notebook')}>新建笔记本</Link>
+                    <Link href={createNotebookHref(id)}>新建笔记本</Link>
                   </Button>
                 </div>
               </div>
@@ -457,76 +483,99 @@ export default function CourseDetailPage() {
               ) : null}
             </section>
 
-            {notebooks.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-white/20 dark:bg-white/5">
-                <p className="text-slate-600 dark:text-slate-200">这门课下还没有笔记本。</p>
-                <Button asChild className="mt-4 rounded-xl">
-                  <Link href={courseOrchestratorChatHref('generate-notebook')}>
-                    创建第一个笔记本
-                  </Link>
-                </Button>
+            <Tabs
+              value={workspaceTab}
+              onValueChange={(value) => setWorkspaceTab(value as CourseWorkspaceTab)}
+              className="gap-5"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <TabsList
+                  aria-label="课程内容切换"
+                  className="grid h-11 w-full grid-cols-2 rounded-2xl border border-slate-200/70 bg-white/60 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.055] sm:w-[360px]"
+                >
+                  <TabsTrigger value="notebooks" className="gap-2 rounded-xl text-sm">
+                    <BookOpen className="size-4" strokeWidth={1.8} />
+                    笔记本
+                    <span className="rounded-full bg-slate-900/[0.06] px-1.5 py-0.5 text-[11px] leading-none text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                      {notebooks.length}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="materials" className="gap-2 rounded-xl text-sm">
+                    <HardDrive className="size-4" strokeWidth={1.8} />
+                    课程资料
+                  </TabsTrigger>
+                </TabsList>
               </div>
-            ) : (
-              <section aria-labelledby="course-notebooks-heading">
-                <h2 id="course-notebooks-heading" className="sr-only">
-                  笔记本列表
-                </h2>
-                <ul className={courseGalleryListGridClassName}>
-                  {notebooks.map((nb, i) => (
-                    <li key={nb.id} className="min-w-0">
-                      <CourseGalleryCard
-                        variant="notebook"
-                        listIndex={i}
-                        course={nb}
-                        tags={nb.tags}
-                        coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
-                        slide={thumbnails[nb.id]}
-                        subtitle={formatDate(nb.updatedAt)}
-                        creatorName={creatorDisplay}
-                        secondaryLabel=""
-                        courseMetaChips={{
-                          school: course.university?.trim() || undefined,
-                          purposeType: purposeLabel(course.purpose),
-                          courseCode: course.courseCode?.trim() || undefined,
-                        }}
-                        priceLabel={formatPurchaseCreditsLabel(
-                          creditsFromPriceCents(nb.notebookPriceCents),
-                        )}
-                        actionLabel="打开笔记本"
-                        onAction={() => router.push(`/classroom/${nb.id}`)}
-                        onEdit={() => setEditingNotebook(nb)}
-                        tertiaryActionLabel="复习"
-                        onTertiaryAction={() => router.push(`/review/${nb.id}`)}
-                        secondaryActionLabel={
-                          nb.sourceNotebookId
-                            ? undefined
-                            : publishTarget?.kind === 'notebook' &&
-                                publishTarget.notebook.id === nb.id &&
-                                (publishState === 'preparing_audio' ||
-                                  publishState === 'publishing')
-                              ? '发布中…'
-                              : nb.listedInNotebookStore
-                                ? '发布更新'
-                                : '发布'
-                        }
-                        onSecondaryAction={
-                          nb.sourceNotebookId
-                            ? undefined
-                            : () => void handleTogglePublishNotebook(nb)
-                        }
-                        moveToCourseTargets={moveTargets}
-                        onMoveToCourse={(targetCourseId) =>
-                          handleMoveNotebook(nb.id, targetCourseId)
-                        }
-                        deleteDialogTitle="删除笔记本？"
-                        deleteDialogDescription={`将永久删除「${nb.name}」及其课件与对话记录，不可恢复。`}
-                        onDelete={() => handleDeleteNotebook(nb.id, nb.name)}
-                      />
+
+              <TabsContent value="notebooks" className="mt-0">
+                <section aria-labelledby="course-notebooks-heading">
+                  <h2 id="course-notebooks-heading" className="sr-only">
+                    笔记本列表
+                  </h2>
+                  <ul className={courseGalleryListGridClassName}>
+                    <li className="min-w-0">
+                      <CreateNotebookGridLink href={createNotebookHref(id)} />
                     </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+                    {notebooks.map((nb, i) => (
+                      <li key={nb.id} className="min-w-0">
+                        <CourseGalleryCard
+                          variant="notebook"
+                          listIndex={i}
+                          course={nb}
+                          tags={nb.tags}
+                          coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
+                          slide={thumbnails[nb.id]}
+                          subtitle={formatDate(nb.updatedAt)}
+                          creatorName={creatorDisplay}
+                          secondaryLabel=""
+                          courseMetaChips={{
+                            school: course.university?.trim() || undefined,
+                            purposeType: purposeLabel(course.purpose),
+                            courseCode: course.courseCode?.trim() || undefined,
+                          }}
+                          priceLabel={formatPurchaseCreditsLabel(
+                            creditsFromPriceCents(nb.notebookPriceCents),
+                          )}
+                          actionLabel="打开笔记本"
+                          onAction={() => router.push(`/classroom/${nb.id}`)}
+                          onEdit={() => setEditingNotebook(nb)}
+                          tertiaryActionLabel="复习"
+                          onTertiaryAction={() => router.push(`/review/${nb.id}`)}
+                          secondaryActionLabel={
+                            nb.sourceNotebookId
+                              ? undefined
+                              : publishTarget?.kind === 'notebook' &&
+                                  publishTarget.notebook.id === nb.id &&
+                                  (publishState === 'preparing_audio' ||
+                                    publishState === 'publishing')
+                                ? '发布中…'
+                                : nb.listedInNotebookStore
+                                  ? '发布更新'
+                                  : '发布'
+                          }
+                          onSecondaryAction={
+                            nb.sourceNotebookId
+                              ? undefined
+                              : () => void handleTogglePublishNotebook(nb)
+                          }
+                          moveToCourseTargets={moveTargets}
+                          onMoveToCourse={(targetCourseId) =>
+                            handleMoveNotebook(nb.id, targetCourseId)
+                          }
+                          deleteDialogTitle="删除笔记本？"
+                          deleteDialogDescription={`将永久删除「${nb.name}」及其课件与对话记录，不可恢复。`}
+                          onDelete={() => handleDeleteNotebook(nb.id, nb.name)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </TabsContent>
+
+              <TabsContent value="materials" className="mt-0">
+                <CourseMaterialsPanel courseId={id} />
+              </TabsContent>
+            </Tabs>
             <Dialog open={editCourseOpen} onOpenChange={setEditCourseOpen}>
               <DialogContent
                 className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto p-6 sm:max-w-2xl"

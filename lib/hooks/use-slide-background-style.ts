@@ -3,6 +3,10 @@ import { resolveEffectiveSlideBackground } from '@/lib/constants/slide-backgroun
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import type { SlideBackground } from '@/lib/types/slides';
 
+function cssUrl(src: string): string {
+  return `url("${src.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`;
+}
+
 /**
  * Convert slide background data to CSS styles
  */
@@ -25,14 +29,16 @@ export function useSlideBackgroundStyle(background: SlideBackground | undefined)
       if (!src) return { backgroundColor: '#fff' };
       if (size === 'repeat') {
         return {
-          backgroundImage: `url(${src})`,
+          backgroundImage: cssUrl(src),
           backgroundRepeat: 'repeat',
+          backgroundPosition: 'center',
           backgroundSize: 'contain',
         };
       }
       return {
-        backgroundImage: `url(${src})`,
+        backgroundImage: cssUrl(src),
         backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
         backgroundSize: size || 'cover',
       };
     }

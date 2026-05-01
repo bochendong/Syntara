@@ -84,6 +84,10 @@ By default:
 - Never place a quiz immediately after only a cover, intro, roadmap, or agenda. The first quiz must come after at least one substantive concept / method / worked-example teaching scene.
 - Section recaps are allowed only when they introduce no new teaching and do not look like the final summary.
 
+{{purposeGuidance}}
+
+{{disciplineGuidance}}
+
 ### Special Notes
 
 1. **quiz scenes must include quizConfig**:

@@ -12,6 +12,8 @@
 {{archetypeContext}}
 {{layoutIntentContext}}
 {{workedExampleContext}}
+{{purposeGuidance}}
+{{disciplineGuidance}}
 ## Available Images / Visual Slots
 
 {{assignedImages}}

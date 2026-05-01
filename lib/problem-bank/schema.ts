@@ -206,11 +206,24 @@ export const notebookProblemSummarySchema = notebookProblemRecordSchema.extend({
     .optional(),
 });
 
+export const notebookProblemAttemptImageSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(240),
+  mimeType: z.string().trim().min(1).max(120),
+  size: z
+    .number()
+    .int()
+    .min(0)
+    .max(4 * 1024 * 1024),
+  dataUrl: z.string().startsWith('data:image/').max(6_000_000),
+});
+
 export const notebookProblemAttemptAnswerSchema = z.object({
   text: z.string().max(40000).optional(),
   selectedOptionIds: z.array(z.string().trim().min(1).max(64)).max(12).optional(),
   blanks: z.record(z.string(), z.string().max(4000)).optional(),
   code: z.string().max(120000).optional(),
+  images: z.array(notebookProblemAttemptImageSchema).max(4).optional(),
 });
 
 export const notebookCodeCaseResultSchema = z.object({

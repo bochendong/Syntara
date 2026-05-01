@@ -11,7 +11,10 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
 import {
+  buildTitleCoverOpeningActions,
   buildTitleCoverSlideContentFromParts,
+  hasTitleCoverOpeningAction,
+  hasTitleCoverVersionMarker,
   shouldUpgradeLegacyTitleCoverContent,
 } from '@/lib/generation/title-cover';
 import { Header } from './header';
@@ -176,31 +179,60 @@ export function Stage({
       /mat|proof|证明|函数|映射|linear|algebra|calculus|math|同余|模运算|整除|线性|丢番图|素数|整数|数论|最大公约数|gcd|方程/.test(
         positiveTitleSignals,
       );
+    const hasCurrentPosterCover = /syntara-cover-v12/.test(firstSceneText);
+    const hasOldTitleCoverScaffold =
+      !hasCurrentPosterCover &&
+      /阅读路线|自学地图|READING ROUTE|Self-study map|核心问题|文本路径|生活练习/.test(
+        firstSceneText,
+      );
 
     if (
       !stage ||
       !firstScene ||
       firstScene.type !== 'slide' ||
-      firstScene.content.type !== 'slide' ||
-      (!hasWrongModularCover &&
-        !hasWrongComputingCover &&
-        !hasWrongGenericMathCover &&
-        !shouldUpgradeLegacyTitleCoverContent({
-          title: titleSignals,
-          elements: firstScene.content.canvas.elements,
-        }))
+      firstScene.content.type !== 'slide'
     ) {
       return;
     }
 
-    const content = buildTitleCoverSlideContentFromParts({
-      title: firstScene.title || stage.name,
-      description: stage.description,
-      language: (stage.language || stageLanguage) === 'en-US' ? 'en-US' : 'zh-CN',
-    });
+    const coverNeedsUpgrade =
+      hasWrongModularCover ||
+      hasWrongComputingCover ||
+      hasWrongGenericMathCover ||
+      hasOldTitleCoverScaffold ||
+      shouldUpgradeLegacyTitleCoverContent({
+        title: titleSignals,
+        elements: firstScene.content.canvas.elements,
+      });
+    const openingNarrationMissing =
+      (coverNeedsUpgrade || hasTitleCoverVersionMarker(firstScene.content.canvas.elements)) &&
+      !hasTitleCoverOpeningAction(firstScene.actions);
 
-    updateScene(firstScene.id, {
-      content: {
+    if (!coverNeedsUpgrade && !openingNarrationMissing) {
+      return;
+    }
+
+    const language = (stage.language || stageLanguage) === 'en-US' ? 'en-US' : 'zh-CN';
+    const content = coverNeedsUpgrade
+      ? buildTitleCoverSlideContentFromParts({
+          title: firstScene.title || stage.name,
+          description: stage.description,
+          language,
+        })
+      : null;
+    const elements = content?.elements || firstScene.content.canvas.elements;
+    const updates: Partial<Scene> = {
+      updatedAt: Date.now(),
+      actions: buildTitleCoverOpeningActions({
+        title: firstScene.title || stage.name,
+        description: stage.description,
+        language,
+        elements,
+      }),
+    };
+
+    if (content) {
+      updates.content = {
         ...firstScene.content,
         canvas: {
           ...firstScene.content.canvas,
@@ -214,9 +246,10 @@ export function Stage({
         semanticDocument: content.contentDocument,
         semanticRenderMode: undefined,
         semanticRenderVersion: undefined,
-      },
-      updatedAt: Date.now(),
-    });
+      };
+    }
+
+    updateScene(firstScene.id, updates);
   }, [scenes, stage, stageLanguage, updateScene]);
 
   // Layout state from settings store (persisted via localStorage)

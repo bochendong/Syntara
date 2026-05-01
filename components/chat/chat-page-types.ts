@@ -56,7 +56,7 @@ export type NotebookRouteDecision =
 
 export type OrchestratorViewMode = 'private' | 'group';
 
-/** 课程总控私聊：生成笔记本走完整管线；发送消息为向总控直接问答，不自动创建笔记本 */
+/** 历史兼容：聊天页只保留发送消息；旧 `generate-notebook` 深链会迁移到课程内创建界面。 */
 export type OrchestratorComposerMode = 'generate-notebook' | 'send-message';
 
 export type NotebookSubtaskResult = {

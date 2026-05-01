@@ -112,13 +112,21 @@ export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
     Boolean(effectiveOutline) &&
     elementInfo.width >= 220 &&
     elementInfo.height >= 72;
+  const isCompactSingleLineText =
+    elementInfo.height <= 48 &&
+    ['header', 'subtitle', 'content', 'item', 'itemTitle', 'footer'].includes(
+      elementInfo.textType || 'content',
+    ) &&
+    !dedupedContent.includes('<br') &&
+    !dedupedContent.includes('</p><p');
   const cardAccent = normalizeAccentForAcademyPaper(
     extractLeadingHtmlColor(dedupedContent) || effectiveOutline?.color || '#2f6bff',
   );
   const contentInsetLeft = isGlassCard ? TEXT_BOX_PADDING_PX + 12 : TEXT_BOX_PADDING_PX;
-  const contentInsetTop = elementInfo.textType === 'itemTitle' ? 2 : TEXT_BOX_PADDING_PX;
+  const contentInsetTop =
+    elementInfo.textType === 'itemTitle' || isCompactSingleLineText ? 2 : TEXT_BOX_PADDING_PX;
   const contentInsetBottom =
-    elementInfo.textType === 'itemTitle'
+    elementInfo.textType === 'itemTitle' || isCompactSingleLineText
       ? 2
       : elementInfo.textType === 'content'
         ? Math.max(6, TEXT_BOX_PADDING_PX - 4)

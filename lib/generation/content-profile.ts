@@ -7,6 +7,7 @@ import {
   type NotebookContentTeachingFlow,
 } from '@/lib/notebook-content';
 import type { SceneArchetype, SceneLayoutIntent, SceneOutline } from '@/lib/types/generation';
+import { matchesDisciplinePackText } from './discipline-packs';
 
 function collectOutlineSignals(outline: SceneOutline): string[] {
   const signals = [outline.title, outline.description, ...(outline.keyPoints || [])];
@@ -52,6 +53,26 @@ function matchesAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+const PHYSICAL_GEOGRAPHY_PATTERNS = [
+  /(自然地理|气候|地貌|水文|水循环|板块|岩石圈|海陆风|季风|洋流|土壤|climate|geomorphology|hydrology|water cycle|plate tectonics|monsoon|ocean current)/i,
+];
+
+const ARGUMENT_EVIDENCE_PATTERNS = [
+  /(观点|论点|证据|论证|反驳|证据链|thesis|argument|evidence|counterargument|claim|reasoning|warrant)/i,
+];
+
+const DATA_ANALYSIS_PATTERNS = [
+  /(数据|指标|图表|趋势|变量|相关|因果|样本|统计|GDP|CPI|失业率|人口金字塔|气候图|data|indicator|chart|trend|variable|correlation|causation|sample|statistics|population pyramid|climate graph)/i,
+];
+
+const GEOGRAPHY_SPATIAL_PATTERNS = [
+  /(地理|地图|空间|区域|尺度|分布|迁移|城市化|土地利用|产业布局|GIS|map reading|spatial|regional comparison|geographic scale|distribution pattern|migration pattern|urbanization|land use)/i,
+];
+
+const ECONOMICS_MODEL_PATTERNS = [
+  /(供给|需求|均衡|弹性|边际|机会成本|外部性|博弈|激励|曲线|政策冲击|supply|demand|equilibrium|elasticity|marginal|opportunity cost|externality|game theory|incentive|curve|policy shock)/i,
+];
+
 function inferSceneDisciplineStyle(
   outline: SceneOutline,
   profile: NotebookContentProfile,
@@ -64,6 +85,7 @@ function inferSceneDisciplineStyle(
   if (
     matchesAny(text, [
       /(物理|化学|生物|实验|力学|电路|reaction|physics|chemistry|biology|experiment|lab|enzyme|molecule)/i,
+      ...PHYSICAL_GEOGRAPHY_PATTERNS,
     ])
   ) {
     return 'science';
@@ -71,14 +93,15 @@ function inferSceneDisciplineStyle(
   if (
     matchesAny(text, [
       /(历史|文学|诗歌|小说|文本|引文|史料|哲学|艺术|close reading|quote|literature|history|philosophy|primary source)/i,
-    ])
+    ]) ||
+    matchesDisciplinePackText(text, 'academic_writing')
   ) {
     return 'humanities';
   }
   if (
-    matchesAny(text, [
-      /(经济|社会|心理|政治|管理|案例|政策|市场|sociology|psychology|economics|policy|case study|market|management)/i,
-    ])
+    matchesDisciplinePackText(text, 'geography') ||
+    matchesDisciplinePackText(text, 'economics') ||
+    matchesDisciplinePackText(text, 'sociology')
   ) {
     return 'social_science';
   }
@@ -101,6 +124,15 @@ function inferSceneTeachingFlow(
   if (worked?.kind === 'proof' || matchesAny(text, [/(证明|proof|lemma|命题|定理)/i])) {
     return 'proof_walkthrough';
   }
+  if (
+    matchesDisciplinePackText(text, 'academic_writing') ||
+    matchesAny(text, ARGUMENT_EVIDENCE_PATTERNS)
+  ) {
+    return 'argument_evidence';
+  }
+  if (matchesDisciplinePackText(text, 'economics') || matchesAny(text, ECONOMICS_MODEL_PATTERNS)) {
+    return 'case_analysis';
+  }
   if (worked || matchesAny(text, [/(例题|题目|求解|解法|worked example|problem|solve)/i])) {
     return 'problem_walkthrough';
   }
@@ -113,12 +145,16 @@ function inferSceneTeachingFlow(
     return 'close_reading';
   }
   if (
-    disciplineStyle === 'humanities' &&
-    matchesAny(text, [/(观点|论点|证据|论证|反驳|thesis|argument|evidence|counterargument)/i])
+    (disciplineStyle === 'humanities' || disciplineStyle === 'social_science') &&
+    matchesAny(text, ARGUMENT_EVIDENCE_PATTERNS)
   ) {
     return 'argument_evidence';
   }
-  if (matchesAny(text, [/(案例|case study|case analysis|情境|application)/i])) {
+  if (
+    matchesAny(text, [
+      /(案例|个案|情境|田野|访谈材料|政策评估|case study|case analysis|fieldwork|interview material|application)/i,
+    ])
+  ) {
     return 'case_analysis';
   }
   if (matchesAny(text, [/(比较|对比|分类|compare|comparison|perspective|观点对照)/i])) {
@@ -219,6 +255,8 @@ function inferSceneLayoutFamily(
   if (teachingFlow === 'proof_walkthrough') return 'derivation';
   if (teachingFlow === 'timeline_story') return 'timeline';
   if (teachingFlow === 'comparison_review') return 'comparison';
+  if (matchesAny(text, DATA_ANALYSIS_PATTERNS)) return 'comparison';
+  if (matchesAny(text, GEOGRAPHY_SPATIAL_PATTERNS)) return 'comparison';
   if (teachingFlow === 'close_reading' || teachingFlow === 'argument_evidence') {
     return disciplineStyle === 'humanities' || disciplineStyle === 'social_science'
       ? 'concept_cards'
@@ -304,6 +342,7 @@ function inferSceneLayoutTemplate(
   const keyPointCount = outline.keyPoints?.length || 0;
   const order = Number.isFinite(outline.order) ? outline.order : 1;
   const parity = order % 2;
+  const text = collectOutlineSignals(outline).join('\n');
 
   switch (layoutFamily) {
     case 'cover':
@@ -313,6 +352,7 @@ function inferSceneLayoutTemplate(
     case 'visual_split':
       return parity === 0 ? 'visual_left' : 'visual_right';
     case 'comparison':
+      if (matchesAny(text, DATA_ANALYSIS_PATTERNS)) return 'data_insight';
       return teachingFlow === 'comparison_review' &&
         (disciplineStyle === 'humanities' || disciplineStyle === 'social_science')
         ? 'compare_perspectives'
@@ -334,8 +374,14 @@ function inferSceneLayoutTemplate(
     case 'concept_cards':
     default:
       if (hasMedia) return parity === 0 ? 'visual_left' : 'visual_right';
+      if (matchesAny(text, DATA_ANALYSIS_PATTERNS)) return 'data_insight';
+      if (matchesAny(text, GEOGRAPHY_SPATIAL_PATTERNS)) return 'compare_perspectives';
       if (teachingFlow === 'argument_evidence') return 'thesis_evidence';
-      if (teachingFlow === 'close_reading') return 'quote_analysis';
+      if (teachingFlow === 'close_reading') {
+        return matchesAny(text, [/(史料|原文|来源|source|primary source|document excerpt)/i])
+          ? 'source_close_reading'
+          : 'quote_analysis';
+      }
       if (teachingFlow === 'case_analysis') return 'case_analysis';
       if (archetype === 'definition') return 'definition_board';
       if (teachingFlow === 'definition_to_example') return 'definition_board';

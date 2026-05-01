@@ -73,6 +73,8 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLanding = pathname === '/';
   const isClassroom = pathname?.startsWith('/classroom/');
   const isAdmin = pathname?.startsWith('/admin');
+  const isCourseProblemBank =
+    pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isReviewImmersive =
     pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
@@ -96,14 +98,17 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     }
   };
 
-  /** 仅独立路由 `/chat`（app/chat/page），课堂内或其它页的聊天 UI 不出现右侧栏 */
+  /** 独立聊天页与课程内创建页共享右侧信息/设置栏。 */
   const isChatPage = pathname === '/chat';
+  const isNotebookCreatePage =
+    pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
+  const hasRightRail = isChatPage || isNotebookCreatePage;
 
   if (isLogin || isRegister || isLanding) {
     return <>{children}</>;
   }
 
-  if (isReviewImmersive) {
+  if (isReviewImmersive || isCourseProblemBank) {
     return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
   }
 
@@ -117,15 +122,16 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
       <SidebarInset
         leftCollapsed={sidebarCollapsed}
         rightCollapsed={chatRightCollapsed}
-        isChatPage={isChatPage}
+        hasRightRail={hasRightRail}
       >
         {children}
       </SidebarInset>
-      {isChatPage ? (
+      {hasRightRail ? (
         <Suspense fallback={null}>
           <ChatRightRail
             collapsed={chatRightCollapsed}
             onCollapsedChange={persistChatRightCollapsed}
+            mode={isNotebookCreatePage ? 'notebook-create' : 'chat'}
           />
         </Suspense>
       ) : null}
@@ -136,28 +142,30 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
 function SidebarInset({
   leftCollapsed,
   rightCollapsed,
-  isChatPage,
+  hasRightRail,
   children,
 }: {
   leftCollapsed: boolean;
   rightCollapsed: boolean;
-  isChatPage: boolean;
+  hasRightRail: boolean;
   children: ReactNode;
 }) {
   const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH));
   const [padRight, setPadRight] = useState(() =>
-    isChatPage ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
+    hasRightRail ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
   );
 
   useLayoutEffect(() => {
     const sync = () => {
       setPadLeft(railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH));
-      setPadRight(isChatPage ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH) : 16);
+      setPadRight(
+        hasRightRail ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
+      );
     };
     sync();
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [leftCollapsed, rightCollapsed, isChatPage]);
+  }, [leftCollapsed, rightCollapsed, hasRightRail]);
 
   return (
     <div

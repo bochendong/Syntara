@@ -15,6 +15,8 @@ import { NextRequest } from 'next/server';
 import { callLLM, streamLLM } from '@/lib/ai/llm';
 import { buildPrompt, PROMPT_IDS } from '@/lib/generation/prompts';
 import { normalizeSceneOutlineContentProfile } from '@/lib/generation/content-profile';
+import { formatOutlineDisciplineGuidanceForPrompt } from '@/lib/generation/discipline-packs';
+import { formatPurposeGuidanceForPrompt } from '@/lib/generation/purpose-packs';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
 import {
   formatImageDescription,
@@ -357,6 +359,19 @@ export async function POST(req: NextRequest) {
       requirements.language,
       body.outlinePreferences ?? null,
     );
+    const disciplineGuidance = formatOutlineDisciplineGuidanceForPrompt({
+      language: requirements.language,
+      requirement: requirements.requirement,
+      pdfText,
+      researchContext,
+      purpose: body.coursePurpose || body.courseContext?.purpose,
+      courseContext: body.courseContext,
+    });
+    const purposeGuidance = formatPurposeGuidanceForPrompt({
+      language: requirements.language,
+      purpose: body.coursePurpose || body.courseContext?.purpose,
+      stage: 'outline',
+    });
 
     const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
       requirement: requirements.requirement,
@@ -374,6 +389,8 @@ export async function POST(req: NextRequest) {
       purposePolicy,
       courseContext,
       orchestratorPreferences,
+      purposeGuidance,
+      disciplineGuidance,
     });
 
     if (!prompts) {
