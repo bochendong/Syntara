@@ -17,8 +17,15 @@ import { formatImageDescription, formatImagePlaceholder } from './prompt-formatt
 import { parseJsonResponse } from './json-repair';
 import { uniquifyMediaElementIds } from './scene-builder';
 import { normalizeOutlineStructure } from './outline-structure';
-import { formatOutlineDisciplineGuidanceForPrompt } from './discipline-packs';
-import { formatPurposeGuidanceForPrompt } from './purpose-packs';
+import { normalizeComputerScienceSceneOutline } from './cs-semantic-normalizer';
+import { coerceRuntimeSceneOutline } from './scene-outline-runtime';
+import { attachDeckMemoryToOutlines } from './deck-memory';
+import { isClassicLectureLayoutTemplate } from '@/lib/notebook-content/schema';
+import {
+  attachGeneratedTeachingPlan,
+  buildTeachingPlan,
+  formatTeachingPlanForOutlinePrompt,
+} from './teaching-plan';
 import type {
   AICallFn,
   CoursePersonalizationContext,
@@ -51,9 +58,9 @@ function pickDefaultTemplateForFamily(
     case 'section':
       return 'section_divider';
     case 'visual_split':
-      return index % 2 === 0 ? 'visual_left' : 'visual_right';
+      return index % 2 === 0 ? 'text_image_split' : 'two_text_image';
     case 'comparison':
-      return 'comparison_matrix';
+      return 'pipeline_table';
     case 'timeline':
       return 'timeline_road';
     case 'problem_statement':
@@ -67,10 +74,10 @@ function pickDefaultTemplateForFamily(
     case 'formula_focus':
       return 'formula_focus';
     case 'summary':
-      return 'summary_board';
+      return 'two_by_one_summary';
     case 'concept_cards':
     default:
-      return index % 3 === 0 ? 'four_grid' : index % 3 === 1 ? 'two_column' : 'three_cards';
+      return index % 3 === 0 ? 'grid_2x2' : index % 3 === 1 ? 'four_columns' : 'three_cards';
   }
 }
 
@@ -80,17 +87,14 @@ function pickAlternateLayoutTemplate(
   index: number,
 ): NonNullable<SceneOutline['layoutIntent']>['layoutTemplate'] {
   if (!template) return pickDefaultTemplateForFamily(family, index);
+  if (isClassicLectureLayoutTemplate(template)) return template;
   if (template === 'visual_left') return 'visual_right';
   if (template === 'visual_right') return 'visual_left';
   if (template === 'two_column') return 'three_cards';
-  if (template === 'three_cards') return 'four_grid';
   if (template === 'four_grid') return 'title_content';
-  if (template === 'definition_board') return 'concept_map';
   if (template === 'concept_map') return 'two_column_explain';
   if (template === 'two_column_explain') return 'three_cards';
-  if (template === 'process_steps') return 'timeline_road';
   if (template === 'problem_walkthrough') return 'steps_sidebar';
-  if (template === 'derivation_ladder') return 'formula_focus';
   if (template === 'graph_explain') return 'visual_right';
   if (template === 'data_insight') return 'comparison_matrix';
   if (template === 'thesis_evidence') return 'quote_analysis';
@@ -100,7 +104,6 @@ function pickAlternateLayoutTemplate(
   if (template === 'argument_map') return 'two_column_explain';
   if (template === 'compare_perspectives') return 'comparison_matrix';
   if (template === 'steps_sidebar') return family === 'derivation' ? 'formula_focus' : 'two_column';
-  if (template === 'formula_focus') return 'steps_sidebar';
   return pickDefaultTemplateForFamily(family, index + 1);
 }
 
@@ -120,6 +123,22 @@ function normalizeSlideLayoutRhythm(outlines: SceneOutline[]): SceneOutline[] {
     const current = outline.layoutIntent.layoutFamily;
     const currentTemplate =
       outline.layoutIntent.layoutTemplate || pickDefaultTemplateForFamily(current, result.length);
+
+    if (isClassicLectureLayoutTemplate(currentTemplate)) {
+      result.push(
+        outline.layoutIntent.layoutTemplate
+          ? outline
+          : {
+              ...outline,
+              layoutIntent: {
+                ...outline.layoutIntent,
+                layoutTemplate: currentTemplate,
+              },
+            },
+      );
+      continue;
+    }
+
     const shouldBreakRun = prevOne === current && prevTwo === current;
     const shouldBreakTemplateRun =
       prevTemplateOne === currentTemplate && prevTemplateTwo === currentTemplate;
@@ -220,18 +239,14 @@ export async function generateSceneOutlinesFromRequirements(
   }
 
   // Use simplified prompt variables
-  const disciplineGuidance = formatOutlineDisciplineGuidanceForPrompt({
-    language: requirements.language,
-    requirement: requirements.requirement,
+  const teachingPlan = buildTeachingPlan(requirements, {
     pdfText,
     researchContext: options?.researchContext,
-    purpose: options?.courseContext?.purpose,
     courseContext: options?.courseContext,
   });
-  const purposeGuidance = formatPurposeGuidanceForPrompt({
+  const teachingPlanGuidance = formatTeachingPlanForOutlinePrompt({
+    teachingPlan,
     language: requirements.language,
-    purpose: options?.courseContext?.purpose,
-    stage: 'outline',
   });
   const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
     // New simplified variables
@@ -252,8 +267,8 @@ export async function generateSceneOutlinesFromRequirements(
     purposePolicy: '',
     courseContext: requirements.language === 'zh-CN' ? '无' : 'N/A',
     orchestratorPreferences: '',
-    purposeGuidance,
-    disciplineGuidance,
+    purposeGuidance: '',
+    disciplineGuidance: teachingPlanGuidance,
   });
 
   if (!prompts) {
@@ -288,8 +303,16 @@ export async function generateSceneOutlinesFromRequirements(
     }));
 
     // Replace sequential gen_img_N/gen_vid_N with globally unique IDs
-    const result = uniquifyMediaElementIds(
-      normalizeOutlineStructure(normalizeSlideLayoutRhythm(enriched)),
+    const withTeachingPlan = attachGeneratedTeachingPlan({
+      requirements,
+      outlines: normalizeOutlineStructure(normalizeSlideLayoutRhythm(enriched)),
+      pdfText,
+      researchContext: options?.researchContext,
+      courseContext: options?.courseContext,
+    });
+
+    const result = attachDeckMemoryToOutlines(
+      uniquifyMediaElementIds(withTeachingPlan.map(normalizeComputerScienceSceneOutline)),
     );
 
     callbacks?.onProgress?.({
@@ -316,6 +339,7 @@ export function applyOutlineFallbacks(
   outline: SceneOutline,
   hasLanguageModel: boolean,
 ): SceneOutline {
+  outline = coerceRuntimeSceneOutline(outline);
   if (outline.type === 'interactive' && !outline.interactiveConfig) {
     log.warn(
       `Interactive outline "${outline.title}" missing interactiveConfig, falling back to slide`,

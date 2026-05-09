@@ -21,7 +21,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { QuizView, type QuestionResult } from '@/components/scene-renderers/quiz-view';
 import type { ReviewRoute, ReviewRouteNode } from '@/lib/learning/review-route-types';
 import { listReviewRouteHistory } from '@/lib/learning/review-route-history';

@@ -10,6 +10,35 @@ export type StageMode = 'autonomous' | 'playback';
 
 export type Whiteboard = Omit<Slide, 'theme' | 'turningMode' | 'sectionTag' | 'type'>;
 
+export interface SceneGenerationDiagnostics {
+  pipeline?: 'semantic' | 'legacy' | 'interactive' | 'quiz' | 'pbl' | 'unknown';
+  slideGenerationRoute?: string | null;
+  selectedSkillIds?: string[];
+  skillSelectionReasons?: string[];
+  failureStage?: string;
+  failureReasons?: string[];
+  semanticFailureReasons?: string[];
+  skillValidationFailures?: string[];
+  semanticRetryCount?: number;
+  layoutRetryCount?: number;
+  contentFallbackUsed?: boolean;
+  fallbackKind?: string;
+  outlineId?: string;
+  outlineTitle?: string;
+  generatedAt?: number;
+}
+
+export interface PageGenerationFailureRecord {
+  outlineId: string;
+  outlineTitle: string;
+  order?: number;
+  source: 'initial_generation' | 'resume_generation';
+  phase?: 'content' | 'actions' | 'unknown';
+  error: string;
+  shortReason?: string;
+  failedAt: number;
+}
+
 /**
  * Stage — 某一门课程（Course）下的一个「笔记本」/ 互动课件空间
  */
@@ -30,6 +59,8 @@ export interface Stage {
   style?: string;
   /** Historical total fallback usage count for this notebook/stage */
   fallbackUsageCount?: number;
+  /** Persisted page-generation failures so skipped follow-up pages are explainable after refresh. */
+  pageGenerationFailures?: PageGenerationFailureRecord[];
   // Whiteboard data
   whiteboard?: Whiteboard[];
   // Agent IDs selected when this classroom was created
@@ -83,6 +114,7 @@ export interface Scene {
     content: SlideContent;
     savedAt: number;
   };
+  generationDiagnostics?: SceneGenerationDiagnostics;
 }
 
 /**

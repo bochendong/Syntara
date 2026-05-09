@@ -123,6 +123,40 @@ export function blockToGridHeading(
       return block.caption || (language === 'en-US' ? 'Code' : '代码');
     case 'code_walkthrough':
       return block.title || (language === 'en-US' ? 'Code Walkthrough' : '代码讲解');
+    case 'code_trace':
+      return block.title || (language === 'en-US' ? 'Code Trace' : '代码追踪');
+    case 'state_table':
+      return block.title || (language === 'en-US' ? 'State Table' : '状态表');
+    case 'call_stack':
+      return block.title || (language === 'en-US' ? 'Call Stack' : '调用栈');
+    case 'memory_diagram':
+      return block.title || (language === 'en-US' ? 'Memory Model' : '内存模型');
+    case 'pointer_diagram':
+      return (
+        block.title ||
+        (block.kind === 'linked_list'
+          ? language === 'en-US'
+            ? 'Linked List'
+            : '链表结构'
+          : language === 'en-US'
+            ? 'Pointer Diagram'
+            : '指针图')
+      );
+    case 'tree_diagram':
+      return (
+        block.title ||
+        (block.kind === 'bst'
+          ? language === 'en-US'
+            ? 'Binary Search Tree'
+            : '二叉搜索树'
+          : language === 'en-US'
+            ? 'Tree Diagram'
+            : '树结构图')
+      );
+    case 'graph_trace':
+      return block.title || (language === 'en-US' ? 'Graph Trace' : '图遍历追踪');
+    case 'invariant_panel':
+      return block.title || (language === 'en-US' ? 'Invariant Check' : '不变量检查');
     case 'table':
       return block.caption || (language === 'en-US' ? 'Table' : '表格');
     case 'callout':
@@ -179,6 +213,86 @@ export function blockToGridBody(
         const prefix = language === 'en-US' ? `Step ${idx + 1}: ` : `步骤 ${idx + 1}：`;
         return `${prefix}${label ? `${label} - ` : ''}${step.explanation}`;
       });
+    case 'code_trace':
+      return [
+        ...block.steps.slice(0, 4).map((step, idx) => {
+          const prefix = language === 'en-US' ? `Step ${idx + 1}: ` : `步骤 ${idx + 1}：`;
+          const line = step.line ? `L${step.line} - ` : '';
+          const state = step.state.length
+            ? ` (${step.state.map((item) => `${item.name}=${item.value}`).join(', ')})`
+            : '';
+          return `${prefix}${line}${step.explanation}${state}`;
+        }),
+        ...(block.output ? [block.output] : []),
+      ];
+    case 'state_table': {
+      const header = block.columns.join(' | ');
+      const rows = block.rows.slice(0, 5).map((row) => row.join(' | '));
+      return [header, ...rows, ...(block.caption ? [block.caption] : [])];
+    }
+    case 'call_stack':
+      return block.frames.slice(0, 6).map((frame, idx) => {
+        const args = frame.args.map((item) => `${item.name}=${item.value}`).join(', ');
+        const locals = frame.locals.map((item) => `${item.name}=${item.value}`).join(', ');
+        const label = language === 'en-US' ? `Frame ${idx + 1}` : `栈帧 ${idx + 1}`;
+        return `${label}: ${frame.name}${args ? `(${args})` : ''}${locals ? ` | ${locals}` : ''}`;
+      });
+    case 'memory_diagram':
+      return [
+        ...block.stack.slice(0, 5).map((item) => `${item.name} → ${item.ref || item.value}`),
+        ...block.heap
+          .slice(0, 4)
+          .map(
+            (item) =>
+              `${item.id}: ${item.label}${item.fields.length ? ` (${item.fields.map((field) => `${field.name}=${field.value}`).join(', ')})` : ''}`,
+          ),
+      ];
+    case 'pointer_diagram':
+      return [
+        ...(block.operation ? [block.operation] : []),
+        block.nodes
+          .slice(0, 8)
+          .map((node) => node.label)
+          .join(' → '),
+        ...block.pointers.map((pointer) => `${pointer.name} → ${pointer.to || 'None'}`),
+      ];
+    case 'tree_diagram':
+      return [
+        ...(block.target ? [`${language === 'en-US' ? 'Target' : '目标'}: ${block.target}`] : []),
+        ...(block.decision ? [block.decision] : []),
+        ...(block.invariant ? [block.invariant] : []),
+        ...block.nodes
+          .slice(0, 8)
+          .map((node) =>
+            (node.children || []).length
+              ? `${node.label}: children=${(node.children || []).join(', ')}`
+              : `${node.label}: L=${node.left || 'None'}, R=${node.right || 'None'}`,
+          ),
+      ];
+    case 'graph_trace':
+      return [
+        `${block.algorithm}: ${block.nodes.map((node) => node.label).join(', ')}`,
+        ...block.edges
+          .slice(0, 8)
+          .map((edge) => `${edge.from} ${edge.directed || block.directed ? '→' : '-'} ${edge.to}`),
+        ...(block.steps || [])
+          .slice(0, 4)
+          .map((step) => [step.title, step.explanation].filter(Boolean).join(': ')),
+        ...(block.caption ? [block.caption] : []),
+      ].filter(Boolean);
+    case 'linear_structure':
+      return [
+        block.operation || '',
+        `${block.kind}: ${block.items.map((item) => item.label).join(' → ')}`,
+        ...(block.steps || []).slice(0, 4).map((step) => step.title || step.operation || ''),
+        ...(block.caption ? [block.caption] : []),
+      ].filter(Boolean);
+    case 'invariant_panel':
+      return [
+        block.invariant,
+        ...block.checks.map((check) => `${check.label}: ${check.text}`),
+        ...(block.caption ? [block.caption] : []),
+      ];
     case 'table': {
       const header = block.headers?.length ? [block.headers.join(' | ')] : [];
       const rows = block.rows.slice(0, 4).map((row) => row.join(' | '));
@@ -200,10 +314,12 @@ export function blockToGridBody(
               `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${step}`,
           ),
       ];
-    case 'process_flow':
+    case 'process_flow': {
+      const context = Array.isArray(block.context) ? block.context : [];
+      const steps = Array.isArray(block.steps) ? block.steps : [];
       return [
-        ...block.context.slice(0, 3).map((item) => `${item.label}: ${item.text}`),
-        ...block.steps
+        ...context.slice(0, 3).map((item) => `${item.label}: ${item.text}`),
+        ...steps
           .slice(0, 3)
           .map(
             (step, idx) =>
@@ -211,6 +327,7 @@ export function blockToGridBody(
           ),
         ...(block.summary ? [block.summary] : []),
       ];
+    }
     case 'layout_cards':
       return block.items.map((item) => `${item.title}: ${item.text}`);
     case 'chem_formula':

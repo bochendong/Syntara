@@ -9,6 +9,7 @@ import type {
   NotebookContentProfile,
   NotebookSlideArchetype,
 } from './schema';
+import { isClassicLectureLayoutTemplate } from './schema';
 import type { PrepareBlocksForPaginationOptions } from './slide-pagination-blocks';
 import { CONTENT_BOTTOM } from './layout-constants';
 import {
@@ -65,9 +66,9 @@ export interface NotebookDocumentPaginationResult {
   unpageableBlockTypes: NotebookContentBlock['type'][];
 }
 
-const SOFT_PAGE_HEIGHT_RATIO = 1.5;
-const PRESERVE_PAGE_HEIGHT_RATIO = 1.08;
-const PAGINATION_REBALANCE_HEIGHT_RATIO = 1.6;
+const SOFT_PAGE_HEIGHT_RATIO = 1.08;
+const INTERACTIVE_PAGE_HEIGHT_RATIO = 1.25;
+const PAGINATION_REBALANCE_HEIGHT_RATIO = 1.12;
 const PAGINATION_REBALANCE_DENSITY_RATIO = 1.18;
 
 function getProfileDensityBudget(profile: NotebookContentProfile): number {
@@ -131,11 +132,50 @@ function getEffectiveOverflowPolicy(
 }
 
 function getDocumentSoftPageHeightRatio(document: NotebookContentDocument): number {
+  if (document.layoutTemplate === 'pipeline_table') return 1.08;
+  if (isClassicLectureLayoutTemplate(document.layoutTemplate)) return 1;
+  const hasInteractiveBlock = document.blocks.some((block) =>
+    [
+      'code_block',
+      'code_walkthrough',
+      'code_trace',
+      'state_table',
+      'call_stack',
+      'memory_diagram',
+      'pointer_diagram',
+      'tree_diagram',
+      'graph_trace',
+      'example',
+      'derivation_steps',
+    ].includes(block.type),
+  );
+  if (
+    hasInteractiveBlock ||
+    document.layoutFamily === 'problem_statement' ||
+    document.layoutFamily === 'problem_solution' ||
+    document.layoutFamily === 'derivation' ||
+    document.layoutFamily === 'code_walkthrough'
+  ) {
+    return INTERACTIVE_PAGE_HEIGHT_RATIO;
+  }
+  if (
+    document.layoutFamily === 'comparison' ||
+    document.layoutFamily === 'timeline' ||
+    document.layoutFamily === 'summary' ||
+    document.layoutFamily === 'visual_split' ||
+    document.layoutFamily === 'concept_cards' ||
+    document.layoutFamily === 'formula_focus' ||
+    document.layoutFamily === 'section' ||
+    document.archetype === 'summary' ||
+    document.archetype === 'bridge'
+  ) {
+    return 1;
+  }
   const policy = getEffectiveOverflowPolicy(document);
-  if (policy === 'preserve_then_paginate') return PRESERVE_PAGE_HEIGHT_RATIO;
-  if (document.density === 'light') return 1.28;
-  if (document.density === 'dense') return SOFT_PAGE_HEIGHT_RATIO;
-  return 1.42;
+  if (policy === 'preserve_then_paginate') return INTERACTIVE_PAGE_HEIGHT_RATIO;
+  if (document.density === 'light') return 1;
+  if (document.density === 'dense') return 1.12;
+  return SOFT_PAGE_HEIGHT_RATIO;
 }
 
 function getLayoutFamilyBlockBudget(
@@ -169,6 +209,7 @@ function getDocumentDensityBudget(
   archetype: NotebookSlideArchetype,
 ): number {
   let budget = getArchetypeDensityBudget(profile, archetype);
+  if (document.layoutTemplate === 'pipeline_table') budget += 0.35;
   if (document.density === 'light') budget -= 0.75;
   if (document.density === 'dense') budget += 0.45;
   if (getEffectiveOverflowPolicy(document) === 'preserve_then_paginate') budget -= 0.75;
@@ -223,10 +264,11 @@ function collectDenseBlockReasons(
     }
 
     if (block.type === 'process_flow') {
-      if (block.steps.length > 4) {
-        reasons.push(`process_flow_steps_exceed:${block.steps.length}/4`);
+      const steps = Array.isArray(block.steps) ? block.steps : [];
+      if (steps.length > 4) {
+        reasons.push(`process_flow_steps_exceed:${steps.length}/4`);
       }
-      const denseDetail = block.steps.some(
+      const denseDetail = steps.some(
         (step) =>
           step.detail.length > maxProcessStepLength ||
           estimateWrappedLineCount(step.detail, language, 26) > 4,
@@ -250,6 +292,35 @@ function collectDenseBlockReasons(
       if (hasLongCell) {
         reasons.push(`table_cell_too_dense:${maxTableCellLength}`);
       }
+    }
+
+    if (block.type === 'state_table') {
+      const rowCount = block.rows.length + 1;
+      if (rowCount > 9) {
+        reasons.push(`state_table_rows_exceed:${rowCount}/9`);
+      }
+    }
+
+    if (block.type === 'code_trace') {
+      if (block.steps.length > 4) {
+        reasons.push(`code_trace_steps_exceed:${block.steps.length}/4`);
+      }
+    }
+
+    if (block.type === 'call_stack' && block.frames.length > 6) {
+      reasons.push(`call_stack_frames_exceed:${block.frames.length}/6`);
+    }
+
+    if (block.type === 'tree_diagram' && block.nodes.length > 15) {
+      reasons.push(`tree_nodes_exceed:${block.nodes.length}/15`);
+    }
+
+    if (block.type === 'graph_trace' && (block.nodes.length > 12 || block.edges.length > 18)) {
+      reasons.push(`graph_size_exceed:${block.nodes.length}n/${block.edges.length}e`);
+    }
+
+    if (block.type === 'invariant_panel' && block.checks.length > 6) {
+      reasons.push(`invariant_checks_exceed:${block.checks.length}/6`);
     }
   }
 
@@ -452,12 +523,17 @@ export function paginateNotebookContentDocumentWithDeps(
   deps: NotebookPaginationDeps,
 ): NotebookDocumentPaginationResult {
   if (args.document.version === 2 && args.document.slots?.length) {
-    return {
-      pages: [args.document],
-      wasSplit: false,
-      reasons: [],
-      unpageableBlockTypes: [],
-    };
+    return paginateNotebookContentDocumentWithDeps(
+      {
+        ...args,
+        document: {
+          ...args.document,
+          version: 1,
+          slots: undefined,
+        },
+      },
+      deps,
+    );
   }
 
   const language = args.document.language || 'zh-CN';
@@ -579,6 +655,8 @@ export function paginateNotebookContentDocumentWithDeps(
         (block.type === 'paragraph' ||
           block.type === 'code_block' ||
           block.type === 'code_walkthrough' ||
+          block.type === 'code_trace' ||
+          block.type === 'state_table' ||
           block.type === 'equation' ||
           block.type === 'matrix');
       if (shouldKeepOversizedPreservedBlock) {

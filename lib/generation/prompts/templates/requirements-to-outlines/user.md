@@ -78,6 +78,7 @@ By default:
 ### Structural Guardrails
 
 - Follow a clear teaching spine: intro / roadmap -> concept block -> lightweight quiz/self-check -> next concept block -> lightweight quiz/self-check -> final summary.
+- For CS / programming / OOP / data-structure notebooks, override the generic intro/roadmap spine: after the system cover, start with one short context intro that explains the concrete object/input/task from the source facts in learner language, then move to a concrete failure or trace page. Do not spend the first teaching pages on abstract goals, term lists, or roadmap prose.
 - The final summary must be the last scene. Do not place examples, new concepts, quizzes, or continuation teaching after a summary/recap scene.
 - Do not create repeated title/theme pages. If two scenes would have the same title or teaching job, merge them into one stronger outline.
 - A quiz should close the knowledge point that immediately precedes it. Keep each quiz small, usually 1-2 questions, and do not create multiple same-topic quiz variants.
@@ -108,7 +109,7 @@ By default:
 5. **Slide layout intent**: Every slide scene must include `layoutIntent` with `layoutFamily`, `layoutTemplate`, `disciplineStyle`, `teachingFlow`, `density`, `visualRole`, `overflowPolicy`, and `preserveFullProblemStatement`. Avoid the same `layoutFamily` or `layoutTemplate` for 3 consecutive slide scenes.
    - `disciplineStyle`: `"general" | "math" | "science" | "code" | "humanities" | "social_science"`.
    - `teachingFlow`: choose the main teaching action: `"concept_explain"`, `"definition_to_example"`, `"problem_walkthrough"`, `"proof_walkthrough"`, `"code_walkthrough"`, `"argument_evidence"`, `"close_reading"`, `"case_analysis"`, `"comparison_review"`, `"timeline_story"`, `"practice_check"`, or `"standalone"`.
-   - Prefer common teaching templates: `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, `compare_perspectives`.
+   - Prefer common teaching templates: `image_title_overlay`, `cinematic_title_frame`, `tech_hero_title`, `pipeline_table`, `visual_three_steps`, `two_by_one_summary`, `text_image_split`, `four_columns`, `grid_2x2`, `two_text_image`, `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, `compare_perspectives`.
 6. **Quiz placement**:
    - Do not add quizzes by default to every course.
    - Prefer quizzes for university/homework/exam-prep style notebooks, or when the user explicitly asks for assessment/practice.

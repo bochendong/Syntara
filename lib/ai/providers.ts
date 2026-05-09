@@ -23,9 +23,6 @@
  * - https://www.volcengine.com/docs/82379/1330310
  */
 
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import type {
   ProviderId,
@@ -41,6 +38,18 @@ import { createLogger } from '@/lib/logger';
 // (set by thinking-context.ts at module load time on the server).
 
 const log = createLogger('AIProviders');
+
+type CreateOpenAI = typeof import('@ai-sdk/openai').createOpenAI;
+type CreateAnthropic = typeof import('@ai-sdk/anthropic').createAnthropic;
+type CreateGoogleGenerativeAI = typeof import('@ai-sdk/google').createGoogleGenerativeAI;
+
+function loadServerModule<T>(specifier: string): T {
+  if (typeof window !== 'undefined') {
+    throw new Error(`${specifier} can only be loaded on the server.`);
+  }
+  const nodeRequire = eval('require') as <TModule>(moduleSpecifier: string) => TModule;
+  return nodeRequire<T>(specifier);
+}
 
 // Re-export types for backward compatibility
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
@@ -1070,7 +1079,8 @@ export function getModel(config: ModelConfig): ModelWithInfo {
 
   switch (providerType) {
     case 'openai': {
-      const openaiOptions: Parameters<typeof createOpenAI>[0] = {
+      const { createOpenAI } = loadServerModule<{ createOpenAI: CreateOpenAI }>('@ai-sdk/openai');
+      const openaiOptions: Parameters<CreateOpenAI>[0] = {
         apiKey: effectiveApiKey,
         baseURL: effectiveBaseUrl,
       };
@@ -1109,6 +1119,9 @@ export function getModel(config: ModelConfig): ModelWithInfo {
     }
 
     case 'anthropic': {
+      const { createAnthropic } = loadServerModule<{ createAnthropic: CreateAnthropic }>(
+        '@ai-sdk/anthropic',
+      );
       const anthropic = createAnthropic({
         apiKey: effectiveApiKey,
         baseURL: effectiveBaseUrl,
@@ -1118,14 +1131,18 @@ export function getModel(config: ModelConfig): ModelWithInfo {
     }
 
     case 'google': {
-      const googleOptions: Parameters<typeof createGoogleGenerativeAI>[0] = {
+      const { createGoogleGenerativeAI } = loadServerModule<{
+        createGoogleGenerativeAI: CreateGoogleGenerativeAI;
+      }>('@ai-sdk/google');
+      const googleOptions: Parameters<CreateGoogleGenerativeAI>[0] = {
         apiKey: effectiveApiKey,
         baseURL: effectiveBaseUrl,
       };
       if (config.proxy) {
-        // Dynamic require to avoid bundling undici on the client side
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { ProxyAgent, fetch: undiciFetch } = require('undici');
+        const { ProxyAgent, fetch: undiciFetch } = loadServerModule<{
+          ProxyAgent: new (proxy: string) => unknown;
+          fetch: (input: string, init?: Record<string, unknown>) => Promise<unknown>;
+        }>('undici');
         const agent = new ProxyAgent(config.proxy);
         googleOptions.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
           undiciFetch(input as string, {

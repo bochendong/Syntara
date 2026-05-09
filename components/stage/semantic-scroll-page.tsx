@@ -356,11 +356,13 @@ export function SemanticScrollPage({
   elements = [],
 }: SemanticScrollPageProps) {
   const sections = useMemo(() => buildSemanticSpotlightSections(document), [document]);
+  const semanticStepTarget = useCanvasStore.use.semanticStepTarget();
   const scrollRootRef = useRef<HTMLElement | null>(null);
   const titleHtml = useMemo(
     () => renderInlineMathHtml(document.title || title),
     [document.title, title],
   );
+  const isCodeDocument = document.profile === 'code' || document.disciplineStyle === 'code';
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-white text-slate-950">
@@ -370,22 +372,39 @@ export function SemanticScrollPage({
         data-semantic-scroll-scene-id={sceneId}
         className="h-full w-full overflow-y-auto"
       >
-        <div className="mx-auto min-h-full w-full max-w-[980px] px-6 py-8 sm:px-10 sm:py-10 lg:px-12">
+        <div
+          className={cn(
+            'mx-auto min-h-full w-full',
+            isCodeDocument
+              ? 'max-w-[1320px] px-5 py-5 sm:px-8 sm:py-6 lg:px-8'
+              : 'max-w-[980px] px-6 py-8 sm:px-10 sm:py-10 lg:px-12',
+          )}
+        >
           <header
             data-semantic-scroll-target="true"
             data-semantic-spotlight-id="header"
-            className="scroll-mt-8 pb-7"
+            className={cn(
+              isCodeDocument ? 'sr-only' : 'scroll-mt-8 pb-7',
+            )}
           >
-            <p className="mb-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">
+            <p
+              className={cn(
+                'inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-700',
+                isCodeDocument ? 'mb-0' : 'mb-3',
+              )}
+            >
               {document.profile === 'math' ? 'MATHEMATICS' : document.profile.toUpperCase()}
             </p>
             <h1
-              className="max-w-[820px] text-[34px] font-semibold leading-tight text-slate-950 sm:text-[42px]"
+              className={cn(
+                'max-w-[820px] font-semibold leading-tight text-slate-950',
+                isCodeDocument ? 'text-[26px] sm:text-[32px]' : 'text-[34px] sm:text-[42px]',
+              )}
               dangerouslySetInnerHTML={{ __html: titleHtml }}
             />
           </header>
 
-          <div className="space-y-7 py-8">
+          <div className={cn(isCodeDocument ? 'space-y-4 py-1' : 'space-y-7 py-8')}>
             {sections.map((section, index) => {
               const sectionDocument = documentForSection(document, section.blocks);
               const sectionTitleHtml = section.title ? renderInlineMathHtml(section.title) : null;
@@ -430,6 +449,11 @@ export function SemanticScrollPage({
                         >
                           <NotebookContentView
                             document={documentForSection(document, [target.block])}
+                            activeStepIndex={
+                              semanticStepTarget?.blockId === target.id
+                                ? semanticStepTarget.stepIndex
+                                : undefined
+                            }
                             className={cn(
                               'text-[15px] leading-7 text-slate-800',
                               '[&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',

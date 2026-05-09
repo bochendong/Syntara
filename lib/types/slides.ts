@@ -726,6 +726,7 @@ export interface SlideBackground {
   color?: string;
   image?: SlideBackgroundImage;
   gradient?: Gradient;
+  respectProfileStyle?: boolean;
 }
 
 export type TurningMode =

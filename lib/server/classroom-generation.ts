@@ -10,8 +10,10 @@ import {
   createSceneWithActions,
   generateSceneActions,
   generateSceneContent,
+  type SceneContentDiagnostics,
 } from '@/lib/generation/scene-generator';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { ensureTitleCoverOutline } from '@/lib/generation/title-cover';
 import type { AICallFn } from '@/lib/generation/pipeline-types';
 import type { AgentInfo } from '@/lib/generation/pipeline-types';
@@ -279,8 +281,9 @@ export async function generateClassroom(
   const outlines = normalizeOutlineStructure(
     ensureTitleCoverOutline(outlinesResult.data, {
       language: lang,
+      insertMissing: false,
     }),
-  );
+  ).map(normalizeComputerScienceSceneOutline);
   log.info(`Generated ${outlines.length} scene outlines`);
 
   await options.onProgress?.({
@@ -320,6 +323,13 @@ export async function generateClassroom(
       totalScenes: outlines.length,
     });
 
+    const generationDiagnostics: SceneContentDiagnostics = {
+      pipeline: 'unknown',
+      failureReasons: [],
+      semanticRetryCount: 0,
+      layoutRetryCount: 0,
+      contentFallbackUsed: false,
+    };
     const content = await generateSceneContent(
       safeOutline,
       aiCall,
@@ -329,16 +339,27 @@ export async function generateClassroom(
       undefined,
       undefined,
       agents,
+      undefined,
+      undefined,
+      generationDiagnostics,
+      undefined,
+      outlines,
     );
     if (!content) {
-      log.warn(`Skipping scene "${safeOutline.title}" — content generation failed`);
+      log.warn(`Skipping scene "${safeOutline.title}" — content generation failed`, {
+        diagnostics: generationDiagnostics,
+      });
       continue;
     }
 
     const actions = await generateSceneActions(safeOutline, content, aiCall, undefined, agents);
     log.info(`Scene "${safeOutline.title}": ${actions.length} actions`);
 
-    const sceneId = createSceneWithActions(safeOutline, content, actions, api);
+    const sceneId = createSceneWithActions(safeOutline, content, actions, api, {
+      ...generationDiagnostics,
+      outlineId: safeOutline.id,
+      outlineTitle: safeOutline.title,
+    });
     if (!sceneId) {
       log.warn(`Skipping scene "${safeOutline.title}" — scene creation failed`);
       continue;

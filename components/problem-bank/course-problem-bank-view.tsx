@@ -19,7 +19,7 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { useRouter } from 'next/navigation';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import { useI18n } from '@/lib/hooks/use-i18n';

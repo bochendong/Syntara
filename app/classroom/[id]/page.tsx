@@ -1,6 +1,6 @@
 'use client';
 
-import { Stage } from '@/components/stage';
+import dynamic from 'next/dynamic';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
@@ -20,14 +20,29 @@ import type { SpeechAction } from '@/lib/types/action';
 import type { PdfImage } from '@/lib/types/generation';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { syncStageFromSource } from '@/lib/utils/stage-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 import { readGenerationContext } from '@/lib/utils/generation-context-storage';
 import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('Classroom');
+
+const Stage = dynamic(() => import('@/components/stage').then((mod) => mod.Stage), {
+  ssr: false,
+  loading: () => (
+    <div className="apple-mesh-bg flex flex-1 items-center justify-center px-4">
+      <div className="apple-glass max-w-md rounded-[20px] px-8 py-6 text-center">
+        <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">正在打开教室</p>
+        <p className="mt-2 text-xs leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
+          正在准备课堂画布…
+        </p>
+      </div>
+    </div>
+  ),
+});
 
 function summarizeSpeechProgress(scenes: Array<{ actions?: Array<{ type: string }> }>) {
   const speechActions = scenes.flatMap((scene) =>
@@ -183,9 +198,7 @@ export default function ClassroomDetailPage() {
     if (generateMediaBusy || mediaGenerationInFlight || !stage) return;
     if (actionableMediaCount === 0) {
       toast.success(
-        locale === 'zh-CN'
-          ? '当前页没有待生成图片。'
-          : 'There are no pending images on this page.',
+        locale === 'zh-CN' ? '当前页没有待生成图片。' : 'There are no pending images on this page.',
       );
       return;
     }
@@ -226,10 +239,10 @@ export default function ClassroomDetailPage() {
   const loadClassroom = useCallback(async () => {
     try {
       setSourceNotebookId(null);
-      const notebookMetaResponse = await fetch(
+      const notebookMetaResponse = await backendFetch(
         `/api/notebooks/${encodeURIComponent(classroomId)}`,
         {
-          credentials: 'same-origin',
+          method: 'GET',
         },
       );
       if (notebookMetaResponse.ok) {
@@ -271,7 +284,7 @@ export default function ClassroomDetailPage() {
         log.info('No IndexedDB data, trying server-side storage for:', classroomId);
         setLoadingSubtitle('正在从课程服务拉取笔记本数据…');
         try {
-          const res = await fetch(`/api/classroom?id=${encodeURIComponent(classroomId)}`);
+          const res = await backendFetch(`/api/classroom?id=${encodeURIComponent(classroomId)}`);
           if (res.ok) {
             const json = await res.json();
             if (json.success && json.classroom) {
@@ -341,11 +354,14 @@ export default function ClassroomDetailPage() {
   useEffect(() => {
     if (!loading || !classroomId?.trim()) return;
     let cancelled = false;
+    let inFlight = false;
     const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        const res = await fetch(
+        const res = await backendFetch(
           `/api/agent-tasks?notebookId=${encodeURIComponent(classroomId.trim())}`,
-          { credentials: 'same-origin' },
+          { method: 'GET' },
         );
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
@@ -361,10 +377,12 @@ export default function ClassroomDetailPage() {
         }
       } catch {
         /* ignore */
+      } finally {
+        inFlight = false;
       }
     };
     void tick();
-    const id = window.setInterval(tick, 1200);
+    const id = window.setInterval(tick, 5000);
     return () => {
       cancelled = true;
       window.clearInterval(id);

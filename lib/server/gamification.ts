@@ -46,6 +46,8 @@ const DAILY_AFFINITY_EARN_CAP = 20;
 const DEFAULT_CHARACTER_ID = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
 const CHARACTER_FRAGMENT_TARGET = 10;
 const CHARACTER_DUPLICATE_AFFINITY_GAIN = 6;
+let catalogSeedPromise: Promise<void> | null = null;
+let catalogSeeded = false;
 
 const GACHA_BANNER_CONFIG = {
   avatar: {
@@ -498,7 +500,9 @@ function weightedPick<T>(items: Array<{ item: T; weight: number }>): T {
 }
 
 async function ensureCatalogSeeded(db: GamificationDbClient): Promise<void> {
-  await Promise.all(
+  if (catalogSeeded) return;
+
+  catalogSeedPromise ??= Promise.all(
     DEFAULT_CATALOG.map((item) =>
       db.characterCatalog.upsert({
         where: { id: item.id },
@@ -514,7 +518,16 @@ async function ensureCatalogSeeded(db: GamificationDbClient): Promise<void> {
         },
       }),
     ),
-  );
+  ).then(() => {
+    catalogSeeded = true;
+  });
+
+  try {
+    await catalogSeedPromise;
+  } catch (error) {
+    catalogSeedPromise = null;
+    throw error;
+  }
 }
 
 async function normalizeEngagementProfile(

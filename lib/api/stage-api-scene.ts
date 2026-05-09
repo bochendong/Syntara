@@ -67,6 +67,7 @@ export function createSceneAPI(store: StageStore) {
           actions: params.actions,
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          generationDiagnostics: params.generationDiagnostics,
         };
 
         const newScenes = [...state.scenes, newScene].sort((a, b) => a.order - b.order);

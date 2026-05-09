@@ -14,7 +14,7 @@ import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;

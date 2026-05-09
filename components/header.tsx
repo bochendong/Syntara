@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Volume2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';

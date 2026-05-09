@@ -13,11 +13,24 @@ const sceneInputSchema = z.object({
   content: z.unknown(),
   actions: z.unknown().optional(),
   whiteboards: z.unknown().optional(),
+  generationDiagnostics: z.unknown().optional(),
 });
 
 const replaceScenesSchema = z.object({
   scenes: z.array(sceneInputSchema).max(500),
 });
+
+const SCENE_CONTENT_DIAGNOSTICS_KEY = '__generationDiagnostics';
+
+function attachGenerationDiagnosticsToContent(content: unknown, diagnostics: unknown): unknown {
+  if (!diagnostics || !content || typeof content !== 'object' || Array.isArray(content)) {
+    return content;
+  }
+  return {
+    ...(content as Record<string, unknown>),
+    [SCENE_CONTENT_DIAGNOSTICS_KEY]: diagnostics,
+  };
+}
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
@@ -74,7 +87,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
           title: s.title,
           type: s.type,
           order: s.order,
-          content: toPrismaJson(s.content),
+          content: toPrismaJson(
+            attachGenerationDiagnosticsToContent(s.content, s.generationDiagnostics),
+          ),
           actions: toPrismaNullableJson(s.actions),
           whiteboard: toPrismaNullableJson(s.whiteboards),
         })),

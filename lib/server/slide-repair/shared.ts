@@ -232,6 +232,137 @@ export function estimateDocumentSignal(doc: NotebookContentDocument): number {
             0,
           )
         );
+      case 'code_trace':
+        return (
+          sum +
+          block.code.length +
+          (block.title?.length || 0) +
+          (block.output?.length || 0) +
+          block.steps.reduce(
+            (inner, step) =>
+              inner +
+              step.explanation.length +
+              step.state.reduce(
+                (stateSum, state) => stateSum + state.name.length + state.value.length,
+                0,
+              ),
+            0,
+          )
+        );
+      case 'state_table':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.columns.join('').length +
+          block.rows.flat().join('').length +
+          (block.caption?.length || 0)
+        );
+      case 'call_stack':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.frames.reduce(
+            (inner, frame) =>
+              inner +
+              frame.name.length +
+              frame.args.reduce(
+                (argSum, item) => argSum + item.name.length + item.value.length,
+                0,
+              ) +
+              frame.locals.reduce(
+                (localSum, item) => localSum + item.name.length + item.value.length,
+                0,
+              ) +
+              (frame.returnValue?.length || 0) +
+              (frame.note?.length || 0),
+            0,
+          )
+        );
+      case 'memory_diagram':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.stack.reduce(
+            (inner, item) => inner + item.name.length + item.value.length + (item.ref?.length || 0),
+            0,
+          ) +
+          block.heap.reduce(
+            (inner, item) =>
+              inner +
+              item.id.length +
+              item.label.length +
+              item.fields.reduce(
+                (fieldSum, field) => fieldSum + field.name.length + field.value.length,
+                0,
+              ),
+            0,
+          )
+        );
+      case 'pointer_diagram':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          (block.operation?.length || 0) +
+          block.nodes.reduce((inner, node) => inner + node.id.length + node.label.length, 0) +
+          block.pointers.reduce(
+            (inner, pointer) => inner + pointer.name.length + (pointer.to?.length || 0),
+            0,
+          )
+        );
+      case 'tree_diagram':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          (block.target?.length || 0) +
+          (block.decision?.length || 0) +
+          block.nodes.reduce(
+            (inner, node) =>
+              inner +
+              node.id.length +
+              node.label.length +
+              (node.left?.length || 0) +
+              (node.right?.length || 0),
+            0,
+          ) +
+          (block.invariant?.length || 0)
+        );
+      case 'graph_trace':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          block.algorithm.length +
+          block.nodes.reduce((inner, node) => inner + node.id.length + node.label.length, 0) +
+          block.edges.reduce(
+            (inner, edge) => inner + edge.from.length + edge.to.length + (edge.label?.length || 0),
+            0,
+          ) +
+          block.steps.reduce(
+            (inner, step) =>
+              inner +
+              (step.title?.length || 0) +
+              (step.explanation?.length || 0) +
+              step.frontier.join('').length +
+              step.visited.join('').length,
+            0,
+          )
+        );
+      case 'invariant_panel':
+        return (
+          sum +
+          (block.title?.length || 0) +
+          (block.structure?.length || 0) +
+          block.invariant.length +
+          block.checks.reduce(
+            (inner, check) =>
+              inner +
+              check.label.length +
+              check.text.length +
+              check.status.length +
+              (check.reason?.length || 0),
+            0,
+          ) +
+          (block.caption?.length || 0)
+        );
       case 'table':
         return (
           sum +
@@ -304,6 +435,13 @@ export function countSuspiciousPlaceholderBlocks(
         next.type === 'table' ||
         next.type === 'code_block' ||
         next.type === 'code_walkthrough' ||
+        next.type === 'code_trace' ||
+        next.type === 'state_table' ||
+        next.type === 'call_stack' ||
+        next.type === 'memory_diagram' ||
+        next.type === 'pointer_diagram' ||
+        next.type === 'tree_diagram' ||
+        next.type === 'graph_trace' ||
         next.type === 'chem_formula' ||
         next.type === 'chem_equation' ||
         next.type === 'callout'),
@@ -341,6 +479,96 @@ function summarizeBlockForComparison(block: NotebookContentDocument['blocks'][nu
         block.code,
         ...block.steps.flatMap((step) => [step.title || '', step.focus || '', step.explanation]),
         block.output || '',
+      ];
+    case 'code_trace':
+      return [
+        block.title || '',
+        block.code,
+        ...block.steps.flatMap((step) => [
+          step.explanation,
+          ...step.state.flatMap((item) => [item.name, item.value]),
+        ]),
+        block.output || '',
+      ];
+    case 'state_table':
+      return [block.title || '', ...block.columns, ...block.rows.flat(), block.caption || ''];
+    case 'call_stack':
+      return [
+        block.title || '',
+        ...block.frames.flatMap((frame) => [
+          frame.name,
+          ...frame.args.flatMap((item) => [item.name, item.value]),
+          ...frame.locals.flatMap((item) => [item.name, item.value]),
+          frame.returnValue || '',
+          frame.note || '',
+        ]),
+      ];
+    case 'memory_diagram':
+      return [
+        block.title || '',
+        ...block.stack.flatMap((item) => [item.name, item.value, item.ref || '']),
+        ...block.heap.flatMap((item) => [
+          item.id,
+          item.label,
+          ...item.fields.flatMap((field) => [field.name, field.value]),
+        ]),
+        ...block.links.flatMap((link) => [link.from, link.to, link.label || '']),
+      ];
+    case 'pointer_diagram':
+      return [
+        block.title || '',
+        block.operation || '',
+        block.kind || '',
+        ...block.nodes.flatMap((node) => [
+          node.id,
+          node.label,
+          ...node.fields.flatMap((field) => [field.name, field.value]),
+        ]),
+        ...block.pointers.flatMap((pointer) => [pointer.name, pointer.to || 'None']),
+        ...block.links.flatMap((link) => [link.from, link.to, link.label || '']),
+      ];
+    case 'tree_diagram':
+      return [
+        block.title || '',
+        block.kind || '',
+        block.target || '',
+        block.decision || '',
+        ...block.nodes.flatMap((node) => [node.id, node.label, node.left || '', node.right || '']),
+        block.invariant || '',
+        block.caption || '',
+      ];
+    case 'graph_trace':
+      return [
+        block.title || '',
+        block.algorithm,
+        block.startId || '',
+        ...block.nodes.flatMap((node) => [node.id, node.label]),
+        ...block.edges.flatMap((edge) => [edge.from, edge.to, edge.label || '']),
+        ...block.steps.flatMap((step) => [
+          step.title || '',
+          step.action || '',
+          step.current || '',
+          ...step.frontier,
+          ...step.visited,
+          ...step.order,
+          step.explanation || '',
+          step.result || '',
+        ]),
+        block.invariant || '',
+        block.caption || '',
+      ];
+    case 'invariant_panel':
+      return [
+        block.title || '',
+        block.structure || '',
+        block.invariant,
+        ...block.checks.flatMap((check) => [
+          check.label,
+          check.text,
+          check.status,
+          check.reason || '',
+        ]),
+        block.caption || '',
       ];
     case 'table':
       return [block.caption || '', ...(block.headers || []), ...block.rows.flat()];

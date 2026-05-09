@@ -30,6 +30,7 @@ export interface LLMUsagePayload {
   operationCode?: string | null;
   chargeReason?: string | null;
   serviceLabel?: string | null;
+  skipCreditCharge?: boolean | null;
 }
 
 function toInt(value: number | null | undefined): number {
@@ -80,6 +81,18 @@ export async function recordLLMUsage(payload: LLMUsagePayload): Promise<void> {
         totalTokens,
       },
     });
+
+    if (payload.skipCreditCharge) {
+      log.info('Skipped compute credit charge for no-charge LLM usage', {
+        route: payload.route,
+        source: payload.source,
+        modelString: payload.modelString,
+        totalTokens,
+        userId: payload.userId ?? null,
+        operationCode: payload.operationCode ?? null,
+      });
+      return;
+    }
 
     await chargeCreditsForTokenUsage({
       userId: payload.userId,

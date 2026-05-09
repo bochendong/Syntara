@@ -23,7 +23,7 @@ import { processSSEStream } from './process-sse-stream';
 import { StreamBuffer } from '@/lib/buffer/stream-buffer';
 import type { AgentStartItem, ActionItem } from '@/lib/buffer/stream-buffer';
 import { ActionEngine } from '@/lib/action/engine';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ChatSessions');

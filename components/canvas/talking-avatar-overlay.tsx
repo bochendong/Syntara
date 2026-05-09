@@ -65,6 +65,17 @@ type ModelBaseSize = {
 type PixiModule = typeof import('pixi.js');
 type Live2DModule = typeof import('pixi-live2d-display/cubism4');
 type Live2DModelInstance = InstanceType<Live2DModule['Live2DModel']>;
+type ConsoleMethodName =
+  | 'debug'
+  | 'error'
+  | 'group'
+  | 'groupCollapsed'
+  | 'groupEnd'
+  | 'info'
+  | 'log'
+  | 'trace'
+  | 'warn';
+type ConsoleMethod = (...args: unknown[]) => void;
 type Live2DRuntimeInstance = {
   app: import('pixi.js').Application;
   model: Live2DModelInstance;
@@ -81,6 +92,11 @@ declare global {
     __synatraLive2DCorePromise?: Promise<void>;
     __synatraLive2DModelLoadQueue?: Promise<void>;
     __synatraLive2DActiveInstances?: number;
+    __synatraLive2DConsolePatch?: {
+      count: number;
+      filteredGroupDepth: number;
+      originals: Partial<Record<ConsoleMethodName, ConsoleMethod>>;
+    };
   }
 }
 
@@ -230,6 +246,7 @@ export function TalkingAvatarOverlay({
   useEffect(() => {
     let cancelled = false;
     const mountElement = mountRef.current;
+    const restoreConsole = installLive2DConsoleGuard();
 
     const setup = async () => {
       const mount = mountElement;
@@ -415,8 +432,9 @@ export function TalkingAvatarOverlay({
       if (mountElement) {
         mountElement.replaceChildren();
       }
+      restoreConsole();
     };
-  }, [cardFraming, layout, modelConfig]);
+  }, [cardFraming, layout, modelConfig, resolvedModelId]);
 
   return (
     <div
@@ -475,6 +493,132 @@ export function TalkingAvatarOverlay({
       </div>
     </div>
   );
+}
+
+function installLive2DConsoleGuard() {
+  if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const browserWindow = window;
+  const existing = browserWindow.__synatraLive2DConsolePatch;
+  if (existing) {
+    existing.count += 1;
+    return () => releaseLive2DConsoleGuard();
+  }
+
+  const methods: ConsoleMethodName[] = [
+    'debug',
+    'error',
+    'group',
+    'groupCollapsed',
+    'groupEnd',
+    'info',
+    'log',
+    'trace',
+    'warn',
+  ];
+  const patch = {
+    count: 1,
+    filteredGroupDepth: 0,
+    originals: {} as Partial<Record<ConsoleMethodName, ConsoleMethod>>,
+  };
+
+  browserWindow.__synatraLive2DConsolePatch = patch;
+
+  for (const method of methods) {
+    const original = console[method] as ConsoleMethod | undefined;
+    if (!original) continue;
+
+    patch.originals[method] = original.bind(console);
+    (console[method] as ConsoleMethod) = (...args: unknown[]) => {
+      const message = summarizeConsoleArgs(args);
+      const isNoisyLog = isLive2DConsoleNoise(message);
+
+      if (isNoisyLog) {
+        if (method === 'group' || method === 'groupCollapsed') {
+          patch.filteredGroupDepth += 1;
+        }
+        return;
+      }
+
+      if (patch.filteredGroupDepth > 0) {
+        if (method === 'groupEnd') {
+          patch.filteredGroupDepth = Math.max(0, patch.filteredGroupDepth - 1);
+          return;
+        }
+        if (method === 'log' || method === 'trace' || method === 'warn') {
+          return;
+        }
+      }
+
+      patch.originals[method]?.(...sanitizeConsoleArgs(args));
+    };
+  }
+
+  return () => releaseLive2DConsoleGuard();
+}
+
+function releaseLive2DConsoleGuard() {
+  if (typeof window === 'undefined') return;
+
+  const patch = window.__synatraLive2DConsolePatch;
+  if (!patch) return;
+
+  patch.count -= 1;
+  if (patch.count > 0) return;
+
+  for (const [method, original] of Object.entries(patch.originals) as [
+    ConsoleMethodName,
+    ConsoleMethod,
+  ][]) {
+    (console[method] as ConsoleMethod) = original;
+  }
+  window.__synatraLive2DConsolePatch = undefined;
+}
+
+function summarizeConsoleArgs(args: unknown[]) {
+  return args
+    .map((arg) => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.name}: ${arg.message}\n${arg.stack ?? ''}`;
+      if (arg && typeof arg === 'object') {
+        return (arg as { constructor?: { name?: string } }).constructor?.name ?? '[object]';
+      }
+      return String(arg);
+    })
+    .join(' ');
+}
+
+function isLive2DConsoleNoise(message: string) {
+  return (
+    message.includes('[CSM][I]') ||
+    message.includes('CubismFramework.') ||
+    message.includes('Live2D Cubism SDK Core Version') ||
+    message.includes('PixiJS Deprecation Warning') ||
+    message.includes('utils.url.resolve is deprecated') ||
+    message.includes('pixi-live2d-display') ||
+    message.includes('cubism4.es.js')
+  );
+}
+
+function sanitizeConsoleArgs(args: unknown[]): unknown[] {
+  return args.map((arg) => {
+    if (!arg || typeof arg !== 'object') return arg;
+    if (arg instanceof Error) {
+      return { name: arg.name, message: arg.message, stack: arg.stack };
+    }
+
+    const record = arg as Record<string, unknown>;
+    if ('error' in record) {
+      return {
+        ...record,
+        error: sanitizeConsoleArgs([record.error])[0],
+      };
+    }
+
+    return arg;
+  });
 }
 
 async function loadPresenterModel(

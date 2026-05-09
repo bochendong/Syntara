@@ -53,6 +53,8 @@ const sceneLikeItemClass = cn(
   'border border-slate-900/[0.06] bg-white/55 hover:bg-white/75 dark:border-white/[0.1] dark:bg-black/20 dark:hover:bg-black/35',
 );
 
+const ACTIVE_TASK_POLL_INTERVAL_MS = 8000;
+
 function notebookTagClass() {
   return cn(
     'max-w-full truncate rounded-md border border-black/[0.08] bg-black/[0.04] px-2 py-0.5 text-[10px] font-medium text-[#1d1d1f]/80',
@@ -237,10 +239,15 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
       }
     };
     void load();
-    const t = window.setInterval(() => void load(), 2000);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void load();
+    }, ACTIVE_TASK_POLL_INTERVAL_MS);
+    const handleFocus = () => void load();
+    window.addEventListener('focus', handleFocus);
     return () => {
       alive = false;
-      window.clearInterval(t);
+      window.clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [courseId, isNotebookCreateMode]);
 

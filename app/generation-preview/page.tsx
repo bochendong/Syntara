@@ -776,6 +776,7 @@ function GenerationPreviewContent() {
           ensureTitleCoverOutline(outlines, {
             title: stage.name,
             language: currentSession.requirements.language,
+            insertMissing: false,
           }),
         );
         const updatedSession = { ...currentSession, sceneOutlines: outlines };

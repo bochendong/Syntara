@@ -97,7 +97,12 @@ async function persistUsage(
     operationCode: requestContext?.operationCode,
     chargeReason: requestContext?.chargeReason,
     serviceLabel: requestContext?.serviceLabel,
+    skipCreditCharge: requestContext?.skipCreditCharge,
   });
+}
+
+function shouldSkipCreditCharge(): boolean {
+  return getRequestContext()?.skipCreditCharge === true;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,7 +367,9 @@ export async function callLLM<T extends GenerateTextParams>(
       // Resolve effective thinking config: per-call > global env > undefined
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
       const injectedParams = injectProviderOptions(params, effectiveThinking);
-      await assertUserHasCredits(getRequestContext()?.userId);
+      if (!shouldSkipCreditCharge()) {
+        await assertUserHasCredits(getRequestContext()?.userId);
+      }
 
       // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
       // can read the config and inject vendor-specific body params for
@@ -415,7 +422,9 @@ export async function streamLLM<T extends StreamTextParams>(
   // Resolve effective thinking config and wrap in thinkingContext
   const effectiveThinking = thinking ?? getGlobalThinkingConfig();
   const injectedParams = injectProviderOptions(params, effectiveThinking);
-  await assertUserHasCredits(getRequestContext()?.userId);
+  if (!shouldSkipCreditCharge()) {
+    await assertUserHasCredits(getRequestContext()?.userId);
+  }
   const result = thinkingContext.run(effectiveThinking, () =>
     streamText({
       ...injectedParams,

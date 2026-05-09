@@ -10,7 +10,8 @@ export type { PlaybackSnapshot };
 /** Visual effects (for onEffectFire callback) */
 export type Effect =
   | { kind: 'spotlight'; targetId: string; dimOpacity?: number }
-  | { kind: 'laser'; targetId: string; color?: string };
+  | { kind: 'laser'; targetId: string; color?: string }
+  | { kind: 'semantic_step'; targetId: string; stepIndex: number };
 
 /** Engine mode state machine */
 export type EngineMode = 'idle' | 'playing' | 'paused' | 'live';

@@ -12,7 +12,7 @@ import {
   Star,
   WandSparkles,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Button } from '@/components/ui/button';
 import { PurchaseConfirmDialog } from '@/components/courses/purchase-confirm-dialog';
 import { Textarea } from '@/components/ui/textarea';

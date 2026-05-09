@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Check, Gem, Shield, Sparkles, Star, Ticket, WandSparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {

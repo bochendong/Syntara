@@ -1,5 +1,6 @@
 import { inferSceneContentProfile } from '@/lib/generation/content-profile';
 import { resolveNotebookContentProfile, type NotebookContentProfile } from '@/lib/notebook-content';
+import { getExampleDisplaySteps } from '@/lib/notebook-content/example-block';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene, SceneType, SlideContent } from '@/lib/types/stage';
 
@@ -66,6 +67,85 @@ function collectFallbackKeyPointsFromSlide(content: SlideContent): string[] {
             block.caption || '',
             ...block.steps.map((step) => step.title || step.focus || step.explanation),
           ];
+        case 'code_trace':
+          return [
+            block.title || '',
+            ...block.steps.map((step) => step.explanation),
+            block.output || '',
+          ];
+        case 'state_table':
+          return [block.title || '', ...block.columns, ...block.rows.flat(), block.caption || ''];
+        case 'call_stack':
+          return [
+            block.title || '',
+            ...block.frames.flatMap((frame) => [
+              frame.name,
+              ...frame.args.flatMap((item) => [item.name, item.value]),
+              ...frame.locals.flatMap((item) => [item.name, item.value]),
+              frame.returnValue || '',
+              frame.note || '',
+            ]),
+          ];
+        case 'memory_diagram':
+          return [
+            block.title || '',
+            ...block.stack.flatMap((item) => [item.name, item.value, item.ref || '']),
+            ...block.heap.flatMap((item) => [item.id, item.label]),
+          ];
+        case 'pointer_diagram':
+          return [
+            block.title || '',
+            block.operation || '',
+            block.kind || '',
+            ...block.nodes.map((node) => node.label),
+            ...block.pointers.map((pointer) => `${pointer.name} -> ${pointer.to || 'None'}`),
+          ];
+        case 'tree_diagram':
+          return [
+            block.title || '',
+            block.kind || '',
+            block.target || '',
+            block.decision || '',
+            ...block.nodes.map((node) => node.label),
+            block.invariant || '',
+          ];
+        case 'graph_trace':
+          return [
+            block.title || '',
+            block.algorithm,
+            ...block.nodes.map((node) => node.label),
+            ...block.edges.map((edge) => `${edge.from} -> ${edge.to}`),
+            ...block.steps.flatMap((step) => [step.title || '', step.explanation || '']),
+            block.invariant || '',
+          ];
+        case 'invariant_panel':
+          return [
+            block.title || '',
+            block.structure || '',
+            block.invariant,
+            ...block.checks.flatMap((check) => [
+              check.label,
+              check.text,
+              check.status,
+              check.reason || '',
+            ]),
+            block.caption || '',
+          ];
+        case 'dictionary_diagram':
+          return [
+            block.title || '',
+            block.operation || '',
+            block.lookupKey || '',
+            block.result || '',
+            ...block.entries.flatMap((entry) => [
+              entry.key,
+              entry.value,
+              entry.note || '',
+              entry.active ? 'active' : '',
+              entry.changed ? 'changed' : '',
+            ]),
+            block.caption || '',
+          ];
         case 'callout':
           return [block.title || '', block.text];
         case 'example':
@@ -73,13 +153,15 @@ function collectFallbackKeyPointsFromSlide(content: SlideContent): string[] {
             block.problem,
             ...block.givens,
             ...(block.goal ? [block.goal] : []),
-            ...block.steps,
+            ...getExampleDisplaySteps(block),
           ];
         case 'process_flow':
+          const processContext = Array.isArray(block.context) ? block.context : [];
+          const processSteps = Array.isArray(block.steps) ? block.steps : [];
           return [
             block.title || '',
-            ...block.context.flatMap((item) => [item.label, item.text]),
-            ...block.steps.flatMap((step) => [step.title, step.detail, step.note || '']),
+            ...processContext.flatMap((item) => [item.label, item.text]),
+            ...processSteps.flatMap((step) => [step.title, step.detail, step.note || '']),
             ...(block.summary ? [block.summary] : []),
           ];
         default:
@@ -154,7 +236,10 @@ export function resolveRewriteOutline(
   return buildFallbackRewriteOutline(scene, language);
 }
 
-export function resolveSlideRepairProfile(scene: Scene, outline?: SceneOutline): NotebookContentProfile {
+export function resolveSlideRepairProfile(
+  scene: Scene,
+  outline?: SceneOutline,
+): NotebookContentProfile {
   if (scene.type === 'slide' && scene.content.type === 'slide' && scene.content.semanticDocument) {
     return resolveNotebookContentProfile(scene.content.semanticDocument);
   }

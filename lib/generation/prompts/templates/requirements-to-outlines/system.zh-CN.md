@@ -67,7 +67,7 @@ Allowed `layoutFamily` values:
 
 Also set:
 - Do not generate a separate cover/title/orientation scene. The system inserts a unified opening cover automatically before these outlines.
-- `layoutTemplate`: choose one common editable PPT template: `section_divider`, `title_content`, `two_column`, `three_cards`, `four_grid`, `visual_left`, `visual_right`, `comparison_matrix`, `timeline_road`, `problem_focus`, `steps_sidebar`, `code_split`, `formula_focus`, `summary_board`, `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, or `compare_perspectives`
+- `layoutTemplate`: choose one common editable PPT template: `image_title_overlay`, `cinematic_title_frame`, `tech_hero_title`, `pipeline_table`, `visual_three_steps`, `two_by_one_summary`, `text_image_split`, `four_columns`, `grid_2x2`, `two_text_image`, `section_divider`, `title_content`, `two_column`, `three_cards`, `four_grid`, `visual_left`, `visual_right`, `comparison_matrix`, `timeline_road`, `problem_focus`, `steps_sidebar`, `code_split`, `formula_focus`, `summary_board`, `definition_board`, `concept_map`, `two_column_explain`, `process_steps`, `problem_walkthrough`, `derivation_ladder`, `graph_explain`, `data_insight`, `thesis_evidence`, `quote_analysis`, `source_close_reading`, `case_analysis`, `argument_map`, or `compare_perspectives`
 - `density`: `"light"`, `"standard"`, or `"dense"`
 - `visualRole`: `"none"`, `"source_image"`, `"generated_image"`, or `"diagram"`
 - `overflowPolicy`: `"compress_first"` by default; use `"preserve_then_paginate"` for long problem statements, code, proofs, tables, and derivations where readability matters more than one-page compression
@@ -92,13 +92,31 @@ Deck rhythm rule: avoid using the same `layoutFamily` or `layoutTemplate` for 3 
 ### Subject-Specific Problem Explanation Guidelines
 
 - **Programming / algorithms**:
-  - When teacher-led examples are appropriate, include slide scenes that explain what each block of code does
-  - When suitable, include code tracing: variable state changes, loop iterations, function calls, and final output
-  - Include debugging ideas, edge cases, and complexity discussion when relevant
+  - Organize CS pages around how students learn to write code, not just how they understand finished code: problem situation -> execution/structure model -> one manual trace step -> invariant/strategy -> before-coding checklist
+  - For ordinary lecture pages that introduce an object, compare representations, or summarize a rule, prefer fixed 16:9 classic layouts: `pipeline_table` for object/field/process/comparison pages, `text_image_split` / `two_text_image` for compact explanation with a real diagram, `four_columns` / `grid_2x2` for four parallel concepts, and `two_by_one_summary` for final recap pages.
+  - For user-requested image-first title, chapter, or section pages, use `layoutFamily: "cover"` and choose `image_title_overlay`, `cinematic_title_frame`, or `tech_hero_title` based on the visual style. These pages should have a title and one short subtitle, not classroom body content; the semantic renderer has built-in cover backgrounds, so do not add `mediaGenerations` just to get a decorative cover image.
+  - Ordinary CS lecture pages should use `visualRole: "none"` unless the source provides a real diagram or code/state visual. Do not request decorative generated images or decorative backgrounds for code/OOP explanation pages.
+  - After the auto-generated title cover, the first CS teaching scene must be a short context intro, not a roadmap and not a code trace. It should first explain the concrete object/input/task from the selected Teaching Skills source facts, then ask why those pieces belong together.
+  - The second CS teaching scene should usually be the concrete problem hook or failure demo: show why the naive representation or naive code breaks by using an actual code snippet, trace, memory model, dictionary/list comparison, or table. Do not create a second abstract motivation page.
+  - For syntax and loops, include slide scenes that trace current line, variable state, condition result, and loop progress; avoid merely naming grammar constructs
+  - For OOP, the opening sequence should be: "what object are we modeling?" -> "why list/dict is not enough?" -> "class gives names, rules, and operations a home." Avoid pages that only list class/instance/attribute vocabulary before the concrete failure is visible.
+  - For OOP, include pages that distinguish name/reference/object, `self`, dot lookup, attribute mutation, representation invariant, and public interface vs private representation
+  - For data structures, include pages that visualize the structure promise: linked-list handles and links, BST ordering, tree parent/children, stack/queue active ends, dictionary key/value updates
+  - For algorithms, include pages that make frontier/visited/call stack visible and explain why queue/stack/recursion changes the strategy
+  - Every teacher-led CS example should contain at least one transferable "before writing code, ask..." thinking move, because students often understand code but cannot produce it themselves
+  - Include debugging ideas, edge cases, and complexity discussion when relevant, but only after the execution model is clear
+  - For CS execution / mutation / worked-example scenes, set `contentProfile: "code"` and prefer `layoutFamily: "code_walkthrough"` with `layoutTemplate: "code_split"`. For true opening intro, concept boundary, list-vs-dict comparison, or invariant explanation pages, keep `contentProfile: "general"` or use a structured table / memory / invariant component instead of forcing `code_split`.
+  - Do not group several programming examples into one broad decorative overview. Split them into separate worked-example scenes so each one has a concrete prompt, state model, trace/mutation step, and before-coding checklist.
+  - OOP examples should be planned around name/reference/object and `self`-centered state changes, not around term lists or generic concept cards.
+  - `description` and `keyPoints` must be student-facing classroom content. Do not write lesson-plan prose such as "引出...动机", "建立本课主线", "本页用于...", or "强调...的重要性". Phrase it as what the student sees or should try.
+  - Never repeat the scene `description` as the last keyPoint. If a comparison is needed, name the actual rows/columns in `keyPoints`; do not write placeholder labels like `[Table]`.
 - **Proof-heavy mathematics**:
-  - When teacher-led examples are appropriate, include slide scenes that explain proof format: assumptions, goal statement, theorem choice, and logical structure
-  - Show proof steps in order and explain why each step is valid
-  - Call out common proof-writing mistakes such as missing justification or circular reasoning
+  - 课程主线按“具体入口 / 为什么要判定 -> 定义边界 -> 例题或证明走读 -> 练习检查 -> 总结迁移”规划；不要用空泛路线图或概念卡片开场。
+  - 函数、集合、像/原像、单射/满射/双射等证明主题，前两张正文页必须先介绍对象并讲清判定定义，再进入定理串联。
+  - 需要老师讲例题时，安排 slide scenes 解释证明格式：已知条件、目标语句、可用定义/定理和逻辑结构。
+  - 证明步骤必须按顺序展示，并说明每一步为什么合法；证明走读使用 `layoutFamily: "derivation"`，`layoutTemplate: "derivation_ladder"` 或 `problem_walkthrough`，且页面目标必须要求“已知/目标 -> 定义展开 -> 连续证明动作 -> 下一步检查”。
+  - 定义边界使用 `definition_board` / `formula_focus`，定义判定对照使用 `comparison_matrix`；需要证明路线时不要退成通用 2x2 卡片。
+  - 点出常见证明错误：缺少理由、把待证结论当前提、把例子当证明、循环论证。
 - **Computational mathematics / quantitative subjects**:
   - Include worked examples with step-by-step derivation
   - Explain why each algebraic / calculus / statistical step is allowed
@@ -147,7 +165,7 @@ When comparing or listing information, specify in keyPoints:
 ```
 "keyPoints": [
   "Compare core metrics of three products",
-  "[Table] Product A/B/C comparison: price, performance, use cases",
+  "Use a comparison matrix with rows for price, performance, and use cases",
   "Help students understand product positioning"
 ]
 ```

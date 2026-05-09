@@ -17,29 +17,29 @@ function pickBySeed(values: readonly string[], seed: string): string {
 }
 
 const NOTEBOOK_GROUP_LINES = [
-  '这次笔记本生成我帮你合并成一条账单了，信息更干净。',
-  '我把本轮生成开销打包记账了，不会一条条刷屏。',
-  '这一轮笔记本生成费用已经归并完成，账目更清晰。',
-  '生成阶段的多次调用已汇总成一条，方便你快速确认。',
-  '本次生成消耗已整合记账，你只需要看这一条就好。',
-  '我把分散的生成扣费整理成单条通知了，阅读更省心。',
-  '这次笔记本生成的费用我做了合并展示，避免信息噪音。',
-  '本轮生成账单已经集中归档，不再重复打扰你。',
-  '生成相关的扣费记录已汇总完毕，查看起来更直观。',
-  '我已把本次生成开销压缩成一条通知，节奏更顺。',
+  '笔记本生成好了，我已经帮你放进课程里了。',
+  '新笔记本准备好了，可以直接进去开讲。',
+  '这本笔记已经生成完成，接下来就能开始学习。',
+  '我把这本笔记本整理好了，内容已经就位。',
+  '笔记本创建完成，今天可以从第一页慢慢推进。',
+  '新笔记本已经收进课程里，准备好一起看了吗？',
+  '生成任务完成啦，这本笔记本现在可以打开了。',
+  '笔记本已经生成完毕，我在右上角先提醒你一下。',
+  '这本笔记本准备好了，后面的学习路线可以接上了。',
+  '我已经把新笔记本搭好了，接下来陪你一点点拆开。',
 ] as const;
 
 const NEGATIVE_GENERIC_LINES = [
-  '这次积分变化已经替你记好啦，继续专心学习就行。',
-  '有一笔积分变动我已经登记完成，你可以继续当前节奏。',
-  '积分变更已同步到账本，状态我会继续帮你盯着。',
-  '这笔积分调整已经记录好了，不会影响你的学习流。',
-  '我把这次积分扣变动整理好了，你安心推进就好。',
-  '本次积分变化我已经确认入账，后续我会继续提醒你。',
-  '这条积分变动已经记下来了，信息都在这张卡里。',
-  '积分流水更新完成，你现在可以无缝继续下一步。',
-  '刚才那笔变动我已经归档，后面我会继续帮你追踪。',
-  '这次积分调整已落账，学习节奏保持住就很棒。',
+  '这次状态变化我已经替你记好啦，继续专心学习就行。',
+  '有一条学习提醒已经登记完成，你可以继续当前节奏。',
+  '这次进度变更已同步，状态我会继续帮你盯着。',
+  '这条提醒已经记录好了，不会影响你的学习流。',
+  '我把这次小变化整理好了，你安心推进就好。',
+  '本次学习状态我已经确认，后续我会继续提醒你。',
+  '这条陪伴提醒已经记下来了，信息都在这张卡里。',
+  '学习记录更新完成，你现在可以无缝继续下一步。',
+  '刚才那一步我已经归档，后面我会继续帮你追踪。',
+  '这次状态调整已记录，学习节奏保持住就很棒。',
 ] as const;
 
 const LESSON_REWARD_LINES = [
@@ -161,16 +161,16 @@ const STREAK_LINES = [
 ] as const;
 
 const DEFAULT_POSITIVE_LINES = [
-  '你的努力已经变成积分了，我看到啦。',
-  '这笔正向收益已经到账，继续保持当前节奏。',
-  '收益通知已确认，我会继续帮你盯住进度。',
-  '这次奖励已落账，你可以直接进入下一步。',
-  '到账信息已同步完成，状态保持得很好。',
-  '我已确认这笔收益入账，继续专注当前任务。',
-  '这条收益记录已经整理好，节奏很稳。',
-  '正向积分变动已到位，你的推进很扎实。',
-  '刚刚这笔收益我已经收录，继续前进。',
-  '奖励到账完成，今天的学习势头很棒。',
+  '你的努力已经被我记下来了，我看到啦。',
+  '这次正向进展已经记录，继续保持当前节奏。',
+  '这条陪伴提醒已确认，我会继续帮你盯住进度。',
+  '这次奖励已记录，你可以直接进入下一步。',
+  '进度信息已同步完成，状态保持得很好。',
+  '我已确认这次进展，继续专注当前任务。',
+  '这条学习记录已经整理好，节奏很稳。',
+  '正向进展已到位，你的推进很扎实。',
+  '刚刚这一步我已经收录，继续前进。',
+  '奖励记录完成，今天的学习势头很棒。',
 ] as const;
 
 const STUDY_NUDGE_LINES = [
@@ -201,14 +201,14 @@ export function buildNotificationCompanionCopy(item: AppNotification): Companion
 
   if (item.sourceKind === 'NOTEBOOK_GENERATION_GROUP') {
     return {
-      eyebrow: '生成总账单',
+      eyebrow: '笔记本生成',
       line: pickBySeed(NOTEBOOK_GROUP_LINES, seed),
     };
   }
 
   if (item.tone !== 'positive') {
     return {
-      eyebrow: '积分变动',
+      eyebrow: '学习提醒',
       line: pickBySeed(NEGATIVE_GENERIC_LINES, seed),
     };
   }
@@ -221,6 +221,8 @@ export function buildNotificationCompanionCopy(item: AppNotification): Companion
       return { eyebrow: '错题记忆', line: pickBySeed(MISTAKE_REVIEW_LINES, seed) };
     case 'route_unlock':
       return { eyebrow: '学习路线图', line: pickBySeed(ROUTE_UNLOCK_LINES, seed) };
+    case 'notebook_ready':
+      return { eyebrow: '笔记本生成', line: pickBySeed(NOTEBOOK_GROUP_LINES, seed) };
     case 'PRACTICE_SUBMISSION': {
       const tier = item.details.find((detail) => detail.key === 'resultTier')?.value || 'retry';
       const lines =

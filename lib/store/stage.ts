@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Stage, Scene, StageMode } from '@/lib/types/stage';
+import type { PageGenerationFailureRecord, Stage, Scene, StageMode } from '@/lib/types/stage';
 import { createSelectors } from '@/lib/utils/create-selectors';
 import type { ChatSession } from '@/lib/types/chat';
 import type { SceneOutline } from '@/lib/types/generation';
@@ -7,7 +7,10 @@ import type { CurrentPageGenerationData } from '@/lib/utils/current-page-generat
 import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
 import { createLogger } from '@/lib/logger';
 import { applySceneUpdatesWithSpeechTtsInvalidation } from '@/lib/audio/speech-tts-invalidation';
-import { queueWriteStageDraftSnapshot } from '@/lib/utils/stage-draft-snapshot';
+import {
+  rememberStageDraftCurrentSceneId,
+  queueWriteStageDraftSnapshot,
+} from '@/lib/utils/stage-draft-snapshot';
 import {
   readPersistedStageOutlinesAsync,
   writePersistedStageOutlines,
@@ -80,7 +83,7 @@ const WORKED_EXAMPLE_LABEL_PATTERN =
   /(例题|例|题目|问题|problem|example|exercise)\s*[\d一二三四五六七八九十]+/i;
 
 const WORKED_EXAMPLE_PART_PATTERN =
-  /\s*[\(（\[]\s*(?:第\s*)?(?:part\s*)?[\d一二三四五六七八九十]+\s*(?:\/\s*[\d一二三四五六七八九十]+)?\s*(?:部分|页|段|part)?\s*[\)）\]]\s*/i;
+  /\s*[\(（\[]\s*(?:(?:第\s*)?[\d一二三四五六七八九十]+\s*\/\s*[\d一二三四五六七八九十]+|(?:第\s*)?[\d一二三四五六七八九十]+\s*(?:部分|页|段)|part\s*[\d一二三四五六七八九十]+(?:\s*\/\s*[\d一二三四五六七八九十]+)?|[\d一二三四五六七八九十]+\s*part)\s*[\)）\]]\s*/i;
 
 const SUMMARY_SCENE_PATTERN =
   /(总结|小结|回顾|收束|复盘|复习要点|结论|summary|recap|wrap[-\s]?up|takeaways?)/i;
@@ -198,10 +201,13 @@ function cleanSceneResidualMarkup(scene: Scene): Scene {
 
 function normalizeSceneStructure(scenes: Scene[]): Scene[] {
   return compactDuplicateSummaryScenes(mergeSplitWorkedExampleScenes(orderScenes(scenes))).map(
-    (scene, index) => ({
-      ...cleanSceneResidualMarkup(scene),
-      order: index + 1,
-    }),
+    (scene, index) => {
+      const refreshedScene = refreshSemanticSlideScene(cleanSceneResidualMarkup(scene));
+      return {
+        ...refreshedScene,
+        order: index + 1,
+      };
+    },
   );
 }
 
@@ -342,6 +348,42 @@ function getPendingOutlines(outlines: SceneOutline[], scenes: Scene[]): SceneOut
   return outlines.filter((_, index) => !representedIndexes.has(index));
 }
 
+function failureMatchesOutline(
+  failure: PageGenerationFailureRecord,
+  outline: SceneOutline,
+): boolean {
+  return (
+    failure.outlineId === outline.id ||
+    (typeof failure.order === 'number' && failure.order === outline.order) ||
+    failure.outlineTitle === outline.title
+  );
+}
+
+function getFailedPendingOutlines(stage: Stage, pendingOutlines: SceneOutline[]): SceneOutline[] {
+  const failures = stage.pageGenerationFailures || [];
+  if (failures.length === 0 || pendingOutlines.length === 0) return [];
+  return pendingOutlines.filter((outline) =>
+    failures.some((failure) => failureMatchesOutline(failure, outline)),
+  );
+}
+
+function clearFailureRecordsForScene(stage: Stage, scene: Scene): Stage {
+  const failures = stage.pageGenerationFailures || [];
+  if (failures.length === 0) return stage;
+  const nextFailures = failures.filter(
+    (failure) =>
+      failure.order !== scene.order &&
+      failure.outlineTitle !== scene.title &&
+      failure.outlineId !== scene.generationDiagnostics?.outlineId,
+  );
+  if (nextFailures.length === failures.length) return stage;
+  return {
+    ...stage,
+    pageGenerationFailures: nextFailures,
+    updatedAt: Math.max(stage.updatedAt || 0, Date.now()),
+  };
+}
+
 type ToolbarState = 'design' | 'ai';
 
 interface StageState {
@@ -397,6 +439,7 @@ interface StageState {
   bumpGenerationEpoch: () => void;
   discardPendingOutlines: () => number;
   addFailedOutline: (outline: SceneOutline) => void;
+  recordPageGenerationFailure: (failure: PageGenerationFailureRecord) => void;
   clearFailedOutlines: () => void;
   retryFailedOutline: (outlineId: string) => void;
   incrementFallbackUsageCount: (delta?: number) => void;
@@ -475,23 +518,21 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       );
       return;
     }
+    const nextStage = clearFailureRecordsForScene(currentStage, scene);
     const scenes = orderScenes([...get().scenes, scene]);
     // Remove the matching outline from generatingOutlines (match by order)
     const generatingOutlines = get().generatingOutlines.filter((o) => o.order !== scene.order);
     // Auto-switch from pending page to the newly generated scene
     const shouldSwitch = get().currentSceneId === PENDING_SCENE_ID;
     set({
+      stage: nextStage,
       scenes,
       generatingOutlines,
       storageSaveState: 'saving',
       storageSaveError: null,
       ...(shouldSwitch ? { currentSceneId: scene.id } : {}),
     });
-    writeDraftSnapshotForState(
-      currentStage,
-      scenes,
-      shouldSwitch ? scene.id : get().currentSceneId,
-    );
+    writeDraftSnapshotForState(nextStage, scenes, shouldSwitch ? scene.id : get().currentSceneId);
     debouncedSave();
   },
 
@@ -541,8 +582,8 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   setCurrentSceneId: (sceneId) => {
     set({ currentSceneId: sceneId });
-    writeDraftSnapshotForState(get().stage, get().scenes, sceneId);
-    debouncedSave();
+    const stageId = get().stage?.id;
+    if (stageId) rememberStageDraftCurrentSceneId(stageId, sceneId);
   },
 
   setChats: (chats) => {
@@ -582,12 +623,22 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     const nextFailedOutlines = state.failedOutlines.filter(
       (outline) => !pendingOutlineIds.has(outline.id),
     );
+    const nextStage = state.stage
+      ? {
+          ...state.stage,
+          pageGenerationFailures: (state.stage.pageGenerationFailures || []).filter(
+            (failure) => !pendingOutlineIds.has(failure.outlineId),
+          ),
+          updatedAt: Math.max(state.stage.updatedAt || 0, Date.now()),
+        }
+      : state.stage;
     const nextCurrentSceneId =
       state.currentSceneId === PENDING_SCENE_ID
         ? (state.scenes[state.scenes.length - 1]?.id ?? state.scenes[0]?.id ?? null)
         : state.currentSceneId;
 
     set({
+      stage: nextStage,
       outlines: nextOutlines,
       generatingOutlines: nextGeneratingOutlines,
       failedOutlines: nextFailedOutlines,
@@ -602,7 +653,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       writePersistedStageOutlines(state.stage.id, nextOutlines);
     }
 
-    writeDraftSnapshotForState(state.stage, state.scenes, nextCurrentSceneId);
+    writeDraftSnapshotForState(nextStage, state.scenes, nextCurrentSceneId);
     debouncedSave();
     return pendingOutlineIds.size;
   },
@@ -613,12 +664,78 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     set({ failedOutlines: [...get().failedOutlines, outline] });
   },
 
-  clearFailedOutlines: () => set({ failedOutlines: [] }),
+  recordPageGenerationFailure: (failure) => {
+    const state = get();
+    if (!state.stage) return;
+    const nextFailure: PageGenerationFailureRecord = {
+      ...failure,
+      failedAt: Number.isFinite(failure.failedAt) ? failure.failedAt : Date.now(),
+    };
+    const nextFailures = (state.stage.pageGenerationFailures || [])
+      .filter((item) => item.outlineId !== nextFailure.outlineId)
+      .concat(nextFailure)
+      .sort(
+        (a, b) =>
+          (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+          a.failedAt - b.failedAt,
+      );
+    const nextStage = {
+      ...state.stage,
+      pageGenerationFailures: nextFailures,
+      updatedAt: Math.max(state.stage.updatedAt || 0, Date.now()),
+    };
+    set({
+      stage: nextStage,
+      storageSaveState: 'saving',
+      storageSaveError: null,
+    });
+    writeDraftSnapshotForState(nextStage, state.scenes, state.currentSceneId);
+    debouncedSave();
+  },
+
+  clearFailedOutlines: () => {
+    const state = get();
+    const nextStage =
+      state.stage && (state.stage.pageGenerationFailures || []).length > 0
+        ? {
+            ...state.stage,
+            pageGenerationFailures: [],
+            updatedAt: Math.max(state.stage.updatedAt || 0, Date.now()),
+          }
+        : state.stage;
+    set({
+      stage: nextStage,
+      failedOutlines: [],
+      storageSaveState: nextStage !== state.stage ? 'saving' : state.storageSaveState,
+      storageSaveError: nextStage !== state.stage ? null : state.storageSaveError,
+    });
+    if (nextStage !== state.stage && nextStage) {
+      writeDraftSnapshotForState(nextStage, state.scenes, state.currentSceneId);
+      debouncedSave();
+    }
+  },
 
   retryFailedOutline: (outlineId) => {
+    const state = get();
+    const nextStage = state.stage
+      ? {
+          ...state.stage,
+          pageGenerationFailures: (state.stage.pageGenerationFailures || []).filter(
+            (failure) => failure.outlineId !== outlineId,
+          ),
+          updatedAt: Math.max(state.stage.updatedAt || 0, Date.now()),
+        }
+      : state.stage;
     set({
-      failedOutlines: get().failedOutlines.filter((o) => o.id !== outlineId),
+      stage: nextStage,
+      failedOutlines: state.failedOutlines.filter((o) => o.id !== outlineId),
+      storageSaveState: nextStage ? 'saving' : state.storageSaveState,
+      storageSaveError: nextStage ? null : state.storageSaveError,
     });
+    if (nextStage) {
+      writeDraftSnapshotForState(nextStage, state.scenes, state.currentSceneId);
+      debouncedSave();
+    }
   },
 
   incrementFallbackUsageCount: (delta = 1) => {
@@ -727,25 +844,9 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   loadFromStorage: async (stageId: string) => {
     try {
-      // Skip IndexedDB load if the store already has this stage with scenes
-      // (e.g. navigated from generation-preview with fresh in-memory data)
       const currentState = get();
       if (currentState.stage?.id === stageId && currentState.scenes.length > 0) {
-        const refreshedScenes = normalizeSceneStructure(
-          currentState.scenes.map((scene) => refreshSemanticSlideScene(scene)),
-        );
-        const resolvedCurrentSceneId =
-          currentState.currentSceneId &&
-          refreshedScenes.some((scene) => scene.id === currentState.currentSceneId)
-            ? currentState.currentSceneId
-            : refreshedScenes[0]?.id || null;
-        set({
-          scenes: refreshedScenes,
-          currentSceneId: resolvedCurrentSceneId,
-        });
-        writeDraftSnapshotForState(currentState.stage, refreshedScenes, resolvedCurrentSceneId);
-        log.info('Stage already loaded in memory, skipping IndexedDB load:', stageId);
-        return;
+        log.info('Stage already exists in memory; refreshing it from storage:', stageId);
       }
 
       const { loadStageData } = await import('@/lib/utils/stage-storage');
@@ -760,6 +861,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
         const loadedScenes = Array.isArray(data.scenes) ? normalizeSceneStructure(data.scenes) : [];
         const loadedChats = Array.isArray(data.chats) ? data.chats : [];
         const pendingOutlines = getPendingOutlines(outlines, loadedScenes);
+        const failedOutlines = getFailedPendingOutlines(data.stage, pendingOutlines);
         const resolvedCurrentSceneId =
           data.currentSceneId && loadedScenes.some((scene) => scene.id === data.currentSceneId)
             ? data.currentSceneId
@@ -777,6 +879,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
           storageSaveError: null,
           // Compute generatingOutlines from persisted outlines minus completed scenes
           generatingOutlines: pendingOutlines,
+          failedOutlines,
         });
         log.info('Loaded from storage:', stageId);
       } else {

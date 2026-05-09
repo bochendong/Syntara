@@ -14,8 +14,6 @@ export default function NotificationsPage() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const userId = useAuthStore((state) => state.userId);
   const activeUserId = useNotificationStore((state) => state.activeUserId);
-  const databaseEnabled = useNotificationStore((state) => state.databaseEnabled);
-  const hasInitializedSession = useNotificationStore((state) => state.hasInitializedSession);
   const isLoading = useNotificationStore((state) => state.isLoading);
   const notifications = useNotificationStore((state) => state.notifications);
   const readByUser = useNotificationStore((state) => state.readByUser);
@@ -57,7 +55,7 @@ export default function NotificationsPage() {
                 通知中心
               </h1>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-                扣款、收益和系统积分发放都会保留在这里，并同步到侧边栏未读角标。
+                达成目标、完成成就、做题反馈和复习陪伴会保留在这里，并同步到侧边栏未读角标。
               </p>
             </div>
 
@@ -79,13 +77,6 @@ export default function NotificationsPage() {
           </div>
         </section>
 
-        {hasInitializedSession && !databaseEnabled ? (
-          <section className="apple-glass mb-6 rounded-[24px] border border-amber-200/70 p-5 text-sm text-amber-900 dark:border-amber-400/20 dark:text-amber-100">
-            当前环境还没有启用数据库，积分通知历史暂时无法持久保存。启用 `DATABASE_URL`
-            后，这里的扣款和收益通知会自动保留。
-          </section>
-        ) : null}
-
         {isLoading && notifications.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 px-8 py-16 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-slate-400">
             正在加载通知…
@@ -95,7 +86,7 @@ export default function NotificationsPage() {
             <Bell className="mb-4 size-12 text-slate-300 dark:text-slate-600" strokeWidth={1.25} />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-200">暂无通知</p>
             <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-slate-400">
-              有新的扣款或收益记录时，会自动出现在这里。
+              完成目标、做题或复习时，陪伴提醒会自动出现在这里。
             </p>
           </div>
         ) : (

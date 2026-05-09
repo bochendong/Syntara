@@ -33,6 +33,13 @@ export interface LaserAction extends ActionBase {
   color?: string; // default '#ff0000'
 }
 
+/** Semantic step — advance a semantic teaching block to a specific step */
+export interface SemanticStepAction extends ActionBase {
+  type: 'semantic_step';
+  blockId: string;
+  stepIndex: number;
+}
+
 // ==================== Synchronous actions ====================
 
 /** Speech — teacher narration (wait for TTS to finish) */
@@ -183,6 +190,7 @@ export interface DiscussionAction extends ActionBase {
 export type Action =
   | SpotlightAction
   | LaserAction
+  | SemanticStepAction
   | PlayVideoAction
   | SpeechAction
   | WbOpenAction
@@ -200,10 +208,10 @@ export type Action =
 export type ActionType = Action['type'];
 
 /** Action types that fire immediately without blocking */
-export const FIRE_AND_FORGET_ACTIONS: ActionType[] = ['spotlight', 'laser'];
+export const FIRE_AND_FORGET_ACTIONS: ActionType[] = ['spotlight', 'laser', 'semantic_step'];
 
 /** Action types that only work on slide scenes (require slide canvas elements) */
-export const SLIDE_ONLY_ACTIONS: ActionType[] = ['spotlight', 'laser'];
+export const SLIDE_ONLY_ACTIONS: ActionType[] = ['spotlight', 'laser', 'semantic_step'];
 
 /** Action types that must complete before the next action runs */
 export const SYNC_ACTIONS: ActionType[] = [

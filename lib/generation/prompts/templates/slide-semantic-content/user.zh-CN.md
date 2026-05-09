@@ -1,19 +1,19 @@
-# Generation Requirements
+# Scene Brief
 
-## Scene Information
-
-- **Title**: {{title}}
-- **Description**: {{description}}
-- **Scene Language**: {{language}}
-- **Key Points**:
+- Title: {{title}}
+- Description: {{description}}
+- Scene Language: {{language}}
+- Key Points:
   {{keyPoints}}
 
 {{contentProfileContext}}
 {{archetypeContext}}
 {{layoutIntentContext}}
+{{deckContext}}
 {{workedExampleContext}}
 {{purposeGuidance}}
 {{disciplineGuidance}}
+
 ## Available Images / Visual Slots
 
 {{assignedImages}}
@@ -22,27 +22,19 @@
 {{coursePersonalization}}
 {{rewriteContext}}
 
-## Output Requirements
+## Output Task
 
-为这一页生成 Syntara Markup。
+为这一页生成 Syntara Markup。请先用 PagePlan 判断“这一页要完成的教学任务”，再选择语义结构；不要只把 key points 改写成段落。
 
-Important:
+生成时请确保：
 
-1. 只输出 Syntara Markup；不要输出 JSON
-2. 不要用 markdown code fence 包裹输出
-3. 必须以 `\begin{slide}[title={...}, profile=...]` 开始，以 `\end{slide}` 结束
-4. 不要输出坐标、HTML、PPT 元素，或名为 `slots` / `blocks` 的 JSON 字段
-5. 不要输出 KaTeX HTML；公式必须保留为 `\formula{...}` 或数学定界符中的普通 LaTeX
-6. 每个命令、环境标题、bullet 和文本单元都必须完全使用 `{{language}}`
-7. 如果场景包含公式、讲题、矩阵运算、代码或表格，优先使用 `\formula`、`derivation`、`\code` 或 `\table`
-8. 矩阵 / 证明 / 推导页设置 slide `profile=math`，代码页设置 `profile=code`，其他为 `profile=general`
-9. 如果版式意图给出了模板，用 `template=...`；否则自然选择 `rows`、`columns` 或 `grid`
-10. `two_column` 必须使用 `columns` / `column` 环境；不要用 `block title=left/right` 代替分栏
-11. 文本内公式优先写成 `$f(x)=x^2$`；不要写成 `\\(f(x)=x^2\\)`，也不要把普通连接词写成 `\text{且}`
-12. LaTeX/Syntara 命令只写一个反斜杠，例如 `\forall`，不要写 `\\forall`
-13. 优先保证单页可读：先压缩表述，再考虑增加块数量
-14. 如果题干必须完整，保留关键条件、数据、代码和问题要求
-15. 只有 Available Images / Visual Slots 提供图片 ID 时，才输出 `\image[source=...]`
-16. 数学标题、逆元、倒数、同余类必须写完整：如 `$\mathbb{Z}_{41}$`、`$22^{-1}$`、`$a\equiv b\pmod n$`；不要输出空公式 `$$` 或 `$^{-1}$`
-17. `\formula{...}` 和 `derivation` 的第二个 `\step` 参数只能放纯 LaTeX；不要把 `\formula{}`、`$...$`、中文讲解或 `\text{且}` 放进去
-18. 同余一律写 `\pmod{n}`，整除一律写 `\mid` / `\nmid`，省略号一律写在数学模式中；不要生成 `\pmod n`、`±od`、裸 `4^n`、裸 `\dots`
+1. 只输出 Syntara Markup，不输出 JSON、HTML、坐标或 markdown fence。
+2. 以 `\begin{slide}[title={...}, profile=..., language={{language}}]` 开始，以 `\end{slide}` 结束。
+3. 学生可见文本使用 `{{language}}`，代码标识符可保留原文。
+4. 使用输入提供的具体事实、代码、题目、数据和 PagePlan，不自行换题。
+5. 如果 Deck Memory 给出共享例子或前后页交接，本页里的简称必须按那里解释；不要把同一个例子重写成另一个语境。
+6. 数学、代码、表格、流程或状态模型用对应语义组件表达。
+7. 如果 layout intent 给出 classic `layoutTemplate`，按该模板的 renderer 输入结构组织语义块，例如 `pipeline_table` 必须同时有短引入、process 和 table；`comparison_matrix` 必须以 table 为主体；`process_steps` 必须以 process 为主体。
+8. 如果这是重试，优先修复 rewrite context 指出的具体问题。
+9. PagePlan 的具体入口必须进入学生可见文本；不要只写抽象方法。
+10. 不要把结构命令名或组件名写进卡片、步骤、表格单元格、callout 正文等学生可见字符串里。

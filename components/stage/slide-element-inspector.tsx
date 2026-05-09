@@ -31,7 +31,7 @@ import { renderMathToHtml } from '@/lib/math-engine';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 import { ImagePlus, Loader2, PlusSquare, SendHorizonal, Trash2, Upload, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 
 function sectionTitle(title: string, description?: string) {
   return (

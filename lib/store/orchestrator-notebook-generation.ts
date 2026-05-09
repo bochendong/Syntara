@@ -81,6 +81,25 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       setIncludeQuizScenes: (includeQuizScenes) => set({ includeQuizScenes }),
       setUseAiImages: (useAiImages) => set({ useAiImages }),
     }),
-    { name: 'synatra-orchestrator-nb-gen' },
+    {
+      name: 'synatra-orchestrator-nb-gen',
+      partialize: (state) => ({
+        notebookModelMode: state.notebookModelMode,
+        modelIdOverride: state.modelIdOverride,
+        notebookStageModelOverrides: state.notebookStageModelOverrides,
+        language: state.language,
+        webSearch: state.webSearch,
+        generateSlides: state.generateSlides,
+        outlineLength: state.outlineLength,
+        workedExampleLevel: state.workedExampleLevel,
+        includeQuizScenes: state.includeQuizScenes,
+        useAiImages: state.useAiImages,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...((persistedState as Partial<OrchestratorNotebookGenState> | null) ?? {}),
+        slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
+      }),
+    },
   ),
 );

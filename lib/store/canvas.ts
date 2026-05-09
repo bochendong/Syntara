@@ -32,6 +32,11 @@ export interface LaserOptions {
   duration?: number; // Duration (milliseconds)
 }
 
+export interface SemanticStepTarget {
+  blockId: string;
+  stepIndex: number;
+}
+
 /**
  * Canvas Store - Manages all UI state of the Canvas editor
  *
@@ -65,6 +70,7 @@ interface CanvasState {
   highlightOptions: HighlightOverlayOptions | null; // Highlight configuration
   laserElementId: string; // Element focused by laser pointer
   laserOptions: LaserOptions | null; // Laser pointer configuration
+  semanticStepTarget: SemanticStepTarget | null; // Semantic block step controlled by playback
   zoomTarget: { elementId: string; scale: number } | null; // Zoom target
 
   // ===== Canvas viewport state =====
@@ -174,6 +180,8 @@ interface CanvasState {
   clearHighlight: () => void;
   setLaser: (elementId: string, options?: LaserOptions) => void;
   clearLaser: () => void;
+  setSemanticStep: (blockId: string, stepIndex: number) => void;
+  clearSemanticStep: () => void;
   setZoom: (elementId: string, scale: number) => void;
   clearZoom: () => void;
   clearAllEffects: () => void;
@@ -243,6 +251,7 @@ const initialState = {
   highlightOptions: null,
   laserElementId: '',
   laserOptions: null,
+  semanticStepTarget: null,
   zoomTarget: null,
 };
 
@@ -427,6 +436,19 @@ const useCanvasStoreBase = create<CanvasState>((set, get) => ({
     });
   },
 
+  setSemanticStep: (blockId, stepIndex) => {
+    set({
+      semanticStepTarget: {
+        blockId,
+        stepIndex: Math.max(0, Math.floor(stepIndex)),
+      },
+    });
+  },
+
+  clearSemanticStep: () => {
+    set({ semanticStepTarget: null });
+  },
+
   setZoom: (elementId, scale) => {
     set({
       zoomTarget: { elementId, scale },
@@ -449,6 +471,7 @@ const useCanvasStoreBase = create<CanvasState>((set, get) => ({
       highlightOptions: null,
       laserElementId: '',
       laserOptions: null,
+      semanticStepTarget: null,
       zoomTarget: null,
       // Note: playingVideoElementId intentionally NOT cleared here.
       // Video playback has its own lifecycle (playVideo/pauseVideo/onEnded)

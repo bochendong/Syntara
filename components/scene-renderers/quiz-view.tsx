@@ -26,7 +26,7 @@ import {
   setQuestionProgress,
 } from '@/lib/utils/quiz-question-progress';
 import type { GamificationEventResponse } from '@/lib/types/gamification';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import {
   LEARNING_CARD_DEFINITIONS,
   buildQuestionHint,

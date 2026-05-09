@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SceneRenderer } from '@/components/stage/scene-renderer';
 import { SceneSidebar } from '@/components/stage/scene-sidebar';
 import { SceneProvider } from '@/lib/contexts/scene-context';
-import { Whiteboard } from '@/components/whiteboard';
 import { CanvasToolbar } from '@/components/canvas/canvas-toolbar';
 import type { TalkingAvatarOverlayState } from '@/components/canvas/talking-avatar-overlay';
 import type { CanvasToolbarProps } from '@/components/canvas/canvas-toolbar';
@@ -15,12 +15,23 @@ import type { Scene, StageMode } from '@/lib/types/stage';
 import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
 import { useI18n } from '@/lib/hooks/use-i18n';
 
+const Whiteboard = dynamic(() => import('@/components/whiteboard').then((mod) => mod.Whiteboard), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-4 flex items-center justify-center rounded-3xl border-2 border-purple-200/60 bg-white/95 text-xs font-semibold text-purple-600 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.25)] backdrop-blur-2xl dark:border-purple-700/60 dark:bg-gray-800/95 dark:text-purple-300">
+      正在打开白板…
+    </div>
+  ),
+});
+
 interface CanvasAreaProps extends CanvasToolbarProps {
   readonly currentScene: Scene | null;
   readonly mode: StageMode;
   readonly hideToolbar?: boolean;
   readonly isPendingScene?: boolean;
+  readonly isPendingGenerationActive?: boolean;
   readonly isGenerationFailed?: boolean;
+  readonly pendingGenerationFailureReason?: string;
   readonly onRetryGeneration?: () => void;
   readonly onSidebarCollapseChange: (collapsed: boolean) => void;
   readonly onSceneSelect?: (sceneId: string) => void;
@@ -81,13 +92,19 @@ export function CanvasArea({
   onStopDiscussion,
   hideToolbar,
   isPendingScene,
+  isPendingGenerationActive = false,
   isGenerationFailed,
+  pendingGenerationFailureReason,
   onRetryGeneration,
   sceneSidebarLive2d,
   playPauseDisabled = false,
   playPauseBusy = false,
 }: CanvasAreaProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const pendingIdleMessage =
+    locale === 'zh-CN'
+      ? '这一页还没有生成。点击上方的“继续生成页面”继续。'
+      : 'This page has not been generated yet. Use “Continue generating slides” above.';
   const isSemanticScrollSlide =
     currentScene?.type === 'slide' &&
     currentScene.content.type === 'slide' &&
@@ -193,7 +210,9 @@ export function CanvasArea({
             {/* Whiteboard Layer */}
             <div className="absolute inset-0 z-[110] pointer-events-none">
               <SceneProvider>
-                <Whiteboard isOpen={whiteboardOpen} onClose={onWhiteboardClose} />
+                {whiteboardOpen ? (
+                  <Whiteboard isOpen={whiteboardOpen} onClose={onWhiteboardClose} />
+                ) : null}
               </SceneProvider>
             </div>
 
@@ -236,6 +255,11 @@ export function CanvasArea({
                       <span className="text-sm text-red-500 dark:text-red-400 font-medium">
                         {t('stage.generationFailed')}
                       </span>
+                      {pendingGenerationFailureReason && (
+                        <span className="max-w-[360px] text-center text-xs leading-5 text-red-400 dark:text-red-300">
+                          {pendingGenerationFailureReason}
+                        </span>
+                      )}
                       {onRetryGeneration && (
                         <button
                           onClick={onRetryGeneration}
@@ -247,11 +271,12 @@ export function CanvasArea({
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-4">
-                      {/* Spinner */}
-                      <div className="relative w-12 h-12">
-                        <div className="absolute inset-0 rounded-full border-2 border-gray-100 dark:border-gray-700" />
-                        <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#007AFF] dark:border-t-[#0A84FF]" />
-                      </div>
+                      {isPendingGenerationActive && (
+                        <div className="relative w-12 h-12">
+                          <div className="absolute inset-0 rounded-full border-2 border-gray-100 dark:border-gray-700" />
+                          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#007AFF] dark:border-t-[#0A84FF]" />
+                        </div>
+                      )}
                       {/* Text */}
                       <motion.span
                         initial={{ opacity: 0, y: 4 }}
@@ -259,7 +284,9 @@ export function CanvasArea({
                         transition={{ delay: 0.2, duration: 0.3 }}
                         className="text-sm text-gray-400 dark:text-gray-500 font-medium"
                       >
-                        {t('stage.generatingNextPage')}
+                        {isPendingGenerationActive
+                          ? t('stage.generatingNextPage')
+                          : pendingIdleMessage}
                       </motion.span>
                     </div>
                   )}

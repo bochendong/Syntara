@@ -25,7 +25,7 @@ export default function CreditsMarketPage() {
               <Link href="/top-up">返回充值与转换</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
-              <Link href="/notifications">查看积分通知</Link>
+              <Link href="/notifications">查看通知中心</Link>
             </Button>
           </div>
         </section>

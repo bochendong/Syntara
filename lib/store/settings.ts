@@ -45,6 +45,42 @@ function ensureValidLive2DSelections(state: Partial<SettingsState>) {
   }
 }
 
+type ServerProvidersResponse = {
+  providers: Record<string, { models?: string[]; baseUrl?: string }>;
+  tts: Record<string, { baseUrl?: string }>;
+  asr: Record<string, { baseUrl?: string }>;
+  pdf: Record<string, { baseUrl?: string }>;
+  image: Record<string, { baseUrl?: string; models?: string[] }>;
+  video: Record<string, { baseUrl?: string; models?: string[] }>;
+  webSearch: Record<string, { baseUrl?: string }>;
+};
+
+const SERVER_PROVIDERS_CACHE_TTL_MS = 5 * 60 * 1000;
+let serverProvidersCache: ServerProvidersResponse | null = null;
+let serverProvidersCacheAt = 0;
+let serverProvidersFetchPromise: Promise<ServerProvidersResponse | null> | null = null;
+
+async function loadServerProvidersConfig(): Promise<ServerProvidersResponse | null> {
+  const now = Date.now();
+  if (serverProvidersCache && now - serverProvidersCacheAt < SERVER_PROVIDERS_CACHE_TTL_MS) {
+    return serverProvidersCache;
+  }
+  if (serverProvidersFetchPromise) return serverProvidersFetchPromise;
+
+  serverProvidersFetchPromise = (async () => {
+    const res = await fetch('/api/server-providers');
+    if (!res.ok) return null;
+    const data = (await res.json()) as ServerProvidersResponse;
+    serverProvidersCache = data;
+    serverProvidersCacheAt = Date.now();
+    return data;
+  })().finally(() => {
+    serverProvidersFetchPromise = null;
+  });
+
+  return serverProvidersFetchPromise;
+}
+
 /** Available playback speed tiers */
 export const PLAYBACK_SPEEDS = [1, 1.25, 1.5, 2] as const;
 export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
@@ -757,17 +793,8 @@ export const useSettingsStore = create<SettingsState>()(
         // Fetch server-configured providers and merge into local state
         fetchServerProviders: async () => {
           try {
-            const res = await fetch('/api/server-providers');
-            if (!res.ok) return;
-            const data = (await res.json()) as {
-              providers: Record<string, { models?: string[]; baseUrl?: string }>;
-              tts: Record<string, { baseUrl?: string }>;
-              asr: Record<string, { baseUrl?: string }>;
-              pdf: Record<string, { baseUrl?: string }>;
-              image: Record<string, { baseUrl?: string; models?: string[] }>;
-              video: Record<string, { baseUrl?: string; models?: string[] }>;
-              webSearch: Record<string, { baseUrl?: string }>;
-            };
+            const data = await loadServerProvidersConfig();
+            if (!data) return;
 
             set((state) => {
               // Merge LLM providers

@@ -16,7 +16,7 @@ const WORKED_EXAMPLE_LABEL_PATTERN =
   /(例题|例|题目|问题|problem|example|exercise)\s*[\d一二三四五六七八九十]+/i;
 
 const WORKED_EXAMPLE_PART_PATTERN =
-  /\s*[\(（\[]\s*(?:第\s*)?(?:part\s*)?[\d一二三四五六七八九十]+\s*(?:\/\s*[\d一二三四五六七八九十]+)?\s*(?:部分|页|段|part)?\s*[\)）\]]\s*/i;
+  /\s*[\(（\[]\s*(?:(?:第\s*)?[\d一二三四五六七八九十]+\s*\/\s*[\d一二三四五六七八九十]+|(?:第\s*)?[\d一二三四五六七八九十]+\s*(?:部分|页|段)|part\s*[\d一二三四五六七八九十]+(?:\s*\/\s*[\d一二三四五六七八九十]+)?|[\d一二三四五六七八九十]+\s*part)\s*[\)）\]]\s*/i;
 
 type OutlineGroup = {
   signature: string;
@@ -324,7 +324,7 @@ function compactSummaryOutline(outline: SceneOutline): SceneOutline {
     layoutIntent: {
       ...(outline.layoutIntent || {}),
       layoutFamily: 'summary',
-      layoutTemplate: 'summary_board',
+      layoutTemplate: 'two_by_one_summary',
       teachingFlow: 'standalone',
       density: 'light',
       overflowPolicy: 'compress_first',

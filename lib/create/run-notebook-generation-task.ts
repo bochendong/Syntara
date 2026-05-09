@@ -10,7 +10,7 @@ import {
   useAgentRegistry,
 } from '@/lib/orchestration/registry/store';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
-import type { Scene, Stage } from '@/lib/types/stage';
+import type { PageGenerationFailureRecord, Scene, Stage } from '@/lib/types/stage';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
 import {
   buildBudgetedGenerationMedia,
@@ -55,9 +55,10 @@ import {
   readApiErrorMessage,
 } from './api-errors';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { ensureTitleCoverOutline } from '@/lib/generation/title-cover';
 import {
-  normalizeSlideGenerationRoute,
+  normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
 import {
@@ -130,7 +131,7 @@ export type NotebookGenerationTaskResult = {
   outlines: SceneOutline[];
   agents: AgentInfo[];
   researchSources: WebSearchSource[];
-  failedScenes?: Array<{ outlineId: string; title: string; error: string }>;
+  failedScenes?: PageGenerationFailureRecord[];
 };
 
 function getPresetAgents(): AgentInfo[] {
@@ -145,6 +146,28 @@ function getPresetAgents(): AgentInfo[] {
       role: agent!.role,
       persona: agent!.persona,
     }));
+}
+
+function inferPageGenerationFailurePhase(message: string): PageGenerationFailureRecord['phase'] {
+  if (/actions?|讲解|narration|speech/i.test(message)) return 'actions';
+  if (/content|semantic|layout|页面内容|语义|渲染|生成失败/i.test(message)) return 'content';
+  return 'unknown';
+}
+
+function withPageGenerationFailure(
+  stage: Stage,
+  failure: PageGenerationFailureRecord,
+): Stage {
+  const failures = (stage.pageGenerationFailures || [])
+    .filter((item) => item.outlineId !== failure.outlineId)
+    .concat(failure)
+    .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+
+  return {
+    ...stage,
+    updatedAt: Math.max(stage.updatedAt || 0, Date.now()),
+    pageGenerationFailures: failures,
+  };
 }
 
 async function maybeGenerateAgents(args: {
@@ -377,7 +400,7 @@ async function repairOutlinesIfNeeded(args: {
         }),
         args.language,
       ),
-    );
+    ).map(normalizeComputerScienceSceneOutline);
   }
 
   let currentOutlines = normalizeOutlineCollection(
@@ -388,7 +411,7 @@ async function repairOutlinesIfNeeded(args: {
       }),
       args.language,
     ),
-  );
+  ).map(normalizeComputerScienceSceneOutline);
   const maxRepairPasses = 2;
 
   for (let pass = 1; pass <= maxRepairPasses; pass += 1) {
@@ -456,7 +479,7 @@ async function repairOutlinesIfNeeded(args: {
     const mergedOutlines = mergeSupplementalOutlines(
       currentOutlines,
       applyOutlineLanguage(supplementalOutlines, args.language),
-    );
+    ).map(normalizeComputerScienceSceneOutline);
 
     if (mergedOutlines.length === currentOutlines.length) {
       return currentOutlines;
@@ -483,7 +506,7 @@ export async function runNotebookGenerationTask(
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
   const generateSlides = input.generateSlides ?? true;
-  const slideGenerationRoute = normalizeSlideGenerationRoute(input.slideGenerationRoute);
+  const slideGenerationRoute = normalizeNotebookSlideGenerationRoute(input.slideGenerationRoute);
   const settings = useSettingsStore.getState();
   const effectiveMediaFlags: EffectiveMediaFlags = {
     imageEnabled:
@@ -761,14 +784,15 @@ export async function runNotebookGenerationTask(
       ensureTitleCoverOutline(outlines, {
         title: stage.name,
         language,
+        insertMissing: false,
       }),
-    );
+    ).map(normalizeComputerScienceSceneOutline);
 
     if (!outlines.length) throw new Error('未生成任何课程大纲');
     writePersistedStageOutlines(stage.id, outlines);
 
     const scenes: Scene[] = [];
-    const failedScenes: Array<{ outlineId: string; title: string; error: string }> = [];
+    const failedScenes: PageGenerationFailureRecord[] = [];
     let previousSpeeches: string[] = [];
     const userProfile =
       input.userNickname || input.userBio
@@ -908,11 +932,32 @@ export async function runNotebookGenerationTask(
               ? error
               : '页面生成失败';
         const shortReason = buildShortFailureReason(message);
-        failedScenes.push({
+        const failure: PageGenerationFailureRecord = {
           outlineId: outline.id,
-          title: outline.title,
+          outlineTitle: outline.title,
+          order: outline.order,
+          source: 'initial_generation',
+          phase: inferPageGenerationFailurePhase(message),
           error: message,
-        });
+          shortReason,
+          failedAt: Date.now(),
+        };
+        failedScenes.push(failure);
+        stage = withPageGenerationFailure(stage, failure);
+        try {
+          await saveStageData(stage.id, {
+            stage,
+            scenes,
+            currentSceneId: scenes[0]?.id || null,
+            chats: [],
+          });
+        } catch (saveError) {
+          console.warn('[NotebookGeneration] Failed to persist page generation failure', {
+            outlineId: outline.id,
+            outlineTitle: outline.title,
+            error: errorMessage(saveError, '保存失败页面记录失败'),
+          });
+        }
         input.onProgress?.({
           stage: 'scene',
           detail: `已跳过失败页面 ${i + 1}/${outlines.length}：${outline.title}（${shortReason}）`,

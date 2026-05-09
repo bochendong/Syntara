@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { Plus, Save, Trash2, Volume2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';

@@ -144,8 +144,8 @@ export function RawDataPanel({
 
 const RAW_SLIDE_VIEW_DESCRIPTIONS: Record<RawSlideDataView, string> = {
   source:
-    '生成源：模型输出或从语义文档还原的 Syntara Markup，适合检查 \\begin{slide}、\\definition、\\block 等块结构。',
-  compiled: '编译结果：Syntara Markup 解析后的 contentDocument，适合检查内容语义和版式意图。',
+    '生成源：模型输出或从语义文档还原的 Notebook LaTeX，适合检查 \\begin{frame}、\\begin{slide}、\\definition、\\block 等块结构。',
+  compiled: '编译结果：Notebook LaTeX 解析后的 contentDocument，适合检查内容语义和版式意图。',
   render: '渲染摘要：语义文档生成画布后的摘要，适合检查元素数量、主题和渲染模式。',
   outline: '大纲：本页来自课程规划阶段的章节目标和生成提示上下文。',
   narration: '讲解数据：本页绑定的 speech、spotlight、laser 等课堂动作。',

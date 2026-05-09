@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import type { UIMessage } from 'ai';
 import { useSearchParams } from 'next/navigation';
 import { useStageStore } from '@/lib/store';
@@ -18,7 +19,6 @@ import {
   shouldUpgradeLegacyTitleCoverContent,
 } from '@/lib/generation/title-cover';
 import { Header } from './header';
-import { ProblemBankView } from '@/components/problem-bank/problem-bank-view';
 import { CanvasPlaybackPill } from '@/components/canvas/canvas-playback-pill';
 import { CanvasArea } from '@/components/canvas/canvas-area';
 import { PlaybackEngine, computePlaybackView } from '@/lib/playback';
@@ -44,13 +44,10 @@ import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import { buildSceneSidebarAskThreadFromMessages } from '@/lib/utils/scene-sidebar-ask-thread';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { ClassroomFooter } from '@/components/stage/classroom-footer';
 import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-voice-chip';
 import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
-import { SlideNarrationEditor } from '@/components/stage/slide-narration-editor';
-import { ClassroomSlideCanvasEditor } from '@/components/stage/classroom-slide-canvas-editor';
-import { ClassroomSemanticSlideEditor } from '@/components/stage/classroom-semantic-slide-editor';
 import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
 import { sceneTypeTabLabel } from '@/components/stage/stage-helpers';
 import {
@@ -64,7 +61,7 @@ import {
   renderReflowedLayoutCardsScene,
   type RawSlideDataView,
 } from '@/components/stage/raw-view-helpers';
-import { normalizeSyntaraMarkupLayout, type NotebookContentDocument } from '@/lib/notebook-content';
+import { normalizeNotebookLatexSource, type NotebookContentDocument } from '@/lib/notebook-content';
 import {
   EditorStatusChip,
   StageTitleActions,
@@ -73,7 +70,6 @@ import {
   type SlideEditorSidebarTab,
   type SlideEditTab,
 } from '@/components/stage/stage-toolbar-controls';
-import { RawDataPanel } from '@/components/stage/raw-data-panel';
 import { StageConfirmationDialogs } from '@/components/stage/stage-confirmation-dialogs';
 import { useSlideRepair } from '@/components/stage/use-slide-repair';
 
@@ -101,6 +97,45 @@ const SIDEBAR_VOICE_REPLY_PREFERRED_VOICE: Partial<Record<TTSProviderId, string>
   'openai-tts': 'nova',
   'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
 };
+
+function StagePanelLoading() {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center bg-white/70 text-xs font-medium text-slate-500 dark:bg-slate-950/60 dark:text-slate-300">
+      正在准备面板…
+    </div>
+  );
+}
+
+const ProblemBankView = dynamic(
+  () => import('@/components/problem-bank/problem-bank-view').then((mod) => mod.ProblemBankView),
+  { ssr: false, loading: StagePanelLoading },
+);
+
+const SlideNarrationEditor = dynamic(
+  () => import('@/components/stage/slide-narration-editor').then((mod) => mod.SlideNarrationEditor),
+  { ssr: false, loading: StagePanelLoading },
+);
+
+const ClassroomSlideCanvasEditor = dynamic(
+  () =>
+    import('@/components/stage/classroom-slide-canvas-editor').then(
+      (mod) => mod.ClassroomSlideCanvasEditor,
+    ),
+  { ssr: false, loading: StagePanelLoading },
+);
+
+const ClassroomSemanticSlideEditor = dynamic(
+  () =>
+    import('@/components/stage/classroom-semantic-slide-editor').then(
+      (mod) => mod.ClassroomSemanticSlideEditor,
+    ),
+  { ssr: false, loading: StagePanelLoading },
+);
+
+const RawDataPanel = dynamic(
+  () => import('@/components/stage/raw-data-panel').then((mod) => mod.RawDataPanel),
+  { ssr: false, loading: StagePanelLoading },
+);
 
 function isSemanticScrollScene(scene: Scene | null): boolean {
   return Boolean(
@@ -171,7 +206,7 @@ export function Stage({
       );
     const hasWrongComputingCover =
       /COMPUTING/.test(firstSceneText) &&
-      !/code|program|代码|程序|编程|python|javascript|typescript|数据结构/i.test(
+      !/code|program|代码|程序|编程|python|javascript|typescript|数据结构|oop|object[-\s]*oriented|class|instance|attribute|method|constructor|initializer|__init__|self|tweet|twitter|userid|created_at|likes|面向对象|类|实例|对象|属性|方法|构造器|初始化器|推文|点赞|作者|日期/i.test(
         positiveTitleSignals,
       );
     const hasWrongGenericMathCover =
@@ -1467,8 +1502,22 @@ export function Stage({
   // get scene information
   const isPendingScene = currentSceneId === PENDING_SCENE_ID;
   const hasNextPending = generatingOutlines.length > 0;
-  const pendingSceneTitle =
-    isPendingScene && generationStatus === 'generating' ? generatingOutlines[0]?.title || '' : '';
+  const currentPendingOutline = isPendingScene ? generatingOutlines[0] : undefined;
+  const pendingSceneTitle = isPendingScene ? currentPendingOutline?.title || '' : '';
+  const pendingFailureRecord = currentPendingOutline
+    ? stage?.pageGenerationFailures?.find(
+        (failure) =>
+          failure.outlineId === currentPendingOutline.id ||
+          failure.order === currentPendingOutline.order ||
+          failure.outlineTitle === currentPendingOutline.title,
+      )
+    : undefined;
+  const isCurrentPendingGenerationFailed =
+    isPendingScene &&
+    Boolean(
+      currentPendingOutline &&
+      (failedOutlines.some((f) => f.id === currentPendingOutline.id) || pendingFailureRecord),
+    );
   const currentSceneIndex = isPendingScene
     ? scenes.length
     : scenes.findIndex((s) => s.id === currentSceneId);
@@ -1762,7 +1811,7 @@ export function Stage({
       if (!currentScene || currentScene.type !== 'slide' || currentScene.content.type !== 'slide') {
         return;
       }
-      const normalizedMarkup = normalizeSyntaraMarkupLayout(markup);
+      const normalizedMarkup = normalizeNotebookLatexSource(markup);
       const title = document.title || currentScene.title;
       const rendered = renderSemanticSlideContent({
         document,
@@ -1777,7 +1826,7 @@ export function Stage({
         content: rendered,
         updatedAt: Date.now(),
       });
-      toast.success('已通过 Syntara Markup 重新编译并渲染当前页。');
+      toast.success('已通过 Notebook LaTeX 重新编译并渲染当前页。');
     },
     [currentScene, updateScene],
   );
@@ -1956,13 +2005,15 @@ export function Stage({
               onStopDiscussion={handleStopDiscussion}
               hideToolbar={mode === 'playback' || slideEditorOpen}
               isPendingScene={isPendingScene}
+              isPendingGenerationActive={generationStatus === 'generating'}
               sceneSidebarLive2d={sceneSidebarLive2d}
-              isGenerationFailed={
-                isPendingScene && failedOutlines.some((f) => f.id === generatingOutlines[0]?.id)
+              isGenerationFailed={isCurrentPendingGenerationFailed}
+              pendingGenerationFailureReason={
+                pendingFailureRecord?.shortReason || pendingFailureRecord?.phase
               }
               onRetryGeneration={
-                onRetryOutline && generatingOutlines[0]
-                  ? () => onRetryOutline(generatingOutlines[0].id)
+                onRetryOutline && currentPendingOutline
+                  ? () => onRetryOutline(currentPendingOutline.id)
                   : undefined
               }
             />

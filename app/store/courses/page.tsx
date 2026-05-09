@@ -8,10 +8,14 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { ArrowRight, Compass, Library, Search, X } from 'lucide-react';
+import { Compass, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { CourseGalleryCard } from '@/components/course-gallery-card';
 import { PurchaseConfirmDialog } from '@/components/courses/purchase-confirm-dialog';
+import {
+  StoreFeatureStrip,
+  StoreListSection,
+  type StorefrontItem,
+} from '@/components/store/storefront-sections';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/lib/store/auth';
 import {
@@ -23,7 +27,7 @@ import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/c
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import type { CommunityCourseListItem, CourseRecord } from '@/lib/utils/database';
 import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 
 function formatDate(ts: number | string) {
@@ -175,7 +179,7 @@ export default function CourseStorePage() {
     () =>
       [...filteredCommunity]
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 6),
+        .slice(0, 9),
     [filteredCommunity],
   );
 
@@ -184,21 +188,96 @@ export default function CourseStorePage() {
       {
         title: '大学课程',
         subtitle: '更贴近课堂结构，适合系统学习。',
-        items: filteredCommunity.filter((item) => item.purpose === 'university').slice(0, 3),
+        items: filteredCommunity.filter((item) => item.purpose === 'university').slice(0, 9),
       },
       {
         title: '科研 / 方法论',
         subtitle: '适合项目推进、研究设计与案例拆解。',
-        items: filteredCommunity.filter((item) => item.purpose === 'research').slice(0, 3),
+        items: filteredCommunity.filter((item) => item.purpose === 'research').slice(0, 9),
       },
       {
         title: '日常学习',
         subtitle: '适合复习、整理和持续积累。',
-        items: filteredCommunity.filter((item) => item.purpose === 'daily').slice(0, 3),
+        items: filteredCommunity.filter((item) => item.purpose === 'daily').slice(0, 9),
       },
     ];
     return groups.filter((group) => group.items.length > 0);
   }, [filteredCommunity]);
+
+  const toCommunityStorefrontItem = useCallback(
+    (item: CommunityCourseListItem): StorefrontItem => {
+      const openCourse = () => router.push(`/store/courses/${item.id}`);
+      const busy = addingId === `c:${item.id}`;
+      const priceLabel = formatPurchaseCreditsLabel(creditsFromPriceCents(item.coursePriceCents));
+
+      return {
+        id: item.id,
+        title: item.name,
+        subtitle: `创作者 · ${item.ownerName}`,
+        description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
+        eyebrow: featuredReason(item),
+        badge: purposeLabel(item.purpose),
+        artworkUrl: resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl),
+        metadata: [
+          item.university?.trim() || item.courseCode?.trim() || purposeLabel(item.purpose),
+          `${item.notebookCount} 个笔记本`,
+          `★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`,
+          speechStatusLabel(item),
+        ].filter(Boolean) as string[],
+        openLabel: '查看课程',
+        onOpen: openCourse,
+        primaryActionLabel: busy ? '购买中…' : item.purchased ? '已拥有' : priceLabel,
+        primaryActionDisabled: item.purchased || busy,
+        onPrimaryAction: item.purchased ? openCourse : () => setPendingPurchaseCourse(item),
+      };
+    },
+    [addingId, router],
+  );
+
+  const toOwnedStorefrontItem = useCallback(
+    ({
+      course,
+      notebookCount,
+    }: {
+      course: CourseRecord;
+      notebookCount: number;
+    }): StorefrontItem => ({
+      id: course.id,
+      title: course.name,
+      subtitle: course.description || '你可以继续扩充笔记本、组织课堂与发布内容。',
+      description: course.description || '你可以继续扩充笔记本、组织课堂与发布内容。',
+      eyebrow: 'Your Library',
+      badge: purposeLabel(course.purpose),
+      artworkUrl: resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl),
+      metadata: [
+        `创作者 · ${creatorDisplay}`,
+        `${notebookCount} 个笔记本`,
+        course.university?.trim() ||
+          course.courseCode?.trim() ||
+          `更新于 ${formatDate(course.updatedAt)}`,
+      ].filter(Boolean) as string[],
+      primaryActionLabel: '打开',
+      onPrimaryAction: () => router.push(`/course/${course.id}`),
+    }),
+    [creatorDisplay, router],
+  );
+
+  const featuredItems = useMemo(() => {
+    const candidates = featuredCourse
+      ? [featuredCourse, ...recentCourses.filter((item) => item.id !== featuredCourse.id)]
+      : recentCourses;
+    return candidates.slice(0, 2).map(toCommunityStorefrontItem);
+  }, [featuredCourse, recentCourses, toCommunityStorefrontItem]);
+
+  const communityListItems = useMemo(() => {
+    const source = searchActive ? filteredCommunity : recentCourses;
+    return source.slice(0, 9).map(toCommunityStorefrontItem);
+  }, [filteredCommunity, recentCourses, searchActive, toCommunityStorefrontItem]);
+
+  const ownedCourseItems = useMemo(
+    () => filteredMine.map(toOwnedStorefrontItem),
+    [filteredMine, toOwnedStorefrontItem],
+  );
 
   if (!isLoggedIn) return null;
 
@@ -311,122 +390,20 @@ export default function CourseStorePage() {
           </div>
         </section>
 
-        <section className="mt-12">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                {searchActive ? 'Search Result Spotlight' : 'Editor&apos;s Pick'}
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                {searchActive ? '搜索结果中的推荐课程' : '编辑精选'}
-              </h2>
-            </div>
-          </div>
-
+        <section className="mt-10">
           {loading ? (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-              <div className="h-[34rem] animate-pulse rounded-[34px] bg-white/70 dark:bg-white/6" />
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-1">
-                <div className="h-[16.5rem] animate-pulse rounded-[30px] bg-white/70 dark:bg-white/6" />
-                <div className="h-[16.5rem] animate-pulse rounded-[30px] bg-white/70 dark:bg-white/6" />
-              </div>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="h-52 animate-pulse rounded-[26px] bg-white/70 dark:bg-white/6" />
+              <div className="h-52 animate-pulse rounded-[26px] bg-white/70 dark:bg-white/6" />
             </div>
-          ) : featuredCourse ? (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-              <div className="store-hero-panel rounded-[36px] p-5 md:p-6">
-                <CourseGalleryCard
-                  variant="store-course"
-                  course={{
-                    id: featuredCourse.id,
-                    name: featuredCourse.name,
-                    description:
-                      `${summaryCopy(featuredCourse)} ${featuredCourse.description || ''}`.trim(),
-                    sceneCount: featuredCourse.notebookCount,
-                    createdAt:
-                      typeof featuredCourse.createdAt === 'number'
-                        ? featuredCourse.createdAt
-                        : new Date(featuredCourse.createdAt).getTime(),
-                    updatedAt:
-                      typeof featuredCourse.updatedAt === 'number'
-                        ? featuredCourse.updatedAt
-                        : new Date(featuredCourse.updatedAt).getTime(),
-                  }}
-                  badge={featuredReason(featuredCourse)}
-                  subtitle={`更新于 ${formatDate(featuredCourse.updatedAt)}`}
-                  creatorName={featuredCourse.ownerName}
-                  actionLabel="查看课程"
-                  onAction={() => router.push(`/store/courses/${featuredCourse.id}`)}
-                  tags={featuredCourse.tags}
-                  courseMetaChips={{
-                    school: featuredCourse.university?.trim() || undefined,
-                    purposeType: purposeLabel(featuredCourse.purpose),
-                    courseCode: featuredCourse.courseCode?.trim() || undefined,
-                  }}
-                  speechStatusLabel={speechStatusLabel(featuredCourse)}
-                  countUnit="个笔记本"
-                  priceLabel={formatPurchaseCreditsLabel(
-                    creditsFromPriceCents(featuredCourse.coursePriceCents),
-                  )}
-                  ratingLabel={`★ ${(featuredCourse.averageRating ?? 0).toFixed(1)} · ${featuredCourse.reviewCount ?? 0} 条`}
-                  secondaryActionLabel={
-                    addingId === `c:${featuredCourse.id}`
-                      ? '购买中…'
-                      : featuredCourse.purchased
-                        ? '已拥有'
-                        : '立即购买'
-                  }
-                  onSecondaryAction={
-                    featuredCourse.purchased || addingId === `c:${featuredCourse.id}`
-                      ? undefined
-                      : () => setPendingPurchaseCourse(featuredCourse)
-                  }
-                  coverAvatarUrl={resolveCourseAvatarDisplayUrl(
-                    featuredCourse.id,
-                    featuredCourse.avatarUrl,
-                  )}
-                />
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-1">
-                {recentCourses
-                  .filter((item) => item.id !== featuredCourse.id)
-                  .slice(0, 2)
-                  .map((item) => (
-                    <div key={item.id} className="store-section-panel rounded-[30px] p-5">
-                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {featuredReason(item)}
-                      </p>
-                      <h3 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
-                        {item.name}
-                      </h3>
-                      <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                        {summaryCopy(item)}
-                      </p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        <span className="store-chip text-xs">{purposeLabel(item.purpose)}</span>
-                        <span className="store-chip text-xs">{item.notebookCount} 个笔记本</span>
-                        <span className="store-chip text-xs">
-                          {formatPurchaseCreditsLabel(creditsFromPriceCents(item.coursePriceCents))}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/store/courses/${item.id}`)}
-                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sky-600 transition-colors hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200"
-                      >
-                        查看详情
-                        <ArrowRight className="size-4" />
-                      </button>
-                    </div>
-                  ))}
-              </div>
-            </div>
+          ) : featuredItems.length > 0 ? (
+            <StoreFeatureStrip items={featuredItems} />
           ) : (
-            <div className="store-section-panel rounded-[32px] p-10 text-center">
-              <p className="text-lg font-semibold text-slate-950 dark:text-white">
+            <div className="rounded-[22px] border border-slate-200/75 bg-white/70 p-8 text-center dark:border-white/10 dark:bg-white/6">
+              <p className="text-base font-semibold text-slate-950 dark:text-white">
                 {searchActive ? '没有找到匹配的社区课程' : '社区课程还在上架中'}
               </p>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300">
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {searchActive
                   ? `没有课程匹配“${searchQuery.trim()}”。可以试试课程名、学校、创作者、课号或标签。`
                   : '暂无社区课程。请其他用户在课程页「编辑课程」中开启「在课程商城展示」，或稍后再来查看。'}
@@ -435,213 +412,70 @@ export default function CourseStorePage() {
           )}
         </section>
 
-        <section className="mt-14">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                {searchActive ? 'Matched Courses' : 'New & Trending'}
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                {searchActive ? '所有匹配课程' : '新上架与热门课程'}
-              </h2>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, idx) => (
+        {loading ? (
+          <section className="mt-12 border-t border-slate-200/75 pt-6 dark:border-white/10">
+            <div className="mb-5 h-9 w-48 animate-pulse rounded-full bg-white/70 dark:bg-white/6" />
+            <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 9 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="h-[31rem] animate-pulse rounded-[32px] bg-white/70 dark:bg-white/6"
-                />
+                  className="h-[6.25rem] animate-pulse border-t border-slate-200/75 py-3.5 dark:border-white/10"
+                >
+                  <div className="h-full rounded-2xl bg-white/70 dark:bg-white/6" />
+                </div>
               ))}
             </div>
-          ) : filteredCommunity.length === 0 ? null : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {recentCourses.slice(0, 6).map((item) => (
-                <CourseGalleryCard
-                  key={item.id}
-                  variant="store-course"
-                  course={{
-                    id: item.id,
-                    name: item.name,
-                    description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
-                    sceneCount: item.notebookCount,
-                    createdAt:
-                      typeof item.createdAt === 'number'
-                        ? item.createdAt
-                        : new Date(item.createdAt).getTime(),
-                    updatedAt:
-                      typeof item.updatedAt === 'number'
-                        ? item.updatedAt
-                        : new Date(item.updatedAt).getTime(),
-                  }}
-                  tags={item.tags.length > 0 ? item.tags : undefined}
-                  badge={featuredReason(item)}
-                  subtitle={`更新于 ${formatDate(item.updatedAt)}`}
-                  creatorName={item.ownerName}
-                  courseMetaChips={{
-                    school: item.university?.trim() || undefined,
-                    purposeType: purposeLabel(item.purpose),
-                    courseCode: item.courseCode?.trim() || undefined,
-                  }}
-                  speechStatusLabel={speechStatusLabel(item)}
-                  countUnit="个笔记本"
-                  priceLabel={formatPurchaseCreditsLabel(
-                    creditsFromPriceCents(item.coursePriceCents),
-                  )}
-                  ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
-                  actionLabel="查看详情"
-                  onAction={() => router.push(`/store/courses/${item.id}`)}
-                  secondaryActionLabel={
-                    addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已拥有' : '购买'
-                  }
-                  onSecondaryAction={
-                    item.purchased || addingId === `c:${item.id}`
-                      ? undefined
-                      : () => setPendingPurchaseCourse(item)
-                  }
-                  coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+          </section>
+        ) : (
+          <StoreListSection
+            className="mt-12"
+            eyebrow={searchActive ? 'Matched Courses' : 'New & Trending'}
+            title={searchActive ? '所有匹配课程' : '新上架与热门课程'}
+            subtitle={
+              searchActive
+                ? '按 App Store 式榜单展示匹配项，先扫标题、来源和价格，再点进详情。'
+                : '把更多课程压缩成可快速浏览的三列榜单，避免整页都被大封面卡占满。'
+            }
+            items={communityListItems}
+            emptyTitle={searchActive ? '没有找到匹配的社区课程' : '社区课程还在上架中'}
+            emptyDescription={
+              searchActive
+                ? `没有课程匹配“${searchQuery.trim()}”。可以试试课程名、学校、创作者、课号或标签。`
+                : '暂无社区课程。请其他用户在课程页「编辑课程」中开启「在课程商城展示」，或稍后再来查看。'
+            }
+          />
+        )}
 
         {!searchActive
           ? purposeShelves.map((shelf) => (
-              <section key={shelf.title} className="mt-14">
-                <div className="mb-6 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                      Browse by Intent
-                    </p>
-                    <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                      {shelf.title}
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                      {shelf.subtitle}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {shelf.items.map((item) => (
-                    <CourseGalleryCard
-                      key={item.id}
-                      variant="store-course"
-                      course={{
-                        id: item.id,
-                        name: item.name,
-                        description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
-                        sceneCount: item.notebookCount,
-                        createdAt:
-                          typeof item.createdAt === 'number'
-                            ? item.createdAt
-                            : new Date(item.createdAt).getTime(),
-                        updatedAt:
-                          typeof item.updatedAt === 'number'
-                            ? item.updatedAt
-                            : new Date(item.updatedAt).getTime(),
-                      }}
-                      tags={item.tags.length > 0 ? item.tags : undefined}
-                      badge={purposeLabel(item.purpose)}
-                      subtitle={`更新于 ${formatDate(item.updatedAt)}`}
-                      creatorName={item.ownerName}
-                      courseMetaChips={{
-                        school: item.university?.trim() || undefined,
-                        purposeType: purposeLabel(item.purpose),
-                        courseCode: item.courseCode?.trim() || undefined,
-                      }}
-                      speechStatusLabel={speechStatusLabel(item)}
-                      countUnit="个笔记本"
-                      priceLabel={formatPurchaseCreditsLabel(
-                        creditsFromPriceCents(item.coursePriceCents),
-                      )}
-                      ratingLabel={`★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`}
-                      actionLabel="查看详情"
-                      onAction={() => router.push(`/store/courses/${item.id}`)}
-                      secondaryActionLabel={
-                        addingId === `c:${item.id}` ? '购买中…' : item.purchased ? '已拥有' : '购买'
-                      }
-                      onSecondaryAction={
-                        item.purchased || addingId === `c:${item.id}`
-                          ? undefined
-                          : () => setPendingPurchaseCourse(item)
-                      }
-                      coverAvatarUrl={resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl)}
-                    />
-                  ))}
-                </div>
-              </section>
+              <StoreListSection
+                key={shelf.title}
+                className="mt-12"
+                eyebrow="Browse by Intent"
+                title={shelf.title}
+                subtitle={shelf.subtitle}
+                items={shelf.items.map(toCommunityStorefrontItem)}
+              />
             ))
           : null}
 
-        <section className="mt-14">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                Your Library
-              </p>
-              <h2 className="mt-2 flex items-center gap-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                <Library className="size-7" />
-                我已有的课程
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                已购买或自建课程集中展示，方便继续编辑、补充和扩展。
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push('/my-courses')}
-              className="hidden rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 backdrop-blur-sm md:block dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-            >
-              前往我的课程
-            </button>
-          </div>
-
-          {loading ? null : filteredMine.length === 0 ? (
-            <div className="store-section-panel rounded-[32px] p-10 text-center">
-              <p className="text-lg font-semibold text-slate-950 dark:text-white">
-                {searchActive ? '你的课程里没有匹配结果' : '你的课程库还是空的'}
-              </p>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                {searchActive
-                  ? `你已有的课程里没有匹配“${searchQuery.trim()}”的结果。`
-                  : '暂无课程。请前往「我的课程」新建课程，或从上方社区课程中购买并复制到自己的空间。'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredMine.map(({ course, notebookCount }) => (
-                <CourseGalleryCard
-                  key={course.id}
-                  variant="owned-course"
-                  course={{
-                    id: course.id,
-                    name: course.name,
-                    description:
-                      course.description || '你可以继续在此课程下扩充笔记本、组织课堂与发布内容。',
-                    sceneCount: notebookCount,
-                    createdAt: course.createdAt,
-                    updatedAt: course.updatedAt,
-                  }}
-                  tags={course.tags.length > 0 ? course.tags : undefined}
-                  badge={purposeLabel(course.purpose)}
-                  subtitle={`更新于 ${formatDate(course.updatedAt)}`}
-                  creatorName={creatorDisplay}
-                  courseMetaChips={{
-                    school: course.university?.trim() || undefined,
-                    courseCode: course.courseCode?.trim() || undefined,
-                  }}
-                  countUnit="个笔记本"
-                  actionLabel="进入课程"
-                  onAction={() => router.push(`/course/${course.id}`)}
-                  coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        {loading ? null : (
+          <StoreListSection
+            className="mt-12"
+            eyebrow="Your Library"
+            title="我已有的课程"
+            subtitle="已购买或自建课程集中展示，方便继续编辑、补充和扩展。"
+            actionLabel="前往我的课程"
+            onAction={() => router.push('/my-courses')}
+            items={ownedCourseItems}
+            emptyTitle={searchActive ? '你的课程里没有匹配结果' : '你的课程库还是空的'}
+            emptyDescription={
+              searchActive
+                ? `你已有的课程里没有匹配“${searchQuery.trim()}”的结果。`
+                : '暂无课程。请前往「我的课程」新建课程，或从上方社区课程中购买并复制到自己的空间。'
+            }
+          />
+        )}
 
         <PurchaseConfirmDialog
           open={Boolean(pendingPurchaseCourse)}

@@ -1,6 +1,7 @@
 import type { Scene, SlideContent } from '@/lib/types/stage';
 import type { Slide } from '@/lib/types/slides';
 import type { NotebookContentBlock, NotebookContentDocument } from './schema';
+import { isClassicLectureLayoutTemplate } from './schema';
 import {
   compileSyntaraMarkupToNotebookDocument,
   normalizeSyntaraMarkupLayout,
@@ -8,8 +9,9 @@ import {
 import { renderNotebookContentDocumentToSlide } from './slide-adapter';
 import { normalizeSlideTextLayout, validateSlideTextLayout } from '@/lib/slide-text-layout';
 import { normalizeMathSource } from '@/lib/math-engine';
+import { getExampleDisplaySteps } from './example-block';
 
-export const SEMANTIC_SLIDE_RENDER_VERSION = 55;
+export const SEMANTIC_SLIDE_RENDER_VERSION = 67;
 
 const SEMANTIC_TEXT_FIELD_KEYS = new Set([
   'answer',
@@ -434,6 +436,10 @@ function compactSemanticIdentity(text: string): string {
     .trim();
 }
 
+function asArray<T>(value: readonly T[] | null | undefined): readonly T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function collectBlockText(block: NotebookContentBlock): string {
   switch (block.type) {
     case 'heading':
@@ -441,15 +447,17 @@ function collectBlockText(block: NotebookContentBlock): string {
     case 'paragraph':
       return block.text;
     case 'bullet_list':
-      return block.items.join('\n');
+      return asArray(block.items).join('\n');
     case 'equation':
       return block.latex;
     case 'matrix':
-      return block.rows.flat().join(' ');
+      return asArray(block.rows)
+        .flatMap((row) => asArray(row))
+        .join(' ');
     case 'derivation_steps':
       return [
         block.title || '',
-        ...block.steps.map((step) => [step.explanation || '', step.expression].join(' ')),
+        ...asArray(block.steps).map((step) => [step.explanation || '', step.expression].join(' ')),
       ].join('\n');
     case 'code_block':
       return [block.caption || '', block.code].join('\n');
@@ -458,13 +466,191 @@ function collectBlockText(block: NotebookContentBlock): string {
         block.title || '',
         block.caption || '',
         block.code,
-        ...block.steps.map((step) =>
+        ...asArray(block.steps).map((step) =>
           [step.title || '', step.focus || '', step.explanation].join(' '),
         ),
         block.output || '',
       ].join('\n');
+    case 'code_trace':
+      return [
+        block.title || '',
+        block.code,
+        ...asArray(block.inputs).map((item) => `${item.name}=${item.value}`),
+        ...asArray(block.steps).map((step) =>
+          [
+            step.line ? `L${step.line}` : '',
+            step.explanation,
+            ...asArray(step.state).map((item) => `${item.name}=${item.value}`),
+          ].join(' '),
+        ),
+        block.output || '',
+      ].join('\n');
+    case 'state_table':
+      return [
+        block.title || '',
+        ...asArray(block.columns),
+        ...asArray(block.rows).flatMap((row) => asArray(row)),
+        block.caption || '',
+      ].join('\n');
+    case 'call_stack':
+      return [
+        block.title || '',
+        ...asArray(block.frames).map((frame) =>
+          [
+            frame.name,
+            ...asArray(frame.args).map((item) => `${item.name}=${item.value}`),
+            ...asArray(frame.locals).map((item) => `${item.name}=${item.value}`),
+            frame.returnValue || '',
+            frame.note || '',
+          ].join(' '),
+        ),
+      ].join('\n');
+    case 'memory_diagram':
+      return [
+        block.title || '',
+        block.code || '',
+        ...asArray(block.steps).map((step) =>
+          [
+            step.title || '',
+            step.line ? `line ${step.line}` : '',
+            ...asArray(step.frames).flatMap((frame) => [
+              frame.name,
+              ...asArray(frame.variables).map((item) => `${item.name}=${item.ref || item.value}`),
+            ]),
+            ...asArray(step.stack).map((item) => `${item.name}=${item.ref || item.value}`),
+            ...asArray(step.heap).map((item) => `${item.id} ${item.label}`),
+            step.explanation || '',
+          ].join(' '),
+        ),
+        ...asArray(block.frames).flatMap((frame) => [
+          frame.name,
+          ...asArray(frame.variables).map((item) => `${item.name}=${item.ref || item.value}`),
+        ]),
+        ...asArray(block.stack).map((item) => `${item.name}=${item.ref || item.value}`),
+        ...asArray(block.heap).map((item) => `${item.id} ${item.label}`),
+        ...asArray(block.links).map((link) => `${link.from}->${link.to}`),
+        block.caption || '',
+      ].join('\n');
+    case 'pointer_diagram':
+      return [
+        block.title || '',
+        block.operation || '',
+        block.kind || '',
+        ...asArray(block.nodes).map((node) => node.label),
+        ...asArray(block.pointers).map((pointer) => `${pointer.name}->${pointer.to || 'None'}`),
+        ...asArray(block.links).map((link) => `${link.from}->${link.to}`),
+        ...asArray(block.steps).map((step) =>
+          [
+            step.title || '',
+            step.operation || '',
+            ...asArray(step.nodes).map((node) => node.label),
+            ...asArray(step.pointers).map((pointer) => `${pointer.name}->${pointer.to || 'None'}`),
+            ...asArray(step.links).map((link) => `${link.from}->${link.to}`),
+            step.explanation || '',
+          ].join(' '),
+        ),
+        block.caption || '',
+      ].join('\n');
+    case 'tree_diagram':
+      return [
+        block.title || '',
+        block.kind || '',
+        block.target || '',
+        block.decision || '',
+        ...asArray(block.nodes).map((node) =>
+          [node.label, asArray(node.children).join(' '), node.left || '', node.right || ''].join(
+            ' ',
+          ),
+        ),
+        ...asArray(block.steps).map((step) =>
+          [
+            step.title || '',
+            step.current || '',
+            asArray(step.path).join(' '),
+            step.comparison || '',
+            step.direction || '',
+            step.result || '',
+          ].join(' '),
+        ),
+        block.invariant || '',
+        block.caption || '',
+      ].join('\n');
+    case 'graph_trace':
+      return [
+        block.title || '',
+        block.algorithm,
+        block.startId || '',
+        ...asArray(block.nodes).map((node) => [node.id, node.label].join(' ')),
+        ...asArray(block.edges).map((edge) =>
+          [edge.from, edge.to, edge.label || '', edge.directed ? 'directed' : ''].join(' '),
+        ),
+        ...asArray(block.steps).map((step) =>
+          [
+            step.title || '',
+            step.action || '',
+            step.current || '',
+            asArray(step.frontier).join(' '),
+            asArray(step.visited).join(' '),
+            asArray(step.order).join(' '),
+            step.currentEdge ? step.currentEdge.join(' ') : '',
+            step.explanation || '',
+            step.result || '',
+          ].join(' '),
+        ),
+        block.invariant || '',
+        block.caption || '',
+      ].join('\n');
+    case 'invariant_panel':
+      return [
+        block.title || '',
+        block.structure || '',
+        block.invariant,
+        ...asArray(block.checks).map((check) =>
+          [check.label, check.text, check.status, check.reason || ''].join(' '),
+        ),
+        block.caption || '',
+      ].join('\n');
+    case 'dictionary_diagram':
+      return [
+        block.title || '',
+        block.operation || '',
+        block.lookupKey || '',
+        block.result || '',
+        ...asArray(block.entries).map((entry) =>
+          [
+            entry.key,
+            entry.value,
+            entry.note || '',
+            entry.active ? 'active' : '',
+            entry.changed ? 'changed' : '',
+          ].join(' '),
+        ),
+        block.caption || '',
+      ].join('\n');
+    case 'linear_structure':
+      return [
+        block.title || '',
+        block.kind,
+        block.operation || '',
+        ...asArray(block.items).map((item) => [item.id, item.label, item.note || ''].join(' ')),
+        ...asArray(block.steps).map((step) =>
+          [
+            step.title || '',
+            step.operation || '',
+            ...asArray(step.items).map((item) => [item.id, item.label, item.note || ''].join(' ')),
+            asArray(step.focus).join(' '),
+            step.explanation || '',
+            step.result || '',
+          ].join(' '),
+        ),
+        block.caption || '',
+      ].join('\n');
     case 'table':
-      return [block.caption || '', ...(block.headers || []), ...block.rows.flat()].join('\n');
+      return [
+        block.caption || '',
+        ...asArray(block.headers),
+        ...asArray(block.rows).flatMap((row) => asArray(row)),
+      ].join('\n');
     case 'callout':
       return [block.title || '', block.text].join('\n');
     case 'definition':
@@ -475,23 +661,26 @@ function collectBlockText(block: NotebookContentBlock): string {
       return [
         block.title || '',
         block.problem,
-        ...block.givens,
+        ...asArray(block.givens),
         block.goal || '',
-        ...block.steps,
+        ...getExampleDisplaySteps(block),
         block.answer || '',
-        ...block.pitfalls,
+        ...asArray(block.pitfalls),
       ].join('\n');
-    case 'process_flow':
+    case 'process_flow': {
+      const context = Array.isArray(block.context) ? block.context : [];
+      const steps = Array.isArray(block.steps) ? block.steps : [];
       return [
         block.title || '',
-        ...block.context.map((item) => [item.label, item.text].join(' ')),
-        ...block.steps.map((step) => [step.title, step.detail, step.note || ''].join(' ')),
+        ...context.map((item) => [item.label, item.text].join(' ')),
+        ...steps.map((step) => [step.title, step.detail, step.note || ''].join(' ')),
         block.summary || '',
       ].join('\n');
+    }
     case 'layout_cards':
       return [
         block.title || '',
-        ...block.items.map((item) => [item.title, item.text].join(' ')),
+        ...asArray(block.items).map((item) => [item.title, item.text].join(' ')),
       ].join('\n');
     case 'chem_formula':
       return [block.caption || '', block.formula].join('\n');
@@ -507,8 +696,8 @@ function collectBlockText(block: NotebookContentBlock): string {
 function collectDocumentText(document: NotebookContentDocument): string {
   return [
     document.title || '',
-    ...document.blocks.map(collectBlockText),
-    ...(document.slots || []).flatMap((slot) => slot.blocks.map(collectBlockText)),
+    ...asArray(document.blocks).map(collectBlockText),
+    ...asArray(document.slots).flatMap((slot) => asArray(slot.blocks).map(collectBlockText)),
   ].join('\n');
 }
 
@@ -592,10 +781,33 @@ function dedupeBulletItems(items: string[]): string[] {
 
 function normalizeBlockStructure(blocks: NotebookContentBlock[]): NotebookContentBlock[] {
   return blocks.flatMap((block): NotebookContentBlock[] => {
+    if (block.type === 'process_flow') {
+      return [
+        {
+          ...block,
+          context: Array.isArray(block.context) ? block.context : [],
+          steps: Array.isArray(block.steps) ? block.steps : [],
+        },
+      ];
+    }
     if (block.type !== 'bullet_list') return [block];
     const items = dedupeBulletItems(block.items);
     return items.length ? [{ ...block, items }] : [];
   });
+}
+
+function hasUnnormalizedBlockStructure(block: NotebookContentBlock): boolean {
+  if (block.type === 'process_flow') {
+    return !Array.isArray(block.context) || !Array.isArray(block.steps);
+  }
+  return false;
+}
+
+function hasUnnormalizedSemanticDocument(document: NotebookContentDocument): boolean {
+  return (
+    document.blocks.some(hasUnnormalizedBlockStructure) ||
+    Boolean(document.slots?.some((slot) => slot.blocks.some(hasUnnormalizedBlockStructure)))
+  );
 }
 
 function isCompositionBridgeDocument(document: NotebookContentDocument): boolean {
@@ -798,10 +1010,48 @@ function normalizeSemanticDocumentStructure(
   });
 }
 
+function hasScrollNativeSemanticBlock(blocks: NotebookContentBlock[]): boolean {
+  return blocks.some((block) =>
+    [
+      'code_block',
+      'code_walkthrough',
+      'code_trace',
+      'state_table',
+      'call_stack',
+      'memory_diagram',
+      'pointer_diagram',
+      'tree_diagram',
+      'graph_trace',
+      'example',
+      'derivation_steps',
+    ].includes(block.type),
+  );
+}
+
+function isStaticLectureDocument(document: NotebookContentDocument): boolean {
+  if (document.preserveFullProblemStatement) return false;
+  if (
+    document.layoutFamily === 'code_walkthrough' ||
+    document.layoutFamily === 'problem_statement' ||
+    document.layoutFamily === 'problem_solution' ||
+    document.layoutFamily === 'derivation'
+  ) {
+    return false;
+  }
+  return !hasScrollNativeSemanticBlock(document.blocks);
+}
+
 export function normalizeSemanticDocumentForRender(
   document: NotebookContentDocument,
 ): NotebookContentDocument {
-  return normalizeSemanticDocumentStructure(normalizeSemanticDocumentMath(document));
+  const normalizedDocument = normalizeSemanticDocumentStructure(
+    normalizeSemanticDocumentMath(document),
+  );
+  if (!normalizedDocument.continuation) return normalizedDocument;
+  return {
+    ...normalizedDocument,
+    continuation: undefined,
+  };
 }
 
 export function markSemanticSlideContent(
@@ -830,19 +1080,27 @@ export function renderSemanticSlideContent(args: {
     document,
     fallbackTitle: args.fallbackTitle,
   });
+  const shouldTrustTemplateGeometry = isClassicLectureLayoutTemplate(document.layoutTemplate);
   const layoutValidation = validateSlideTextLayout(renderedCanvas.elements);
-  const normalizedCanvas = layoutValidation.isValid
-    ? renderedCanvas
-    : {
-        ...renderedCanvas,
-        elements: normalizeSlideTextLayout(renderedCanvas.elements),
-      };
+  const normalizedCanvas =
+    shouldTrustTemplateGeometry || layoutValidation.isValid
+      ? renderedCanvas
+      : {
+          ...renderedCanvas,
+          elements: normalizeSlideTextLayout(renderedCanvas.elements),
+        };
   const canvas: Slide = args.preserveCanvasId
     ? {
         ...normalizedCanvas,
         id: args.preserveCanvasId,
       }
     : normalizedCanvas;
+  const webRenderMode =
+    args.renderMode === 'manual' ||
+    isClassicLectureLayoutTemplate(document.layoutTemplate) ||
+    isStaticLectureDocument(document)
+      ? 'slide'
+      : 'scroll';
 
   return {
     type: 'slide',
@@ -851,12 +1109,16 @@ export function renderSemanticSlideContent(args: {
     semanticDocument: document,
     semanticRenderVersion: SEMANTIC_SLIDE_RENDER_VERSION,
     semanticRenderMode: args.renderMode ?? 'auto',
-    webRenderMode: args.renderMode === 'manual' ? 'slide' : 'scroll',
+    webRenderMode,
   };
 }
 
 export function shouldAutoRefreshSemanticSlideContent(content: SlideContent): boolean {
   if (!content.semanticDocument && !content.syntaraMarkup) return false;
+  if (content.semanticDocument?.continuation) return true;
+  if (content.semanticDocument && hasUnnormalizedSemanticDocument(content.semanticDocument)) {
+    return true;
+  }
   if (hasMathRenderError(content)) return true;
   if (hasBrokenSemanticSource(content)) return true;
   if (content.semanticRenderMode === 'manual') return false;
@@ -877,6 +1139,29 @@ function hasBrokenSemanticSource(content: SlideContent): boolean {
   );
 }
 
+function isCodeLikeSemanticDocument(document: NotebookContentDocument | null | undefined): boolean {
+  if (!document) return false;
+  if (document.profile === 'code' || document.disciplineStyle === 'code') return true;
+  if (document.layoutFamily === 'code_walkthrough' || document.layoutTemplate === 'code_split') {
+    return true;
+  }
+
+  const searchable = [
+    document.title,
+    document.archetype,
+    document.teachingFlow,
+    JSON.stringify(document.blocks ?? []),
+    JSON.stringify(document.slots ?? []),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+
+  return /(oop|python|__init__|self|class |method|attribute|instance|object|linked\s*list|bst|tree|graph|bfs|dfs|queue|stack|dictionary|recursion|loop|invariant|面向对象|对象|实例|属性|链表|二叉|树|图|队列|字典|递归|循环|不变式)/.test(
+    searchable,
+  );
+}
+
 export function refreshSemanticSlideScene(scene: Scene): Scene {
   if (scene.type !== 'slide' || scene.content.type !== 'slide') {
     return scene;
@@ -887,8 +1172,11 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
     return scene;
   }
   const markupSource = content.syntaraMarkup;
+  const preferSemanticDocument = isCodeLikeSemanticDocument(content.semanticDocument);
   const shouldCompileFromMarkup = Boolean(
-    markupSource && (!content.semanticDocument || !content.semanticDocument.continuation),
+    markupSource &&
+    !preferSemanticDocument &&
+    (!content.semanticDocument || !content.semanticDocument.continuation),
   );
   const compiledDocument = shouldCompileFromMarkup
     ? compileSyntaraMarkupToNotebookDocument(markupSource || '', {
@@ -897,6 +1185,9 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
       })
     : null;
   const sourceDocument =
+    (preferSemanticDocument && content.semanticDocument
+      ? normalizeSemanticDocumentForRender(content.semanticDocument)
+      : null) ||
     compiledDocument ||
     (content.semanticDocument
       ? normalizeSemanticDocumentForRender(content.semanticDocument)
@@ -904,7 +1195,9 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
   if (!sourceDocument) return scene;
   const syntaraMarkup = shouldCompileFromMarkup
     ? normalizeSyntaraMarkupLayout(markupSource || '')
-    : markupSource;
+    : preferSemanticDocument
+      ? undefined
+      : markupSource;
   const renderDocument = normalizeSemanticDocumentForRender(sourceDocument);
 
   return {

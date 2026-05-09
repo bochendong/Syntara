@@ -2,7 +2,7 @@
 
 import { Check, Coins, Image as ImageIcon, Lock, MonitorPlay } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Button } from '@/components/ui/button';
 import {
   SLIDE_BACKGROUND_STYLE_OPTIONS,

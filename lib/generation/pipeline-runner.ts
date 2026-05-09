@@ -9,6 +9,7 @@ import type { StageStore } from '@/lib/api/stage-api';
 import { generateSceneOutlinesFromRequirements } from './outline-generator';
 import { generateFullScenes } from './scene-generator';
 import { normalizeOutlineStructure } from './outline-structure';
+import { normalizeComputerScienceSceneOutline } from './cs-semantic-normalizer';
 import { ensureTitleCoverOutline } from './title-cover';
 import type { AICallFn, GenerationResult, GenerationCallbacks } from './pipeline-types';
 
@@ -57,8 +58,9 @@ export async function runGenerationPipeline(
     session.sceneOutlines = normalizeOutlineStructure(
       ensureTitleCoverOutline(outlinesResult.data, {
         language: session.requirements.language,
+        insertMissing: false,
       }),
-    );
+    ).map(normalizeComputerScienceSceneOutline);
     callbacks?.onStageComplete?.(1, session.sceneOutlines);
 
     // Stage 2: Generate Full Scenes

@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { AppNotification } from '@/lib/notifications/types';
@@ -814,7 +814,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             }${
               previewResult.usage?.estimatedCostCredits != null
                 ? `本次导题精确扣费 ${previewResult.usage.estimatedCostCredits} 算力积分。`
-                : '本次导题扣费会稍后汇总到通知中心。'
+                : '本次导题可能产生算力消耗，可在个人中心的积分流水查看。'
             }`
           : `${nextDrafts.length} drafts generated, ${needsFixCount} need fixes.${
               previewResult.webSearch
@@ -823,7 +823,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             }${
               previewResult.usage?.estimatedCostCredits != null
                 ? ` Charged ${previewResult.usage.estimatedCostCredits} compute credits.`
-                : ' Compute credits will sync to notifications shortly.'
+                : ' Any compute charges can be reviewed in the profile credit ledger.'
             }`,
       );
     } catch (error) {
@@ -910,12 +910,12 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
           ? `已写入 ${selectedDrafts.length} 道题。${
               importUsage?.estimatedCostCredits != null
                 ? `本次 preview 导题共扣费 ${importUsage.estimatedCostCredits} 算力积分。`
-                : '若本次导题触发了模型或 PDF 解析扣费，通知中心会稍后汇总显示。'
+                : '若本次导题触发了模型或 PDF 解析扣费，可在个人中心的积分流水查看。'
             }`
           : `${selectedDrafts.length} problems imported.${
               importUsage?.estimatedCostCredits != null
                 ? ` Preview import charged ${importUsage.estimatedCostCredits} compute credits.`
-                : ' Any compute charges will appear in notifications shortly.'
+                : ' Any compute charges can be reviewed in the profile credit ledger.'
             }`,
       );
       toast.success(locale === 'zh-CN' ? '题目已写入题库' : 'Problems imported');

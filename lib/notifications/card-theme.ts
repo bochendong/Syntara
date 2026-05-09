@@ -96,6 +96,7 @@ function resolveCardThemeFromItem(
     case 'question_memory':
     case 'mistake_review':
     case 'route_unlock':
+    case 'notebook_ready':
       return PINK_THEME;
     case 'LESSON_REWARD':
     case 'STREAK_BONUS':

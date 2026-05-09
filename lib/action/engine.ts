@@ -29,6 +29,7 @@ import type {
   WbDrawTableAction,
   WbDeleteAction,
   WbDrawLineAction,
+  SemanticStepAction,
 } from '@/lib/types/action';
 import { createLogger } from '@/lib/logger';
 import { normalizeMathSource, renderMathToHtml } from '@/lib/math-engine';
@@ -92,6 +93,9 @@ export class ActionEngine {
         return;
       case 'laser':
         this.executeLaser(action);
+        return;
+      case 'semantic_step':
+        this.executeSemanticStep(action);
         return;
       // Synchronous — Video
       case 'play_video':
@@ -163,6 +167,10 @@ export class ActionEngine {
       color: action.color ?? '#ff0000',
     });
     this.scheduleEffectClear();
+  }
+
+  private executeSemanticStep(action: SemanticStepAction): void {
+    useCanvasStore.getState().setSemanticStep(action.blockId, action.stepIndex);
   }
 
   // ==================== Synchronous — Speech ====================

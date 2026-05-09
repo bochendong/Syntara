@@ -22,6 +22,15 @@ import type { NotebookContentBlock } from './schema';
 
 type LayoutCardsBlock = Extract<NotebookContentBlock, { type: 'layout_cards' }>;
 type ProcessFlowBlock = Extract<NotebookContentBlock, { type: 'process_flow' }>;
+type CodeTraceBlock = Extract<NotebookContentBlock, { type: 'code_trace' }>;
+type StateTableBlock = Extract<NotebookContentBlock, { type: 'state_table' }>;
+type CallStackBlock = Extract<NotebookContentBlock, { type: 'call_stack' }>;
+type MemoryDiagramBlock = Extract<NotebookContentBlock, { type: 'memory_diagram' }>;
+type PointerDiagramBlock = Extract<NotebookContentBlock, { type: 'pointer_diagram' }>;
+type TreeDiagramBlock = Extract<NotebookContentBlock, { type: 'tree_diagram' }>;
+type GraphTraceBlock = Extract<NotebookContentBlock, { type: 'graph_trace' }>;
+type InvariantPanelBlock = Extract<NotebookContentBlock, { type: 'invariant_panel' }>;
+type LinearStructureBlock = Extract<NotebookContentBlock, { type: 'linear_structure' }>;
 
 export interface LayoutCardsMeasurement {
   columns: number;
@@ -493,8 +502,10 @@ export function estimateProcessFlowBlockHeight(args: {
   block: ProcessFlowBlock;
   language: 'zh-CN' | 'en-US';
 }): number {
+  const context = Array.isArray(args.block.context) ? args.block.context : [];
+  const steps = Array.isArray(args.block.steps) ? args.block.steps : [];
   const titleHeight = args.block.title ? 34 : 0;
-  const contextCards = processFlowContextToLayoutCardsBlock(args.block.context);
+  const contextCards = processFlowContextToLayoutCardsBlock(context);
   const contextHeight = contextCards
     ? measureLayoutCardsLayout({
         items: contextCards.items,
@@ -506,14 +517,13 @@ export function estimateProcessFlowBlockHeight(args: {
     : 0;
 
   if (args.block.orientation === 'horizontal') {
-    const gapX = args.block.steps.length > 3 ? 14 : 18;
+    const gapX = steps.length > 3 ? 14 : 18;
     const stepWidth =
-      (CONTENT_WIDTH - Math.max(0, args.block.steps.length - 1) * gapX) /
-      Math.max(args.block.steps.length, 1);
+      (CONTENT_WIDTH - Math.max(0, steps.length - 1) * gapX) / Math.max(steps.length, 1);
     const innerWidth = Math.max(104, stepWidth - CARD_INSET_X * 2);
     const stepHeight = Math.max(
       112,
-      ...args.block.steps.map((step) =>
+      ...steps.map((step) =>
         estimateProcessFlowStepCardHeight({
           step,
           widthPx: innerWidth,
@@ -525,7 +535,7 @@ export function estimateProcessFlowBlockHeight(args: {
   }
 
   const stepWidth = CONTENT_WIDTH;
-  const stepHeights = args.block.steps.map((step) =>
+  const stepHeights = steps.map((step) =>
     estimateProcessFlowStepCardHeight({
       step,
       widthPx: stepWidth - CARD_INSET_X * 2,
@@ -540,6 +550,150 @@ export function estimateProcessFlowBlockHeight(args: {
     Math.max(0, stepHeights.length - 1) * 12 +
     summaryHeight +
     12
+  );
+}
+
+function estimateCodeTraceBlockHeight(block: CodeTraceBlock): number {
+  const codeHeight = estimateCodeBlockHeight(block.code, 1);
+  const inputs = block.inputs || [];
+  const stepText = block.steps.map((step) =>
+    [step.explanation, ...step.state.map((state) => `${state.name}=${state.value}`)].join(' '),
+  );
+  const maxStepHeight = Math.max(
+    0,
+    ...stepText.map((text) =>
+      estimateParagraphStackHeightForWidth({
+        items: [text],
+        widthPx: Math.max(220, CONTENT_WIDTH * 0.38),
+        fontSizePx: 13,
+        lineHeightPx: 18,
+        paragraphSpacePx: 6,
+      }),
+    ),
+  );
+  const inputHeight = inputs.length
+    ? estimateParagraphStackHeightForWidth({
+        items: [inputs.map((input) => `${input.name}=${input.value}`).join(' ')],
+        widthPx: Math.max(220, CONTENT_WIDTH * 0.38),
+        fontSizePx: 12,
+        lineHeightPx: 16,
+        paragraphSpacePx: 0,
+      }) + 32
+    : 0;
+  const outputHeight = block.output ? estimateCodeBlockHeight(block.output, 1) + 10 : 0;
+  return Math.max(codeHeight, inputHeight + maxStepHeight + outputHeight + 58) + 64;
+}
+
+function estimateStateTableBlockHeight(block: StateTableBlock): number {
+  return Math.min(360, Math.max(82, (block.rows.length + 1) * 34 + 34)) + (block.caption ? 20 : 0);
+}
+
+function estimateCallStackBlockHeight(block: CallStackBlock): number {
+  const framesHeight = block.frames.reduce((sum, frame) => {
+    const detailLines =
+      Math.ceil((frame.args.length + frame.locals.length) / 3) +
+      (frame.returnValue || frame.note ? 1 : 0);
+    return sum + Math.max(62, 48 + detailLines * 24);
+  }, 0);
+  return Math.min(420, framesHeight + Math.max(0, block.frames.length - 1) * 8 + 48);
+}
+
+function estimateMemoryDiagramBlockHeight(block: MemoryDiagramBlock): number {
+  const frameRows = block.frames.reduce(
+    (sum, frame) => sum + Math.max(1, frame.variables.length),
+    0,
+  );
+  const stackRows = Math.max(1, frameRows || block.stack.length);
+  const heapRows = Math.max(1, Math.ceil(block.heap.length / 2));
+  const linkRows = block.links.length ? Math.ceil(block.links.length / 4) : 0;
+  if (block.steps.length || block.code) {
+    const codeLines = block.code ? block.code.replace(/\r\n/g, '\n').split('\n').length : 0;
+    const codeHeight = block.code ? Math.min(240, 54 + codeLines * 22) : 0;
+    const stepHeight = block.steps.length ? 88 : 0;
+    return Math.min(
+      560,
+      126 + codeHeight + stepHeight + Math.max(stackRows * 34, heapRows * 86) + linkRows * 28,
+    );
+  }
+  return Math.min(420, 74 + Math.max(stackRows * 34, heapRows * 86) + linkRows * 28);
+}
+
+function estimatePointerDiagramBlockHeight(block: PointerDiagramBlock): number {
+  const steps = block.steps || [];
+  const stepNodes = steps.flatMap((step) => step.nodes);
+  const nodes = stepNodes.length ? stepNodes : block.nodes;
+  const fieldRows = Math.max(0, ...nodes.map((node) => Math.ceil(node.fields.length / 2)));
+  if (steps.length) {
+    return Math.min(480, 204 + fieldRows * 26 + (block.caption ? 20 : 0));
+  }
+  return Math.min(360, 112 + fieldRows * 26 + (block.caption ? 20 : 0));
+}
+
+function estimateTreeDiagramBlockHeight(block: TreeDiagramBlock): number {
+  const nodeChildren = (node: TreeDiagramBlock['nodes'][number]) =>
+    (node.children || []).length
+      ? node.children || []
+      : [node.left, node.right].filter((child): child is string => Boolean(child));
+  const childIds = new Set(block.nodes.flatMap(nodeChildren));
+  const rootId =
+    block.rootId || block.nodes.find((node) => !childIds.has(node.id))?.id || block.nodes[0]?.id;
+  const nodeMap = new Map(block.nodes.map((node) => [node.id, node]));
+  const visitDepth = (id: string | undefined, depth = 1, visited = new Set<string>()): number => {
+    if (!id || visited.has(id)) return depth - 1;
+    const node = nodeMap.get(id);
+    if (!node) return depth - 1;
+    const nextVisited = new Set(visited);
+    nextVisited.add(id);
+    const children = nodeChildren(node);
+    return Math.max(depth, ...children.map((child) => visitDepth(child, depth + 1, nextVisited)));
+  };
+  const depth = visitDepth(rootId);
+  const steps = block.steps || [];
+  return Math.min(
+    steps.length ? 560 : 470,
+    94 +
+      depth * 76 +
+      (steps.length
+        ? 128
+        : block.kind === 'bst' && (block.target || block.decision || block.path.length)
+          ? 74
+          : 0) +
+      (block.invariant ? 42 : 0) +
+      (block.caption ? 20 : 0),
+  );
+}
+
+function estimateGraphTraceBlockHeight(block: GraphTraceBlock): number {
+  const steps = block.steps || [];
+  const adjacencyRows = Math.ceil(block.nodes.length / 3);
+  return Math.min(560, (steps.length ? 430 : 340) + adjacencyRows * 22 + (block.caption ? 20 : 0));
+}
+
+function estimateInvariantPanelBlockHeight(block: InvariantPanelBlock): number {
+  const checkText = block.checks.map((check) =>
+    [check.label, check.text, check.reason || ''].join(' '),
+  );
+  const checksHeight = estimateParagraphStackHeightForWidth({
+    items: checkText,
+    widthPx: Math.max(240, CONTENT_WIDTH * 0.46),
+    fontSizePx: 13,
+    lineHeightPx: 19,
+    paragraphSpacePx: 8,
+  });
+  return Math.min(360, 108 + checksHeight + (block.caption ? 20 : 0));
+}
+
+function estimateLinearStructureBlockHeight(block: LinearStructureBlock): number {
+  const steps = block.steps || [];
+  const stepItems = steps.flatMap((step) => step.items);
+  const items = stepItems.length ? stepItems : block.items;
+  const itemRows = block.kind === 'stack' ? Math.max(1, items.length) : Math.ceil(items.length / 5);
+  return Math.min(
+    steps.length ? 520 : 390,
+    128 +
+      itemRows * (block.kind === 'stack' ? 46 : 58) +
+      (steps.length ? 96 : 0) +
+      (block.caption ? 24 : 0),
   );
 }
 
@@ -652,14 +806,130 @@ export function assessExpandedBlockHeight(
     };
   }
 
+  if (block.type === 'code_trace') {
+    return {
+      height: estimateCodeTraceBlockHeight(block),
+      densityDelta:
+        2.6 +
+        Math.min(1.1, block.code.split('\n').length * 0.05) +
+        Math.min(1.1, block.steps.length * 0.22),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'state_table') {
+    return {
+      height: estimateStateTableBlockHeight(block),
+      densityDelta:
+        1.6 + Math.min(1.0, block.rows.length * 0.08) + Math.min(0.8, block.columns.length * 0.08),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'call_stack') {
+    return {
+      height: estimateCallStackBlockHeight(block),
+      densityDelta: 1.9 + Math.min(1.2, block.frames.length * 0.18),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'memory_diagram') {
+    return {
+      height: estimateMemoryDiagramBlockHeight(block),
+      densityDelta:
+        2.0 +
+        Math.min(0.9, block.stack.length * 0.12) +
+        Math.min(0.9, block.frames.length * 0.18) +
+        Math.min(0.9, block.heap.length * 0.14) +
+        (block.steps.length ? 0.9 : 0),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'pointer_diagram') {
+    return {
+      height: estimatePointerDiagramBlockHeight(block),
+      densityDelta:
+        1.85 +
+        Math.min(1.0, block.nodes.length * 0.12) +
+        Math.min(0.75, block.pointers.length * 0.12),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'tree_diagram') {
+    return {
+      height: estimateTreeDiagramBlockHeight(block),
+      densityDelta: 2.05 + Math.min(1.2, block.nodes.length * 0.08),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'graph_trace') {
+    return {
+      height: estimateGraphTraceBlockHeight(block),
+      densityDelta: 2.2 + Math.min(1.4, block.nodes.length * 0.08 + block.edges.length * 0.03),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'invariant_panel') {
+    return {
+      height: estimateInvariantPanelBlockHeight(block),
+      densityDelta: 1.8 + Math.min(1.0, block.checks.length * 0.18),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'dictionary_diagram') {
+    const rowCount = Math.ceil(block.entries.length / 2);
+    const textChars =
+      (block.title || '').length +
+      (block.operation || '').length +
+      (block.result || '').length +
+      (block.caption || '').length +
+      block.entries.reduce(
+        (sum, entry) => sum + entry.key.length + entry.value.length + (entry.note || '').length,
+        0,
+      );
+    return {
+      height: 92 + rowCount * 58 + (block.result || block.caption ? 58 : 0),
+      densityDelta:
+        1.85 + Math.min(1.0, block.entries.length * 0.12) + Math.min(0.8, textChars / 720),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
+  if (block.type === 'linear_structure') {
+    return {
+      height: estimateLinearStructureBlockHeight(block),
+      densityDelta:
+        1.8 + Math.min(1.0, block.items.length * 0.12 + (block.steps || []).length * 0.1),
+      consumesVisualCard: true,
+      measuredWithDom: false,
+    };
+  }
+
   if (block.type === 'process_flow') {
-    const stepDetailChars = block.steps.reduce((sum, step) => sum + step.detail.length, 0);
+    const context = Array.isArray(block.context) ? block.context : [];
+    const steps = Array.isArray(block.steps) ? block.steps : [];
+    const stepDetailChars = steps.reduce((sum, step) => sum + step.detail.length, 0);
     return {
       height: estimateProcessFlowBlockHeight({ block, language }),
       densityDelta:
         2.2 +
-        Math.min(1.35, block.steps.length * 0.24) +
-        Math.min(0.85, block.context.length * 0.2) +
+        Math.min(1.35, steps.length * 0.24) +
+        Math.min(0.85, context.length * 0.2) +
         Math.min(0.95, stepDetailChars / 680),
       consumesVisualCard: true,
       measuredWithDom: false,

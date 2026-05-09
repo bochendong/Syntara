@@ -11,6 +11,7 @@ import type {
 } from '@/lib/types/generation';
 import type { Action } from '@/lib/types/action';
 import type { Slide, SlideTheme } from '@/lib/types/slides';
+import type { SceneGenerationDiagnostics } from '@/lib/types/stage';
 
 export function createSceneWithActions(
   outline: SceneOutline,
@@ -21,6 +22,7 @@ export function createSceneWithActions(
     | GeneratedPBLContent,
   actions: Action[],
   api: ReturnType<typeof createStageAPI>,
+  generationDiagnostics?: SceneGenerationDiagnostics,
 ): string | null {
   if (outline.type === 'slide' && 'elements' in content) {
     const defaultTheme: SlideTheme = {
@@ -54,6 +56,7 @@ export function createSceneWithActions(
         semanticDocument: content.contentDocument,
       }),
       actions,
+      generationDiagnostics,
     });
 
     return sceneResult.success ? (sceneResult.data ?? null) : null;
@@ -69,6 +72,7 @@ export function createSceneWithActions(
         questions: content.questions,
       },
       actions,
+      generationDiagnostics,
     });
 
     return sceneResult.success ? (sceneResult.data ?? null) : null;
@@ -85,6 +89,7 @@ export function createSceneWithActions(
         html: content.html,
       },
       actions,
+      generationDiagnostics,
     });
 
     return sceneResult.success ? (sceneResult.data ?? null) : null;
@@ -100,6 +105,7 @@ export function createSceneWithActions(
         projectConfig: content.projectConfig,
       },
       actions,
+      generationDiagnostics,
     });
 
     return sceneResult.success ? (sceneResult.data ?? null) : null;

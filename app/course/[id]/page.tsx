@@ -31,7 +31,7 @@ import {
 import type { Slide } from '@/lib/types/slides';
 import { cn } from '@/lib/utils';
 import { listCourses } from '@/lib/utils/course-storage';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';

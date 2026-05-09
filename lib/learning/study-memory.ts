@@ -179,9 +179,15 @@ export function recordQuizMemory(args: RecordQuizMemoryArgs): {
 
 export function buildStudyCompanionNotification(args: {
   id: string;
-  sourceKind: 'study_nudge' | 'mistake_review' | 'question_memory' | 'route_unlock';
+  sourceKind:
+    | 'study_nudge'
+    | 'mistake_review'
+    | 'question_memory'
+    | 'route_unlock'
+    | 'notebook_ready';
   title: string;
   body: string;
+  amountLabel?: string;
   sourceLabel?: string;
   details?: AppNotification['details'];
 }): AppNotification {
@@ -192,7 +198,7 @@ export function buildStudyCompanionNotification(args: {
     body: args.body,
     tone: 'positive',
     presentation: 'banner',
-    amountLabel: '记下啦',
+    amountLabel: args.amountLabel ?? '记下啦',
     delta: 0,
     balanceAfter: 0,
     accountType: 'PURCHASE',

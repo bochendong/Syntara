@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { CanvasToolbar } from '@/components/canvas/canvas-toolbar';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { useSettingsStore } from '@/lib/store/settings';
 import { ProactiveCard } from '@/components/chat/proactive-card';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';

@@ -150,6 +150,15 @@ function blockTitle(block: NotebookContentBlock): string | null {
     case 'process_flow':
     case 'layout_cards':
     case 'code_walkthrough':
+    case 'code_trace':
+    case 'state_table':
+    case 'call_stack':
+    case 'memory_diagram':
+    case 'pointer_diagram':
+    case 'tree_diagram':
+    case 'graph_trace':
+    case 'invariant_panel':
+    case 'linear_structure':
     case 'visual':
       return block.title || null;
     case 'derivation_steps':

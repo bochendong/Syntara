@@ -147,6 +147,7 @@ function buildSlideRawPayload(args: {
       type: scene.type,
       title: scene.title,
       order: scene.order,
+      generationDiagnostics: scene.generationDiagnostics ?? null,
       sourceFormat: semanticArtifacts.syntaraMarkup
         ? 'syntara-markup'
         : semanticArtifacts.semanticDocument
@@ -163,6 +164,7 @@ function buildSlideRawPayload(args: {
       type: scene.type,
       title: scene.title,
       order: scene.order,
+      generationDiagnostics: scene.generationDiagnostics ?? null,
       sourceFormat: semanticArtifacts.syntaraMarkup
         ? 'syntara-markup'
         : semanticArtifacts.semanticDocument
@@ -179,6 +181,7 @@ function buildSlideRawPayload(args: {
       type: scene.type,
       title: scene.title,
       order: scene.order,
+      generationDiagnostics: scene.generationDiagnostics ?? null,
       renderOutput: semanticArtifacts.renderOutput,
       note: '语义文档渲染到画布前后的摘要信息。完整元素树请看 UI 计算。',
     };
@@ -190,6 +193,7 @@ function buildSlideRawPayload(args: {
       type: scene.type,
       title: scene.title,
       order: scene.order,
+      generationDiagnostics: scene.generationDiagnostics ?? null,
       outline,
     };
   }
@@ -216,7 +220,11 @@ function buildSlideRawPayload(args: {
 function getSlideSemanticArtifacts(scene: Scene) {
   const content = scene.content.type === 'slide' ? scene.content : null;
   const semanticDocument = content?.semanticDocument;
+  const preferSemanticDocumentSource = isCodeLikeSemanticDocument(semanticDocument);
   const syntaraMarkup =
+    (semanticDocument && preferSemanticDocumentSource
+      ? serializeNotebookDocumentToSyntaraMarkup(semanticDocument)
+      : null) ||
     (content?.syntaraMarkup ? normalizeSyntaraMarkupLayout(content.syntaraMarkup) : null) ||
     (semanticDocument ? serializeNotebookDocumentToSyntaraMarkup(semanticDocument) : null);
   const layoutValidation = content ? validateSlideTextLayout(content.canvas.elements) : null;
@@ -237,6 +245,29 @@ function getSlideSemanticArtifacts(scene: Scene) {
         }
       : null,
   };
+}
+
+function isCodeLikeSemanticDocument(document: NotebookContentDocument | null | undefined): boolean {
+  if (!document) return false;
+  if (document.profile === 'code' || document.disciplineStyle === 'code') return true;
+  if (document.layoutFamily === 'code_walkthrough' || document.layoutTemplate === 'code_split') {
+    return true;
+  }
+
+  const searchable = [
+    document.title,
+    document.archetype,
+    document.teachingFlow,
+    JSON.stringify(document.blocks ?? []),
+    JSON.stringify(document.slots ?? []),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+
+  return /(oop|python|__init__|self|class |method|attribute|instance|object|linked\s*list|bst|tree|graph|bfs|dfs|queue|stack|dictionary|recursion|loop|invariant|面向对象|对象|实例|属性|链表|二叉|树|图|队列|字典|递归|循环|不变式)/.test(
+    searchable,
+  );
 }
 
 function buildReadableNarrationPayload(
@@ -264,6 +295,16 @@ function buildReadableNarrationPayload(
           action: 'laser',
           target: targetLabel(action.elementId),
           color: action.color || '#ff0000',
+        });
+        break;
+      }
+      case 'semantic_step': {
+        pendingCues.push(`步骤：${targetLabel(action.blockId)} / step ${action.stepIndex + 1}`);
+        timeline.push({
+          step: timeline.length + 1,
+          kind: 'semantic-step',
+          target: targetLabel(action.blockId),
+          stepIndex: action.stepIndex,
         });
         break;
       }
@@ -357,6 +398,7 @@ function buildReadableNarrationPayload(
     type: scene.type,
     title: scene.title,
     order: scene.order,
+    generationDiagnostics: scene.generationDiagnostics ?? null,
     readableNarration: {
       summary: {
         totalActions: actions.length,
@@ -538,6 +580,206 @@ function blockToSyntaraMarkup(block: NotebookContentBlock, indent: string): stri
       return `${indent}\\code[lang=${block.language || 'text'}]{${block.code}}`;
     case 'code_walkthrough':
       return `${indent}\\code[lang=${block.language || 'text'}]{${block.code}}`;
+    case 'code_trace':
+      return [
+        `${indent}\\begin{trace}[title={${escapeSyntaraText(block.title || 'Code Trace')}},lang=${block.language || 'text'}${
+          block.activeLines.length ? `,activeLines={${block.activeLines.join('|')}}` : ''
+        }${
+          block.inputs?.length
+            ? `,inputs={${block.inputs
+                .map((item) => `${escapeSyntaraText(item.name)}=${escapeSyntaraText(item.value)}`)
+                .join('|')}}`
+            : ''
+        }]`,
+        `${indent}  \\code[lang=${block.language || 'text'}]{${block.code}}`,
+        ...block.steps.map(
+          (step) =>
+            `${indent}  \\step${
+              step.line || step.state.length
+                ? `[${[
+                    step.line ? `line=${step.line}` : '',
+                    step.state.length
+                      ? `state={${step.state
+                          .map(
+                            (item) =>
+                              `${escapeSyntaraText(item.name)}=${escapeSyntaraText(item.value)}`,
+                          )
+                          .join('|')}}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(',')}]`
+                : ''
+            }{Trace}{${escapeSyntaraText(step.explanation)}}`,
+        ),
+        `${indent}\\end{trace}`,
+      ].join('\n');
+    case 'state_table':
+      return `${indent}\\statetable[title={${escapeSyntaraText(block.title || 'State Table')}},headers={${block.columns
+        .map(escapeSyntaraText)
+        .join('|')}}${typeof block.activeRow === 'number' ? `,activeRow=${block.activeRow}` : ''}${
+        block.caption ? `,caption={${escapeSyntaraText(block.caption)}}` : ''
+      }]{${block.rows.map((row) => row.map(escapeSyntaraText).join('|')).join(' \\\\ ')}}`;
+    case 'call_stack':
+      return [
+        `${indent}\\begin{callstack}${block.title ? `[title={${escapeSyntaraText(block.title)}}]` : ''}`,
+        ...block.frames.map(
+          (frame) =>
+            `${indent}  \\frame[name=${escapeSyntaraText(frame.name)}${
+              frame.args.length
+                ? `,args={${frame.args
+                    .map(
+                      (item) => `${escapeSyntaraText(item.name)}=${escapeSyntaraText(item.value)}`,
+                    )
+                    .join('|')}}`
+                : ''
+            }${
+              frame.locals.length
+                ? `,locals={${frame.locals
+                    .map(
+                      (item) => `${escapeSyntaraText(item.name)}=${escapeSyntaraText(item.value)}`,
+                    )
+                    .join('|')}}`
+                : ''
+            }${frame.returnValue ? `,return={${escapeSyntaraText(frame.returnValue)}}` : ''}${
+              frame.active ? ',active' : ''
+            }]{${escapeSyntaraText(frame.note || '')}}`,
+        ),
+        `${indent}\\end{callstack}`,
+      ].join('\n');
+    case 'memory_diagram':
+      return [
+        `${indent}\\begin{memory}${block.title ? `[title={${escapeSyntaraText(block.title)}}]` : ''}`,
+        ...block.stack.map(
+          (item) =>
+            `${indent}  \\var[name=${escapeSyntaraText(item.name)}${
+              item.value ? `,value={${escapeSyntaraText(item.value)}}` : ''
+            }${item.ref ? `,ref=${escapeSyntaraText(item.ref)}` : ''}]`,
+        ),
+        ...block.heap.map(
+          (item) =>
+            `${indent}  \\object[id=${escapeSyntaraText(item.id)},label={${escapeSyntaraText(item.label)}}${
+              item.fields.length
+                ? `,fields={${item.fields
+                    .map(
+                      (field) =>
+                        `${escapeSyntaraText(field.name)}=${escapeSyntaraText(field.value)}`,
+                    )
+                    .join('|')}}`
+                : ''
+            }${item.active ? ',active' : ''}]`,
+        ),
+        ...block.links.map(
+          (link) =>
+            `${indent}  \\link[from=${escapeSyntaraText(link.from)},to=${escapeSyntaraText(link.to)}${
+              link.label ? `,label={${escapeSyntaraText(link.label)}}` : ''
+            }${link.active ? ',active' : ''}]`,
+        ),
+        `${indent}\\end{memory}`,
+      ].join('\n');
+    case 'pointer_diagram':
+      return [
+        `${indent}\\begin{${block.kind === 'linked_list' ? 'linkedlist' : 'pointers'}}${[
+          block.title ? `title={${escapeSyntaraText(block.title)}}` : '',
+          block.operation ? `operation={${escapeSyntaraText(block.operation)}}` : '',
+          block.headLabel ? `head={${escapeSyntaraText(block.headLabel)}}` : '',
+          block.tailLabel ? `tail={${escapeSyntaraText(block.tailLabel)}}` : '',
+          block.nullLabel ? `null={${escapeSyntaraText(block.nullLabel)}}` : '',
+        ]
+          .filter(Boolean)
+          .join(',')
+          .replace(/^(.+)$/, '[$1]')}`,
+        ...block.nodes.map(
+          (node) =>
+            `${indent}  \\node[id=${escapeSyntaraText(node.id)},label={${escapeSyntaraText(node.label)}}${
+              node.fields.length
+                ? `,fields={${node.fields
+                    .map(
+                      (field) =>
+                        `${escapeSyntaraText(field.name)}=${escapeSyntaraText(field.value)}`,
+                    )
+                    .join('|')}}`
+                : ''
+            }${node.active ? ',active' : ''}${node.muted ? ',muted' : ''}]`,
+        ),
+        ...block.pointers.map(
+          (pointer) =>
+            `${indent}  \\pointer[name=${escapeSyntaraText(pointer.name)}${
+              pointer.to ? `,to=${escapeSyntaraText(pointer.to)}` : ''
+            }]`,
+        ),
+        ...block.links.map(
+          (link) =>
+            `${indent}  \\link[from=${escapeSyntaraText(link.from)},to=${escapeSyntaraText(link.to)}${
+              link.label ? `,label={${escapeSyntaraText(link.label)}}` : ''
+            }${link.active ? ',active' : ''}]`,
+        ),
+        `${indent}\\end{${block.kind === 'linked_list' ? 'linkedlist' : 'pointers'}}`,
+      ].join('\n');
+    case 'tree_diagram':
+      return [
+        `${indent}\\begin{${block.kind === 'bst' ? 'bst' : 'tree'}}${[
+          block.title ? `title={${escapeSyntaraText(block.title)}}` : '',
+          block.rootId ? `root=${escapeSyntaraText(block.rootId)}` : '',
+          block.path.length ? `path={${block.path.map(escapeSyntaraText).join('|')}}` : '',
+          block.target ? `target={${escapeSyntaraText(block.target)}}` : '',
+          block.decision ? `decision={${escapeSyntaraText(block.decision)}}` : '',
+          block.invariant ? `invariant={${escapeSyntaraText(block.invariant)}}` : '',
+        ]
+          .filter(Boolean)
+          .join(',')
+          .replace(/^(.+)$/, '[$1]')}`,
+        ...block.nodes.map(
+          (node) =>
+            `${indent}  \\node[id=${escapeSyntaraText(node.id)},label={${escapeSyntaraText(node.label)}}${
+              node.left ? `,left=${escapeSyntaraText(node.left)}` : ''
+            }${node.right ? `,right=${escapeSyntaraText(node.right)}` : ''}${
+              node.active ? ',active' : ''
+            }${node.muted ? ',muted' : ''}]`,
+        ),
+        `${indent}\\end{${block.kind === 'bst' ? 'bst' : 'tree'}}`,
+      ].join('\n');
+    case 'invariant_panel':
+      return [
+        `${indent}\\begin{invariant}${[
+          block.title ? `title={${escapeSyntaraText(block.title)}}` : '',
+          block.structure ? `structure={${escapeSyntaraText(block.structure)}}` : '',
+          `text={${escapeSyntaraText(block.invariant)}}`,
+          block.caption ? `caption={${escapeSyntaraText(block.caption)}}` : '',
+        ]
+          .filter(Boolean)
+          .join(',')
+          .replace(/^(.+)$/, '[$1]')}`,
+        ...block.checks.map(
+          (check) =>
+            `${indent}  \\check[status=${check.status}${
+              check.reason ? `,reason={${escapeSyntaraText(check.reason)}}` : ''
+            }]{${escapeSyntaraText(check.label)}}{${escapeSyntaraText(check.text)}}`,
+        ),
+        `${indent}\\end{invariant}`,
+      ].join('\n');
+    case 'dictionary_diagram':
+      return [
+        `${indent}\\begin{dictionary}${[
+          block.title ? `title={${escapeSyntaraText(block.title)}}` : '',
+          block.operation ? `operation={${escapeSyntaraText(block.operation)}}` : '',
+          block.lookupKey ? `key={${escapeSyntaraText(block.lookupKey)}}` : '',
+          block.result ? `result={${escapeSyntaraText(block.result)}}` : '',
+          block.caption ? `caption={${escapeSyntaraText(block.caption)}}` : '',
+        ]
+          .filter(Boolean)
+          .join(',')
+          .replace(/^(.+)$/, '[$1]')}`,
+        ...block.entries.map(
+          (entry) =>
+            `${indent}  \\entry[key={${escapeSyntaraText(entry.key)}},value={${escapeSyntaraText(
+              entry.value,
+            )}}${entry.active ? ',active' : ''}${entry.changed ? ',changed' : ''}${
+              entry.note ? `,note={${escapeSyntaraText(entry.note)}}` : ''
+            }]`,
+        ),
+        `${indent}\\end{dictionary}`,
+      ].join('\n');
     case 'table':
       return `${indent}\\table${
         block.headers?.length ? `[headers={${block.headers.map(escapeSyntaraText).join('|')}}]` : ''

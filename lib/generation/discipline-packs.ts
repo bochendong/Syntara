@@ -3,7 +3,13 @@ import type { CoursePersonalizationContext } from './pipeline-types';
 
 type PromptLanguage = 'zh-CN' | 'en-US';
 
-export type DisciplinePackId = 'geography' | 'economics' | 'academic_writing' | 'sociology';
+export type DisciplinePackId =
+  | 'mathematics'
+  | 'computer_science'
+  | 'geography'
+  | 'economics'
+  | 'academic_writing'
+  | 'sociology';
 
 interface DisciplinePack {
   id: DisciplinePackId;
@@ -14,6 +20,96 @@ interface DisciplinePack {
 }
 
 const DISCIPLINE_PACKS: DisciplinePack[] = [
+  {
+    id: 'mathematics',
+    label: {
+      'zh-CN': '数学',
+      'en-US': 'Mathematics',
+    },
+    detectors: [
+      /(数学|证明|定理|命题|引理|推论|函数|映射|定义域|陪域|值域|像|原像|单射|满射|双射|集合|方程|矩阵|导数|积分|概率|统计|线性代数|微积分|数论|群|环|域|同余|极限|∀|∃|∈|⊆|⇒|⇔)/i,
+      /(mathematics|proof|prove|theorem|proposition|lemma|corollary|function|mapping|domain|codomain|range|image|preimage|injective|surjective|bijective|set|equation|matrix|derivative|integral|probability|statistics|linear algebra|calculus|number theory|congruence|limit|forall|exists)/i,
+    ],
+    outlineGuidance: {
+      'zh-CN': [
+        '把数学课当作“学会写证明/解题”的训练，而不是概念卡片综述：导入具体表达式或反例 -> 拆定义条件 -> 走一遍例题/证明 -> 留下可迁移的检查动作。',
+        '函数、集合、像/原像、单射/满射/双射等证明课必须显式安排课堂结构：先介绍对象和为什么要判定，再讲定义边界，再讲例题或证明链，最后给练习判断路线。',
+        '证明页要把“已知/目标/可用定义/下一步动作”讲清楚；不要只把结论平铺成 2x2 卡片或空泛表格。',
+        '数学 slide 的 `contentProfile` 必须是 `"math"`，`disciplineStyle` 必须是 `"math"`；定义页优先 `definition_board` / `formula_focus`，证明例题优先 `derivation_ladder` / `problem_walkthrough`，对照判定优先 `comparison_matrix`。',
+      ],
+      'en-US': [
+        'Treat mathematics lessons as proof/problem-writing coaching, not concept-card summaries: concrete expression or counterexample -> definition conditions -> worked proof/example -> transferable checking move.',
+        'For functions, sets, image/preimage, injective/surjective/bijective, explicitly plan the classroom sequence: introduce the object and reason for the test, clarify the definition boundary, walk through an example/proof, then give a practice decision route.',
+        'Proof pages must separate givens, goal, usable definition/theorem, and next proof action; do not flatten results into vague 2x2 cards or empty tables.',
+        'Math slides must use `contentProfile: "math"` and `disciplineStyle: "math"`; prefer `definition_board` / `formula_focus` for definitions, `derivation_ladder` / `problem_walkthrough` for proof examples, and `comparison_matrix` for definition tests.',
+      ],
+    },
+    semanticGuidance: {
+      'zh-CN': [
+        '数学页面必须让学生看见证明动作：先写对象范围和目标，再展开定义，再说明下一步为什么合法。',
+        '定义页不要只抄定义；至少包含一个具体公式/语句、条件边界和一个常见误解或反例方向。',
+        '例题/证明页优先使用 `derivation`、条件表或证明路线；必须先写已知/目标，再给 3-5 个有理由的连续证明动作，不要输出空泛卡片、长讲稿或只有结论的四格。',
+        '所有可见解释使用中文；公式保留 LaTeX 或数学符号，不要混入英文动词。',
+      ],
+      'en-US': [
+        'Math pages must make the proof action visible: name the object domain and goal, expand the definition, then explain why the next move is legal.',
+        'Definition pages must not merely restate the definition; include a concrete formula/statement, boundary condition, and one misconception or counterexample direction.',
+        'Worked proof pages should use derivations, condition tables, or proof route blocks; state givens/goal first, then provide 3-5 reasoned proof moves instead of vague cards, long lectures, or conclusion-only grids.',
+        'Visible explanation must use the scene language; keep formulas in LaTeX or mathematical symbols.',
+      ],
+    },
+  },
+  {
+    id: 'computer_science',
+    label: {
+      'zh-CN': '计算机科学',
+      'en-US': 'Computer Science',
+    },
+    detectors: [
+      /(计算机|编程|程序|代码|Python|Java|JavaScript|TypeScript|变量|循环|递归|函数|类|对象|self|OOP|面向对象|链表|二叉树|BST|树|图|DFS|BFS|栈|队列|字典|哈希|算法|数据结构|复杂度|invariant|不变式)/i,
+      /(computer science|programming|program|code|python|java|javascript|typescript|variable|loop|recursion|function|class|object|self|oop|linked list|binary tree|bst|tree|graph|dfs|bfs|stack|queue|dictionary|hash|algorithm|data structure|complexity|invariant)/i,
+    ],
+    outlineGuidance: {
+      'zh-CN': [
+        '把 CS 课当作“带学生写得出来”的训练，而不是概念综述：问题场景 -> 运行/结构模型 -> 手动 trace 一步 -> 抽出 invariant 或策略 -> 写代码前 checklist。',
+        'CS 课程的封面后第一张正文页必须从一个具体对象/输入/任务切入，不要生成抽象路线图；第二张正文页必须让旧做法当场失败，例如用 list/dict/code trace 展示为什么会读错、写错或破坏规则。',
+        '基础语法优先安排 `layoutFamily: "code_walkthrough"`，要求 keyPoints 明确变量状态、当前行、条件判断、循环进度。',
+        'OOP 开头不要先列术语。先问“我要表示什么对象、字段叫什么、哪些状态不合法、需要哪些操作”，再引出 class；OOP 页面优先安排 memory/aliasing/self/dot lookup，要求区分 name、reference、heap object、attribute mutation。',
+        '数据结构页面要围绕结构承诺：linked list 的 handle/link，tree/BST 的 parent-child/order rule，stack/queue 的 active end，dictionary 的 key/value mutation。',
+        '算法页面要围绕策略状态：frontier、visited、call stack、queue/stack 如何决定下一步；不要只给最终访问顺序。',
+        '每个 CS 讲解页至少包含一个“写代码前先问什么”的迁移动作，用来解决学生“看懂但写不出”的问题。',
+      ],
+      'en-US': [
+        'Treat CS lessons as coaching students to write code, not as concept summaries: problem situation -> execution/structure model -> manually trace one step -> extract invariant or strategy -> before-coding checklist.',
+        'After the title cover, the first teaching page must start from a concrete object/input/task, not an abstract roadmap; the second teaching page must make the old representation fail visibly, for example with list/dict/code trace showing how meaning, writes, or rules break.',
+        'For syntax, prefer `layoutFamily: "code_walkthrough"` and make keyPoints specify variable state, current line, condition checks, and loop progress.',
+        'For OOP, do not open with a term list. Start by asking what object is being represented, what its fields mean, which states are illegal, and which operations it needs; then introduce classes. Prioritize memory/aliasing/self/dot lookup pages that distinguish names, references, heap objects, and attribute mutation.',
+        'For data structures, teach the structure promise: handles/links for linked lists, parent-child/order rules for trees/BSTs, active ends for stack/queue, key/value mutation for dictionaries.',
+        'For algorithms, teach strategy state: frontier, visited, call stack, and how queue/stack chooses the next move. Do not only show the final visit order.',
+        'Every CS teaching page should include one transferable before-coding question to address the “I understand it but cannot write it” problem.',
+      ],
+    },
+    semanticGuidance: {
+      'zh-CN': [
+        'CS 页面遵循“问题入口 -> 运行模型/结构模型 -> step snapshot -> 写代码前 checklist”。不要只输出定义和 bullet。',
+        'CS 开场页必须把抽象词落到一个真实小对象或小输入上；如果要比较 list/dict/class，必须给出真实代码片段或 `\\table`，禁止输出 `[Table]` 这种占位文字。',
+        '语法/循环/递归优先用 `trace`、`statetable`、`callstack`，每一步写清当前行、读到的值、改变的状态。',
+        'OOP/aliasing 优先用 `memory`，明确 stack 名字、heap 对象、对象 id、属性写入，以及 `self` 当前指向谁。',
+        '数据结构优先用 `linkedlist`、`tree`、`bst`、`stack`、`queue`、`dictionary`、`invariant`，并在 step 中给出操作后的完整快照。',
+        '算法优先用 `graph_trace`、`tree`、`trace` 配合 stack/queue/call stack，明确 frontier、visited、下一步选择规则。',
+        '页面文字要像老师在黑板前讲：先问“现在这一步改了谁”，再给判断；避免“本页用于”“教学目标”“学习者将”这类教案语言。',
+      ],
+      'en-US': [
+        'CS pages should follow: problem hook -> execution/structure model -> step snapshot -> before-coding checklist. Do not output only definitions and bullets.',
+        'Opening CS pages must ground abstract terms in a real small object or input. If comparing list/dict/class, include real code snippets or a `\\table`; never output placeholder text such as `[Table]`.',
+        'For syntax/loops/recursion, prefer `trace`, `statetable`, and `callstack`; each step should state the current line, read value, and changed state.',
+        'For OOP/aliasing, prefer `memory`; show stack names, heap objects, object ids, attribute writes, and what `self` currently references.',
+        'For data structures, prefer `linkedlist`, `tree`, `bst`, `stack`, `queue`, `dictionary`, and `invariant`, with complete state snapshots after each step.',
+        'For algorithms, prefer `graph_trace`, `tree`, and `trace` with stack/queue/call stack; show frontier, visited, and the rule choosing the next move.',
+        'Write like a teacher at the board: ask what this step changes, then give the judgment. Avoid lesson-plan phrases such as “this page is used to” or “learners will”.',
+      ],
+    },
+  },
   {
     id: 'geography',
     label: {
@@ -202,11 +298,23 @@ function outlineToText(outline: SceneOutline): string {
 }
 
 function selectDisciplinePacks(text: string, limit = 2): DisciplinePack[] {
+  const hasStrongMathSignal =
+    /(数学|证明|定理|命题|引理|推论|定义域|陪域|值域|像|原像|单射|满射|双射|集合|∀|∃|∈|⊆|⇒|⇔|proof|prove|theorem|proposition|lemma|domain|codomain|range|preimage|injective|surjective|bijective)/i.test(
+      text,
+    );
+  const hasStrongCodeSignal =
+    /(编程|程序|代码|Python|JavaScript|TypeScript|class|def |self|OOP|链表|二叉树|BST|DFS|BFS|栈|队列|字典|哈希|算法|数据结构|complexity|invariant|console\.log|return\b|for\s*\(|while\s*\()/i.test(
+      text,
+    );
   const scores = DISCIPLINE_PACKS.map((pack) => ({
     pack,
     score: pack.detectors.reduce((score, pattern) => score + (pattern.test(text) ? 1 : 0), 0),
   }))
     .filter((item) => item.score > 0)
+    .filter(
+      (item) =>
+        !(item.pack.id === 'computer_science' && hasStrongMathSignal && !hasStrongCodeSignal),
+    )
     .sort((a, b) => b.score - a.score);
 
   return scores.slice(0, limit).map((item) => item.pack);

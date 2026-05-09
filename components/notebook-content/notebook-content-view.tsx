@@ -8,11 +8,25 @@ import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-bl
 import type { NotebookContentDocument } from '@/lib/notebook-content';
 import { chemistryTextToHtml } from '@/lib/notebook-content';
 import { matrixBlockToLatex } from '@/lib/notebook-content/block-utils';
+import { getExampleDisplaySteps } from '@/lib/notebook-content/example-block';
 import { PatternLayoutView } from './pattern-layout-view';
+import {
+  CallStackBlock,
+  CodeTraceBlock,
+  DictionaryDiagramBlock,
+  GraphTraceBlock,
+  InvariantPanelBlock,
+  LinearStructureBlock,
+  MemoryDiagramBlock,
+  PointerDiagramBlock,
+  StateTableBlock,
+  TreeDiagramBlock,
+} from './computer-science-blocks';
 
 interface NotebookContentViewProps {
   document: NotebookContentDocument;
   className?: string;
+  activeStepIndex?: number;
 }
 
 function escapeHtml(text: string): string {
@@ -88,6 +102,7 @@ function cardTitleToneClass(
 export const NotebookContentView = memo(function NotebookContentView({
   document,
   className,
+  activeStepIndex,
 }: NotebookContentViewProps) {
   const patternPreview =
     document.pattern && document.pattern !== 'auto' ? (
@@ -292,6 +307,104 @@ export const NotebookContentView = memo(function NotebookContentView({
               </div>
             );
           }
+          case 'code_trace':
+            return (
+              <CodeTraceBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'state_table':
+            return (
+              <StateTableBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'call_stack':
+            return (
+              <CallStackBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'memory_diagram':
+            return (
+              <MemoryDiagramBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'pointer_diagram':
+            return (
+              <PointerDiagramBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'tree_diagram':
+            return (
+              <TreeDiagramBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'graph_trace':
+            return (
+              <GraphTraceBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
+          case 'invariant_panel':
+            return (
+              <InvariantPanelBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+              />
+            );
+          case 'dictionary_diagram':
+            return (
+              <DictionaryDiagramBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+              />
+            );
+          case 'linear_structure':
+            return (
+              <LinearStructureBlock
+                key={index}
+                block={block}
+                language={document.language}
+                renderInlineMathHtml={renderInlineMathHtml}
+                activeStepIndex={activeStepIndex}
+              />
+            );
           case 'table': {
             const headers =
               block.headers && block.headers.length > 0
@@ -398,7 +511,8 @@ export const NotebookContentView = memo(function NotebookContentView({
                 ) : null}
               </div>
             );
-          case 'example':
+          case 'example': {
+            const displaySteps = getExampleDisplaySteps(block);
             return (
               <div key={index} className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                 <p
@@ -430,15 +544,17 @@ export const NotebookContentView = memo(function NotebookContentView({
                     dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(block.goal) }}
                   />
                 ) : null}
-                <ol className="mt-3 list-decimal space-y-1 pl-5 text-foreground">
-                  {block.steps.map((step, stepIdx) => (
-                    <li
-                      key={stepIdx}
-                      className="whitespace-pre-wrap leading-7"
-                      dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(step) }}
-                    />
-                  ))}
-                </ol>
+                {displaySteps.length > 0 ? (
+                  <ol className="mt-3 list-decimal space-y-1 pl-5 text-foreground">
+                    {displaySteps.map((step, stepIdx) => (
+                      <li
+                        key={stepIdx}
+                        className="whitespace-pre-wrap leading-7"
+                        dangerouslySetInnerHTML={{ __html: renderInlineMathHtml(step) }}
+                      />
+                    ))}
+                  </ol>
+                ) : null}
                 {block.answer ? (
                   <p
                     className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300"
@@ -459,6 +575,7 @@ export const NotebookContentView = memo(function NotebookContentView({
                 ) : null}
               </div>
             );
+          }
           case 'process_flow': {
             const contextToneClass = {
               neutral:
@@ -469,8 +586,10 @@ export const NotebookContentView = memo(function NotebookContentView({
               success:
                 'border-emerald-200 bg-emerald-50/80 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-100',
             } as const;
+            const context = Array.isArray(block.context) ? block.context : [];
+            const steps = Array.isArray(block.steps) ? block.steps : [];
             const contextColumns =
-              block.context.length === 4 ? 2 : Math.min(3, Math.max(1, block.context.length));
+              context.length === 4 ? 2 : Math.min(3, Math.max(1, context.length));
 
             return (
               <div
@@ -484,12 +603,12 @@ export const NotebookContentView = memo(function NotebookContentView({
                   />
                 ) : null}
 
-                {block.context.length > 0 ? (
+                {context.length > 0 ? (
                   <div
                     className="grid gap-3"
                     style={{ gridTemplateColumns: `repeat(${contextColumns}, minmax(0, 1fr))` }}
                   >
-                    {block.context.map((item, itemIdx) => (
+                    {context.map((item, itemIdx) => (
                       <div
                         key={itemIdx}
                         className={cn(
@@ -515,10 +634,10 @@ export const NotebookContentView = memo(function NotebookContentView({
                     <div
                       className="grid min-w-[720px] gap-3"
                       style={{
-                        gridTemplateColumns: `repeat(${Math.max(1, block.steps.length)}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${Math.max(1, steps.length)}, minmax(0, 1fr))`,
                       }}
                     >
-                      {block.steps.map((step, stepIdx) => (
+                      {steps.map((step, stepIdx) => (
                         <div
                           key={stepIdx}
                           className="rounded-xl border border-border/70 bg-background/80 px-3 py-3"
@@ -548,7 +667,7 @@ export const NotebookContentView = memo(function NotebookContentView({
                   </div>
                 ) : (
                   <div className="space-y-3 border-l border-border/70 pl-4">
-                    {block.steps.map((step, stepIdx) => (
+                    {steps.map((step, stepIdx) => (
                       <div
                         key={stepIdx}
                         className="relative rounded-xl border border-border/70 bg-background/80 px-4 py-3"

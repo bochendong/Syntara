@@ -11,6 +11,7 @@ import {
 } from '@/lib/utils/notebook-write-preference';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { useNotificationStore } from '@/lib/store/notifications';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import { listAgentsForCourse, type CourseAgentListItem } from '@/lib/utils/course-agents';
@@ -32,6 +33,7 @@ import {
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
+import { buildStudyCompanionNotification } from '@/lib/learning/study-memory';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
 import {
   OrchestratorNotebookProgressPanel,
@@ -64,6 +66,14 @@ import type {
   OrchestratorViewMode,
 } from '@/components/chat/chat-page-types';
 
+const ORCHESTRATOR_REMOTE_TASK_POLL_INTERVAL_MS = 5000;
+const CONTACT_TASK_HINT_POLL_INTERVAL_MS = 5000;
+const ORCHESTRATOR_CHILD_TASK_POLL_INTERVAL_MS = 3000;
+
+function canPollInCurrentTab(): boolean {
+  return document.visibilityState === 'visible';
+}
+
 export function ChatPageClient() {
   const { t } = useI18n();
   const router = useRouter();
@@ -77,6 +87,7 @@ export function ChatPageClient() {
   const searchParams = useSearchParams();
   const courseId = useCurrentCourseStore((s) => s.id);
   const courseAvatarUrlStored = useCurrentCourseStore((s) => s.avatarUrl);
+  const enqueueCompanionBanner = useNotificationStore((s) => s.enqueueBanner);
   const orchestratorAvatar = useMemo(
     () => resolveCourseOrchestratorAvatar(courseId, courseAvatarUrlStored),
     [courseId, courseAvatarUrlStored],
@@ -574,6 +585,17 @@ export function ChatPageClient() {
                 }),
               );
             }
+            enqueueCompanionBanner(
+              buildStudyCompanionNotification({
+                id: `notebook-ready:${nid || tid}`,
+                sourceKind: 'notebook_ready',
+                title: '笔记本生成好了',
+                body: `笔记本「${name}」已创建完成。`,
+                amountLabel: '生成好了',
+                sourceLabel: '笔记本生成',
+                details: [{ key: 'notebook', label: '笔记本', value: name }],
+              }),
+            );
             setAgThread((prev) => [
               ...prev,
               {
@@ -618,14 +640,20 @@ export function ChatPageClient() {
         if (alive) setOrchestratorRemoteTask(null);
       }
     };
+    const poll = () => {
+      if (canPollInCurrentTab()) void sync();
+    };
     void sync();
-    const timer = window.setInterval(sync, 2000);
+    const timer = window.setInterval(poll, ORCHESTRATOR_REMOTE_TASK_POLL_INTERVAL_MS);
+    window.addEventListener('focus', poll);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
     };
   }, [
     courseId,
+    enqueueCompanionBanner,
     isCourseOrchestrator,
     orchestratorAvatar,
     orchestratorViewMode,
@@ -662,11 +690,16 @@ export function ChatPageClient() {
       }
       setContactTaskHint(active?.detail || (active ? active.title : null));
     };
-    void sync();
-    const timer = window.setInterval(sync, 1500);
+    const poll = () => {
+      if (canPollInCurrentTab()) void sync().catch(() => undefined);
+    };
+    void sync().catch(() => undefined);
+    const timer = window.setInterval(poll, CONTACT_TASK_HINT_POLL_INTERVAL_MS);
+    window.addEventListener('focus', poll);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
     };
   }, [agentId, ORCHESTRATOR_TASK_STALE_MS]);
 
@@ -716,11 +749,16 @@ export function ChatPageClient() {
         })),
       );
     };
-    void sync();
-    const timer = window.setInterval(sync, 1200);
+    const poll = () => {
+      if (canPollInCurrentTab()) void sync().catch(() => undefined);
+    };
+    void sync().catch(() => undefined);
+    const timer = window.setInterval(poll, ORCHESTRATOR_CHILD_TASK_POLL_INTERVAL_MS);
+    window.addEventListener('focus', poll);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
     };
   }, [activeOrchestratorTaskId, isCourseOrchestrator]);
 

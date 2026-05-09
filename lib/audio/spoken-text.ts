@@ -474,7 +474,17 @@ export function verbalizeNarrationText(
 ): string {
   const trimmed = text.trim();
   if (!trimmed) return text;
-  return verbalizeMathText(trimmed, language || inferNarrationLanguage(trimmed));
+  const codeSpans: string[] = [];
+  const masked = trimmed.replace(/`[^`]+`/g, (match) => {
+    const marker = `\uE000CODE${codeSpans.length}\uE001`;
+    codeSpans.push(match);
+    return marker;
+  });
+  const spoken = verbalizeMathText(masked, language || inferNarrationLanguage(trimmed));
+  return codeSpans.reduce(
+    (next, code, index) => next.replaceAll(`\uE000CODE${index}\uE001`, code),
+    spoken,
+  );
 }
 
 export function verbalizeSpeechActions(

@@ -104,6 +104,12 @@ function GroupChatThumb({ lightSolidSurface }: { lightSolidSurface?: boolean }) 
 
 const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
 const NOTEBOOK_LIST_UPDATED_EVENT = 'synatra-notebook-list-updated';
+const GROUP_CHAT_PREVIEW_POLL_INTERVAL_MS = 8000;
+const ACTIVE_CONTACT_TASK_POLL_INTERVAL_MS = 8000;
+
+function canPollInCurrentTab(): boolean {
+  return document.visibilityState === 'visible';
+}
 
 function matchesContactSearch(needle: string, nb: StageListItem, lastPreview?: string): boolean {
   if (!needle) return true;
@@ -193,7 +199,10 @@ export function ChatContactsRail({
   }, [courseId, notebooks]);
 
   useEffect(() => {
-    void refreshNotebookPreviews();
+    const timeout = window.setTimeout(() => {
+      void refreshNotebookPreviews();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [refreshNotebookPreviews]);
 
   useEffect(() => {
@@ -244,8 +253,8 @@ export function ChatContactsRail({
 
   useEffect(() => {
     if (!courseId) {
-      setGroupChatHasMessages(false);
-      return;
+      const timeout = window.setTimeout(() => setGroupChatHasMessages(false), 0);
+      return () => window.clearTimeout(timeout);
     }
     let alive = true;
     const groupTargetId = `${COURSE_ORCHESTRATOR_ID}::group`;
@@ -258,19 +267,26 @@ export function ChatContactsRail({
         if (alive) setGroupChatHasMessages(false);
       }
     };
+    const poll = () => {
+      if (canPollInCurrentTab()) void sync();
+    };
     void sync();
-    const timer = window.setInterval(sync, 2000);
+    const timer = window.setInterval(poll, GROUP_CHAT_PREVIEW_POLL_INTERVAL_MS);
+    window.addEventListener('focus', poll);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
     };
   }, [courseId]);
 
   useEffect(() => {
     if (!courseId) {
-      setNotebooks([]);
-      setLoading(false);
-      return;
+      const timeout = window.setTimeout(() => {
+        setNotebooks([]);
+        setLoading(false);
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
     let alive = true;
     (async () => {
@@ -301,8 +317,8 @@ export function ChatContactsRail({
 
   useEffect(() => {
     if (!courseId) {
-      setBusyKeys(new Set());
-      return;
+      const timeout = window.setTimeout(() => setBusyKeys(new Set()), 0);
+      return () => window.clearTimeout(timeout);
     }
     let alive = true;
     const sync = async () => {
@@ -314,11 +330,16 @@ export function ChatContactsRail({
       }
       setBusyKeys(keys);
     };
-    void sync();
-    const timer = window.setInterval(sync, 1500);
+    const poll = () => {
+      if (canPollInCurrentTab()) void sync().catch(() => undefined);
+    };
+    void sync().catch(() => undefined);
+    const timer = window.setInterval(poll, ACTIVE_CONTACT_TASK_POLL_INTERVAL_MS);
+    window.addEventListener('focus', poll);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
     };
   }, [courseId]);
 

@@ -12,7 +12,7 @@ import {
   type SlideViewport,
 } from '@/lib/slide-text-layout';
 import type { Slide } from '@/lib/types/slides';
-import type { NotebookContentDocument } from './schema';
+import { isClassicLectureLayoutTemplate, type NotebookContentDocument } from './schema';
 import {
   assessNotebookContentDocumentForSlide,
   isNotebookSlotLayoutError,
@@ -27,7 +27,7 @@ const DEFAULT_SEMANTIC_LAYOUT_VIEWPORT: SlideViewport = {
   height: 562.5,
 };
 
-export const SEMANTIC_WEB_LONG_PAGE_MODE = true;
+export const SEMANTIC_WEB_LONG_PAGE_MODE = false;
 
 export interface NotebookSemanticRenderedPage {
   document: NotebookContentDocument;
@@ -128,8 +128,9 @@ export function renderNotebookSemanticPages(args: {
     const lockedLayoutValidation = shouldLockNotebookSemanticLayout(pageDocument)
       ? validateSlideTextLayout(renderedSlide.elements, viewport)
       : null;
+    const shouldTrustRenderedGeometry = isClassicLectureLayoutTemplate(pageDocument.layoutTemplate);
     const normalizedElements =
-      lockedLayoutValidation && lockedLayoutValidation.isValid
+      shouldTrustRenderedGeometry || (lockedLayoutValidation && lockedLayoutValidation.isValid)
         ? renderedSlide.elements
         : normalizeSlideTextLayout(renderedSlide.elements, viewport);
     const layoutValidation = validateSlideTextLayout(normalizedElements, viewport);

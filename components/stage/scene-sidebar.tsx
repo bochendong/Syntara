@@ -35,7 +35,7 @@ import { buildLectureNotesFromScenes } from '@/lib/utils/build-lecture-notes-fro
 import { LectureNotesView } from '@/components/chat/lecture-notes-view';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useSettingsStore } from '@/lib/store/settings';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { renderPlainTitleWithOptionalLatex } from '@/lib/render-html-with-latex';
 import { FloatingLinesStageBackground } from '@/components/gamification/floating-lines-stage-background';
 import { LightRaysStageBackground } from '@/components/gamification/light-rays-stage-background';
@@ -597,72 +597,77 @@ export function SceneSidebar({
                   >
                     <div
                       className={cn(
-                        'flex min-h-[76px] items-start gap-3 rounded-[10px] border px-3 py-3 transition-colors',
+                        'flex min-h-[76px] flex-col gap-1.5 rounded-[10px] border px-3 py-2.5 transition-colors',
                         isActive
                           ? 'border-sky-200/80 bg-white shadow-sm dark:border-sky-400/20 dark:bg-slate-950/50'
                           : 'border-slate-200/70 bg-white/65 group-hover:border-slate-300/80 group-hover:bg-white dark:border-white/[0.08] dark:bg-white/[0.03] dark:group-hover:bg-white/[0.06]',
                       )}
                     >
-                      <span
-                        className={cn(
-                          'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums',
-                          isActive
-                            ? 'bg-sky-500 text-white dark:bg-sky-400 dark:text-slate-950'
-                            : 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-300',
-                        )}
-                        aria-hidden
-                      >
-                        {index + 1}
-                      </span>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
-                          <Icon className="size-3.5 shrink-0" strokeWidth={2} />
-                          <span className="truncate">
-                            {typeLabel === `stage.sceneType.${scene.type}` ? scene.type : typeLabel}
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums shadow-sm',
+                              isActive
+                                ? 'bg-sky-500 text-white ring-2 ring-sky-100 dark:bg-sky-400 dark:text-slate-950 dark:ring-sky-400/20'
+                                : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80 dark:bg-white/[0.08] dark:text-slate-300 dark:ring-white/10',
+                            )}
+                            aria-hidden
+                          >
+                            {index + 1}
                           </span>
+                          <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                            <Icon className="size-3.5 shrink-0" strokeWidth={2} />
+                            <span className="truncate">
+                              {typeLabel === `stage.sceneType.${scene.type}`
+                                ? scene.type
+                                : typeLabel}
+                            </span>
+                          </div>
                         </div>
-                        <p
-                          className={cn(
-                            'mt-1 line-clamp-2 text-sm font-semibold leading-snug [&_.katex]:text-[0.95em] [&_.katex]:font-semibold',
-                            isActive
-                              ? 'text-slate-950 dark:text-white'
-                              : 'text-slate-700 dark:text-slate-200',
-                          )}
-                          suppressHydrationWarning
-                          dangerouslySetInnerHTML={{
-                            __html: renderPlainTitleWithOptionalLatex(
-                              scene.title.trim() || `${index + 1}`,
-                            ),
-                          }}
-                        />
-                      </div>
 
-                      <button
-                        type="button"
-                        title={canDeletePage ? t('stage.deletePage') : t('stage.deletePageMinOne')}
-                        aria-label={t('stage.deletePage')}
-                        disabled={!canDeletePage}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!canDeletePage) return;
-                          const msg = t('stage.deletePageConfirm').replace(
-                            '{title}',
-                            scene.title.trim() || `${index + 1}`,
-                          );
-                          if (typeof window !== 'undefined' && !window.confirm(msg)) return;
-                          deleteScene(scene.id);
-                        }}
-                        onKeyDown={(e) => e.stopPropagation()}
+                        <button
+                          type="button"
+                          title={
+                            canDeletePage ? t('stage.deletePage') : t('stage.deletePageMinOne')
+                          }
+                          aria-label={t('stage.deletePage')}
+                          disabled={!canDeletePage}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!canDeletePage) return;
+                            const msg = t('stage.deletePageConfirm').replace(
+                              '{title}',
+                              scene.title.trim() || `${index + 1}`,
+                            );
+                            if (typeof window !== 'undefined' && !window.confirm(msg)) return;
+                            deleteScene(scene.id);
+                          }}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className={cn(
+                            'flex size-6 shrink-0 items-center justify-center rounded-md text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 dark:text-slate-500 dark:hover:bg-red-950/50 dark:hover:text-red-400',
+                            isActive && 'opacity-70',
+                            !canDeletePage &&
+                              'cursor-not-allowed opacity-30 hover:bg-transparent hover:text-slate-400 dark:hover:bg-transparent dark:hover:text-slate-500',
+                          )}
+                        >
+                          <Trash2 className="size-3.5" strokeWidth={2} />
+                        </button>
+                      </div>
+                      <p
                         className={cn(
-                          'ml-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 dark:text-slate-500 dark:hover:bg-red-950/50 dark:hover:text-red-400',
-                          isActive && 'opacity-70',
-                          !canDeletePage &&
-                            'cursor-not-allowed opacity-30 hover:bg-transparent hover:text-slate-400 dark:hover:bg-transparent dark:hover:text-slate-500',
+                          'line-clamp-2 w-full text-[13px] font-semibold leading-snug [&_.katex]:text-[0.92em] [&_.katex]:font-semibold',
+                          isActive
+                            ? 'text-slate-950 dark:text-white'
+                            : 'text-slate-700 dark:text-slate-200',
                         )}
-                      >
-                        <Trash2 className="size-3.5" strokeWidth={2} />
-                      </button>
+                        suppressHydrationWarning
+                        dangerouslySetInnerHTML={{
+                          __html: renderPlainTitleWithOptionalLatex(
+                            scene.title.trim() || `${index + 1}`,
+                          ),
+                        }}
+                      />
                     </div>
                   </div>
                 );
@@ -717,67 +722,73 @@ export function SceneSidebar({
                     >
                       <div
                         className={cn(
-                          'flex min-h-[72px] items-center gap-3 rounded-[10px] border px-3 py-3',
+                          'flex min-h-[72px] flex-col gap-1.5 rounded-[10px] border px-3 py-2.5',
                           isFailed
                             ? 'border-red-200/80 bg-red-50/60 dark:border-red-900/40 dark:bg-red-950/20'
                             : 'border-slate-200/70 bg-white/55 dark:border-white/[0.08] dark:bg-white/[0.03]',
                         )}
                       >
-                        <span
-                          className={cn(
-                            'flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums',
-                            isFailed
-                              ? 'bg-red-100 text-red-500 dark:bg-red-950/60 dark:text-red-300'
-                              : isActive
-                                ? 'bg-sky-500 text-white dark:bg-sky-400 dark:text-slate-950'
-                                : 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-300',
-                          )}
-                          aria-hidden
-                        >
-                          {isFailed ? (
-                            <AlertCircle className="size-3.5" strokeWidth={2} />
-                          ) : (
-                            scenes.length + 1
-                          )}
-                        </span>
+                        <div className="flex min-w-0 items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span
+                              className={cn(
+                                'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums shadow-sm',
+                                isFailed
+                                  ? 'bg-red-100 text-red-500 ring-1 ring-red-200/80 dark:bg-red-950/60 dark:text-red-300 dark:ring-red-900/50'
+                                  : isActive
+                                    ? 'bg-sky-500 text-white ring-2 ring-sky-100 dark:bg-sky-400 dark:text-slate-950 dark:ring-sky-400/20'
+                                    : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80 dark:bg-white/[0.08] dark:text-slate-300 dark:ring-white/10',
+                              )}
+                              aria-hidden
+                            >
+                              {isFailed ? (
+                                <AlertCircle className="size-3.5" strokeWidth={2} />
+                              ) : (
+                                scenes.length + 1
+                              )}
+                            </span>
+                            <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                              <BookOpen className="size-3.5 shrink-0" strokeWidth={2} />
+                              <span className="truncate">{t('stage.sceneType.slide')}</span>
+                            </div>
+                          </div>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-700 dark:text-slate-200">
-                            {outline.title}
-                          </p>
-                          <p
-                            className={cn(
-                              'mt-1 text-xs font-medium',
-                              isFailed
-                                ? 'text-red-500 dark:text-red-400'
-                                : 'text-slate-400 dark:text-slate-500',
-                            )}
-                          >
-                            {isFailed
-                              ? isRetrying
-                                ? t('generation.retryingScene')
-                                : t('stage.generationFailed')
-                              : isPaused
-                                ? t('stage.paused')
-                                : t('stage.generating')}
-                          </p>
+                          {isFailed && onRetryOutline ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRetryOutline(outline.id);
+                              }}
+                              disabled={isRetrying}
+                              className="flex size-6 shrink-0 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/40"
+                              title={t('generation.retryScene')}
+                            >
+                              <RefreshCw className={cn('size-3.5', isRetrying && 'animate-spin')} />
+                            </button>
+                          ) : !isFailed && !isPaused ? (
+                            <Loader2 className="size-4 shrink-0 animate-spin text-slate-400 dark:text-slate-500" />
+                          ) : null}
                         </div>
 
-                        {isFailed && onRetryOutline ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRetryOutline(outline.id);
-                            }}
-                            disabled={isRetrying}
-                            className="flex size-7 shrink-0 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/40"
-                            title={t('generation.retryScene')}
-                          >
-                            <RefreshCw className={cn('size-3.5', isRetrying && 'animate-spin')} />
-                          </button>
-                        ) : !isFailed && !isPaused ? (
-                          <Loader2 className="size-4 shrink-0 animate-spin text-slate-400 dark:text-slate-500" />
-                        ) : null}
+                        <p className="line-clamp-2 w-full text-[13px] font-semibold leading-snug text-slate-700 dark:text-slate-200">
+                          {outline.title}
+                        </p>
+                        <p
+                          className={cn(
+                            'text-xs font-medium',
+                            isFailed
+                              ? 'text-red-500 dark:text-red-400'
+                              : 'text-slate-400 dark:text-slate-500',
+                          )}
+                        >
+                          {isFailed
+                            ? isRetrying
+                              ? t('generation.retryingScene')
+                              : t('stage.generationFailed')
+                            : isPaused
+                              ? t('stage.paused')
+                              : t('stage.generating')}
+                        </p>
                       </div>
                     </div>
                   );

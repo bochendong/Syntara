@@ -91,6 +91,15 @@ const SLIDE_BACKGROUND_ITEMS = [
   item('slide-background', 'nature-field-notebook', '自然生态幻灯片背景', 45),
   item('slide-background', 'dark-tech-neural', '暗色神经网络幻灯片背景', 70),
   item('slide-background', 'historical-manuscript', '历史手稿幻灯片背景', 45),
+  item('slide-background', 'magazine-courtyard', '庭院杂志幻灯片背景', 60),
+  item('slide-background', 'cinematic-stage', '电影暗场幻灯片背景', 70),
+  item('slide-background', 'product-launch-dark', '黑金发布幻灯片背景', 70),
+  item('slide-background', 'academic-blueprint', '学术蓝图幻灯片背景', 45),
+  item('slide-background', 'lecture-hall', '现代阶梯教室幻灯片背景', 45),
+  item('slide-background', 'workspace-desk', '明亮工作台幻灯片背景', 45),
+  item('slide-background', 'science-lab', '现代实验室幻灯片背景', 60),
+  item('slide-background', 'city-strategy', '城市战略夜景幻灯片背景', 60),
+  item('slide-background', 'forest-path', '森林路径幻灯片背景', 45),
 ] as const;
 
 export const PROFILE_COSMETIC_ITEMS = [

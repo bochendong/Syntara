@@ -6,7 +6,7 @@ import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { useSettingsStore } from '@/lib/store/settings';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
-import type { Scene } from '@/lib/types/stage';
+import type { PageGenerationFailureRecord, Scene } from '@/lib/types/stage';
 import type { MouthCue, SpeechAction, SpeechVisemeCue } from '@/lib/types/action';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/generation/request-payload-budget';
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { backendFetch } from '@/lib/utils/backend-api';
+import { buildShortFailureReason } from '@/lib/create/api-errors';
 
 const log = createLogger('SceneGenerator');
 const MAX_TTS_PARALLELISM = 6;
@@ -62,6 +63,23 @@ function createLinkedAbortController(parent?: AbortSignal): AbortController {
     parent.addEventListener('abort', () => controller.abort(), { once: true });
   }
   return controller;
+}
+
+function buildPageGenerationFailure(args: {
+  outline: SceneOutline;
+  phase: PageGenerationFailureRecord['phase'];
+  error: string;
+}): PageGenerationFailureRecord {
+  return {
+    outlineId: args.outline.id,
+    outlineTitle: args.outline.title,
+    order: args.outline.order,
+    source: 'resume_generation',
+    phase: args.phase,
+    error: args.error,
+    shortReason: buildShortFailureReason(args.error),
+    failedAt: Date.now(),
+  };
 }
 
 interface SceneActionsResult {
@@ -121,10 +139,13 @@ function getApiHeaders(): HeadersInit {
 
 type SceneContentDiagnosticsPayload = {
   pipeline?: string;
+  slideGenerationRoute?: string;
   failureStage?: string;
   failureReasons?: string[];
   semanticRetryCount?: number;
   layoutRetryCount?: number;
+  contentFallbackUsed?: boolean;
+  fallbackKind?: string;
 };
 
 function summarizeSceneContentDiagnostics(details: string | undefined): string | null {
@@ -141,8 +162,12 @@ function summarizeSceneContentDiagnostics(details: string | undefined): string |
       : [];
     const parts: string[] = [];
     if (diagnostics.pipeline) parts.push(`pipeline=${diagnostics.pipeline}`);
+    if (diagnostics.slideGenerationRoute) parts.push(`route=${diagnostics.slideGenerationRoute}`);
     if (diagnostics.failureStage) parts.push(`stage=${diagnostics.failureStage}`);
     if (reasons.length > 0) parts.push(`reason=${reasons.slice(0, 2).join(' | ')}`);
+    if (diagnostics.contentFallbackUsed) {
+      parts.push(`fallback=${diagnostics.fallbackKind || 'true'}`);
+    }
     if (Number.isFinite(diagnostics.semanticRetryCount)) {
       parts.push(`semanticRetries=${diagnostics.semanticRetryCount}`);
     }
@@ -678,6 +703,13 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               pausedByFailureOrAbort = true;
               break;
             }
+            store.getState().recordPageGenerationFailure(
+              buildPageGenerationFailure({
+                outline,
+                phase: 'content',
+                error: contentResult.error || 'Content generation failed',
+              }),
+            );
             store.getState().addFailedOutline(outline);
             options.onSceneFailed?.(outline, contentResult.error || 'Content generation failed');
             store.getState().setGenerationStatus('paused');
@@ -727,6 +759,13 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
                 pageFailed = true;
                 break;
               }
+              store.getState().recordPageGenerationFailure(
+                buildPageGenerationFailure({
+                  outline: pageOutline,
+                  phase: 'actions',
+                  error: actionsResult.error || 'Actions generation failed',
+                }),
+              );
               store.getState().addFailedOutline(pageOutline);
               options.onSceneFailed?.(
                 pageOutline,
@@ -874,6 +913,13 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             stageId: state.stage.id,
             error: contentResult.error || 'Content generation failed',
           });
+          store.getState().recordPageGenerationFailure(
+            buildPageGenerationFailure({
+              outline,
+              phase: 'content',
+              error: contentResult.error || 'Content generation failed',
+            }),
+          );
           store.getState().addFailedOutline(outline);
           return;
         }
@@ -919,6 +965,13 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           );
 
           if (!actionsResult.success || !actionsResult.scene) {
+            store.getState().recordPageGenerationFailure(
+              buildPageGenerationFailure({
+                outline: pageOutline,
+                phase: 'actions',
+                error: actionsResult.error || 'Actions generation failed',
+              }),
+            );
             store.getState().addFailedOutline(pageOutline);
             return;
           }
@@ -961,6 +1014,14 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
         }
       } catch (err) {
         if (!(err instanceof DOMException && err.name === 'AbortError')) {
+          const message = errorMessage(err, 'Scene generation failed');
+          store.getState().recordPageGenerationFailure(
+            buildPageGenerationFailure({
+              outline,
+              phase: 'unknown',
+              error: message,
+            }),
+          );
           store.getState().addFailedOutline(outline);
         }
       }

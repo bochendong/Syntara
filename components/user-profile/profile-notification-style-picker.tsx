@@ -2,7 +2,7 @@
 
 import { Check, Coins, LayoutGrid, Palette } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { NotificationBannerCard } from '@/components/notifications/notification-banner-card';
 import { Button } from '@/components/ui/button';
 import {

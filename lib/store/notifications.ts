@@ -2,8 +2,7 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { AppNotification, NotificationsResponse } from '@/lib/notifications/types';
-import { backendJson } from '@/lib/utils/backend-api';
+import type { AppNotification } from '@/lib/notifications/types';
 
 const MAX_TRACKED_READ_IDS = 400;
 const MAX_ACTIVE_BANNERS = 1;
@@ -137,57 +136,32 @@ export const useNotificationStore = create<NotificationStoreState>()(
           get().setActiveUser(targetUserId);
         }
 
-        if (!options?.silent) {
-          set({ isLoading: true });
-        }
+        set((state) => {
+          const readSet = buildReadSet(state.readByUser, targetUserId);
+          const deletedSet = buildReadSet(state.deletedByUser, targetUserId);
+          const visibleNotifications = state.notifications.filter(
+            (item) => !deletedSet.has(item.id),
+          );
 
-        try {
-          const response = await backendJson<NotificationsResponse>('/api/notifications?limit=50');
-
-          set((state) => {
-            const readSet = buildReadSet(state.readByUser, targetUserId);
-            const deletedSet = buildReadSet(state.deletedByUser, targetUserId);
-            const visibleNotifications = response.notifications.filter(
-              (item) => !deletedSet.has(item.id),
-            );
-            const existingIds = new Set(
-              state.activeUserId === targetUserId ? state.notifications.map((item) => item.id) : [],
-            );
-            const incomingBanners =
-              state.hasInitializedSession && state.activeUserId === targetUserId
-                ? visibleNotifications.filter(
-                    (item) =>
-                      canShowAsBanner(item) && !readSet.has(item.id) && !existingIds.has(item.id),
-                  )
-                : [];
-            const nextBanners = buildNextActiveBanners({
+          return {
+            activeUserId: targetUserId,
+            databaseEnabled: false,
+            notifications: visibleNotifications,
+            activeBanners: buildNextActiveBanners({
               notifications: visibleNotifications,
               activeBanners: state.activeBanners.filter((item) => !deletedSet.has(item.id)),
               readSet,
               queuedLocalBanners: state.queuedLocalBanners.filter(
                 (item) => !deletedSet.has(item.id),
               ),
-              incomingBanners,
               excludeIds: state.dismissedBannerIds,
-            });
-
-            return {
-              activeUserId: targetUserId,
-              databaseEnabled: response.databaseEnabled,
-              notifications: visibleNotifications,
-              activeBanners: nextBanners,
-              dismissedBannerIds: state.dismissedBannerIds,
-              queuedLocalBanners: state.queuedLocalBanners.filter(
-                (item) => !deletedSet.has(item.id),
-              ),
-              unreadCount: countUnread(visibleNotifications, readSet),
-              isLoading: false,
-              hasInitializedSession: true,
-            };
-          });
-        } catch {
-          set({ isLoading: false });
-        }
+            }),
+            queuedLocalBanners: state.queuedLocalBanners.filter((item) => !deletedSet.has(item.id)),
+            unreadCount: countUnread(visibleNotifications, readSet),
+            isLoading: false,
+            hasInitializedSession: true,
+          };
+        });
       },
       markAsRead: (notificationId) =>
         set((state) => {

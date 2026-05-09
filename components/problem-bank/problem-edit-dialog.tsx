@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import type { NotebookProblemImportDraft } from '@/lib/problem-bank';
 import type { NotebookProblemClientRecord } from '@/lib/utils/notebook-problem-api';
 import { problemDraftToPatch, problemRecordToDraft } from '@/lib/problem-bank/editor';

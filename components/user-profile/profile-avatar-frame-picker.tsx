@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { UserAvatarFrameId } from '@/lib/constants/user-avatar-frames';

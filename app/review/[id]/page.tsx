@@ -19,7 +19,7 @@ import {
   Swords,
   Trash2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { backendJson } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { loadStageData, type StageStoreData } from '@/lib/utils/stage-storage';

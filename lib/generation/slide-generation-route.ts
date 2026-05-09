@@ -24,3 +24,8 @@ export function normalizeSlideGenerationRoute(value: unknown): SlideGenerationRo
   }
   return DEFAULT_SLIDE_GENERATION_ROUTE;
 }
+
+export function normalizeNotebookSlideGenerationRoute(value: unknown): SlideGenerationRoute {
+  const route = normalizeSlideGenerationRoute(value);
+  return route === 'openmaic-legacy' ? DEFAULT_SLIDE_GENERATION_ROUTE : route;
+}

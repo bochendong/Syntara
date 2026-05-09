@@ -4,6 +4,7 @@ import type {
   NotebookContentLayoutFamily,
   NotebookContentOverflowPolicy,
 } from './schema';
+import { getExampleDisplaySteps } from './example-block';
 import { CARD_INSET_Y } from './layout-constants';
 import { estimateParagraphStackHeight, estimateProcessFlowBlockHeight } from './measure';
 
@@ -43,12 +44,16 @@ export function expandBlocks(
           text: `${language === 'en-US' ? 'Goal: ' : '目标：'}${block.goal}`,
         });
       }
-      expanded.push({
-        type: 'bullet_list',
-        items: block.steps.map(
-          (item, idx) => `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${item}`,
-        ),
-      });
+      const displaySteps = getExampleDisplaySteps(block);
+      if (displaySteps.length > 0) {
+        expanded.push({
+          type: 'bullet_list',
+          items: displaySteps.map(
+            (item, idx) =>
+              `${language === 'en-US' ? `Step ${idx + 1}` : `步骤 ${idx + 1}`}：${item}`,
+          ),
+        });
+      }
       if (block.answer) {
         expanded.push({
           type: 'callout',
@@ -151,6 +156,28 @@ function splitCodeWalkthroughBlockForPagination(
   return chunks;
 }
 
+function splitCodeTraceBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'code_trace' }>,
+): NotebookContentBlock[] {
+  if (block.steps.length <= 3) return [block];
+
+  const chunks: NotebookContentBlock[] = [];
+  for (let index = 0; index < block.steps.length; index += 3) {
+    const isLast = index + 3 >= block.steps.length;
+    const steps = block.steps.slice(index, index + 3);
+    const activeLines = Array.from(
+      new Set(steps.flatMap((step) => (step.line ? [step.line] : []))),
+    );
+    chunks.push({
+      ...block,
+      activeLines: activeLines.length ? activeLines : block.activeLines,
+      steps,
+      output: isLast ? block.output : undefined,
+    });
+  }
+  return chunks;
+}
+
 function splitCodeBlockForPagination(
   block: Extract<NotebookContentBlock, { type: 'code_block' }>,
 ): NotebookContentBlock[] {
@@ -169,23 +196,52 @@ function splitCodeBlockForPagination(
   return chunks;
 }
 
+function splitStateTableBlockForPagination(
+  block: Extract<NotebookContentBlock, { type: 'state_table' }>,
+): NotebookContentBlock[] {
+  const maxRowsPerPage = 8;
+  if (block.rows.length <= maxRowsPerPage) return [block];
+
+  const chunks: NotebookContentBlock[] = [];
+  for (let index = 0; index < block.rows.length; index += maxRowsPerPage) {
+    const rows = block.rows.slice(index, index + maxRowsPerPage);
+    const activeRow =
+      typeof block.activeRow === 'number' &&
+      block.activeRow >= index &&
+      block.activeRow < index + rows.length
+        ? block.activeRow - index
+        : undefined;
+    chunks.push({
+      ...block,
+      rows,
+      activeRow,
+      caption: index + maxRowsPerPage >= block.rows.length ? block.caption : undefined,
+    });
+  }
+  return chunks;
+}
+
 function splitProcessFlowBlockForPagination(block: ProcessFlowBlock): NotebookContentBlock[] {
-  if (block.orientation === 'horizontal') {
-    const hasDenseStep = block.steps.some(
+  const context = Array.isArray(block.context) ? block.context : [];
+  const steps = Array.isArray(block.steps) ? block.steps : [];
+  const normalizedBlock: ProcessFlowBlock = { ...block, context, steps };
+
+  if (normalizedBlock.orientation === 'horizontal') {
+    const hasDenseStep = steps.some(
       (step) => step.title.length > 28 || step.detail.length > 100 || (step.note?.length ?? 0) > 72,
     );
-    const maxStepsPerPage = hasDenseStep || block.context.length >= 3 ? 3 : 4;
-    if (block.steps.length <= maxStepsPerPage) return [block];
+    const maxStepsPerPage = hasDenseStep || context.length >= 3 ? 3 : 4;
+    if (steps.length <= maxStepsPerPage) return [normalizedBlock];
 
     const chunks: NotebookContentBlock[] = [];
-    for (let index = 0; index < block.steps.length; index += maxStepsPerPage) {
+    for (let index = 0; index < steps.length; index += maxStepsPerPage) {
       const isFirst = index === 0;
-      const isLast = index + maxStepsPerPage >= block.steps.length;
+      const isLast = index + maxStepsPerPage >= steps.length;
       chunks.push({
-        ...block,
-        context: isFirst ? block.context : [],
-        steps: block.steps.slice(index, index + maxStepsPerPage),
-        summary: isLast ? block.summary : undefined,
+        ...normalizedBlock,
+        context: isFirst ? context : [],
+        steps: steps.slice(index, index + maxStepsPerPage),
+        summary: isLast ? normalizedBlock.summary : undefined,
       });
     }
     return chunks;
@@ -200,20 +256,20 @@ function splitProcessFlowBlockForPagination(block: ProcessFlowBlock): NotebookCo
     includeContext: boolean,
     includeSummary: boolean,
   ): ProcessFlowBlock => ({
-    ...block,
-    context: includeContext ? block.context : [],
+    ...normalizedBlock,
+    context: includeContext ? context : [],
     steps,
-    summary: includeSummary ? block.summary : undefined,
+    summary: includeSummary ? normalizedBlock.summary : undefined,
   });
 
-  for (let index = 0; index < block.steps.length; index += 1) {
-    const step = block.steps[index];
+  for (let index = 0; index < steps.length; index += 1) {
+    const step = steps[index];
     const candidateSteps = [...currentSteps, step];
-    const hasMoreSteps = index < block.steps.length - 1;
+    const hasMoreSteps = index < steps.length - 1;
     const candidateBlock = buildCandidate(
       candidateSteps,
       chunks.length === 0,
-      !hasMoreSteps && Boolean(block.summary),
+      !hasMoreSteps && Boolean(normalizedBlock.summary),
     );
     const candidateHeight = estimateProcessFlowBlockHeight({
       block: candidateBlock,
@@ -230,11 +286,13 @@ function splitProcessFlowBlockForPagination(block: ProcessFlowBlock): NotebookCo
   }
 
   if (currentSteps.length > 0) {
-    chunks.push(buildCandidate(currentSteps, chunks.length === 0, Boolean(block.summary)));
+    chunks.push(
+      buildCandidate(currentSteps, chunks.length === 0, Boolean(normalizedBlock.summary)),
+    );
   }
 
   if (chunks.length <= 1) {
-    return chunks.length > 0 ? chunks : [block];
+    return chunks.length > 0 ? chunks : [normalizedBlock];
   }
 
   const balancedChunks: ProcessFlowBlock[] = chunks.map((chunk) => ({
@@ -320,6 +378,16 @@ export function prepareBlocksForPagination(
 
     if (block.type === 'code_walkthrough') {
       preSplitBlocks.push(...splitCodeWalkthroughBlockForPagination(block));
+      continue;
+    }
+
+    if (block.type === 'code_trace') {
+      preSplitBlocks.push(...splitCodeTraceBlockForPagination(block));
+      continue;
+    }
+
+    if (block.type === 'state_table') {
+      preSplitBlocks.push(...splitStateTableBlockForPagination(block));
       continue;
     }
 

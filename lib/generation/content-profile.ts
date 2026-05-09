@@ -1,5 +1,6 @@
 import {
   inferNotebookContentProfileFromText,
+  isClassicLectureLayoutTemplate,
   type NotebookContentDisciplineStyle,
   type NotebookContentLayoutFamily,
   type NotebookContentLayoutTemplate,
@@ -72,6 +73,52 @@ const GEOGRAPHY_SPATIAL_PATTERNS = [
 const ECONOMICS_MODEL_PATTERNS = [
   /(供给|需求|均衡|弹性|边际|机会成本|外部性|博弈|激励|曲线|政策冲击|supply|demand|equilibrium|elasticity|marginal|opportunity cost|externality|game theory|incentive|curve|policy shock)/i,
 ];
+
+const CLASSIC_PIPELINE_PATTERNS = [
+  /(pipeline|workflow|stages?|process|stepwise|流程|阶段|管线|工作流|处理链|步骤|机制路径)/i,
+];
+
+const CLASSIC_TABLE_PATTERNS = [
+  /(table|matrix|compare|input|output|why it matters|对照表|表格|矩阵|输入|输出|为什么重要|主操作|主要操作)/i,
+];
+
+const CLASSIC_VISUAL_STEPS_PATTERNS = [
+  /(hierarch|architecture|assembly|scaffold|diagram|three steps?|3 steps?|架构|层级|层次|组装|装配|骨架|图示|三步|三个步骤)/i,
+];
+
+const CLASSIC_SUMMARY_PATTERNS = [
+  /(conclusion|future directions?|limitations?|strengths?|contribution|takeaways?|总结|结论|未来|局限|限制|贡献|优势|收束|下一步)/i,
+];
+
+const IMAGE_HERO_CINEMATIC_PATTERNS = [
+  /(cinematic|film|movie|mv|music video|trailer|dark art|gallery|stained glass|电影|影片|影像|短片|音乐视频|深度解析|镜头|画面|暗色|舞台)/i,
+];
+
+const IMAGE_HERO_TECH_PATTERNS = [
+  /(tech|saas|ai|subscription|pricing|product launch|launch|plans?|network|platform|科技|产品发布|订阅|价格|套餐|方案|平台|人工智能|网络|发布会)/i,
+];
+
+type ClassicImageHeroTemplate = Extract<
+  NotebookContentLayoutTemplate,
+  'image_title_overlay' | 'cinematic_title_frame' | 'tech_hero_title'
+>;
+
+function inferImageHeroTemplate(
+  text: string,
+  deckStyle: SceneLayoutIntent['deckStyle'] | undefined,
+): ClassicImageHeroTemplate {
+  if (deckStyle === 'dark_art' || matchesAny(text, IMAGE_HERO_CINEMATIC_PATTERNS)) {
+    return 'cinematic_title_frame';
+  }
+  if (
+    deckStyle === 'tech_saas' ||
+    deckStyle === 'product_launch' ||
+    matchesAny(text, IMAGE_HERO_TECH_PATTERNS)
+  ) {
+    return 'tech_hero_title';
+  }
+  return 'image_title_overlay';
+}
 
 function inferSceneDisciplineStyle(
   outline: SceneOutline,
@@ -226,6 +273,101 @@ export function inferSceneArchetype(outline: SceneOutline): SceneArchetype {
   return 'concept';
 }
 
+function classicLayoutFamilyForTemplate(
+  template: Extract<
+    NotebookContentLayoutTemplate,
+    | 'pipeline_table'
+    | 'comparison_matrix'
+    | 'visual_three_steps'
+    | 'process_steps'
+    | 'two_by_one_summary'
+    | 'three_cards'
+    | 'text_image_split'
+    | 'four_columns'
+    | 'grid_2x2'
+    | 'two_text_image'
+    | 'definition_board'
+    | 'derivation_ladder'
+    | 'formula_focus'
+    | 'image_title_overlay'
+    | 'cinematic_title_frame'
+    | 'tech_hero_title'
+  >,
+): NotebookContentLayoutFamily {
+  if (
+    template === 'image_title_overlay' ||
+    template === 'cinematic_title_frame' ||
+    template === 'tech_hero_title'
+  ) {
+    return 'cover';
+  }
+  if (template === 'pipeline_table') return 'comparison';
+  if (template === 'comparison_matrix') return 'comparison';
+  if (template === 'process_steps') return 'timeline';
+  if (template === 'visual_three_steps') return 'visual_split';
+  if (template === 'text_image_split') return 'visual_split';
+  if (template === 'two_text_image') return 'visual_split';
+  if (template === 'three_cards') return 'concept_cards';
+  if (template === 'four_columns') return 'concept_cards';
+  if (template === 'grid_2x2') return 'concept_cards';
+  if (template === 'definition_board') return 'concept_cards';
+  if (template === 'derivation_ladder') return 'derivation';
+  if (template === 'formula_focus') return 'formula_focus';
+  return 'summary';
+}
+
+function inferClassicLectureLayoutTemplate(args: {
+  outline: SceneOutline;
+  profile: NotebookContentProfile;
+  archetype: SceneArchetype;
+}): Extract<
+  NotebookContentLayoutTemplate,
+  | 'pipeline_table'
+  | 'visual_three_steps'
+  | 'two_by_one_summary'
+  | 'three_cards'
+  | 'text_image_split'
+  | 'four_columns'
+  | 'grid_2x2'
+  | 'two_text_image'
+  | 'definition_board'
+  | 'derivation_ladder'
+  | 'formula_focus'
+  | 'image_title_overlay'
+  | 'cinematic_title_frame'
+  | 'tech_hero_title'
+> | null {
+  const { outline, profile, archetype } = args;
+  if (outline.type !== 'slide') return null;
+  if (outline.workedExampleConfig) return null;
+  if (profile === 'code') return null;
+
+  const text = collectOutlineSignals(outline).join('\n');
+  const keyPointCount = outline.keyPoints?.length || 0;
+  const hasMedia = Boolean(outline.suggestedImageIds?.length || outline.mediaGenerations?.length);
+
+  if (archetype === 'intro') {
+    return inferImageHeroTemplate(text, outline.layoutIntent?.deckStyle);
+  }
+
+  if (archetype === 'summary' || matchesAny(text, CLASSIC_SUMMARY_PATTERNS)) {
+    return 'two_by_one_summary';
+  }
+
+  if (matchesAny(text, CLASSIC_VISUAL_STEPS_PATTERNS) && hasMedia) {
+    return 'visual_three_steps';
+  }
+
+  if (
+    matchesAny(text, CLASSIC_PIPELINE_PATTERNS) &&
+    (matchesAny(text, CLASSIC_TABLE_PATTERNS) || keyPointCount >= 4 || archetype === 'bridge')
+  ) {
+    return 'pipeline_table';
+  }
+
+  return null;
+}
+
 function inferSceneLayoutFamily(
   outline: SceneOutline,
   profile: NotebookContentProfile,
@@ -234,6 +376,9 @@ function inferSceneLayoutFamily(
   teachingFlow: NotebookContentTeachingFlow,
 ): NotebookContentLayoutFamily {
   if (outline.layoutIntent?.layoutFamily) return outline.layoutIntent.layoutFamily;
+  if (isClassicLectureLayoutTemplate(outline.layoutIntent?.layoutTemplate)) {
+    return classicLayoutFamilyForTemplate(outline.layoutIntent.layoutTemplate);
+  }
 
   const text = collectOutlineSignals(outline).join('\n');
   const worked = outline.workedExampleConfig;
@@ -295,6 +440,13 @@ function inferSceneLayoutIntent(
     disciplineStyle,
     teachingFlow,
   );
+  const explicitTemplate = outline.layoutIntent?.layoutTemplate;
+  const classicTemplate = isClassicLectureLayoutTemplate(explicitTemplate)
+    ? explicitTemplate
+    : inferClassicLectureLayoutTemplate({ outline, profile, archetype });
+  const effectiveLayoutFamily = classicTemplate
+    ? classicLayoutFamilyForTemplate(classicTemplate)
+    : layoutFamily;
   const hasSourceImage = Boolean(outline.suggestedImageIds?.length);
   const hasGeneratedImage = Boolean(
     outline.mediaGenerations?.some((media) => media.type === 'image'),
@@ -304,12 +456,13 @@ function inferSceneLayoutIntent(
     Boolean(outline.workedExampleConfig?.role === 'problem_statement');
 
   return {
-    layoutFamily,
+    layoutFamily: effectiveLayoutFamily,
     layoutTemplate:
-      outline.layoutIntent?.layoutTemplate ||
+      explicitTemplate ||
+      classicTemplate ||
       inferSceneLayoutTemplate(
         outline,
-        layoutFamily,
+        effectiveLayoutFamily,
         profile,
         archetype,
         disciplineStyle,
@@ -319,7 +472,11 @@ function inferSceneLayoutIntent(
     teachingFlow,
     density:
       outline.layoutIntent?.density ??
-      (layoutFamily === 'cover' || layoutFamily === 'section' ? 'light' : 'standard'),
+      (effectiveLayoutFamily === 'cover' || effectiveLayoutFamily === 'section'
+        ? 'light'
+        : 'standard'),
+    deckStyle: outline.layoutIntent?.deckStyle,
+    backgroundStyleId: outline.layoutIntent?.backgroundStyleId,
     visualRole:
       outline.layoutIntent?.visualRole ??
       (hasSourceImage ? 'source_image' : hasGeneratedImage ? 'generated_image' : 'none'),
@@ -346,17 +503,17 @@ function inferSceneLayoutTemplate(
 
   switch (layoutFamily) {
     case 'cover':
-      return 'cover_hero';
+      return inferImageHeroTemplate(text, outline.layoutIntent?.deckStyle);
     case 'section':
       return 'section_divider';
     case 'visual_split':
-      return parity === 0 ? 'visual_left' : 'visual_right';
+      return keyPointCount >= 2 ? 'two_text_image' : 'text_image_split';
     case 'comparison':
       if (matchesAny(text, DATA_ANALYSIS_PATTERNS)) return 'data_insight';
       return teachingFlow === 'comparison_review' &&
         (disciplineStyle === 'humanities' || disciplineStyle === 'social_science')
         ? 'compare_perspectives'
-        : 'comparison_matrix';
+        : 'pipeline_table';
     case 'timeline':
       return teachingFlow === 'timeline_story' ? 'process_steps' : 'timeline_road';
     case 'problem_statement':
@@ -370,7 +527,7 @@ function inferSceneLayoutTemplate(
     case 'formula_focus':
       return 'formula_focus';
     case 'summary':
-      return 'summary_board';
+      return 'two_by_one_summary';
     case 'concept_cards':
     default:
       if (hasMedia) return parity === 0 ? 'visual_left' : 'visual_right';
@@ -383,11 +540,15 @@ function inferSceneLayoutTemplate(
           : 'quote_analysis';
       }
       if (teachingFlow === 'case_analysis') return 'case_analysis';
-      if (archetype === 'definition') return 'definition_board';
-      if (teachingFlow === 'definition_to_example') return 'definition_board';
+      if (archetype === 'definition') {
+        return profile !== 'math' && keyPointCount === 3 ? 'three_cards' : 'definition_board';
+      }
+      if (teachingFlow === 'definition_to_example') {
+        return profile !== 'math' && keyPointCount === 3 ? 'three_cards' : 'definition_board';
+      }
       if (keyPointCount <= 2) return 'title_content';
       if (keyPointCount === 3) return 'three_cards';
-      if (keyPointCount >= 4) return order % 3 === 0 ? 'four_grid' : 'two_column';
+      if (keyPointCount >= 4) return order % 2 === 0 ? 'four_columns' : 'grid_2x2';
       return 'two_column';
   }
 }
@@ -503,7 +664,7 @@ export function formatContentProfileForPrompt(
             '内容 profile：code',
             '- 这是编程 / 算法讲解页。',
             '- 优先保留代码结构、执行顺序、变量状态变化、输入输出示例与调试思路。',
-            '- 不要把代码讲解压扁成抽象 bullet；能用 code_walkthrough 就不要只给 paragraph。',
+            '- 不要把代码讲解压扁成抽象 bullet；能用 code_walkthrough / code_trace / state_table / call_stack / memory_diagram / pointer_diagram / tree_diagram / graph_trace / dictionary_diagram / linear_structure 就不要只给 paragraph。',
           ]
         : profile === 'math'
           ? [
@@ -526,7 +687,7 @@ export function formatContentProfileForPrompt(
       'Content profile: code',
       '- This slide is primarily a programming / algorithm explanation.',
       '- Preserve code structure, execution order, variable-state changes, IO examples, and debugging logic.',
-      '- Prefer code_walkthrough over flattening the explanation into abstract bullets.',
+      '- Prefer code_walkthrough / code_trace / state_table / call_stack / memory_diagram / pointer_diagram / tree_diagram / graph_trace / dictionary_diagram / linear_structure over flattening the explanation into abstract bullets.',
     ].join('\n');
   }
 

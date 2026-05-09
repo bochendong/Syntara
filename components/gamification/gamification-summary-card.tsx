@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Coins, Flame, Heart, Loader2, Sparkles, Target, WandSparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';

@@ -15,9 +15,14 @@ import { NextRequest } from 'next/server';
 import { callLLM, streamLLM } from '@/lib/ai/llm';
 import { buildPrompt, PROMPT_IDS } from '@/lib/generation/prompts';
 import { normalizeSceneOutlineContentProfile } from '@/lib/generation/content-profile';
-import { formatOutlineDisciplineGuidanceForPrompt } from '@/lib/generation/discipline-packs';
-import { formatPurposeGuidanceForPrompt } from '@/lib/generation/purpose-packs';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
+import { attachDeckMemoryToOutlines } from '@/lib/generation/deck-memory';
+import {
+  attachGeneratedTeachingPlan,
+  buildTeachingPlan,
+  formatTeachingPlanForOutlinePrompt,
+} from '@/lib/generation/teaching-plan';
 import {
   formatImageDescription,
   formatImagePlaceholder,
@@ -359,18 +364,15 @@ export async function POST(req: NextRequest) {
       requirements.language,
       body.outlinePreferences ?? null,
     );
-    const disciplineGuidance = formatOutlineDisciplineGuidanceForPrompt({
-      language: requirements.language,
-      requirement: requirements.requirement,
+    const teachingPlan = buildTeachingPlan(requirements, {
       pdfText,
       researchContext,
-      purpose: body.coursePurpose || body.courseContext?.purpose,
+      courseContextText: courseContext,
       courseContext: body.courseContext,
     });
-    const purposeGuidance = formatPurposeGuidanceForPrompt({
+    const teachingPlanGuidance = formatTeachingPlanForOutlinePrompt({
+      teachingPlan,
       language: requirements.language,
-      purpose: body.coursePurpose || body.courseContext?.purpose,
-      stage: 'outline',
     });
 
     const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
@@ -389,8 +391,8 @@ export async function POST(req: NextRequest) {
       purposePolicy,
       courseContext,
       orchestratorPreferences,
-      purposeGuidance,
-      disciplineGuidance,
+      purposeGuidance: '',
+      disciplineGuidance: teachingPlanGuidance,
     });
 
     if (!prompts) {
@@ -475,12 +477,12 @@ export async function POST(req: NextRequest) {
                 const newOutlines = extractNewOutlines(fullText, parsedOutlines.length);
                 for (const outline of newOutlines) {
                   // Ensure ID and order
-                  const enriched = {
+                  const enriched = normalizeComputerScienceSceneOutline({
                     ...normalizeSceneOutlineContentProfile(outline),
                     id: outline.id || nanoid(),
                     order: parsedOutlines.length + 1,
                     language: requirements.language,
-                  };
+                  });
                   parsedOutlines.push(enriched);
 
                   const event = JSON.stringify({
@@ -508,12 +510,12 @@ export async function POST(req: NextRequest) {
                 if (fallbackText.trim()) {
                   const recoveredOutlines = extractNewOutlines(fallbackText, 0);
                   for (const outline of recoveredOutlines) {
-                    const enriched = {
+                    const enriched = normalizeComputerScienceSceneOutline({
                       ...normalizeSceneOutlineContentProfile(outline),
                       id: outline.id || nanoid(),
                       order: parsedOutlines.length + 1,
                       language: requirements.language,
-                    };
+                    });
                     parsedOutlines.push(enriched);
 
                     const event = JSON.stringify({
@@ -567,8 +569,15 @@ export async function POST(req: NextRequest) {
 
           if (parsedOutlines.length > 0) {
             // Replace sequential gen_img_N/gen_vid_N with globally unique IDs
-            const uniquifiedOutlines = uniquifyMediaElementIds(
-              normalizeOutlineStructure(parsedOutlines),
+            const withTeachingPlan = attachGeneratedTeachingPlan({
+              requirements,
+              outlines: normalizeOutlineStructure(parsedOutlines),
+              pdfText,
+              researchContext,
+              courseContext: body.courseContext,
+            });
+            const uniquifiedOutlines = attachDeckMemoryToOutlines(
+              uniquifyMediaElementIds(withTeachingPlan.map(normalizeComputerScienceSceneOutline)),
             );
             // Send done event with all outlines
             const doneEvent = JSON.stringify({

@@ -75,6 +75,121 @@ function collectBlockText(block: NotebookContentBlock): string[] {
         ...block.steps.flatMap((step) => [step.title || '', step.focus || '', step.explanation]),
         block.output || '',
       ];
+    case 'code_trace':
+      return [
+        block.title || '',
+        block.code,
+        ...block.steps.flatMap((step) => [
+          step.explanation,
+          ...step.state.flatMap((item) => [item.name, item.value]),
+        ]),
+        block.output || '',
+      ];
+    case 'state_table':
+      return [block.title || '', ...block.columns, ...block.rows.flat(), block.caption || ''];
+    case 'call_stack':
+      return [
+        block.title || '',
+        ...block.frames.flatMap((frame) => [
+          frame.name,
+          ...frame.args.flatMap((item) => [item.name, item.value]),
+          ...frame.locals.flatMap((item) => [item.name, item.value]),
+          frame.returnValue || '',
+          frame.note || '',
+        ]),
+        block.caption || '',
+      ];
+    case 'memory_diagram':
+      return [
+        block.title || '',
+        ...block.stack.flatMap((item) => [item.name, item.value, item.ref || '']),
+        ...block.heap.flatMap((item) => [
+          item.id,
+          item.label,
+          ...item.fields.flatMap((field) => [field.name, field.value]),
+        ]),
+        ...block.links.flatMap((link) => [link.from, link.to, link.label || '']),
+        block.caption || '',
+      ];
+    case 'pointer_diagram':
+      return [
+        block.title || '',
+        block.operation || '',
+        block.kind || '',
+        ...block.nodes.flatMap((node) => [
+          node.id,
+          node.label,
+          ...node.fields.flatMap((field) => [field.name, field.value]),
+        ]),
+        ...block.pointers.flatMap((pointer) => [pointer.name, pointer.to || 'None']),
+        ...block.links.flatMap((link) => [link.from, link.to, link.label || '']),
+        block.caption || '',
+      ];
+    case 'tree_diagram':
+      return [
+        block.title || '',
+        block.kind || '',
+        block.target || '',
+        block.decision || '',
+        ...block.nodes.flatMap((node) => [
+          node.id,
+          node.label,
+          ...(node.children || []),
+          node.left || '',
+          node.right || '',
+        ]),
+        block.invariant || '',
+        block.caption || '',
+      ];
+    case 'graph_trace':
+      return [
+        block.title || '',
+        block.algorithm,
+        block.startId || '',
+        ...block.nodes.flatMap((node) => [node.id, node.label]),
+        ...block.edges.flatMap((edge) => [edge.from, edge.to, edge.label || '']),
+        ...block.steps.flatMap((step) => [
+          step.title || '',
+          step.action || '',
+          step.current || '',
+          ...step.frontier,
+          ...step.visited,
+          ...step.order,
+          step.explanation || '',
+          step.result || '',
+        ]),
+        block.invariant || '',
+        block.caption || '',
+      ];
+    case 'linear_structure':
+      return [
+        block.title || '',
+        block.kind,
+        block.operation || '',
+        ...block.items.flatMap((item) => [item.id, item.label, item.note || '']),
+        ...block.steps.flatMap((step) => [
+          step.title || '',
+          step.operation || '',
+          ...step.items.flatMap((item) => [item.id, item.label, item.note || '']),
+          ...step.focus,
+          step.explanation || '',
+          step.result || '',
+        ]),
+        block.caption || '',
+      ];
+    case 'invariant_panel':
+      return [
+        block.title || '',
+        block.structure || '',
+        block.invariant,
+        ...block.checks.flatMap((check) => [
+          check.label,
+          check.text,
+          check.status,
+          check.reason || '',
+        ]),
+        block.caption || '',
+      ];
     case 'table':
       return [block.caption || '', ...(block.headers || []), ...block.rows.flat()];
     case 'callout':
@@ -94,10 +209,12 @@ function collectBlockText(block: NotebookContentBlock): string[] {
         ...block.pitfalls,
       ];
     case 'process_flow':
+      const processContext = Array.isArray(block.context) ? block.context : [];
+      const processSteps = Array.isArray(block.steps) ? block.steps : [];
       return [
         block.title || '',
-        ...block.context.flatMap((item) => [item.label, item.text]),
-        ...block.steps.flatMap((step) => [step.title, step.detail, step.note || '']),
+        ...processContext.flatMap((item) => [item.label, item.text]),
+        ...processSteps.flatMap((step) => [step.title, step.detail, step.note || '']),
         block.summary || '',
       ];
     case 'layout_cards':
@@ -120,7 +237,23 @@ export function inferNotebookContentProfileFromText(text: string): NotebookConte
 export function inferNotebookContentProfileFromBlocks(
   blocks: NotebookContentBlock[],
 ): NotebookContentProfile {
-  if (blocks.some((block) => block.type === 'code_block' || block.type === 'code_walkthrough')) {
+  if (
+    blocks.some((block) =>
+      [
+        'code_block',
+        'code_walkthrough',
+        'code_trace',
+        'state_table',
+        'call_stack',
+        'memory_diagram',
+        'pointer_diagram',
+        'tree_diagram',
+        'graph_trace',
+        'invariant_panel',
+        'linear_structure',
+      ].includes(block.type),
+    )
+  ) {
     return 'code';
   }
 

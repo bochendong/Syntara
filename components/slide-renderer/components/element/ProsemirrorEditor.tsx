@@ -27,7 +27,7 @@ import { setListStyle } from '@/lib/prosemirror/commands/setListStyle';
 import { replaceText } from '@/lib/prosemirror/commands/replaceText';
 import type { TextFormatPainterKeys } from '@/lib/types/edit';
 import { KEYS } from '@/configs/hotkey';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 
 export interface ProsemirrorEditorProps {
   elementId: string;

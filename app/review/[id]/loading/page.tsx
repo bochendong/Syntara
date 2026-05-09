@@ -13,7 +13,7 @@ import {
   Sparkles,
   Wand2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import type { StageStoreData } from '@/lib/utils/stage-storage';
 import { loadStageData } from '@/lib/utils/stage-storage';
 import { listNotebookProblems } from '@/lib/utils/notebook-problem-api';

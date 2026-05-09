@@ -3,20 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpenCheck, Layers3, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { CourseGalleryCard } from '@/components/course-gallery-card';
+import {
+  StoreFeatureStrip,
+  StoreListSection,
+  type StorefrontItem,
+} from '@/components/store/storefront-sections';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
-import {
-  getFirstSlideByStages,
-  listStages,
-  moveStageToCourse,
-  type StageListItem,
-} from '@/lib/utils/stage-storage';
-import type { Slide } from '@/lib/types/slides';
+import { listStages, moveStageToCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { listCourses } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import { notebookCourseContext } from '@/lib/utils/course-display';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import {
   getPurchasedNotebookMoveSuccessMessage,
@@ -54,7 +52,6 @@ export default function StorePage() {
 
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [courseRecords, setCourseRecords] = useState<CourseRecord[]>([]);
-  const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [loading, setLoading] = useState(true);
 
   const courseById = useMemo(
@@ -70,8 +67,6 @@ export default function StorePage() {
         const [allNotebooks, courses] = await Promise.all([listStages(), listCourses()]);
         setNotebooks(allNotebooks);
         setCourseRecords(courses);
-        const slides = await getFirstSlideByStages(allNotebooks.map((n) => n.id));
-        setThumbnails(slides);
       } finally {
         if (!opts?.silent) setLoading(false);
       }
@@ -105,12 +100,94 @@ export default function StorePage() {
     [notebooks],
   );
   const recommendedNotebooks = useMemo(
-    () => sortedNotebooks.filter((nb) => nb.courseId !== currentCourseId).slice(0, 6),
+    () => sortedNotebooks.filter((nb) => nb.courseId !== currentCourseId).slice(0, 9),
     [currentCourseId, sortedNotebooks],
   );
   const inCourseNotebooks = useMemo(
-    () => sortedNotebooks.filter((nb) => nb.courseId === currentCourseId).slice(0, 3),
+    () => sortedNotebooks.filter((nb) => nb.courseId === currentCourseId).slice(0, 9),
     [currentCourseId, sortedNotebooks],
+  );
+
+  const handleNotebookAction = useCallback(
+    async (nb: StageListItem) => {
+      if (!currentCourseId) return;
+      const needsJoin = nb.courseId !== currentCourseId;
+
+      if (!needsJoin) {
+        router.push(`/classroom/${nb.id}`);
+        return;
+      }
+
+      if (
+        nb.sourceNotebookId &&
+        !window.confirm(getPurchasedNotebookMoveWarning(currentCourseName))
+      ) {
+        return;
+      }
+
+      try {
+        await moveStageToCourse(nb.id, currentCourseId);
+        toast.success(
+          nb.sourceNotebookId
+            ? getPurchasedNotebookMoveSuccessMessage(currentCourseName)
+            : '已将该笔记本加入当前课程',
+        );
+        await loadStoreData({ silent: true });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '操作失败');
+      }
+    },
+    [currentCourseId, currentCourseName, loadStoreData, router],
+  );
+
+  const toNotebookStorefrontItem = useCallback(
+    (nb: StageListItem): StorefrontItem => {
+      const tags = tagsForNotebook(nb, courseById);
+      const { parentCourseName, schoolLine } = notebookCourseContext(nb, courseById);
+      const needsJoin = nb.courseId !== currentCourseId;
+
+      return {
+        id: nb.id,
+        title: nb.name,
+        subtitle: needsJoin
+          ? parentCourseName
+            ? `来自 · ${parentCourseName}`
+            : '跨课程内容补充'
+          : '当前课程内容',
+        description:
+          nb.description || `${nb.sceneCount} 页互动内容，更新于 ${formatDate(nb.updatedAt)}。`,
+        eyebrow: needsJoin ? 'Curated For This Course' : 'Already In Course',
+        badge: needsJoin ? '可加入当前课程' : '当前课程',
+        artworkUrl: resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl),
+        metadata: [
+          tags[0],
+          `${nb.sceneCount} 页`,
+          schoolLine || parentCourseName || `更新于 ${formatDate(nb.updatedAt)}`,
+        ].filter(Boolean) as string[],
+        openLabel: needsJoin ? undefined : '进入笔记本',
+        onOpen: () => void handleNotebookAction(nb),
+        primaryActionLabel: needsJoin ? '加入' : '打开',
+        onPrimaryAction: () => void handleNotebookAction(nb),
+        secondaryActionLabel: needsJoin ? undefined : '复习',
+        onSecondaryAction: needsJoin ? undefined : () => router.push(`/review/${nb.id}`),
+      };
+    },
+    [courseById, currentCourseId, handleNotebookAction, router],
+  );
+
+  const featuredNotebookItems = useMemo(
+    () => recommendedNotebooks.slice(0, 2).map(toNotebookStorefrontItem),
+    [recommendedNotebooks, toNotebookStorefrontItem],
+  );
+
+  const recommendedNotebookItems = useMemo(
+    () => recommendedNotebooks.map(toNotebookStorefrontItem),
+    [recommendedNotebooks, toNotebookStorefrontItem],
+  );
+
+  const inCourseNotebookItems = useMemo(
+    () => inCourseNotebooks.map(toNotebookStorefrontItem),
+    [inCourseNotebooks, toNotebookStorefrontItem],
   );
 
   if (!isLoggedIn) return null;
@@ -198,133 +275,51 @@ export default function StorePage() {
           </div>
         </section>
 
-        <section className="mt-12">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                Curated For This Course
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                推荐加入当前课程
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                优先展示还没有归入当前课程的笔记本，方便你快速补充教学内容。
-              </p>
-            </div>
-          </div>
-
+        <section className="mt-10">
           {loading ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="h-[30rem] animate-pulse rounded-[32px] bg-white/70 dark:bg-white/6"
-                />
-              ))}
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="h-52 animate-pulse rounded-[26px] bg-white/70 dark:bg-white/6" />
+              <div className="h-52 animate-pulse rounded-[26px] bg-white/70 dark:bg-white/6" />
             </div>
-          ) : recommendedNotebooks.length === 0 ? (
-            <div className="store-section-panel rounded-[32px] p-10 text-center">
-              <p className="text-lg font-semibold text-slate-950 dark:text-white">
-                当前内容都已经整理进这门课程了
-              </p>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                你没有额外的笔记本可加入当前课程。可以返回首页继续创建新内容，或直接进入现有笔记本。
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {recommendedNotebooks.map((nb) => {
-                const tags = tagsForNotebook(nb, courseById);
-                const { parentCourseName, schoolLine } = notebookCourseContext(nb, courseById);
-                const needsJoin = nb.courseId !== currentCourseId;
-                return (
-                  <CourseGalleryCard
-                    key={nb.id}
-                    variant="notebook"
-                    course={nb}
-                    slide={thumbnails[nb.id]}
-                    badge={needsJoin ? '可加入当前课程' : '已在当前课程'}
-                    subtitle={`更新于 ${formatDate(nb.updatedAt)}`}
-                    secondaryLabel={needsJoin ? '跨课程内容补充' : '当前课程内容'}
-                    actionLabel={needsJoin ? '加入当前课程' : '进入笔记本'}
-                    onAction={async () => {
-                      if (needsJoin) {
-                        if (
-                          nb.sourceNotebookId &&
-                          !window.confirm(getPurchasedNotebookMoveWarning(currentCourseName))
-                        ) {
-                          return;
-                        }
-                        try {
-                          await moveStageToCourse(nb.id, currentCourseId);
-                          toast.success(
-                            nb.sourceNotebookId
-                              ? getPurchasedNotebookMoveSuccessMessage(currentCourseName)
-                              : '已将该笔记本加入当前课程',
-                          );
-                          await loadStoreData({ silent: true });
-                        } catch (e) {
-                          toast.error(e instanceof Error ? e.message : '操作失败');
-                        }
-                        return;
-                      }
-                      router.push(`/classroom/${nb.id}`);
-                    }}
-                    tags={tags}
-                    showNotebookCourseMeta
-                    parentCourseName={parentCourseName}
-                    schoolLine={schoolLine}
-                    countUnit="页"
-                    coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
-                    tertiaryActionLabel={needsJoin ? undefined : '复习'}
-                    onTertiaryAction={needsJoin ? undefined : () => router.push(`/review/${nb.id}`)}
-                  />
-                );
-              })}
-            </div>
-          )}
+          ) : featuredNotebookItems.length > 0 ? (
+            <StoreFeatureStrip items={featuredNotebookItems} />
+          ) : null}
         </section>
 
-        {inCourseNotebooks.length > 0 ? (
-          <section className="mt-14">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                  Already In Course
-                </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                  已经在当前课程中的内容
-                </h2>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {inCourseNotebooks.map((nb) => {
-                const tags = tagsForNotebook(nb, courseById);
-                const { parentCourseName, schoolLine } = notebookCourseContext(nb, courseById);
-                return (
-                  <CourseGalleryCard
-                    key={nb.id}
-                    variant="notebook"
-                    course={nb}
-                    slide={thumbnails[nb.id]}
-                    badge="当前课程"
-                    subtitle={`更新于 ${formatDate(nb.updatedAt)}`}
-                    secondaryLabel="可继续教学与编辑"
-                    actionLabel="进入笔记本"
-                    onAction={() => router.push(`/classroom/${nb.id}`)}
-                    tags={tags}
-                    showNotebookCourseMeta
-                    parentCourseName={parentCourseName}
-                    schoolLine={schoolLine}
-                    countUnit="页"
-                    coverAvatarUrl={resolveNotebookAgentAvatarDisplayUrl(nb.id, nb.avatarUrl)}
-                    tertiaryActionLabel="复习"
-                    onTertiaryAction={() => router.push(`/review/${nb.id}`)}
-                  />
-                );
-              })}
+        {loading ? (
+          <section className="mt-12 border-t border-slate-200/75 pt-6 dark:border-white/10">
+            <div className="mb-5 h-9 w-56 animate-pulse rounded-full bg-white/70 dark:bg-white/6" />
+            <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 9 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="h-[6.25rem] animate-pulse border-t border-slate-200/75 py-3.5 dark:border-white/10"
+                >
+                  <div className="h-full rounded-2xl bg-white/70 dark:bg-white/6" />
+                </div>
+              ))}
             </div>
           </section>
+        ) : (
+          <StoreListSection
+            className="mt-12"
+            eyebrow="Curated For This Course"
+            title="推荐加入当前课程"
+            subtitle="优先展示还没有归入当前课程的笔记本，使用和课程商城一致的紧凑榜单浏览。"
+            items={recommendedNotebookItems}
+            emptyTitle="当前内容都已经整理进这门课程了"
+            emptyDescription="你没有额外的笔记本可加入当前课程。可以返回首页继续创建新内容，或直接进入现有笔记本。"
+          />
+        )}
+
+        {!loading && inCourseNotebookItems.length > 0 ? (
+          <StoreListSection
+            className="mt-12"
+            eyebrow="Already In Course"
+            title="已经在当前课程中的内容"
+            subtitle="已归属当前课程的笔记本会把主操作切换为打开，并保留复习入口。"
+            items={inCourseNotebookItems}
+          />
         ) : null}
 
         <section className="mt-14">

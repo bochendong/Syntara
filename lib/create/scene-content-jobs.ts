@@ -1,6 +1,7 @@
 'use client';
 
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import {
   buildBudgetedGenerationMedia,
   SAFE_GENERATION_REQUEST_BYTES,
@@ -8,7 +9,7 @@ import {
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
 import type { SlideGenerationRoute } from '@/lib/generation/slide-generation-route';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
-import type { Scene, Stage } from '@/lib/types/stage';
+import type { Scene, SceneGenerationDiagnostics, Stage } from '@/lib/types/stage';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { buildPayloadTooLargeMessage, readApiErrorMessage } from './api-errors';
 import { getApiHeaders } from './generation-headers';
@@ -17,6 +18,8 @@ export type GeneratedSceneContentBundle = {
   contents: unknown[];
   effectiveOutlines: SceneOutline[];
   allOutlinesForActions: SceneOutline[];
+  generationDiagnostics?: SceneGenerationDiagnostics;
+  contentDiagnosticsByOutlineId?: Record<string, SceneGenerationDiagnostics>;
 };
 
 export type SceneContentJobResult =
@@ -39,6 +42,84 @@ export function createLinkedAbortController(parent?: AbortSignal): AbortControll
   return controller;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function normalizeString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function normalizeNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function normalizeBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function normalizeSceneGenerationDiagnostics(
+  value: unknown,
+): SceneGenerationDiagnostics | undefined {
+  if (!isRecord(value)) return undefined;
+  const normalizedPipeline = normalizeString(value.pipeline);
+  const pipeline: SceneGenerationDiagnostics['pipeline'] =
+    normalizedPipeline === 'semantic' ||
+    normalizedPipeline === 'legacy' ||
+    normalizedPipeline === 'interactive' ||
+    normalizedPipeline === 'quiz' ||
+    normalizedPipeline === 'pbl' ||
+    normalizedPipeline === 'unknown'
+      ? normalizedPipeline
+      : undefined;
+  const slideGenerationRoute =
+    normalizeString(value.slideGenerationRoute) ??
+    (value.slideGenerationRoute === null ? null : undefined);
+
+  return {
+    pipeline,
+    slideGenerationRoute,
+    failureStage: normalizeString(value.failureStage),
+    failureReasons: normalizeStringArray(value.failureReasons) ?? [],
+    semanticRetryCount: normalizeNumber(value.semanticRetryCount),
+    layoutRetryCount: normalizeNumber(value.layoutRetryCount),
+    contentFallbackUsed: normalizeBoolean(value.contentFallbackUsed),
+    fallbackKind: normalizeString(value.fallbackKind),
+    generatedAt: normalizeNumber(value.generatedAt),
+  };
+}
+
+function buildDiagnosticsByOutlineId(args: {
+  rawDiagnosticsByOutlineId: unknown;
+  sharedDiagnostics?: SceneGenerationDiagnostics;
+  effectiveOutlines: SceneOutline[];
+}): Record<string, SceneGenerationDiagnostics> | undefined {
+  const output: Record<string, SceneGenerationDiagnostics> = {};
+  if (isRecord(args.rawDiagnosticsByOutlineId)) {
+    for (const [outlineId, value] of Object.entries(args.rawDiagnosticsByOutlineId)) {
+      const diagnostics = normalizeSceneGenerationDiagnostics(value);
+      if (diagnostics) output[outlineId] = diagnostics;
+    }
+  }
+
+  if (args.sharedDiagnostics) {
+    for (const outline of args.effectiveOutlines) {
+      output[outline.id] = output[outline.id] ?? {
+        ...args.sharedDiagnostics,
+        outlineId: outline.id,
+        outlineTitle: outline.title,
+      };
+    }
+  }
+
+  return Object.keys(output).length > 0 ? output : undefined;
+}
+
 export async function generateSceneContentBundle(args: {
   outline: SceneOutline;
   allOutlines: SceneOutline[];
@@ -51,14 +132,16 @@ export async function generateSceneContentBundle(args: {
   slideGenerationRoute?: SlideGenerationRoute | null;
   getHeaders?: () => HeadersInit;
 }): Promise<GeneratedSceneContentBundle> {
-  const suggestedIds = args.outline.suggestedImageIds || [];
+  const normalizedOutline = normalizeComputerScienceSceneOutline(args.outline);
+  const normalizedAllOutlines = args.allOutlines.map(normalizeComputerScienceSceneOutline);
+  const suggestedIds = normalizedOutline.suggestedImageIds || [];
   const filteredPdfImages =
     suggestedIds.length > 0
       ? (args.pdfImages || []).filter((image) => suggestedIds.includes(image.id))
       : undefined;
   const basePayload = {
-    outline: args.outline,
-    allOutlines: args.allOutlines,
+    outline: normalizedOutline,
+    allOutlines: normalizedAllOutlines,
     stageInfo: {
       name: args.stage.name,
       description: args.stage.description,
@@ -135,19 +218,29 @@ export async function generateSceneContentBundle(args: {
     effectiveOutlines.length > 1
       ? (() => {
           const spliced = spliceGeneratedOutlines(
-            args.allOutlines,
+            normalizedAllOutlines,
             args.outline.id,
             effectiveOutlines,
           );
           effectiveOutlines = spliced.effectiveOutlines;
           return spliced.outlines;
         })()
-      : args.allOutlines;
+      : normalizedAllOutlines;
+  const generationDiagnostics = normalizeSceneGenerationDiagnostics(
+    contentData.generationDiagnostics,
+  );
+  const contentDiagnosticsByOutlineId = buildDiagnosticsByOutlineId({
+    rawDiagnosticsByOutlineId: contentData.generationDiagnosticsByOutlineId,
+    sharedDiagnostics: generationDiagnostics,
+    effectiveOutlines,
+  });
 
   return {
     contents,
     effectiveOutlines,
     allOutlinesForActions,
+    generationDiagnostics,
+    contentDiagnosticsByOutlineId,
   };
 }
 
@@ -196,7 +289,18 @@ export async function generateSceneActionsFromContent(args: {
       throw new Error(actionsData?.error || '页面讲解生成失败');
     }
 
-    scenes.push(actionsData.scene as Scene);
+    const scene = actionsData.scene as Scene;
+    const sceneDiagnostics =
+      args.bundle.contentDiagnosticsByOutlineId?.[pageOutline.id] ??
+      args.bundle.generationDiagnostics;
+    if (sceneDiagnostics) {
+      scene.generationDiagnostics = {
+        ...sceneDiagnostics,
+        outlineId: pageOutline.id,
+        outlineTitle: pageOutline.title,
+      };
+    }
+    scenes.push(scene);
     previousSpeeches = Array.isArray(actionsData.previousSpeeches)
       ? actionsData.previousSpeeches
       : previousSpeeches;

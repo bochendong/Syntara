@@ -58,6 +58,16 @@ interface BareMathCandidate {
   value: string;
 }
 
+type InlineTextFragment =
+  | {
+      type: 'text';
+      value: string;
+    }
+  | {
+      type: 'code';
+      value: string;
+    };
+
 function isUnescapedSingleDollar(text: string, index: number): boolean {
   return (
     text[index] === '$' &&
@@ -184,6 +194,163 @@ function escapeHtml(text: string): string {
     .replaceAll('"', '&quot;');
 }
 
+const INLINE_CODE_CLASS =
+  'rounded-md border border-slate-300/80 bg-slate-100 px-1.5 py-0.5 font-mono text-[0.88em] font-semibold text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
+const CODE_QUOTE_PATTERN = /['"`′’]/;
+
+function normalizeInlineCodeText(text: string): string {
+  return normalizeDelimiterEscapes(text)
+    .replace(/\\_/g, '_')
+    .replace(/\\#/g, '#')
+    .replace(/\\%/g, '%')
+    .replace(/\\&/g, '&')
+    .replace(/\\\{/g, '{')
+    .replace(/\\\}/g, '}')
+    .replace(/\\textbackslash\b/g, '\\')
+    .replace(/\\\\/g, '\\');
+}
+
+function renderInlineCodeHtml(text: string): string {
+  return `<code class="${INLINE_CODE_CLASS}">${escapeHtml(normalizeInlineCodeText(text))}</code>`;
+}
+
+function readLatexTextttCommandAt(
+  source: string,
+  index: number,
+): { value: string; endIndex: number } | null {
+  const commandMatch = source.slice(index).match(/^\\{1,2}texttt\s*\{/);
+  if (!commandMatch) return null;
+
+  const openIndex = index + commandMatch[0].lastIndexOf('{');
+  const argument = readBalancedBraceContent(source, openIndex);
+  if (!argument) return null;
+
+  return argument;
+}
+
+function readBalancedDelimitedContent(
+  source: string,
+  openIndex: number,
+  opener: string,
+  closer: string,
+): { value: string; endIndex: number } | null {
+  if (source[openIndex] !== opener) return null;
+
+  let depth = 1;
+  let index = openIndex + 1;
+  let quotedBy: '"' | "'" | '`' | null = null;
+  while (index < source.length) {
+    const char = source[index];
+    const escaped = index > 0 && source[index - 1] === '\\';
+
+    if (quotedBy) {
+      if (!escaped && char === quotedBy) quotedBy = null;
+      index += 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quotedBy = char;
+      index += 1;
+      continue;
+    }
+    if (!escaped && char === opener) depth += 1;
+    if (!escaped && char === closer) depth -= 1;
+    if (depth === 0) {
+      return { value: source.slice(openIndex, index + 1), endIndex: index + 1 };
+    }
+    index += 1;
+  }
+
+  return null;
+}
+
+function readBracketedCodeLiteralAt(
+  source: string,
+  index: number,
+): { value: string; endIndex: number } | null {
+  const delimiters: Record<string, string> = {
+    '[': ']',
+    '{': '}',
+  };
+  const closer = delimiters[source[index]];
+  if (!closer) return null;
+
+  const literal = readBalancedDelimitedContent(source, index, source[index], closer);
+  if (!literal || !looksLikeCodeLiteral(literal.value)) return null;
+  return literal;
+}
+
+function splitInlineCodeFragments(text: string): InlineTextFragment[] {
+  if (!text) return [];
+
+  const fragments: InlineTextFragment[] = [];
+  let cursor = 0;
+  let index = 0;
+
+  const pushText = (end: number) => {
+    if (end > cursor) {
+      fragments.push({ type: 'text', value: text.slice(cursor, end) });
+    }
+  };
+
+  while (index < text.length) {
+    if (text[index] === '`') {
+      const endIndex = text.indexOf('`', index + 1);
+      if (endIndex > index) {
+        pushText(index);
+        fragments.push({ type: 'code', value: text.slice(index + 1, endIndex) });
+        index = endIndex + 1;
+        cursor = index;
+        continue;
+      }
+    }
+
+    const bracketedCode = readBracketedCodeLiteralAt(text, index);
+    if (bracketedCode) {
+      pushText(index);
+      fragments.push({ type: 'code', value: bracketedCode.value });
+      index = bracketedCode.endIndex;
+      cursor = index;
+      continue;
+    }
+
+    const latexTexttt = readLatexTextttCommandAt(text, index);
+    if (latexTexttt) {
+      pushText(index);
+      fragments.push({ type: 'code', value: latexTexttt.value });
+      index = latexTexttt.endIndex;
+      cursor = index;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  pushText(text.length);
+  return fragments.length ? fragments : [{ type: 'text', value: text }];
+}
+
+function hasInlineCodeFragment(text: string): boolean {
+  return splitInlineCodeFragments(text).some((fragment) => fragment.type === 'code');
+}
+
+function findBareMathCandidatesOutsideInlineCode(text: string): BareMathCandidate[] {
+  return splitInlineCodeFragments(text)
+    .filter((fragment) => fragment.type === 'text')
+    .flatMap((fragment) => findBareMathCandidates(fragment.value));
+}
+
+function renderTextFragmentWithInlineCode(text: string): string {
+  return splitInlineCodeFragments(text)
+    .map((fragment) =>
+      fragment.type === 'code'
+        ? renderInlineCodeHtml(fragment.value)
+        : renderTextFragmentWithBareMath(fragment.value),
+    )
+    .join('');
+}
+
 function normalizeDelimiterEscapes(text: string): string {
   return text.replace(/\\\\(?=[a-zA-Z()[\]])/g, '\\');
 }
@@ -211,11 +378,57 @@ function trimBareMathCandidate(text: string, start: number, end: number): BareMa
   };
 }
 
+function isPlainSlashWordPhrase(text: string): boolean {
+  if (!text.includes('/') || text.includes('\\')) return false;
+  const parts = text
+    .split('/')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return (
+    parts.length >= 2 &&
+    parts.every((part) => /^[A-Za-z][A-Za-z0-9_'’-]*$/.test(part)) &&
+    parts.every((part) => part.replace(/[_'’-]/g, '').length > 1)
+  );
+}
+
+function looksLikeCodeLiteral(text: string): boolean {
+  const trimmed = text.trim();
+  if (/^`[^`]*`$/.test(trimmed)) return true;
+  if (/^[\[{(][\s\S]*[\]})]$/.test(trimmed) && CODE_QUOTE_PATTERN.test(trimmed)) {
+    return true;
+  }
+  if (
+    /^[\[{][\s\S]*[:,][\s\S]*[\]}]$/.test(trimmed) &&
+    /\b(?:True|False|None|null|undefined)\b/.test(trimmed)
+  ) {
+    return true;
+  }
+  if (/(?:^|[\s,])self\.[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed)) {
+    return true;
+  }
+  if (
+    /(?:^|[\s,])[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed) &&
+    (CODE_QUOTE_PATTERN.test(trimmed) ||
+      /[\[\]{}]/.test(trimmed) ||
+      /\b(?:True|False|None|null|undefined)\b/.test(trimmed) ||
+      /\b[A-Z][A-Za-z0-9_]*\s*\(/.test(trimmed))
+  ) {
+    return true;
+  }
+  if (/^[A-Za-z_][A-Za-z0-9_]*\([^)]*\)$/.test(trimmed) && CODE_QUOTE_PATTERN.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
 function isBareMathCandidate(value: string): boolean {
   const text = value.trim();
   if (text.length < 2 || text.length > 160) return false;
   if (/[\u3400-\u9fff]/.test(text)) return false;
   if (/https?:\/\//i.test(text)) return false;
+  if (isPlainSlashWordPhrase(text)) return false;
+  if (looksLikeCodeLiteral(text)) return false;
   if (!/[A-Za-z\\ℕℤℚℝℂ]/.test(text) && !/\d+\s*\^/.test(text)) return false;
   if (/^[A-Za-z\s]+$/.test(text)) return false;
 
@@ -385,7 +598,12 @@ export function containsMathSyntax(text: string): boolean {
   const normalized = wrapBareLatexEnvironments(
     normalizeDelimiterEscapes(normalizeInlineDollarWhitespace(text)),
   );
-  return looksLikeMathText(normalized) || findBareMathCandidates(normalized).length > 0;
+  return splitInlineCodeFragments(normalized)
+    .filter((fragment) => fragment.type === 'text')
+    .some(
+      (fragment) =>
+        looksLikeMathText(fragment.value) || findBareMathCandidates(fragment.value).length > 0,
+    );
 }
 
 export function parseMathFragments(input: string): MathFragment[] {
@@ -473,15 +691,22 @@ export function renderTextWithMathToHtml(
   const fragments = parseMathFragments(text);
   const hasMath = fragments.some((fragment) => fragment.type === 'math');
   if (!hasMath) {
-    const hasBareMath = findBareMathCandidates(text).length > 0;
-    if (!hasBareMath && !options.rawFallback) return null;
-    return renderTextFragmentWithBareMath(text);
+    const hasBareMath = findBareMathCandidatesOutsideInlineCode(text).length > 0;
+    const hasCode = hasInlineCodeFragment(text);
+    if (!hasBareMath && !hasCode && !options.rawFallback) return null;
+    return renderTextFragmentWithInlineCode(text);
   }
 
   let html = '';
   for (const fragment of fragments) {
     if (fragment.type === 'text') {
-      html += renderTextFragmentWithBareMath(fragment.value);
+      html += renderTextFragmentWithInlineCode(fragment.value);
+      continue;
+    }
+
+    const normalizedCodeLikeMath = replaceCommonRawLatexText(fragment.value);
+    if (!fragment.displayMode && looksLikeCodeLiteral(normalizedCodeLikeMath)) {
+      html += renderInlineCodeHtml(normalizedCodeLikeMath);
       continue;
     }
 

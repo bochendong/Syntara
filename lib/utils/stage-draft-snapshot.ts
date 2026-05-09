@@ -1,6 +1,7 @@
 import { createLogger } from '@/lib/logger';
 import type { Stage, Scene } from '@/lib/types/stage';
 import type { Action, SpeechAction } from '@/lib/types/action';
+import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 
 const log = createLogger('StageDraftSnapshot');
 
@@ -17,6 +18,7 @@ type StageDraftRecord = {
 
 let nextWriteToken = 1;
 const latestWriteTokenByStage = new Map<string, number>();
+const latestCurrentSceneIdByStage = new Map<string, string | null>();
 
 export interface StageDraftSnapshot {
   savedAt: number;
@@ -58,10 +60,13 @@ export function sanitizeActionsForPersistence(actions: Action[] | undefined): Ac
 export function sanitizeScenesForPersistence(scenes: Scene[]): Scene[] {
   return [...scenes]
     .sort((a, b) => a.order - b.order)
-    .map((scene) => ({
-      ...scene,
-      actions: sanitizeActionsForPersistence(scene.actions),
-    }));
+    .map((scene) => {
+      const refreshedScene = refreshSemanticSlideScene(scene);
+      return {
+        ...refreshedScene,
+        actions: sanitizeActionsForPersistence(refreshedScene.actions),
+      };
+    });
 }
 
 function buildSnapshot(args: {
@@ -110,7 +115,9 @@ function parseSnapshot(raw: string | null): StageDraftSnapshot | null {
 function readLegacySnapshot(stageId: string): StageDraftSnapshot | null {
   if (typeof window === 'undefined') return null;
   try {
-    const sessionSnapshot = parseSnapshot(sessionStorage.getItem(`${STAGE_DRAFT_KEY_PREFIX}${stageId}`));
+    const sessionSnapshot = parseSnapshot(
+      sessionStorage.getItem(`${STAGE_DRAFT_KEY_PREFIX}${stageId}`),
+    );
     const persistentSnapshot = parseSnapshot(
       localStorage.getItem(`${STAGE_DRAFT_PERSISTENT_KEY_PREFIX}${stageId}`),
     );
@@ -151,7 +158,10 @@ async function readIndexedDbSnapshot(stageId: string): Promise<StageDraftSnapsho
   }
 }
 
-async function writeIndexedDbSnapshot(stageId: string, snapshot: StageDraftSnapshot): Promise<void> {
+async function writeIndexedDbSnapshot(
+  stageId: string,
+  snapshot: StageDraftSnapshot,
+): Promise<void> {
   if (typeof indexedDB === 'undefined') {
     throw new Error('IndexedDB is unavailable in this browser context.');
   }
@@ -189,7 +199,7 @@ export async function readStageDraftSnapshot(stageId: string): Promise<StageDraf
       ? indexedSnapshot.savedAt >= legacySnapshot.savedAt
         ? indexedSnapshot
         : legacySnapshot
-      : indexedSnapshot ?? legacySnapshot;
+      : (indexedSnapshot ?? legacySnapshot);
 
   if (
     preferred &&
@@ -219,6 +229,9 @@ export async function writeStageDraftSnapshot(
     currentSceneId: data.currentSceneId,
     remoteSynced,
   });
+  if (latestCurrentSceneIdByStage.has(stageId)) {
+    snapshot.currentSceneId = latestCurrentSceneIdByStage.get(stageId) ?? null;
+  }
 
   try {
     if (latestWriteTokenByStage.get(stageId) !== writeToken) return;
@@ -248,7 +261,15 @@ export function queueWriteStageDraftSnapshot(
   void writeStageDraftSnapshot(stageId, data, remoteSynced);
 }
 
+export function rememberStageDraftCurrentSceneId(
+  stageId: string,
+  currentSceneId: string | null,
+): void {
+  latestCurrentSceneIdByStage.set(stageId, currentSceneId);
+}
+
 export async function clearStageDraftSnapshot(stageId: string): Promise<void> {
+  latestCurrentSceneIdByStage.delete(stageId);
   clearLegacySnapshot(stageId);
   if (typeof indexedDB === 'undefined') return;
   const db = await openDb().catch(() => null);

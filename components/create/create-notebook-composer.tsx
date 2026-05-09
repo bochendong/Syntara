@@ -11,7 +11,7 @@ import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
@@ -27,6 +27,8 @@ import {
 import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
 import { NotebookGenerationQueuePanel } from '@/components/generation/notebook-generation-queue-panel';
 import { useOrchestratorNotebookGenStore } from '@/lib/store/orchestrator-notebook-generation';
+import { useNotificationStore } from '@/lib/store/notifications';
+import { buildStudyCompanionNotification } from '@/lib/learning/study-memory';
 
 const log = createLogger('CreateNotebookComposer');
 
@@ -69,6 +71,7 @@ export function CreateNotebookComposer({
 
   const currentModelId = useSettingsStore((s) => s.modelId);
   const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
+  const enqueueCompanionBanner = useNotificationStore((s) => s.enqueueBanner);
   const notebookModelMode = useOrchestratorNotebookGenStore((s) => s.notebookModelMode);
   const modelIdOverride = useOrchestratorNotebookGenStore((s) => s.modelIdOverride);
   const notebookStageModelOverrides = useOrchestratorNotebookGenStore(
@@ -77,7 +80,6 @@ export function CreateNotebookComposer({
   const language = useOrchestratorNotebookGenStore((s) => s.language);
   const webSearch = useOrchestratorNotebookGenStore((s) => s.webSearch);
   const generateSlides = useOrchestratorNotebookGenStore((s) => s.generateSlides);
-  const slideGenerationRoute = useOrchestratorNotebookGenStore((s) => s.slideGenerationRoute);
   const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
   const includeQuizScenes = useOrchestratorNotebookGenStore((s) => s.includeQuizScenes);
   const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
@@ -213,7 +215,6 @@ export function CreateNotebookComposer({
           language,
           webSearch,
           generateSlides,
-          slideGenerationRoute,
           sourceFile: form.sourceFile,
           sourcePageSelection: effectiveSelection,
           userNickname: userProfile.nickname || undefined,
@@ -241,10 +242,22 @@ export function CreateNotebookComposer({
                 detail: { courseId: cid, notebookId: result.stage.id },
               }),
             );
-            toast.success(
-              result.scenes.length > 0
-                ? `笔记本「${result.stage.name}」已创建完成`
-                : `笔记本「${result.stage.name}」已加入仓库`,
+            enqueueCompanionBanner(
+              buildStudyCompanionNotification({
+                id: `notebook-ready:${result.stage.id}`,
+                sourceKind: 'notebook_ready',
+                title: '笔记本生成好了',
+                body:
+                  result.scenes.length > 0
+                    ? `笔记本「${result.stage.name}」已创建完成，共 ${result.scenes.length} 页。`
+                    : `笔记本「${result.stage.name}」已加入仓库。`,
+                amountLabel: '生成好了',
+                sourceLabel: '笔记本生成',
+                details: [
+                  { key: 'notebook', label: '笔记本', value: result.stage.name },
+                  { key: 'pages', label: '页面数', value: String(result.scenes.length) },
+                ],
+              }),
             );
           },
           onFailed: (_task, message) => {

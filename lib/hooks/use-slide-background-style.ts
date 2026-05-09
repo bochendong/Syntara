@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
-import { resolveEffectiveSlideBackground } from '@/lib/constants/slide-backgrounds';
+import {
+  getSlideBackgroundThemeTokens,
+  resolveEffectiveSlideBackground,
+  resolveSlideBackgroundThemeForSource,
+} from '@/lib/constants/slide-backgrounds';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import type { SlideBackground } from '@/lib/types/slides';
 
@@ -13,8 +17,12 @@ function cssUrl(src: string): string {
 export function useSlideBackgroundStyle(background: SlideBackground | undefined) {
   const slideBackgroundStyleId = useUserProfileStore((s) => s.slideBackgroundStyleId);
 
+  const effectiveBackground = useMemo(
+    () => resolveEffectiveSlideBackground(background, slideBackgroundStyleId),
+    [background, slideBackgroundStyleId],
+  );
+
   const backgroundStyle = useMemo<React.CSSProperties>(() => {
-    const effectiveBackground = resolveEffectiveSlideBackground(background, slideBackgroundStyleId);
     if (!effectiveBackground) return { backgroundColor: '#fff' };
 
     const { type, color, image, gradient } = effectiveBackground;
@@ -57,9 +65,20 @@ export function useSlideBackgroundStyle(background: SlideBackground | undefined)
     }
 
     return { backgroundColor: '#fff' };
-  }, [background, slideBackgroundStyleId]);
+  }, [effectiveBackground]);
+
+  const backgroundTheme = useMemo(() => {
+    if (effectiveBackground?.type === 'image') {
+      return (
+        resolveSlideBackgroundThemeForSource(effectiveBackground.image?.src) ||
+        getSlideBackgroundThemeTokens(slideBackgroundStyleId)
+      );
+    }
+    return getSlideBackgroundThemeTokens(slideBackgroundStyleId);
+  }, [effectiveBackground, slideBackgroundStyleId]);
 
   return {
     backgroundStyle,
+    backgroundTheme,
   };
 }

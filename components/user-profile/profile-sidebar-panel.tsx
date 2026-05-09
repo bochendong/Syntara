@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { LayoutGrid, Lock, MessageCircle, Settings, Sparkles, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { LEFT_RAIL_BAR_STAGE_OPTIONS } from '@/lib/notifications/notification-bar-stage-ids';
 import { NotificationBarStageBackground } from '@/components/notifications/notification-bar-stage-background';
 import { useUserProfileStore, type LeftRailBarStageChoice } from '@/lib/store/user-profile';

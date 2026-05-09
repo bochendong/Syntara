@@ -564,6 +564,17 @@ export class PlaybackEngine {
         break;
       }
 
+      case 'semantic_step': {
+        this.actionEngine.execute(action);
+        this.callbacks.onEffectFire?.({
+          kind: 'semantic_step',
+          targetId: action.blockId,
+          stepIndex: action.stepIndex,
+        });
+        this.processNext();
+        break;
+      }
+
       case 'discussion': {
         const discussionAction = action as DiscussionAction;
         // Check if already consumed

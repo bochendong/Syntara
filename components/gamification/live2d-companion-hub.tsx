@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CalendarCheck2, Lock, Mic2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useGamificationSummary } from '@/lib/hooks/use-gamification-summary';

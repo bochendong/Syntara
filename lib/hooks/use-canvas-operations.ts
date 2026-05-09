@@ -27,7 +27,7 @@ import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, Slide } from '@/lib/types/slides';
 import { useCallback, useMemo } from 'react';
 import { useHistorySnapshot } from '@/lib/hooks/use-history-snapshot';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { ElementAlignCommands, ElementOrderCommands } from '@/lib/types/edit';
 import { getElementListRange } from '@/lib/utils/element';
 import { useOrderElement } from './use-order-element';

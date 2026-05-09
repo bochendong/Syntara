@@ -1,9 +1,12 @@
 type SceneContentDiagnosticsPayload = {
   pipeline?: string;
+  slideGenerationRoute?: string;
   failureStage?: string;
   failureReasons?: string[];
   semanticRetryCount?: number;
   layoutRetryCount?: number;
+  contentFallbackUsed?: boolean;
+  fallbackKind?: string;
 };
 
 function summarizeSceneContentDiagnostics(details: string | undefined): string | null {
@@ -21,8 +24,12 @@ function summarizeSceneContentDiagnostics(details: string | undefined): string |
 
     const parts: string[] = [];
     if (diagnostics.pipeline) parts.push(`pipeline=${diagnostics.pipeline}`);
+    if (diagnostics.slideGenerationRoute) parts.push(`route=${diagnostics.slideGenerationRoute}`);
     if (diagnostics.failureStage) parts.push(`stage=${diagnostics.failureStage}`);
     if (reasons.length > 0) parts.push(`reason=${reasons.slice(0, 2).join(' | ')}`);
+    if (diagnostics.contentFallbackUsed) {
+      parts.push(`fallback=${diagnostics.fallbackKind || 'true'}`);
+    }
     if (Number.isFinite(diagnostics.semanticRetryCount)) {
       parts.push(`semanticRetries=${diagnostics.semanticRetryCount}`);
     }

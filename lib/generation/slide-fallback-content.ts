@@ -14,9 +14,18 @@ export function buildFallbackSlideContentFromOutline(outline: SceneOutline): Gen
     outline.description || outline.keyPoints.join(' ') || outline.title,
     360,
   );
+  const teachingPlanPoints = outline.teachingPagePlan
+    ? [
+        outline.teachingPagePlan.concreteAnchor,
+        outline.teachingPagePlan.studentThinkingMove,
+        outline.teachingPagePlan.transferRule,
+      ].filter(Boolean)
+    : [];
   const keyPoints = normalizeList(
-    outline.keyPoints,
-    summary
+    teachingPlanPoints.length > 0 ? teachingPlanPoints : outline.keyPoints,
+    teachingPlanPoints.length > 0
+      ? teachingPlanPoints
+      : summary
       ? [summary]
       : [
           lang === 'zh-CN'
@@ -28,12 +37,11 @@ export function buildFallbackSlideContentFromOutline(outline: SceneOutline): Gen
   );
   const takeaway = normalizeList(
     [],
-    lang === 'zh-CN'
-      ? ['先理解这一页的核心概念与结论', '讲解时可根据上下文继续补充细节与例子']
-      : [
-          'Focus on the main concept and conclusion first',
-          'Add examples and detail during narration if needed',
-        ],
+    outline.teachingPagePlan
+      ? [outline.teachingPagePlan.transferRule]
+      : lang === 'zh-CN'
+        ? ['先问：这页的具体对象是什么？下一步该检查哪条规则？']
+        : ['First ask: what is the concrete object here, and which rule should I check next?'],
     3,
     96,
   );

@@ -7,8 +7,10 @@
 
 import type { ActionType } from './action';
 import type { MediaGenerationRequest } from '@/lib/media/types';
+import type { SlideBackgroundStyleId } from '@/lib/constants/slide-backgrounds';
 import type {
   NotebookContentDensity,
+  NotebookContentDeckStyle,
   NotebookContentDisciplineStyle,
   NotebookContentLayoutFamily,
   NotebookContentLayoutTemplate,
@@ -17,6 +19,11 @@ import type {
   NotebookContentTeachingFlow,
   NotebookContentVisualRole,
 } from '@/lib/notebook-content';
+import type {
+  TeachingComponentKind,
+  TeachingPagePlan,
+  TeachingRole,
+} from '@/lib/generation/teaching-plan/types';
 
 export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'bridge' | 'summary';
 
@@ -26,7 +33,9 @@ export interface SceneLayoutIntent {
   disciplineStyle?: NotebookContentDisciplineStyle;
   teachingFlow?: NotebookContentTeachingFlow;
   density?: NotebookContentDensity;
+  deckStyle?: NotebookContentDeckStyle;
   visualRole?: NotebookContentVisualRole;
+  backgroundStyleId?: SlideBackgroundStyleId;
   overflowPolicy?: NotebookContentOverflowPolicy;
   preserveFullProblemStatement?: boolean;
 }
@@ -35,6 +44,32 @@ export interface SceneContinuation {
   rootOutlineId: string;
   partNumber: number;
   totalParts: number;
+}
+
+/**
+ * Deck-level example memory.
+ *
+ * A shared example is the canonical meaning of a recurring shorthand in a deck,
+ * e.g. "Tweet" across several OOP slides. Scene content generation receives the
+ * relevant entries so later pages do not have to rediscover what the example was.
+ */
+export interface SharedExampleMemory {
+  id: string;
+  label: string;
+  aliases?: string[];
+  description: string;
+  canonicalData?: string[];
+  malformedData?: string[];
+  rules?: string[];
+  lessonRole?: string;
+  introducedInOutlineId?: string;
+}
+
+export interface SceneContinuityContext {
+  usesExampleIds?: string[];
+  previousHandoff?: string;
+  currentJob?: string;
+  nextHandoff?: string;
 }
 
 // ==================== PDF Image Types ====================
@@ -131,6 +166,28 @@ export interface SceneOutline {
   description: string; // 1-2 sentences describing the purpose
   keyPoints: string[]; // 3-5 core key points
   teachingObjective?: string;
+  /**
+   * Teaching Plan IR metadata. These fields are optional so older outlines keep working, but
+   * new course generation uses them as the contract between planning, semantic content,
+   * and narration.
+   */
+  teachingPlanId?: string;
+  teachingPagePlan?: TeachingPagePlan;
+  teachingRole?: TeachingRole;
+  studentThinkingMove?: string;
+  requiredComponentKinds?: TeachingComponentKind[];
+  forbiddenPatterns?: string[];
+  selectedSkillIds?: string[];
+  skillReasons?: string[];
+  sourceFactIds?: string[];
+  pagePatternId?: string;
+  /**
+   * Cross-slide continuity contract. These fields make recurring examples and
+   * local page handoffs explicit inputs for the semantic content generator.
+   */
+  sharedExamples?: SharedExampleMemory[];
+  usesExampleIds?: string[];
+  continuity?: SceneContinuityContext;
   estimatedDuration?: number; // seconds
   order: number;
   language?: 'zh-CN' | 'en-US'; // Generation language (inherited from requirements)

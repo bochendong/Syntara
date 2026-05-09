@@ -13,7 +13,7 @@ import { useAuthStore } from '@/lib/store/auth';
 import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import type { CourseRecord } from '@/lib/utils/database';
 import {

@@ -1,4 +1,4 @@
-import type { Stage, Scene } from '../types/stage';
+import type { Stage, Scene, SceneGenerationDiagnostics } from '../types/stage';
 import type { ChatSession } from '../types/chat';
 import { createLogger } from '@/lib/logger';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
@@ -80,6 +80,29 @@ type SceneApiRow = {
   updatedAt: string;
 };
 
+const SCENE_CONTENT_DIAGNOSTICS_KEY = '__generationDiagnostics';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function extractGenerationDiagnosticsFromContent(content: Scene['content']): {
+  content: Scene['content'];
+  generationDiagnostics?: SceneGenerationDiagnostics;
+} {
+  if (!isRecord(content) || !(SCENE_CONTENT_DIAGNOSTICS_KEY in content)) {
+    return { content };
+  }
+
+  const { [SCENE_CONTENT_DIAGNOSTICS_KEY]: rawDiagnostics, ...rest } = content;
+  return {
+    content: rest as Scene['content'],
+    generationDiagnostics: isRecord(rawDiagnostics)
+      ? (rawDiagnostics as SceneGenerationDiagnostics)
+      : undefined,
+  };
+}
+
 function mapNotebook(row: NotebookApiRow): StageListItem {
   return {
     id: row.id,
@@ -134,17 +157,19 @@ async function ensureNotebookRow(stageId: string, data: StageStoreData): Promise
 }
 
 function mapScene(stageId: string, row: SceneApiRow): Scene {
+  const extracted = extractGenerationDiagnosticsFromContent(row.content);
   return {
     id: row.id,
     stageId,
     title: row.title,
     type: row.type as Scene['type'],
     order: row.order,
-    content: row.content,
+    content: extracted.content,
     actions: row.actions,
     whiteboards: row.whiteboards,
     createdAt: Date.parse(row.createdAt),
     updatedAt: Date.parse(row.updatedAt),
+    generationDiagnostics: extracted.generationDiagnostics,
   };
 }
 
@@ -199,6 +224,7 @@ export async function saveStageData(
             content: s.content,
             actions: s.actions,
             whiteboards: s.whiteboards,
+            generationDiagnostics: s.generationDiagnostics,
           })),
         }),
       },
@@ -232,6 +258,24 @@ function normalizeStageStoreData(data: StageStoreData): StageStoreData {
   return { ...data, scenes, chats, currentSceneId };
 }
 
+async function withFallbackTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  fallback: T,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timeoutId = setTimeout(() => resolve(fallback), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
   const draftSnapshot = await readStageDraftSnapshot(stageId);
   try {
@@ -243,11 +287,13 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       .slice()
       .sort((a, b) => a.order - b.order)
       .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
-    const chats = await loadContactMessages<ChatSession>(
-      notebook.courseId || '',
-      'notebook',
-      stageId,
-    ).catch(() => []);
+    const chats = await withFallbackTimeout(
+      loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId).catch(
+        () => [],
+      ),
+      2500,
+      [],
+    );
 
     const stage: Stage = {
       id: notebook.id,
@@ -286,10 +332,15 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
         draftSnapshot.stage.updatedAt || 0,
         draftSceneUpdatedAt,
       );
+      const draftContentFreshness = Math.max(
+        draftSnapshot.stage.updatedAt || 0,
+        draftSceneUpdatedAt,
+      );
       const remoteHasMoreScenes = remoteData.scenes.length > draftScenes.length;
       const remoteIsNewer = remoteFreshness > draftFreshness;
+      const remoteHasNewerContent = remoteFreshness > draftContentFreshness;
 
-      if (remoteHasMoreScenes || remoteIsNewer) {
+      if (remoteHasMoreScenes || remoteIsNewer || remoteHasNewerContent) {
         void writeStageDraftSnapshot(
           stageId,
           {
@@ -312,6 +363,29 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
 
     if (draftSnapshot && draftSnapshot.savedAt >= remoteFreshness) {
       const draftScenes = Array.isArray(draftSnapshot.scenes) ? draftSnapshot.scenes : [];
+      const draftSceneUpdatedAt = draftScenes.reduce(
+        (latest, scene) => Math.max(latest, scene.updatedAt || 0),
+        0,
+      );
+      const draftContentFreshness = Math.max(
+        draftSnapshot.stage.updatedAt || 0,
+        draftSceneUpdatedAt,
+      );
+      const remoteHasMoreScenes = remoteData.scenes.length > draftScenes.length;
+      const remoteHasNewerContent = remoteFreshness > draftContentFreshness;
+      if (remoteHasMoreScenes || remoteHasNewerContent) {
+        void writeStageDraftSnapshot(
+          stageId,
+          {
+            stage: remoteData.stage,
+            scenes: remoteData.scenes,
+            currentSceneId: remoteData.currentSceneId,
+          },
+          true,
+        );
+        return normalizeStageStoreData(remoteData);
+      }
+
       return normalizeStageStoreData({
         stage: draftSnapshot.stage,
         scenes: draftScenes,
@@ -428,6 +502,7 @@ export async function savePublishedStageData(
           content: s.content,
           actions: s.actions,
           whiteboards: s.whiteboards,
+          generationDiagnostics: s.generationDiagnostics,
         })),
       }),
     },

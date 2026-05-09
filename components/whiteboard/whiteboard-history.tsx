@@ -8,7 +8,7 @@ import { useStageStore } from '@/lib/store';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { createStageAPI } from '@/lib/api/stage-api';
 import { elementFingerprint } from '@/lib/utils/element-fingerprint';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { useI18n } from '@/lib/hooks/use-i18n';
 
 interface WhiteboardHistoryProps {

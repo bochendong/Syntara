@@ -4,7 +4,7 @@ import { useCanvasStore, useSceneSelector } from '@/lib/store';
 import type { CreateCustomShapeData } from '@/lib/types/edit';
 import type { SlideContent } from '@/lib/types/stage';
 import type { SlideTheme } from '@/lib/types/slides';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 
 interface ShapeCreateCanvasProps {
   onCreated: (data: CreateCustomShapeData) => void;

@@ -1,6 +1,6 @@
 'use client';
 
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import type { AppNotification } from '@/lib/notifications/types';
 import {
   formatCashCreditsLabel,

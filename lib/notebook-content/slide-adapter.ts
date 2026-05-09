@@ -1,8 +1,16 @@
 import { nanoid } from 'nanoid';
-import type { PPTElement, PPTShapeElement, PPTTextElement, Slide } from '@/lib/types/slides';
+import type {
+  PPTElement,
+  PPTShapeElement,
+  PPTTableElement,
+  PPTTextElement,
+  Slide,
+  TableCell,
+} from '@/lib/types/slides';
 import { normalizeLatexSource } from '@/lib/latex-utils';
 import type {
   NotebookContentBlock,
+  NotebookContentDeckStyle,
   NotebookContentDisciplineStyle,
   NotebookContentDocument,
   NotebookContentLayout,
@@ -15,6 +23,7 @@ import type {
   NotebookContentTitleTone,
   NotebookContentVisualSlot,
 } from './schema';
+import { isClassicLectureLayoutTemplate } from './schema';
 import {
   estimateCodeBlockHeight,
   estimateLatexDisplayHeight,
@@ -85,6 +94,13 @@ import {
   fitParagraphBlockToHeight,
 } from './slide-grid-copy';
 import { getSlotOrder, getSlotTemplateSpec, type SlotTemplateSpec } from './slot-template-registry';
+import {
+  findSlideBackgroundStyleBySource,
+  getSlideBackgroundThemeTokens,
+  resolveSlideBackgroundThemeForSource,
+  type SlideBackgroundStyleId,
+  type SlideBackgroundThemeTokens,
+} from '@/lib/constants/slide-backgrounds';
 
 type ContentCardTone = {
   fill: string;
@@ -108,6 +124,328 @@ const ACADEMY_PAPER = {
   blueBorder: 'rgba(119,148,191,0.34)',
   shadow: 'rgba(106,84,45,0.11)',
 } as const;
+
+const CLASSIC_BUSINESS = {
+  titleText: '#1f2937',
+  bodyText: '#374151',
+  mutedText: '#6b7280',
+  border: '#d1d5db',
+  subtleBorder: '#e5e7eb',
+  panelFill: '#f8fafc',
+  panelFillWarm: '#fff7ed',
+  panelFillGreen: '#ecfdf5',
+  panelFillBlue: '#eff6ff',
+  blue: '#2563eb',
+  red: '#dc2626',
+  yellow: '#f59e0b',
+  green: '#16a34a',
+  teal: '#0f766e',
+  shadow: 'rgba(15,23,42,0.08)',
+} as const;
+
+type ClassicDeckStylePreset = {
+  id: NotebookContentDeckStyle;
+  name: string;
+  background: string;
+  titleText: string;
+  bodyText: string;
+  mutedText: string;
+  border: string;
+  subtleBorder: string;
+  panelFill: string;
+  panelFillWarm: string;
+  panelFillGreen: string;
+  panelFillBlue: string;
+  panelFillRed: string;
+  borderWarm: string;
+  borderGreen: string;
+  borderBlue: string;
+  borderRed: string;
+  blue: string;
+  red: string;
+  yellow: string;
+  green: string;
+  teal: string;
+  shadow: string;
+  tableFill: string;
+  tableStripeFill: string;
+  tableHeaderFill: string;
+};
+
+const CLASSIC_DECK_STYLES = {
+  classic_business: {
+    id: 'classic_business',
+    name: 'Classic Business',
+    background: '#ffffff',
+    ...CLASSIC_BUSINESS,
+    panelFillRed: '#fee2e2',
+    borderWarm: '#fed7aa',
+    borderGreen: '#bbf7d0',
+    borderBlue: '#bfdbfe',
+    borderRed: '#fecaca',
+    tableFill: '#ffffff',
+    tableStripeFill: '#f9fafb',
+    tableHeaderFill: '#e5e7eb',
+  },
+  academic: {
+    id: 'academic',
+    name: 'Academic',
+    background: '#f8fbff',
+    titleText: '#0f2f63',
+    bodyText: '#233454',
+    mutedText: '#64748b',
+    border: '#c9d8ee',
+    subtleBorder: '#dbe7f6',
+    panelFill: '#ffffff',
+    panelFillWarm: '#fff7ed',
+    panelFillGreen: '#eefbf5',
+    panelFillBlue: '#eef5ff',
+    panelFillRed: '#fff1f2',
+    borderWarm: '#fed7aa',
+    borderGreen: '#bfe9d2',
+    borderBlue: '#b9cff4',
+    borderRed: '#fecdd3',
+    blue: '#174a8b',
+    red: '#b42318',
+    yellow: '#d69e2e',
+    green: '#28775d',
+    teal: '#0f766e',
+    shadow: 'rgba(15,47,99,0.08)',
+    tableFill: '#ffffff',
+    tableStripeFill: '#f3f7fc',
+    tableHeaderFill: '#e4edf8',
+  },
+  magazine: {
+    id: 'magazine',
+    name: 'Magazine',
+    background: '#fbf4ea',
+    titleText: '#2b2a24',
+    bodyText: '#4a4438',
+    mutedText: '#746a5b',
+    border: '#e1d1bd',
+    subtleBorder: '#eadfce',
+    panelFill: '#fffaf2',
+    panelFillWarm: '#fff2df',
+    panelFillGreen: '#edf4df',
+    panelFillBlue: '#eff5ef',
+    panelFillRed: '#f9e7df',
+    borderWarm: '#e8c59a',
+    borderGreen: '#c9d9af',
+    borderBlue: '#cbd8c2',
+    borderRed: '#ebc3ad',
+    blue: '#63795a',
+    red: '#b66543',
+    yellow: '#d39b42',
+    green: '#7b914f',
+    teal: '#607f78',
+    shadow: 'rgba(86,64,38,0.12)',
+    tableFill: '#fffaf2',
+    tableStripeFill: '#f7ead9',
+    tableHeaderFill: '#eadcc8',
+  },
+  dark_art: {
+    id: 'dark_art',
+    name: 'Dark Art',
+    background: '#111224',
+    titleText: '#fff6d9',
+    bodyText: '#e6e0f2',
+    mutedText: '#b9afcf',
+    border: '#463d66',
+    subtleBorder: '#342c4f',
+    panelFill: '#1a1a34',
+    panelFillWarm: '#282036',
+    panelFillGreen: '#162d2c',
+    panelFillBlue: '#181f3f',
+    panelFillRed: '#2a1930',
+    borderWarm: '#6c4c2c',
+    borderGreen: '#2e5f58',
+    borderBlue: '#3c4a85',
+    borderRed: '#66334e',
+    blue: '#7c8cff',
+    red: '#d85b8c',
+    yellow: '#f5c85f',
+    green: '#49c6a7',
+    teal: '#6ee7d8',
+    shadow: 'rgba(0,0,0,0.34)',
+    tableFill: '#17172c',
+    tableStripeFill: '#20203a',
+    tableHeaderFill: '#29294a',
+  },
+  nature_documentary: {
+    id: 'nature_documentary',
+    name: 'Nature Documentary',
+    background: '#061f1c',
+    titleText: '#f4f7ea',
+    bodyText: '#dce9dc',
+    mutedText: '#9fb7aa',
+    border: '#215147',
+    subtleBorder: '#173d37',
+    panelFill: '#0b2a25',
+    panelFillWarm: '#24311d',
+    panelFillGreen: '#0d342e',
+    panelFillBlue: '#0e3138',
+    panelFillRed: '#342018',
+    borderWarm: '#6d6a38',
+    borderGreen: '#2d6f5d',
+    borderBlue: '#32636f',
+    borderRed: '#744435',
+    blue: '#72d1d7',
+    red: '#f9735b',
+    yellow: '#d7bd63',
+    green: '#6ee7b7',
+    teal: '#2dd4bf',
+    shadow: 'rgba(0,0,0,0.28)',
+    tableFill: '#0b2a25',
+    tableStripeFill: '#10342e',
+    tableHeaderFill: '#173f38',
+  },
+  tech_saas: {
+    id: 'tech_saas',
+    name: 'Tech / SaaS',
+    background: '#f8fafc',
+    titleText: '#111827',
+    bodyText: '#334155',
+    mutedText: '#64748b',
+    border: '#d8e2ee',
+    subtleBorder: '#e2e8f0',
+    panelFill: '#ffffff',
+    panelFillWarm: '#fff4ed',
+    panelFillGreen: '#ecfdf5',
+    panelFillBlue: '#eff6ff',
+    panelFillRed: '#fff1f2',
+    borderWarm: '#fed7aa',
+    borderGreen: '#bbf7d0',
+    borderBlue: '#bfdbfe',
+    borderRed: '#fecdd3',
+    blue: '#2563eb',
+    red: '#f97316',
+    yellow: '#8b5cf6',
+    green: '#10b981',
+    teal: '#06b6d4',
+    shadow: 'rgba(15,23,42,0.10)',
+    tableFill: '#ffffff',
+    tableStripeFill: '#f8fafc',
+    tableHeaderFill: '#eaf1fb',
+  },
+  product_launch: {
+    id: 'product_launch',
+    name: 'Product Launch',
+    background: '#060606',
+    titleText: '#ffffff',
+    bodyText: '#f4f4f5',
+    mutedText: '#a1a1aa',
+    border: '#2f2f33',
+    subtleBorder: '#242428',
+    panelFill: '#111113',
+    panelFillWarm: '#1f1711',
+    panelFillGreen: '#10231c',
+    panelFillBlue: '#101827',
+    panelFillRed: '#241315',
+    borderWarm: '#7c3f16',
+    borderGreen: '#205d48',
+    borderBlue: '#29466f',
+    borderRed: '#7f1d1d',
+    blue: '#60a5fa',
+    red: '#f97316',
+    yellow: '#fbbf24',
+    green: '#34d399',
+    teal: '#22d3ee',
+    shadow: 'rgba(0,0,0,0.42)',
+    tableFill: '#111113',
+    tableStripeFill: '#17171a',
+    tableHeaderFill: '#232326',
+  },
+} satisfies Record<NotebookContentDeckStyle, ClassicDeckStylePreset>;
+
+function getClassicDeckStyle(document: NotebookContentDocument): ClassicDeckStylePreset {
+  return CLASSIC_DECK_STYLES[document.deckStyle || 'classic_business'];
+}
+
+function classicColorReplacements(
+  style: ClassicDeckStylePreset,
+): readonly (readonly [string, string])[] {
+  return [
+    [CLASSIC_BUSINESS.titleText, style.titleText],
+    [CLASSIC_BUSINESS.bodyText, style.bodyText],
+    [CLASSIC_BUSINESS.mutedText, style.mutedText],
+    [CLASSIC_BUSINESS.border, style.border],
+    [CLASSIC_BUSINESS.subtleBorder, style.subtleBorder],
+    [CLASSIC_BUSINESS.panelFill, style.panelFill],
+    [CLASSIC_BUSINESS.panelFillWarm, style.panelFillWarm],
+    [CLASSIC_BUSINESS.panelFillGreen, style.panelFillGreen],
+    [CLASSIC_BUSINESS.panelFillBlue, style.panelFillBlue],
+    [CLASSIC_BUSINESS.blue, style.blue],
+    [CLASSIC_BUSINESS.red, style.red],
+    [CLASSIC_BUSINESS.yellow, style.yellow],
+    [CLASSIC_BUSINESS.green, style.green],
+    [CLASSIC_BUSINESS.teal, style.teal],
+    [CLASSIC_BUSINESS.shadow, style.shadow],
+    ['#dbeafe', style.panelFillBlue],
+    ['#bfdbfe', style.borderBlue],
+    ['#dcfce7', style.panelFillGreen],
+    ['#bbf7d0', style.borderGreen],
+    ['#fef3c7', style.panelFillWarm],
+    ['#fde68a', style.borderWarm],
+    ['#fee2e2', style.panelFillRed],
+    ['#fecaca', style.borderRed],
+    ['#fff7ed', style.panelFillWarm],
+    ['#fed7aa', style.borderWarm],
+    ['#eff6ff', style.panelFillBlue],
+    ['#ecfdf5', style.panelFillGreen],
+    ['#e5e7eb', style.tableHeaderFill],
+    ['#f9fafb', style.tableStripeFill],
+    ['#ffffff', style.tableFill],
+    ['#f8fafc', style.panelFill],
+    ['#dbe4f0', style.border],
+    ['#6b7280', style.mutedText],
+    ['#a16207', style.yellow],
+    ['#c2410c', style.red],
+  ] as const;
+}
+
+function replaceClassicStyleString(
+  value: string,
+  replacements: readonly (readonly [string, string])[],
+): string {
+  const activeReplacements = replacements.filter(([from, to]) => from !== to);
+  let current = value;
+  activeReplacements.forEach(([from], index) => {
+    current = current.split(from).join(`__classic_color_${index}__`);
+  });
+  activeReplacements.forEach(([, to], index) => {
+    current = current.split(`__classic_color_${index}__`).join(to);
+  });
+  return current;
+}
+
+function retintClassicValue(
+  value: unknown,
+  replacements: readonly (readonly [string, string])[],
+  key?: string,
+): unknown {
+  if (typeof value === 'string') {
+    return key === 'src' ? value : replaceClassicStyleString(value, replacements);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => retintClassicValue(item, replacements));
+  }
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([entryKey, entryValue]) => [
+      entryKey,
+      retintClassicValue(entryValue, replacements, entryKey),
+    ]),
+  );
+}
+
+function retintClassicElements(
+  elements: PPTElement[],
+  style: ClassicDeckStylePreset,
+): PPTElement[] {
+  if (style.id === 'classic_business') return elements;
+  const replacements = classicColorReplacements(style);
+  return elements.map((element) => retintClassicValue(element, replacements) as PPTElement);
+}
 
 export type NotebookSlotLayoutIssue = {
   code:
@@ -699,6 +1037,8 @@ function renderProcessFlowBlock(args: {
   titleAccent: string;
   cardPalettes: readonly ContentCardTone[];
 }): { elements: PPTElement[]; height: number } {
+  const context = Array.isArray(args.block.context) ? args.block.context : [];
+  const steps = Array.isArray(args.block.steps) ? args.block.steps : [];
   const elements: PPTElement[] = [];
   const groupId = createCardGroupId('process_flow');
   let cursorTop = args.top;
@@ -709,17 +1049,17 @@ function renderProcessFlowBlock(args: {
         left: CONTENT_LEFT,
         top: cursorTop,
         width: CONTENT_WIDTH,
-        height: 28,
+        height: 52,
         groupId,
-        html: `<p style="font-size:18px;color:${args.titleAccent};"><strong>${renderInlineLatexToHtml(args.block.title)}</strong></p>`,
+        html: `<p style="font-size:16px;line-height:22px;color:${args.titleAccent};"><strong>${renderInlineLatexToHtml(args.block.title)}</strong></p>`,
         color: args.titleAccent,
         textType: 'itemTitle',
       }),
     );
-    cursorTop += 34;
+    cursorTop += 58;
   }
 
-  const contextCards = processFlowContextToLayoutCardsBlock(args.block.context);
+  const contextCards = processFlowContextToLayoutCardsBlock(context);
   if (contextCards) {
     const renderedContext = renderLayoutCardsBlock({
       block: contextCards,
@@ -732,27 +1072,27 @@ function renderProcessFlowBlock(args: {
   }
 
   if (args.block.orientation === 'horizontal') {
-    const gapX = args.block.steps.length > 3 ? 14 : 18;
+    const gapX = steps.length > 3 ? 14 : 18;
     const stepWidth =
-      (CONTENT_WIDTH - Math.max(0, args.block.steps.length - 1) * gapX) /
-      Math.max(args.block.steps.length, 1);
+      (CONTENT_WIDTH - Math.max(0, steps.length - 1) * gapX) / Math.max(steps.length, 1);
     const innerWidth = Math.max(104, stepWidth - CARD_INSET_X * 2);
     const stepHeight = Math.min(
-      170,
+      182,
       Math.max(
-        112,
-        ...args.block.steps.map((step) =>
-          estimateProcessFlowStepCardHeight({
-            step,
-            widthPx: innerWidth,
-            orientation: 'horizontal',
-          }),
+        120,
+        ...steps.map(
+          (step) =>
+            estimateProcessFlowStepCardHeight({
+              step,
+              widthPx: innerWidth,
+              orientation: 'horizontal',
+            }) + 8,
         ),
       ),
     );
 
     const connectorY = cursorTop + stepHeight / 2;
-    args.block.steps.forEach((step, index) => {
+    steps.forEach((step, index) => {
       const left = CONTENT_LEFT + index * (stepWidth + gapX);
       const tone = args.cardPalettes[index % args.cardPalettes.length];
       const fitted = fitProcessFlowStepCard({
@@ -765,7 +1105,7 @@ function renderProcessFlowBlock(args: {
         tone,
       });
 
-      if (index < args.block.steps.length - 1) {
+      if (index < steps.length - 1) {
         const nextLeft = CONTENT_LEFT + (index + 1) * (stepWidth + gapX);
         elements.push(
           createLineElement({
@@ -802,14 +1142,17 @@ function renderProcessFlowBlock(args: {
     const cardLeft = CONTENT_LEFT + 26;
     const cardWidth = CONTENT_WIDTH - 26;
     const stepWidth = Math.max(140, cardWidth - CARD_INSET_X * 2);
-    const stepHeights = args.block.steps.map((step) =>
+    const stepHeights = steps.map((step) =>
       Math.min(
-        132,
-        estimateProcessFlowStepCardHeight({
-          step,
-          widthPx: stepWidth,
-          orientation: 'vertical',
-        }),
+        144,
+        Math.max(
+          96,
+          estimateProcessFlowStepCardHeight({
+            step,
+            widthPx: stepWidth,
+            orientation: 'vertical',
+          }) + 8,
+        ),
       ),
     );
     let localTop = cursorTop;
@@ -820,7 +1163,7 @@ function renderProcessFlowBlock(args: {
     });
     localTop = cursorTop;
 
-    args.block.steps.forEach((step, index) => {
+    steps.forEach((step, index) => {
       const tone = args.cardPalettes[index % args.cardPalettes.length];
       const stepHeight = stepHeights[index];
       const fitted = fitProcessFlowStepCard({
@@ -1241,7 +1584,12 @@ function inferLayoutFamilyFromDocument(args: {
   if (args.archetype === 'summary') return 'summary';
   if (args.document.visualSlot || args.blocks.some(isVisualBlock)) return 'visual_split';
   if (
-    args.blocks.some((block) => block.type === 'code_walkthrough' || block.type === 'code_block')
+    args.blocks.some(
+      (block) =>
+        block.type === 'code_walkthrough' ||
+        block.type === 'code_block' ||
+        block.type === 'code_trace',
+    )
   ) {
     return 'code_walkthrough';
   }
@@ -1388,7 +1736,9 @@ function blockSummaryLines(language: 'zh-CN' | 'en-US', block: NotebookContentBl
 }
 
 function shouldUseBlockAsDefinitionPoint(block: NotebookContentBlock): boolean {
-  return !['equation', 'matrix', 'derivation_steps', 'process_flow'].includes(block.type);
+  return !['equation', 'matrix', 'derivation_steps', 'process_flow', 'invariant_panel'].includes(
+    block.type,
+  );
 }
 
 function estimateSlotBlockWeight(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): number {
@@ -1399,6 +1749,159 @@ function estimateSlotBlockWeight(language: 'zh-CN' | 'en-US', block: NotebookCon
     return (
       block.code.split('\n').length * 26 +
       block.steps.reduce((sum, step) => sum + step.explanation.length, 0) * 0.9
+    );
+  }
+  if (block.type === 'code_trace') {
+    return (
+      block.code.split('\n').length * 26 +
+      block.steps.reduce(
+        (sum, step) =>
+          sum +
+          step.explanation.length * 0.9 +
+          step.state.reduce(
+            (stateSum, state) => stateSum + state.name.length + state.value.length,
+            0,
+          ),
+        0,
+      )
+    );
+  }
+  if (block.type === 'state_table') {
+    return (
+      block.columns.join('').length +
+      block.rows.flat().join('').length +
+      (block.caption?.length || 0)
+    );
+  }
+  if (block.type === 'call_stack') {
+    return block.frames.reduce(
+      (sum, frame) =>
+        sum +
+        frame.name.length +
+        frame.args.reduce((argSum, item) => argSum + item.name.length + item.value.length, 0) +
+        frame.locals.reduce(
+          (localSum, item) => localSum + item.name.length + item.value.length,
+          0,
+        ) +
+        (frame.returnValue?.length || 0) +
+        (frame.note?.length || 0),
+      0,
+    );
+  }
+  if (block.type === 'memory_diagram') {
+    return (
+      block.stack.reduce(
+        (sum, item) => sum + item.name.length + item.value.length + (item.ref?.length || 0),
+        0,
+      ) +
+      block.heap.reduce(
+        (sum, item) =>
+          sum +
+          item.id.length +
+          item.label.length +
+          item.fields.reduce(
+            (fieldSum, field) => fieldSum + field.name.length + field.value.length,
+            0,
+          ),
+        0,
+      )
+    );
+  }
+  if (block.type === 'pointer_diagram') {
+    return (
+      (block.operation?.length || 0) +
+      block.nodes.reduce(
+        (sum, node) =>
+          sum +
+          node.id.length +
+          node.label.length +
+          node.fields.reduce(
+            (fieldSum, field) => fieldSum + field.name.length + field.value.length,
+            0,
+          ),
+        0,
+      ) +
+      block.pointers.reduce(
+        (sum, pointer) => sum + pointer.name.length + (pointer.to?.length || 0),
+        0,
+      )
+    );
+  }
+  if (block.type === 'tree_diagram') {
+    return (
+      block.nodes.reduce(
+        (sum, node) =>
+          sum +
+          node.id.length +
+          node.label.length +
+          (node.children || []).reduce((childSum, child) => childSum + child.length, 0) +
+          (node.left?.length || 0) +
+          (node.right?.length || 0),
+        0,
+      ) +
+      (block.target?.length || 0) +
+      (block.decision?.length || 0) +
+      (block.invariant?.length || 0)
+    );
+  }
+  if (block.type === 'graph_trace') {
+    return (
+      block.algorithm.length +
+      (block.title?.length || 0) +
+      block.nodes.reduce((sum, node) => sum + node.id.length + node.label.length, 0) +
+      block.edges.reduce(
+        (sum, edge) => sum + edge.from.length + edge.to.length + (edge.label?.length || 0),
+        0,
+      ) +
+      block.steps.reduce(
+        (sum, step) =>
+          sum +
+          (step.title?.length || 0) +
+          (step.explanation?.length || 0) +
+          step.frontier.join('').length +
+          step.visited.join('').length +
+          step.order.join('').length,
+        0,
+      ) +
+      (block.invariant?.length || 0)
+    );
+  }
+  if (block.type === 'linear_structure') {
+    return (
+      block.kind.length +
+      (block.title?.length || 0) +
+      (block.operation?.length || 0) +
+      block.items.reduce(
+        (sum, item) => sum + item.id.length + item.label.length + (item.note?.length || 0),
+        0,
+      ) +
+      block.steps.reduce(
+        (sum, step) =>
+          sum +
+          (step.title?.length || 0) +
+          (step.operation?.length || 0) +
+          step.items.reduce(
+            (itemSum, item) =>
+              itemSum + item.id.length + item.label.length + (item.note?.length || 0),
+            0,
+          ) +
+          step.focus.reduce((focusSum, id) => focusSum + id.length, 0) +
+          (step.explanation?.length || 0) +
+          (step.result?.length || 0),
+        0,
+      ) +
+      (block.caption?.length || 0)
+    );
+  }
+  if (block.type === 'invariant_panel') {
+    return (
+      block.invariant.length +
+      (block.structure?.length || 0) +
+      block.checks.reduce(
+        (sum, check) => sum + check.label.length + check.text.length + (check.reason?.length || 0),
+        0,
+      ) +
+      (block.caption?.length || 0)
     );
   }
   if (block.type === 'derivation_steps') {
@@ -1417,9 +1920,11 @@ function estimateSlotBlockWeight(language: 'zh-CN' | 'en-US', block: NotebookCon
     ].join('').length;
   }
   if (block.type === 'process_flow') {
+    const context = Array.isArray(block.context) ? block.context : [];
+    const steps = Array.isArray(block.steps) ? block.steps : [];
     return (
-      block.context.reduce((sum, item) => sum + item.label.length + item.text.length, 0) +
-      block.steps.reduce((sum, step) => sum + step.title.length + step.detail.length, 0) +
+      context.reduce((sum, item) => sum + item.label.length + item.text.length, 0) +
+      steps.reduce((sum, step) => sum + step.title.length + step.detail.length, 0) +
       (block.summary?.length || 0)
     );
   }
@@ -1540,6 +2045,170 @@ function flattenSlotBlocksForTemplate(
     .flatMap((slot) => slot.blocks);
 }
 
+type ClassicProtectedInlineSegment = {
+  raw: string;
+  visible: string;
+  atomic: boolean;
+};
+
+function splitClassicProtectedInlineSegments(text: string): ClassicProtectedInlineSegment[] {
+  const segments: ClassicProtectedInlineSegment[] = [];
+  const pattern = /(`[^`]*`|\$[^$\n]+\$|\\\([^]*?\\\))/g;
+  let cursor = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    if (index > cursor) {
+      const raw = text.slice(cursor, index);
+      segments.push({ raw, visible: raw, atomic: false });
+    }
+
+    const raw = match[0];
+    const visible = raw.startsWith('`')
+      ? raw.slice(1, -1)
+      : raw.startsWith('$')
+        ? raw.slice(1, -1)
+        : raw.slice(2, -2);
+    segments.push({ raw, visible, atomic: true });
+    cursor = index + raw.length;
+  }
+
+  if (cursor < text.length) {
+    const raw = text.slice(cursor);
+    segments.push({ raw, visible: raw, atomic: false });
+  }
+
+  return segments.filter((segment) => segment.raw.length > 0);
+}
+
+function classicProtectedVisibleLength(text: string): number {
+  return splitClassicProtectedInlineSegments(text).reduce(
+    (sum, segment) => sum + segment.visible.length,
+    0,
+  );
+}
+
+function compactClassicTextLine(line: string, maxChars: number): string {
+  const normalized = line.trim();
+  if (classicProtectedVisibleLength(normalized) <= maxChars) return normalized;
+
+  const targetChars = Math.max(1, maxChars - 3);
+  const segments = splitClassicProtectedInlineSegments(normalized);
+  let visibleChars = 0;
+  let output = '';
+
+  for (const segment of segments) {
+    if (visibleChars + segment.visible.length <= targetChars) {
+      output += segment.raw;
+      visibleChars += segment.visible.length;
+      continue;
+    }
+
+    if (segment.atomic) {
+      if (visibleChars === 0) return segment.raw;
+      break;
+    }
+
+    const remainingChars = targetChars - visibleChars;
+    if (remainingChars > 0) {
+      output += Array.from(segment.visible).slice(0, remainingChars).join('');
+    }
+    break;
+  }
+
+  const backtickCount = (output.match(/`/g) || []).length;
+  const balancedOutput =
+    backtickCount % 2 === 0 ? output : output.slice(0, output.lastIndexOf('`'));
+  return `${balancedOutput.trimEnd()}...`;
+}
+
+function splitClassicTextLineForCard(line: string, maxChars: number): string[] {
+  const normalized = line.trim();
+  if (!normalized) return [];
+  if (classicProtectedVisibleLength(normalized) <= maxChars) return [normalized];
+
+  const chunks: string[] = [];
+  const segments = splitClassicProtectedInlineSegments(normalized);
+  let current = '';
+  let visibleChars = 0;
+
+  const pushCurrent = () => {
+    const trimmed = current.trim();
+    if (trimmed) chunks.push(trimmed);
+    current = '';
+    visibleChars = 0;
+  };
+
+  for (const segment of segments) {
+    if (segment.atomic) {
+      if (visibleChars > 0 && visibleChars + segment.visible.length > maxChars) {
+        pushCurrent();
+      }
+      current += segment.raw;
+      visibleChars += segment.visible.length;
+      if (visibleChars >= maxChars) pushCurrent();
+      continue;
+    }
+
+    for (const char of Array.from(segment.raw)) {
+      if (visibleChars > 0 && visibleChars + 1 > maxChars) {
+        pushCurrent();
+      }
+      current += char;
+      visibleChars += 1;
+    }
+  }
+
+  pushCurrent();
+  return chunks;
+}
+
+function splitClassicCardBodyLines(args: {
+  lines: string[];
+  maxLines: number;
+  maxCharsPerLine?: number;
+}): string[] {
+  if (!args.maxCharsPerLine) return args.lines.slice(0, args.maxLines);
+
+  const output: string[] = [];
+  for (const line of args.lines) {
+    const chunks = splitClassicTextLineForCard(line, args.maxCharsPerLine);
+    for (const chunk of chunks) {
+      if (output.length < args.maxLines) {
+        output.push(chunk);
+        continue;
+      }
+      const lastIndex = output.length - 1;
+      output[lastIndex] = compactClassicTextLine(
+        `${output[lastIndex]} ${chunk}`.trim(),
+        args.maxCharsPerLine,
+      );
+      return output;
+    }
+  }
+
+  return output;
+}
+
+function estimateClassicCardContentHeight(args: {
+  block: NotebookContentBlock;
+  language: 'zh-CN' | 'en-US';
+  bodyFontSize: number;
+  maxLines: number;
+  maxCharsPerLine?: number;
+}): number {
+  const heading = blockToGridHeading(args.language, args.block);
+  const headingLines = Math.min(2, Math.max(1, Math.ceil(heading.length / 16)));
+  const bodyLines = splitClassicCardBodyLines({
+    lines: blockSummaryLines(args.language, args.block),
+    maxLines: args.maxLines,
+    maxCharsPerLine: args.maxCharsPerLine,
+  });
+  const headingHeight = headingLines * 26 + 10;
+  const bodyHeight = Math.max(1, bodyLines.length) * Math.round(args.bodyFontSize * 1.38);
+  return Math.ceil(CARD_INSET_Y * 2 + headingHeight + bodyHeight + 12);
+}
+
 function createBlockCard(args: {
   block: NotebookContentBlock;
   language: 'zh-CN' | 'en-US';
@@ -1548,8 +2217,11 @@ function createBlockCard(args: {
   width: number;
   height: number;
   tone: ContentCardTone;
+  style?: ClassicDeckStylePreset;
   titleColor?: string;
   bodyFontSize?: number;
+  maxLines?: number;
+  maxCharsPerLine?: number;
 }): PPTTextElement {
   const title = blockToGridHeading(args.language, args.block);
   const titleFit = fitGridHeadingToHeight({
@@ -1560,14 +2232,18 @@ function createBlockCard(args: {
   });
   const lines = blockSummaryLines(args.language, args.block);
   const bodyFontSize = args.bodyFontSize ?? 14;
-  const bodyHtml = lines
-    .slice(0, 6)
+  const bodyLines = splitClassicCardBodyLines({
+    lines,
+    maxLines: args.maxLines ?? 6,
+    maxCharsPerLine: args.maxCharsPerLine,
+  });
+  const bodyHtml = bodyLines
     .map((line, index) => {
       const prefix =
         lines.length > 1
           ? `<span style="color:${args.tone.accent};font-weight:700;">${index + 1}.</span> `
           : '';
-      return `<p style="font-size:${bodyFontSize}px;line-height:${Math.round(bodyFontSize * 1.42)}px;color:${ACADEMY_PAPER.bodyText};">${prefix}${renderInlineLatexToHtml(line)}</p>`;
+      return `<p style="font-size:${bodyFontSize}px;line-height:${Math.round(bodyFontSize * 1.38)}px;color:${args.style?.bodyText || CLASSIC_BUSINESS.bodyText};">${prefix}${renderClassicInlineHtml(line)}</p>`;
     })
     .join('');
 
@@ -1577,16 +2253,16 @@ function createBlockCard(args: {
     width: args.width,
     height: args.height,
     html: `${titleFit.html}${bodyHtml}`,
-    color: ACADEMY_PAPER.bodyText,
+    color: args.style?.bodyText || CLASSIC_BUSINESS.bodyText,
     fill: args.block.backgroundColor || args.tone.fill,
     outlineColor: args.block.borderColor || args.tone.border,
     shadow: {
       h: 0,
-      v: 8,
-      blur: 24,
-      color: ACADEMY_PAPER.shadow,
+      v: 6,
+      blur: 18,
+      color: args.style?.shadow || CLASSIC_BUSINESS.shadow,
     },
-    textType: 'content',
+    textType: args.style ? 'item' : 'content',
   });
 }
 
@@ -1611,12 +2287,12 @@ function renderVisualPanel(args: {
         width: args.width,
         height: imageHeight,
         groupId,
-        outlineColor: ACADEMY_PAPER.blueBorder,
+        outlineColor: CLASSIC_BUSINESS.subtleBorder,
         shadow: {
           h: 0,
-          v: 10,
-          blur: 28,
-          color: ACADEMY_PAPER.shadow,
+          v: 6,
+          blur: 18,
+          color: CLASSIC_BUSINESS.shadow,
         },
       }),
     ];
@@ -1627,9 +2303,9 @@ function renderVisualPanel(args: {
           top: args.top + imageHeight + 8,
           width: args.width,
           height: 24,
-          html: `<p style="font-size:12px;color:#475569;text-align:center;">${escapeHtml(args.visual.caption)}</p>`,
-          color: '#475569',
-          textType: 'notes',
+          html: `<p style="font-size:12px;color:${CLASSIC_BUSINESS.mutedText};text-align:center;">${escapeHtml(args.visual.caption)}</p>`,
+          color: CLASSIC_BUSINESS.mutedText,
+          textType: 'footer',
         }),
       );
     }
@@ -1639,6 +2315,562 @@ function renderVisualPanel(args: {
   return [];
 }
 
+function createHeroBackgroundElements(args: {
+  visual: VisualSlotWithTitle | null;
+  fallbackFill: string;
+  overlayFill: string;
+  leftShadeFill?: string;
+  groupId: string;
+}): PPTElement[] {
+  const elements: PPTElement[] = [];
+  if (args.visual?.source) {
+    elements.push(
+      createImageElement({
+        src: args.visual.source,
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        radius: 0,
+        groupId: args.groupId,
+      }),
+    );
+  } else {
+    elements.push(
+      createRectShape({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        fill: args.fallbackFill,
+        groupId: args.groupId,
+      }),
+    );
+  }
+
+  elements.push(
+    createRectShape({
+      left: 0,
+      top: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      fill: args.overlayFill,
+      groupId: args.groupId,
+    }),
+  );
+
+  if (args.leftShadeFill) {
+    elements.push(
+      createRectShape({
+        left: 0,
+        top: 0,
+        width: CANVAS_WIDTH * 0.58,
+        height: CANVAS_HEIGHT,
+        fill: args.leftShadeFill,
+        groupId: args.groupId,
+      }),
+    );
+  }
+
+  return elements;
+}
+
+function resolveHeroBackgroundTheme(args: {
+  visual: VisualSlotWithTitle | null;
+  fallbackStyleId: SlideBackgroundStyleId;
+}): SlideBackgroundThemeTokens {
+  return (
+    resolveSlideBackgroundThemeForSource(args.visual?.source) ||
+    getSlideBackgroundThemeTokens(args.fallbackStyleId)
+  );
+}
+
+function heroTextLines(args: {
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  maxItems?: number;
+}): string[] {
+  return firstClassicLines(args.language, getClassicTextBlocks(args.blocks), args.maxItems ?? 3);
+}
+
+function createHeroFooterText(args: {
+  text: string;
+  left?: number;
+  align?: 'left' | 'right';
+  groupId: string;
+  color?: string;
+}): PPTElement {
+  const left = args.left ?? 46;
+  const color = args.color || 'rgba(248,250,252,.68)';
+  return createTextElement({
+    left,
+    top: CANVAS_HEIGHT - 76,
+    width: args.align === 'right' ? 210 : 300,
+    height: 70,
+    html: `<p style="font-size:9px;line-height:12px;color:${color};font-weight:650;text-align:${args.align || 'left'};">${renderClassicInlineHtml(args.text)}</p>`,
+    color,
+    groupId: args.groupId,
+    textType: 'footer',
+  });
+}
+
+const HERO_META_PLACEHOLDER_PATTERN =
+  /^(?:current edition|edition|deep dive|opening|course intro|intro|overview|dark art|tech\s*\/\s*saas|tech saas|classic business|academic|magazine|product launch|nature documentary|当前版本|版本|深度解析|课程导入|导入|概览|技术|科技|暗色艺术)$/i;
+
+function isMeaningfulHeroMeta(text: string | undefined): text is string {
+  const normalized = text?.replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  if (HERO_META_PLACEHOLDER_PATTERN.test(normalized)) return false;
+  return normalized.replace(/\s+/g, '').length >= 3;
+}
+
+function isCompactHeroMeta(text: string | undefined, language: 'zh-CN' | 'en-US'): text is string {
+  if (!isMeaningfulHeroMeta(text)) return false;
+  const compactLength = text.replace(/\s+/g, '').length;
+  const maxLength = language === 'en-US' ? 32 : 18;
+  return compactLength <= maxLength;
+}
+
+function meaningfulHeroTextLines(args: {
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  maxItems?: number;
+}): string[] {
+  return heroTextLines(args).filter((line) => isMeaningfulHeroMeta(line));
+}
+
+function meaningfulCalloutTitle(args: {
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+}): string | null {
+  const title = args.blocks.find((block) => block.type === 'callout')?.title?.trim();
+  if (!isMeaningfulHeroMeta(title)) return null;
+  const compactLength = title.replace(/\s+/g, '').length;
+  const maxLength = args.language === 'en-US' ? 18 : 8;
+  return compactLength <= maxLength ? title : null;
+}
+
+function isDarkHeroVisual(visual: VisualSlotWithTitle | null): boolean {
+  if (!visual?.source) return false;
+  return findSlideBackgroundStyleBySource(visual.source)?.tone === 'dark';
+}
+
+function heroOverlayFillForVisual(args: {
+  theme: SlideBackgroundThemeTokens;
+  visual: VisualSlotWithTitle | null;
+  template: 'image' | 'cinematic' | 'tech';
+}): string {
+  const isDark = isDarkHeroVisual(args.visual);
+  if (args.template === 'cinematic') {
+    return isDark ? args.theme.overlayFill : 'rgba(255,248,235,.18)';
+  }
+  if (args.template === 'tech') {
+    return isDark ? args.theme.overlayFill : 'rgba(245,251,255,.12)';
+  }
+  return isDark ? args.theme.overlayFill : 'rgba(255,255,255,.16)';
+}
+
+function heroLeftShadeFillForVisual(args: {
+  theme: SlideBackgroundThemeTokens;
+  visual: VisualSlotWithTitle | null;
+  template: 'image' | 'cinematic' | 'tech';
+}): string | undefined {
+  if (args.template === 'tech')
+    return isDarkHeroVisual(args.visual) ? args.theme.leftShadeFill : undefined;
+  if (args.template === 'cinematic') return undefined;
+  return args.theme.leftShadeFill;
+}
+
+function createCornerBracketElements(args: {
+  inset: number;
+  length: number;
+  color: string;
+  width: number;
+  groupId: string;
+}): PPTElement[] {
+  const x1 = args.inset;
+  const y1 = args.inset;
+  const x2 = CANVAS_WIDTH - args.inset;
+  const y2 = CANVAS_HEIGHT - args.inset;
+  return [
+    createLineElement({
+      start: [x1, y1],
+      end: [x1 + args.length, y1],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x1, y1],
+      end: [x1, y1 + args.length],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x2, y1],
+      end: [x2 - args.length, y1],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x2, y1],
+      end: [x2, y1 + args.length],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x1, y2],
+      end: [x1 + args.length, y2],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x1, y2],
+      end: [x1, y2 - args.length],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x2, y2],
+      end: [x2 - args.length, y2],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [x2, y2],
+      end: [x2, y2 - args.length],
+      color: args.color,
+      width: args.width,
+      groupId: args.groupId,
+    }),
+  ];
+}
+
+function renderClassicImageTitleOverlayTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const lines = meaningfulHeroTextLines({
+    blocks: args.blocks,
+    language: args.language,
+    maxItems: 3,
+  });
+  const subtitle =
+    lines[0] ||
+    (args.language === 'en-US'
+      ? 'A focused opening page for the core story.'
+      : '用一页先把本章的主线立起来。');
+  const meta = isCompactHeroMeta(lines[1], args.language)
+    ? lines[1]
+    : isCompactHeroMeta(args.visual?.caption, args.language)
+      ? args.visual?.caption
+      : null;
+  const tag = meaningfulCalloutTitle({
+    blocks: args.blocks,
+    language: args.language,
+  });
+  const backgroundTheme = resolveHeroBackgroundTheme({
+    visual: args.visual,
+    fallbackStyleId: 'magazine-courtyard',
+  });
+  const titleFontSize = args.title.replace(/\s+/g, '').length > 22 ? 36 : 43;
+  const groupId = createCardGroupId('classic_image_hero');
+  const elements: PPTElement[] = [
+    ...createHeroBackgroundElements({
+      visual: args.visual,
+      fallbackFill: backgroundTheme.fallbackFill,
+      overlayFill: heroOverlayFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'image',
+      }),
+      leftShadeFill: heroLeftShadeFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'image',
+      }),
+      groupId,
+    }),
+    createTextElement({
+      left: 46,
+      top: 116,
+      width: 505,
+      height: 132,
+      html: `<p style="font-size:${titleFontSize}px;line-height:${Math.round(titleFontSize * 1.13)}px;color:${backgroundTheme.titleText};font-weight:870;">${renderClassicInlineHtml(args.title)}</p>`,
+      color: backgroundTheme.titleText,
+      groupId,
+      textType: 'itemTitle',
+    }),
+    createTextElement({
+      left: 48,
+      top: 262,
+      width: 485,
+      height: 82,
+      html: `<p style="font-size:17px;line-height:25px;color:${backgroundTheme.bodyText};font-weight:660;">${renderClassicInlineHtml(subtitle)}</p>`,
+      color: backgroundTheme.bodyText,
+      groupId,
+      textType: 'content',
+    }),
+    createLineElement({
+      start: [48, 104],
+      end: [162, 104],
+      color: backgroundTheme.titleText,
+      width: 2,
+      groupId,
+    }),
+    createLineElement({
+      start: [48, 334],
+      end: [130, 334],
+      color: backgroundTheme.divider,
+      width: 4,
+      groupId,
+    }),
+  ];
+
+  if (tag) {
+    elements.push(
+      createTextElement({
+        left: 720,
+        top: 58,
+        width: 150,
+        height: 44,
+        html: `<p style="font-size:9px;line-height:13px;color:${backgroundTheme.badgeText};text-align:center;font-weight:820;">${renderClassicInlineHtml(tag)}</p>`,
+        color: backgroundTheme.badgeText,
+        fill: backgroundTheme.badgeFill,
+        outlineColor: backgroundTheme.panelBorder,
+        groupId,
+        textType: 'notes',
+      }),
+    );
+  }
+
+  if (meta) {
+    elements.push(createHeroFooterText({ text: meta, color: backgroundTheme.footerText, groupId }));
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicCinematicTitleFrameTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const lines = meaningfulHeroTextLines({
+    blocks: args.blocks,
+    language: args.language,
+    maxItems: 3,
+  });
+  const eyebrow = isCompactHeroMeta(lines[1], args.language)
+    ? lines[1]
+    : isCompactHeroMeta(args.visual?.caption, args.language)
+      ? args.visual?.caption
+      : null;
+  const subtitle =
+    lines[0] ||
+    (args.language === 'en-US'
+      ? 'A cinematic reading of the core theme.'
+      : '把画面、人物和主题放回同一条叙事线。');
+  const dateLine = isCompactHeroMeta(lines[2], args.language) ? lines[2] : null;
+  const titleFontSize = args.title.replace(/\s+/g, '').length > 24 ? 31 : 38;
+  const backgroundTheme = resolveHeroBackgroundTheme({
+    visual: args.visual,
+    fallbackStyleId: 'cinematic-stage',
+  });
+  const groupId = createCardGroupId('classic_cinematic_hero');
+  const elements: PPTElement[] = [
+    ...createHeroBackgroundElements({
+      visual: args.visual,
+      fallbackFill: backgroundTheme.fallbackFill,
+      overlayFill: heroOverlayFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'cinematic',
+      }),
+      leftShadeFill: heroLeftShadeFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'cinematic',
+      }),
+      groupId,
+    }),
+    ...createCornerBracketElements({
+      inset: 38,
+      length: 70,
+      color: backgroundTheme.divider,
+      width: 2,
+      groupId,
+    }),
+    createTextElement({
+      left: 130,
+      top: eyebrow ? 255 : 226,
+      width: 740,
+      height: 86,
+      html: `<p style="font-size:${titleFontSize}px;line-height:${Math.round(titleFontSize * 1.14)}px;color:${backgroundTheme.titleText};text-align:center;font-weight:850;">${renderClassicInlineHtml(args.title)}</p>`,
+      color: backgroundTheme.titleText,
+      groupId,
+      textType: 'itemTitle',
+    }),
+    createTextElement({
+      left: 218,
+      top: eyebrow ? 350 : 326,
+      width: 564,
+      height: 64,
+      html: `<p style="font-size:15px;line-height:22px;color:${backgroundTheme.bodyText};text-align:center;font-weight:640;">${renderClassicInlineHtml(subtitle)}</p>`,
+      color: backgroundTheme.bodyText,
+      groupId,
+      textType: 'content',
+    }),
+  ];
+
+  if (eyebrow) {
+    elements.push(
+      createTextElement({
+        left: 210,
+        top: 218,
+        width: 580,
+        height: 56,
+        html: `<p style="font-size:14px;line-height:18px;color:${backgroundTheme.mutedText};text-align:center;font-weight:650;">${renderClassicInlineHtml(eyebrow)}</p>`,
+        color: backgroundTheme.mutedText,
+        groupId,
+        textType: 'notes',
+      }),
+    );
+  }
+
+  if (dateLine) {
+    elements.push(
+      createTextElement({
+        left: 365,
+        top: 404,
+        width: 270,
+        height: 56,
+        html: `<p style="font-size:11px;line-height:15px;color:${backgroundTheme.footerText};text-align:center;font-weight:650;">${renderClassicInlineHtml(dateLine)}</p>`,
+        color: backgroundTheme.footerText,
+        groupId,
+        textType: 'footer',
+      }),
+    );
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicTechHeroTitleTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const lines = meaningfulHeroTextLines({
+    blocks: args.blocks,
+    language: args.language,
+    maxItems: 3,
+  });
+  const subtitle =
+    lines[0] ||
+    (args.language === 'en-US'
+      ? 'Complete guide to pricing, features and best value'
+      : '用一页建立产品、价格和价值判断的主线');
+  const edition = isCompactHeroMeta(lines[1], args.language) ? lines[1] : null;
+  const footer = isCompactHeroMeta(lines[2], args.language)
+    ? lines[2]
+    : isCompactHeroMeta(args.visual?.caption, args.language)
+      ? args.visual?.caption
+      : null;
+  const titleFontSize = args.title.replace(/\s+/g, '').length > 34 ? 34 : 42;
+  const backgroundTheme = resolveHeroBackgroundTheme({
+    visual: args.visual,
+    fallbackStyleId: 'product-launch-dark',
+  });
+  const groupId = createCardGroupId('classic_tech_hero');
+  const elements: PPTElement[] = [
+    ...createHeroBackgroundElements({
+      visual: args.visual,
+      fallbackFill: backgroundTheme.fallbackFill,
+      overlayFill: heroOverlayFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'tech',
+      }),
+      leftShadeFill: heroLeftShadeFillForVisual({
+        theme: backgroundTheme,
+        visual: args.visual,
+        template: 'tech',
+      }),
+      groupId,
+    }),
+    createTextElement({
+      left: 120,
+      top: 218,
+      width: 760,
+      height: 136,
+      html: `<p style="font-size:${titleFontSize}px;line-height:${Math.round(titleFontSize * 1.15)}px;color:${backgroundTheme.titleText};text-align:center;font-weight:860;">${renderClassicInlineHtml(args.title)}</p>`,
+      color: backgroundTheme.titleText,
+      groupId,
+      textType: 'itemTitle',
+    }),
+    createTextElement({
+      left: 235,
+      top: 300,
+      width: 530,
+      height: 86,
+      html: `<p style="font-size:14px;line-height:20px;color:${backgroundTheme.bodyText};text-align:center;font-weight:620;">${renderClassicInlineHtml(subtitle)}</p>`,
+      color: backgroundTheme.bodyText,
+      groupId,
+      textType: 'content',
+    }),
+  ];
+
+  if (edition) {
+    elements.push(
+      createTextElement({
+        left: 420,
+        top: 358,
+        width: 160,
+        height: 90,
+        html: `<p style="font-size:10px;line-height:14px;color:${backgroundTheme.accent};text-align:center;font-weight:820;">${renderClassicInlineHtml(edition)}</p>`,
+        color: backgroundTheme.accent,
+        groupId,
+        textType: 'notes',
+      }),
+      createLineElement({
+        start: [426, 394],
+        end: [574, 394],
+        color: backgroundTheme.divider,
+        width: 2,
+        groupId,
+      }),
+    );
+  }
+
+  if (footer) {
+    elements.push(
+      createHeroFooterText({ text: footer, color: backgroundTheme.footerText, groupId }),
+    );
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
 function findFirstBlock<T extends NotebookContentBlock['type']>(
   blocks: NotebookContentBlock[],
   type: T,
@@ -1646,6 +2878,23 @@ function findFirstBlock<T extends NotebookContentBlock['type']>(
   return blocks.find(
     (block): block is Extract<NotebookContentBlock, { type: T }> => block.type === type,
   );
+}
+
+function renderClassicInlineCodeHtml(text: string): string {
+  const segments = text.split(/(`[^`]+`)/g);
+  return segments
+    .map((segment) => {
+      if (segment.startsWith('`') && segment.endsWith('`') && segment.length > 2) {
+        return `<span style="display:inline-block;padding:1px 7px;border-radius:7px;background:#eef4fb;border:1px solid #d8e4f2;color:${CLASSIC_BUSINESS.titleText};font-family:Menlo, Monaco, Consolas, monospace;font-weight:760;">${escapeHtml(segment.slice(1, -1))}</span>`;
+      }
+      return /[$\\]/.test(segment) ? renderInlineLatexToHtml(segment) : escapeHtml(segment);
+    })
+    .join('');
+}
+
+function renderClassicInlineHtml(text: string): string {
+  if (text.includes('`')) return renderClassicInlineCodeHtml(text);
+  return /[$\\]/.test(text) ? renderInlineLatexToHtml(text) : escapeHtml(text);
 }
 
 function createTableCards(args: {
@@ -1663,10 +2912,18 @@ function createTableCards(args: {
     1,
   );
   const cellGap = 4;
-  const cellWidth = (args.width - Math.max(0, colCount - 1) * cellGap) / colCount;
+  const availableWidth = args.width - Math.max(0, colCount - 1) * cellGap;
+  const colWeights =
+    colCount === 5 ? [1.05, 0.95, 1.65, 1.05, 1.15] : Array.from({ length: colCount }, () => 1);
+  const weightSum = colWeights.reduce((sum, weight) => sum + weight, 0);
+  const cellWidths = colWeights.map((weight) => (availableWidth * weight) / weightSum);
+  const cellLefts = cellWidths.reduce<number[]>((offsets, width, index) => {
+    offsets.push(index === 0 ? 0 : offsets[index - 1] + cellWidths[index - 1] + cellGap);
+    return offsets;
+  }, []);
   const cellHeight = Math.min(
     58,
-    (args.height - Math.max(0, rowCount - 1) * cellGap) / Math.max(1, rowCount),
+    Math.max(40, (args.height - Math.max(0, rowCount - 1) * cellGap) / Math.max(1, rowCount)),
   );
   const elements: PPTElement[] = [];
   const rows = args.block.headers?.length
@@ -1679,11 +2936,11 @@ function createTableCards(args: {
         const isHeader = Boolean(args.block.headers?.length && rowIndex === 0);
         elements.push(
           createTextElement({
-            left: args.left + colIndex * (cellWidth + cellGap),
+            left: args.left + (cellLefts[colIndex] || 0),
             top: args.top + rowIndex * (cellHeight + cellGap),
-            width: cellWidth,
+            width: cellWidths[colIndex] || availableWidth / colCount,
             height: cellHeight,
-            html: `<p style="font-size:${isHeader ? 13 : 12}px;line-height:17px;color:${isHeader ? args.tokens.titleAccent : ACADEMY_PAPER.bodyText};"><strong>${isHeader ? renderInlineLatexToHtml(cell) : ''}</strong>${isHeader ? '' : renderInlineLatexToHtml(cell)}</p>`,
+            html: `<p style="font-size:${isHeader ? 10 : 9}px;line-height:${isHeader ? 13 : 11}px;color:${isHeader ? args.tokens.titleAccent : ACADEMY_PAPER.bodyText};"><strong>${isHeader ? renderClassicInlineHtml(cell) : ''}</strong>${isHeader ? '' : renderClassicInlineHtml(cell)}</p>`,
             color: isHeader ? args.tokens.titleAccent : ACADEMY_PAPER.bodyText,
             fill: isHeader ? 'rgba(244,247,255,0.78)' : ACADEMY_PAPER.cardFill,
             outlineColor: isHeader ? ACADEMY_PAPER.blueBorder : ACADEMY_PAPER.border,
@@ -1693,6 +2950,2090 @@ function createTableCards(args: {
       });
     });
   return elements;
+}
+
+function createClassicLectureSlide(args: {
+  elements: PPTElement[];
+  tokens: ReturnType<typeof getProfileTokens>;
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const elements = retintClassicElements(args.elements, args.style);
+  return {
+    id: `slide_${nanoid(8)}`,
+    viewportSize: CANVAS_WIDTH,
+    viewportRatio: CANVAS_HEIGHT / CANVAS_WIDTH,
+    theme: {
+      backgroundColor: args.style.background,
+      themeColors: [
+        args.style.blue,
+        args.style.red,
+        args.style.yellow,
+        args.style.green,
+        args.style.titleText,
+        ...args.tokens.themeColors,
+      ],
+      fontColor: args.style.titleText,
+      fontName: 'Microsoft YaHei',
+    },
+    elements,
+    background: {
+      type: 'solid',
+      color: args.style.background,
+      respectProfileStyle: false,
+    },
+    type: 'content',
+  };
+}
+
+function createClassicTopBarElements(): PPTElement[] {
+  const colors = [
+    CLASSIC_BUSINESS.blue,
+    CLASSIC_BUSINESS.red,
+    CLASSIC_BUSINESS.yellow,
+    CLASSIC_BUSINESS.green,
+  ];
+  const segmentWidth = CANVAS_WIDTH / colors.length;
+  return colors.map((color, index) =>
+    createRectShape({
+      left: index * segmentWidth,
+      top: 0,
+      width: segmentWidth,
+      height: 5,
+      fill: color,
+    }),
+  );
+}
+
+function createClassicSegmentedUnderline(args: { left: number; top: number }): PPTElement[] {
+  const segments = [
+    { width: 132, color: CLASSIC_BUSINESS.blue },
+    { width: 54, color: CLASSIC_BUSINESS.red },
+    { width: 54, color: CLASSIC_BUSINESS.yellow },
+    { width: 104, color: CLASSIC_BUSINESS.green },
+  ];
+  let offset = 0;
+  return segments.map((segment) => {
+    const element = createRectShape({
+      left: args.left + offset,
+      top: args.top,
+      width: segment.width,
+      height: 4,
+      fill: segment.color,
+    });
+    offset += segment.width + 6;
+    return element;
+  });
+}
+
+function createClassicFooterElements(): PPTElement[] {
+  const y = 540;
+  const dotColors = [
+    CLASSIC_BUSINESS.blue,
+    CLASSIC_BUSINESS.red,
+    CLASSIC_BUSINESS.yellow,
+    CLASSIC_BUSINESS.green,
+    CLASSIC_BUSINESS.blue,
+  ];
+  return [
+    createLineElement({
+      start: [CONTENT_LEFT, 528],
+      end: [CONTENT_LEFT + CONTENT_WIDTH, 528],
+      color: CLASSIC_BUSINESS.subtleBorder,
+      width: 1,
+    }),
+    ...dotColors.map((color, index) =>
+      createCircleShape({
+        left: CANVAS_WIDTH / 2 - 42 + index * 21,
+        top: y,
+        size: 8,
+        fill: color,
+      }),
+    ),
+  ];
+}
+
+function createClassicTitleElements(args: {
+  title: string;
+  tokens: ReturnType<typeof getProfileTokens>;
+  language: 'zh-CN' | 'en-US';
+  continuation?: NotebookContentDocument['continuation'];
+}): { elements: PPTElement[]; bodyTop: number } {
+  const normalizedTitleLength = args.title.replace(/\s+/g, '').length;
+  const fontSize =
+    normalizedTitleLength > 46
+      ? 29
+      : normalizedTitleLength > 34
+        ? 32
+        : normalizedTitleLength > 24
+          ? 36
+          : 40;
+  const titleHeight = Math.max(64, Math.ceil(fontSize * 1.1 + 24));
+  const titleTop = 30;
+  const ruleTop = titleTop + titleHeight + 8;
+  const elements: PPTElement[] = [
+    ...createClassicTopBarElements(),
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: titleTop,
+      width: args.continuation ? CONTENT_WIDTH - 170 : CONTENT_WIDTH,
+      height: titleHeight,
+      html: `<p style="font-size:${fontSize}px;line-height:${Math.round(fontSize * 1.1)}px;color:${CLASSIC_BUSINESS.titleText};font-weight:820;">${renderClassicInlineHtml(args.title)}</p>`,
+      color: CLASSIC_BUSINESS.titleText,
+      textType: 'header',
+    }),
+    ...createClassicSegmentedUnderline({ left: CONTENT_LEFT, top: ruleTop + 2 }),
+    ...createClassicFooterElements(),
+  ];
+
+  if (args.continuation) {
+    const chipLabel =
+      args.language === 'en-US'
+        ? `Part ${args.continuation.partNumber} of ${args.continuation.totalParts}`
+        : `续 ${args.continuation.partNumber}/${args.continuation.totalParts}`;
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT + CONTENT_WIDTH - 148,
+        top: titleTop + 4,
+        width: 136,
+        height: 40,
+        html: `<p style="font-size:12px;color:${CLASSIC_BUSINESS.blue};text-align:center;font-weight:760;">${escapeHtml(chipLabel)}</p>`,
+        color: CLASSIC_BUSINESS.blue,
+        fill: '#f8fafc',
+        outlineColor: '#dbe4f0',
+        textType: 'notes',
+      }),
+    );
+  }
+
+  return { elements, bodyTop: ruleTop + 24 };
+}
+
+function createClassicPanel(args: {
+  title: string;
+  lines: string[];
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  tone: ContentCardTone;
+  titleColor?: string;
+  bodyFontSize?: number;
+  numbered?: boolean;
+  showMarkers?: boolean;
+  compactTitle?: boolean;
+  maxLines?: number;
+  maxCharsPerLine?: number;
+}): PPTElement {
+  const bodyFontSize = args.bodyFontSize ?? 16;
+  const bodyLineHeight = Math.round(bodyFontSize * 1.36);
+  const titleFontSize = args.compactTitle ? 13 : 20;
+  const titleLineHeight = args.compactTitle ? 18 : 24;
+  const titleMarginBottom = args.compactTitle ? 5 : 10;
+  const titleHtml = args.title
+    ? `<p style="margin:0 0 ${titleMarginBottom}px 0;font-size:${titleFontSize}px;line-height:${titleLineHeight}px;color:${args.titleColor || args.tone.accent};font-weight:780;">${renderClassicInlineHtml(args.title)}</p>`
+    : '';
+  const titleSpace = args.title ? (args.compactTitle ? 26 : 38) : 8;
+  const heightBasedLimit = Math.max(
+    1,
+    Math.floor((args.height - titleSpace - 18) / bodyLineHeight),
+  );
+  const maxLines = Math.min(args.maxLines ?? 5, heightBasedLimit);
+  const rawLines = args.lines.map((line) => line.trim()).filter(Boolean);
+  const lines = args.maxCharsPerLine
+    ? splitClassicCardBodyLines({
+        lines: rawLines,
+        maxLines,
+        maxCharsPerLine: args.maxCharsPerLine,
+      })
+    : rawLines.slice(0, maxLines);
+  const bodyHtml = lines
+    .map((line, index) => {
+      const marker =
+        args.showMarkers === false
+          ? ''
+          : args.numbered
+            ? `<span style="color:${args.tone.accent};font-weight:800;">${index + 1}.</span> `
+            : lines.length > 1
+              ? `<span style="color:${args.tone.accent};font-weight:800;">•</span> `
+              : '';
+      return `<p style="margin:0 0 5px 0;font-size:${bodyFontSize}px;line-height:${bodyLineHeight}px;color:${CLASSIC_BUSINESS.bodyText};">${marker}${renderClassicInlineHtml(line)}</p>`;
+    })
+    .join('');
+
+  return createTextElement({
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    html: `${titleHtml}${bodyHtml}`,
+    color: CLASSIC_BUSINESS.bodyText,
+    fill: args.tone.fill,
+    outlineColor: args.tone.border,
+    shadow: {
+      h: 0,
+      v: 6,
+      blur: 18,
+      color: CLASSIC_BUSINESS.shadow,
+    },
+    textType: 'item',
+  });
+}
+
+function getClassicTextBlocks(blocks: NotebookContentBlock[]): NotebookContentBlock[] {
+  return blocks.filter(
+    (block) =>
+      block.type !== 'heading' &&
+      block.type !== 'process_flow' &&
+      block.type !== 'layout_cards' &&
+      block.type !== 'table' &&
+      block.type !== 'visual',
+  );
+}
+
+function firstClassicLines(
+  language: 'zh-CN' | 'en-US',
+  blocks: NotebookContentBlock[],
+  maxItems: number,
+): string[] {
+  return uniqueTeachingLines(
+    blocks.flatMap((block) => blockSummaryLines(language, block)),
+    maxItems,
+  );
+}
+
+function createFlowArrowElements(args: {
+  startX: number;
+  endX: number;
+  y: number;
+  color: string;
+  groupId: string;
+}): PPTElement[] {
+  const arrowStart = Math.min(args.startX, args.endX - 16);
+  const arrowEnd = Math.max(args.endX, arrowStart + 16);
+  return [
+    createLineElement({
+      start: [arrowStart, args.y],
+      end: [arrowEnd, args.y],
+      color: args.color,
+      width: 2,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [arrowEnd - 9, args.y - 6],
+      end: [arrowEnd, args.y],
+      color: args.color,
+      width: 2,
+      groupId: args.groupId,
+    }),
+    createLineElement({
+      start: [arrowEnd - 9, args.y + 6],
+      end: [arrowEnd, args.y],
+      color: args.color,
+      width: 2,
+      groupId: args.groupId,
+    }),
+  ];
+}
+
+function looksLikeCodeOrDataLiteral(text: string): boolean {
+  return (
+    /`[^`]+`/.test(text) ||
+    /[\[\]{}]/.test(text) ||
+    /\b(?:Tweet\(\)|list|dict|userid|created_at|content|likes|date|self|__init__)\b/.test(text) ||
+    /[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*/.test(text)
+  );
+}
+
+function stripInlineCodeDelimiters(text: string): string {
+  return text.replace(/`([^`]+)`/g, '$1');
+}
+
+function wrapDataLiteralForTable(text: string, firstColumn: boolean): string {
+  if (!firstColumn) return text;
+  if (text.length <= 48) return text;
+  return text
+    .replace(/,\s*(?='[^']{10,}'|"[^"]{10,}"|[A-Za-z_])/g, ',\n')
+    .replace(/,\s*(?=\d{4}-\d{2}-\d{2})/g, ',\n')
+    .replace(/,\s*(?=\{?'?[A-Za-z_][A-Za-z0-9_]*'?\s*:)/g, ',\n');
+}
+
+function formatClassicTableCellText(
+  text: string,
+  options: { codeLike: boolean; firstColumn: boolean },
+): string {
+  const withoutCodeMarks = stripInlineCodeDelimiters(text).trim();
+  if (!options.codeLike) return withoutCodeMarks;
+  return wrapDataLiteralForTable(withoutCodeMarks, options.firstColumn);
+}
+
+function createClassicBusinessTable(args: {
+  block: Extract<NotebookContentBlock, { type: 'table' }>;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  fillHeight?: boolean;
+  representationTable?: boolean;
+  style?: ClassicDeckStylePreset;
+}): PPTElement[] {
+  const headers = args.block.headers?.length ? args.block.headers : undefined;
+  const bodyRows = args.block.rows.slice(0, 5);
+  const visibleRows = headers ? [headers, ...bodyRows] : bodyRows;
+  if (visibleRows.length === 0) return [];
+
+  const colCount = Math.max(...visibleRows.map((row) => row.length), 1);
+  const defaultWeights = Array.from({ length: colCount }, () => 1);
+  const firstColumnLooksLikeRepresentation = visibleRows
+    .slice(headers ? 1 : 0)
+    .some((row) => looksLikeCodeOrDataLiteral(row[0] || ''));
+  const isRepresentationTable =
+    args.representationTable ||
+    firstColumnLooksLikeRepresentation ||
+    headers?.[0]?.match(/表示|representation|object|form/i);
+  const weights =
+    isRepresentationTable && colCount === 3
+      ? [2.05, 1.1, 1.25]
+      : isRepresentationTable && colCount === 4
+        ? [1.7, 1.05, 1.15, 1.15]
+        : colCount === 5
+          ? [0.92, 0.95, 1.48, 0.95, 1.1]
+          : colCount === 4
+            ? [1.05, 1.15, 1.45, 1.25]
+            : defaultWeights;
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const colWidths = weights.map((weight) => weight / weightSum);
+
+  const groupId = createCardGroupId('classic_business_table');
+  const elements: PPTElement[] = [];
+  const style = args.style || CLASSIC_DECK_STYLES.classic_business;
+  if (args.block.caption) {
+    elements.push(
+      createTextElement({
+        left: args.left,
+        top: args.top - 24,
+        width: args.width,
+        height: 20,
+        groupId,
+        html: `<p style="font-size:13px;line-height:17px;color:${style.mutedText};font-weight:620;">${renderClassicInlineHtml(args.block.caption)}</p>`,
+        color: style.mutedText,
+        textType: 'notes',
+      }),
+    );
+  }
+
+  const makeCell = (text: string, rowIndex: number, colIndex: number): TableCell => {
+    const isHeader = Boolean(headers && rowIndex === 0);
+    const isFirstColumn = colIndex === 0 && !isHeader;
+    const codeLikeCell = !isHeader && looksLikeCodeOrDataLiteral(text);
+    const cellText = formatClassicTableCellText(text, {
+      codeLike: codeLikeCell,
+      firstColumn: colIndex === 0,
+    });
+    return {
+      id: `cell_${nanoid(8)}`,
+      colspan: 1,
+      rowspan: 1,
+      text: cellText,
+      style: {
+        bold: isHeader || isFirstColumn,
+        color: isHeader ? style.titleText : isFirstColumn ? style.blue : style.bodyText,
+        backcolor: isHeader
+          ? style.tableHeaderFill
+          : rowIndex % 2 === 0
+            ? style.tableFill
+            : style.tableStripeFill,
+        fontsize: isHeader
+          ? '12px'
+          : codeLikeCell && colIndex === 0
+            ? '8px'
+            : codeLikeCell
+              ? '9px'
+              : '11px',
+        fontname: codeLikeCell ? 'Menlo, Monaco, Consolas, monospace' : 'Microsoft YaHei',
+      },
+    };
+  };
+  const data = visibleRows.map((row, rowIndex) =>
+    Array.from({ length: colCount }, (_, colIndex) =>
+      makeCell(row[colIndex] || '', rowIndex, colIndex),
+    ),
+  );
+  const safeAvailableHeight = args.fillHeight
+    ? Math.max(96, Math.min(args.height, CONTENT_BOTTOM - args.top - 12))
+    : args.height;
+  const naturalTableHeight = Math.max(
+    154,
+    visibleRows.length * (isRepresentationTable ? 42 : 34) + 12,
+  );
+  const tableHeight = args.fillHeight
+    ? Math.max(118, safeAvailableHeight)
+    : Math.min(safeAvailableHeight, naturalTableHeight);
+  const cellMinHeight = args.fillHeight
+    ? Math.max(32, Math.floor((tableHeight - 8) / visibleRows.length))
+    : isRepresentationTable
+      ? 38
+      : 32;
+  const table: PPTTableElement = {
+    id: `table_${nanoid(8)}`,
+    type: 'table',
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: tableHeight,
+    rotate: 0,
+    groupId,
+    outline: { color: style.subtleBorder, width: 1, style: 'solid' },
+    data,
+    theme: {
+      color: style.blue,
+      rowHeader: Boolean(headers),
+      rowFooter: false,
+      colHeader: false,
+      colFooter: false,
+    },
+    colWidths,
+    cellMinHeight,
+  };
+  elements.push(table);
+
+  return elements;
+}
+
+function renderClassicFlowStrip(args: {
+  flow: ProcessFlowBlock;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  cardPalettes: readonly ContentCardTone[];
+}): PPTElement[] {
+  const steps = args.flow.steps.slice(0, 4);
+  if (steps.length === 0) return [];
+  const groupId = createCardGroupId('classic_flow');
+  const gap = steps.length > 1 ? 22 : 0;
+  const cardWidth = (args.width - gap * Math.max(0, steps.length - 1)) / steps.length;
+  const tones: ContentCardTone[] = [
+    { fill: '#dbeafe', border: '#bfdbfe', accent: CLASSIC_BUSINESS.blue },
+    { fill: '#dcfce7', border: '#bbf7d0', accent: CLASSIC_BUSINESS.green },
+    { fill: '#fef3c7', border: '#fde68a', accent: '#a16207' },
+    { fill: '#fee2e2', border: '#fecaca', accent: CLASSIC_BUSINESS.red },
+  ];
+  const elements: PPTElement[] = [];
+
+  steps.forEach((step, index) => {
+    const tone = tones[index % tones.length] || args.cardPalettes[index % args.cardPalettes.length];
+    const left = args.left + index * (cardWidth + gap);
+    const title = compactClassicTextLine(step.title, 22);
+    const detail = compactClassicTextLine(step.detail, 42);
+    elements.push(
+      createTextElement({
+        left,
+        top: args.top,
+        width: cardWidth,
+        height: args.height,
+        groupId,
+        html: `<p style="margin:0 0 4px 0;font-size:14px;line-height:17px;color:${tone.accent};font-weight:820;">${renderClassicInlineHtml(title)}</p><p style="margin:0;font-size:11px;line-height:14px;color:${CLASSIC_BUSINESS.bodyText};">${renderClassicInlineHtml(detail)}</p>`,
+        color: CLASSIC_BUSINESS.bodyText,
+        fill: tone.fill,
+        outlineColor: tone.border,
+        shadow: {
+          h: 0,
+          v: 5,
+          blur: 14,
+          color: CLASSIC_BUSINESS.shadow,
+        },
+        textType: 'content',
+      }),
+    );
+    if (index < steps.length - 1) {
+      elements.push(
+        ...createFlowArrowElements({
+          startX: left + cardWidth + 5,
+          endX: left + cardWidth + gap - 6,
+          y: args.top + args.height / 2,
+          color: '#6b7280',
+          groupId,
+        }),
+      );
+    }
+  });
+
+  return elements;
+}
+
+function layoutCardsToBlocks(block: LayoutCardsBlock): NotebookContentBlock[] {
+  return block.items.map((item) => ({
+    type: 'paragraph',
+    cardTitle: item.title,
+    text: item.text,
+  }));
+}
+
+function renderClassicProcessStepsTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const flowBlocks = args.blocks.filter(
+    (block): block is ProcessFlowBlock => block.type === 'process_flow',
+  );
+  const flow =
+    flowBlocks.length > 0
+      ? {
+          ...flowBlocks[0],
+          context: flowBlocks.flatMap((block) => block.context || []),
+          steps: flowBlocks.flatMap((block) => block.steps || []),
+        }
+      : buildFlowPatternBlock({
+          language: args.language,
+          orientation: 'vertical',
+          blocks: getClassicTextBlocks(args.blocks),
+        });
+  const rendered = renderProcessFlowBlock({
+    block: {
+      ...flow,
+      orientation: 'horizontal',
+      steps: flow.steps.slice(0, 5),
+    },
+    top: titleResult.bodyTop,
+    language: args.language,
+    titleAccent: args.style.blue,
+    cardPalettes: args.cardPalettes,
+  });
+
+  return createClassicLectureSlide({
+    elements: [...titleResult.elements, ...rendered.elements],
+    tokens: args.tokens,
+    style: args.style,
+  });
+}
+
+function compactClassicComparisonPhrase(line: string, maxChars: number): string {
+  const normalized = line.replace(/\s+/g, ' ').trim();
+  if (classicProtectedVisibleLength(normalized) <= maxChars) return normalized;
+  if (/\$[^$]+\$|[∈∃∀⊆⊇×→←↔]|\\(?:in|subset|supset|forall|exists|to|mid)\b/.test(normalized)) {
+    return normalized;
+  }
+  const phrases = normalized
+    .split(/[。；;，,]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const firstFit = phrases.find((part) => classicProtectedVisibleLength(part) <= maxChars);
+  if (firstFit) return firstFit;
+  return normalized;
+}
+
+function renderClassicComparisonMatrixTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const tableBlock = findFirstBlock(args.blocks, 'table');
+  const callout = findFirstBlock(args.blocks, 'callout');
+  const isMathComparison =
+    args.document.profile === 'math' || args.document.disciplineStyle === 'math';
+  const tableRows = tableBlock?.rows.slice(0, 3) || [];
+  const optionNames = tableRows.map((row) => row[0]).filter(Boolean);
+  const recommendationLines = optionNames
+    .slice(0, 3)
+    .map((option) => compactClassicComparisonPhrase(option, args.language === 'en-US' ? 42 : 24))
+    .filter(Boolean);
+  const subtitle =
+    isMathComparison && args.language === 'zh-CN'
+      ? '把集合语句翻译成可证明的条件'
+      : isMathComparison
+        ? 'Translate each set statement into a provable condition.'
+        : args.language === 'en-US'
+          ? 'Compare the key objects across the same criteria.'
+          : '按同一组维度做对照判断';
+  const ruleText = callout
+    ? `${callout.title || (args.language === 'en-US' ? 'Decision rule' : '选择规则')}：${compactClassicComparisonPhrase(
+        callout.text,
+        args.language === 'en-US' ? 132 : 76,
+      )}`
+    : args.language === 'en-US'
+      ? 'Reading rule: compare one criterion at a time before drawing a conclusion.'
+      : '阅读规则：先逐项比较同一维度，再回到结论。';
+  const mainTop = 178;
+  const panelLeft = CONTENT_LEFT;
+  const panelWidth = isMathComparison ? 214 : 250;
+  const panelHeight = 286;
+  const tableLeft = panelLeft + panelWidth + 22;
+  const tableWidth = CONTENT_LEFT + CONTENT_WIDTH - tableLeft;
+  const ruleTop = 480;
+
+  const elements: PPTElement[] = [
+    createRectShape({
+      left: CONTENT_LEFT,
+      top: 38,
+      width: 42,
+      height: 4,
+      fill: args.style.blue,
+    }),
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: 44,
+      width: CONTENT_WIDTH,
+      height: 74,
+      html: `<p style="margin:0;font-size:24px;line-height:30px;color:${args.style.titleText};font-weight:840;">${renderClassicInlineHtml(
+        compactClassicTextLine(args.title, args.language === 'en-US' ? 86 : 34),
+      )}</p>`,
+      color: args.style.titleText,
+      textType: 'title',
+    }),
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: 122,
+      width: CONTENT_WIDTH,
+      height: 50,
+      html: `<p style="margin:0;font-size:12px;line-height:17px;color:${args.style.mutedText};font-weight:620;">${renderClassicInlineHtml(subtitle)}</p>`,
+      color: args.style.mutedText,
+      textType: 'subtitle',
+    }),
+    createRectShape({
+      left: panelLeft,
+      top: mainTop,
+      width: panelWidth,
+      height: panelHeight,
+      fill: '#ffffff',
+      outlineColor: args.style.subtleBorder,
+      shadow: { h: 0, v: 8, blur: 18, color: args.style.shadow },
+      text: createShapeText({
+        html: `<p style="margin:0 0 4px 0;font-size:15px;line-height:19px;color:${args.style.titleText};font-weight:840;">${renderClassicInlineHtml(
+          isMathComparison
+            ? args.language === 'en-US'
+              ? 'Translate first'
+              : '先翻译语句'
+            : args.language === 'en-US'
+              ? 'Compare Rows'
+              : '先看比较对象',
+        )}</p><p style="margin:0;font-size:10px;line-height:14px;color:${args.style.mutedText};font-weight:560;">${renderClassicInlineHtml(
+          isMathComparison
+            ? args.language === 'en-US'
+              ? 'Start each row from what must be proved.'
+              : '每一行都从“要证什么”开始。'
+            : args.language === 'en-US'
+              ? 'Read each row against the same criteria.'
+              : '对象、入口和用法分开看。',
+        )}</p>`,
+        color: args.style.titleText,
+        textType: 'content',
+        lineHeight: 1.18,
+        paragraphSpace: 0,
+        align: 'top',
+      }),
+    }),
+    createRectShape({
+      left: CONTENT_LEFT,
+      top: ruleTop,
+      width: CONTENT_WIDTH,
+      height: 58,
+      fill: args.style.titleText,
+      text: createShapeText({
+        html: `<p style="margin:0;font-size:12px;line-height:16px;color:#ffffff;font-weight:660;">${renderClassicInlineHtml(ruleText)}</p>`,
+        color: '#ffffff',
+        textType: 'notes',
+        lineHeight: 1.15,
+        paragraphSpace: 0,
+        align: 'middle',
+      }),
+    }),
+  ];
+
+  const recommendationTones = [
+    { fill: args.style.panelFillBlue, accent: args.style.blue },
+    { fill: args.style.panelFillGreen, accent: args.style.green },
+    { fill: args.style.panelFillWarm, accent: args.style.yellow },
+  ];
+  recommendationLines.slice(0, 3).forEach((line, index) => {
+    const tone = recommendationTones[index] || recommendationTones[0];
+    const top = mainTop + 72 + index * 68;
+    elements.push(
+      createRectShape({
+        left: panelLeft + 18,
+        top,
+        width: panelWidth - 36,
+        height: 58,
+        fill: tone.fill,
+        outlineColor: args.style.subtleBorder,
+        text: createShapeText({
+          html: `<p style="margin:0 0 0 22px;font-size:12px;line-height:16px;color:${args.style.bodyText};font-weight:760;">${renderClassicInlineHtml(
+            line,
+          )}</p>`,
+          color: args.style.bodyText,
+          textType: 'content',
+          lineHeight: 1.18,
+          paragraphSpace: 0,
+          align: 'middle',
+        }),
+      }),
+      createRectShape({
+        left: panelLeft + 30,
+        top: top + 16,
+        width: 4,
+        height: 26,
+        fill: tone.accent,
+      }),
+    );
+  });
+
+  if (tableBlock) {
+    const rows = [tableBlock.headers || [], ...tableBlock.rows.slice(0, 3)].filter(
+      (row) => row.length > 0,
+    );
+    const colCount = Math.max(...rows.map((row) => row.length), 1);
+    const weights =
+      colCount === 5
+        ? [0.88, 0.78, 0.96, 1.14, 1.46]
+        : colCount === 4
+          ? isMathComparison
+            ? [1.06, 1.2, 1.02, 1.34]
+            : [0.98, 1.05, 1.18, 1.42]
+          : Array.from({ length: colCount }, () => 1);
+    const totalWeight = weights.slice(0, colCount).reduce((sum, weight) => sum + weight, 0);
+    const gap = 2;
+    const cellWidths = weights
+      .slice(0, colCount)
+      .map((weight) => (tableWidth - gap * (colCount - 1)) * (weight / totalWeight));
+    const tableTop = mainTop;
+    const headerHeight = 52;
+    const bodyRows = Math.max(1, rows.length - 1);
+    const rowHeight = Math.max(
+      68,
+      Math.floor((panelHeight - headerHeight - gap * (rows.length - 1)) / bodyRows),
+    );
+    rows.forEach((row, rowIndex) => {
+      let cellLeft = tableLeft;
+      row.slice(0, colCount).forEach((cell, colIndex) => {
+        const isHeader = rowIndex === 0 && Boolean(tableBlock.headers?.length);
+        const width = cellWidths[colIndex] || cellWidths[0] || CONTENT_WIDTH;
+        const height = isHeader ? headerHeight : rowHeight;
+        const top =
+          tableTop + (isHeader ? 0 : headerHeight + gap + (rowIndex - 1) * (rowHeight + gap));
+        const fontSize = isHeader
+          ? 10
+          : isMathComparison && colCount >= 4
+            ? 9
+            : colIndex === 0
+              ? 11
+              : 10;
+        const lineHeight = isHeader ? 14 : isMathComparison && colCount >= 4 ? 13 : 14;
+        const bodyFill =
+          colIndex === 0
+            ? args.style.panelFillBlue
+            : rowIndex % 2 === 0
+              ? args.style.tableStripeFill
+              : args.style.tableFill;
+        const cellText = compactClassicComparisonPhrase(
+          cell,
+          isMathComparison && colCount >= 4
+            ? isHeader || colIndex === 0
+              ? args.language === 'en-US'
+                ? 30
+                : 20
+              : colIndex === colCount - 1
+                ? args.language === 'en-US'
+                  ? 52
+                  : 28
+                : args.language === 'en-US'
+                  ? 40
+                  : 24
+            : isHeader || colIndex === 0
+              ? args.language === 'en-US'
+                ? 32
+                : 18
+              : colIndex === colCount - 1
+                ? args.language === 'en-US'
+                  ? 48
+                  : 28
+                : args.language === 'en-US'
+                  ? 34
+                  : 24,
+        );
+        const normalizedCell = cell.toLowerCase();
+        const positiveAccent =
+          colIndex > 0 &&
+          /(最高|最快|较低|可控|适合|清楚|best|fast|low|controlled|fit|clear)/i.test(
+            normalizedCell,
+          );
+        const cautionAccent =
+          colIndex > 0 &&
+          /(不稳定|取决|前期|高|临时|需要|成本|unstable|depends|high|temporary|needs?)/i.test(
+            normalizedCell,
+          );
+        const accentColor = positiveAccent
+          ? args.style.green
+          : cautionAccent
+            ? args.style.yellow
+            : undefined;
+        elements.push(
+          createRectShape({
+            left: cellLeft,
+            top,
+            width,
+            height,
+            fill: isHeader ? args.style.titleText : bodyFill,
+            outlineColor: args.style.subtleBorder,
+            text: createShapeText({
+              html: `<p style="margin:0${accentColor ? ' 0 0 8px' : ''};font-size:${fontSize}px;line-height:${lineHeight}px;color:${
+                isHeader ? '#ffffff' : colIndex === 0 ? args.style.blue : args.style.bodyText
+              };font-weight:${isHeader || colIndex === 0 ? 780 : 560};">${renderClassicInlineHtml(
+                cellText,
+              )}</p>`,
+              color: isHeader ? '#ffffff' : colIndex === 0 ? args.style.blue : args.style.bodyText,
+              textType: 'content',
+              lineHeight: 1.22,
+              paragraphSpace: 0,
+              align: 'middle',
+            }),
+          }),
+        );
+        if (accentColor) {
+          elements.push(
+            createRectShape({
+              left: cellLeft + 6,
+              top: top + 14,
+              width: 3,
+              height: Math.max(18, height - 28),
+              fill: accentColor,
+            }),
+          );
+        }
+        cellLeft += width + gap;
+      });
+    });
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicPipelineTableTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const flow = findFirstBlock(args.blocks, 'process_flow');
+  const tableBlock = findFirstBlock(args.blocks, 'table');
+  const leadLines = [
+    ...firstClassicLines(args.language, getClassicTextBlocks(args.blocks), 2),
+    ...(flow?.context || []).map((item) => item.text),
+  ].slice(0, 2);
+  const leadHeight = leadLines.length > 0 ? 42 : 0;
+  if (leadLines.length > 0) {
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top: titleResult.bodyTop,
+        width: CONTENT_WIDTH,
+        height: leadHeight,
+        html: leadLines
+          .map(
+            (line) =>
+              `<p style="font-size:14px;line-height:17px;color:${CLASSIC_BUSINESS.mutedText};">${renderClassicInlineHtml(line)}</p>`,
+          )
+          .join(''),
+        color: CLASSIC_BUSINESS.mutedText,
+        textType: 'content',
+      }),
+    );
+  }
+
+  const flowTop = titleResult.bodyTop + leadHeight + (leadHeight ? 6 : 0);
+  const flowHeight = 88;
+  if (flow) {
+    elements.push(
+      ...renderClassicFlowStrip({
+        flow: { ...flow, steps: flow.steps.slice(0, 4), orientation: 'horizontal' },
+        left: CONTENT_LEFT,
+        top: flowTop,
+        width: CONTENT_WIDTH,
+        height: flowHeight,
+        cardPalettes: args.cardPalettes,
+      }),
+    );
+  }
+
+  const tableTop = flow ? flowTop + flowHeight + 12 : flowTop;
+  const tableHeight = Math.max(118, CONTENT_BOTTOM - tableTop - 12);
+  if (tableBlock) {
+    elements.push(
+      ...createClassicBusinessTable({
+        block: tableBlock,
+        left: CONTENT_LEFT,
+        top: tableTop,
+        width: CONTENT_WIDTH,
+        height: tableHeight,
+        fillHeight: true,
+        representationTable: true,
+        style: args.style,
+      }),
+    );
+  } else if (flow?.summary) {
+    elements.push(
+      createClassicPanel({
+        title: args.language === 'en-US' ? 'Why It Matters' : '为什么重要',
+        lines: [flow.summary],
+        left: CONTENT_LEFT,
+        top: tableTop,
+        width: CONTENT_WIDTH,
+        height: tableHeight,
+        tone: {
+          fill: CLASSIC_BUSINESS.panelFillBlue,
+          border: '#bfdbfe',
+          accent: CLASSIC_BUSINESS.blue,
+        },
+        bodyFontSize: 16,
+      }),
+    );
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicVisualThreeStepsTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const textBlocks = getClassicTextBlocks(args.blocks);
+  const leadLines = firstClassicLines(args.language, textBlocks, 3);
+  const topHeight = 126;
+  const leftWidth = 420;
+  const rightLeft = CONTENT_LEFT + leftWidth + 34;
+  const rightWidth = CONTENT_WIDTH - leftWidth - 34;
+  elements.push(
+    createTextElement({
+      left: CONTENT_LEFT,
+      top: titleResult.bodyTop + 6,
+      width: leftWidth,
+      height: topHeight,
+      html: leadLines
+        .slice(0, 1)
+        .map((line) => compactClassicTextLine(line, args.language === 'en-US' ? 92 : 56))
+        .map((line, index) => {
+          const fontSize = 18;
+          const weight = 740;
+          return `<p style="font-size:${fontSize}px;line-height:${Math.round(fontSize * 1.38)}px;color:${index === 0 ? CLASSIC_BUSINESS.titleText : CLASSIC_BUSINESS.mutedText};font-weight:${weight};">${renderClassicInlineHtml(line)}</p>`;
+        })
+        .join(''),
+      color: CLASSIC_BUSINESS.titleText,
+      textType: 'subtitle',
+    }),
+  );
+  elements.push(
+    ...renderVisualPanel({
+      visual: args.visual,
+      blocks: args.blocks,
+      language: args.language,
+      left: rightLeft,
+      top: titleResult.bodyTop,
+      width: rightWidth,
+      height: topHeight,
+      tokens: args.tokens,
+    }),
+  );
+
+  const cardsBlock = findFirstBlock(args.blocks, 'layout_cards');
+  const flowBlock = findFirstBlock(args.blocks, 'process_flow');
+  const cardBlocks: NotebookContentBlock[] = cardsBlock
+    ? layoutCardsToBlocks(cardsBlock)
+    : flowBlock
+      ? flowBlock.steps.slice(0, 3).map((step) => ({
+          type: 'paragraph',
+          cardTitle: step.title,
+          text: step.detail,
+        }))
+      : textBlocks.slice(0, 3);
+  const cardTop = titleResult.bodyTop + topHeight + 18;
+  const cardGap = 26;
+  const cardWidth = (CONTENT_WIDTH - cardGap * 2) / 3;
+  const maxCardHeight = CONTENT_BOTTOM - cardTop - 10;
+  const bodyFontSize = 11;
+  const maxLines = 8;
+  const maxCharsPerLine = args.language === 'en-US' ? 48 : 21;
+  const estimatedCardHeight = Math.max(
+    142,
+    ...cardBlocks.slice(0, 3).map((block) =>
+      estimateClassicCardContentHeight({
+        block,
+        language: args.language,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    ),
+  );
+  const cardHeight = Math.min(maxCardHeight, Math.min(212, estimatedCardHeight + 16));
+  const cardTopAdjusted = cardTop + Math.max(0, (maxCardHeight - cardHeight) * 0.28);
+  const cardTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.red },
+  ];
+  cardBlocks.slice(0, 3).forEach((block, index) => {
+    const tone = cardTones[index % cardTones.length];
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: CONTENT_LEFT + index * (cardWidth + cardGap),
+        top: cardTopAdjusted,
+        width: cardWidth,
+        height: cardHeight,
+        tone,
+        style: args.style,
+        titleColor: tone.accent,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    );
+  });
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function blockToClassicPanelData(
+  language: 'zh-CN' | 'en-US',
+  block: NotebookContentBlock | undefined,
+  fallbackTitle: string,
+): { title: string; lines: string[] } {
+  if (!block) return { title: fallbackTitle, lines: [] };
+  return {
+    title: blockToGridHeading(language, block).trim() || fallbackTitle,
+    lines: blockSummaryLines(language, block).slice(0, 5),
+  };
+}
+
+function renderClassicTwoByOneSummaryTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const textBlocks = getClassicTextBlocks(args.blocks);
+  const callouts = args.blocks.filter(
+    (block): block is Extract<NotebookContentBlock, { type: 'callout' }> =>
+      block.type === 'callout',
+  );
+  const panelBlocks =
+    textBlocks.length >= 3
+      ? textBlocks.slice(0, 3)
+      : [
+          ...textBlocks,
+          ...callouts.filter((block) => !textBlocks.includes(block)),
+          ...args.blocks.filter((block) => !textBlocks.includes(block) && block.type !== 'visual'),
+        ].slice(0, 3);
+  const left = blockToClassicPanelData(
+    args.language,
+    panelBlocks[0],
+    args.language === 'en-US' ? 'Main Contribution' : '主要贡献',
+  );
+  const right = blockToClassicPanelData(
+    args.language,
+    panelBlocks[1],
+    args.language === 'en-US' ? 'Key Strength' : '关键优势',
+  );
+  const bottom = blockToClassicPanelData(
+    args.language,
+    panelBlocks[2],
+    args.language === 'en-US' ? 'Limitations / Next Steps' : '限制与下一步',
+  );
+  const top = titleResult.bodyTop;
+  const topHeight = 214;
+  const columnGap = 16;
+  const columnWidth = (CONTENT_WIDTH - columnGap) / 2;
+  const bottomTop = top + topHeight + 14;
+  const bottomHeight = 514 - bottomTop;
+  elements.push(
+    createClassicPanel({
+      title: left.title,
+      lines: left.lines,
+      left: CONTENT_LEFT,
+      top,
+      width: columnWidth,
+      height: topHeight,
+      tone: {
+        fill: CLASSIC_BUSINESS.panelFillBlue,
+        border: '#bfdbfe',
+        accent: CLASSIC_BUSINESS.blue,
+      },
+      titleColor: CLASSIC_BUSINESS.blue,
+      bodyFontSize: 16,
+      maxLines: 4,
+    }),
+    createClassicPanel({
+      title: right.title,
+      lines: right.lines,
+      left: CONTENT_LEFT + columnWidth + columnGap,
+      top,
+      width: columnWidth,
+      height: topHeight,
+      tone: {
+        fill: CLASSIC_BUSINESS.panelFillWarm,
+        border: '#fed7aa',
+        accent: '#c2410c',
+      },
+      titleColor: '#c2410c',
+      bodyFontSize: 16,
+      maxLines: 4,
+    }),
+    createClassicPanel({
+      title: bottom.title,
+      lines:
+        bottom.lines.length > 0 ? bottom.lines : firstClassicLines(args.language, args.blocks, 4),
+      left: CONTENT_LEFT,
+      top: bottomTop,
+      width: CONTENT_WIDTH,
+      height: bottomHeight,
+      tone: {
+        fill: CLASSIC_BUSINESS.panelFillGreen,
+        border: '#bbf7d0',
+        accent: CLASSIC_BUSINESS.green,
+      },
+      titleColor: CLASSIC_BUSINESS.green,
+      bodyFontSize: 15,
+      maxLines: 3,
+    }),
+  );
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicThreeCardsTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const cardsBlock = findFirstBlock(args.blocks, 'layout_cards');
+  const textBlocks = getClassicTextBlocks(args.blocks);
+  const cardBlocks = cardsBlock
+    ? layoutCardsToBlocks(cardsBlock).slice(0, 3)
+    : textBlocks.slice(0, 3);
+  const leadLines = cardsBlock
+    ? firstClassicLines(
+        args.language,
+        textBlocks.filter((block) => block !== cardsBlock),
+        1,
+      )
+    : [];
+
+  const leadTop = titleResult.bodyTop;
+  const leadHeight = leadLines.length > 0 ? 34 : 0;
+  if (leadLines.length > 0) {
+    elements.push(
+      createTextElement({
+        left: CONTENT_LEFT,
+        top: leadTop,
+        width: CONTENT_WIDTH,
+        height: leadHeight,
+        html: leadLines
+          .map(
+            (line) =>
+              `<p style="font-size:15px;line-height:20px;color:${args.style.mutedText};">${renderClassicInlineHtml(compactClassicTextLine(line, args.language === 'en-US' ? 112 : 58))}</p>`,
+          )
+          .join(''),
+        color: args.style.mutedText,
+        textType: 'content',
+      }),
+    );
+  }
+
+  const cardGap = 26;
+  const cardWidth = (CONTENT_WIDTH - cardGap * 2) / 3;
+  const bodyFontSize = 15;
+  const maxLines = 4;
+  const maxCharsPerLine = args.language === 'en-US' ? 56 : 27;
+  const estimatedCardHeight = Math.max(
+    178,
+    ...cardBlocks.map((block) =>
+      estimateClassicCardContentHeight({
+        block,
+        language: args.language,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    ),
+  );
+  const cardHeight = Math.min(230, estimatedCardHeight + 16);
+  const availableTop = titleResult.bodyTop + leadHeight + (leadHeight ? 10 : 0);
+  const availableHeight = CONTENT_BOTTOM - availableTop - 22;
+  const cardTop = availableTop + Math.max(0, (availableHeight - cardHeight) * 0.4);
+  const cardTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.red },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+  ];
+
+  cardBlocks.slice(0, 3).forEach((block, index) => {
+    const tone = cardTones[index % cardTones.length];
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: CONTENT_LEFT + index * (cardWidth + cardGap),
+        top: cardTop,
+        width: cardWidth,
+        height: cardHeight,
+        tone,
+        style: args.style,
+        titleColor: tone.accent,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    );
+  });
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function classicCardBlocksFromDocument(args: {
+  blocks: NotebookContentBlock[];
+  count: number;
+}): NotebookContentBlock[] {
+  const cardsBlock = findFirstBlock(args.blocks, 'layout_cards');
+  if (cardsBlock) return layoutCardsToBlocks(cardsBlock).slice(0, args.count);
+  return getClassicTextBlocks(args.blocks).slice(0, args.count);
+}
+
+function renderClassicTextImageSplitTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const textBlocks = getClassicTextBlocks(args.blocks);
+  const main = blockToClassicPanelData(
+    args.language,
+    textBlocks[0],
+    args.language === 'en-US' ? 'Core Idea' : '核心说明',
+  );
+  const supportingLines = firstClassicLines(args.language, textBlocks.slice(1), 3);
+  const contentTop = titleResult.bodyTop + 6;
+  const contentHeight = CONTENT_BOTTOM - contentTop - 18;
+  const gap = 34;
+  const textWidth = 410;
+  const visualLeft = CONTENT_LEFT + textWidth + gap;
+  const visualWidth = CONTENT_WIDTH - textWidth - gap;
+  const panelLines = [...main.lines, ...supportingLines].slice(0, 6);
+
+  elements.push(
+    createClassicPanel({
+      title: main.title,
+      lines: panelLines,
+      left: CONTENT_LEFT,
+      top: contentTop + 14,
+      width: textWidth,
+      height: Math.min(300, contentHeight - 28),
+      tone: {
+        fill: args.style.panelFillBlue,
+        border: args.style.borderBlue,
+        accent: args.style.blue,
+      },
+      titleColor: args.style.blue,
+      bodyFontSize: 16,
+      maxLines: 6,
+    }),
+    ...renderVisualPanel({
+      visual: args.visual,
+      blocks: args.blocks,
+      language: args.language,
+      left: visualLeft,
+      top: contentTop + 14,
+      width: visualWidth,
+      height: Math.min(300, contentHeight - 28),
+      tokens: args.tokens,
+    }),
+  );
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicFourColumnsTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const cardBlocks = classicCardBlocksFromDocument({ blocks: args.blocks, count: 4 });
+  const cardGap = 18;
+  const cardWidth = (CONTENT_WIDTH - cardGap * 3) / 4;
+  const bodyFontSize = 10.5;
+  const maxLines = 8;
+  const maxCharsPerLine = args.language === 'en-US' ? 34 : 13;
+  const contentTop = titleResult.bodyTop + 28;
+  const maxCardHeight = CONTENT_BOTTOM - contentTop - 28;
+  const estimatedCardHeight = Math.max(
+    210,
+    ...cardBlocks.map((block) =>
+      estimateClassicCardContentHeight({
+        block,
+        language: args.language,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    ),
+  );
+  const cardHeight = Math.min(maxCardHeight, Math.min(250, estimatedCardHeight + 12));
+  const cardTop = contentTop + Math.max(0, (maxCardHeight - cardHeight) * 0.35);
+  const cardTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.red },
+    { fill: '#fff7dc', border: '#f8df98', accent: '#b7791f' },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+  ];
+
+  cardBlocks.slice(0, 4).forEach((block, index) => {
+    const tone = cardTones[index % cardTones.length];
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: CONTENT_LEFT + index * (cardWidth + cardGap),
+        top: cardTop,
+        width: cardWidth,
+        height: cardHeight,
+        tone,
+        style: args.style,
+        titleColor: tone.accent,
+        bodyFontSize,
+        maxLines,
+        maxCharsPerLine,
+      }),
+    );
+  });
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicGrid2x2Template(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const cardBlocks = classicCardBlocksFromDocument({ blocks: args.blocks, count: 4 });
+  const gapX = 24;
+  const gapY = 18;
+  const contentTop = titleResult.bodyTop + 10;
+  const availableHeight = CONTENT_BOTTOM - contentTop - 22;
+  const cardWidth = (CONTENT_WIDTH - gapX) / 2;
+  const cardHeight = Math.min(174, (availableHeight - gapY) / 2);
+  const topOffset = Math.max(0, (availableHeight - (cardHeight * 2 + gapY)) * 0.3);
+  const cardTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.red },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+    { fill: '#fff7dc', border: '#f8df98', accent: '#b7791f' },
+  ];
+
+  cardBlocks.slice(0, 4).forEach((block, index) => {
+    const tone = cardTones[index % cardTones.length];
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: CONTENT_LEFT + col * (cardWidth + gapX),
+        top: contentTop + topOffset + row * (cardHeight + gapY),
+        width: cardWidth,
+        height: cardHeight,
+        tone,
+        style: args.style,
+        titleColor: tone.accent,
+        bodyFontSize: 13,
+        maxLines: 5,
+        maxCharsPerLine: args.language === 'en-US' ? 58 : 28,
+      }),
+    );
+  });
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicTwoTextImageTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const textBlocks = classicCardBlocksFromDocument({ blocks: args.blocks, count: 2 });
+  const first = blockToClassicPanelData(
+    args.language,
+    textBlocks[0],
+    args.language === 'en-US' ? 'First Point' : '第一块',
+  );
+  const second = blockToClassicPanelData(
+    args.language,
+    textBlocks[1],
+    args.language === 'en-US' ? 'Second Point' : '第二块',
+  );
+  const contentTop = titleResult.bodyTop + 6;
+  const contentHeight = CONTENT_BOTTOM - contentTop - 18;
+  const gap = 34;
+  const textWidth = 392;
+  const panelGap = 18;
+  const panelHeight = (contentHeight - panelGap) / 2;
+  const visualLeft = CONTENT_LEFT + textWidth + gap;
+  const visualWidth = CONTENT_WIDTH - textWidth - gap;
+
+  elements.push(
+    createClassicPanel({
+      title: first.title,
+      lines: first.lines,
+      left: CONTENT_LEFT,
+      top: contentTop,
+      width: textWidth,
+      height: panelHeight,
+      tone: {
+        fill: args.style.panelFillBlue,
+        border: args.style.borderBlue,
+        accent: args.style.blue,
+      },
+      titleColor: args.style.blue,
+      bodyFontSize: 15,
+      maxLines: 4,
+    }),
+    createClassicPanel({
+      title: second.title,
+      lines: second.lines,
+      left: CONTENT_LEFT,
+      top: contentTop + panelHeight + panelGap,
+      width: textWidth,
+      height: panelHeight,
+      tone: {
+        fill: args.style.panelFillGreen,
+        border: args.style.borderGreen,
+        accent: args.style.green,
+      },
+      titleColor: args.style.green,
+      bodyFontSize: 15,
+      maxLines: 4,
+    }),
+    ...renderVisualPanel({
+      visual: args.visual,
+      blocks: args.blocks,
+      language: args.language,
+      left: visualLeft,
+      top: contentTop,
+      width: visualWidth,
+      height: contentHeight,
+      tokens: args.tokens,
+    }),
+  );
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function isDefinitionOrTheoremBlock(
+  block: NotebookContentBlock,
+): block is Extract<NotebookContentBlock, { type: 'definition' | 'theorem' }> {
+  return block.type === 'definition' || block.type === 'theorem';
+}
+
+function hasDefinitionSignal(language: 'zh-CN' | 'en-US', block: NotebookContentBlock): boolean {
+  const heading = blockToGridHeading(language, block);
+  const body = blockSummaryLines(language, block).join('\n');
+  const text = `${heading}\n${body}`.toLowerCase();
+  if (language === 'zh-CN') {
+    return /定义|函数|映射|定义域|陪域|值域|规则|边界/.test(text);
+  }
+  return /\b(definition|defined|function|domain|codomain|range|rule|boundary|graph)\b/.test(text);
+}
+
+function derivationStepsToDefinitionCards(
+  language: 'zh-CN' | 'en-US',
+  block: NotebookContentBlock | undefined,
+): NotebookContentBlock[] {
+  if (!block || block.type !== 'derivation_steps') return [];
+  return block.steps.slice(0, 2).map((step, index) => ({
+    type: 'paragraph' as const,
+    cardTitle:
+      step.explanation || (language === 'en-US' ? `Check ${index + 1}` : `判断 ${index + 1}`),
+    text: step.expression,
+  }));
+}
+
+function renderClassicDefinitionBoardTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const cardsBlock = findFirstBlock(args.blocks, 'layout_cards');
+  const textBlocks = getClassicTextBlocks(args.blocks);
+  const derivationBlock = findFirstBlock(args.blocks, 'derivation_steps');
+  const definitionBlock =
+    args.blocks.find(isDefinitionOrTheoremBlock) ||
+    textBlocks.find((block) => hasDefinitionSignal(args.language, block)) ||
+    textBlocks.find(shouldUseBlockAsDefinitionPoint);
+  const definitionData = blockToClassicPanelData(
+    args.language,
+    definitionBlock,
+    args.language === 'en-US' ? 'Formal Definition' : '正式定义',
+  );
+  const derivationCardBlocks = derivationStepsToDefinitionCards(args.language, derivationBlock);
+  const supportingBlocks = textBlocks.filter(
+    (block) =>
+      block !== definitionBlock &&
+      shouldUseBlockAsDefinitionPoint(block) &&
+      !hasDefinitionSignal(args.language, block),
+  );
+  const generatedCardBlocks =
+    derivationCardBlocks.length > 0 ? derivationCardBlocks : supportingBlocks;
+  const cardBlocks = (cardsBlock ? layoutCardsToBlocks(cardsBlock) : generatedCardBlocks).slice(
+    0,
+    derivationCardBlocks.length > 0 ? 2 : 3,
+  );
+  const contentTop = titleResult.bodyTop + 8;
+  const contentHeight = CONTENT_BOTTOM - contentTop - 20;
+  const leftWidth = 520;
+  const gap = 26;
+  const rightLeft = CONTENT_LEFT + leftWidth + gap;
+  const rightWidth = CONTENT_WIDTH - leftWidth - gap;
+  const bottomHeight = cardBlocks.length >= 3 ? 0 : 112;
+  const upperHeight = contentHeight - bottomHeight - (bottomHeight ? 16 : 0);
+  const rightGap = 14;
+  const rightCardHeight = Math.max(
+    72,
+    (upperHeight - rightGap * Math.max(0, Math.min(3, cardBlocks.length || 3) - 1)) /
+      Math.max(1, Math.min(3, cardBlocks.length || 3)),
+  );
+
+  elements.push(
+    createClassicPanel({
+      title: definitionData.title,
+      lines: definitionData.lines,
+      left: CONTENT_LEFT,
+      top: contentTop + 10,
+      width: leftWidth,
+      height: upperHeight - 6,
+      tone: {
+        fill: args.style.panelFill,
+        border: args.style.border,
+        accent: args.style.blue,
+      },
+      titleColor: args.style.blue,
+      bodyFontSize: args.language === 'en-US' ? 13 : 15,
+      showMarkers: false,
+      maxLines: 6,
+      maxCharsPerLine: args.language === 'en-US' ? 44 : 22,
+    }),
+  );
+
+  const fallbackCardBlocks =
+    cardBlocks.length > 0
+      ? cardBlocks
+      : definitionData.lines.slice(1, 4).map(
+          (line, index): NotebookContentBlock => ({
+            type: 'paragraph',
+            cardTitle: args.language === 'en-US' ? `Point ${index + 1}` : `要点 ${index + 1}`,
+            text: line,
+          }),
+        );
+  const cardTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.red },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+  ];
+
+  fallbackCardBlocks.slice(0, 3).forEach((block, index) => {
+    const tone = cardTones[index % cardTones.length];
+    elements.push(
+      createBlockCard({
+        block,
+        language: args.language,
+        left: rightLeft,
+        top: contentTop + 10 + index * (rightCardHeight + rightGap),
+        width: rightWidth,
+        height: rightCardHeight,
+        tone,
+        style: args.style,
+        titleColor: tone.accent,
+        bodyFontSize: args.language === 'en-US' ? 10.5 : 12,
+        maxLines: 5,
+        maxCharsPerLine: args.language === 'en-US' ? 34 : 20,
+      }),
+    );
+  });
+
+  const callout = args.blocks.find(
+    (block): block is Extract<NotebookContentBlock, { type: 'callout' }> =>
+      block.type === 'callout' && block !== definitionBlock,
+  );
+  const bottomLines =
+    callout?.text || supportingBlocks[0]
+      ? [callout?.text || blockSummaryLines(args.language, supportingBlocks[0])[0] || '']
+      : [];
+  if (bottomHeight && bottomLines.length > 0) {
+    elements.push(
+      createClassicPanel({
+        title: callout?.title || (args.language === 'en-US' ? 'Takeaway' : '关键结论'),
+        lines: bottomLines,
+        left: CONTENT_LEFT,
+        top: contentTop + upperHeight + 16,
+        width: CONTENT_WIDTH,
+        height: bottomHeight,
+        tone: {
+          fill: args.style.panelFillBlue,
+          border: args.style.borderBlue,
+          accent: args.style.blue,
+        },
+        titleColor: args.style.blue,
+        bodyFontSize: args.language === 'en-US' ? 11.5 : 12,
+        showMarkers: false,
+        compactTitle: true,
+        maxLines: 3,
+        maxCharsPerLine: args.language === 'en-US' ? 96 : 46,
+      }),
+    );
+  }
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicDerivationLadderTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const derivation = findFirstBlock(args.blocks, 'derivation_steps');
+  const example = findFirstBlock(args.blocks, 'example');
+  const steps = derivation
+    ? derivation.steps.map((step) =>
+        [step.expression, step.explanation].filter(Boolean).join(' — '),
+      )
+    : example?.steps?.length
+      ? example.steps
+      : args.blocks.flatMap((block) => blockSummaryLines(args.language, block));
+  const visibleSteps = steps.slice(0, 4);
+  const contentTop = titleResult.bodyTop + 6;
+  const contentHeight = CONTENT_BOTTOM - contentTop - 20;
+  const leftWidth = 560;
+  const gap = 28;
+  const rightLeft = CONTENT_LEFT + leftWidth + gap;
+  const rightWidth = CONTENT_WIDTH - leftWidth - gap;
+  const stepGap = 12;
+  const stepHeight = Math.max(
+    72,
+    (contentHeight - stepGap * Math.max(0, visibleSteps.length - 1)) /
+      Math.max(1, visibleSteps.length || 1),
+  );
+  const stepTones: ContentCardTone[] = [
+    { fill: args.style.panelFillBlue, border: args.style.borderBlue, accent: args.style.blue },
+    { fill: args.style.panelFillGreen, border: args.style.borderGreen, accent: args.style.green },
+    { fill: args.style.panelFillWarm, border: args.style.borderWarm, accent: args.style.yellow },
+    { fill: args.style.panelFillRed, border: args.style.borderRed, accent: args.style.red },
+  ];
+
+  visibleSteps.forEach((step, index) => {
+    const tone = stepTones[index % stepTones.length];
+    elements.push(
+      createClassicPanel({
+        title: args.language === 'en-US' ? `Step ${index + 1}` : `步骤 ${index + 1}`,
+        lines: [step],
+        left: CONTENT_LEFT,
+        top: contentTop + index * (stepHeight + stepGap),
+        width: leftWidth,
+        height: stepHeight,
+        tone,
+        titleColor: tone.accent,
+        bodyFontSize: 13,
+        compactTitle: true,
+        maxLines: 3,
+      }),
+    );
+  });
+
+  const takeawayBlock =
+    findFirstBlock(args.blocks, 'callout') ||
+    args.blocks.find((block) => block.type === 'theorem') ||
+    args.blocks.find((block) => block.type === 'definition');
+  const takeaway = blockToClassicPanelData(
+    args.language,
+    takeawayBlock,
+    args.language === 'en-US' ? 'Key Move' : '关键动作',
+  );
+  elements.push(
+    createClassicPanel({
+      title: takeaway.title,
+      lines: takeaway.lines.length > 0 ? takeaway.lines : visibleSteps.slice(-1),
+      left: rightLeft,
+      top: contentTop,
+      width: rightWidth,
+      height: Math.min(220, contentHeight),
+      tone: {
+        fill: args.style.panelFill,
+        border: args.style.border,
+        accent: args.style.blue,
+      },
+      titleColor: args.style.blue,
+      bodyFontSize: 15,
+      maxLines: 5,
+    }),
+  );
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicFormulaFocusTemplate(args: {
+  title: string;
+  document: NotebookContentDocument;
+  blocks: NotebookContentBlock[];
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+  style: ClassicDeckStylePreset;
+}): Slide {
+  const titleResult = createClassicTitleElements({
+    title: args.title,
+    tokens: args.tokens,
+    language: args.language,
+    continuation: args.document.continuation,
+  });
+  const elements: PPTElement[] = [...titleResult.elements];
+  const equation = findFirstBlock(args.blocks, 'equation');
+  const definition = findFirstBlock(args.blocks, 'definition');
+  const bulletList = findFirstBlock(args.blocks, 'bullet_list');
+  const zh = args.language === 'zh-CN';
+  const contentTop = titleResult.bodyTop + 4;
+  const formulaTop = contentTop;
+  const formulaHeight = 138;
+  const formulaGroupId = createCardGroupId('classic_formula_focus');
+  const formulaLabel = zh ? '核心公式' : 'Core Formula';
+  const fallbackFormulaCaption = zh
+    ? '把函数看作一种关系时的图像'
+    : 'Graph of a function as a relation';
+  const rawFormulaCaption = equation?.caption?.trim();
+  const formulaCaption =
+    rawFormulaCaption &&
+    !/[$\\]/.test(rawFormulaCaption) &&
+    rawFormulaCaption.length <= (zh ? 34 : 64)
+      ? rawFormulaCaption
+      : fallbackFormulaCaption;
+  const formulaLatex =
+    equation?.latex ||
+    (zh
+      ? '\\Gamma(f)=\\{(a,f(a)) : a\\in A\\}\\subseteq A\\times B'
+      : '\\Gamma(f)=\\{(a,f(a)) : a\\in A\\}\\subseteq A\\times B');
+
+  elements.push(
+    createRectShape({
+      left: CONTENT_LEFT,
+      top: formulaTop,
+      width: CONTENT_WIDTH,
+      height: formulaHeight,
+      fill: args.style.panelFill,
+      outlineColor: args.style.borderWarm,
+      shadow: {
+        h: 0,
+        v: 8,
+        blur: 22,
+        color: args.style.shadow,
+      },
+      groupId: formulaGroupId,
+    }),
+    createRectShape({
+      left: CONTENT_LEFT,
+      top: formulaTop + 18,
+      width: 4,
+      height: formulaHeight - 36,
+      fill: args.style.blue,
+    }),
+    createTextElement({
+      left: CONTENT_LEFT + 24,
+      top: formulaTop + 18,
+      width: 160,
+      height: 46,
+      html: `<p style="margin:0;font-size:15px;line-height:20px;color:${args.style.blue};font-weight:820;">${escapeHtml(formulaLabel)}</p>`,
+      color: args.style.blue,
+      groupId: formulaGroupId,
+      textType: 'item',
+    }),
+    createTextElement({
+      left: CONTENT_LEFT + CONTENT_WIDTH - 330,
+      top: formulaTop + 18,
+      width: 306,
+      height: 44,
+      html: `<p style="margin:0;font-size:11px;line-height:16px;color:${args.style.mutedText};text-align:right;">${renderClassicInlineHtml(formulaCaption)}</p>`,
+      color: args.style.mutedText,
+      groupId: formulaGroupId,
+      textType: 'notes',
+    }),
+    createLatexElement({
+      latex: formulaLatex,
+      left: CONTENT_LEFT + 46,
+      top: formulaTop + 54,
+      width: CONTENT_WIDTH - 92,
+      height: 72,
+      align: 'center',
+      color: args.style.titleText,
+      groupId: formulaGroupId,
+    }),
+  );
+
+  const readingLines = zh
+    ? [
+        '$\\Gamma(f)$：把函数写成所有输入输出配对的集合。',
+        '$(a,f(a))$：每个输入和自己的输出配成一对。',
+        '$\\subseteq A\\times B$：所有配对都落在定义域与陪域的笛卡尔积中。',
+      ]
+    : [
+        '$\\Gamma(f)$ records the graph as all input-output pairs.',
+        '$(a,f(a))$ pairs each input with its own output.',
+        '$\\subseteq A\\times B$ keeps every pair inside domain times codomain.',
+      ];
+  const ruleLines =
+    bulletList?.items.length && bulletList.items.length > 0
+      ? bulletList.items
+      : zh
+        ? [
+            '存在性：每个 $a\\in A$ 都必须有输出。',
+            '唯一性：同一个输入不能配到两个不同输出。',
+            '陪域是允许输出的空间，值域是实际出现的输出。',
+          ]
+        : [
+            'Left-total: every $a\\in A$ has an output.',
+            'Functional: no input is paired with two outputs.',
+            'Codomain is allowed output space; range is actual outputs.',
+          ];
+  const rawDefinitionLine = definition?.text?.trim();
+  const definitionLine =
+    rawDefinitionLine &&
+    rawDefinitionLine.length <= (zh ? 56 : 86) &&
+    !/\\Gamma|\\subseteq|A\\times B/.test(rawDefinitionLine)
+      ? rawDefinitionLine
+      : zh
+        ? '先把函数当作“定义域、陪域、唯一输出规则”的数据结构来读。'
+        : 'Read a function as data: domain, codomain, and one-output rule.';
+  const cardTop = formulaTop + formulaHeight + 34;
+  const cardGap = 24;
+  const cardWidth = (CONTENT_WIDTH - cardGap) / 2;
+  const cardHeight = CONTENT_BOTTOM - cardTop - 12;
+
+  elements.push(
+    createClassicPanel({
+      title: zh ? '公式读法' : 'How to Read It',
+      lines: [definitionLine, ...readingLines],
+      left: CONTENT_LEFT,
+      top: cardTop,
+      width: cardWidth,
+      height: cardHeight,
+      tone: {
+        fill: args.style.panelFillBlue,
+        border: args.style.borderBlue,
+        accent: args.style.blue,
+      },
+      titleColor: args.style.blue,
+      bodyFontSize: zh ? 12 : 13,
+      showMarkers: false,
+      maxLines: zh ? 6 : 5,
+      maxCharsPerLine: zh ? 31 : 42,
+    }),
+    createClassicPanel({
+      title: bulletList?.cardTitle || (zh ? '函数判定' : 'Function Test'),
+      lines: ruleLines,
+      left: CONTENT_LEFT + cardWidth + cardGap,
+      top: cardTop,
+      width: cardWidth,
+      height: cardHeight,
+      tone: {
+        fill: args.style.panelFill,
+        border: args.style.borderWarm,
+        accent: args.style.yellow,
+      },
+      titleColor: args.style.yellow,
+      bodyFontSize: zh ? 13 : 13,
+      numbered: true,
+      maxLines: 5,
+      maxCharsPerLine: zh ? 30 : 42,
+    }),
+  );
+
+  return createClassicLectureSlide({ elements, tokens: args.tokens, style: args.style });
+}
+
+function renderClassicLectureTemplateSlide(args: {
+  title: string;
+  document: NotebookContentDocument;
+  template: NotebookContentLayoutTemplate;
+  blocks: NotebookContentBlock[];
+  visual: VisualSlotWithTitle | null;
+  language: 'zh-CN' | 'en-US';
+  tokens: ReturnType<typeof getProfileTokens>;
+  cardPalettes: readonly ContentCardTone[];
+}): Slide {
+  const style = getClassicDeckStyle(args.document);
+  if (args.template === 'image_title_overlay') {
+    return renderClassicImageTitleOverlayTemplate({ ...args, style });
+  }
+  if (args.template === 'cinematic_title_frame') {
+    return renderClassicCinematicTitleFrameTemplate({ ...args, style });
+  }
+  if (args.template === 'tech_hero_title') {
+    return renderClassicTechHeroTitleTemplate({ ...args, style });
+  }
+  if (args.template === 'pipeline_table') {
+    return renderClassicPipelineTableTemplate({ ...args, style });
+  }
+  if (args.template === 'comparison_matrix') {
+    return renderClassicComparisonMatrixTemplate({ ...args, style });
+  }
+  if (args.template === 'visual_three_steps') {
+    return renderClassicVisualThreeStepsTemplate({ ...args, style });
+  }
+  if (args.template === 'process_steps') {
+    return renderClassicProcessStepsTemplate({ ...args, style });
+  }
+  if (args.template === 'three_cards') {
+    return renderClassicThreeCardsTemplate({ ...args, style });
+  }
+  if (args.template === 'text_image_split') {
+    return renderClassicTextImageSplitTemplate({ ...args, style });
+  }
+  if (args.template === 'four_columns') {
+    return renderClassicFourColumnsTemplate({ ...args, style });
+  }
+  if (args.template === 'grid_2x2') {
+    return renderClassicGrid2x2Template({ ...args, style });
+  }
+  if (args.template === 'two_text_image') {
+    return renderClassicTwoTextImageTemplate({ ...args, style });
+  }
+  if (args.template === 'definition_board') {
+    return renderClassicDefinitionBoardTemplate({ ...args, style });
+  }
+  if (args.template === 'derivation_ladder') {
+    return renderClassicDerivationLadderTemplate({ ...args, style });
+  }
+  if (args.template === 'formula_focus') {
+    return renderClassicFormulaFocusTemplate({ ...args, style });
+  }
+  return renderClassicTwoByOneSummaryTemplate({ ...args, style });
 }
 
 function inferLayoutTemplateFromDocument(args: {
@@ -1714,7 +5055,7 @@ function inferLayoutTemplateFromDocument(args: {
         ? 'visual_left'
         : 'visual_right';
     case 'comparison':
-      return 'comparison_matrix';
+      return 'pipeline_table';
     case 'timeline':
       return 'timeline_road';
     case 'problem_statement':
@@ -1727,7 +5068,7 @@ function inferLayoutTemplateFromDocument(args: {
     case 'formula_focus':
       return 'formula_focus';
     case 'summary':
-      return 'summary_board';
+      return 'two_by_one_summary';
     case 'concept_cards':
     default:
       if (args.visual) return 'visual_right';
@@ -2413,7 +5754,9 @@ function shouldUseProblemMappingVisual(text: string): boolean {
       text,
     ) || /⊆|⊇/.test(text);
 
-  return hasMappingFact && mentionsFunctionMapping && !isNumberTheoryProblem && !isProofOrWorkedExample;
+  return (
+    hasMappingFact && mentionsFunctionMapping && !isNumberTheoryProblem && !isProofOrWorkedExample
+  );
 }
 
 function renderProblemInfoRows(args: {
@@ -3205,6 +6548,20 @@ function renderStructuredLayoutFamilySlide(args: {
     visual: args.visual,
   });
   const contentBlocks = args.blocks.length > 0 ? args.blocks : [];
+  const cardPalettes = args.tokens.cardPalettes;
+  if (isClassicLectureLayoutTemplate(template)) {
+    return renderClassicLectureTemplateSlide({
+      title,
+      document: args.document,
+      template,
+      blocks: contentBlocks,
+      visual: args.visual,
+      language: args.language,
+      tokens: args.tokens,
+      cardPalettes,
+    });
+  }
+
   if (args.family === 'cover') {
     return renderCoverHeroSlide({
       document: args.document,
@@ -3225,8 +6582,6 @@ function renderStructuredLayoutFamilySlide(args: {
     continuation: args.document.continuation,
   });
   elements.push(...titleElements);
-
-  const cardPalettes = args.tokens.cardPalettes;
 
   if (args.family === 'section') {
     const bodyText = contentBlocks
@@ -3277,7 +6632,21 @@ function renderStructuredLayoutFamilySlide(args: {
   });
 
   if (args.family === 'concept_cards') {
-    if (shouldUseDefinitionFocus || isDefinitionBoardTemplate(template)) {
+    if (template === 'four_grid') {
+      elements.push(
+        ...renderBlockCardGrid({
+          blocks: contentBlocks,
+          language: args.language,
+          left: CONTENT_LEFT,
+          top: bodyTop,
+          width: CONTENT_WIDTH,
+          height: bodyHeight,
+          columns: 2,
+          maxItems: 4,
+          cardPalettes,
+        }),
+      );
+    } else if (shouldUseDefinitionFocus || isDefinitionBoardTemplate(template)) {
       elements.push(
         ...renderDefinitionFocusTemplate({
           title,
@@ -3320,8 +6689,8 @@ function renderStructuredLayoutFamilySlide(args: {
         }),
       );
     } else {
-      const columns = template === 'three_cards' ? 3 : template === 'four_grid' ? 2 : 2;
-      const maxItems = template === 'four_grid' ? 4 : template === 'three_cards' ? 3 : 2;
+      const columns = 2;
+      const maxItems = 2;
       elements.push(
         ...renderBlockCardGrid({
           blocks: contentBlocks,
@@ -3489,9 +6858,12 @@ function renderStructuredLayoutFamilySlide(args: {
 
   if (args.family === 'code_walkthrough') {
     const walkthrough = findFirstBlock(contentBlocks, 'code_walkthrough');
-    const codeBlock = walkthrough || findFirstBlock(contentBlocks, 'code_block');
+    const traceBlock = findFirstBlock(contentBlocks, 'code_trace');
+    const codeBlock = traceBlock || walkthrough || findFirstBlock(contentBlocks, 'code_block');
     const codeText =
-      codeBlock?.type === 'code_walkthrough' ? codeBlock.code : codeBlock?.code || '';
+      codeBlock?.type === 'code_walkthrough' || codeBlock?.type === 'code_trace'
+        ? codeBlock.code
+        : codeBlock?.code || '';
     const codeLeft = CONTENT_LEFT;
     const codeWidth = 500;
     const stepsLeft = codeLeft + codeWidth + 24;
@@ -3516,10 +6888,17 @@ function renderStructuredLayoutFamilySlide(args: {
       }),
     );
     const stepItems =
+      traceBlock?.steps.map((step) => {
+        const state = step.state.length
+          ? ` (${step.state.map((item) => `${item.name}=${item.value}`).join(', ')})`
+          : '';
+        return `${step.line ? `L${step.line}: ` : ''}${step.explanation}${state}`;
+      }) ||
       walkthrough?.steps.map(
         (step) =>
           `${step.title || step.focus || ''}${step.explanation ? `: ${step.explanation}` : ''}`,
-      ) || contentBlocks.flatMap((block) => blockSummaryLines(args.language, block)).slice(0, 5);
+      ) ||
+      contentBlocks.flatMap((block) => blockSummaryLines(args.language, block)).slice(0, 5);
     const stepHeight = Math.max(
       70,
       Math.floor((bodyHeight - 30) / Math.max(1, Math.min(5, stepItems.length))),
@@ -3566,52 +6945,6 @@ function renderStructuredLayoutFamilySlide(args: {
           (step) => `${step.expression}${step.explanation ? ` — ${step.explanation}` : ''}`,
         )
       : example?.steps || contentBlocks.flatMap((block) => blockSummaryLines(args.language, block));
-
-    if (template === 'formula_focus' && derivation?.steps[0]?.format === 'latex') {
-      const groupId = createCardGroupId('derivation_formula_focus');
-      elements.push(
-        createRectShape({
-          left: CONTENT_LEFT,
-          top: bodyTop,
-          width: CONTENT_WIDTH,
-          height: 238,
-          fill: ACADEMY_PAPER.cardFill,
-          outlineColor: ACADEMY_PAPER.blueBorder,
-          groupId,
-        }),
-        createLatexElement({
-          latex: derivation.steps[0].expression,
-          left: CONTENT_LEFT + 34,
-          top: bodyTop + 54,
-          width: CONTENT_WIDTH - 68,
-          height: 122,
-          align: 'center',
-          color: args.tokens.titleText,
-          groupId,
-        }),
-      );
-      const explanationBlocks: NotebookContentBlock[] = derivation.steps
-        .slice(1, 4)
-        .map((step) => ({
-          type: 'paragraph',
-          text: step.explanation ? `${step.expression}: ${step.explanation}` : step.expression,
-        }));
-      elements.push(
-        ...renderBlockCardGrid({
-          blocks: explanationBlocks,
-          language: args.language,
-          left: CONTENT_LEFT,
-          top: bodyTop + 262,
-          width: CONTENT_WIDTH,
-          height: bodyHeight - 262,
-          columns: Math.max(1, Math.min(3, explanationBlocks.length || 1)),
-          maxItems: 3,
-          cardPalettes,
-          bodyFontSize: 13,
-        }),
-      );
-      return createSlideFromFamilyElements({ elements, tokens: args.tokens, backgroundIndex: 0 });
-    }
 
     const leftWidth = args.family === 'derivation' ? 520 : 420;
     const rightWidth = CONTENT_WIDTH - leftWidth - 24;
@@ -4535,7 +7868,165 @@ export function renderNotebookContentDocumentToSlide(args: {
       continue;
     }
 
+    if (block.type === 'code_trace') {
+      if (block.title) {
+        elements.push(
+          createTextElement({
+            left: CONTENT_LEFT,
+            top: cursorTop,
+            width: CONTENT_WIDTH,
+            height: 28,
+            html: `<p style="font-size:18px;color:${tokens.titleAccent};"><strong>${escapeHtml(block.title)}</strong></p>`,
+            color: tokens.titleAccent,
+            textType: 'itemTitle',
+          }),
+        );
+        cursorTop += 34;
+      }
+
+      const codeHeight = estimateCodeBlockHeight(block.code, 1);
+      elements.push(
+        createRectShape({
+          left: CONTENT_LEFT,
+          top: cursorTop,
+          width: CONTENT_WIDTH,
+          height: codeHeight,
+          fill: tokens.codeSurface.fill,
+          outlineColor: tokens.codeSurface.outline,
+          text: createShapeText({
+            html: block.code
+              .split('\n')
+              .map((line, index) => {
+                const lineNumber = index + 1;
+                const activeLine = block.activeLines.includes(lineNumber);
+                return `<p style="font-size:13px;color:${activeLine ? '#67e8f9' : tokens.codeSurface.text};font-family:Menlo, Monaco, Consolas, monospace;"><span style="color:${tokens.codeSurface.caption};">${String(lineNumber).padStart(2, '0')}</span> ${escapeHtml(line)}</p>`;
+              })
+              .join(''),
+            color: tokens.codeSurface.text,
+            fontName: 'Menlo, Monaco, Consolas, monospace',
+            textType: 'content',
+            align: 'top',
+          }),
+        }),
+      );
+      cursorTop += codeHeight + 10;
+
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
+      const stepItems = block.steps.map((step, idx) => {
+        const state = step.state.length
+          ? ` (${step.state.map((item) => `${item.name}=${item.value}`).join(', ')})`
+          : '';
+        return `${idx + 1}. ${step.line ? `L${step.line}: ` : ''}${step.explanation}${state}`;
+      });
+      const stepHeight = Math.min(
+        180,
+        Math.max(56, estimateParagraphStackHeight(stepItems, 34, 20)),
+      );
+      const stepCardHeight = stepHeight + CARD_INSET_Y * 2;
+      elements.push(
+        createBoundContentCard({
+          top: cursorTop,
+          height: stepCardHeight,
+          tone,
+          html: stepItems
+            .map(
+              (item) =>
+                `<p style="font-size:15px;color:${ACADEMY_PAPER.bodyText};">${escapeHtml(item)}</p>`,
+            )
+            .join(''),
+          color: ACADEMY_PAPER.bodyText,
+          textType: 'content',
+          lineHeight: 1.35,
+        }),
+      );
+      cursorTop += stepCardHeight + 10;
+      visualBlockIndex += 1;
+      continue;
+    }
+
+    if (block.type === 'state_table') {
+      const groupId = createCardGroupId('state_table');
+      if (block.title) {
+        elements.push(
+          createTextElement({
+            left: CONTENT_LEFT,
+            top: cursorTop,
+            width: CONTENT_WIDTH,
+            height: 26,
+            html: `<p style="font-size:17px;color:${tokens.titleAccent};"><strong>${renderInlineLatexToHtml(block.title)}</strong></p>`,
+            color: tokens.titleAccent,
+            textType: 'itemTitle',
+          }),
+        );
+        cursorTop += 32;
+      }
+      const tableEls = createTableElement({
+        top: cursorTop,
+        headers: block.columns,
+        rows: block.rows,
+        caption: block.caption,
+        groupId,
+      });
+      elements.push(...tableEls);
+      cursorTop +=
+        Math.min(220, Math.max(72, (block.rows.length + 1) * 34 + 12)) + (block.caption ? 38 : 12);
+      visualBlockIndex += 1;
+      continue;
+    }
+
+    if (
+      block.type === 'call_stack' ||
+      block.type === 'memory_diagram' ||
+      block.type === 'pointer_diagram' ||
+      block.type === 'tree_diagram' ||
+      block.type === 'graph_trace' ||
+      block.type === 'invariant_panel'
+    ) {
+      const tone = resolveBlockTemplateTone(
+        block.templateId,
+        cardPalettes[visualBlockIndex % cardPalettes.length],
+      );
+      const lines = blockSummaryLines(language, block);
+      const heading = blockToGridHeading(language, block);
+      const headingFit = fitGridHeadingToHeight({
+        text: heading,
+        widthPx: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
+        maxHeightPx: 52,
+        color: resolveCardTitleColor(block.titleTone, tone),
+      });
+      const body = fitGridBodyToHeight({
+        language,
+        block,
+        widthPx: CONTENT_WIDTH - CARD_INSET_X * 2 - 8,
+        maxHeightPx: Math.max(80, CONTENT_BOTTOM - cursorTop - headingFit.height - 24),
+        tone,
+      });
+      const fallbackHeight = Math.max(92, estimateParagraphStackHeight(lines, 42, 20) + 46);
+      const cardHeight = Math.min(
+        Math.max(fallbackHeight, headingFit.height + body.height + CARD_INSET_Y * 2),
+        Math.max(96, CONTENT_BOTTOM - cursorTop),
+      );
+      elements.push(
+        createBoundContentCard({
+          top: cursorTop,
+          height: cardHeight,
+          tone,
+          html: `${headingFit.html}${body.html}`,
+          color: ACADEMY_PAPER.bodyText,
+          textType: 'content',
+          lineHeight: 1.35,
+        }),
+      );
+      cursorTop += cardHeight + 10;
+      visualBlockIndex += 1;
+      continue;
+    }
+
     if (block.type === 'process_flow') {
+      const steps = Array.isArray(block.steps) ? block.steps : [];
       const rendered = renderProcessFlowBlock({
         block,
         top: cursorTop,
@@ -4545,7 +8036,7 @@ export function renderNotebookContentDocumentToSlide(args: {
       });
       elements.push(...rendered.elements);
       cursorTop += rendered.height;
-      visualBlockIndex += Math.max(1, block.steps.length);
+      visualBlockIndex += Math.max(1, steps.length);
       continue;
     }
 

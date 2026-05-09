@@ -7,6 +7,7 @@ import { runWithRequestContext } from '@/lib/server/request-context';
 import { nanoid } from 'nanoid';
 import { generateSceneOutlinesFromRequirements } from '@/lib/generation/outline-generator';
 import { normalizeSceneOutlineContentProfile } from '@/lib/generation/content-profile';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { generateFullScenes } from '@/lib/generation/scene-generator';
 import type { AICallFn } from '@/lib/generation/pipeline-types';
 import type { SceneOutline, UserRequirements } from '@/lib/types/generation';
@@ -145,8 +146,8 @@ function normalizeOutlines(outlines: SceneOutline[], language: 'zh-CN' | 'en-US'
         language,
       } satisfies SceneOutline;
     });
-  if (normalized.length >= 3) return normalized;
-  return fallbackOutlines(language);
+  if (normalized.length >= 3) return normalized.map(normalizeComputerScienceSceneOutline);
+  return fallbackOutlines(language).map(normalizeComputerScienceSceneOutline);
 }
 
 export async function POST(req: NextRequest) {

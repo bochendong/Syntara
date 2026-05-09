@@ -33,6 +33,8 @@ import {
 } from './prompt-formatters';
 import { hasUnexpectedCjkForLanguage } from './language-guard';
 import { buildTitleCoverOpeningActions, isTitleCoverOutline } from './title-cover';
+import { buildCsNarrationActions } from './cs-narration-planner';
+import type { TeachingPagePlan } from './teaching-plan';
 
 const log = createLogger('Generation');
 
@@ -90,6 +92,11 @@ export async function generateSceneActions(
     }
 
     const elementsText = formatElementsForPrompt(content.elements, content.contentDocument);
+    const teachingContext = formatActionTeachingContext(
+      outline.teachingPagePlan,
+      content.contentDocument,
+      lang,
+    );
     const workedExampleContext = formatWorkedExampleForPrompt(outline.workedExampleConfig, lang);
 
     const prompts = buildPrompt(PROMPT_IDS.SLIDE_ACTIONS, {
@@ -102,9 +109,19 @@ export async function generateSceneActions(
       agents: agentsText,
       userProfile: userProfile || '',
       workedExampleContext,
+      teachingContext,
     });
 
     if (!prompts) {
+      const semanticFallback = buildSemanticNarrationFallback(
+        outline,
+        content.elements,
+        content.contentDocument,
+        lang,
+      );
+      if (semanticFallback.length > 0) {
+        return finalizeSlideActions(semanticFallback, content.elements, content.contentDocument);
+      }
       return verbalizeSpeechActions(
         generateDefaultSlideActions(outline, content.elements, content.contentDocument),
         lang,
@@ -117,12 +134,31 @@ export async function generateSceneActions(
     if (actions.length > 0) {
       if (hasUnexpectedCjkForLanguage(actions, lang)) {
         log.warn(`Slide actions language mismatch for: ${outline.title}`);
+        const semanticFallback = buildSemanticNarrationFallback(
+          outline,
+          content.elements,
+          content.contentDocument,
+          lang,
+        );
+        if (semanticFallback.length > 0) {
+          return finalizeSlideActions(semanticFallback, content.elements, content.contentDocument);
+        }
         return verbalizeSpeechActions(
           generateDefaultSlideActions(outline, content.elements, content.contentDocument),
           lang,
         );
       }
       return finalizeSlideActions(actions, content.elements, content.contentDocument);
+    }
+
+    const semanticFallback = buildSemanticNarrationFallback(
+      outline,
+      content.elements,
+      content.contentDocument,
+      lang,
+    );
+    if (semanticFallback.length > 0) {
+      return finalizeSlideActions(semanticFallback, content.elements, content.contentDocument);
     }
 
     return verbalizeSpeechActions(
@@ -234,6 +270,41 @@ export function buildFallbackSceneActions(
 ): Action[] {
   const lang = outline.language || 'zh-CN';
   if (outline.type === 'slide' && 'elements' in content) {
+    const csNarrationActions = buildCsNarrationActions({
+      document: content.contentDocument,
+      title: outline.title,
+      language: lang,
+    });
+    if (csNarrationActions.length > 0) {
+      return verbalizeSpeechActions(
+        ensureOpeningSpotlight(
+          processActions(csNarrationActions, content.elements, agents, content.contentDocument),
+          content.elements,
+          lang,
+          content.contentDocument,
+        ),
+        lang,
+      );
+    }
+
+    const teachingPlanActions = buildTeachingPagePlanActions(
+      outline.teachingPagePlan,
+      content.elements,
+      content.contentDocument,
+      lang,
+    );
+    if (teachingPlanActions.length > 0) {
+      return verbalizeSpeechActions(
+        ensureOpeningSpotlight(
+          processActions(teachingPlanActions, content.elements, agents, content.contentDocument),
+          content.elements,
+          lang,
+          content.contentDocument,
+        ),
+        lang,
+      );
+    }
+
     return verbalizeSpeechActions(
       generateDefaultSlideActions(outline, content.elements, content.contentDocument),
       lang,
@@ -268,6 +339,133 @@ function generateDefaultPBLActions(outline: SceneOutline): Action[] {
           : 'Let us begin a project-based learning activity. Choose your role, review the task board, and start collaborating on the project.',
     },
   ];
+}
+
+function buildSemanticNarrationFallback(
+  outline: SceneOutline,
+  elements: PPTElement[],
+  semanticDocument: NotebookContentDocument | undefined,
+  language: 'zh-CN' | 'en-US' | string,
+): Action[] {
+  const csNarrationActions = buildCsNarrationActions({
+    document: semanticDocument,
+    title: outline.title,
+    language,
+  });
+  if (csNarrationActions.length > 0) return csNarrationActions;
+
+  return buildTeachingPagePlanActions(
+    outline.teachingPagePlan,
+    elements,
+    semanticDocument,
+    language,
+  );
+}
+
+function buildTeachingPagePlanActions(
+  pagePlan: TeachingPagePlan | undefined,
+  elements: PPTElement[],
+  semanticDocument: NotebookContentDocument | undefined,
+  language: 'zh-CN' | 'en-US' | string,
+  options: { preludeOnly?: boolean } = {},
+): Action[] {
+  if (!pagePlan) return [];
+  const lang = language === 'en-US' ? 'en-US' : 'zh-CN';
+  const targetId = pickSemanticSpotlightTarget(semanticDocument) || pickSpotlightTarget(elements)?.id;
+  const nextId = () => `action_${nanoid(8)}`;
+  const actions: Action[] = [];
+
+  if (targetId) {
+    actions.push({
+      id: nextId(),
+      type: 'spotlight',
+      title: lang === 'zh-CN' ? '聚焦课堂入口' : 'Focus the teaching entry',
+      elementId: targetId,
+      dimOpacity: 0.5,
+    });
+  }
+
+  const opening =
+    lang === 'zh-CN'
+      ? `${pagePlan.openingMove} 这一步先别急着记结论，先问：${pagePlan.studentThinkingMove}`
+      : `${pagePlan.openingMove} Do not rush to the conclusion; first ask: ${pagePlan.studentThinkingMove}`;
+
+  actions.push({
+    id: nextId(),
+    type: 'speech',
+    title: lang === 'zh-CN' ? '课堂导入' : 'Teaching opening',
+    text: opening,
+    speed: 1,
+  });
+
+  if (options.preludeOnly) return actions;
+
+  actions.push({
+    id: nextId(),
+    type: 'speech',
+    title: lang === 'zh-CN' ? '迁移检查' : 'Transfer check',
+    text:
+      lang === 'zh-CN'
+        ? `把这一页带走的方法是：${pagePlan.transferRule}`
+        : `The method to carry forward is: ${pagePlan.transferRule}`,
+    speed: 1,
+  });
+
+  return actions;
+}
+
+function formatActionTeachingContext(
+  pagePlan: TeachingPagePlan | undefined,
+  semanticDocument: NotebookContentDocument | undefined,
+  language: 'zh-CN' | 'en-US' | string,
+): string {
+  const lang = language === 'en-US' ? 'en-US' : 'zh-CN';
+  const sections: string[] = [];
+
+  if (pagePlan) {
+    sections.push(
+      lang === 'zh-CN'
+        ? [
+            '## PagePlan（讲稿的主要输入）',
+            `- 页面角色：${pagePlan.role}`,
+            `- 具体入口：${pagePlan.concreteAnchor}`,
+            `- 学生思考动作：${pagePlan.studentThinkingMove}`,
+            `- 迁移规则：${pagePlan.transferRule}`,
+            `- 建议组件：${pagePlan.requiredComponentKinds.join(', ') || '无'}`,
+          ].join('\n')
+        : [
+            '## PagePlan (primary input for narration)',
+            `- Page role: ${pagePlan.role}`,
+            `- Concrete anchor: ${pagePlan.concreteAnchor}`,
+            `- Student thinking move: ${pagePlan.studentThinkingMove}`,
+            `- Transfer rule: ${pagePlan.transferRule}`,
+            `- Suggested components: ${pagePlan.requiredComponentKinds.join(', ') || 'none'}`,
+          ].join('\n'),
+    );
+  }
+
+  if (semanticDocument) {
+    const sectionsForDocument = buildSemanticSpotlightSections(semanticDocument);
+    const targets = flattenSemanticSpotlightTargets(sectionsForDocument);
+    const targetLines = targets.slice(0, 12).map((target) => {
+      const title = target.title ? ` title="${target.title}"` : '';
+      const text = target.text.replace(/\s+/g, ' ').slice(0, 420);
+      return `- id="${target.id}" type="${target.block.type}"${title}: ${text}${
+        target.text.length > 420 ? '...' : ''
+      }`;
+    });
+    sections.push(
+      [
+        lang === 'zh-CN' ? '## 当前页面语义内容（讲稿事实来源）' : '## Current semantic slide content',
+        `- title: ${semanticDocument.title || ''}`,
+        `- profile: ${semanticDocument.profile || 'general'}`,
+        `- archetype: ${semanticDocument.archetype || 'concept'}`,
+        ...targetLines,
+      ].join('\n'),
+    );
+  }
+
+  return sections.join('\n\n');
 }
 
 function formatElementsForPrompt(

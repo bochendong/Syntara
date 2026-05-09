@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Check, RotateCcw, X } from 'lucide-react';
 import {
-  compileSyntaraMarkupToNotebookDocument,
-  normalizeSyntaraMarkupLayout,
+  compileNotebookLatexToNotebookDocument,
+  normalizeNotebookLatexSource,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 import { normalizeSemanticDocumentForRender } from '@/lib/notebook-content/semantic-slide-render';
@@ -22,13 +22,31 @@ interface ClassroomSemanticSlideEditorProps {
 function sourceFromScene(scene: Scene): string {
   const content = scene.content.type === 'slide' ? scene.content : null;
   if (!content) return '';
-  if (content.syntaraMarkup?.trim()) return normalizeSyntaraMarkupLayout(content.syntaraMarkup);
+  if (isCodeLikeSemanticDocument(content.semanticDocument)) {
+    return normalizeNotebookLatexSource(
+      serializeNotebookDocumentToSyntaraMarkup(content.semanticDocument!),
+    );
+  }
+  if (content.syntaraMarkup?.trim()) return normalizeNotebookLatexSource(content.syntaraMarkup);
   if (content.semanticDocument) {
-    return normalizeSyntaraMarkupLayout(
+    return normalizeNotebookLatexSource(
       serializeNotebookDocumentToSyntaraMarkup(content.semanticDocument),
     );
   }
   return '';
+}
+
+function isCodeLikeSemanticDocument(document: NotebookContentDocument | null | undefined): boolean {
+  if (!document) return false;
+  if (document.profile === 'code' || document.disciplineStyle === 'code') return true;
+  if (document.layoutFamily === 'code_walkthrough' || document.layoutTemplate === 'code_split') {
+    return true;
+  }
+  return /(oop|python|__init__|self|class |method|attribute|instance|object|面向对象|对象|实例|属性|链表|二叉|树|图|队列|字典|递归|循环|不变式)/.test(
+    [document.title, JSON.stringify(document.blocks ?? []), JSON.stringify(document.slots ?? [])]
+      .join('\n')
+      .toLowerCase(),
+  );
 }
 
 export function ClassroomSemanticSlideEditor({
@@ -45,13 +63,13 @@ export function ClassroomSemanticSlideEditor({
       return {
         document: null,
         normalizedMarkup: '',
-        error: 'Syntara Markup 不能为空。',
+        error: 'Notebook LaTeX 不能为空。',
       };
     }
 
     try {
-      const normalizedMarkup = normalizeSyntaraMarkupLayout(trimmed);
-      const document = compileSyntaraMarkupToNotebookDocument(normalizedMarkup, {
+      const normalizedMarkup = normalizeNotebookLatexSource(trimmed);
+      const document = compileNotebookLatexToNotebookDocument(normalizedMarkup, {
         title: currentScene.title,
         language:
           currentScene.content.type === 'slide'
@@ -62,7 +80,8 @@ export function ClassroomSemanticSlideEditor({
         return {
           document: null,
           normalizedMarkup,
-          error: '无法解析为有效的 Syntara Markup。请检查 \\begin{slide}、大括号和环境闭合。',
+          error:
+            '无法解析为有效的 Notebook LaTeX。请检查 \\begin{frame}、\\begin{slide}、大括号和环境闭合。',
         };
       }
       return { document, normalizedMarkup, error: null };
@@ -95,9 +114,9 @@ export function ClassroomSemanticSlideEditor({
       <section className="flex min-h-0 w-[44%] min-w-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-slate-950">Syntara Markup</p>
+            <p className="text-sm font-semibold text-slate-950">Notebook LaTeX</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              新链路：Markup → semantic document → 页面渲染
+              新链路：LaTeX → semantic document → 页面渲染
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -181,7 +200,7 @@ export function ClassroomSemanticSlideEditor({
             />
           ) : (
             <div className="flex h-full items-center justify-center px-8 text-center text-sm text-slate-500">
-              修正左侧 Syntara Markup 后会恢复预览。
+              修正左侧 Notebook LaTeX 后会恢复预览。
             </div>
           )}
         </div>

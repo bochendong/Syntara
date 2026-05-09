@@ -2,6 +2,15 @@ import { z } from 'zod';
 
 export const notebookContentLanguageSchema = z.enum(['zh-CN', 'en-US']);
 export const notebookContentProfileSchema = z.enum(['general', 'math', 'code']);
+export const notebookContentDeckStyleSchema = z.enum([
+  'classic_business',
+  'academic',
+  'magazine',
+  'dark_art',
+  'nature_documentary',
+  'tech_saas',
+  'product_launch',
+]);
 export const notebookContentDisciplineStyleSchema = z.enum([
   'general',
   'math',
@@ -41,6 +50,9 @@ export const notebookContentLayoutFamilySchema = z.enum([
 ]);
 export const notebookContentLayoutTemplateSchema = z.enum([
   'cover_hero',
+  'image_title_overlay',
+  'cinematic_title_frame',
+  'tech_hero_title',
   'section_divider',
   'title_content',
   'two_column',
@@ -48,6 +60,13 @@ export const notebookContentLayoutTemplateSchema = z.enum([
   'four_grid',
   'visual_left',
   'visual_right',
+  'pipeline_table',
+  'visual_three_steps',
+  'two_by_one_summary',
+  'text_image_split',
+  'four_columns',
+  'grid_2x2',
+  'two_text_image',
   'comparison_matrix',
   'timeline_road',
   'problem_focus',
@@ -229,6 +248,296 @@ export const notebookContentCodeWalkthroughBlockSchema = z.object({
   output: z.string().trim().max(4000).optional(),
 });
 
+export const notebookContentKeyValueSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  value: z.string().trim().max(500).default(''),
+});
+
+export const notebookContentCodeTraceStepSchema = z.object({
+  line: z.number().int().min(1).max(999).optional(),
+  state: z.array(notebookContentKeyValueSchema).max(10).default([]),
+  explanation: z.string().trim().min(1).max(1200),
+});
+
+export const notebookContentCodeTraceBlockSchema = z.object({
+  type: z.literal('code_trace'),
+  title: z.string().trim().max(200).optional(),
+  language: z.string().trim().min(1).max(64).default('text'),
+  code: z.string().min(1).max(20000),
+  inputs: z.array(notebookContentKeyValueSchema).max(8).default([]),
+  activeLines: z.array(z.number().int().min(1).max(999)).max(12).default([]),
+  steps: z.array(notebookContentCodeTraceStepSchema).min(1).max(12),
+  output: z.string().trim().max(4000).optional(),
+});
+
+export const notebookContentStateTableBlockSchema = z.object({
+  type: z.literal('state_table'),
+  title: z.string().trim().max(200).optional(),
+  columns: z.array(z.string().trim().min(1).max(80)).min(1).max(8),
+  rows: z
+    .array(z.array(z.string().trim().max(500)).min(1).max(8))
+    .min(1)
+    .max(24),
+  activeRow: z.number().int().min(0).max(23).optional(),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentCallStackFrameSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  args: z.array(notebookContentKeyValueSchema).max(8).default([]),
+  locals: z.array(notebookContentKeyValueSchema).max(8).default([]),
+  returnValue: z.string().trim().max(300).optional(),
+  note: z.string().trim().max(500).optional(),
+  active: z.boolean().default(false),
+});
+
+const notebookContentCallStackHeapObjectSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  fields: z.array(notebookContentKeyValueSchema).max(10).default([]),
+  active: z.boolean().default(false),
+});
+
+export const notebookContentCallStackBlockSchema = z.object({
+  type: z.literal('call_stack'),
+  title: z.string().trim().max(200).optional(),
+  frames: z.array(notebookContentCallStackFrameSchema).min(1).max(10),
+  heap: z.array(notebookContentCallStackHeapObjectSchema).max(12).default([]),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentMemoryVariableSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  value: z.string().trim().max(300).default(''),
+  ref: z.string().trim().max(80).optional(),
+});
+
+export const notebookContentMemoryFrameSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  variables: z.array(notebookContentMemoryVariableSchema).max(12).default([]),
+  active: z.boolean().default(false),
+});
+
+export const notebookContentMemoryObjectSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  fields: z.array(notebookContentKeyValueSchema).max(10).default([]),
+  active: z.boolean().default(false),
+});
+
+export const notebookContentDiagramLinkSchema = z.object({
+  from: z.string().trim().min(1).max(80),
+  to: z.string().trim().min(1).max(80),
+  label: z.string().trim().max(80).optional(),
+  active: z.boolean().default(false),
+});
+
+export const notebookContentMemoryTraceStepSchema = z.object({
+  title: z.string().trim().max(160).optional(),
+  line: z.number().int().min(1).max(999).optional(),
+  frames: z.array(notebookContentMemoryFrameSchema).max(8).default([]),
+  stack: z.array(notebookContentMemoryVariableSchema).max(12).default([]),
+  heap: z.array(notebookContentMemoryObjectSchema).max(12).default([]),
+  links: z.array(notebookContentDiagramLinkSchema).max(20).default([]),
+  explanation: z.string().trim().max(1200).optional(),
+});
+
+export const notebookContentMemoryDiagramBlockSchema = z.object({
+  type: z.literal('memory_diagram'),
+  title: z.string().trim().max(200).optional(),
+  language: z.string().trim().min(1).max(64).default('text'),
+  code: z.string().max(20000).optional(),
+  activeLines: z.array(z.number().int().min(1).max(999)).max(12).default([]),
+  frames: z.array(notebookContentMemoryFrameSchema).max(8).default([]),
+  stack: z.array(notebookContentMemoryVariableSchema).max(12).default([]),
+  heap: z.array(notebookContentMemoryObjectSchema).max(12).default([]),
+  links: z.array(notebookContentDiagramLinkSchema).max(20).default([]),
+  steps: z.array(notebookContentMemoryTraceStepSchema).max(12).default([]),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentPointerNodeSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  fields: z.array(notebookContentKeyValueSchema).max(8).default([]),
+  active: z.boolean().default(false),
+  muted: z.boolean().default(false),
+});
+
+export const notebookContentPointerSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  to: z.string().trim().max(80).optional(),
+});
+
+export const notebookContentPointerDiagramStepSchema = z.object({
+  title: z.string().trim().max(160).optional(),
+  operation: z.string().trim().max(240).optional(),
+  nodes: z.array(notebookContentPointerNodeSchema).max(14).default([]),
+  pointers: z.array(notebookContentPointerSchema).max(8).default([]),
+  links: z.array(notebookContentDiagramLinkSchema).max(20).default([]),
+  explanation: z.string().trim().max(1200).optional(),
+});
+
+export const notebookContentPointerDiagramBlockSchema = z.object({
+  type: z.literal('pointer_diagram'),
+  kind: z.enum(['pointer', 'linked_list']).optional(),
+  variant: z.enum(['singly', 'doubly']).optional(),
+  title: z.string().trim().max(200).optional(),
+  operation: z.string().trim().max(200).optional(),
+  headLabel: z.string().trim().max(80).optional(),
+  tailLabel: z.string().trim().max(80).optional(),
+  nullLabel: z.string().trim().max(80).optional(),
+  nodes: z.array(notebookContentPointerNodeSchema).min(1).max(14),
+  pointers: z.array(notebookContentPointerSchema).max(8).default([]),
+  links: z.array(notebookContentDiagramLinkSchema).max(20).default([]),
+  steps: z.array(notebookContentPointerDiagramStepSchema).max(12).default([]),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentTreeNodeSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  children: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
+  left: z.string().trim().max(80).optional(),
+  right: z.string().trim().max(80).optional(),
+  active: z.boolean().default(false),
+  muted: z.boolean().default(false),
+});
+
+export const notebookContentTreeDiagramStepSchema = z.object({
+  title: z.string().trim().max(160).optional(),
+  current: z.string().trim().max(80).optional(),
+  path: z.array(z.string().trim().min(1).max(80)).max(16).default([]),
+  comparison: z.string().trim().max(240).optional(),
+  direction: z
+    .enum(['left', 'right', 'visit', 'backtrack', 'aggregate', 'found', 'missing', 'done'])
+    .optional(),
+  result: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentTreeDiagramBlockSchema = z.object({
+  type: z.literal('tree_diagram'),
+  kind: z.enum(['tree', 'bst']).optional(),
+  title: z.string().trim().max(200).optional(),
+  nodes: z.array(notebookContentTreeNodeSchema).min(1).max(31),
+  rootId: z.string().trim().max(80).optional(),
+  path: z.array(z.string().trim().min(1).max(80)).max(16).default([]),
+  target: z.string().trim().max(120).optional(),
+  decision: z.string().trim().max(300).optional(),
+  invariant: z.string().trim().max(500).optional(),
+  steps: z.array(notebookContentTreeDiagramStepSchema).max(16).default([]),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentGraphNodeSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  x: z.number().min(0).max(1000).optional(),
+  y: z.number().min(0).max(1000).optional(),
+  active: z.boolean().default(false),
+  muted: z.boolean().default(false),
+});
+
+export const notebookContentGraphEdgeSchema = z.object({
+  id: z.string().trim().min(1).max(80).optional(),
+  from: z.string().trim().min(1).max(80),
+  to: z.string().trim().min(1).max(80),
+  label: z.string().trim().max(120).optional(),
+  directed: z.boolean().optional(),
+  active: z.boolean().default(false),
+  muted: z.boolean().default(false),
+});
+
+export const notebookContentGraphTraceStepSchema = z.object({
+  title: z.string().trim().max(160).optional(),
+  action: z
+    .enum(['start', 'enqueue', 'dequeue', 'push', 'pop', 'visit', 'check_edge', 'skip', 'done'])
+    .optional(),
+  current: z.string().trim().max(80).optional(),
+  currentEdge: z.tuple([z.string().trim().max(80), z.string().trim().max(80)]).optional(),
+  frontier: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  visited: z.array(z.string().trim().min(1).max(80)).max(32).default([]),
+  order: z.array(z.string().trim().min(1).max(80)).max(32).default([]),
+  activeEdges: z.array(z.string().trim().min(1).max(120)).max(32).default([]),
+  explanation: z.string().trim().max(800).optional(),
+  result: z.string().trim().max(400).optional(),
+});
+
+export const notebookContentGraphTraceBlockSchema = z.object({
+  type: z.literal('graph_trace'),
+  algorithm: z.enum(['bfs', 'dfs_stack', 'dfs_recursive']).default('bfs'),
+  title: z.string().trim().max(200).optional(),
+  directed: z.boolean().default(false),
+  startId: z.string().trim().max(80).optional(),
+  nodes: z.array(notebookContentGraphNodeSchema).min(1).max(32),
+  edges: z.array(notebookContentGraphEdgeSchema).max(64).default([]),
+  steps: z.array(notebookContentGraphTraceStepSchema).max(24).default([]),
+  invariant: z.string().trim().max(500).optional(),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentInvariantCheckSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  text: z.string().trim().min(1).max(1000),
+  status: z.enum(['holds', 'violated', 'unknown']).default('unknown'),
+  reason: z.string().trim().max(500).optional(),
+});
+
+export const notebookContentInvariantPanelBlockSchema = z.object({
+  type: z.literal('invariant_panel'),
+  title: z.string().trim().max(200).optional(),
+  invariant: z.string().trim().min(1).max(1000),
+  structure: z.string().trim().max(200).optional(),
+  checks: z.array(notebookContentInvariantCheckSchema).min(1).max(8),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentDictionaryEntrySchema = z.object({
+  key: z.string().trim().min(1).max(120),
+  value: z.string().trim().max(500).default(''),
+  active: z.boolean().default(false),
+  changed: z.boolean().default(false),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentDictionaryDiagramBlockSchema = z.object({
+  type: z.literal('dictionary_diagram'),
+  title: z.string().trim().max(200).optional(),
+  operation: z.string().trim().max(300).optional(),
+  lookupKey: z.string().trim().max(120).optional(),
+  result: z.string().trim().max(500).optional(),
+  entries: z.array(notebookContentDictionaryEntrySchema).min(1).max(16),
+  caption: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentLinearItemSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  active: z.boolean().default(false),
+  changed: z.boolean().default(false),
+  muted: z.boolean().default(false),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const notebookContentLinearStructureStepSchema = z.object({
+  title: z.string().trim().max(160).optional(),
+  operation: z.string().trim().max(240).optional(),
+  items: z.array(notebookContentLinearItemSchema).max(16).default([]),
+  focus: z.array(z.string().trim().min(1).max(80)).max(6).default([]),
+  explanation: z.string().trim().max(1200).optional(),
+  result: z.string().trim().max(400).optional(),
+});
+
+export const notebookContentLinearStructureBlockSchema = z.object({
+  type: z.literal('linear_structure'),
+  kind: z.enum(['stack', 'queue']),
+  title: z.string().trim().max(200).optional(),
+  operation: z.string().trim().max(300).optional(),
+  items: z.array(notebookContentLinearItemSchema).max(16).default([]),
+  steps: z.array(notebookContentLinearStructureStepSchema).max(16).default([]),
+  caption: z.string().trim().max(300).optional(),
+});
+
 export const notebookContentTableBlockSchema = z.object({
   type: z.literal('table'),
   caption: z.string().trim().max(300).optional(),
@@ -265,7 +574,7 @@ export const notebookContentExampleBlockSchema = z.object({
   problem: z.string().trim().min(1).max(6000),
   givens: z.array(z.string().trim().min(1).max(1000)).max(12).default([]),
   goal: z.string().trim().max(1000).optional(),
-  steps: z.array(z.string().trim().min(1).max(2000)).min(1).max(16),
+  steps: z.array(z.string().trim().min(1).max(2000)).max(16),
   answer: z.string().trim().max(2000).optional(),
   pitfalls: z.array(z.string().trim().min(1).max(1000)).max(12).default([]),
 });
@@ -330,6 +639,16 @@ const notebookContentBlockBaseSchema = z.discriminatedUnion('type', [
   notebookContentDerivationBlockSchema,
   notebookContentCodeBlockSchema,
   notebookContentCodeWalkthroughBlockSchema,
+  notebookContentCodeTraceBlockSchema,
+  notebookContentStateTableBlockSchema,
+  notebookContentCallStackBlockSchema,
+  notebookContentMemoryDiagramBlockSchema,
+  notebookContentPointerDiagramBlockSchema,
+  notebookContentTreeDiagramBlockSchema,
+  notebookContentGraphTraceBlockSchema,
+  notebookContentInvariantPanelBlockSchema,
+  notebookContentDictionaryDiagramBlockSchema,
+  notebookContentLinearStructureBlockSchema,
   notebookContentTableBlockSchema,
   notebookContentCalloutBlockSchema,
   notebookContentDefinitionBlockSchema,
@@ -388,6 +707,7 @@ const notebookContentDocumentBaseSchema = z
     version: z.union([z.literal(1), z.literal(2)]).default(1),
     language: notebookContentLanguageSchema.default('zh-CN'),
     profile: notebookContentProfileSchema.default('general'),
+    deckStyle: notebookContentDeckStyleSchema.optional(),
     disciplineStyle: notebookContentDisciplineStyleSchema.default('general'),
     teachingFlow: notebookContentTeachingFlowSchema.default('standalone'),
     layout: notebookContentLayoutSchema.default({ mode: 'stack' }),
@@ -447,6 +767,7 @@ export const notebookContentDocumentSchema = z.preprocess(
 
 export type NotebookContentLanguage = z.infer<typeof notebookContentLanguageSchema>;
 export type NotebookContentProfile = z.infer<typeof notebookContentProfileSchema>;
+export type NotebookContentDeckStyle = z.infer<typeof notebookContentDeckStyleSchema>;
 export type NotebookContentDisciplineStyle = z.infer<typeof notebookContentDisciplineStyleSchema>;
 export type NotebookContentTeachingFlow = z.infer<typeof notebookContentTeachingFlowSchema>;
 export type NotebookContentLayoutMode = z.infer<typeof notebookContentLayoutModeSchema>;
@@ -474,6 +795,39 @@ export type NotebookContentCodeBlock = z.infer<typeof notebookContentCodeBlockSc
 export type NotebookContentCodeWalkthroughBlock = z.infer<
   typeof notebookContentCodeWalkthroughBlockSchema
 >;
+export type NotebookContentKeyValue = z.infer<typeof notebookContentKeyValueSchema>;
+export type NotebookContentCodeTraceStep = z.infer<typeof notebookContentCodeTraceStepSchema>;
+export type NotebookContentCodeTraceBlock = z.infer<typeof notebookContentCodeTraceBlockSchema>;
+export type NotebookContentStateTableBlock = z.infer<typeof notebookContentStateTableBlockSchema>;
+export type NotebookContentCallStackFrame = z.infer<typeof notebookContentCallStackFrameSchema>;
+export type NotebookContentCallStackBlock = z.infer<typeof notebookContentCallStackBlockSchema>;
+export type NotebookContentMemoryVariable = z.infer<typeof notebookContentMemoryVariableSchema>;
+export type NotebookContentMemoryFrame = z.infer<typeof notebookContentMemoryFrameSchema>;
+export type NotebookContentMemoryObject = z.infer<typeof notebookContentMemoryObjectSchema>;
+export type NotebookContentDiagramLink = z.infer<typeof notebookContentDiagramLinkSchema>;
+export type NotebookContentMemoryTraceStep = z.infer<typeof notebookContentMemoryTraceStepSchema>;
+export type NotebookContentMemoryDiagramBlock = z.infer<
+  typeof notebookContentMemoryDiagramBlockSchema
+>;
+export type NotebookContentPointerNode = z.infer<typeof notebookContentPointerNodeSchema>;
+export type NotebookContentPointer = z.infer<typeof notebookContentPointerSchema>;
+export type NotebookContentPointerDiagramBlock = z.infer<
+  typeof notebookContentPointerDiagramBlockSchema
+>;
+export type NotebookContentTreeNode = z.infer<typeof notebookContentTreeNodeSchema>;
+export type NotebookContentTreeDiagramBlock = z.infer<typeof notebookContentTreeDiagramBlockSchema>;
+export type NotebookContentGraphNode = z.infer<typeof notebookContentGraphNodeSchema>;
+export type NotebookContentGraphEdge = z.infer<typeof notebookContentGraphEdgeSchema>;
+export type NotebookContentGraphTraceStep = z.infer<typeof notebookContentGraphTraceStepSchema>;
+export type NotebookContentGraphTraceBlock = z.infer<typeof notebookContentGraphTraceBlockSchema>;
+export type NotebookContentInvariantCheck = z.infer<typeof notebookContentInvariantCheckSchema>;
+export type NotebookContentInvariantPanelBlock = z.infer<
+  typeof notebookContentInvariantPanelBlockSchema
+>;
+export type NotebookContentLinearItem = z.infer<typeof notebookContentLinearItemSchema>;
+export type NotebookContentLinearStructureBlock = z.infer<
+  typeof notebookContentLinearStructureBlockSchema
+>;
 export type NotebookContentTableBlock = z.infer<typeof notebookContentTableBlockSchema>;
 export type NotebookContentCalloutBlock = z.infer<typeof notebookContentCalloutBlockSchema>;
 export type NotebookContentDefinitionBlock = z.infer<typeof notebookContentDefinitionBlockSchema>;
@@ -495,6 +849,33 @@ export type NotebookContentVisualBlock = z.infer<typeof notebookContentVisualBlo
 export type NotebookContentBlock = z.infer<typeof notebookContentBlockSchema>;
 export type NotebookContentSlot = z.infer<typeof notebookContentSlotSchema>;
 export type NotebookContentDocument = z.infer<typeof notebookContentDocumentSchema>;
+
+export const CLASSIC_LECTURE_LAYOUT_TEMPLATES = [
+  'pipeline_table',
+  'comparison_matrix',
+  'visual_three_steps',
+  'process_steps',
+  'two_by_one_summary',
+  'three_cards',
+  'text_image_split',
+  'four_columns',
+  'grid_2x2',
+  'two_text_image',
+  'definition_board',
+  'derivation_ladder',
+  'formula_focus',
+  'image_title_overlay',
+  'cinematic_title_frame',
+  'tech_hero_title',
+] as const satisfies readonly NotebookContentLayoutTemplate[];
+
+const CLASSIC_LECTURE_LAYOUT_TEMPLATE_SET = new Set<string>(CLASSIC_LECTURE_LAYOUT_TEMPLATES);
+
+export function isClassicLectureLayoutTemplate(
+  template: string | null | undefined,
+): template is (typeof CLASSIC_LECTURE_LAYOUT_TEMPLATES)[number] {
+  return Boolean(template && CLASSIC_LECTURE_LAYOUT_TEMPLATE_SET.has(template));
+}
 
 function decodeHtmlEntities(input: string): string {
   return input

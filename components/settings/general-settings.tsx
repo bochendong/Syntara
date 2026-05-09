@@ -17,7 +17,7 @@ import {
 import { Loader2, Trash2, AlertTriangle, LogOut } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { clearDatabase } from '@/lib/utils/database';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { createLogger } from '@/lib/logger';
 import {
   getStoredApplyNotebookWrites,

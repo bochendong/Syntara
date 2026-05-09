@@ -23,6 +23,7 @@ export interface RequestLLMContext {
   operationCode?: string;
   chargeReason?: string;
   serviceLabel?: string;
+  skipCreditCharge?: boolean;
 }
 
 const requestContextStorage = new AsyncLocalStorage<RequestLLMContext>();

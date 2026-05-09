@@ -73,6 +73,10 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLanding = pathname === '/';
   const isClassroom = pathname?.startsWith('/classroom/');
   const isAdmin = pathname?.startsWith('/admin');
+  const isGenerationQuality =
+    pathname === '/generation-quality' ||
+    pathname === '/generation-file-test' ||
+    pathname === '/generation-tests';
   const isCourseProblemBank =
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isReviewImmersive =
@@ -108,7 +112,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  if (isReviewImmersive || isCourseProblemBank) {
+  if (isReviewImmersive || isCourseProblemBank || isGenerationQuality) {
     return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
   }
 

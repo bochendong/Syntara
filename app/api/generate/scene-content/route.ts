@@ -12,7 +12,9 @@ import {
   applyOutlineFallbacks,
   generateSceneContent,
   buildVisionUserContent,
+  normalizeImageFirstHeroOutlineForSceneContent,
 } from '@/lib/generation/generation-pipeline';
+import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { flattenGeneratedSlideContentPages } from '@/lib/generation/continuation-pages';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
 import type { CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
@@ -21,11 +23,31 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeadersForNotebookStage } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { normalizeSlideGenerationRoute } from '@/lib/generation/slide-generation-route';
+import {
+  normalizeNotebookSlideGenerationRoute,
+  normalizeSlideGenerationRoute,
+} from '@/lib/generation/slide-generation-route';
 
 const log = createLogger('Scene Content API');
 
 export const maxDuration = 300;
+
+const NO_CHARGE_TEST_STAGE_IDS = new Set([
+  'single-page-generation-quality',
+  'testfile-page-generation',
+]);
+
+function shouldSkipCreditChargeForTestRequest(req: NextRequest, stageId: string): boolean {
+  const testRequested =
+    req.headers.get('x-generation-test-no-charge') === 'true' ||
+    NO_CHARGE_TEST_STAGE_IDS.has(stageId.trim());
+  if (!testRequested) return false;
+
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SYNTARA_ALLOW_NO_CHARGE_TEST_GENERATION === 'true'
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +78,10 @@ export async function POST(req: NextRequest) {
       rewriteReason?: string;
       slideGenerationRoute?: unknown;
     };
-    const slideGenerationRoute = normalizeSlideGenerationRoute(rawSlideGenerationRoute);
+    const allowLegacyCanvas = req.headers.get('x-allow-legacy-canvas') === 'true';
+    const slideGenerationRoute = allowLegacyCanvas
+      ? normalizeSlideGenerationRoute(rawSlideGenerationRoute)
+      : normalizeNotebookSlideGenerationRoute(rawSlideGenerationRoute);
 
     // Validate required fields
     if (!rawOutline) {
@@ -74,10 +99,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure outline has language from stageInfo (fallback for older outlines)
-    const outline: SceneOutline = {
+    const outline: SceneOutline = normalizeComputerScienceSceneOutline({
       ...rawOutline,
       language: rawOutline.language || (stageInfo?.language as 'zh-CN' | 'en-US') || 'zh-CN',
-    };
+    });
+    const normalizedAllOutlines = allOutlines.map((candidate) =>
+      normalizeImageFirstHeroOutlineForSceneContent(
+        normalizeComputerScienceSceneOutline({
+          ...candidate,
+          language: candidate.language || outline.language || 'zh-CN',
+        }),
+      ),
+    );
+    const skipCreditCharge = shouldSkipCreditChargeForTestRequest(req, stageId);
     const usageContext = {
       notebookId: stageId.trim(),
       notebookName: stageInfo?.name?.trim() || undefined,
@@ -85,8 +119,9 @@ export async function POST(req: NextRequest) {
       sceneTitle: outline.title.trim() || undefined,
       sceneOrder: outline.order,
       sceneType: outline.type,
-      operationCode: 'scene_content_generation',
-      chargeReason: '生成页面内容',
+      operationCode: skipCreditCharge ? 'generation_quality_test' : 'scene_content_generation',
+      chargeReason: skipCreditCharge ? '生成测试页面（免积分）' : '生成页面内容',
+      skipCreditCharge,
     } as const;
 
     // ── Model resolution from request headers ──
@@ -153,7 +188,9 @@ export async function POST(req: NextRequest) {
     };
 
     // ── Apply fallbacks ──
-    const effectiveOutline = applyOutlineFallbacks(outline, !!languageModel);
+    const effectiveOutline = normalizeImageFirstHeroOutlineForSceneContent(
+      normalizeComputerScienceSceneOutline(applyOutlineFallbacks(outline, !!languageModel)),
+    );
 
     // ── Filter images assigned to this outline ──
     let assignedImages: PdfImage[] | undefined;
@@ -186,6 +223,9 @@ export async function POST(req: NextRequest) {
       failureReasons: [] as string[],
       semanticRetryCount: 0,
       layoutRetryCount: 0,
+      contentFallbackUsed: false,
+      fallbackKind: undefined as string | undefined,
+      generatedAt: Date.now(),
     };
     try {
       content = await generateSceneContent(
@@ -201,9 +241,15 @@ export async function POST(req: NextRequest) {
         body.rewriteReason,
         generationDiagnostics,
         slideGenerationRoute,
+        normalizedAllOutlines,
       );
     } catch (error) {
       generationError = error;
+      generationDiagnostics.failureStage =
+        generationDiagnostics.failureStage ?? 'scene_content_exception';
+      generationDiagnostics.failureReasons.push(
+        error instanceof Error ? error.message : String(error),
+      );
       log.error(`Scene content generation threw for: "${effectiveOutline.title}"`, error);
     }
 

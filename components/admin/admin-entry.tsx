@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { AdminConsole } from '@/components/admin/admin-console';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

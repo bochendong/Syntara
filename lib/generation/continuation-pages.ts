@@ -9,13 +9,28 @@ import { normalizeSceneOutlineContentProfile } from './content-profile';
 
 export const WEB_CONTINUATION_PAGES_ENABLED = false;
 
-function stripContinuationPages(content: GeneratedSlideContent): GeneratedSlidePageContent {
+function stripDocumentContinuation(
+  contentDocument: GeneratedSlideContent['contentDocument'],
+): GeneratedSlideContent['contentDocument'] {
+  if (!contentDocument?.continuation) return contentDocument;
+  return {
+    ...contentDocument,
+    continuation: undefined,
+  };
+}
+
+function stripContinuationPages(
+  content: GeneratedSlideContent,
+  options?: { stripDocumentContinuation?: boolean },
+): GeneratedSlidePageContent {
   return {
     elements: content.elements,
     background: content.background,
     theme: content.theme,
     remark: content.remark,
-    contentDocument: content.contentDocument,
+    contentDocument: options?.stripDocumentContinuation
+      ? stripDocumentContinuation(content.contentDocument)
+      : content.contentDocument,
   };
 }
 
@@ -44,15 +59,19 @@ export function flattenGeneratedSlideContentPages(args: {
   contents: GeneratedSlidePageContent[];
   effectiveOutlines: SceneOutline[];
 } {
-  const basePage = stripContinuationPages(args.content);
   const continuationPages = args.content.continuationPages || [];
   if (!WEB_CONTINUATION_PAGES_ENABLED || continuationPages.length === 0) {
     return {
-      contents: [basePage],
+      contents: [
+        stripContinuationPages(args.content, {
+          stripDocumentContinuation: true,
+        }),
+      ],
       effectiveOutlines: [args.effectiveOutline],
     };
   }
 
+  const basePage = stripContinuationPages(args.content);
   return {
     contents: [basePage, ...continuationPages.map((page) => page.content)],
     effectiveOutlines: [args.effectiveOutline, ...continuationPages.map((page) => page.outline)],

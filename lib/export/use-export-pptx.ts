@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import pptxgen from 'pptxgenjs';
 import tinycolor from 'tinycolor2';
 import { saveAs } from 'file-saver';
-import { toast } from 'sonner';
+import { toast } from '@/lib/notifications/client-toast';
 import { toPng } from 'html-to-image';
 
 import { useStageStore } from '@/lib/store';
