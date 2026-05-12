@@ -679,6 +679,10 @@ function collectPrimaryFormulaFocusText(document: NotebookContentDocument): stri
   return '';
 }
 
+function formulaTextContainsStudentProse(value: string): boolean {
+  return /[\u3400-\u9fff]/.test(value);
+}
+
 function validateMathFormulaFocus(
   document: NotebookContentDocument,
   pagePlan: TeachingPagePlan,
@@ -706,6 +710,11 @@ function validateMathFormulaFocus(
   if (!primaryFormula.trim()) {
     reasons.push('template formula_focus requires one equation, matrix, or derivation block');
     return reasons;
+  }
+  if (formulaTextContainsStudentProse(primaryFormula)) {
+    reasons.push(
+      'template formula_focus primary formula must be pure LaTeX; move prose such as givens, goals, or explanations into callout/summary blocks',
+    );
   }
 
   const anchorTokens = extractMathAnchorTokens(pagePlan.concreteAnchor);

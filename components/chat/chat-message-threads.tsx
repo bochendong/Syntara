@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { UIMessage } from 'ai';
 import { Loader2, Presentation, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MessageResponse } from '@/components/ai-elements/message';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -15,12 +16,7 @@ import type { Scene } from '@/lib/types/stage';
 import type { CourseAgentListItem } from '@/lib/utils/course-agents';
 import { cn } from '@/lib/utils';
 import { ATTACHMENT_ONLY_PLACEHOLDER } from './chat-attachment-utils';
-import {
-  actionHref,
-  AgentPeerAvatar,
-  ChatUserAvatar,
-  NotebookPeerAvatar,
-} from './chat-avatars';
+import { actionHref, AgentPeerAvatar, ChatUserAvatar, NotebookPeerAvatar } from './chat-avatars';
 import { messageText } from './chat-message-utils';
 import type { NotebookChatMessage } from './chat-page-types';
 import { InlineLessonDeck } from './inline-lesson-deck';
@@ -82,10 +78,7 @@ export function NotebookMessageThread({
                 <ContextMenuItem onSelect={() => void copyMessageText(m.text)}>
                   复制内容
                 </ContextMenuItem>
-                <ContextMenuItem
-                  variant="destructive"
-                  onSelect={() => deleteNotebookMessageAt(i)}
-                >
+                <ContextMenuItem variant="destructive" onSelect={() => deleteNotebookMessageAt(i)}>
                   删除该条
                 </ContextMenuItem>
               </ContextMenuContent>
@@ -104,7 +97,9 @@ export function NotebookMessageThread({
                   {m.answerDocument ? (
                     <NotebookContentView document={m.answerDocument} />
                   ) : (
-                    <p className="whitespace-pre-wrap break-words text-foreground">{m.answer}</p>
+                    <MessageResponse className="break-words leading-7 text-foreground">
+                      {m.answer}
+                    </MessageResponse>
                   )}
                   {m.references.length > 0 ? (
                     <div className="mt-3 border-t border-slate-900/[0.06] pt-3 dark:border-white/[0.08]">
@@ -148,8 +143,7 @@ export function NotebookMessageThread({
                             快速讲解
                           </p>
                           <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                            需要的话，我可以把这道题自动整理成 3-5
-                            页临时PPT，便于翻页讲解与复习。
+                            需要的话，我可以把这道题自动整理成 3-5 页临时PPT，便于翻页讲解与复习。
                           </p>
                         </div>
                         <Button
@@ -193,10 +187,7 @@ export function NotebookMessageThread({
                 <ContextMenuItem onSelect={() => void copyMessageText(m.answer)}>
                   复制内容
                 </ContextMenuItem>
-                <ContextMenuItem
-                  variant="destructive"
-                  onSelect={() => deleteNotebookMessageAt(i)}
-                >
+                <ContextMenuItem variant="destructive" onSelect={() => deleteNotebookMessageAt(i)}>
                   删除该条
                 </ContextMenuItem>
               </ContextMenuContent>
@@ -237,7 +228,10 @@ export function AgentMessageThread({
         return (
           <div
             key={m.id}
-            className={cn('flex gap-2', isUser ? 'flex-row-reverse items-end' : 'flex-row items-start')}
+            className={cn(
+              'flex gap-2',
+              isUser ? 'flex-row-reverse items-end' : 'flex-row items-start',
+            )}
           >
             {isUser ? (
               <ChatUserAvatar
@@ -263,8 +257,11 @@ export function AgentMessageThread({
                   {!isUser && meta?.senderName ? (
                     <p className="mb-1 text-[10px] font-medium opacity-70">{meta.senderName}</p>
                   ) : null}
-                  {!hideAttachmentOnlyText ? (
+                  {!hideAttachmentOnlyText && isUser ? (
                     <p className="whitespace-pre-wrap break-words">{text}</p>
+                  ) : null}
+                  {!hideAttachmentOnlyText && !isUser ? (
+                    <MessageResponse className="break-words leading-7">{text}</MessageResponse>
                   ) : null}
                   {isUser && meta?.attachments && meta.attachments.length > 0 ? (
                     <div className={cn('space-y-2', !hideAttachmentOnlyText && 'mt-2')}>

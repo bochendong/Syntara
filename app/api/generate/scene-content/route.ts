@@ -24,6 +24,13 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeadersForNotebookStage } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
 import {
+  OPENAI_RETAIL_MARKUP_MULTIPLIER,
+  estimateOpenAITextUsageBaseCostUsd,
+  estimateOpenAITextUsageRetailCostCredits,
+  estimateOpenAITextUsageRetailCostUsd,
+} from '@/lib/utils/openai-pricing';
+import { creditsFromTokenUsage, usdFromCredits } from '@/lib/utils/credits';
+import {
   normalizeNotebookSlideGenerationRoute,
   normalizeSlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
@@ -37,6 +44,13 @@ const NO_CHARGE_TEST_STAGE_IDS = new Set([
   'testfile-page-generation',
 ]);
 
+type TokenUsage = {
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  cachedInputTokens?: number | null;
+  totalTokens?: number | null;
+};
+
 function shouldSkipCreditChargeForTestRequest(req: NextRequest, stageId: string): boolean {
   const testRequested =
     req.headers.get('x-generation-test-no-charge') === 'true' ||
@@ -47,6 +61,65 @@ function shouldSkipCreditChargeForTestRequest(req: NextRequest, stageId: string)
     process.env.NODE_ENV !== 'production' ||
     process.env.SYNTARA_ALLOW_NO_CHARGE_TEST_GENERATION === 'true'
   );
+}
+
+function toSafeInt(value: number | null | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.round(value));
+}
+
+function combineTokenUsage(usages: Array<TokenUsage | undefined>): TokenUsage | undefined {
+  const combined = usages.reduce<TokenUsage>(
+    (acc, usage) => ({
+      inputTokens: toSafeInt(acc.inputTokens) + toSafeInt(usage?.inputTokens),
+      outputTokens: toSafeInt(acc.outputTokens) + toSafeInt(usage?.outputTokens),
+      cachedInputTokens: toSafeInt(acc.cachedInputTokens) + toSafeInt(usage?.cachedInputTokens),
+      totalTokens: toSafeInt(acc.totalTokens) + toSafeInt(usage?.totalTokens),
+    }),
+    { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, totalTokens: 0 },
+  );
+  const inferredTotal = toSafeInt(combined.inputTokens) + toSafeInt(combined.outputTokens);
+  const totalTokens = toSafeInt(combined.totalTokens || inferredTotal);
+  if (totalTokens <= 0) return undefined;
+  return { ...combined, totalTokens };
+}
+
+function estimateSceneGenerationCost(modelString: string, usage: TokenUsage | undefined) {
+  const inputTokens = toSafeInt(usage?.inputTokens);
+  const outputTokens = toSafeInt(usage?.outputTokens);
+  const cachedInputTokens = toSafeInt(usage?.cachedInputTokens);
+  const totalTokens = toSafeInt(usage?.totalTokens ?? inputTokens + outputTokens);
+  if (totalTokens <= 0 && inputTokens <= 0 && outputTokens <= 0) return null;
+
+  const providerId = modelString.includes(':') ? modelString.split(':')[0] : undefined;
+  const pricingArgs = {
+    providerId,
+    modelString,
+    inputTokens,
+    outputTokens,
+    cachedInputTokens,
+  };
+  const baseUsd = estimateOpenAITextUsageBaseCostUsd(pricingArgs);
+  const retailUsd = estimateOpenAITextUsageRetailCostUsd(pricingArgs);
+  const computeCredits = estimateOpenAITextUsageRetailCostCredits(pricingArgs);
+  if (baseUsd != null && retailUsd != null && computeCredits != null) {
+    return {
+      baseUsd,
+      retailUsd,
+      computeCredits,
+      markupMultiplier: OPENAI_RETAIL_MARKUP_MULTIPLIER,
+      source: 'openai_pricing' as const,
+    };
+  }
+
+  const fallbackCredits = creditsFromTokenUsage(totalTokens);
+  return {
+    baseUsd: null,
+    retailUsd: usdFromCredits(fallbackCredits),
+    computeCredits: fallbackCredits,
+    markupMultiplier: null,
+    source: 'token_fallback' as const,
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -135,6 +208,7 @@ export async function POST(req: NextRequest) {
 
     // Detect vision capability
     const hasVision = !!modelInfo?.capabilities?.vision;
+    const llmUsages: TokenUsage[] = [];
 
     // Vision-aware AI call function
     const aiCall = async (
@@ -167,6 +241,7 @@ export async function POST(req: NextRequest) {
             ),
           usageContext,
         );
+        llmUsages.push(result.usage);
         return result.text;
       }
       const result = await runWithRequestContext(
@@ -184,6 +259,7 @@ export async function POST(req: NextRequest) {
           ),
         usageContext,
       );
+      llmUsages.push(result.usage);
       return result.text;
     };
 
@@ -279,16 +355,30 @@ export async function POST(req: NextRequest) {
         content,
         effectiveOutline,
       });
+      const usage = combineTokenUsage(llmUsages);
       return apiSuccess({
         content,
         effectiveOutline,
         contents: flattened.contents,
         effectiveOutlines: flattened.effectiveOutlines,
         generationDiagnostics,
+        model: modelString,
+        usage,
+        costEstimate: estimateSceneGenerationCost(modelString, usage),
+        skippedCreditCharge: skipCreditCharge,
       });
     }
 
-    return apiSuccess({ content, effectiveOutline, generationDiagnostics });
+    const usage = combineTokenUsage(llmUsages);
+    return apiSuccess({
+      content,
+      effectiveOutline,
+      generationDiagnostics,
+      model: modelString,
+      usage,
+      costEstimate: estimateSceneGenerationCost(modelString, usage),
+      skippedCreditCharge: skipCreditCharge,
+    });
   } catch (error) {
     log.error('Scene content generation error:', error);
     return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));

@@ -238,6 +238,44 @@ export interface DirectorState {
   whiteboardLedger: WhiteboardActionRecord[];
 }
 
+export interface CourseChatContextPage {
+  id: string;
+  order: number;
+  title: string;
+  digest: string;
+  sourceScore: number;
+}
+
+export interface CourseChatContextNotebook {
+  id: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+  updatedAt?: number;
+  pages: CourseChatContextPage[];
+  sourceScore: number;
+}
+
+export interface CourseChatContext {
+  course: {
+    id: string;
+    name: string;
+    description?: string;
+    language?: 'zh-CN' | 'en-US';
+    purpose?: 'research' | 'university' | 'daily';
+    tags?: string[];
+    university?: string;
+    courseCode?: string;
+  };
+  target: {
+    kind: 'orchestrator' | 'agent';
+    id: string;
+    name: string;
+    role?: string;
+  };
+  notebooks: CourseChatContextNotebook[];
+}
+
 /**
  * Request body for the stateless chat API
  * All state is sent from the client on each request
@@ -257,6 +295,7 @@ export interface StatelessChatRequest {
   config: {
     agentIds: string[];
     sessionType?: 'qa' | 'discussion';
+    surface?: 'classroom' | 'course-chat';
     /** Discussion topic (for agent-initiated discussions) */
     discussionTopic?: string;
     /** Discussion prompt (for agent-initiated discussions) */
@@ -279,6 +318,8 @@ export interface StatelessChatRequest {
   };
   /** Accumulated director state from previous per-agent requests */
   directorState?: DirectorState;
+  /** Course-level context for the standalone /chat learning surface. */
+  courseContext?: CourseChatContext;
   /** User profile for personalization */
   userProfile?: {
     nickname?: string;

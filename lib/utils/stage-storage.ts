@@ -124,6 +124,184 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
   };
 }
 
+export const MOCK_COURSE_CHAT_ID = 'syntara-mock-course-chat';
+export const MOCK_COURSE_CHAT_NAME = 'Mock 课程聊天测试';
+
+const MOCK_COURSE_CHAT_CREATED_AT = Date.parse('2026-01-01T00:00:00.000Z');
+
+function isMockCourseChatId(courseId: string | null | undefined): boolean {
+  return courseId === MOCK_COURSE_CHAT_ID;
+}
+
+function mockTextElement(id: string, top: number, content: string) {
+  return {
+    id,
+    type: 'text' as const,
+    left: 72,
+    top,
+    width: 820,
+    height: 86,
+    rotate: 0,
+    content,
+    defaultFontName: 'Inter',
+    defaultColor: '#0f172a',
+    textType: top < 120 ? ('title' as const) : ('content' as const),
+  };
+}
+
+function mockScene(stageId: string, order: number, title: string, paragraphs: string[]): Scene {
+  return {
+    id: `${stageId}-scene-${order + 1}`,
+    stageId,
+    type: 'slide',
+    title,
+    order,
+    content: {
+      type: 'slide',
+      canvas: {
+        id: `${stageId}-slide-${order + 1}`,
+        viewportSize: 1000,
+        viewportRatio: 16 / 9,
+        theme: {
+          backgroundColor: '#ffffff',
+          themeColors: ['#2563eb', '#10b981', '#f59e0b'],
+          fontColor: '#0f172a',
+          fontName: 'Inter',
+        },
+        elements: [
+          mockTextElement(`${stageId}-title-${order + 1}`, 72, `<h1>${title}</h1>`),
+          mockTextElement(
+            `${stageId}-body-${order + 1}`,
+            168,
+            paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(''),
+          ),
+        ],
+      },
+    },
+    actions: [
+      {
+        id: `${stageId}-speech-${order + 1}`,
+        type: 'speech',
+        text: `${title}。${paragraphs.join(' ')}`,
+      },
+    ],
+    createdAt: MOCK_COURSE_CHAT_CREATED_AT + order * 1000,
+    updatedAt: MOCK_COURSE_CHAT_CREATED_AT + order * 1000,
+  };
+}
+
+function makeMockNotebook(args: {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  sceneDefs: Array<{ title: string; paragraphs: string[] }>;
+}): StageListItem & { scenes: Scene[] } {
+  return {
+    id: args.id,
+    courseId: MOCK_COURSE_CHAT_ID,
+    name: args.name,
+    description: args.description,
+    tags: args.tags,
+    avatarUrl: undefined,
+    sceneCount: args.sceneDefs.length,
+    createdAt: MOCK_COURSE_CHAT_CREATED_AT,
+    updatedAt: MOCK_COURSE_CHAT_CREATED_AT + args.sceneDefs.length * 1000,
+    scenes: args.sceneDefs.map((scene, index) =>
+      mockScene(args.id, index, scene.title, scene.paragraphs),
+    ),
+  };
+}
+
+const MOCK_COURSE_CHAT_NOTEBOOKS = [
+  makeMockNotebook({
+    id: 'mock-course-chat-algorithms',
+    name: '算法复杂度与递归',
+    description: '用于测试课程聊天上下文引用、复杂度解释、代码块和公式渲染。',
+    tags: ['algorithms', 'recursion', 'big-o'],
+    sceneDefs: [
+      {
+        title: '复杂度的核心问题',
+        paragraphs: [
+          '时间复杂度关注输入规模 n 增长时，运行时间如何增长。常见阶包括 O(1)、O(log n)、O(n)、O(n log n)、O(n^2)。',
+          '判断复杂度时先找主导项，再忽略常数。二分查找每次把搜索空间减半，因此复杂度是 O(log n)。',
+        ],
+      },
+      {
+        title: '递归三件事',
+        paragraphs: [
+          '递归需要明确 base case、recursive case、以及每次调用如何靠近终止条件。',
+          '阶乘可以写成 n! = n × (n - 1)!，其中 0! = 1。递归深度是 n，因此空间复杂度通常是 O(n)。',
+        ],
+      },
+      {
+        title: '分治与归并排序',
+        paragraphs: [
+          '分治算法把问题拆成更小的子问题，分别解决后合并结果。归并排序的递推式是 T(n)=2T(n/2)+O(n)。',
+          '根据主定理，归并排序时间复杂度为 O(n log n)，适合测试公式解释和步骤化回答。',
+        ],
+      },
+    ],
+  }),
+  makeMockNotebook({
+    id: 'mock-course-chat-linear-algebra',
+    name: '线性代数速记',
+    description: '用于测试跨笔记本综合、概念比较和公式引用。',
+    tags: ['linear algebra', 'matrix', 'eigenvalue'],
+    sceneDefs: [
+      {
+        title: '矩阵乘法的含义',
+        paragraphs: [
+          '矩阵乘法可以理解为线性变换的复合。若 A 和 B 都表示变换，则 AB 表示先做 B 再做 A。',
+          '矩阵乘法一般不满足交换律，也就是说 AB 通常不等于 BA。',
+        ],
+      },
+      {
+        title: '特征值与特征向量',
+        paragraphs: [
+          '若 Av = λv，且 v 不是零向量，则 v 是特征向量，λ 是对应特征值。',
+          '特征向量表示经过线性变换后方向不变或反向的方向，特征值表示伸缩比例。',
+        ],
+      },
+      {
+        title: '线性无关',
+        paragraphs: [
+          '一组向量线性无关，表示没有一个向量可以由其他向量线性组合得到。',
+          '判断线性无关可以把向量作为列组成矩阵，看秩是否等于向量个数。',
+        ],
+      },
+    ],
+  }),
+] satisfies Array<StageListItem & { scenes: Scene[] }>;
+
+export function getMockCourseChatStageList(): StageListItem[] {
+  return MOCK_COURSE_CHAT_NOTEBOOKS.map(({ scenes: _scenes, ...notebook }) => ({ ...notebook }));
+}
+
+function loadMockCourseChatStageData(stageId: string): StageStoreData | null {
+  const notebook = MOCK_COURSE_CHAT_NOTEBOOKS.find((item) => item.id === stageId);
+  if (!notebook) return null;
+  const { scenes, ...stageMeta } = notebook;
+  const clonedScenes = JSON.parse(JSON.stringify(scenes)) as Scene[];
+  return {
+    stage: {
+      id: stageMeta.id,
+      courseId: stageMeta.courseId,
+      avatarUrl: stageMeta.avatarUrl,
+      name: stageMeta.name,
+      description: stageMeta.description,
+      tags: stageMeta.tags,
+      createdAt: stageMeta.createdAt,
+      updatedAt: stageMeta.updatedAt,
+      language: 'zh-CN',
+      style: 'mock',
+    },
+    scenes: clonedScenes,
+    currentSceneId: clonedScenes[0]?.id || null,
+    chats: [],
+  };
+}
+
 /** 生成流程使用客户端 nanoid 作为 id，首次保存前数据库中尚无该行，需先 POST 创建 */
 async function ensureNotebookRow(stageId: string, data: StageStoreData): Promise<void> {
   const getResp = await backendFetch(`/api/notebooks/${encodeURIComponent(stageId)}`, {
@@ -277,6 +455,9 @@ async function withFallbackTimeout<T>(
 }
 
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
+  const mockStageData = loadMockCourseChatStageData(stageId);
+  if (mockStageData) return mockStageData;
+
   const draftSnapshot = await readStageDraftSnapshot(stageId);
   try {
     const { notebook } = await backendJson<{
@@ -520,6 +701,8 @@ export async function listStages(): Promise<StageListItem[]> {
 }
 
 export async function listStagesByCourse(courseId: string): Promise<StageListItem[]> {
+  if (isMockCourseChatId(courseId)) return getMockCourseChatStageList();
+
   try {
     const data = await backendJson<{ notebooks: NotebookApiRow[] }>(
       `/api/notebooks?courseId=${encodeURIComponent(courseId)}`,

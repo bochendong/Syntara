@@ -1,4 +1,5 @@
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
+import type { CourseChatContext } from '@/lib/types/chat';
 import type { Scene } from '@/lib/types/stage';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 import type { NotebookRouteDecision, OrchestratorViewMode } from './chat-page-types';
@@ -12,7 +13,11 @@ function tokenizeForMatch(input: string): string[] {
   return Array.from(new Set([...zhTokens, ...latinTokens]));
 }
 
-function scoreNotebookMatch(message: string, notebook: StageListItem): number {
+function scoreNotebookMatch(
+  message: string,
+  notebook: StageListItem,
+  contextNotebook?: CourseChatContext['notebooks'][number],
+): number {
   const haystack = [notebook.name, notebook.description || '', ...(notebook.tags || [])]
     .join(' ')
     .toLowerCase();
@@ -22,6 +27,17 @@ function scoreNotebookMatch(message: string, notebook: StageListItem): number {
     if (haystack.includes(token)) score += token.length >= 4 ? 3 : 2;
   }
   if (!tokens.length && haystack.includes(message.toLowerCase().trim())) score += 2;
+  if (contextNotebook) {
+    const topPageScore = contextNotebook.pages.reduce(
+      (best, page) => Math.max(best, page.sourceScore),
+      0,
+    );
+    const pageScoreTotal = contextNotebook.pages.reduce(
+      (total, page) => total + page.sourceScore,
+      0,
+    );
+    score += contextNotebook.sourceScore + topPageScore + Math.min(pageScoreTotal, 12);
+  }
   return score;
 }
 
@@ -192,6 +208,7 @@ export function decideNotebookRoute(
   notebooks: StageListItem[],
   mode: OrchestratorViewMode,
   hasAttachments: boolean,
+  courseContext?: CourseChatContext,
 ): NotebookRouteDecision {
   const text = message.trim();
   if (!text) return { type: 'create' };
@@ -208,15 +225,21 @@ export function decideNotebookRoute(
   const createIntent = explicitCreateIntent || (mode === 'private' && genericCreateIntent);
   if (createIntent) return { type: 'create' };
 
+  const contextByNotebookId = new Map(
+    (courseContext?.notebooks || []).map((notebook) => [notebook.id, notebook]),
+  );
   const ranked = notebooks
-    .map((notebook) => ({ notebook, score: scoreNotebookMatch(text, notebook) }))
+    .map((notebook) => ({
+      notebook,
+      score: scoreNotebookMatch(text, notebook, contextByNotebookId.get(notebook.id)),
+    }))
     .sort((a, b) => b.score - a.score || b.notebook.updatedAt - a.notebook.updatedAt);
 
   const broadIntent = /(综合|比较|对比|串联|跨|多个|协作|整体|全局|一起)/i.test(text);
   const positive = ranked.filter((item) => item.score > 0);
 
   if (
-    broadIntent ||
+    (broadIntent && ranked.length > 1) ||
     (positive.length >= 2 && (positive[1].score >= positive[0].score || positive[0].score <= 2))
   ) {
     return {

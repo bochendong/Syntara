@@ -183,6 +183,18 @@ export interface ImageGenerationResult {
   };
 }
 
+export interface ImageGenerationCostEstimate {
+  providerId: string;
+  modelId: string;
+  currency: 'USD';
+  baseUsd: number;
+  retailUsd: number;
+  computeCredits: number;
+  markupMultiplier: number;
+  pricingSource: 'openai-api-pricing';
+  isEstimate: true;
+}
+
 // ============================================================================
 // Video Generation Types (Phase 2)
 // ============================================================================

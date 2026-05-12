@@ -6,6 +6,7 @@
 import type { UIMessage } from 'ai';
 import type {
   ChatMessageMetadata,
+  CourseChatContext,
   DirectorState,
   StatelessChatRequest,
   StatelessEvent,
@@ -22,6 +23,8 @@ export interface RunCourseSideChatParams {
   agentConfigs?: StatelessChatRequest['config']['agentConfigs'];
   getStoreState: () => StatelessChatRequest['storeState'];
   userProfile?: { nickname?: string; bio?: string };
+  surface?: StatelessChatRequest['config']['surface'];
+  courseContext?: CourseChatContext;
   apiKey: string;
   baseUrl?: string;
   model: string;
@@ -158,6 +161,8 @@ export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Pr
     agentConfigs,
     getStoreState,
     userProfile,
+    surface,
+    courseContext,
     apiKey,
     baseUrl,
     model,
@@ -182,6 +187,7 @@ export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Pr
     const config: StatelessChatRequest['config'] = {
       agentIds,
       sessionType: 'qa',
+      surface,
     };
     if (agentConfigs && agentConfigs.length > 0) {
       config.agentConfigs = agentConfigs;
@@ -194,6 +200,7 @@ export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Pr
         messages: working,
         storeState,
         config,
+        courseContext,
         userProfile,
         directorState,
         apiKey,

@@ -86,6 +86,7 @@ export function ChatPageClient() {
   };
   const searchParams = useSearchParams();
   const courseId = useCurrentCourseStore((s) => s.id);
+  const courseName = useCurrentCourseStore((s) => s.name);
   const courseAvatarUrlStored = useCurrentCourseStore((s) => s.avatarUrl);
   const enqueueCompanionBanner = useNotificationStore((s) => s.enqueueBanner);
   const orchestratorAvatar = useMemo(
@@ -813,6 +814,7 @@ export function ChatPageClient() {
     setPendingAttachments,
     setSending,
     courseId,
+    courseName,
     trackedOrchestratorCreateTaskIdRef,
     setActiveOrchestratorTaskId,
     setOrchestratorPipelineProgress,

@@ -7,9 +7,9 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Loader2,
+  Presentation,
   RefreshCw,
   Sparkles,
-  WandSparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,20 +30,16 @@ import type {
   ImageProviderId,
 } from '@/lib/media/types';
 import { useSettingsStore } from '@/lib/store/settings';
-import { backendFetch } from '@/lib/utils/backend-api';
 import { cn } from '@/lib/utils';
+import { backendFetch } from '@/lib/utils/backend-api';
 import { formatComputeCreditsLabel, formatUsdLabel } from '@/lib/utils/credits';
 
-const STORAGE_KEY = 'syntara:image-generation-test:v1';
-const ASPECT_RATIOS = ['16:9', '4:3', '1:1', '9:16'] as const;
+const STORAGE_KEY = 'syntara:ppt-image-generation-test:v1';
 
 const DEFAULT_PROMPT =
-  'A clean high-quality educational illustration of a student desk with a laptop, colorful sticky notes, pencil sketches, and soft daylight, no readable text.';
-
-type AspectRatio = (typeof ASPECT_RATIOS)[number];
+  'Create a realistic screenshot of a single 16:9 PowerPoint slide, not an illustration. The slide topic is "AI-Powered Learning". Use a clean white presentation canvas with a clear top title area, a short subtitle, three concise bullet cards on the left, a simple data chart or process diagram on the right, a small footer line, generous margins, aligned grid layout, professional SaaS presentation style, crisp readable English text, no logos, no watermarks.';
 
 type ServerProvidersResponse = {
-  success?: boolean;
   image?: Record<string, { baseUrl?: string; models?: string[] }>;
 };
 
@@ -52,55 +48,61 @@ type GenerationResponse = {
   result?: ImageGenerationResult;
   costEstimate?: ImageGenerationCostEstimate;
   error?: string;
-  errorCode?: string;
 };
 
-type StoredImageRun = {
+type StoredRun = {
   providerId: ImageProviderId;
   providerName: string;
   modelId: string;
   prompt: string;
-  aspectRatio: AspectRatio;
   createdAt: number;
   width?: number;
   height?: number;
   costEstimate?: ImageGenerationCostEstimate | null;
 };
 
-type StoredImageError = {
+type StoredError = {
   providerId: ImageProviderId;
   modelId: string;
   prompt: string;
-  aspectRatio: AspectRatio;
   createdAt: number;
   message: string;
 };
 
-type RenderedResult = StoredImageRun & {
+type StoredState = {
+  history: StoredRun[];
+  errors: StoredError[];
+};
+
+type RenderedResult = StoredRun & {
   imageUrl: string;
   usage?: ImageGenerationResult['usage'];
 };
+
+function emptyStoredState(): StoredState {
+  return { history: [], errors: [] };
+}
 
 function isImageProviderId(value: string): value is ImageProviderId {
   return Object.prototype.hasOwnProperty.call(IMAGE_PROVIDERS, value);
 }
 
-function readStoredRuns(): { history: StoredImageRun[]; errors: StoredImageError[] } {
-  if (typeof window === 'undefined') return { history: [], errors: [] };
+function readStoredRuns(): StoredState {
+  if (typeof window === 'undefined') return emptyStoredState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { history: [], errors: [] };
+    if (!raw) return emptyStoredState();
     const parsed = JSON.parse(raw) as { history?: unknown; errors?: unknown };
     return {
-      history: Array.isArray(parsed.history) ? (parsed.history as StoredImageRun[]) : [],
-      errors: Array.isArray(parsed.errors) ? (parsed.errors as StoredImageError[]) : [],
+      history: Array.isArray(parsed.history) ? (parsed.history as StoredRun[]) : [],
+      errors: Array.isArray(parsed.errors) ? (parsed.errors as StoredError[]) : [],
     };
   } catch {
-    return { history: [], errors: [] };
+    return emptyStoredState();
   }
 }
 
-function writeStoredRuns(next: { history: StoredImageRun[]; errors: StoredImageError[] }) {
+function writeStoredRuns(next: StoredState) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(
     STORAGE_KEY,
@@ -152,7 +154,19 @@ function formatCostEstimate(costEstimate: ImageGenerationCostEstimate | null | u
   ].join(' · ');
 }
 
-export default function GenerationImageTestPage() {
+function getAspectRatioStatus(width: number | undefined, height: number | undefined) {
+  if (!width || !height) return null;
+  const actual = width / height;
+  const target = 16 / 9;
+  const delta = Math.abs(actual - target) / target;
+  return {
+    actual,
+    isClose: delta < 0.03,
+    label: `${actual.toFixed(2)}:1`,
+  };
+}
+
+export default function GenerationPptImageTestPage() {
   const settingsProviderId = useSettingsStore((state) => state.imageProviderId);
   const settingsModelId = useSettingsStore((state) => state.imageModelId);
   const imageProvidersConfig = useSettingsStore((state) => state.imageProvidersConfig);
@@ -163,16 +177,11 @@ export default function GenerationImageTestPage() {
   const [serverStatus, setServerStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [selectedProviderId, setSelectedProviderId] = useState<ImageProviderId>(settingsProviderId);
   const [selectedModelId, setSelectedModelId] = useState(settingsModelId);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [negativePrompt, setNegativePrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState<RenderedResult | null>(null);
-  const [storedRuns, setStoredRuns] = useState<{
-    history: StoredImageRun[];
-    errors: StoredImageError[];
-  }>({ history: [], errors: [] });
+  const [storedRuns, setStoredRuns] = useState<StoredState>(emptyStoredState);
 
   const refreshServerProviders = useCallback(async (showLoading = true) => {
     if (showLoading) setServerStatus('loading');
@@ -230,6 +239,7 @@ export default function GenerationImageTestPage() {
   const canGenerate = Boolean(
     prompt.trim() && selectedModelId && (isServerConfigured || hasClientApiKey),
   );
+  const aspectRatioStatus = getAspectRatioStatus(result?.width, result?.height);
 
   useEffect(() => {
     if (!providerOptions.length) return;
@@ -248,7 +258,7 @@ export default function GenerationImageTestPage() {
     }
   }, [currentModels, selectedModelId]);
 
-  const persistRun = useCallback((run: StoredImageRun) => {
+  const persistRun = useCallback((run: StoredRun) => {
     setStoredRuns((prev) => {
       const next = {
         history: [run, ...prev.history].slice(0, 20),
@@ -259,7 +269,7 @@ export default function GenerationImageTestPage() {
     });
   }, []);
 
-  const persistError = useCallback((imageError: StoredImageError) => {
+  const persistError = useCallback((imageError: StoredError) => {
     setStoredRuns((prev) => {
       const next = {
         history: prev.history,
@@ -288,19 +298,18 @@ export default function GenerationImageTestPage() {
         },
         body: JSON.stringify({
           prompt: cleanPrompt,
-          negativePrompt: negativePrompt.trim() || undefined,
-          aspectRatio,
+          aspectRatio: '16:9',
           notebookContext: {
-            name: '图片测试',
-            sceneTitle: '图片生成测试',
-            sceneType: 'generation-image-test',
+            name: 'PPT 图片测试',
+            sceneTitle: 'PPT 16:9 图片生成测试',
+            sceneType: 'generation-ppt-image-test',
           },
         }),
       });
 
       const data = (await response.json().catch(() => ({}))) as GenerationResponse;
       if (!response.ok || !data.success || !data.result) {
-        throw new Error(data.error || `图片生成失败：HTTP ${response.status}`);
+        throw new Error(data.error || `PPT 图片生成失败：HTTP ${response.status}`);
       }
 
       const imageUrl = resultToImageUrl(data.result);
@@ -308,12 +317,11 @@ export default function GenerationImageTestPage() {
         throw new Error('图片生成成功，但响应里没有可展示的图片 URL 或 base64 数据。');
       }
 
-      const run: StoredImageRun = {
+      const run: StoredRun = {
         providerId: selectedProviderId,
         providerName: selectedProvider?.name || selectedProviderId,
         modelId: selectedModelId,
         prompt: cleanPrompt,
-        aspectRatio,
         createdAt: Date.now(),
         width: data.result.width,
         height: data.result.height,
@@ -328,7 +336,6 @@ export default function GenerationImageTestPage() {
         providerId: selectedProviderId,
         modelId: selectedModelId,
         prompt: cleanPrompt,
-        aspectRatio,
         createdAt: Date.now(),
         message,
       });
@@ -336,10 +343,8 @@ export default function GenerationImageTestPage() {
       setIsGenerating(false);
     }
   }, [
-    aspectRatio,
     canGenerate,
     isGenerating,
-    negativePrompt,
     persistError,
     persistRun,
     prompt,
@@ -366,8 +371,8 @@ export default function GenerationImageTestPage() {
               返回所有测试
             </Link>
           </Button>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">已生成 {storedRuns.history.length}</Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge variant="outline">PPT 图 {storedRuns.history.length}</Badge>
             {storedRuns.errors.length > 0 && (
               <Badge variant="destructive">失败 {storedRuns.errors.length}</Badge>
             )}
@@ -377,14 +382,14 @@ export default function GenerationImageTestPage() {
         <header className="rounded-xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <ImageIcon className="size-4" />
-                Image Generation QA
+              <div className="flex items-center gap-2 text-sm font-semibold text-indigo-700">
+                <Presentation className="size-4" />
+                PPT Image QA
               </div>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal">图片测试</h1>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal">PPT 图片测试</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                调用正式图片生成接口，按当前系统支持的 Provider
-                和模型验证一张图是否能生成、展示和返回尺寸信息。
+                只测图片模型能不能生成适合放进幻灯片的 16:9 PPT 位图。SVG 转换在独立页面测试，
+                不混在这里。
               </p>
             </div>
             <Button
@@ -402,18 +407,18 @@ export default function GenerationImageTestPage() {
         <section className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <WandSparkles className="size-4 text-emerald-700" />
+              <Sparkles className="size-4 text-indigo-700" />
               生成参数
             </div>
 
             <div className="mt-5 grid gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="provider">图片服务</Label>
+                <Label htmlFor="ppt-image-provider">图片服务</Label>
                 <Select
                   value={selectedProviderId}
                   onValueChange={(value) => setSelectedProviderId(value as ImageProviderId)}
                 >
-                  <SelectTrigger id="provider" className="w-full">
+                  <SelectTrigger id="ppt-image-provider" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -428,13 +433,13 @@ export default function GenerationImageTestPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="model">模型</Label>
+                <Label htmlFor="ppt-image-model">模型</Label>
                 <Select
                   value={selectedModelId}
                   onValueChange={setSelectedModelId}
                   disabled={!currentModels.length}
                 >
-                  <SelectTrigger id="model" className="w-full">
+                  <SelectTrigger id="ppt-image-model" className="w-full">
                     <SelectValue placeholder="暂无可选模型" />
                   </SelectTrigger>
                   <SelectContent>
@@ -449,24 +454,10 @@ export default function GenerationImageTestPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="aspect-ratio">比例</Label>
-                  <Select
-                    value={aspectRatio}
-                    onValueChange={(value) => setAspectRatio(value as AspectRatio)}
-                  >
-                    <SelectTrigger id="aspect-ratio" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ASPECT_RATIOS.filter((ratio) =>
-                        selectedProvider?.supportedAspectRatios.includes(ratio),
-                      ).map((ratio) => (
-                        <SelectItem key={ratio} value={ratio}>
-                          {ratio}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>目标比例</Label>
+                  <div className="flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm">
+                    16:9
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>配置</Label>
@@ -483,23 +474,12 @@ export default function GenerationImageTestPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="prompt">Prompt</Label>
+                <Label htmlFor="ppt-image-prompt">Prompt</Label>
                 <Textarea
-                  id="prompt"
+                  id="ppt-image-prompt"
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
-                  className="min-h-32 resize-y"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="negative-prompt">Negative Prompt</Label>
-                <Textarea
-                  id="negative-prompt"
-                  value={negativePrompt}
-                  onChange={(event) => setNegativePrompt(event.target.value)}
-                  placeholder="可选：不想出现在图里的内容"
-                  className="min-h-20 resize-y"
+                  className="min-h-40 resize-y"
                 />
               </div>
 
@@ -523,48 +503,59 @@ export default function GenerationImageTestPage() {
                 {isGenerating ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Sparkles className="size-4" />
+                  <ImageIcon className="size-4" />
                 )}
-                {isGenerating ? '生成中' : '生成测试图片'}
+                {isGenerating ? '生成中' : '生成 PPT 图片'}
               </Button>
             </div>
           </div>
 
-          <div className="min-h-[520px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">生成结果</h2>
+                <h2 className="text-sm font-semibold text-slate-900">PPT 位图预览</h2>
                 <p className="mt-1 text-xs text-slate-500">
                   {selectedProvider?.name || selectedProviderId} ·{' '}
                   {selectedModel?.name || selectedModelId}
                 </p>
               </div>
               {result && (
-                <Badge variant="secondary" className="gap-1">
-                  <CheckCircle2 className="size-3.5" />
-                  {formatTime(result.createdAt)}
-                </Badge>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {aspectRatioStatus && (
+                    <Badge variant={aspectRatioStatus.isClose ? 'secondary' : 'destructive'}>
+                      {aspectRatioStatus.isClose
+                        ? '16:9 OK'
+                        : `非 16:9 · ${aspectRatioStatus.label}`}
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle2 className="size-3.5" />
+                    {formatTime(result.createdAt)}
+                  </Badge>
+                </div>
               )}
             </div>
 
-            <div className="mt-5 flex min-h-[390px] items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-200 bg-slate-50">
-              {isGenerating ? (
-                <div className="flex flex-col items-center gap-3 text-sm text-slate-500">
-                  <Loader2 className="size-8 animate-spin text-emerald-700" />
-                  正在等待图片接口返回
-                </div>
-              ) : result ? (
-                <img
-                  src={result.imageUrl}
-                  alt="图片测试生成结果"
-                  className="max-h-[560px] w-full object-contain"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-3 px-6 text-center text-sm text-slate-500">
-                  <ImageIcon className="size-10 text-slate-300" />
-                  还没有生成图片。
-                </div>
-              )}
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-100 p-4">
+              <div className="aspect-video overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                {isGenerating ? (
+                  <div className="flex size-full flex-col items-center justify-center gap-3 text-sm text-slate-500">
+                    <Loader2 className="size-8 animate-spin text-indigo-700" />
+                    正在生成 16:9 PPT 图片
+                  </div>
+                ) : result ? (
+                  <img
+                    src={result.imageUrl}
+                    alt="PPT 图片测试生成结果"
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-slate-500">
+                    <Presentation className="size-10 text-slate-300" />
+                    还没有生成 PPT 图片。
+                  </div>
+                )}
+              </div>
             </div>
 
             {result && (
@@ -580,10 +571,13 @@ export default function GenerationImageTestPage() {
                 <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <div className="text-xs text-slate-400">Size</div>
                   <div className="mt-1 font-medium text-slate-900">
-                    {result.width && result.height
-                      ? `${result.width} x ${result.height}`
-                      : result.aspectRatio}
+                    {result.width && result.height ? `${result.width} x ${result.height}` : '16:9'}
                   </div>
+                  {aspectRatioStatus && !aspectRatioStatus.isClose && (
+                    <div className="mt-1 text-xs font-medium text-red-600">
+                      实际比例不是 16:9，预览会按 PPT 画幅裁切。
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <div className="text-xs text-slate-400">Usage</div>
@@ -604,7 +598,7 @@ export default function GenerationImageTestPage() {
 
         {storedRuns.history.length > 0 && (
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-900">最近运行</h2>
+            <h2 className="text-sm font-semibold text-slate-900">最近 PPT 图片生成</h2>
             <div className="mt-3 grid gap-2">
               {storedRuns.history.slice(0, 5).map((run) => (
                 <div
@@ -614,9 +608,7 @@ export default function GenerationImageTestPage() {
                   <div className="min-w-0 font-medium text-slate-900">
                     {run.providerName} · {run.modelId}
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {run.aspectRatio} · {formatTime(run.createdAt)}
-                  </div>
+                  <div className="text-xs text-slate-500">{formatTime(run.createdAt)}</div>
                 </div>
               ))}
             </div>

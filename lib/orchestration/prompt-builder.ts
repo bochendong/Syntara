@@ -4,7 +4,7 @@
  * Builds system prompts and converts messages for the LLM.
  */
 
-import type { StatelessChatRequest } from '@/lib/types/chat';
+import type { CourseChatContext, StatelessChatRequest } from '@/lib/types/chat';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import type { WhiteboardActionRecord, AgentTurnSummary } from './director-prompt';
 import { getActionDescriptions, getEffectiveActions } from './tool-schemas';
@@ -83,6 +83,109 @@ You are ${currentAgentName}, responding AFTER the agents above. You MUST:
 `;
 }
 
+function formatCourseChatContext(courseContext?: CourseChatContext): string {
+  if (!courseContext) {
+    return 'No course context was provided. Answer honestly and ask the student to open a course/notebook when course-specific grounding is required.';
+  }
+
+  const course = courseContext.course;
+  const courseLines = [
+    `Course: ${course.name} (${course.id})`,
+    course.description ? `Description: ${course.description}` : '',
+    course.language ? `Language: ${course.language}` : '',
+    course.purpose ? `Purpose: ${course.purpose}` : '',
+    course.tags?.length ? `Tags: ${course.tags.join(', ')}` : '',
+    course.university ? `University: ${course.university}` : '',
+    course.courseCode ? `Course code: ${course.courseCode}` : '',
+  ].filter(Boolean);
+
+  const notebookLines =
+    courseContext.notebooks.length > 0
+      ? courseContext.notebooks
+          .map((notebook, notebookIndex) => {
+            const meta = [
+              `${notebookIndex + 1}. 《${notebook.name}》`,
+              notebook.description ? `description: ${notebook.description}` : '',
+              notebook.tags?.length ? `tags: ${notebook.tags.join(', ')}` : '',
+            ]
+              .filter(Boolean)
+              .join(' | ');
+            const pages =
+              notebook.pages.length > 0
+                ? notebook.pages
+                    .map(
+                      (page) =>
+                        `   - 第 ${page.order} 页：${page.title}\n     摘要：${page.digest || 'N/A'}`,
+                    )
+                    .join('\n')
+                : '   - No relevant page excerpts available.';
+            return `${meta}\n${pages}`;
+          })
+          .join('\n\n')
+      : 'No notebooks are available in this course context.';
+
+  return `${courseLines.join('\n')}
+
+Current chat target:
+- kind: ${courseContext.target.kind}
+- name: ${courseContext.target.name}
+- role: ${courseContext.target.role || 'N/A'}
+
+Relevant notebooks and page excerpts:
+${notebookLines}`;
+}
+
+function buildCourseChatStructuredPrompt(args: {
+  agentConfig: AgentConfig;
+  roleGuideline: string;
+  languageConstraint: string;
+  studentProfileSection: string;
+  peerContext: string;
+  courseContext?: CourseChatContext;
+}): string {
+  const { agentConfig, roleGuideline, languageConstraint, studentProfileSection, peerContext } =
+    args;
+  const contextSection = formatCourseChatContext(args.courseContext);
+  const courseLanguage = args.courseContext?.course.language;
+  const responseLanguage =
+    courseLanguage === 'en-US'
+      ? 'English'
+      : courseLanguage === 'zh-CN'
+        ? 'Simplified Chinese'
+        : 'the same language as the student unless the course context says otherwise';
+
+  return `# Role
+You are ${agentConfig.name}.
+
+## Your Personality
+${agentConfig.persona}
+
+## Your Teaching Role
+${roleGuideline}
+${studentProfileSection}${peerContext}${languageConstraint}
+# Course Chat Surface
+You are responding inside the standalone course chat page, not the live classroom canvas.
+You MUST NOT use actions, whiteboard commands, slide commands, tool calls, or describe visual effects.
+You can only answer with text.
+
+# Course Context
+${contextSection}
+
+# Output Format
+Return ONLY a single JSON array. Every item must be:
+{"type":"text","content":"..."}
+
+No code fences around the JSON. No objects with type "action".
+
+# Response Quality Rules
+- Respond in ${responseLanguage}.
+- Prioritize the course context. If a claim is grounded in context, cite it inline using this style: 《Notebook Name》第 N 页：Page Title.
+- If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
+- For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
+- For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.
+- Keep the answer useful and structured, but do not dump every excerpt.`;
+}
+
 // ==================== System Prompt ====================
 
 /**
@@ -100,6 +203,10 @@ export function buildStructuredPrompt(
   whiteboardLedger?: WhiteboardActionRecord[],
   userProfile?: { nickname?: string; bio?: string },
   agentResponses?: AgentTurnSummary[],
+  options?: {
+    surface?: StatelessChatRequest['config']['surface'];
+    courseContext?: CourseChatContext;
+  },
 ): string {
   // Determine current scene type for action filtering
   const currentScene = storeState.currentSceneId
@@ -171,6 +278,17 @@ Personalize your teaching based on their background when relevant. Address them 
   const languageConstraint = courseLanguage
     ? `\n# Language (CRITICAL)\nYou MUST speak in ${courseLanguage === 'zh-CN' ? 'Chinese (Simplified)' : courseLanguage === 'en-US' ? 'English' : courseLanguage}. ALL text content in your response MUST be in this language.\n`
     : '';
+
+  if (options?.surface === 'course-chat') {
+    return buildCourseChatStructuredPrompt({
+      agentConfig,
+      roleGuideline,
+      languageConstraint,
+      studentProfileSection,
+      peerContext,
+      courseContext: options.courseContext,
+    });
+  }
 
   return `# Role
 You are ${agentConfig.name}.

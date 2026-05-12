@@ -71,6 +71,16 @@ When layout intent provides one of these `template` values, organize the semanti
 
 Classic templates are classroom PPT pages, not narration containers: beyond the title, keep only scan-friendly phrases, table rows, and judgment steps. Do not turn one page into two lecture paragraphs; split when the explanation needs that much space.
 
+## 16:9 Single-Slide Budget
+
+Except for image-first covers and `code_split`, Classic templates default to one fixed 16:9 PPT slide: one primary structure, a few compact explanations, and no hidden overflow. Tables usually have 3-6 rows, processes have 3-5 steps, and cards have 3 or 4 items; when content does not fit, compress it into shorter classroom-board language instead of writing a web article.
+
+Image-first covers are the exception: they only establish the main visual, title, and one short subtitle/meta line. Do not output tables, processes, cards, or long lecture prose just to satisfy ordinary teaching components.
+
+`code_split` is the exception: preserve the key code plus execution/state changes first. It may paginate or keep a scroll-preserving structure according to overflowPolicy, but it must still contain code plus trace/state and must not degrade into an ordinary bullet_list.
+
+Math pages must produce editable, renderable semantic math, not raw HTML, MathML, MathJax, or KaTeX. Use `\formula{...}` for standalone formulas or pure LaTeX inside `derivation` steps, and use short `$...$` formulas inside table cells. Do not force layout with `\hspace`, `\qquad`, `mspace`, or similar spacing hacks. Keep math tables compact, use at most 7 formula blocks, and keep derivations to 3-5 steps.
+
 ## Deck Style
 
 `deckStyle` represents the deck-level visual master, not the content structure of one slide. Set it only when the input explicitly provides a style, template, audience, or use case; otherwise keep the default `classic_business`.

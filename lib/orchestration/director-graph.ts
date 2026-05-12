@@ -23,8 +23,7 @@ import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import type { LanguageModel } from 'ai';
 
 import { AISdkLangGraphAdapter } from './ai-sdk-adapter';
-import type { StatelessEvent } from '@/lib/types/chat';
-import type { StatelessChatRequest } from '@/lib/types/chat';
+import type { CourseChatContext, StatelessChatRequest, StatelessEvent } from '@/lib/types/chat';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
@@ -55,6 +54,8 @@ const OrchestratorState = Annotation.Root({
   languageModel: Annotation<LanguageModel>,
   thinkingConfig: Annotation<ThinkingConfig | null>,
   discussionContext: Annotation<{ topic: string; prompt?: string } | null>,
+  surface: Annotation<StatelessChatRequest['config']['surface']>,
+  courseContext: Annotation<CourseChatContext | null>,
   triggerAgentId: Annotation<string | null>,
   userProfile: Annotation<{ nickname?: string; bio?: string } | null>,
   /** Request-scoped agent configs for generated agents (not in the default registry) */
@@ -278,7 +279,10 @@ async function runAgentGeneration(
     ? state.storeState.scenes.find((s) => s.id === state.storeState.currentSceneId)
     : undefined;
   const sceneType = currentScene?.type;
-  const effectiveActions = getEffectiveActions(agentConfig.allowedActions, sceneType);
+  const isCourseChat = state.surface === 'course-chat';
+  const effectiveActions = isCourseChat
+    ? []
+    : getEffectiveActions(agentConfig.allowedActions, sceneType);
 
   const discussionContext = state.discussionContext || undefined;
   const systemPrompt = buildStructuredPrompt(
@@ -288,6 +292,10 @@ async function runAgentGeneration(
     state.whiteboardLedger,
     state.userProfile || undefined,
     state.agentResponses,
+    {
+      surface: state.surface,
+      courseContext: state.courseContext || undefined,
+    },
   );
   const openaiMessages = convertMessagesToOpenAI(state.messages, agentId);
   const adapter = new AISdkLangGraphAdapter(state.languageModel, state.thinkingConfig ?? undefined);
@@ -536,6 +544,8 @@ export function buildInitialState(
     languageModel,
     thinkingConfig: thinkingConfig ?? null,
     discussionContext,
+    surface: request.config.surface || 'classroom',
+    courseContext: request.courseContext || null,
     triggerAgentId: request.config.triggerAgentId || null,
     userProfile: request.userProfile || null,
     agentConfigOverrides,

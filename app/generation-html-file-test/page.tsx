@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  FileJson,
+  Code2,
+  FileCode2,
   Loader2,
   Play,
   RefreshCw,
   Send,
-  Sparkles,
   Trash2,
+  XCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,31 +28,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { SceneRenderer } from '@/components/stage/scene-renderer';
-import { SceneProvider } from '@/lib/contexts/scene-context';
 import { getApiHeaders } from '@/lib/create/generation-headers';
-import { DEFAULT_SLIDE_GENERATION_ROUTE } from '@/lib/generation/slide-generation-route';
-import { markSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
-import { useCanvasStore } from '@/lib/store/canvas';
-import { useStageStore } from '@/lib/store/stage';
-import type { GeneratedSlideContent, SceneOutline } from '@/lib/types/generation';
-import type { PPTElement, PPTImageElement, Slide, SlideTheme } from '@/lib/types/slides';
-import type { Scene, SceneGenerationDiagnostics, SlideContent, Stage } from '@/lib/types/stage';
+import type { SceneOutline } from '@/lib/types/generation';
 import { backendFetch } from '@/lib/utils/backend-api';
+import { formatComputeCreditsLabel, formatUsdLabel } from '@/lib/utils/credits';
 import { cn } from '@/lib/utils';
 
-const STORAGE_KEY = 'syntara:file-page-generation-test:v14';
-const RESULT_RENDER_VERSION = 'classic-math-render-v3-definition-contract';
-const STAGE_ID = 'testfile-page-generation';
+const STORAGE_KEY = 'syntara:html-file-page-generation-test:v1';
+const HTML_FILE_PAGE_MODEL = 'gpt-5.4';
+const RESULT_RENDER_VERSION = 'html-file-page-v6';
 const TEST_LIST_PAGE_SIZE = 8;
 
 type FilePageStatusFilter = 'all' | 'pending' | 'generated' | 'error';
-
-function getGenerationTestHeaders(): HeadersInit {
-  const headers = new Headers(getApiHeaders({ imageGenerationEnabled: false }));
-  headers.set('x-generation-test-no-charge', 'true');
-  return headers;
-}
+type HtmlPageKind = 'intro' | 'summary' | 'process' | 'table' | 'math' | 'code' | 'example';
+type InferredHtmlPageKind = HtmlPageKind | 'auto';
+type DensityLevel = 'light' | 'standard' | 'dense';
 
 interface TestfileFixture {
   id: string;
@@ -69,21 +61,6 @@ interface FixturesResponse {
   fixtures?: TestfileFixture[];
 }
 
-interface SceneContentResponse {
-  success?: boolean;
-  error?: string;
-  details?: string;
-  content?: unknown;
-  contents?: unknown[];
-  effectiveOutline?: SceneOutline;
-  effectiveOutlines?: SceneOutline[];
-  generationDiagnostics?: SceneGenerationDiagnostics;
-  model?: string;
-  usage?: TokenUsage | null;
-  costEstimate?: SceneCostEstimate | null;
-  skippedCreditCharge?: boolean;
-}
-
 interface TokenUsage {
   inputTokens?: number | null;
   outputTokens?: number | null;
@@ -91,26 +68,51 @@ interface TokenUsage {
   totalTokens?: number | null;
 }
 
-interface SceneCostEstimate {
+interface HtmlCostEstimate {
   baseUsd: number | null;
-  retailUsd: number | null;
-  computeCredits: number | null;
+  retailUsd: number;
+  computeCredits: number;
   markupMultiplier: number | null;
   source: 'openai_pricing' | 'token_fallback';
 }
 
-interface GenerationResult {
-  scene: Scene;
+interface HtmlRetryReason {
+  code?: string;
+  title: string;
+  details?: string[];
+}
+
+interface GenerateHtmlPptResponse {
+  success?: boolean;
+  html?: string;
+  model?: string;
+  usage?: TokenUsage | null;
+  costEstimate?: HtmlCostEstimate | null;
+  generationAttempts?: number;
+  retryReasons?: HtmlRetryReason[];
+  skippedCreditCharge?: boolean;
+  error?: string;
+  details?: string;
+}
+
+interface HtmlGenerationResult {
+  html: string;
+  prompt: string;
   outline: SceneOutline;
-  rawResponse: SceneContentResponse;
-  generatedContentCount: number;
+  signature?: string;
+  renderVersion?: string;
+  pageKind: InferredHtmlPageKind;
+  rawResponse: GenerateHtmlPptResponse;
+  htmlLength: number;
+  textNodeCount: number;
+  elementCount: number;
+  mathElementCount: number;
   createdAt: number;
 }
 
 interface GenerationErrorResult {
   message: string;
   details?: string;
-  diagnostics?: SceneGenerationDiagnostics;
   httpStatus?: number;
   createdAt: number;
 }
@@ -119,25 +121,41 @@ interface SavedState {
   selectedFixtureId?: string;
   selectedPageIndexByFixture?: Record<string, number>;
   fixtureSignatures?: Record<string, string>;
-  resultsByPage?: Record<string, GenerationResult>;
+  resultsByPage?: Record<string, HtmlGenerationResult>;
   errorsByPage?: Record<string, GenerationErrorResult>;
 }
 
-const DEFAULT_THEME: SlideTheme = {
-  backgroundColor: '#ffffff',
-  themeColors: ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#64748b'],
-  fontColor: '#111827',
-  fontName: 'Microsoft YaHei',
-  outline: { color: '#2563eb', width: 2, style: 'solid' },
-  shadow: { h: 0, v: 4, blur: 16, color: 'rgba(15, 23, 42, 0.18)' },
-};
+interface PreviewStats {
+  scrollWidth: number;
+  scrollHeight: number;
+  slideCount: number;
+  hasSlideContent: boolean;
+  outOfBoundsCount: number;
+  outOfBoundsSamples: string[];
+  clippedCount: number;
+  clippedSamples: string[];
+  textNodeCount: number;
+  visibleCharCount: number;
+  mathCount: number;
+  tableCount: number;
+  preCount: number;
+  codeCount: number;
+  imageCount: number;
+}
+
+function getHtmlFileTestHeaders(): HeadersInit {
+  const headers = new Headers(
+    getApiHeaders({
+      imageGenerationEnabled: false,
+      modelIdOverride: HTML_FILE_PAGE_MODEL,
+    }),
+  );
+  headers.set('x-generation-test-no-charge', 'true');
+  return headers;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function isGeneratedSlideContent(value: unknown): value is GeneratedSlideContent {
-  return isRecord(value) && Array.isArray(value.elements);
 }
 
 function pageKey(fixtureId: string, outlineId: string): string {
@@ -147,27 +165,29 @@ function pageKey(fixtureId: string, outlineId: string): string {
 function buildOutlineSignature(outline: SceneOutline): string {
   return [
     RESULT_RENDER_VERSION,
+    HTML_FILE_PAGE_MODEL,
     outline.id,
     outline.title,
     outline.description,
     outline.archetype,
+    outline.contentProfile,
     outline.layoutIntent?.layoutTemplate,
     outline.layoutIntent?.layoutFamily,
-    outline.layoutIntent?.deckStyle,
-    outline.layoutIntent?.backgroundStyleId,
+    outline.layoutIntent?.disciplineStyle,
+    outline.layoutIntent?.density,
+    outline.teachingRole,
     outline.teachingPagePlan?.concreteAnchor,
     ...(outline.keyPoints || []),
   ].join('/');
 }
 
 function buildFixtureSignature(fixture: TestfileFixture): string {
-  const outlineSignature = fixture.outlines.map(buildOutlineSignature).join('|');
   return [
     fixture.fileName,
     fixture.fileType,
     fixture.sourceTextLength,
     fixture.outlines.length,
-    outlineSignature,
+    fixture.outlines.map(buildOutlineSignature).join('|'),
   ].join('::');
 }
 
@@ -199,167 +219,13 @@ function pruneStalePageMap<T>(record: Record<string, T>, staleIds: Set<string>):
 }
 
 function resultMatchesOutline(
-  result: GenerationResult | null,
+  result: HtmlGenerationResult | null,
   outline: SceneOutline | null,
 ): boolean {
-  return Boolean(
-    result && outline && buildOutlineSignature(result.outline) === buildOutlineSignature(outline),
-  );
-}
-
-function buildStage(language: 'zh-CN' | 'en-US' = 'en-US'): Stage {
-  return {
-    id: STAGE_ID,
-    name: 'Testfile 逐页生成测试',
-    description: 'Read source fixtures from testfile and generate one slide at a time.',
-    language,
-    style: `file-page-test; route=${DEFAULT_SLIDE_GENERATION_ROUTE}`,
-    createdAt: 0,
-    updatedAt: 0,
-  };
-}
-
-function buildErrorResult(
-  data: SceneContentResponse | FixturesResponse,
-  status: number,
-  fallback: string,
-): GenerationErrorResult {
-  return {
-    message: data.error || fallback,
-    details: data.details,
-    diagnostics: 'generationDiagnostics' in data ? data.generationDiagnostics : undefined,
-    httpStatus: status,
-    createdAt: Date.now(),
-  };
-}
-
-function buildUnknownErrorResult(error: unknown): GenerationErrorResult {
-  return {
-    message: error instanceof Error ? error.message : String(error),
-    createdAt: Date.now(),
-  };
-}
-
-function formatNumber(value: number | null | undefined): string {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '-';
-  return new Intl.NumberFormat().format(Math.max(0, Math.round(value)));
-}
-
-function formatUsd(value: number | null | undefined): string {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '-';
-  if (value > 0 && value < 0.01) return `$${value.toFixed(4)}`;
-  return `$${value.toFixed(2)}`;
-}
-
-function formatCostEstimate(cost: SceneCostEstimate | null | undefined): string {
-  if (!cost) return '暂无估算';
-  const credits =
-    typeof cost.computeCredits === 'number' && Number.isFinite(cost.computeCredits)
-      ? `${formatNumber(cost.computeCredits)} 算力积分`
-      : '积分未知';
-  const usd = formatUsd(cost.retailUsd);
-  const source = cost.source === 'openai_pricing' ? 'OpenAI 定价估算' : '按 token 兜底估算';
-  return `${credits} · ${usd} · ${source}`;
-}
-
-function formatTokenUsage(usage: TokenUsage | null | undefined): string {
-  if (!usage) return '暂无 token 用量';
-  const inputTokens = usage.inputTokens ?? 0;
-  const outputTokens = usage.outputTokens ?? 0;
-  const totalTokens = usage.totalTokens ?? inputTokens + outputTokens;
-  return `${formatNumber(totalTokens)} tokens · 输入 ${formatNumber(inputTokens)} / 输出 ${formatNumber(outputTokens)}`;
-}
-
-function isGeneratedImagePlaceholder(src: unknown): src is string {
-  return typeof src === 'string' && /^gen_img_/.test(src);
-}
-
-function escapeSvgText(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function buildPlaceholderImage(outline: SceneOutline, elementId: string): string {
-  const title = escapeSvgText(outline.title || 'Generated visual');
-  const template = escapeSvgText(outline.layoutIntent?.layoutTemplate || 'slide');
-  const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#eff6ff"/>
-      <stop offset="1" stop-color="#fff7ed"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.14"/>
-    </filter>
-  </defs>
-  <rect width="640" height="360" rx="28" fill="url(#bg)"/>
-  <rect x="58" y="58" width="524" height="244" rx="24" fill="#ffffff" stroke="#bfdbfe" filter="url(#shadow)"/>
-  <text x="92" y="124" fill="#1d4ed8" font-family="Arial, sans-serif" font-size="26" font-weight="800">${title}</text>
-  <text x="92" y="178" fill="#475569" font-family="Menlo, monospace" font-size="18">${template}</text>
-  <text x="92" y="226" fill="#0f172a" font-family="Arial, sans-serif" font-size="18">QA placeholder for ${escapeSvgText(elementId)}</text>
-</svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function materializeMediaPlaceholders(elements: PPTElement[], outline: SceneOutline): PPTElement[] {
-  return elements.map((element) => {
-    if (element.type !== 'image' || !isGeneratedImagePlaceholder(element.src)) return element;
-    const imageElement = element as PPTImageElement;
-    return {
-      ...imageElement,
-      src: buildPlaceholderImage(outline, imageElement.src),
-    };
-  });
-}
-
-function buildSceneFromGeneratedContent(args: {
-  content: GeneratedSlideContent;
-  outline: SceneOutline;
-  diagnostics?: SceneGenerationDiagnostics;
-}): Scene {
-  const slide: Slide = {
-    id: `file-test-slide-${Date.now()}`,
-    viewportSize: 1000,
-    viewportRatio: 0.5625,
-    theme: args.content.theme || DEFAULT_THEME,
-    elements: materializeMediaPlaceholders(args.content.elements, args.outline),
-    background: args.content.background,
-  };
-
-  const renderedContent = markSemanticSlideContent({
-    type: 'slide',
-    canvas: slide,
-    syntaraMarkup: args.content.syntaraMarkup,
-    semanticDocument: args.content.contentDocument,
-  });
-  const slideContent: SlideContent =
-    renderedContent.type === 'slide'
-      ? {
-          ...renderedContent,
-          canvas: {
-            ...renderedContent.canvas,
-            elements: materializeMediaPlaceholders(renderedContent.canvas.elements, args.outline),
-          },
-        }
-      : renderedContent;
-
-  const now = Date.now();
-  return {
-    id: `file-test-scene-${now}`,
-    stageId: STAGE_ID,
-    type: 'slide',
-    title: args.outline.title,
-    order: args.outline.order,
-    content: slideContent,
-    actions: [],
-    generationDiagnostics: args.diagnostics,
-    createdAt: now,
-    updatedAt: now,
-  };
+  if (!result || !outline) return false;
+  const signature = buildOutlineSignature(outline);
+  if (!result.signature) return false;
+  return result.signature === signature;
 }
 
 function readSavedState(): SavedState {
@@ -379,72 +245,531 @@ function writeSavedState(state: SavedState): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // The generated slide JSON can become large; failing to persist should not block testing.
+    // Generated HTML can be large; persistence failure should not block the QA surface.
   }
 }
 
-function SingleScenePreview({ scene }: { readonly scene: Scene }) {
-  useEffect(() => {
-    const stageLanguage =
-      scene.content.type === 'slide' && scene.content.semanticDocument?.language === 'zh-CN'
-        ? 'zh-CN'
-        : 'en-US';
-    const stage = buildStage(stageLanguage);
-    const viewportSize =
-      scene.content.type === 'slide' ? (scene.content.canvas.viewportSize ?? 1000) : 1000;
-    const viewportRatio =
-      scene.content.type === 'slide' ? (scene.content.canvas.viewportRatio ?? 0.5625) : 0.5625;
-    useStageStore.setState({
-      stage,
-      scenes: [scene],
-      currentSceneId: scene.id,
-      outlines: [],
-      mode: 'playback',
-      generationStatus: 'completed',
-    });
-    useCanvasStore.setState({
-      viewportSize,
-      viewportRatio,
-      canvasPercentage: 100,
-      canvasDragged: false,
-      activeElementIdList: [],
-      handleElementId: '',
-      spotlightElementId: '',
-      spotlightOptions: null,
-      highlightedElementIds: [],
-      highlightOptions: null,
-      laserElementId: '',
-      laserOptions: null,
-      semanticStepTarget: null,
-      zoomTarget: null,
-    });
-  }, [scene]);
-
-  return (
-    <SceneProvider>
-      <SceneRenderer scene={scene} mode="playback" />
-    </SceneProvider>
-  );
+function buildErrorResult(
+  data: GenerateHtmlPptResponse | FixturesResponse,
+  status: number,
+  fallback: string,
+): GenerationErrorResult {
+  return {
+    message: data.error || fallback,
+    details: data.details,
+    httpStatus: status,
+    createdAt: Date.now(),
+  };
 }
 
-export default function GenerationFileTestPage() {
+function buildUnknownErrorResult(error: unknown): GenerationErrorResult {
+  return {
+    message: error instanceof Error ? error.message : String(error),
+    createdAt: Date.now(),
+  };
+}
+
+function emptyPreviewStats(): PreviewStats {
+  return {
+    scrollWidth: 0,
+    scrollHeight: 0,
+    slideCount: 0,
+    hasSlideContent: false,
+    outOfBoundsCount: 0,
+    outOfBoundsSamples: [],
+    clippedCount: 0,
+    clippedSamples: [],
+    textNodeCount: 0,
+    visibleCharCount: 0,
+    mathCount: 0,
+    tableCount: 0,
+    preCount: 0,
+    codeCount: 0,
+    imageCount: 0,
+  };
+}
+
+function analyzeHtml(html: string) {
+  return {
+    htmlLength: html.length,
+    textNodeCount: html
+      .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, '\n')
+      .split('\n')
+      .map((part) => part.trim())
+      .filter(Boolean).length,
+    elementCount: html.match(/<[a-z][\w:-]*(?:\s|>)/gi)?.length || 0,
+    mathElementCount: html.match(/<math(?:\s|>)/gi)?.length || 0,
+  };
+}
+
+function toSafeInt(value: number | null | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.round(value));
+}
+
+function formatNumber(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '-';
+  return Math.max(0, Math.round(value)).toLocaleString();
+}
+
+function formatTokenUsage(usage: TokenUsage | null | undefined): string {
+  if (!usage) return '暂无 token 用量';
+  const inputTokens = toSafeInt(usage.inputTokens);
+  const outputTokens = toSafeInt(usage.outputTokens);
+  const totalTokens = toSafeInt(usage.totalTokens ?? inputTokens + outputTokens);
+  return `${formatNumber(totalTokens)} tokens · 输入 ${formatNumber(inputTokens)} / 输出 ${formatNumber(outputTokens)}`;
+}
+
+function formatCostEstimate(cost: HtmlCostEstimate | null | undefined): string {
+  if (!cost) return '暂无估算';
+  const sourceLabel = cost.source === 'token_fallback' ? '按 token 兜底估算' : 'OpenAI 定价估算';
+  return `${formatComputeCreditsLabel(cost.computeCredits)} · ${formatUsdLabel(cost.retailUsd)} · ${sourceLabel}`;
+}
+
+function formatTime(value: number): string {
+  return new Date(value).toLocaleString([], {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function compact(value: string | undefined, maxLength: number): string {
+  const normalized = (value || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 3).trim()}...`;
+}
+
+function inferHtmlPageKind(outline: SceneOutline, pageIndex: number): InferredHtmlPageKind {
+  const template = outline.layoutIntent?.layoutTemplate || '';
+  const role = outline.teachingRole || '';
+  const discipline = outline.layoutIntent?.disciplineStyle || '';
+  const profile = outline.contentProfile || '';
+  const anchor = outline.teachingPagePlan?.concreteAnchor || '';
+  const hasConcreteCode =
+    /```|<pre|<code/i.test(anchor) ||
+    /^\s*(class|def|import|from|for|while|if|elif|else|return)\b/m.test(anchor) ||
+    /^\s*[A-Za-z_]\w*\s*=\s*.+$/m.test(anchor);
+  const text = [
+    outline.title,
+    outline.description,
+    outline.archetype,
+    template,
+    role,
+    discipline,
+    profile,
+    anchor,
+    ...(outline.keyPoints || []),
+  ]
+    .join('\n')
+    .toLowerCase();
+
+  if (pageIndex === 0 || outline.archetype === 'intro' || /cover|hero|title|divider/.test(text)) {
+    return 'intro';
+  }
+  if (/pipeline_table|comparison_matrix|table|matrix|compare|comparison|表格|对比/.test(text)) {
+    return 'table';
+  }
+  if (
+    outline.workedExampleConfig?.kind === 'code' ||
+    (/code|trace|代码|追踪/.test(text) && hasConcreteCode) ||
+    hasConcreteCode
+  ) {
+    return 'code';
+  }
+  if (
+    discipline === 'math' ||
+    profile === 'math' ||
+    /formula|derivation|proof|math|equation|函数|公式|证明|推导|定理|导数|矩阵/.test(text)
+  ) {
+    return 'math';
+  }
+  if (/process|timeline|steps|pipeline|flow|road|流程|步骤|路径/.test(text)) {
+    return 'process';
+  }
+  if (outline.archetype === 'example' || outline.workedExampleConfig) {
+    return 'example';
+  }
+  if (outline.archetype === 'summary' || /summary|recap|takeaway|总结|回顾/.test(text)) {
+    return 'summary';
+  }
+  return 'auto';
+}
+
+function densityLevelForOutline(outline: SceneOutline): DensityLevel {
+  const density = outline.layoutIntent?.density;
+  if (density === 'light' || density === 'dense') return density;
+  if (outline.contentProfile === 'math' || outline.layoutIntent?.layoutTemplate === 'code_split') {
+    return 'dense';
+  }
+  return 'standard';
+}
+
+function buildDensityContract(level: DensityLevel, pageKind: InferredHtmlPageKind): string {
+  const effectiveLevel =
+    pageKind === 'math' || pageKind === 'code' || pageKind === 'table' ? 'dense' : level;
+  if (effectiveLevel === 'light') {
+    return [
+      '密度档：轻量文件页',
+      '可见文字/等价字符：70-190',
+      '可见文本块：5-14',
+      '主要内容覆盖画布面积：28%-68%',
+      '正文可读字号：低于 24px 的文字占比不超过 12%',
+      '如果源页信息少，做成封面/轻量导入：标题、一句定位、最多 3 个短入口块；不要额外生成大型右侧解释面板。',
+      '入口块必须是紧凑块或横向短卡，高度 120-190px；如果每块只有一两句话，不要拉成长空白卡片。',
+      '轻量页最多 4 个内容容器，每个容器必须能完整显示文字，不能依赖 overflow:hidden 裁切。',
+      '整体视觉尺度要像 16:9 PPT，不像网页大组件：H1 约 56-68px，模块标题 26-32px，正文 24-28px，卡片 padding 24-34px。',
+      '如果排版仍然偏满，可以在 .slide-content 内使用 .fit-layer { width:calc(100% / .92); height:calc(100% / .92); transform:scale(.92); transform-origin:top left; }，让内部先获得更大布局空间再缩回可视区域；不要缩放外层 .slide。',
+    ].join('\n');
+  }
+  if (effectiveLevel === 'dense') {
+    return [
+      '密度档：信息密集文件页',
+      '可见文字/等价字符：150-360',
+      '可见文本块：10-28',
+      '主要内容覆盖画布面积：42%-78%',
+      '正文可读字号：低于 20px 的文字占比不超过 25%',
+      '可以使用紧凑表格、代码块、公式区或步骤区承载信息，但仍然最多 3 个主要内容区；不能靠缩小字号硬塞。',
+    ].join('\n');
+  }
+  return [
+    '密度档：标准文件页',
+    '可见文字/等价字符：110-280',
+    '可见文本块：8-22',
+    '主要内容覆盖画布面积：36%-74%',
+    '正文可读字号：低于 22px 的文字占比不超过 22%',
+    '页面不能太空，也不能像讲义长文；用标题、1-2 个主结构区、可选结论/检查点组成一页。',
+  ].join('\n');
+}
+
+function buildSlideEditingContract(pageKind: InferredHtmlPageKind): string {
+  const base = [
+    '单页编辑规则：',
+    '- 先决定这一页唯一的主教学动作：概念解释 / 对比判断 / 代码观察 / 反例展示 / 流程步骤 / 公式推导；只能选一个。',
+    '- 一页最多 3 个主要内容区；标题区不算，底部一句检查/结论算 1 个内容区。',
+    '- 禁止把“代码块 + trace + 表格 + 例题答案 + 前后页衔接”同时塞进一页。',
+    '- 如果信息放不下，按顺序删除：前后页衔接、装饰标签、次要解释、trace 细节、额外结论；不要通过裁切、滚动或继续缩小字号解决。',
+    '- 大块内容必须短：每个卡片只放一个功能；如果一个卡片需要滚动或高度超过 260px，就先删文案或拆成更少内容。',
+    '- 不要把源页改写成完整讲义；只做这一页最值得讲的一个点。',
+  ];
+
+  if (pageKind === 'code') {
+    return [
+      ...base,
+      '代码页预算：',
+      '- 只允许 1 个代码块，最多 12 行；代码块之外只允许 1 个解释/状态区。',
+      '- trace 最多 3 步，每步一行状态；如果代码本身已经很长，就不要再生成 trace 区。',
+      '- 不要补写完整 class、完整运行结果或完整教程；只保留源页里最关键的代码观察点。',
+    ].join('\n');
+  }
+
+  if (pageKind === 'example') {
+    return [
+      ...base,
+      '例子/反例页预算：',
+      '- 如果源页没有明确提出一道题，不要生成“题目区 / 已知条件 / 求解步骤 / 最终答案”结构。',
+      '- 普通例子页应呈现为：一个具体例子 + 2-3 个观察点 + 一句结论/风险；不要把它改造成练习题。',
+      '- 如果确实是题目，最多 3 个求解步骤，每步一句话；答案区必须短。',
+    ].join('\n');
+  }
+
+  if (pageKind === 'table') {
+    return [
+      ...base,
+      '对比/表格页预算：',
+      '- 只做一个对比关系；表格最多 4 列、4 行正文。',
+      '- 不要在表格旁再放代码块、trace、步骤表或长解释面板。',
+    ].join('\n');
+  }
+
+  return base.join('\n');
+}
+
+function pageKindLabel(kind: InferredHtmlPageKind): string {
+  const labels: Record<InferredHtmlPageKind, string> = {
+    intro: '介绍页',
+    summary: '总结页',
+    process: '流程页',
+    table: '表格页',
+    math: '数学页',
+    code: '代码页',
+    example: '例题页',
+    auto: '自动',
+  };
+  return labels[kind];
+}
+
+function buildNeighborContext(fixture: TestfileFixture, pageIndex: number): string {
+  const previous = fixture.outlines[pageIndex - 1];
+  const next = fixture.outlines[pageIndex + 1];
+  return [
+    previous ? `上一页：${previous.title} — ${compact(previous.description, 120)}` : '',
+    next ? `下一页：${next.title} — ${compact(next.description, 120)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildHtmlPrompt({
+  fixture,
+  outline,
+  pageIndex,
+  pageKind,
+}: {
+  fixture: TestfileFixture;
+  outline: SceneOutline;
+  pageIndex: number;
+  pageKind: InferredHtmlPageKind;
+}): string {
+  const language =
+    '可见内容必须使用简体中文；如果源文件是英文，请翻译并改写成中文课件表达。代码、API 名、变量名、类名、文件名等专业标识可以保留英文。';
+  const keyPoints = outline.keyPoints?.length
+    ? outline.keyPoints.map((point) => `- ${point}`).join('\n')
+    : '- 保留这一页最重要的教学信息。';
+  const concreteAnchor = outline.teachingPagePlan?.concreteAnchor || outline.description;
+  const workedExample = outline.workedExampleConfig
+    ? JSON.stringify(outline.workedExampleConfig, null, 2).slice(0, 1800)
+    : '';
+  const pageKindInstruction =
+    pageKind === 'auto'
+      ? '页面类型由源页内容决定，但必须是一张完整 16:9 HTML PPT 页面。'
+      : `页面类型建议：${pageKindLabel(pageKind)}。`;
+  const slideEditingContract = buildSlideEditingContract(pageKind);
+  const firstPageInstruction =
+    pageIndex === 0
+      ? [
+          '第一页特殊要求：',
+          '- 这是文件第一页/封面或导入页，优先忠实保留源页标题和一句定位，不要展开成完整讲义。',
+          '- 如果只有标题和短说明，最多做：标题区 + 3 个短入口块 + 1 条短引导问题；不要同时生成大型右侧说明卡和底部三卡。',
+          '- 入口块必须紧凑，优先做横向短卡/短条/小标签组，高度 120-190px；不要生成 3 个占满下半屏的大空白卡片。',
+          '- 第一页整体视觉尺度可以略缩小：标题不要超过 68px，入口块不要超过 3 个，避免 40px 以上正文和 40px 以上卡片内边距。',
+          '- 不要为了填满画布编造新的公式、复杂图解、长说明或第二层子卡片。',
+        ].join('\n')
+      : '';
+
+  return [
+    `把 testfile 中的一个源文件页面改写成一张 16:9 HTML/CSS PPT 页面。`,
+    language,
+    '',
+    '重要约束：',
+    '- 这是逐页 HTML 生成测试，不走 SceneOutline/layout template 的渲染器。',
+    '- 只输出这一页，不要输出多页、目录、讲稿、Markdown 或解释。',
+    '- 忠实保留源页的教学核心；不要编造无关公式、题目、代码、案例或第二个主题。',
+    '- 如果源页包含表格/对比关系，使用真实 HTML <table>；如果包含代码，使用 <pre><code>；如果包含核心数学公式，使用真实 MathML。',
+    '- 如果源页信息很少，要做成一张轻量但可讲的课件页；不要用大空卡片假装有内容。',
+    '- 所有内容必须完整落在 1600×900 内，不允许滚动或 DOM 元素越界。',
+    '- 整体视觉尺度按 PPT 控制，不按网页 UI 控制；如果元素整体偏大，优先减少字号、卡片 padding、gap，必要时在 .slide-content 内加 .fit-layer：width/height 用 calc(100% / scale)，再 transform:scale(.90-.94) 缩回可视区域。',
+    '- 生成前先做内容取舍；宁可删掉一个区块，也不要把区块挤到画布外。',
+    '',
+    slideEditingContract,
+    '',
+    `源文件：${fixture.fileName}（${fixture.fileType.toUpperCase()}）`,
+    `文件主题：${fixture.title}`,
+    `文件说明：${fixture.description}`,
+    `当前页：${pageIndex + 1}/${fixture.outlines.length}`,
+    `当前页标题：${outline.title}`,
+    `当前页描述：${outline.description}`,
+    firstPageInstruction,
+    `教学目标：${outline.teachingObjective || '让学生理解这一页的核心概念，并能和前后页衔接。'}`,
+    `教学角色：${outline.teachingRole || '-'}`,
+    `原始版式提示：${outline.layoutIntent?.layoutTemplate || '-'} / ${outline.layoutIntent?.layoutFamily || '-'}`,
+    pageKindInstruction,
+    '',
+    '关键点：',
+    keyPoints,
+    '',
+    '源页 concrete anchor / 必须保留的具体内容：',
+    concreteAnchor.slice(0, 2600),
+    workedExample ? ['', '例题/代码/证明配置：', workedExample].join('\n') : '',
+    buildNeighborContext(fixture, pageIndex)
+      ? [
+          '',
+          '相邻页上下文（只用于衔接，不要复制成额外内容区）：',
+          buildNeighborContext(fixture, pageIndex),
+        ].join('\n')
+      : '',
+    '',
+    '风格：干净的教育课件 / 课程讲解页；真实 DOM 文本，可编辑 HTML/CSS，白底或浅色底，克制使用蓝绿强调。',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function evaluatePreview(iframe: HTMLIFrameElement | null): PreviewStats {
+  const doc = iframe?.contentDocument;
+  if (!doc) return emptyPreviewStats();
+  const body = doc.body;
+  const slide = doc.querySelector('.slide');
+  const slideContent = doc.querySelector('.slide-content');
+  const outOfBoundsSamples: string[] = [];
+  const clippedSamples: string[] = [];
+  let outOfBoundsCount = 0;
+  let clippedCount = 0;
+
+  const elementLabel = (element: HTMLElement) => {
+    const className = typeof element.className === 'string' ? `.${element.className}` : '';
+    return `${element.tagName.toLowerCase()}${className.split(/\s+/).slice(0, 2).join('.')}`;
+  };
+
+  Array.from(doc.body.querySelectorAll<HTMLElement>('*')).forEach((element) => {
+    const style = doc.defaultView?.getComputedStyle(element);
+    if (!style || style.display === 'none' || style.visibility === 'hidden') return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const overflow =
+      rect.left < -0.5 || rect.top < -0.5 || rect.right > 1600.5 || rect.bottom > 900.5;
+    if (!overflow) return;
+    outOfBoundsCount += 1;
+    if (outOfBoundsSamples.length < 5) {
+      outOfBoundsSamples.push(
+        `${elementLabel(element)} ${Math.round(rect.left)},${Math.round(rect.top)}-${Math.round(rect.right)},${Math.round(rect.bottom)}`,
+      );
+    }
+  });
+
+  Array.from(doc.body.querySelectorAll<HTMLElement>('*')).forEach((element) => {
+    const style = doc.defaultView?.getComputedStyle(element);
+    if (!style || style.display === 'none' || style.visibility === 'hidden') return;
+    if (element.matches('style,script,br')) return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const hasText = Boolean(element.textContent?.replace(/\s+/g, '').trim());
+    const hasVisualChild = Boolean(element.querySelector('img,svg,math,table,pre,code'));
+    if (!hasText && !hasVisualChild) return;
+
+    const clipsContent =
+      ['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowX) ||
+      ['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowY) ||
+      style.textOverflow === 'ellipsis';
+    const layoutOverflow =
+      element.matches('pre,code,table') &&
+      (element.scrollWidth > element.clientWidth + 2 ||
+        element.scrollHeight > element.clientHeight + 2);
+    if (!clipsContent && !layoutOverflow) return;
+
+    let isClipped = layoutOverflow;
+    if (!isClipped) {
+      const textWalker = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let textNode = textWalker.nextNode();
+      while (textNode && !isClipped) {
+        const text = textNode.textContent?.replace(/\s+/g, '').trim() || '';
+        if (text) {
+          const range = doc.createRange();
+          range.selectNodeContents(textNode);
+          Array.from(range.getClientRects()).forEach((textRect) => {
+            if (
+              textRect.width > 0 &&
+              textRect.height > 0 &&
+              (textRect.left < rect.left - 2 ||
+                textRect.top < rect.top - 2 ||
+                textRect.right > rect.right + 2 ||
+                textRect.bottom > rect.bottom + 2)
+            ) {
+              isClipped = true;
+            }
+          });
+          range.detach();
+        }
+        textNode = textWalker.nextNode();
+      }
+    }
+
+    if (!isClipped) {
+      isClipped = Array.from(element.children).some((child) => {
+        const childElement = child as HTMLElement;
+        const childStyle = doc.defaultView?.getComputedStyle(childElement);
+        if (!childStyle || childStyle.display === 'none' || childStyle.visibility === 'hidden') {
+          return false;
+        }
+        const childRect = childElement.getBoundingClientRect();
+        if (childRect.width <= 0 || childRect.height <= 0) return false;
+        return (
+          childRect.left < rect.left - 2 ||
+          childRect.top < rect.top - 2 ||
+          childRect.right > rect.right + 2 ||
+          childRect.bottom > rect.bottom + 2
+        );
+      });
+    }
+
+    if (!isClipped) return;
+
+    clippedCount += 1;
+    if (clippedSamples.length < 5) {
+      clippedSamples.push(
+        `${elementLabel(element)} ${element.scrollWidth}×${element.scrollHeight} > ${element.clientWidth}×${element.clientHeight}`,
+      );
+    }
+  });
+
+  const walker = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  let textNodeCount = 0;
+  let visibleCharCount = 0;
+  while (walker.nextNode()) {
+    const text = walker.currentNode.textContent?.replace(/\s+/g, ' ').trim() || '';
+    if (!text) continue;
+    textNodeCount += 1;
+    visibleCharCount += text.length;
+  }
+
+  return {
+    scrollWidth: Math.max(body.scrollWidth, doc.documentElement.scrollWidth),
+    scrollHeight: Math.max(body.scrollHeight, doc.documentElement.scrollHeight),
+    slideCount: doc.querySelectorAll('.slide').length,
+    hasSlideContent: Boolean(slide && slideContent),
+    outOfBoundsCount,
+    outOfBoundsSamples,
+    clippedCount,
+    clippedSamples,
+    textNodeCount,
+    visibleCharCount,
+    mathCount: doc.querySelectorAll('math').length,
+    tableCount: doc.querySelectorAll('table').length,
+    preCount: doc.querySelectorAll('pre').length,
+    codeCount: doc.querySelectorAll('code').length,
+    imageCount: doc.querySelectorAll('img').length,
+  };
+}
+
+function getPreviewStatus(stats: PreviewStats): 'pass' | 'fail' | 'empty' {
+  if (stats.scrollWidth <= 0 || stats.scrollHeight <= 0) return 'empty';
+  if (
+    stats.slideCount === 1 &&
+    stats.hasSlideContent &&
+    stats.scrollWidth <= 1601 &&
+    stats.scrollHeight <= 901 &&
+    stats.outOfBoundsCount === 0 &&
+    stats.clippedCount === 0
+  ) {
+    return 'pass';
+  }
+  return 'fail';
+}
+
+export default function GenerationHtmlFileTestPage() {
   const [fixtures, setFixtures] = useState<TestfileFixture[]>([]);
   const [isLoadingFixtures, setIsLoadingFixtures] = useState(true);
   const [fixtureError, setFixtureError] = useState<GenerationErrorResult | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [selectedFixtureId, setSelectedFixtureId] = useState<string>('');
+  const [selectedFixtureId, setSelectedFixtureId] = useState('');
   const [selectedPageIndexByFixture, setSelectedPageIndexByFixture] = useState<
     Record<string, number>
   >({});
   const [fixtureSignatures, setFixtureSignatures] = useState<Record<string, string>>({});
   const fixtureSignaturesRef = useRef<Record<string, string>>({});
-  const [resultsByPage, setResultsByPage] = useState<Record<string, GenerationResult>>({});
+  const [resultsByPage, setResultsByPage] = useState<Record<string, HtmlGenerationResult>>({});
   const [errorsByPage, setErrorsByPage] = useState<Record<string, GenerationErrorResult>>({});
   const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [testSearch, setTestSearch] = useState('');
   const [testStatusFilter, setTestStatusFilter] = useState<FilePageStatusFilter>('all');
   const [fixtureFilter, setFixtureFilter] = useState('all');
   const [testPage, setTestPage] = useState(1);
+  const [previewStats, setPreviewStats] = useState<PreviewStats>(emptyPreviewStats);
+  const [previewScale, setPreviewScale] = useState(0.7);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const loadFixtures = useCallback(async () => {
     setIsLoadingFixtures(true);
@@ -544,6 +869,9 @@ export default function GenerationFileTestPage() {
     ? savedCurrentResult
     : null;
   const currentError = currentPageKey ? errorsByPage[currentPageKey] || null : null;
+  const currentPageKind = currentOutline
+    ? inferHtmlPageKind(currentOutline, selectedPageIndex)
+    : 'auto';
   const generatedCount = selectedFixture
     ? selectedFixture.outlines.filter((outline) =>
         resultMatchesOutline(
@@ -562,8 +890,6 @@ export default function GenerationFileTestPage() {
     0,
   );
   const totalErrorCount = Object.keys(errorsByPage).length;
-  const currentStatus = currentResult ? 'generated' : currentError ? 'error' : 'pending';
-  const currentScore = currentResult ? '1/1' : '0/1';
   const selectedFixtureListIndex = selectedFixture
     ? fixtures.findIndex((fixture) => fixture.id === selectedFixture.id)
     : -1;
@@ -573,6 +899,7 @@ export default function GenerationFileTestPage() {
           .slice(0, selectedFixtureListIndex)
           .reduce((sum, fixture) => sum + fixture.outlines.length, 0) + selectedPageIndex
       : 0;
+
   const filePageListItems = useMemo(() => {
     const query = testSearch.trim().toLowerCase();
     return fixtures
@@ -597,6 +924,7 @@ export default function GenerationFileTestPage() {
             error,
             status,
             sortTime: result?.createdAt || error?.createdAt || 0,
+            pageKind: inferHtmlPageKind(outline, pageIndex),
           };
         }),
       )
@@ -611,6 +939,7 @@ export default function GenerationFileTestPage() {
           item.outline.id,
           item.outline.layoutIntent?.layoutTemplate,
           item.outline.teachingRole,
+          pageKindLabel(item.pageKind),
         ]
           .filter(Boolean)
           .join(' ')
@@ -635,6 +964,33 @@ export default function GenerationFileTestPage() {
     setTestPage(1);
   }, [fixtureFilter, testSearch, testStatusFilter]);
 
+  useEffect(() => {
+    if (!currentResult) {
+      setPreviewStats(emptyPreviewStats());
+    }
+  }, [currentResult]);
+
+  useEffect(() => {
+    if (!currentResult) return;
+    const element = previewFrameRef.current;
+    if (!element) return;
+
+    const updateScale = () => {
+      const rect = element.getBoundingClientRect();
+      const nextScale = Math.min(rect.width / 1600, rect.height / 900);
+      setPreviewScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 0.7);
+    };
+
+    updateScale();
+    const animationFrame = window.requestAnimationFrame(updateScale);
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(element);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+    };
+  }, [currentPageKey, currentResult]);
+
   const setSelectedPageIndex = useCallback((fixtureId: string, pageIndex: number) => {
     setSelectedPageIndexByFixture((previous) => ({
       ...previous,
@@ -647,6 +1003,8 @@ export default function GenerationFileTestPage() {
       const outline = fixture.outlines[pageIndex];
       if (!outline) return;
       const key = pageKey(fixture.id, outline.id);
+      const pageKind = inferHtmlPageKind(outline, pageIndex);
+      const prompt = buildHtmlPrompt({ fixture, outline, pageIndex, pageKind });
       setSelectedFixtureId(fixture.id);
       setSelectedPageIndex(fixture.id, pageIndex);
       setGeneratingKey(key);
@@ -657,57 +1015,41 @@ export default function GenerationFileTestPage() {
       });
 
       try {
-        const response = await backendFetch('/api/generate/scene-content', {
+        const response = await backendFetch('/api/generate/html-ppt-slide', {
           method: 'POST',
-          headers: getGenerationTestHeaders(),
+          headers: getHtmlFileTestHeaders(),
           body: JSON.stringify({
-            outline,
-            allOutlines: fixture.outlines,
-            stageInfo: {
-              name: fixture.title,
-              description: fixture.description,
-              language: outline.language || 'en-US',
-              style: `file-page-test; source=${fixture.fileName}`,
-            },
-            stageId: STAGE_ID,
-            agents: [],
-            slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
+            prompt,
+            pageKind: pageKind === 'auto' ? undefined : pageKind,
+            densityContract: buildDensityContract(densityLevelForOutline(outline), pageKind),
           }),
         });
 
-        const data = (await response.json().catch(() => ({}))) as SceneContentResponse;
-        if (!response.ok || data.success === false) {
+        const data = (await response.json().catch(() => ({}))) as GenerateHtmlPptResponse;
+        if (!response.ok || data.success === false || !data.html) {
           setErrorsByPage((previous) => ({
             ...previous,
-            [key]: buildErrorResult(data, response.status, `生成失败：HTTP ${response.status}`),
+            [key]: buildErrorResult(
+              data,
+              response.status,
+              `HTML 生成失败：HTTP ${response.status}`,
+            ),
           }));
           return;
         }
 
-        const contents =
-          Array.isArray(data.contents) && data.contents.length > 0
-            ? data.contents
-            : data.content
-              ? [data.content]
-              : [];
-        const firstContent = contents[0];
-        if (!isGeneratedSlideContent(firstContent)) {
-          throw new Error('接口没有返回可渲染的 slide content。');
-        }
-
-        const effectiveOutline = data.effectiveOutline || outline;
-        const scene = buildSceneFromGeneratedContent({
-          content: firstContent,
-          outline: effectiveOutline,
-          diagnostics: data.generationDiagnostics,
-        });
+        const htmlStats = analyzeHtml(data.html);
         setResultsByPage((previous) => ({
           ...previous,
           [key]: {
-            scene,
-            outline: effectiveOutline,
+            html: data.html || '',
+            prompt,
+            outline,
+            signature: buildOutlineSignature(outline),
+            renderVersion: RESULT_RENDER_VERSION,
+            pageKind,
             rawResponse: data,
-            generatedContentCount: contents.length,
+            ...htmlStats,
             createdAt: Date.now(),
           },
         }));
@@ -753,6 +1095,8 @@ export default function GenerationFileTestPage() {
     setErrorsByPage({});
   }, []);
 
+  const previewStatus = getPreviewStatus(previewStats);
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <div className="mx-auto flex max-w-[1800px] flex-col gap-6 px-6 py-6">
@@ -770,18 +1114,22 @@ export default function GenerationFileTestPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                <FileJson className="size-4" />
-                Testfile Page Generation QA
+                <FileCode2 className="size-4" />
+                Testfile HTML Page Generation QA
               </div>
               <h1 className="mt-3 text-3xl font-bold tracking-normal text-slate-950">
-                文件逐页生成测试
+                文件逐页 HTML 生成测试
               </h1>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                后端读取 testfile 中的三个固定样本，转成 SceneOutline 队列；这一页逐页调用正式
-                scene-content，并持久化每页结果、模型、token 用量和费用估算。
+                同样读取 testfile 的三个固定样本和逐页队列，但每页直接生成一张 1600×900 HTML/CSS
+                PPT；用于对比 HTML 单页链路在真实文件输入下是否稳定。
               </p>
             </div>
-            <div className="grid min-w-[280px] grid-cols-3 gap-2 text-sm">
+            <div className="grid min-w-[320px] grid-cols-4 gap-2 text-sm">
+              <div className="rounded-xl bg-slate-50 p-3">
+                <div className="text-xs text-slate-500">模型</div>
+                <div className="mt-1 font-semibold text-slate-950">{HTML_FILE_PAGE_MODEL}</div>
+              </div>
               <div className="rounded-xl bg-slate-50 p-3">
                 <div className="text-xs text-slate-500">文件</div>
                 <div className="mt-1 font-semibold text-slate-950">{fixtures.length || 3}</div>
@@ -832,8 +1180,7 @@ export default function GenerationFileTestPage() {
                 <div>
                   <h2 className="text-sm font-semibold">测试列表</h2>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    按最近生成时间排序；每页 {TEST_LIST_PAGE_SIZE}{' '}
-                    条，支持按源文件、状态和关键词筛选。
+                    三个 testfile 样本逐页展开；每次只生成当前页的 HTML。
                   </p>
                 </div>
                 <Badge variant="outline">
@@ -846,7 +1193,7 @@ export default function GenerationFileTestPage() {
                   搜索
                   <Input
                     className="mt-1"
-                    placeholder="标题、文件、版式..."
+                    placeholder="标题、文件、HTML 类型..."
                     value={testSearch}
                     onChange={(event) => setTestSearch(event.target.value)}
                   />
@@ -945,7 +1292,7 @@ export default function GenerationFileTestPage() {
                               </span>
                             </div>
                             <div className="mt-1 truncate text-[11px] text-slate-500">
-                              {item.fixture.fileName} · {item.outline.layoutIntent?.layoutTemplate}
+                              {item.fixture.fileName} · {pageKindLabel(item.pageKind)}
                             </div>
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -965,30 +1312,9 @@ export default function GenerationFileTestPage() {
                                   : '待测 0/1'}
                             </Badge>
                             <span className="text-[11px] text-slate-400">
-                              {item.status === 'generated'
-                                ? '通过'
-                                : item.status === 'error'
-                                  ? '错误'
-                                  : '待测'}
+                              {item.sortTime ? formatTime(item.sortTime) : '未生成'}
                             </span>
                           </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-                          <span>
-                            {item.sortTime
-                              ? `最近 ${new Date(item.sortTime).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  second: '2-digit',
-                                })}`
-                              : '未生成'}
-                          </span>
-                          {item.outline.teachingRole ? (
-                            <span>· {item.outline.teachingRole}</span>
-                          ) : null}
-                          {item.outline.layoutIntent?.backgroundStyleId ? (
-                            <span>· bg {item.outline.layoutIntent.backgroundStyleId}</span>
-                          ) : null}
                         </div>
                       </button>
                     );
@@ -1037,25 +1363,11 @@ export default function GenerationFileTestPage() {
                       {currentOutline ? currentGlobalIndex + 1 : 0}/{totalPageCount || 0}
                     </Badge>
                     <Badge variant="outline">{selectedFixture?.fileName || 'testfile'}</Badge>
-                    <Badge
-                      variant={
-                        currentStatus === 'generated'
-                          ? 'default'
-                          : currentStatus === 'error'
-                            ? 'destructive'
-                            : 'outline'
-                      }
-                    >
-                      {currentStatus === 'generated'
-                        ? '已生成'
-                        : currentStatus === 'error'
-                          ? '生成失败'
-                          : '未生成'}
-                    </Badge>
+                    <Badge variant="outline">{pageKindLabel(currentPageKind)}</Badge>
                     <Badge
                       variant={currentResult ? 'default' : currentError ? 'destructive' : 'outline'}
                     >
-                      当前 {currentScore}
+                      {currentResult ? '已生成' : currentError ? '生成失败' : '未生成'}
                     </Badge>
                   </div>
                   <h2 className="mt-3 text-lg font-semibold tracking-normal text-slate-950">
@@ -1063,7 +1375,7 @@ export default function GenerationFileTestPage() {
                   </h2>
                   <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-600">
                     {currentOutline?.description ||
-                      '后端会读取 testfile 里的源文件，转成 SceneOutline 队列，然后逐页调用正式 scene-content。'}
+                      '后端会读取 testfile，转成逐页队列；这里把每页改用 HTML PPT 生成链路。'}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
@@ -1100,9 +1412,13 @@ export default function GenerationFileTestPage() {
                 </div>
               </div>
 
-              <div className="mb-4 grid gap-3 border-y border-slate-100 py-3 text-xs leading-5 text-slate-600 sm:grid-cols-4">
+              <div className="mb-4 grid gap-3 border-y border-slate-100 py-3 text-xs leading-5 text-slate-600 sm:grid-cols-5">
                 <div>
-                  <div className="font-semibold text-slate-800">当前版式</div>
+                  <div className="font-semibold text-slate-800">HTML 类型</div>
+                  <div>{pageKindLabel(currentPageKind)}</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-800">原始版式</div>
                   <div>{currentOutline?.layoutIntent?.layoutTemplate || '-'}</div>
                 </div>
                 <div>
@@ -1148,7 +1464,7 @@ export default function GenerationFileTestPage() {
                   ) : (
                     <Send className="size-4" />
                   )}
-                  生成当前页
+                  生成当前页 HTML
                 </Button>
                 <Button
                   type="button"
@@ -1211,11 +1527,24 @@ export default function GenerationFileTestPage() {
                     </div>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-3">
-                    <div className="text-xs font-medium text-slate-500">生成输出</div>
+                    <div className="text-xs font-medium text-slate-500">HTML 输出</div>
                     <div className="mt-1 font-semibold text-slate-950">
-                      {currentResult.generatedContentCount} 页内容
+                      {currentResult.elementCount} elements · {currentResult.htmlLength} chars
                     </div>
                   </div>
+                  {currentResult.rawResponse.retryReasons?.length ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 lg:col-span-4">
+                      <div className="font-semibold">自动重试原因</div>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-5">
+                        {currentResult.rawResponse.retryReasons.map((reason, index) => (
+                          <li key={`${reason.code || reason.title}-${index}`}>
+                            {reason.title}
+                            {reason.details?.length ? `：${reason.details.join(' / ')}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   {currentResult.rawResponse.skippedCreditCharge ? (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 lg:col-span-4">
                       测试请求跳过本地积分扣费，仅展示估算费用。
@@ -1228,10 +1557,25 @@ export default function GenerationFileTestPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold">渲染预览</h2>
-                  <p className="text-xs text-slate-500">只渲染当前页；下一页必须再点一次生成。</p>
+                  <h2 className="text-sm font-semibold">HTML 预览</h2>
+                  <p className="text-xs text-slate-500">
+                    iframe 按 1600×900 渲染；生成后自动检查滚动、越界和基础 DOM 结构。
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                  {currentResult ? (
+                    <Badge
+                      variant={previewStatus === 'pass' ? 'default' : 'destructive'}
+                      className="gap-1"
+                    >
+                      {previewStatus === 'pass' ? (
+                        <CheckCircle2 className="size-3.5" />
+                      ) : (
+                        <XCircle className="size-3.5" />
+                      )}
+                      {previewStatus === 'pass' ? 'QA 通过' : 'QA 待看'}
+                    </Badge>
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"
@@ -1245,40 +1589,89 @@ export default function GenerationFileTestPage() {
                     )}
                     {generatingKey === currentPageKey ? '生成中...' : '生成'}
                   </Button>
-                  <Badge variant="outline">
-                    {currentOutline ? selectedPageIndex + 1 : 0}/
-                    {selectedFixture?.outlines.length || 0}
-                  </Badge>
-                  {currentResult ? (
-                    <Badge variant="outline">
-                      {new Date(currentResult.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </Badge>
-                  ) : null}
                 </div>
               </div>
 
               <div className="rounded-2xl bg-slate-100 p-4">
-                <div className="mx-auto aspect-video w-full max-w-[1040px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div
+                  ref={previewFrameRef}
+                  className="relative mx-auto aspect-video w-full max-w-[1120px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                >
                   {currentResult ? (
-                    <SingleScenePreview key={currentResult.scene.id} scene={currentResult.scene} />
+                    <iframe
+                      key={`${currentPageKey}-${currentResult.createdAt}`}
+                      ref={iframeRef}
+                      title="HTML file page preview"
+                      className="absolute left-0 top-0 border-0"
+                      style={{
+                        width: 1600,
+                        height: 900,
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: 'top left',
+                      }}
+                      srcDoc={currentResult.html}
+                      onLoad={() => setPreviewStats(evaluatePreview(iframeRef.current))}
+                    />
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
                       {generatingKey ? (
                         <Loader2 className="size-8 animate-spin" />
                       ) : (
-                        <Sparkles className="size-8" />
+                        <Code2 className="size-8" />
                       )}
                       <div className="text-sm font-medium">
-                        {generatingKey ? '正在生成这一页...' : '生成当前页后在这里预览'}
+                        {generatingKey ? '正在生成 HTML...' : '生成当前页后在这里预览'}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
+
+              {currentResult ? (
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-6">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">预览缩放</div>
+                    <div className="mt-1 font-semibold">{previewScale.toFixed(3)}</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">滚动尺寸</div>
+                    <div className="mt-1 font-semibold">
+                      {previewStats.scrollWidth || '-'} × {previewStats.scrollHeight || '-'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">越界元素</div>
+                    <div className="mt-1 font-semibold">{previewStats.outOfBoundsCount}</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">裁切风险</div>
+                    <div className="mt-1 font-semibold">{previewStats.clippedCount}</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">结构</div>
+                    <div className="mt-1 font-semibold">
+                      slide {previewStats.slideCount} · content{' '}
+                      {previewStats.hasSlideContent ? '有' : '缺'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-slate-500">内容节点</div>
+                    <div className="mt-1 font-semibold">
+                      {previewStats.textNodeCount} text · {previewStats.visibleCharCount} chars
+                    </div>
+                  </div>
+                  {previewStats.outOfBoundsSamples.length ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 sm:col-span-6">
+                      {previewStats.outOfBoundsSamples.join(' / ')}
+                    </div>
+                  ) : null}
+                  {previewStats.clippedSamples.length ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 sm:col-span-6">
+                      {previewStats.clippedSamples.join(' / ')}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {currentOutline && selectedFixture ? (
@@ -1286,46 +1679,47 @@ export default function GenerationFileTestPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="mb-3 flex items-center gap-2">
                     <ClipboardList className="size-4 text-slate-500" />
-                    <h2 className="text-sm font-semibold">发送给 scene-content 的 payload</h2>
+                    <h2 className="text-sm font-semibold">发送给 HTML 生成接口的 prompt</h2>
                   </div>
-                  <pre className="max-h-[240px] overflow-auto rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-100">
-                    {JSON.stringify(
-                      {
+                  <Textarea
+                    readOnly
+                    className="min-h-[280px] resize-y rounded-xl bg-slate-50 font-mono text-[13px] leading-6 text-slate-800"
+                    value={
+                      currentResult?.prompt ||
+                      buildHtmlPrompt({
+                        fixture: selectedFixture,
                         outline: currentOutline,
-                        allOutlines: selectedFixture.outlines,
-                        stageInfo: {
-                          name: selectedFixture.title,
-                          description: selectedFixture.description,
-                          language: currentOutline.language || 'en-US',
-                          style: `file-page-test; source=${selectedFixture.fileName}`,
-                        },
-                        stageId: STAGE_ID,
-                        agents: [],
-                        slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
-                      },
-                      null,
-                      2,
-                    )}
-                  </pre>
+                        pageIndex: selectedPageIndex,
+                        pageKind: currentPageKind,
+                      })
+                    }
+                  />
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-center gap-2">
-                      <FileJson className="size-4 text-slate-500" />
+                      <FileCode2 className="size-4 text-slate-500" />
                       <h2 className="text-sm font-semibold">生成结果 JSON</h2>
                     </div>
                     {currentResult ? (
                       <pre className="max-h-[420px] overflow-auto rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-100">
                         {JSON.stringify(
                           {
-                            effectiveOutline: currentResult.outline,
-                            generationDiagnostics: currentResult.rawResponse.generationDiagnostics,
+                            pageKind: currentResult.pageKind,
                             model: currentResult.rawResponse.model,
                             usage: currentResult.rawResponse.usage,
                             costEstimate: currentResult.rawResponse.costEstimate,
+                            generationAttempts: currentResult.rawResponse.generationAttempts,
+                            retryReasons: currentResult.rawResponse.retryReasons,
                             skippedCreditCharge: currentResult.rawResponse.skippedCreditCharge,
-                            generatedContentCount: currentResult.generatedContentCount,
+                            htmlStats: {
+                              htmlLength: currentResult.htmlLength,
+                              textNodeCount: currentResult.textNodeCount,
+                              elementCount: currentResult.elementCount,
+                              mathElementCount: currentResult.mathElementCount,
+                            },
+                            previewStats,
                           },
                           null,
                           2,

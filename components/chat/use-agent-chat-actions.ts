@@ -3,7 +3,7 @@ import type { UIMessage } from 'ai';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import { COURSE_ORCHESTRATOR_ID, COURSE_ORCHESTRATOR_NAME } from '@/lib/constants/course-chat';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
-import type { ChatMessageMetadata } from '@/lib/types/chat';
+import type { ChatMessageMetadata, CourseChatContext } from '@/lib/types/chat';
 import { USER_AVATAR } from '@/lib/types/roundtable';
 import type { Scene } from '@/lib/types/stage';
 import { createAgentTask, updateAgentTask } from '@/lib/utils/agent-task-storage';
@@ -19,6 +19,7 @@ import {
 } from './chat-attachment-utils';
 import { buildChatMessage } from './chat-message-utils';
 import { decideNotebookRoute } from './chat-notebook-routing';
+import { buildCourseChatContext } from './course-chat-context';
 import type {
   NotebookAttachmentInput,
   NotebookSubtaskResult,
@@ -45,6 +46,7 @@ export function useAgentChatActions({
   setPendingAttachments,
   setSending,
   courseId,
+  courseName,
   trackedOrchestratorCreateTaskIdRef,
   setActiveOrchestratorTaskId,
   setOrchestratorPipelineProgress,
@@ -70,6 +72,7 @@ export function useAgentChatActions({
   setPendingAttachments: Dispatch<SetStateAction<NotebookAttachmentInput[]>>;
   setSending: Dispatch<SetStateAction<boolean>>;
   courseId: string | null | undefined;
+  courseName?: string;
   trackedOrchestratorCreateTaskIdRef: MutableRefObject<string | null>;
   setActiveOrchestratorTaskId: Dispatch<SetStateAction<string | null>>;
   setOrchestratorPipelineProgress: Dispatch<SetStateAction<NotebookGenerationProgress | null>>;
@@ -142,6 +145,25 @@ export function useAgentChatActions({
           ? mergeOrchestratorPrompt(text, orchAttachments, Boolean(sourceFileForPipeline))
           : text;
 
+      let memoizedCourseContext: CourseChatContext | undefined;
+      const getCourseContext = async () => {
+        if (!courseId?.trim()) return undefined;
+        if (!memoizedCourseContext) {
+          memoizedCourseContext = await buildCourseChatContext({
+            courseId: courseId.trim(),
+            courseName,
+            question: mergedPrompt,
+            target: {
+              kind: selectedAgent.id === COURSE_ORCHESTRATOR_ID ? 'orchestrator' : 'agent',
+              id: selectedAgent.id,
+              name: selectedAgent.name,
+              role: selectedAgent.role,
+            },
+          });
+        }
+        return memoizedCourseContext;
+      };
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -199,12 +221,15 @@ export function useAgentChatActions({
             whiteboardOpen: false,
           });
           try {
+            const courseContext = await getCourseContext();
             await runCourseSideChatLoop({
               initialMessages: nextThread,
               agentIds: [COURSE_ORCHESTRATOR_ID],
               agentConfigs,
               getStoreState,
               userProfile: { nickname: nickname.trim() || undefined },
+              surface: 'course-chat',
+              courseContext,
               apiKey: mc.apiKey,
               baseUrl: mc.baseUrl || undefined,
               model: mc.modelString,
@@ -257,11 +282,13 @@ export function useAgentChatActions({
 
         try {
           const notebooks = courseId ? await listStagesByCourse(courseId) : [];
+          const courseContext = await getCourseContext();
           const decision = decideNotebookRoute(
             mergedPrompt,
             notebooks,
             orchestratorViewMode,
             orchAttachments.length > 0,
+            courseContext,
           );
 
           if (decision.type === 'create') {
@@ -466,12 +493,15 @@ export function useAgentChatActions({
       });
 
       try {
+        const courseContext = await getCourseContext();
         await runCourseSideChatLoop({
           initialMessages: nextThread,
           agentIds: [selectedAgent.id],
           agentConfigs,
           getStoreState,
           userProfile: { nickname: nickname.trim() || undefined },
+          surface: 'course-chat',
+          courseContext,
           apiKey: mc.apiKey,
           baseUrl: mc.baseUrl || undefined,
           model: mc.modelString,
@@ -505,6 +535,7 @@ export function useAgentChatActions({
       agThread,
       agentId,
       courseId,
+      courseName,
       draft,
       nickname,
       orchestratorAvatar,

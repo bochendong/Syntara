@@ -20,6 +20,14 @@ export const OPENAI_WEB_SEARCH_USD_PER_1000_CALLS = 10;
 export const OPENAI_RETAIL_MARKUP_MULTIPLIER = 1.5;
 
 export const OPENAI_IMAGE_PRICING = {
+  'gpt-image-2': {
+    imageInputUsdPerMillionTokens: 8,
+    imageCachedInputUsdPerMillionTokens: 2,
+    imageOutputUsdPerMillionTokens: 30,
+    textInputUsdPerMillionTokens: 5,
+    textCachedInputUsdPerMillionTokens: 1.25,
+    textOutputUsdPerMillionTokens: 0,
+  },
   'gpt-image-1.5': {
     imageInputUsdPerMillionTokens: 8,
     imageCachedInputUsdPerMillionTokens: 2,
@@ -27,6 +35,14 @@ export const OPENAI_IMAGE_PRICING = {
     textInputUsdPerMillionTokens: 5,
     textCachedInputUsdPerMillionTokens: 1.25,
     textOutputUsdPerMillionTokens: 10,
+  },
+  'gpt-image-1-mini': {
+    imageInputUsdPerMillionTokens: 2.5,
+    imageCachedInputUsdPerMillionTokens: 0.25,
+    imageOutputUsdPerMillionTokens: 8,
+    textInputUsdPerMillionTokens: 2,
+    textCachedInputUsdPerMillionTokens: 0.2,
+    textOutputUsdPerMillionTokens: 0,
   },
 } as const;
 
@@ -159,8 +175,11 @@ export function estimateOpenAIImageGenerationBaseCostUsd(
   const pricing = OPENAI_IMAGE_PRICING[normalizedModelId as keyof typeof OPENAI_IMAGE_PRICING];
   if (!pricing) return null;
 
-  const textInputTokens = toSafeInt(usage?.textInputTokens);
+  const inputTokens = toSafeInt(usage?.inputTokens);
+  const reportedTextInputTokens = toSafeInt(usage?.textInputTokens);
   const imageInputTokens = toSafeInt(usage?.imageInputTokens);
+  const textInputTokens =
+    reportedTextInputTokens > 0 || imageInputTokens > 0 ? reportedTextInputTokens : inputTokens;
   const outputTokens = toSafeInt(usage?.outputTokens);
 
   return (
@@ -184,6 +203,24 @@ export function estimateOpenAIImageGenerationRetailCostCredits(
   const usd = estimateOpenAIImageGenerationRetailCostUsd(usage);
   if (usd == null) return null;
   return creditsFromUsd(usd, 'ceil');
+}
+
+export function estimateOpenAIImageGenerationCost(usage: OpenAIImageUsage | null | undefined): {
+  baseUsd: number;
+  retailUsd: number;
+  computeCredits: number;
+  markupMultiplier: number;
+} | null {
+  const baseUsd = estimateOpenAIImageGenerationBaseCostUsd(usage);
+  const retailUsd = estimateOpenAIImageGenerationRetailCostUsd(usage);
+  const computeCredits = estimateOpenAIImageGenerationRetailCostCredits(usage);
+  if (baseUsd == null || retailUsd == null || computeCredits == null) return null;
+  return {
+    baseUsd,
+    retailUsd,
+    computeCredits,
+    markupMultiplier: OPENAI_RETAIL_MARKUP_MULTIPLIER,
+  };
 }
 
 export function estimateWebSearchBaseCostUsd(callCount = 1): number {

@@ -51,6 +51,31 @@ function loadServerModule<T>(specifier: string): T {
   return nodeRequire<T>(specifier);
 }
 
+function getProxyUrl(explicitProxy?: string): string | undefined {
+  return (
+    explicitProxy ||
+    process.env.https_proxy ||
+    process.env.HTTPS_PROXY ||
+    process.env.http_proxy ||
+    process.env.HTTP_PROXY ||
+    undefined
+  );
+}
+
+function createProxyFetch(proxyUrl: string): typeof fetch {
+  const { ProxyAgent, fetch: undiciFetch } = loadServerModule<{
+    ProxyAgent: new (proxy: string) => unknown;
+    fetch: (input: string | URL | Request, init?: Record<string, unknown>) => Promise<unknown>;
+  }>('undici');
+  const agent = new ProxyAgent(proxyUrl);
+
+  return ((input: RequestInfo | URL, init?: RequestInit) =>
+    undiciFetch(input as string | URL | Request, {
+      ...(init as Record<string, unknown>),
+      dispatcher: agent,
+    }).then((r: unknown) => r as Response)) as typeof fetch;
+}
+
 // Re-export types for backward compatibility
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
@@ -1085,31 +1110,37 @@ export function getModel(config: ModelConfig): ModelWithInfo {
         baseURL: effectiveBaseUrl,
       };
 
-      // For OpenAI-compatible providers (not native OpenAI), add a fetch
-      // wrapper that injects vendor-specific thinking params into the HTTP
-      // body. The thinking config is read from AsyncLocalStorage, set by
-      // callLLM / streamLLM at call time.
-      if (config.providerId !== 'openai') {
+      const proxyUrl = getProxyUrl(config.proxy);
+      const proxyFetch = proxyUrl ? createProxyFetch(proxyUrl) : undefined;
+
+      // Add a fetch wrapper when we either need proxy support or need to inject
+      // vendor-specific thinking params for OpenAI-compatible providers.
+      if (proxyFetch || config.providerId !== 'openai') {
         const providerId = config.providerId;
         openaiOptions.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
-          // Read thinking config from globalThis (set by thinking-context.ts)
-          const thinkingCtx = (globalThis as Record<string, unknown>).__thinkingContext as
-            | { getStore?: () => unknown }
-            | undefined;
-          const thinking = thinkingCtx?.getStore?.() as ThinkingConfig | undefined;
-          if (thinking && init?.body && typeof init.body === 'string') {
-            const extra = getCompatThinkingBodyParams(providerId, thinking);
-            if (extra) {
-              try {
-                const body = JSON.parse(init.body);
-                Object.assign(body, extra);
-                init = { ...init, body: JSON.stringify(body) };
-              } catch {
-                /* leave body as-is */
+          let requestInit = init;
+
+          if (providerId !== 'openai') {
+            // Read thinking config from globalThis (set by thinking-context.ts)
+            const thinkingCtx = (globalThis as Record<string, unknown>).__thinkingContext as
+              | { getStore?: () => unknown }
+              | undefined;
+            const thinking = thinkingCtx?.getStore?.() as ThinkingConfig | undefined;
+            if (thinking && requestInit?.body && typeof requestInit.body === 'string') {
+              const extra = getCompatThinkingBodyParams(providerId, thinking);
+              if (extra) {
+                try {
+                  const body = JSON.parse(requestInit.body);
+                  Object.assign(body, extra);
+                  requestInit = { ...requestInit, body: JSON.stringify(body) };
+                } catch {
+                  /* leave body as-is */
+                }
               }
             }
           }
-          return globalThis.fetch(url, init);
+
+          return proxyFetch ? proxyFetch(url, requestInit) : globalThis.fetch(url, requestInit);
         };
       }
 

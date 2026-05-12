@@ -2,7 +2,6 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['mathml2omml', 'pptxgenjs'],
-  serverExternalPackages: [],
   webpack(config, { isServer, webpack }) {
     if (!isServer) {
       config.plugins.push(

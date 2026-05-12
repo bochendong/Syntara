@@ -18,16 +18,63 @@
 import { NextRequest } from 'next/server';
 import { generateImage, aspectRatioToDimensions } from '@/lib/media/image-providers';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
-import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types';
+import type {
+  ImageGenerationCostEstimate,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+  ImageProviderId,
+} from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { assertUserHasCredits, chargeCreditsForImageGeneration } from '@/lib/server/credits';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { estimateOpenAIImageGenerationCost } from '@/lib/utils/openai-pricing';
 
 const log = createLogger('ImageGeneration API');
 
 export const maxDuration = 60;
+
+function shouldSkipCreditChargeForTestRequest(req: NextRequest): boolean {
+  const testRequested = req.headers.get('x-generation-test-no-charge') === 'true';
+  if (!testRequested) return false;
+
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SYNTARA_ALLOW_NO_CHARGE_TEST_GENERATION === 'true'
+  );
+}
+
+function createImageCostEstimate(
+  providerId: ImageProviderId,
+  modelId: string,
+  result: ImageGenerationResult,
+): ImageGenerationCostEstimate | null {
+  if (providerId !== 'openai-image' || !result.usage) return null;
+
+  const inputTokens = result.usage.inputTokens || 0;
+  const outputTokens = result.usage.outputTokens || 0;
+  const totalTokens = result.usage.totalTokens || inputTokens + outputTokens;
+  if (totalTokens <= 0 && inputTokens <= 0 && outputTokens <= 0) return null;
+
+  const estimate = estimateOpenAIImageGenerationCost({
+    modelId,
+    ...result.usage,
+  });
+  if (!estimate) return null;
+
+  return {
+    providerId,
+    modelId,
+    currency: 'USD',
+    baseUsd: estimate.baseUsd,
+    retailUsd: estimate.retailUsd,
+    computeCredits: estimate.computeCredits,
+    markupMultiplier: estimate.markupMultiplier,
+    pricingSource: 'openai-api-pricing',
+    isEstimate: true,
+  };
+}
 
 export async function POST(request: NextRequest) {
   return runWithRequestContext(request, '/api/generate/image', async () => {
@@ -88,17 +135,21 @@ export async function POST(request: NextRequest) {
           `prompt="${body.prompt.slice(0, 80)}...", size=${body.width ?? 'auto'}x${body.height ?? 'auto'}`,
       );
 
-      if (providerId === 'openai-image') {
+      const skipCreditCharge = shouldSkipCreditChargeForTestRequest(request);
+
+      if (providerId === 'openai-image' && !skipCreditCharge) {
         await assertUserHasCredits(getRequestContext()?.userId);
       }
 
       const result = await generateImage({ providerId, apiKey, baseUrl, model: clientModel }, body);
+      const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-1.5';
+      const costEstimate = createImageCostEstimate(providerId, resolvedModelId, result);
 
-      if (providerId === 'openai-image') {
+      if (providerId === 'openai-image' && !skipCreditCharge) {
         await chargeCreditsForImageGeneration({
           userId: getRequestContext()?.userId,
           providerId,
-          modelId: result.usage?.modelId || clientModel || 'gpt-image-1.5',
+          modelId: resolvedModelId,
           route: '/api/generate/image',
           prompt: body.prompt,
           notebookGenerationSessionId: getRequestContext()?.notebookGenerationSessionId,
@@ -118,7 +169,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return apiSuccess({ result });
+      const responseBody: {
+        result: ImageGenerationResult;
+        costEstimate?: ImageGenerationCostEstimate;
+        skippedCreditCharge?: boolean;
+      } = { result, skippedCreditCharge: skipCreditCharge };
+      if (costEstimate) responseBody.costEstimate = costEstimate;
+
+      return apiSuccess(responseBody);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // Detect content safety filter rejections (e.g. Seedream OutputImageSensitiveContentDetected)

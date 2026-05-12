@@ -40,6 +40,16 @@ function getInitialChatRightCollapsed(): boolean {
   }
 }
 
+function isTestSurface(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return (
+    pathname === '/test' ||
+    pathname === '/generation-quality' ||
+    pathname === '/generation-tests' ||
+    /^\/[^/]+-test(?:\/|$)/.test(pathname)
+  );
+}
+
 function MainShellNoRail({
   children,
   balancedInset = false,
@@ -73,10 +83,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLanding = pathname === '/';
   const isClassroom = pathname?.startsWith('/classroom/');
   const isAdmin = pathname?.startsWith('/admin');
-  const isGenerationQuality =
-    pathname === '/generation-quality' ||
-    pathname === '/generation-file-test' ||
-    pathname === '/generation-tests';
+  const isTestPage = isTestSurface(pathname);
   const isCourseProblemBank =
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isReviewImmersive =
@@ -112,7 +119,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  if (isReviewImmersive || isCourseProblemBank || isGenerationQuality) {
+  if (isReviewImmersive || isCourseProblemBank || isTestPage) {
     return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
   }
 
