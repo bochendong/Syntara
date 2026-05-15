@@ -1,19 +1,6 @@
 'use client';
 
-import { ColorBendsStageBackground } from '@/components/gamification/color-bends-stage-background';
-import { EvilEyeStageBackground } from '@/components/gamification/evil-eye-stage-background';
-import { FloatingLinesStageBackground } from '@/components/gamification/floating-lines-stage-background';
-import { LightPillarStageBackground } from '@/components/gamification/light-pillar-stage-background';
-import { LightRaysStageBackground } from '@/components/gamification/light-rays-stage-background';
-import { ParticlesStageBackground } from '@/components/gamification/particles-stage-background';
-import { PixelSnowStageBackground } from '@/components/gamification/pixel-snow-stage-background';
-import { PlasmaWaveStageBackground } from '@/components/gamification/plasma-wave-stage-background';
-import { PrismStageBackground } from '@/components/gamification/prism-stage-background';
-import { SoftAuroraStageBackground } from '@/components/gamification/soft-aurora-stage-background';
-import { ThreadsStageBackground } from '@/components/gamification/threads-stage-background';
-import { HyperspeedStageBackground } from '@/components/gamification/hyperspeed-stage-background';
-import { PrismaticBurstStageBackground } from '@/components/gamification/prismatic-burst-stage-background';
-import { LineWavesStageBackground } from '@/components/gamification/line-waves-stage-background';
+import dynamic from 'next/dynamic';
 import type { NotificationBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +11,105 @@ export {
 } from '@/lib/notifications/notification-bar-stage-ids';
 
 const layer = 'pointer-events-none absolute inset-0 z-0 min-h-[6rem] w-full opacity-[0.88]';
+
+const PrismStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/prism-stage-background').then(
+      (mod) => mod.PrismStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/prism-stage-background').PrismStageBackground;
+const LightPillarStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/light-pillar-stage-background').then(
+      (mod) => mod.LightPillarStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/light-pillar-stage-background').LightPillarStageBackground;
+const PixelSnowStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/pixel-snow-stage-background').then(
+      (mod) => mod.PixelSnowStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/pixel-snow-stage-background').PixelSnowStageBackground;
+const FloatingLinesStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/floating-lines-stage-background').then(
+      (mod) => mod.FloatingLinesStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/floating-lines-stage-background').FloatingLinesStageBackground;
+const LightRaysStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/light-rays-stage-background').then(
+      (mod) => mod.LightRaysStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/light-rays-stage-background').LightRaysStageBackground;
+const SoftAuroraStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/soft-aurora-stage-background').then(
+      (mod) => mod.SoftAuroraStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/soft-aurora-stage-background').SoftAuroraStageBackground;
+const ParticlesStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/particles-stage-background').then(
+      (mod) => mod.ParticlesStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/particles-stage-background').ParticlesStageBackground;
+const EvilEyeStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/evil-eye-stage-background').then(
+      (mod) => mod.EvilEyeStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/evil-eye-stage-background').EvilEyeStageBackground;
+const ColorBendsStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/color-bends-stage-background').then(
+      (mod) => mod.ColorBendsStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/color-bends-stage-background').ColorBendsStageBackground;
+const PlasmaWaveStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/plasma-wave-stage-background').then(
+      (mod) => mod.PlasmaWaveStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/plasma-wave-stage-background').PlasmaWaveStageBackground;
+const ThreadsStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/threads-stage-background').then(
+      (mod) => mod.ThreadsStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/threads-stage-background').ThreadsStageBackground;
+const HyperspeedStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/hyperspeed-stage-background').then(
+      (mod) => mod.HyperspeedStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/hyperspeed-stage-background').HyperspeedStageBackground;
+const PrismaticBurstStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/prismatic-burst-stage-background').then(
+      (mod) => mod.PrismaticBurstStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/prismatic-burst-stage-background').PrismaticBurstStageBackground;
+const LineWavesStageBackground = dynamic(
+  () =>
+    import('@/components/gamification/line-waves-stage-background').then(
+      (mod) => mod.LineWavesStageBackground,
+    ),
+  { ssr: false },
+) as typeof import('@/components/gamification/line-waves-stage-background').LineWavesStageBackground;
 
 type NotificationBarStageBackgroundProps = {
   id: NotificationBarStageId;

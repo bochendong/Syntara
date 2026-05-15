@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
@@ -347,24 +347,7 @@ function GeneratedSceneImage({
 
 function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; label: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  useEffect(() => {
-    if (slides.length <= 1 || isPaused) {
-      return;
-    }
-
-    const shouldReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (shouldReduceMotion) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
-    }, 2800);
-
-    return () => window.clearInterval(intervalId);
-  }, [isPaused, slides.length]);
+  const activeSlide = slides[activeIndex] ?? slides[0];
 
   const selectSlide = useCallback((index: number) => {
     setActiveIndex(index);
@@ -374,24 +357,17 @@ function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; l
     <figure
       className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(24,24,27,0.12)]"
       aria-label={label}
-      onFocus={() => setIsPaused(true)}
-      onBlur={() => setIsPaused(false)}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
       <div className="relative aspect-[16/9] w-full">
-        {slides.map((slide, index) => (
+        {activeSlide ? (
           <img
-            key={slide.src}
-            src={slide.src}
-            alt={index === activeIndex ? slide.alt : ''}
-            aria-hidden={index !== activeIndex}
-            loading={index === 0 ? 'eager' : 'lazy'}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out ${
-              index === activeIndex ? 'opacity-100' : 'opacity-0'
-            }`}
+            key={activeSlide.src}
+            src={activeSlide.src}
+            alt={activeSlide.alt}
+            loading="eager"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-        ))}
+        ) : null}
       </div>
 
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-3 py-2 shadow-sm backdrop-blur">
@@ -490,11 +466,35 @@ function MentorCompanionVisual({
   live2dTitle: string;
   live2dBody: string;
 }) {
+  const live2dStageRef = useRef<HTMLElement | null>(null);
+  const [shouldMountLive2D, setShouldMountLive2D] = useState(false);
+
+  useEffect(() => {
+    if (shouldMountLive2D) return;
+    const stage = live2dStageRef.current;
+    if (!stage) return;
+
+    if (!('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldMountLive2D(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '360px 0px' },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [shouldMountLive2D]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
       <GeneratedSceneImage src={imageSrc} alt={imageAlt} />
 
       <aside
+        ref={live2dStageRef}
         aria-label={live2dLabel}
         className="relative min-h-[300px] overflow-hidden rounded-[28px] border border-violet-200/50 bg-[radial-gradient(circle_at_50%_10%,rgba(167,139,250,0.38),transparent_48%),linear-gradient(180deg,#18111f_0%,#0b1020_100%)] shadow-[0_28px_80px_rgba(24,24,27,0.18)]"
       >
@@ -504,16 +504,26 @@ function MentorCompanionVisual({
         </div>
         <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:36px_36px]" />
         <div className="absolute inset-x-0 bottom-0 top-20 z-10">
-          <TalkingAvatarOverlay
-            layout="card"
-            speaking={false}
-            cadence="idle"
-            modelIdOverride="hiyori"
-            cardFraming="stage"
-            showBadge={false}
-            showStatusDot={false}
-            className="h-full w-full"
-          />
+          {shouldMountLive2D ? (
+            <TalkingAvatarOverlay
+              layout="card"
+              speaking={false}
+              cadence="idle"
+              modelIdOverride="hiyori"
+              cardFraming="stage"
+              showBadge={false}
+              showStatusDot={false}
+              className="h-full w-full"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center px-5 text-center text-violet-50/75">
+              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-5 shadow-lg backdrop-blur">
+                <Sparkles className="mx-auto mb-3 size-6 text-violet-200" />
+                <p className="text-sm font-semibold">{live2dTitle}</p>
+                <p className="mt-2 text-xs leading-5 text-violet-50/65">{live2dBody}</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-white/12 bg-black/28 px-4 py-3 text-xs leading-5 text-violet-50/82 backdrop-blur">
           {live2dBody}

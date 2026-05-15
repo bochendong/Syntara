@@ -1,7 +1,9 @@
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { parsePDF } from '@/lib/pdf/pdf-providers';
 import { parsePptxBuffer } from '@/lib/ppt/pptx-parser';
 import { attachDeckMemoryToOutlines } from '@/lib/generation/deck-memory';
 import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
@@ -16,10 +18,16 @@ export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const MAX_SOURCE_PAGES_PER_FIXTURE = 12;
+const MAX_SOURCE_PAGES_PER_FIXTURE = 80;
+const MAX_SOURCE_IMAGES_PER_FIXTURE = 18;
+const MAX_SOURCE_IMAGE_DATA_URL_LENGTH = 1_200_000;
+const MIN_SOURCE_IMAGE_LONG_EDGE = 180;
+const MIN_SOURCE_IMAGE_AREA = 24_000;
+const MIN_SOURCE_IMAGE_DATA_URL_LENGTH = 4_000;
+const SUBJECT_NOTEBOOK_DIR = '科目测试';
 const TESTFILE_ROOT = path.join(process.cwd(), 'testfile');
 
-type FixtureFileId = 'oop-md' | 'functions-pdf' | 'victimization-pptx';
+type FixtureFileId = string;
 
 interface FilePageChunk {
   title: string;
@@ -27,14 +35,85 @@ interface FilePageChunk {
   sourceLabel: string;
 }
 
+interface SourcePackagePage {
+  sourceIndex: number;
+  title: string;
+  summary: string;
+  rawText: string;
+  keyPoints: string[];
+  concreteAnchor: string;
+  sourceLabel: string;
+  suggestedPageKind: string;
+  imageIds: string[];
+}
+
+interface SourcePackageImage {
+  id: string;
+  src: string;
+  pageNumber: number;
+  description?: string;
+  width?: number;
+  height?: number;
+  byteLength?: number;
+}
+
+interface SourcePackageImageStats {
+  rawCount: number;
+  keptCount: number;
+  filteredSmallCount: number;
+  filteredLargeCount: number;
+  filteredLimitCount: number;
+}
+
+interface SourcePackage {
+  fileName: string;
+  fileType: 'md' | 'pdf' | 'pptx' | 'notebook';
+  subject?: string;
+  sourceText: string;
+  sourcePages: SourcePackagePage[];
+  sourceImages: SourcePackageImage[];
+  imageMapping: Record<string, string>;
+  imageStats?: SourcePackageImageStats;
+  pageCount: number;
+  parser?: string;
+  warnings?: string[];
+}
+
 interface TestfileFixture {
   id: FixtureFileId;
   fileName: string;
-  fileType: 'md' | 'pdf' | 'pptx';
+  fileType: 'md' | 'pdf' | 'pptx' | 'notebook';
   title: string;
   description: string;
   sourceTextLength: number;
   outlines: SceneOutline[];
+  sourcePackage?: SourcePackage;
+}
+
+interface SubjectNotebookFile {
+  id: string;
+  fileName: string;
+  fileType: 'md' | 'pdf' | 'pptx';
+  title: string;
+  sourceTextLength: number;
+  pageCount: number;
+}
+
+interface SubjectNotebookFixture extends TestfileFixture {
+  subject: string;
+  fileCount: number;
+  sourceFiles: SubjectNotebookFile[];
+}
+
+interface LoadedSubjectSource {
+  chunks: FilePageChunk[];
+  sourceText: string;
+  sourceImages: SourcePackageImage[];
+  imageMapping: Record<string, string>;
+  imageStats: SourcePackageImageStats;
+  pageCount: number;
+  parser?: string;
+  warnings: string[];
 }
 
 type BuildOutlineFromChunkArgs = {
@@ -79,6 +158,15 @@ function clampText(input: string, maxLength: number): string {
   return `${normalized.slice(0, maxLength - 3).trim()}...`;
 }
 
+function clampRawText(input: string, maxLength: number): string {
+  const normalized = input
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 20).trim()}\n\n... raw source clipped`;
+}
+
 function cleanSourceText(input: string): string {
   return input
     .replace(/```[\s\S]*?```/g, ' ')
@@ -92,6 +180,161 @@ function cleanSourceText(input: string): string {
     .replace(/\s+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function dataUrlByteLength(src: string): number {
+  const base64 = src.match(/^data:[^;]+;base64,(.+)$/)?.[1];
+  if (base64) return Math.ceil((base64.length * 3) / 4);
+  return src.length;
+}
+
+function emptySourceImageStats(rawCount = 0, keptCount = 0): SourcePackageImageStats {
+  return {
+    rawCount,
+    keptCount,
+    filteredSmallCount: 0,
+    filteredLargeCount: 0,
+    filteredLimitCount: 0,
+  };
+}
+
+function normalizedImageDimension(value?: number): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null;
+  return Math.round(value);
+}
+
+function smallSourceImageReason(args: {
+  width?: number;
+  height?: number;
+  byteLength: number;
+}): string | null {
+  const width = normalizedImageDimension(args.width);
+  const height = normalizedImageDimension(args.height);
+  if (width && height) {
+    const longEdge = Math.max(width, height);
+    const area = width * height;
+    if (longEdge < MIN_SOURCE_IMAGE_LONG_EDGE) {
+      return `最长边 ${longEdge}px 小于 ${MIN_SOURCE_IMAGE_LONG_EDGE}px`;
+    }
+    if (area < MIN_SOURCE_IMAGE_AREA) {
+      return `面积 ${area}px 小于 ${MIN_SOURCE_IMAGE_AREA}px`;
+    }
+    return null;
+  }
+
+  if (!width && !height && args.byteLength < MIN_SOURCE_IMAGE_DATA_URL_LENGTH) {
+    return `图片约 ${Math.max(1, Math.round(args.byteLength / 1024))} KB，低于可复用素材阈值`;
+  }
+
+  return null;
+}
+
+function imageDescriptionForSource(args: {
+  id: string;
+  pageNumber: number;
+  fileName: string;
+  description?: string;
+  width?: number;
+  height?: number;
+}): string {
+  const size = args.width && args.height ? `，尺寸 ${args.width}×${args.height}` : '';
+  return (
+    args.description?.trim() ||
+    `原文图片 ${args.id}，来自 ${args.fileName} 第 ${args.pageNumber} 页${size}。`
+  );
+}
+
+function normalizeSourceImages(
+  rawImages: Array<{
+    id?: string;
+    src?: string;
+    pageNumber?: number;
+    description?: string;
+    width?: number;
+    height?: number;
+  }>,
+  fileName: string,
+): {
+  sourceImages: SourcePackageImage[];
+  imageMapping: Record<string, string>;
+  imageStats: SourcePackageImageStats;
+  warnings: string[];
+} {
+  const sourceImages: SourcePackageImage[] = [];
+  const imageMapping: Record<string, string> = {};
+  const warnings: string[] = [];
+  const imageStats = emptySourceImageStats(
+    rawImages.filter((image) => typeof image.src === 'string' && image.src.trim()).length,
+  );
+
+  rawImages.forEach((image, rawIndex) => {
+    const src = typeof image.src === 'string' ? image.src.trim() : '';
+    if (!src) return;
+    const id = image.id?.trim() || `img_${rawIndex + 1}`;
+    const byteLength = dataUrlByteLength(src);
+    if (byteLength > MAX_SOURCE_IMAGE_DATA_URL_LENGTH) {
+      imageStats.filteredLargeCount += 1;
+      warnings.push(`跳过 ${id}：图片约 ${Math.round(byteLength / 1024)} KB，超过测试接口上限。`);
+      return;
+    }
+    const smallReason = smallSourceImageReason({
+      width: image.width,
+      height: image.height,
+      byteLength,
+    });
+    if (smallReason) {
+      imageStats.filteredSmallCount += 1;
+      return;
+    }
+    if (sourceImages.length >= MAX_SOURCE_IMAGES_PER_FIXTURE) {
+      imageStats.filteredLimitCount += 1;
+      if (!warnings.some((warning) => warning.includes('只保留前'))) {
+        warnings.push(`只保留前 ${MAX_SOURCE_IMAGES_PER_FIXTURE} 张原文图片，避免请求体过大。`);
+      }
+      return;
+    }
+    const pageNumber = Math.max(1, Math.round(image.pageNumber || 1));
+    const sourceImage: SourcePackageImage = {
+      id,
+      src,
+      pageNumber,
+      description: imageDescriptionForSource({
+        id,
+        pageNumber,
+        fileName,
+        description: image.description,
+        width: image.width,
+        height: image.height,
+      }),
+      width: image.width,
+      height: image.height,
+      byteLength,
+    };
+    sourceImages.push(sourceImage);
+    imageMapping[id] = src;
+  });
+
+  imageStats.keptCount = sourceImages.length;
+  if (imageStats.filteredSmallCount > 0) {
+    warnings.push(
+      `已过滤 ${imageStats.filteredSmallCount} 张过小原文图片（小图标/logo/装饰图），只保留适合后续生成复用的教学素材。`,
+    );
+  }
+
+  return { sourceImages, imageMapping, imageStats, warnings };
+}
+
+function imageIdsForSourcePage(
+  sourceImages: SourcePackageImage[],
+  sourceLabel: string,
+  sourceIndex: number,
+): string[] {
+  const sourcePageNumber =
+    Number(sourceLabel.match(/(?:Page|Slide)\s+(\d+)/i)?.[1]) || sourceIndex + 1;
+  return sourceImages
+    .filter((image) => image.pageNumber === sourcePageNumber)
+    .map((image) => image.id)
+    .slice(0, 4);
 }
 
 function extractCodeBlock(text: string): string {
@@ -1240,8 +1483,23 @@ function buildFixture(args: {
   disciplineStyle: NonNullable<SceneLayoutIntent['disciplineStyle']>;
   deckStyle: NonNullable<SceneLayoutIntent['deckStyle']>;
   sharedExamples?: SharedExampleMemory[];
+  subject?: string;
+  sourceText?: string;
+  sourceImages?: SourcePackageImage[];
+  imageMapping?: Record<string, string>;
+  sourceImageStats?: SourcePackageImageStats;
+  parser?: string;
+  sourceWarnings?: string[];
 }): TestfileFixture {
   const selectedChunks = args.chunks.slice(0, MAX_SOURCE_PAGES_PER_FIXTURE);
+  const sourceWarnings = [
+    ...(args.chunks.length > selectedChunks.length
+      ? [
+          `sourcePages 已读取前 ${selectedChunks.length}/${args.chunks.length} 段；如需测试更长文件，请提高 MAX_SOURCE_PAGES_PER_FIXTURE。`,
+        ]
+      : []),
+    ...(args.sourceWarnings || []),
+  ];
   const total = selectedChunks.length + 1;
   const coverOutline = buildCoverOutline({
     fixtureId: args.id,
@@ -1267,6 +1525,54 @@ function buildFixture(args: {
     }),
   );
   const outlines = [coverOutline, ...sourceOutlines];
+  const attachedOutlines = attachDeckMemoryToOutlines(outlines);
+  const sourceImages = args.sourceImages || [];
+  const sourceImageStats =
+    args.sourceImageStats || emptySourceImageStats(sourceImages.length, sourceImages.length);
+  const sourcePages: SourcePackagePage[] = selectedChunks.map((chunk, sourceIndex) => {
+    const outline = sourceOutlines[sourceIndex];
+    const keyPoints = outline?.keyPoints?.length ? outline.keyPoints : extractKeyPoints(chunk.text);
+    const suggestedPageKind = outline ? inferSourcePageKind(outline, sourceIndex + 1) : 'summary';
+    const imageIds = imageIdsForSourcePage(sourceImages, chunk.sourceLabel, sourceIndex);
+    const imageAnchor = imageIds.length ? `\n可复用原文图片：${imageIds.join(', ')}` : '';
+    return {
+      sourceIndex: sourceIndex + 1,
+      title: outline?.title || chunk.title,
+      summary: outline?.description || clampText(cleanSourceText(chunk.text), 420),
+      rawText: clampRawText(chunk.text, 3000),
+      keyPoints,
+      concreteAnchor: [
+        buildConcreteAnchor({
+          title: chunk.title,
+          text: chunk.text,
+          keyPoints,
+          template: outline?.layoutIntent?.layoutTemplate || 'three_cards',
+          disciplineStyle: args.disciplineStyle,
+        }),
+        imageAnchor,
+      ]
+        .filter(Boolean)
+        .join('\n')
+        .trim(),
+      sourceLabel: chunk.sourceLabel,
+      suggestedPageKind,
+      imageIds,
+    };
+  });
+  const sourcePackage: SourcePackage = {
+    fileName: args.fileName,
+    fileType: args.fileType,
+    subject: args.subject,
+    sourceText: args.sourceText || args.chunks.map((chunk) => chunk.text).join('\n\n'),
+    sourcePages,
+    sourceImages,
+    imageMapping:
+      args.imageMapping || Object.fromEntries(sourceImages.map((img) => [img.id, img.src])),
+    imageStats: sourceImageStats,
+    pageCount: args.chunks.length,
+    parser: args.parser,
+    warnings: sourceWarnings,
+  };
 
   return {
     id: args.id,
@@ -1275,8 +1581,315 @@ function buildFixture(args: {
     title: args.title,
     description: args.description,
     sourceTextLength: args.chunks.reduce((sum, chunk) => sum + chunk.text.length, 0),
-    outlines: attachDeckMemoryToOutlines(outlines),
+    outlines: attachedOutlines,
+    sourcePackage,
   };
+}
+
+function inferSourcePageKind(outline: SceneOutline, pageIndex: number): string {
+  const text = [
+    outline.title,
+    outline.description,
+    outline.archetype,
+    outline.contentProfile,
+    outline.layoutIntent?.layoutTemplate,
+    outline.layoutIntent?.disciplineStyle,
+    ...(outline.keyPoints || []),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+  if (pageIndex === 0 || /cover|封面/.test(text)) return 'cover';
+  if (/code|trace|class|object|python|代码|追踪|对象|属性/.test(text)) return 'code';
+  if (/math|formula|proof|derivation|function|equation|函数|公式|证明|推导|定理/.test(text)) {
+    return 'math';
+  }
+  if (/table|matrix|compare|comparison|表格|对比/.test(text)) return 'table';
+  if (/process|timeline|step|流程|步骤/.test(text)) return 'process';
+  if (/example|problem|例子|例题|题目/.test(text)) return 'example';
+  if (/summary|takeaway|总结|回顾/.test(text)) return 'summary';
+  return 'intro';
+}
+
+function stableIdFromName(prefix: string, name: string): string {
+  const hash = createHash('sha1').update(name).digest('hex').slice(0, 16) || 'item';
+  return `${prefix}-${hash}`;
+}
+
+function fileTypeFromName(fileName: string): SubjectNotebookFile['fileType'] | null {
+  if (/\.md$/i.test(fileName)) return 'md';
+  if (/\.pdf$/i.test(fileName)) return 'pdf';
+  if (/\.pptx$/i.test(fileName)) return 'pptx';
+  return null;
+}
+
+function subjectDisciplineStyle(
+  subject: string,
+): NonNullable<SceneLayoutIntent['disciplineStyle']> {
+  if (/数学|math|algebra|calculus|probability|statistics/i.test(subject)) return 'math';
+  if (/计算机|computer|cs|program|code|oop|data/i.test(subject)) return 'code';
+  return 'general';
+}
+
+function subjectDeckStyle(subject: string): NonNullable<SceneLayoutIntent['deckStyle']> {
+  if (/计算机|computer|cs|program|code|oop|data/i.test(subject)) return 'tech_saas';
+  return 'academic';
+}
+
+function subjectNotebookTitle(subject: string, fileTitle?: string): string {
+  if (fileTitle) return `${subject} · ${fileTitle}`;
+  if (/数学/.test(subject)) return '数学课程笔记本';
+  if (/计算机/.test(subject)) return '计算机课程笔记本';
+  if (/社会学/.test(subject)) return '社会学课程笔记本';
+  if (/论文/.test(subject)) return '论文精读笔记本';
+  return `${subject}课程笔记本`;
+}
+
+function subjectNotebookDescription(subject: string, files: SubjectNotebookFile[]): string {
+  const fileList = files.map((file) => file.fileName).join('、');
+  return [
+    `按科目目录中的单个文件生成 HTML 整本笔记本测试，科目：${subject}。`,
+    `来源文件 ${files.length} 个：${fileList || '无'}。`,
+    '规划阶段需要先分配整本 notebook 的页面容量，再为每页写 HTML 生成 prompt。',
+  ].join('\n');
+}
+
+async function loadSubjectSourceMaterial(args: {
+  filePath: string;
+  fileName: string;
+  fileType: SubjectNotebookFile['fileType'];
+}): Promise<LoadedSubjectSource> {
+  if (args.fileType === 'md') {
+    const sourceText = await readFile(args.filePath, 'utf8');
+    const chunks = splitMarkdownIntoChunks(sourceText);
+    return {
+      chunks,
+      sourceText,
+      sourceImages: [],
+      imageMapping: {},
+      imageStats: emptySourceImageStats(),
+      pageCount: chunks.length,
+      parser: 'markdown',
+      warnings: [],
+    };
+  }
+
+  const buffer = await readFile(args.filePath);
+  if (args.fileType === 'pdf') {
+    const chunks = await splitPdfIntoChunks(buffer);
+    const warnings: string[] = [];
+    let sourceText = chunks.map((chunk) => chunk.text).join('\n\n');
+    let sourceImages: SourcePackageImage[] = [];
+    let imageMapping: Record<string, string> = {};
+    let imageStats = emptySourceImageStats();
+    let pageCount = chunks.length;
+    let parser = 'unpdf-text';
+    try {
+      const parsed = await parsePDF({ providerId: 'unpdf' }, buffer);
+      sourceText = parsed.text || sourceText;
+      pageCount = parsed.metadata?.pageCount || pageCount;
+      parser = parsed.metadata?.parser || 'unpdf';
+      const normalized = normalizeSourceImages(parsed.metadata?.pdfImages || [], args.fileName);
+      sourceImages = normalized.sourceImages;
+      imageMapping = normalized.imageMapping;
+      imageStats = normalized.imageStats;
+      warnings.push(...normalized.warnings);
+      if (parsed.metadata?.pdfImages?.length && sourceImages.length === 0) {
+        warnings.push('PDF 解析到了图片，但都因为大小或格式限制未进入 HTML notebook 测试。');
+      }
+    } catch (error) {
+      warnings.push(
+        `PDF 图片解析失败，已降级为文本源材料：${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return {
+      chunks,
+      sourceText,
+      sourceImages,
+      imageMapping,
+      imageStats,
+      pageCount,
+      parser,
+      warnings,
+    };
+  }
+
+  const parsed = await parsePptxBuffer({
+    buffer,
+    fileName: args.fileName,
+    fileSize: buffer.byteLength,
+  });
+  const normalized = normalizeSourceImages(
+    parsed.metadata.pdfImages || parsed.images || [],
+    args.fileName,
+  );
+  return {
+    chunks: splitPptxTextIntoChunks(parsed.text),
+    sourceText: parsed.text,
+    sourceImages: normalized.sourceImages,
+    imageMapping: normalized.imageMapping,
+    imageStats: normalized.imageStats,
+    pageCount: parsed.metadata.slideCount,
+    parser: 'pptxtojson',
+    warnings: normalized.warnings,
+  };
+}
+
+function cloneNotebookOutline(args: {
+  outline: SceneOutline;
+  file: SubjectNotebookFile;
+  order: number;
+}): SceneOutline {
+  const sourceLabel = `${args.file.fileName} · ${args.outline.title}`;
+  return normalizeComputerScienceSceneOutline({
+    ...args.outline,
+    id: `${args.file.id}-${args.outline.id}`,
+    title: args.outline.title,
+    description: [`来源文件：${args.file.fileName}`, args.outline.description]
+      .filter(Boolean)
+      .join('\n'),
+    order: args.order,
+    teachingPagePlan: args.outline.teachingPagePlan
+      ? {
+          ...args.outline.teachingPagePlan,
+          id: `${args.file.id}-${args.outline.teachingPagePlan.id}`,
+          order: args.order + 1,
+          concreteAnchor: [
+            `来源文件：${args.file.fileName}`,
+            args.outline.teachingPagePlan.concreteAnchor,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        }
+      : undefined,
+    studentThinkingMove:
+      args.outline.studentThinkingMove ||
+      `先定位这一页来自 ${sourceLabel}，再看它在整本 notebook 中承担的作用。`,
+  });
+}
+
+async function loadSubjectNotebookFixtures(): Promise<SubjectNotebookFixture[]> {
+  const subjectRoot = path.join(TESTFILE_ROOT, SUBJECT_NOTEBOOK_DIR);
+  const entries = await readdir(subjectRoot, { withFileTypes: true });
+  const subjectDirs = entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+  const notebooksBySubject = await Promise.all(
+    subjectDirs.map(async (subject): Promise<SubjectNotebookFixture[]> => {
+      const subjectPath = path.join(subjectRoot, subject);
+      const fileNames = (await readdir(subjectPath))
+        .filter((fileName) => !fileName.startsWith('.') && fileTypeFromName(fileName))
+        .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      if (fileNames.length === 0) return [];
+
+      const disciplineStyle = subjectDisciplineStyle(subject);
+      const deckStyle = subjectDeckStyle(subject);
+
+      const notebooks = await Promise.all(
+        fileNames.map(async (fileName) => {
+          const fileType = fileTypeFromName(fileName);
+          if (!fileType) return null;
+          const source = await loadSubjectSourceMaterial({
+            filePath: path.join(subjectPath, fileName),
+            fileName,
+            fileType,
+          });
+          const title = fileName.replace(/\.[^.]+$/, '');
+          const notebookId = stableIdFromName('subject-notebook', `${subject}/${fileName}`);
+          const fileId = `${notebookId}-source`;
+          const fixture = buildFixture({
+            id: fileId,
+            fileName,
+            fileType,
+            title,
+            description: `${subject} notebook source file: ${fileName}`,
+            chunks: source.chunks,
+            language: 'zh-CN',
+            disciplineStyle,
+            deckStyle,
+            sharedExamples: disciplineStyle === 'code' ? [TWEET_MEMORY] : undefined,
+            subject,
+            sourceText: source.sourceText,
+            sourceImages: source.sourceImages,
+            imageMapping: source.imageMapping,
+            sourceImageStats: source.imageStats,
+            parser: source.parser,
+            sourceWarnings: source.warnings,
+          });
+
+          const file: SubjectNotebookFile = {
+            id: fileId,
+            fileName,
+            fileType,
+            title,
+            sourceTextLength: fixture.sourceTextLength,
+            pageCount: source.pageCount || Math.max(0, fixture.outlines.length - 1),
+          };
+          const coverChunks: FilePageChunk[] = fixture.outlines.slice(1, 3).map((outline) => ({
+            title: outline.title,
+            text: [outline.description, ...(outline.keyPoints || [])].join('\n'),
+            sourceLabel: outline.title,
+          }));
+          const notebookTitle = subjectNotebookTitle(subject, title);
+          const coverOutline = buildCoverOutline({
+            fixtureId: notebookId,
+            title: notebookTitle,
+            chunks: coverChunks,
+            total: file.pageCount + 1,
+            language: 'zh-CN',
+            disciplineStyle,
+            deckStyle,
+          });
+
+          const sourceOutlines = fixture.outlines.slice(1).map((outline, outlineIndex) =>
+            cloneNotebookOutline({
+              outline,
+              file,
+              order: outlineIndex + 1,
+            }),
+          );
+
+          const notebook: SubjectNotebookFixture = {
+            id: notebookId,
+            subject,
+            fileName: `${subject}/${fileName}`,
+            fileType: 'notebook' as const,
+            title: notebookTitle,
+            description: subjectNotebookDescription(subject, [file]),
+            fileCount: 1,
+            sourceFiles: [file],
+            sourceTextLength: file.sourceTextLength,
+            outlines: attachDeckMemoryToOutlines([coverOutline, ...sourceOutlines]),
+            sourcePackage: {
+              ...(fixture.sourcePackage || {
+                fileName,
+                fileType,
+                subject,
+                sourceText: source.sourceText,
+                sourcePages: [],
+                sourceImages: source.sourceImages,
+                imageMapping: source.imageMapping,
+                imageStats: source.imageStats,
+                pageCount: source.pageCount,
+                parser: source.parser,
+                warnings: source.warnings,
+              }),
+              fileName: `${subject}/${fileName}`,
+              fileType: 'notebook' as const,
+              subject,
+            },
+          };
+          return notebook;
+        }),
+      );
+
+      return notebooks.filter((notebook): notebook is SubjectNotebookFixture => notebook !== null);
+    }),
+  );
+
+  return notebooksBySubject.flat();
 }
 
 async function loadFixtures(): Promise<TestfileFixture[]> {
@@ -1339,8 +1952,15 @@ async function loadFixtures(): Promise<TestfileFixture[]> {
   ];
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
+    if (req.nextUrl.searchParams.get('mode') === 'subject-notebooks') {
+      const notebooks = await loadSubjectNotebookFixtures();
+      const response = apiSuccess({ notebooks });
+      response.headers.set('Cache-Control', 'no-store, max-age=0');
+      return response;
+    }
+
     const fixtures = await loadFixtures();
     const response = apiSuccess({ fixtures });
     response.headers.set('Cache-Control', 'no-store, max-age=0');

@@ -29,11 +29,15 @@ const MATH_PATTERN =
 
 const COMPLEX_ENV_PATTERN =
   /\\begin\{(?:align\*?|aligned|cases|array|matrix|pmatrix|bmatrix|Bmatrix|vmatrix|Vmatrix)\}/;
+const LATEX_ROW_BREAK_ENV_PATTERN =
+  /\\begin\{(align\*?|aligned|cases|array|matrix|pmatrix|bmatrix|Bmatrix|vmatrix|Vmatrix)\}[\s\S]*?\\end\{\1\}/g;
+const LATEX_ROW_BREAK_SENTINEL = '__SYNTARA_LATEX_ROW_BREAK__';
 const LATEX_INLINE_COMMAND_PATTERN =
   /\\(?:d?frac|neq|ne|to|rightarrow|Rightarrow|Leftrightarrow|equiv|mid|nmid|pmod|bmod|mod|dots|ldots|cdots|approx|sim|times|cdot|circ|exists|forall|in|notin|subseteq|subset|supseteq|leq|geq|mathbb|operatorname|text|sqrt|left|right|begin|end|gcd|tilde|alpha|beta|gamma|delta|lambda|mu|sigma|theta|omega|pi|sum|prod|int|lim|log|ln|sin|cos|tan)\b/;
 const BARE_MATH_RUN_CHARS = String.raw`A-Za-z0-9\\{}\(\)\[\]\.,+\-−*/=,:^_<>|!'"’ \t→∘≠⇒≤≥≡∈∉⊆⊂∪∩∅∣∤ℕℤℚℝℂ`;
 const BARE_MATH_PATTERNS = [
   /[ℕℤℚℝℂ](?:\s*[_^]\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+))?/g,
+  /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\([^，。！？；;\n]+?\)/g,
   /(?:\b|(?<![A-Za-z]))[A-Za-z0-9()[\]{}!^_+\-−*/.\\\s]{1,90}?\s*(?:≡|\\equiv)\s*[A-Za-z0-9()[\]{}!^_+\-−*/.\\\s]{1,90}?\s*(?:\\pmod\s*\{?[^{}\s，。！？；;]+}?|\(\s*(?:mod|\\pmod)\s*[^)]+?\s*\))/g,
   /\b(?:\d+|[A-Za-z])\s*\^\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+)\s*(?:\\(?:pmod|bmod)\s*\{?[^{}\s，。！？；;]+}?|\(\s*mod\s+[^)]+?\s*\)|mod\s+[^，。！？；;\s]+)/g,
   /\b(?:\d+|[A-Za-z])\s*\^\s*(?:\{[^}]{1,40}\}|[A-Za-z0-9]+)(?=$|[\s，。！？；;,])/g,
@@ -214,6 +218,30 @@ function renderInlineCodeHtml(text: string): string {
   return `<code class="${INLINE_CODE_CLASS}">${escapeHtml(normalizeInlineCodeText(text))}</code>`;
 }
 
+function looksLikeMathCodeLiteral(text: string): boolean {
+  const normalized = normalizeDelimiterEscapes(text.trim());
+  if (!normalized || normalized.includes('\n') || normalized.includes('$')) return false;
+  return (
+    /\\begin\{(?:[pbBvV]?matrix|array|cases|aligned)\}/.test(normalized) ||
+    LATEX_INLINE_COMMAND_PATTERN.test(normalized) ||
+    /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(normalized)
+  );
+}
+
+function renderInlineCodeOrMathHtml(text: string): string {
+  const normalized = normalizeDelimiterEscapes(text.trim());
+  if (looksLikeMathCodeLiteral(normalized)) {
+    try {
+      const rendered = renderMathToHtml(normalized, { forceInline: true });
+      if (rendered.includes('data-syntara-math')) return rendered;
+    } catch {
+      // Fall back to inline code when KaTeX cannot parse the content.
+    }
+  }
+
+  return renderInlineCodeHtml(text);
+}
+
 function readLatexTextttCommandAt(
   source: string,
   index: number,
@@ -345,7 +373,7 @@ function renderTextFragmentWithInlineCode(text: string): string {
   return splitInlineCodeFragments(text)
     .map((fragment) =>
       fragment.type === 'code'
-        ? renderInlineCodeHtml(fragment.value)
+        ? renderInlineCodeOrMathHtml(fragment.value)
         : renderTextFragmentWithBareMath(fragment.value),
     )
     .join('');
@@ -353,6 +381,18 @@ function renderTextFragmentWithInlineCode(text: string): string {
 
 function normalizeDelimiterEscapes(text: string): string {
   return text.replace(/\\\\(?=[a-zA-Z()[\]])/g, '\\');
+}
+
+function protectLatexEnvironmentRowBreaks(text: string): string {
+  if (!text.includes('\\begin{')) return text;
+
+  return text.replace(LATEX_ROW_BREAK_ENV_PATTERN, (environment) =>
+    environment.replace(/\\\\(?=\s*[^\s\\[])/g, LATEX_ROW_BREAK_SENTINEL),
+  );
+}
+
+function restoreLatexEnvironmentRowBreaks(text: string): string {
+  return text.replaceAll(LATEX_ROW_BREAK_SENTINEL, '\\\\');
 }
 
 function looksLikeMathText(text: string): boolean {
@@ -435,6 +475,7 @@ function isBareMathCandidate(value: string): boolean {
   const hasMathTrigger =
     LATEX_INLINE_COMMAND_PATTERN.test(text) ||
     /[=^*/]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|ℕ|ℤ|ℚ|ℝ|ℂ/.test(text) ||
+    /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(text) ||
     /\b[a-z][A-Za-z0-9_'’]*\s*:\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\s*(?:\\to|→|->)\s*(?:\\mathbb\{[A-Z]\}|[A-Z])\b/.test(
       text,
     );
@@ -562,6 +603,78 @@ function renderTextFragmentWithBareMath(text: string): string {
   return html;
 }
 
+function isLooseMathContent(value: string): boolean {
+  const text = value.trim();
+  if (text.length < 2 || text.length > 220) return false;
+  if (/[\u3400-\u9fff]/.test(text)) return false;
+  if (/https?:\/\//i.test(text)) return false;
+  if (/^[A-Za-z\s]+$/.test(text)) return false;
+  return (
+    LATEX_INLINE_COMMAND_PATTERN.test(text) ||
+    /[=^*/]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|ℕ|ℤ|ℚ|ℝ|ℂ/.test(text) ||
+    /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(text)
+  );
+}
+
+function wrapDoubleParenMath(text: string): string {
+  let output = '';
+  let index = 0;
+
+  outer: while (index < text.length) {
+    if (text.startsWith('((', index)) {
+      let cursor = index + 2;
+      let depth = 0;
+      while (cursor < text.length) {
+        const ch = text[cursor];
+        if (ch === '(') {
+          depth += 1;
+        } else if (ch === ')') {
+          if (depth > 0) {
+            depth -= 1;
+          } else if (text[cursor + 1] === ')') {
+            const candidate = text.slice(index + 2, cursor).trim();
+            if (isLooseMathContent(candidate)) {
+              output += `$${candidate}$`;
+              index = cursor + 2;
+              continue outer;
+            }
+            break;
+          } else {
+            break;
+          }
+        }
+        cursor += 1;
+      }
+    }
+
+    output += text[index];
+    index += 1;
+  }
+
+  return output;
+}
+
+function wrapBacktickMath(text: string): string {
+  return text.replace(/`([^`\n]{2,220})`/g, (match, candidate: string) => {
+    const math = candidate.trim();
+    return looksLikeMathCodeLiteral(math) ? `$${math}$` : match;
+  });
+}
+
+export function normalizeLooseMathDelimiters(text: string): string {
+  const withDisplayBrackets = text
+    .split('\n')
+    .map((line) => {
+      const match = line.match(/^(\s*)\[\s*([^\[\]]{2,220})\s*\](\s*)$/u);
+      if (!match) return line;
+      const candidate = match[2].trim();
+      return isLooseMathContent(candidate) ? `${match[1]}$$\n${candidate}\n$$` : line;
+    })
+    .join('\n');
+
+  return wrapBacktickMath(wrapDoubleParenMath(withDisplayBrackets));
+}
+
 function isComplexMath(latex: string): boolean {
   return COMPLEX_ENV_PATTERN.test(latex) || /\\left|\\right/.test(latex);
 }
@@ -581,9 +694,10 @@ function shouldTreatDoubleDollarAsInline(
 
 export function normalizeMathSource(text: string): string {
   const source = stripSyntaraFormulaCommand(normalizeDelimiterEscapes(text));
-  return normalizeGraphFunctionCondition(
+  const protectedSource = protectLatexEnvironmentRowBreaks(source);
+  const normalized = normalizeGraphFunctionCondition(
     normalizeMathProseConnectors(
-      normalizeBrokenFunctionSignature(normalizeLegacyLatexSource(source)),
+      normalizeBrokenFunctionSignature(normalizeLegacyLatexSource(protectedSource)),
     ),
   )
     .replace(/\${3,}/g, '$$')
@@ -591,6 +705,8 @@ export function normalizeMathSource(text: string): string {
     .replace(/\\end\{align\*\}/g, '\\end{aligned}')
     .replace(/\\begin\{align\}/g, '\\begin{aligned}')
     .replace(/\\end\{align\}/g, '\\end{aligned}');
+
+  return restoreLatexEnvironmentRowBreaks(normalized);
 }
 
 export function containsMathSyntax(text: string): boolean {
@@ -705,7 +821,11 @@ export function renderTextWithMathToHtml(
     }
 
     const normalizedCodeLikeMath = replaceCommonRawLatexText(fragment.value);
-    if (!fragment.displayMode && looksLikeCodeLiteral(normalizedCodeLikeMath)) {
+    if (
+      !fragment.displayMode &&
+      looksLikeCodeLiteral(normalizedCodeLikeMath) &&
+      !looksLikeMathCodeLiteral(fragment.value)
+    ) {
       html += renderInlineCodeHtml(normalizedCodeLikeMath);
       continue;
     }

@@ -3,7 +3,11 @@
 import { memo } from 'react';
 import type { BundledLanguage } from 'shiki';
 import { cn } from '@/lib/utils';
-import { renderInlineMathAwareHtml, renderMathToHtml } from '@/lib/math-engine';
+import {
+  normalizeLooseMathDelimiters,
+  renderInlineMathAwareHtml,
+  renderMathToHtml,
+} from '@/lib/math-engine';
 import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-block';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
 import { chemistryTextToHtml } from '@/lib/notebook-content';
@@ -67,7 +71,7 @@ function repairVisibleLatex(latex: string): string {
 }
 
 function repairVisibleInlineMathText(text: string): string {
-  return text
+  return normalizeLooseMathDelimiters(text)
     .replace(/\$f:\s*\n+\s*\{R\}\s*\n+\s*\{R\}\$/gu, '$f:\\mathbb{R}\\to\\mathbb{R}$')
     .replace(/\$f\(x\)=\s*\n+\s*\{1\}\{1\+x\^2\}\$/gu, '$f(x)=\\frac{1}{1+x^2}$')
     .replace(/\$\s*\n+\s*\{R\}\s*\$/gu, '$\\mathbb{R}$');

@@ -119,7 +119,18 @@ function formatCourseChatContext(courseContext?: CourseChatContext): string {
                     )
                     .join('\n')
                 : '   - No relevant page excerpts available.';
-            return `${meta}\n${pages}`;
+            const memories =
+              notebook.privateMemories && notebook.privateMemories.length > 0
+                ? notebook.privateMemories
+                    .map(
+                      (memory) =>
+                        `   - 私有记忆：${memory.title}\n     内容：${memory.text}${
+                          memory.question ? `\n     来自问题：${memory.question}` : ''
+                        }`,
+                    )
+                    .join('\n')
+                : '   - No relevant private memories.';
+            return `${meta}\n${pages}\n${memories}`;
           })
           .join('\n\n')
       : 'No notebooks are available in this course context.';
@@ -180,6 +191,7 @@ No code fences around the JSON. No objects with type "action".
 # Response Quality Rules
 - Respond in ${responseLanguage}.
 - Prioritize the course context. If a claim is grounded in context, cite it inline using this style: 《Notebook Name》第 N 页：Page Title.
+- Treat private memories as personalization hints about this learner, not as public course facts. Do not cite private memories as notebook sources unless they include a source page.
 - If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
 - For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
 - For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.

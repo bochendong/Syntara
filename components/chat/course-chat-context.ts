@@ -4,12 +4,24 @@ import type {
   CourseChatContextPage,
 } from '@/lib/types/chat';
 import { getCourse } from '@/lib/utils/course-storage';
-import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
+import {
+  listStagesByCourse,
+  loadStageData,
+  MOCK_COURSE_CHAT_ID,
+  type StageListItem,
+} from '@/lib/utils/stage-storage';
 import { sceneSearchText } from './chat-notebook-routing';
+import {
+  getLocalStudyMemoryUserId,
+  listNotebookPrivateMemories,
+  type NotebookMemoryItem,
+} from '@/lib/learning/study-memory';
 
 const MAX_NOTEBOOKS = 5;
 const MAX_PAGES_PER_NOTEBOOK = 4;
 const MAX_PAGE_DIGEST_LENGTH = 600;
+const MAX_PRIVATE_MEMORIES_PER_NOTEBOOK = 3;
+const COURSE_META_TIMEOUT_MS = 1200;
 
 function normalizeText(input: string): string {
   return input.replace(/\s+/g, ' ').trim();
@@ -17,7 +29,32 @@ function normalizeText(input: string): string {
 
 export function tokenizeCourseChatQuery(input: string): string[] {
   const lowered = input.toLowerCase();
-  const zhTokens = lowered.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  const zhChunks = lowered.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  const zhStopTokens = new Set([
+    '一下',
+    '一个',
+    '这个',
+    '那个',
+    '我们',
+    '你们',
+    '他们',
+    '为什么',
+    '怎么',
+    '如何',
+    '说明',
+    '解释',
+    '必要',
+  ]);
+  const zhTokens = zhChunks.flatMap((chunk) => {
+    const tokens: string[] = [chunk];
+    for (const size of [2, 3, 4]) {
+      for (let index = 0; index <= chunk.length - size; index++) {
+        const token = chunk.slice(index, index + size);
+        if (!zhStopTokens.has(token)) tokens.push(token);
+      }
+    }
+    return tokens;
+  });
   const latinTokens = lowered.match(/[a-z0-9][a-z0-9-]{1,}/g) || [];
   return Array.from(new Set([...zhTokens, ...latinTokens]));
 }
@@ -40,6 +77,33 @@ function scoreNotebookMeta(tokens: string[], notebook: StageListItem): number {
   );
 }
 
+function scorePrivateMemory(tokens: string[], memory: NotebookMemoryItem): number {
+  const text = [memory.title, memory.text, memory.reason || '', memory.question || ''].join(' ');
+  const relevance = scoreCourseChatText(tokens, text);
+  const recencyAgeDays = Math.max(0, (Date.now() - (memory.updatedAt || memory.createdAt)) / 86_400_000);
+  const recency = Math.max(0, 3 - recencyAgeDays / 14);
+  const confidence = typeof memory.confidence === 'number' ? memory.confidence * 2 : 1;
+  return relevance + recency + confidence;
+}
+
+async function getCourseForChatContext(courseId: string) {
+  if (courseId === MOCK_COURSE_CHAT_ID) return undefined;
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      getCourse(courseId),
+      new Promise<undefined>((resolve) => {
+        timeoutId = setTimeout(() => resolve(undefined), COURSE_META_TIMEOUT_MS);
+      }),
+    ]);
+  } catch {
+    return undefined;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export async function buildCourseChatContext(args: {
   courseId: string;
   courseName?: string;
@@ -47,10 +111,11 @@ export async function buildCourseChatContext(args: {
   target: CourseChatContext['target'];
 }): Promise<CourseChatContext> {
   const [course, notebooks] = await Promise.all([
-    getCourse(args.courseId),
+    getCourseForChatContext(args.courseId),
     listStagesByCourse(args.courseId),
   ]);
   const tokens = tokenizeCourseChatQuery(args.question);
+  const userId = getLocalStudyMemoryUserId();
 
   const hydrated = await Promise.all(
     notebooks.map(async (notebook): Promise<CourseChatContextNotebook> => {
@@ -70,6 +135,31 @@ export async function buildCourseChatContext(args: {
         });
 
       const metaScore = scoreNotebookMeta(tokens, notebook);
+      const privateMemories = listNotebookPrivateMemories({
+        userId,
+        stageId: notebook.id,
+        limit: 8,
+      })
+        .map((memory) => ({
+          memory,
+          score: scorePrivateMemory(tokens, memory),
+        }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score || b.memory.updatedAt - a.memory.updatedAt)
+        .slice(0, MAX_PRIVATE_MEMORIES_PER_NOTEBOOK)
+        .map(({ memory, score }) => ({
+          id: memory.id,
+          title: memory.title,
+          text: memory.text.slice(0, 600),
+          reason: memory.reason,
+          question: memory.question,
+          sourceScore: score,
+          sourceReferences: (memory.sourceReferences || []).slice(0, 4).map((reference) => ({
+            order: reference.order,
+            title: reference.title,
+            why: reference.why,
+          })),
+        }));
       const topPageScore = pages.reduce((best, page) => Math.max(best, page.sourceScore), 0);
       const pageScoreTotal = pages.reduce((total, page) => total + page.sourceScore, 0);
       const selectedPages = pages
@@ -85,7 +175,15 @@ export async function buildCourseChatContext(args: {
         tags: notebook.tags || [],
         updatedAt: notebook.updatedAt,
         pages: selectedPages,
-        sourceScore: metaScore + topPageScore + Math.min(pageScoreTotal, 12),
+        privateMemories,
+        sourceScore:
+          metaScore +
+          topPageScore +
+          Math.min(pageScoreTotal, 12) +
+          Math.min(
+            privateMemories.reduce((total, memory) => total + memory.sourceScore, 0),
+            6,
+          ),
       };
     }),
   );

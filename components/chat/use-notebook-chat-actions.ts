@@ -1,15 +1,25 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useRouter } from 'next/navigation';
 import type { UIMessage } from 'ai';
 import {
-  applyNotebookPlan,
   planNotebookMessage,
+  planNotebookMessageStream,
+  type NotebookPlanResult,
 } from '@/lib/notebook/send-message';
+import { renderNotebookContentToMarkdown } from '@/lib/notebook-content';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 import { storeChatAttachmentBlob } from '@/lib/utils/chat-attachment-blobs';
 import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
 import { createAgentTask, updateAgentTask } from '@/lib/utils/agent-task-storage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
+import {
+  buildStudyCompanionNotification,
+  deleteNotebookPrivateMemory,
+  recordNotebookPrivateMemory,
+} from '@/lib/learning/study-memory';
+import { useNotificationStore } from '@/lib/store/notifications';
+import { toast } from '@/lib/notifications/client-toast';
 import {
   commitNotebookProblemImport,
   previewNotebookProblemImport,
@@ -20,19 +30,54 @@ import {
   shouldImportIntoProblemBank,
   stripProblemBankImportCommand,
 } from './chat-attachment-utils';
-import {
-  appendNotebookAnswerCallout,
-  buildChatMessage,
-  formatAppliedSummary,
-  hasNotebookWrites,
-  shouldOfferMicroLessonButton,
-} from './chat-message-utils';
+import { buildChatMessage, shouldOfferMicroLessonButton } from './chat-message-utils';
 import { NOTEBOOK_CHAT_PREVIEW_EVENT } from './chat-notebook-routing';
 import type {
   NotebookAttachmentInput,
   NotebookChatMessage,
   NotebookSubtaskResult,
 } from './chat-page-types';
+
+function hasPrivateMemoryCandidate(plan: NotebookPlanResult): boolean {
+  return (plan.operations.insert?.length || 0) > 0 || (plan.operations.update?.length || 0) > 0;
+}
+
+function isTrivialNotebookQuestion(question: string): boolean {
+  const text = question.trim();
+  return text.length < 8 && /^(你好|hi|hello|hey|在吗|谢谢|thanks)$/i.test(text);
+}
+
+function formatOperationMemory(plan: NotebookPlanResult): { title: string; text: string } | null {
+  const chunks: string[] = [];
+  const firstInsert = plan.operations.insert?.[0];
+  const firstUpdate = plan.operations.update?.[0];
+  const title = firstInsert?.title || firstUpdate?.title || '聊天里发现的学习补充点';
+
+  for (const insert of plan.operations.insert || []) {
+    const lines = [
+      `## ${insert.title}`,
+      insert.description,
+      ...(insert.keyPoints || []).map((point) => `- ${point}`),
+      insert.contentDocument ? renderNotebookContentToMarkdown(insert.contentDocument) : '',
+    ].filter(Boolean);
+    chunks.push(lines.join('\n'));
+  }
+
+  for (const update of plan.operations.update || []) {
+    const lines = [
+      `## 第 ${update.order} 页${update.title ? `：${update.title}` : ''}`,
+      update.appendKnowledge || '',
+    ].filter(Boolean);
+    chunks.push(lines.join('\n'));
+  }
+
+  const text = chunks
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return text ? { title, text } : null;
+}
 
 export function useNotebookChatActions({
   courseId,
@@ -41,9 +86,9 @@ export function useNotebookChatActions({
   pendingAttachments,
   sending,
   nbThread,
-  selectedNotebookId,
+  notebookName,
+  notebookAvatarUrl,
   applyNotebookWrites,
-  notebookWritesDisabledHint,
   reloadNotebookScenes,
   setNbThread,
   setDraft,
@@ -57,9 +102,9 @@ export function useNotebookChatActions({
   pendingAttachments: NotebookAttachmentInput[];
   sending: boolean;
   nbThread: NotebookChatMessage[];
-  selectedNotebookId: string | null;
+  notebookName?: string | null;
+  notebookAvatarUrl?: string | null;
   applyNotebookWrites: boolean;
-  notebookWritesDisabledHint: string;
   reloadNotebookScenes: () => Promise<void>;
   setNbThread: Dispatch<SetStateAction<NotebookChatMessage[]>>;
   setDraft: Dispatch<SetStateAction<string>>;
@@ -67,6 +112,90 @@ export function useNotebookChatActions({
   setNotebookPendingAction: Dispatch<SetStateAction<'chat' | 'import' | null>>;
   setPendingAttachments: Dispatch<SetStateAction<NotebookAttachmentInput[]>>;
 }) {
+  const router = useRouter();
+  const enqueueBanner = useNotificationStore((s) => s.enqueueBanner);
+
+  const recordPrivateMemoryInBackground = useCallback(
+    (args: {
+      notebook: Pick<StageListItem, 'id' | 'name' | 'avatarUrl'>;
+      question: string;
+      plan: NotebookPlanResult;
+    }) => {
+      if (!args.plan.knowledgeGap || !hasPrivateMemoryCandidate(args.plan)) return;
+      if (isTrivialNotebookQuestion(args.question)) return;
+      const draftMemory = formatOperationMemory(args.plan);
+      if (!draftMemory || draftMemory.text.length < 40) return;
+
+      window.setTimeout(() => {
+        try {
+          const result = recordNotebookPrivateMemory({
+            stageId: args.notebook.id,
+            title: draftMemory.title,
+            text: draftMemory.text,
+            question: args.question,
+            reason: '笔记本问答识别到可长期保留的知识补充点。',
+            kind: 'knowledge_gap',
+            confidence: 0.78,
+            sourceReferences: (args.plan.references || []).slice(0, 4).map((reference) => ({
+              notebookId: args.notebook.id,
+              notebookName: args.notebook.name,
+              order: reference.order,
+              title: reference.title,
+              why: reference.why,
+            })),
+            source: 'chat',
+          });
+          if (!result.created || !result.item) return;
+          const createdMemory = result.item;
+          toast.success('已写入私有记忆', {
+            description: `《${args.notebook.name}》：${createdMemory.title}`,
+            duration: 6500,
+            action: {
+              label: '查看',
+              onClick: () => {
+                router.push(
+                  `/chat/private-memory?notebook=${encodeURIComponent(args.notebook.id)}`,
+                );
+              },
+            },
+            cancel: {
+              label: '撤销',
+              onClick: () => {
+                deleteNotebookPrivateMemory({
+                  stageId: args.notebook.id,
+                  memoryId: createdMemory.id,
+                });
+              },
+            },
+          });
+
+          enqueueBanner(
+            buildStudyCompanionNotification({
+              id: `private-memory-${createdMemory.id}`,
+              sourceKind: 'question_memory',
+              title: '已写入私有记忆',
+              body: `《${args.notebook.name}》：${createdMemory.title}`,
+              amountLabel: '私有记忆',
+              sourceLabel: args.notebook.name,
+              details: args.question
+                ? [
+                    {
+                      key: 'question',
+                      label: '来自问题',
+                      value: args.question.slice(0, 80),
+                    },
+                  ]
+                : [],
+            }),
+          );
+        } catch {
+          // Background memory should never disturb the chat answer.
+        }
+      }, 0);
+    },
+    [enqueueBanner, router],
+  );
+
   const persistNotebookConversation = useCallback(
     async (
       notebook: StageListItem,
@@ -111,6 +240,10 @@ export function useNotebookChatActions({
       parentTaskId: string | null,
       appendAgentMessage?: (message: UIMessage<ChatMessageMetadata>) => void,
       attachments?: NotebookAttachmentInput[],
+      streamCallbacks?: {
+        onAnswerDelta?: (delta: string) => void;
+        onStatus?: (message: string) => void;
+      },
     ): Promise<NotebookSubtaskResult> => {
       const childTaskId =
         courseId && parentTaskId
@@ -120,57 +253,50 @@ export function useNotebookChatActions({
               contactKind: 'notebook',
               contactId: notebook.id,
               title: `子任务：${notebook.name}`,
-              detail: '正在查看现有内容并判断是否需要补充 slides…',
+              detail: '正在读取笔记本内容…',
               status: 'running',
             })
           : null;
 
       try {
-        const plan = await planNotebookMessage(notebook.id, question, {
-          allowWrite: true,
-          preferWebSearch: true,
-          attachments: attachments && attachments.length > 0 ? attachments : undefined,
-        });
-        const shouldGenerateSlides = hasNotebookWrites(plan);
-        let appliedLabel: string | undefined;
-
-        if (shouldGenerateSlides) {
-          appendAgentMessage?.(
-            buildChatMessage(
-              `我发现《${notebook.name}》里还缺少这部分知识点，已开始生成补充 slides。`,
+        streamCallbacks?.onStatus?.('开始思考，正在查看笔记本内容…');
+        const updateChildTaskStatus = (message: string) => {
+          if (!childTaskId) return;
+          void updateAgentTask(childTaskId, {
+            detail: message.slice(0, 300),
+            status: 'running',
+          }).catch(() => undefined);
+        };
+        const plan = streamCallbacks
+          ? await planNotebookMessageStream(
+              notebook.id,
+              question,
               {
-                senderName: notebook.name,
-                senderAvatar: notebook.avatarUrl,
+                allowWrite: applyNotebookWrites,
+                preferWebSearch: true,
+                attachments: attachments && attachments.length > 0 ? attachments : undefined,
               },
-            ),
-          );
-          if (childTaskId) {
-            await updateAgentTask(childTaskId, {
-              detail: '发现知识缺口，正在生成补充 slides…',
-              status: 'running',
+              {
+                onAnswerDelta: streamCallbacks.onAnswerDelta,
+                onStatus: (message) => {
+                  updateChildTaskStatus(message);
+                  streamCallbacks.onStatus?.(message);
+                },
+              },
+            )
+          : await planNotebookMessage(notebook.id, question, {
+              allowWrite: applyNotebookWrites,
+              preferWebSearch: true,
+              attachments: attachments && attachments.length > 0 ? attachments : undefined,
             });
-          }
-          const applied = await applyNotebookPlan(notebook.id, plan);
-          appliedLabel = formatAppliedSummary({ applied }) || undefined;
-          if (selectedNotebookId === notebook.id) {
-            void reloadNotebookScenes();
-          }
+        const shouldRecordMemory =
+          applyNotebookWrites && plan.knowledgeGap && hasPrivateMemoryCandidate(plan);
+        if (shouldRecordMemory) {
+          recordPrivateMemoryInBackground({ notebook, question, plan });
         }
 
-        const answer = shouldGenerateSlides
-          ? `${plan.answer}\n\n${appliedLabel ? `已补充内容：${appliedLabel}。` : '已补充相关 slides。'}现在可以开始听讲/查看新增内容了。`
-          : plan.answer;
-        const answerDocument = shouldGenerateSlides
-          ? appendNotebookAnswerCallout({
-              document: plan.answerDocument,
-              fallbackText: answer,
-              tone: 'success',
-              title: '已补充内容',
-              text: appliedLabel
-                ? `${appliedLabel}。现在可以开始听讲或查看新增内容了。`
-                : '已补充相关 slides，现在可以开始听讲或查看新增内容了。',
-            })
-          : plan.answerDocument;
+        const answer = plan.answer;
+        const answerDocument = plan.answerDocument;
 
         const assistantPayload: Omit<
           Extract<NotebookChatMessage, { role: 'assistant' }>,
@@ -182,15 +308,12 @@ export function useNotebookChatActions({
           knowledgeGap: plan.knowledgeGap,
           prerequisiteHints: plan.prerequisiteHints,
           webSearchUsed: plan.webSearchUsed,
-          appliedLabel,
         };
         await persistNotebookConversation(notebook, question, assistantPayload);
 
         if (childTaskId) {
           await updateAgentTask(childTaskId, {
-            detail: shouldGenerateSlides
-              ? `已完成并补充内容：${appliedLabel || '新增 slides'}`
-              : '已完成现有内容解答',
+            detail: shouldRecordMemory ? '已完成回答，私有记忆在后台整理' : '已完成现有内容解答',
             status: 'done',
           });
         }
@@ -198,7 +321,7 @@ export function useNotebookChatActions({
         return {
           notebook,
           answer,
-          appliedLabel,
+          references: plan.references || [],
           knowledgeGap: plan.knowledgeGap,
         };
       } catch (error) {
@@ -218,7 +341,7 @@ export function useNotebookChatActions({
         throw error;
       }
     },
-    [courseId, persistNotebookConversation, reloadNotebookScenes, selectedNotebookId],
+    [applyNotebookWrites, courseId, persistNotebookConversation, recordPrivateMemoryInBackground],
   );
 
   const handleImportNotebookProblemBank = useCallback(
@@ -369,220 +492,255 @@ export function useNotebookChatActions({
     ],
   );
 
-  const handleSendNotebook = useCallback(async () => {
-    const text = draft.trim();
-    if (!text || !notebookId || sending) return;
-    const mc = getCurrentModelConfig();
-    if (!mc.isServerConfigured) {
-      window.alert('系统模型尚未配置，请联系管理员。');
-      return;
-    }
-
-    try {
-      await Promise.all(
-        pendingAttachments
-          .filter((a): a is typeof a & { file: File } => Boolean(a.file))
-          .map((a) => storeChatAttachmentBlob(a.id, a.file)),
-      );
-    } catch {
-      /* IndexedDB 不可用时仍可发送，仅无法在刷新后再次打开附件 */
-    }
-
-    const userMsg: NotebookChatMessage = {
-      role: 'user',
-      text,
-      at: Date.now(),
-      attachments: pendingAttachments.map((a) => ({
-        id: a.id,
-        name: a.name,
-        mimeType: a.mimeType,
-        size: a.size,
-        objectUrl: a.file ? URL.createObjectURL(a.file) : undefined,
-      })),
-    };
-    setNbThread((t) => [...t, userMsg]);
-    setDraft('');
-    setSending(true);
-    setNotebookPendingAction('chat');
-    const taskId =
-      courseId && notebookId
-        ? await createAgentTask({
-            courseId,
-            contactKind: 'notebook',
-            contactId: notebookId,
-            title: `笔记本问答：${text.slice(0, 36)}`,
-            detail: '正在生成回答…',
-            status: 'running',
-          })
-        : null;
-    try {
-      const conversation = [...nbThread, userMsg]
-        .slice(-12)
-        .map((m) =>
-          m.role === 'user'
-            ? { role: 'user' as const, content: m.text, at: m.at }
-            : { role: 'assistant' as const, content: m.answer, at: m.at },
-        );
-      if (shouldImportIntoProblemBank(text)) {
-        const payload = await buildProblemBankImportPayload({
-          text: stripProblemBankImportCommand(text),
-          attachments: pendingAttachments,
-        });
-        const { drafts } = await previewNotebookProblemImport({
-          notebookId,
-          source: payload.source,
-          text: payload.text,
-          language: 'zh-CN',
-        });
-        const importedProblems = await commitNotebookProblemImport({
-          notebookId,
-          drafts,
-        });
-        void reloadNotebookScenes();
-        const notes: string[] = [];
-        if (payload.warnings.length > 0) {
-          notes.push(`解析提示：${payload.warnings.join('；')}`);
-        }
-        if (payload.skippedAttachments.length > 0) {
-          notes.push(`以下附件未导入：${payload.skippedAttachments.join('、')}`);
-        }
-        const assistantMsg: NotebookChatMessage = {
-          role: 'assistant',
-          answer: `已导入 ${importedProblems.length} 道题到题库。你现在可以切到题库页开始做题了。${
-            notes.length > 0 ? `\n\n${notes.join('\n')}` : ''
-          }`,
-          references: [],
-          knowledgeGap: false,
-          at: Date.now(),
-        };
-        setNbThread((t) => [...t, assistantMsg]);
-        setPendingAttachments([]);
-        if (taskId) {
-          await updateAgentTask(taskId, {
-            status: 'done',
-            detail: `已导入 ${importedProblems.length} 道题到题库`,
-          });
-        }
+  const handleSendNotebook = useCallback(
+    async (options?: { text?: string }) => {
+      const text = (options?.text ?? draft).trim();
+      if (!text || !notebookId || sending) return;
+      const mc = getCurrentModelConfig();
+      if (!mc.isServerConfigured) {
+        window.alert('系统模型尚未配置，请联系管理员。');
         return;
       }
-      const plan = await planNotebookMessage(notebookId, text, {
-        allowWrite: applyNotebookWrites,
-        preferWebSearch: true,
-        conversation,
-        attachments: pendingAttachments,
-      });
-      const shouldGenerateSlides = applyNotebookWrites && hasNotebookWrites(plan);
-      let appliedLabel = '';
+      const attachmentsSnapshot = [...pendingAttachments];
 
-      if (taskId) {
-        await updateAgentTask(taskId, {
-          detail: shouldGenerateSlides ? '发现知识缺口，正在补充 slides…' : '正在整理现有内容回答…',
-          status: 'running',
-        });
+      try {
+        await Promise.all(
+          attachmentsSnapshot
+            .filter((a): a is typeof a & { file: File } => Boolean(a.file))
+            .map((a) => storeChatAttachmentBlob(a.id, a.file)),
+        );
+      } catch {
+        /* IndexedDB 不可用时仍可发送，仅无法在刷新后再次打开附件 */
       }
 
-      if (shouldGenerateSlides) {
+      const userMsg: NotebookChatMessage = {
+        role: 'user',
+        text,
+        at: Date.now(),
+        attachments: attachmentsSnapshot.map((a) => ({
+          id: a.id,
+          name: a.name,
+          mimeType: a.mimeType,
+          size: a.size,
+          objectUrl: a.file ? URL.createObjectURL(a.file) : undefined,
+        })),
+      };
+      setNbThread((t) => [...t, userMsg]);
+      setDraft('');
+      setSending(true);
+      setNotebookPendingAction('chat');
+      const taskId =
+        courseId && notebookId
+          ? await createAgentTask({
+              courseId,
+              contactKind: 'notebook',
+              contactId: notebookId,
+              title: `笔记本问答：${text.slice(0, 36)}`,
+              detail: '正在生成回答…',
+              status: 'running',
+            })
+          : null;
+      let streamingAssistantAt: number | null = null;
+      try {
+        const conversation = [...nbThread, userMsg]
+          .slice(-12)
+          .map((m) =>
+            m.role === 'user'
+              ? { role: 'user' as const, content: m.text, at: m.at }
+              : { role: 'assistant' as const, content: m.answer, at: m.at },
+          );
+        if (shouldImportIntoProblemBank(text)) {
+          const payload = await buildProblemBankImportPayload({
+            text: stripProblemBankImportCommand(text),
+            attachments: attachmentsSnapshot,
+          });
+          const { drafts } = await previewNotebookProblemImport({
+            notebookId,
+            source: payload.source,
+            text: payload.text,
+            language: 'zh-CN',
+          });
+          const importedProblems = await commitNotebookProblemImport({
+            notebookId,
+            drafts,
+          });
+          void reloadNotebookScenes();
+          const notes: string[] = [];
+          if (payload.warnings.length > 0) {
+            notes.push(`解析提示：${payload.warnings.join('；')}`);
+          }
+          if (payload.skippedAttachments.length > 0) {
+            notes.push(`以下附件未导入：${payload.skippedAttachments.join('、')}`);
+          }
+          const assistantMsg: NotebookChatMessage = {
+            role: 'assistant',
+            answer: `已导入 ${importedProblems.length} 道题到题库。你现在可以切到题库页开始做题了。${
+              notes.length > 0 ? `\n\n${notes.join('\n')}` : ''
+            }`,
+            references: [],
+            knowledgeGap: false,
+            at: Date.now(),
+          };
+          setNbThread((t) => [...t, assistantMsg]);
+          setPendingAttachments([]);
+          if (taskId) {
+            await updateAgentTask(taskId, {
+              status: 'done',
+              detail: `已导入 ${importedProblems.length} 道题到题库`,
+            });
+          }
+          return;
+        }
+        streamingAssistantAt = Date.now();
+        let streamedAnswer = '';
         setNbThread((t) => [
           ...t,
           {
             role: 'assistant',
-            answer: '我发现当前笔记本还缺少相关知识点，已开始生成补充 slides，请稍等。',
+            answer: '',
             references: [],
-            knowledgeGap: true,
-            at: Date.now(),
+            knowledgeGap: false,
+            streaming: true,
+            at: streamingAssistantAt!,
           },
         ]);
-        const applied = await applyNotebookPlan(notebookId, plan);
-        appliedLabel = formatAppliedSummary({ applied });
-        void reloadNotebookScenes();
-      }
+        const updateStreamingAssistant = (
+          patch: Partial<Extract<NotebookChatMessage, { role: 'assistant' }>>,
+        ) => {
+          const targetAt = streamingAssistantAt;
+          if (!targetAt) return;
+          setNbThread((t) =>
+            t.map((m) =>
+              m.role === 'assistant' && m.at === targetAt
+                ? {
+                    ...m,
+                    ...patch,
+                  }
+                : m,
+            ),
+          );
+        };
 
-      const finalAnswer =
-        shouldGenerateSlides && applyNotebookWrites
-          ? `${plan.answer}\n\n${appliedLabel ? `已补充内容：${appliedLabel}。` : '已补充相关 slides。'}现在可以开始听讲/查看新增内容了。`
-          : !applyNotebookWrites && hasNotebookWrites(plan)
-            ? `${plan.answer}\n\n${notebookWritesDisabledHint}`
-            : plan.answer;
-      const answerDocument =
-        shouldGenerateSlides && applyNotebookWrites
-          ? appendNotebookAnswerCallout({
-              document: plan.answerDocument,
-              fallbackText: finalAnswer,
-              tone: 'success',
-              title: '已补充内容',
-              text: appliedLabel
-                ? `${appliedLabel}。现在可以开始听讲或查看新增内容了。`
-                : '已补充相关 slides，现在可以开始听讲或查看新增内容了。',
-            })
-          : !applyNotebookWrites && hasNotebookWrites(plan)
-            ? appendNotebookAnswerCallout({
-                document: plan.answerDocument,
-                fallbackText: finalAnswer,
-                tone: 'info',
-                title: '未自动写入笔记本',
-                text: notebookWritesDisabledHint,
-              })
-            : plan.answerDocument;
-      const assistantMsg: NotebookChatMessage = {
-        role: 'assistant',
-        answer: finalAnswer,
-        answerDocument,
-        references: plan.references || [],
-        knowledgeGap: plan.knowledgeGap,
-        prerequisiteHints: plan.prerequisiteHints,
-        webSearchUsed: plan.webSearchUsed,
-        appliedLabel: appliedLabel || undefined,
-        lessonSourceQuestion: shouldOfferMicroLessonButton(text) ? text : undefined,
-        at: Date.now(),
-      };
-      setNbThread((t) => [...t, assistantMsg]);
-      setPendingAttachments([]);
-      if (taskId) {
-        await updateAgentTask(taskId, {
-          status: 'done',
-          detail:
-            shouldGenerateSlides && applyNotebookWrites
-              ? `已完成并补充内容：${appliedLabel || '新增 slides'}`
-              : plan.knowledgeGap
-                ? '已完成（含知识缺口建议）'
-                : '已完成',
-        });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setNbThread((t) => [
-        ...t,
-        {
+        const plan = await planNotebookMessageStream(
+          notebookId,
+          text,
+          {
+            allowWrite: applyNotebookWrites,
+            preferWebSearch: true,
+            conversation,
+            attachments: attachmentsSnapshot,
+          },
+          {
+            onAnswerDelta: (delta) => {
+              streamedAnswer += delta;
+              updateStreamingAssistant({
+                answer: streamedAnswer,
+                streaming: true,
+                statusText: undefined,
+              });
+            },
+            onStatus: (message) => {
+              updateStreamingAssistant({
+                answer: streamedAnswer,
+                streaming: false,
+                statusText: message,
+              });
+            },
+          },
+        );
+        const shouldRecordMemory =
+          applyNotebookWrites && plan.knowledgeGap && hasPrivateMemoryCandidate(plan);
+
+        if (taskId) {
+          await updateAgentTask(taskId, {
+            detail: '正在整理现有内容回答…',
+            status: 'running',
+          });
+        }
+
+        const finalAnswer = plan.answer;
+        const answerDocument = plan.answerDocument;
+        const assistantMsg: NotebookChatMessage = {
+          role: 'assistant',
+          answer: finalAnswer,
+          answerDocument,
+          references: plan.references || [],
+          knowledgeGap: plan.knowledgeGap,
+          prerequisiteHints: plan.prerequisiteHints,
+          webSearchUsed: plan.webSearchUsed,
+          lessonSourceQuestion: shouldOfferMicroLessonButton(text) ? text : undefined,
+          streaming: false,
+          statusText: undefined,
+          at: streamingAssistantAt!,
+        };
+        setNbThread((t) =>
+          t.map((m) =>
+            m.role === 'assistant' && m.at === streamingAssistantAt ? assistantMsg : m,
+          ),
+        );
+        setPendingAttachments([]);
+        if (shouldRecordMemory) {
+          recordPrivateMemoryInBackground({
+            notebook: {
+              id: notebookId,
+              name: notebookName || '当前笔记本',
+              avatarUrl: notebookAvatarUrl || undefined,
+            },
+            question: text,
+            plan,
+          });
+        }
+        if (taskId) {
+          await updateAgentTask(taskId, {
+            status: 'done',
+            detail: shouldRecordMemory ? '已完成回答，私有记忆在后台整理' : '已完成',
+          });
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const errorMessage: NotebookChatMessage = {
           role: 'assistant',
           answer: `请求失败：${msg}`,
           references: [],
           knowledgeGap: false,
-          at: Date.now(),
-        },
-      ]);
-      if (taskId) {
-        await updateAgentTask(taskId, { status: 'failed', detail: msg.slice(0, 300) });
+          streaming: false,
+          statusText: undefined,
+          at: streamingAssistantAt ?? Date.now(),
+        };
+        setNbThread((t) =>
+          streamingAssistantAt
+            ? t.map((m) =>
+                m.role === 'assistant' && m.at === streamingAssistantAt ? errorMessage : m,
+              )
+            : [...t, errorMessage],
+        );
+        if (taskId) {
+          await updateAgentTask(taskId, { status: 'failed', detail: msg.slice(0, 300) });
+        }
+      } finally {
+        setSending(false);
+        setNotebookPendingAction(null);
       }
-    } finally {
-      setSending(false);
-      setNotebookPendingAction(null);
-    }
-  }, [
-    applyNotebookWrites,
-    courseId,
-    draft,
-    nbThread,
-    notebookId,
-    notebookWritesDisabledHint,
-    pendingAttachments,
-    reloadNotebookScenes,
-    sending,
-    setDraft,
-    setNbThread,
-    setNotebookPendingAction,
-    setPendingAttachments,
-    setSending,
-  ]);
+    },
+    [
+      applyNotebookWrites,
+      courseId,
+      draft,
+      nbThread,
+      notebookId,
+      notebookAvatarUrl,
+      notebookName,
+      pendingAttachments,
+      recordPrivateMemoryInBackground,
+      reloadNotebookScenes,
+      sending,
+      setDraft,
+      setNbThread,
+      setNotebookPendingAction,
+      setPendingAttachments,
+      setSending,
+    ],
+  );
 
   return {
     handleImportNotebookProblemBank,

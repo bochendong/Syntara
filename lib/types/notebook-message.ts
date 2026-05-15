@@ -87,3 +87,9 @@ export type SendNotebookMessageResponse = NotebookMessagePlan & {
   webSearchUsed?: boolean;
   prerequisiteHints?: string[];
 };
+
+export type SendNotebookMessageStreamEvent =
+  | { type: 'answer_delta'; data: { content: string } }
+  | { type: 'status'; data: { message: string } }
+  | { type: 'final'; data: SendNotebookMessageResponse }
+  | { type: 'error'; data: { message: string } };

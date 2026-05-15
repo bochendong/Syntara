@@ -2,11 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { BookOpen, Loader2, MessagesSquare } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { BookOpen, Loader2, MessagesSquare, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
+import {
+  deleteCourseChatGroup,
+  listCourseChatGroups,
+  loadContactMessages,
+} from '@/lib/utils/contact-chat-storage';
+import type { CourseChatGroupMeta } from '@/lib/types/chat';
 import {
   lastNotebookChatActivityAt,
   lastNotebookChatPreview,
@@ -19,6 +35,7 @@ import {
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
 } from '@/lib/constants/course-chat';
+import { COURSE_CHAT_GROUPS_UPDATED_EVENT } from '@/components/chat/course-chat-groups';
 
 function isImageAvatar(src: string) {
   return (
@@ -35,8 +52,8 @@ function contactRowClass(collapsed: boolean, active: boolean, lightSolidSurface 
     collapsed ? 'justify-center px-2' : 'px-2',
     active
       ? lightSolidSurface
-        ? 'bg-violet-200/50 font-medium text-violet-900'
-        : 'bg-violet-500/20 font-medium text-violet-100'
+        ? 'bg-[#007AFF]/10 font-medium text-[#0057B8]'
+        : 'bg-[#0A84FF]/18 font-medium text-sky-100'
       : lightSolidSurface
         ? 'font-normal text-slate-800/90 hover:bg-black/[0.05]'
         : 'font-normal text-zinc-200/90 hover:bg-white/[0.08]',
@@ -86,7 +103,40 @@ function NotebookThumb({
   );
 }
 
-function GroupChatThumb({ lightSolidSurface }: { lightSolidSurface?: boolean }) {
+function GroupChatThumb({
+  group,
+  lightSolidSurface,
+}: {
+  group?: CourseChatGroupMeta;
+  lightSolidSurface?: boolean;
+}) {
+  const participants = group?.participants.slice(0, 4) || [];
+  if (participants.length > 0) {
+    return (
+      <div className="grid size-9 shrink-0 grid-cols-2 gap-0.5 overflow-hidden rounded-lg ring-1 ring-black/5 dark:ring-white/10">
+        {participants.map((participant) =>
+          participant.avatarUrl && isImageAvatar(participant.avatarUrl) ? (
+            <img
+              key={participant.id}
+              src={participant.avatarUrl}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <span
+              key={participant.id}
+              className={cn(
+                'flex size-full items-center justify-center text-[10px] font-semibold',
+                lightSolidSurface ? 'bg-violet-100 text-violet-700' : 'bg-white/10 text-zinc-200',
+              )}
+            >
+              {participant.name.trim().slice(0, 1) || '群'}
+            </span>
+          ),
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className={cn(
@@ -140,6 +190,7 @@ export function ChatContactsRail({
 }) {
   const railMuted = lightSolidSurface ? 'text-slate-500' : 'text-zinc-500';
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const selNotebook = searchParams.get('notebook');
   const selAgent = searchParams.get('agent');
@@ -151,7 +202,9 @@ export function ChatContactsRail({
   const [loading, setLoading] = useState(true);
   const [notebookLastPreview, setNotebookLastPreview] = useState<Record<string, string>>({});
   const [notebookActivityAt, setNotebookActivityAt] = useState<Record<string, number>>({});
-  const [groupChatHasMessages, setGroupChatHasMessages] = useState(false);
+  const [groupChats, setGroupChats] = useState<CourseChatGroupMeta[]>([]);
+  const [groupPendingDelete, setGroupPendingDelete] = useState<CourseChatGroupMeta | null>(null);
+  const [groupDeleting, setGroupDeleting] = useState(false);
 
   const refreshNotebooks = useCallback(async () => {
     if (!courseId) {
@@ -251,20 +304,56 @@ export function ChatContactsRail({
       window.removeEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
   }, [courseId]);
 
+  const refreshGroupChats = useCallback(async () => {
+    if (!courseId) {
+      setGroupChats([]);
+      return;
+    }
+    const groups = await listCourseChatGroups(courseId);
+    setGroupChats(groups);
+  }, [courseId]);
+
+  const confirmDeleteGroup = useCallback(async () => {
+    const group = groupPendingDelete;
+    if (!courseId || !group || groupDeleting) return;
+    setGroupDeleting(true);
+    try {
+      const activeGroupId = searchParams.get('group');
+      const deletingActiveGroup =
+        selAgent === COURSE_ORCHESTRATOR_ID &&
+        chatView === 'group' &&
+        activeGroupId === group.groupId;
+
+      setGroupChats((prev) => prev.filter((item) => item.groupId !== group.groupId));
+      await deleteCourseChatGroup(courseId, group.groupId);
+      window.dispatchEvent(
+        new CustomEvent(COURSE_CHAT_GROUPS_UPDATED_EVENT, {
+          detail: { courseId, groupId: group.groupId, deleted: true },
+        }),
+      );
+
+      if (deletingActiveGroup) {
+        router.replace(`/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}`);
+      }
+      setGroupPendingDelete(null);
+    } finally {
+      setGroupDeleting(false);
+    }
+  }, [chatView, courseId, groupDeleting, groupPendingDelete, router, searchParams, selAgent]);
+
   useEffect(() => {
     if (!courseId) {
-      const timeout = window.setTimeout(() => setGroupChatHasMessages(false), 0);
+      const timeout = window.setTimeout(() => setGroupChats([]), 0);
       return () => window.clearTimeout(timeout);
     }
     let alive = true;
-    const groupTargetId = `${COURSE_ORCHESTRATOR_ID}::group`;
     const sync = async () => {
       try {
-        const msgs = await loadContactMessages<unknown[]>(courseId, 'agent', groupTargetId);
+        const groups = await listCourseChatGroups(courseId);
         if (!alive) return;
-        setGroupChatHasMessages(msgs.length > 0);
+        setGroupChats(groups);
       } catch {
-        if (alive) setGroupChatHasMessages(false);
+        if (alive) setGroupChats([]);
       }
     };
     const poll = () => {
@@ -279,6 +368,17 @@ export function ChatContactsRail({
       window.removeEventListener('focus', poll);
     };
   }, [courseId]);
+
+  useEffect(() => {
+    const onUpdated = (ev: Event) => {
+      const ce = ev as CustomEvent<{ courseId?: string }>;
+      if (!courseId || ce.detail?.courseId !== courseId) return;
+      void refreshGroupChats().catch(() => undefined);
+    };
+    window.addEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onUpdated as EventListener);
+    return () =>
+      window.removeEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onUpdated as EventListener);
+  }, [courseId, refreshGroupChats]);
 
   useEffect(() => {
     if (!courseId) {
@@ -363,6 +463,17 @@ export function ChatContactsRail({
     return list;
   }, [filteredNotebooks, notebookActivityAt]);
 
+  const filteredGroupChats = useMemo(() => {
+    if (!needle) return groupChats;
+    return groupChats.filter((group) => {
+      if (group.name.toLowerCase().includes(needle)) return true;
+      if (group.lastMessagePreview?.toLowerCase().includes(needle)) return true;
+      return group.participants.some((participant) =>
+        participant.name.toLowerCase().includes(needle),
+      );
+    });
+  }, [groupChats, needle]);
+
   if (!courseId) {
     return (
       <div className={cn('px-3 py-6 text-center text-xs leading-relaxed', railMuted)}>
@@ -383,7 +494,6 @@ export function ChatContactsRail({
   const groupChatActive =
     selAgent === COURSE_ORCHESTRATOR_ID && !selNotebook && chatView === 'group';
   const orchestratorBusy = busyKeys.has(`agent:${COURSE_ORCHESTRATOR_ID}`);
-  const groupChatLabel = '群聊';
 
   const courseAgentSection = orchestratorMatches ? (
     <section aria-label="课程 Agent">
@@ -433,7 +543,8 @@ export function ChatContactsRail({
     </section>
   ) : null;
 
-  const groupChatSection = orchestratorMatches ? (
+  const shouldShowGroupChatSection = !needle || filteredGroupChats.length > 0;
+  const groupChatSection = shouldShowGroupChatSection ? (
     <section aria-label="群聊">
       {!collapsed && (
         <h3
@@ -443,165 +554,254 @@ export function ChatContactsRail({
         </h3>
       )}
       <ul className="flex list-none flex-col gap-0.5 p-0">
-        {groupChatHasMessages ? (
-          <li>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href={groupChatHref}
-                  className={contactRowClass(collapsed, groupChatActive, lightSolidSurface)}
-                  aria-current={groupChatActive ? 'page' : undefined}
-                >
-                  <GroupChatThumb lightSolidSurface={lightSolidSurface} />
-                  {!collapsed && (
-                    <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                      <span className="w-full truncate font-medium leading-tight">
-                        {groupChatLabel}
-                      </span>
-                      <span className={cn('w-full truncate text-[10px] font-normal', railMuted)}>
-                        课程内协作会话
-                      </span>
-                    </span>
+        {filteredGroupChats.length > 0 ? (
+          filteredGroupChats.map((group) => {
+            const href = `${groupChatHref}&group=${encodeURIComponent(group.groupId)}`;
+            const activeGroupId = searchParams.get('group');
+            const active = groupChatActive && activeGroupId === group.groupId;
+            return (
+              <li key={group.groupId} className="group relative">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={href}
+                      className={cn(
+                        contactRowClass(collapsed, active, lightSolidSurface),
+                        !collapsed && 'pr-9',
+                      )}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      <GroupChatThumb group={group} lightSolidSurface={lightSolidSurface} />
+                      {!collapsed && (
+                        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                          <span className="w-full truncate font-medium leading-tight">
+                            {group.name}
+                          </span>
+                          <span
+                            className={cn('w-full truncate text-[10px] font-normal', railMuted)}
+                          >
+                            {group.lastMessagePreview ||
+                              `${group.participants.length} 位成员 · 课程内群聊`}
+                          </span>
+                        </span>
+                      )}
+                      {orchestratorBusy ? (
+                        <span
+                          className="size-2.5 shrink-0 rounded-full bg-amber-500"
+                          aria-label="处理中"
+                        />
+                      ) : null}
+                    </Link>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right">
+                      {group.name} · {group.participants.length} 位成员
+                    </TooltipContent>
                   )}
-                  {orchestratorBusy ? (
-                    <span
-                      className="size-2.5 shrink-0 rounded-full bg-amber-500"
-                      aria-label="处理中"
-                    />
-                  ) : null}
-                </Link>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right">{groupChatLabel} · 课程内协作会话</TooltipContent>
-              )}
-            </Tooltip>
-          </li>
+                </Tooltip>
+                {!collapsed && (
+                  <button
+                    type="button"
+                    className={cn(
+                      'absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100',
+                      lightSolidSurface
+                        ? 'text-slate-400 hover:bg-slate-900/5 hover:text-red-600'
+                        : 'text-zinc-500 hover:bg-white/10 hover:text-red-300',
+                    )}
+                    aria-label={`删除群聊 ${group.name}`}
+                    title="删除群聊"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setGroupPendingDelete(group);
+                    }}
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={1.8} />
+                  </button>
+                )}
+              </li>
+            );
+          })
         ) : !collapsed ? (
-          <li>
-            <p className={cn('px-2 py-2 text-xs', railMuted)}>本课程暂无群聊</p>
+          <li
+            className={cn(
+              'rounded-2xl px-3 py-2 text-[11px] leading-5',
+              lightSolidSurface
+                ? 'bg-slate-100/55 text-slate-500'
+                : 'bg-white/[0.04] text-zinc-500',
+            )}
+          >
+            多笔记本协作时，课程总控会自动创建群聊。
           </li>
         ) : null}
       </ul>
     </section>
   ) : null;
 
+  const deleteGroupDialog = (
+    <AlertDialog
+      open={Boolean(groupPendingDelete)}
+      onOpenChange={(open) => {
+        if (!open && !groupDeleting) setGroupPendingDelete(null);
+      }}
+    >
+      <AlertDialogContent className="max-w-[min(92vw,420px)] rounded-[22px] border-slate-200/80 bg-white/95 p-0 shadow-[0_24px_70px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-white/12 dark:bg-slate-950/95">
+        <div className="p-5">
+          <AlertDialogHeader className="place-items-start text-left">
+            <AlertDialogMedia className="mb-1 size-12 rounded-2xl bg-red-500/10 text-red-600 dark:bg-red-400/15 dark:text-red-300">
+              <Trash2 className="size-5" strokeWidth={1.8} />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-base font-semibold">删除群聊？</AlertDialogTitle>
+            <AlertDialogDescription className="text-left text-sm leading-relaxed">
+              将移除「{groupPendingDelete?.name || '该群聊'}
+              」的会话、历史快照和侧栏入口。笔记本本身不会被删除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+        </div>
+        <AlertDialogFooter className="border-t border-slate-200/80 bg-slate-50/80 px-5 py-4 dark:border-white/10 dark:bg-white/[0.04]">
+          <AlertDialogCancel
+            disabled={groupDeleting}
+            className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100"
+          >
+            取消
+          </AlertDialogCancel>
+          <Button
+            type="button"
+            variant="destructive"
+            className="rounded-xl bg-red-600 text-white hover:bg-red-700"
+            disabled={groupDeleting}
+            onClick={() => void confirmDeleteGroup()}
+          >
+            {groupDeleting ? '删除中…' : '删除群聊'}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (loading) {
     return (
-      <div className="flex flex-col gap-4 px-1.5 pb-2 pt-1">
-        {courseAgentSection}
-        {groupChatSection}
-        <div className="flex justify-center py-8">
-          <Loader2 className={cn('size-6 animate-spin', railMuted)} />
+      <>
+        <div className="flex flex-col gap-4 px-1.5 pb-2 pt-1">
+          {courseAgentSection}
+          {groupChatSection}
+          <div className="flex justify-center py-8">
+            <Loader2 className={cn('size-6 animate-spin', railMuted)} />
+          </div>
         </div>
-      </div>
+        {deleteGroupDialog}
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 px-1.5 pb-2 pt-1">
-      {courseAgentSection}
-      {groupChatSection}
-      <section aria-label="笔记本">
-        {!collapsed && (
-          <h3
-            className={cn(
-              'mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide',
-              railMuted,
-            )}
-          >
-            笔记本
-          </h3>
-        )}
-        {notebooks.length === 0 ? (
-          !collapsed && <p className={cn('px-2 text-xs', railMuted)}>本课程暂无笔记本</p>
-        ) : displayNotebooks.length === 0 ? (
-          !collapsed && <p className={cn('px-2 text-xs', railMuted)}>无匹配的笔记本或联系人</p>
-        ) : (
-          <ul className="flex list-none flex-col gap-0.5 p-0">
-            {displayNotebooks.map((nb) => {
-              const active = selNotebook === nb.id && !selAgent;
-              const href = `/chat?notebook=${encodeURIComponent(nb.id)}`;
-              const busy = busyKeys.has(`notebook:${nb.id}`);
-              const lastPreview = notebookLastPreview[nb.id];
-              return (
-                <li key={nb.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={href}
-                        className={contactRowClass(collapsed, active, lightSolidSurface)}
-                        aria-current={active ? 'page' : undefined}
-                      >
-                        <NotebookThumb stage={nb} lightSolidSurface={lightSolidSurface} />
-                        {!collapsed && (
-                          <span className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
-                            <span className="truncate font-medium leading-tight">{nb.name}</span>
+    <>
+      <div className="flex flex-col gap-4 px-1.5 pb-2 pt-1">
+        {courseAgentSection}
+        {groupChatSection}
+        <section aria-label="笔记本">
+          {!collapsed && (
+            <h3
+              className={cn(
+                'mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wide',
+                railMuted,
+              )}
+            >
+              笔记本
+            </h3>
+          )}
+          {notebooks.length === 0 ? (
+            !collapsed && <p className={cn('px-2 text-xs', railMuted)}>本课程暂无笔记本</p>
+          ) : displayNotebooks.length === 0 ? (
+            !collapsed && <p className={cn('px-2 text-xs', railMuted)}>无匹配的笔记本或联系人</p>
+          ) : (
+            <ul className="flex list-none flex-col gap-0.5 p-0">
+              {displayNotebooks.map((nb) => {
+                const active = selNotebook === nb.id && !selAgent;
+                const href = `/chat?notebook=${encodeURIComponent(nb.id)}`;
+                const busy = busyKeys.has(`notebook:${nb.id}`);
+                const lastPreview = notebookLastPreview[nb.id];
+                return (
+                  <li key={nb.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={href}
+                          className={contactRowClass(collapsed, active, lightSolidSurface)}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          <NotebookThumb stage={nb} lightSolidSurface={lightSolidSurface} />
+                          {!collapsed && (
+                            <span className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
+                              <span className="truncate font-medium leading-tight">{nb.name}</span>
+                              {lastPreview ? (
+                                <span
+                                  className={cn(
+                                    'line-clamp-2 text-left text-[10px] leading-snug',
+                                    railMuted,
+                                  )}
+                                  title={lastPreview}
+                                >
+                                  {lastPreview}
+                                </span>
+                              ) : nb.tags && nb.tags.length > 0 ? (
+                                <span className="flex flex-wrap gap-1">
+                                  {nb.tags.slice(0, 3).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className={cn(
+                                        'max-w-[5.5rem] truncate rounded border px-1 py-px text-[9px] font-medium',
+                                        lightSolidSurface
+                                          ? 'border-slate-200/80 bg-white/50 text-slate-600'
+                                          : 'border-white/12 bg-white/10 text-zinc-400',
+                                      )}
+                                      title={tag}
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {nb.tags.length > 3 ? (
+                                    <span className={cn('text-[9px]', railMuted)}>
+                                      +{nb.tags.length - 3}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : null}
+                            </span>
+                          )}
+                          {busy ? (
+                            <span
+                              className="size-2.5 shrink-0 rounded-full bg-amber-500"
+                              aria-label="处理中"
+                            />
+                          ) : null}
+                        </Link>
+                      </TooltipTrigger>
+                      {collapsed && (
+                        <TooltipContent side="right">
+                          <span className="block max-w-[220px]">
+                            {nb.name}
                             {lastPreview ? (
-                              <span
-                                className={cn(
-                                  'line-clamp-2 text-left text-[10px] leading-snug',
-                                  railMuted,
-                                )}
-                                title={lastPreview}
-                              >
+                              <span className={cn('mt-1 block text-[11px]', railMuted)}>
                                 {lastPreview}
                               </span>
                             ) : nb.tags && nb.tags.length > 0 ? (
-                              <span className="flex flex-wrap gap-1">
-                                {nb.tags.slice(0, 3).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className={cn(
-                                      'max-w-[5.5rem] truncate rounded border px-1 py-px text-[9px] font-medium',
-                                      lightSolidSurface
-                                        ? 'border-slate-200/80 bg-white/50 text-slate-600'
-                                        : 'border-white/12 bg-white/10 text-zinc-400',
-                                    )}
-                                    title={tag}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                                {nb.tags.length > 3 ? (
-                                  <span className={cn('text-[9px]', railMuted)}>
-                                    +{nb.tags.length - 3}
-                                  </span>
-                                ) : null}
+                              <span className={cn('mt-1 block text-[11px]', railMuted)}>
+                                {nb.tags.join(' · ')}
                               </span>
                             ) : null}
                           </span>
-                        )}
-                        {busy ? (
-                          <span
-                            className="size-2.5 shrink-0 rounded-full bg-amber-500"
-                            aria-label="处理中"
-                          />
-                        ) : null}
-                      </Link>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right">
-                        <span className="block max-w-[220px]">
-                          {nb.name}
-                          {lastPreview ? (
-                            <span className={cn('mt-1 block text-[11px]', railMuted)}>
-                              {lastPreview}
-                            </span>
-                          ) : nb.tags && nb.tags.length > 0 ? (
-                            <span className={cn('mt-1 block text-[11px]', railMuted)}>
-                              {nb.tags.join(' · ')}
-                            </span>
-                          ) : null}
-                        </span>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-    </div>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+      {deleteGroupDialog}
+    </>
   );
 }

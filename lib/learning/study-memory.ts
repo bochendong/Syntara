@@ -6,6 +6,39 @@ import type { LearningRunStats } from '@/lib/learning/quiz-roguelike';
 
 const MEMORY_PREFIX = 'synatra-study-memory-v1';
 const MAX_ITEMS = 80;
+const MAX_NOTEBOOK_MEMORY_TEXT = 2400;
+export const STUDY_MEMORY_UPDATED_EVENT = 'synatra-study-memory-updated';
+export const STUDY_MEMORY_OPEN_EVENT = 'synatra-study-memory-open';
+
+export type StudyMemoryScope = 'public' | 'private';
+export type StudyMemoryKind = 'knowledge_gap' | 'mistake' | 'preference' | 'reflection' | 'manual';
+export type StudyMemoryStatus = 'active' | 'archived';
+
+export interface NotebookMemorySourceReference {
+  notebookId?: string;
+  notebookName?: string;
+  order: number;
+  title: string;
+  why?: string;
+}
+
+export interface NotebookMemoryItem {
+  id: string;
+  scope: StudyMemoryScope;
+  kind?: StudyMemoryKind;
+  status?: StudyMemoryStatus;
+  source: 'chat' | 'quiz' | 'manual';
+  stageId: string;
+  title: string;
+  text: string;
+  reason?: string;
+  question?: string;
+  sourceReferences?: NotebookMemorySourceReference[];
+  lastUsedAt?: number;
+  confidence?: number;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface WeakPointMemory {
   id: string;
@@ -28,6 +61,8 @@ export interface StudyMemoryProfile {
   lastStuckPoint?: string;
   weakPoints: WeakPointMemory[];
   rememberedQuestions: Array<{ id: string; text: string; createdAt: number }>;
+  publicMemories: NotebookMemoryItem[];
+  privateMemories: NotebookMemoryItem[];
 }
 
 export interface RecordQuizMemoryArgs {
@@ -43,6 +78,11 @@ function storageKey(userId: string, stageId: string): string {
   return `${MEMORY_PREFIX}:${stageId}:${userId}`;
 }
 
+function emitStudyMemoryUpdated(stageId: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(STUDY_MEMORY_UPDATED_EVENT, { detail: { stageId } }));
+}
+
 function emptyProfile(userId: string, stageId: string): StudyMemoryProfile {
   return {
     userId,
@@ -53,6 +93,8 @@ function emptyProfile(userId: string, stageId: string): StudyMemoryProfile {
     lastTouchedAt: Date.now(),
     weakPoints: [],
     rememberedQuestions: [],
+    publicMemories: [],
+    privateMemories: [],
   };
 }
 
@@ -70,6 +112,12 @@ export function loadStudyMemory(userId: string, stageId: string): StudyMemoryPro
       rememberedQuestions: Array.isArray(parsed.rememberedQuestions)
         ? parsed.rememberedQuestions.slice(0, MAX_ITEMS)
         : [],
+      publicMemories: Array.isArray(parsed.publicMemories)
+        ? parsed.publicMemories.slice(0, MAX_ITEMS).map(normalizeNotebookMemoryItem)
+        : [],
+      privateMemories: Array.isArray(parsed.privateMemories)
+        ? parsed.privateMemories.slice(0, MAX_ITEMS).map(normalizeNotebookMemoryItem)
+        : [],
     };
   } catch {
     return emptyProfile(userId, stageId);
@@ -85,11 +133,216 @@ export function saveStudyMemory(profile: StudyMemoryProfile): void {
         ...profile,
         weakPoints: profile.weakPoints.slice(0, MAX_ITEMS),
         rememberedQuestions: profile.rememberedQuestions.slice(0, MAX_ITEMS),
+        publicMemories: profile.publicMemories.slice(0, MAX_ITEMS),
+        privateMemories: profile.privateMemories.slice(0, MAX_ITEMS),
       }),
     );
   } catch {
     // local-first memory should never block studying
   }
+}
+
+function normalizeMemoryText(input: string, maxLength = MAX_NOTEBOOK_MEMORY_TEXT): string {
+  return input
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeMemoryReference(
+  reference: NotebookMemorySourceReference,
+): NotebookMemorySourceReference | null {
+  const order = Number(reference.order);
+  const title = normalizeMemoryText(String(reference.title || ''), 120);
+  if (!Number.isFinite(order) || order <= 0 || !title) return null;
+  return {
+    notebookId: reference.notebookId ? normalizeMemoryText(reference.notebookId, 120) : undefined,
+    notebookName: reference.notebookName
+      ? normalizeMemoryText(reference.notebookName, 120)
+      : undefined,
+    order,
+    title,
+    why: reference.why ? normalizeMemoryText(reference.why, 180) : undefined,
+  };
+}
+
+function normalizeNotebookMemoryItem(item: NotebookMemoryItem): NotebookMemoryItem {
+  const kind: StudyMemoryKind =
+    item.kind === 'mistake' ||
+    item.kind === 'preference' ||
+    item.kind === 'reflection' ||
+    item.kind === 'manual' ||
+    item.kind === 'knowledge_gap'
+      ? item.kind
+      : item.source === 'quiz'
+        ? 'mistake'
+        : item.source === 'manual'
+          ? 'manual'
+          : 'knowledge_gap';
+  const status: StudyMemoryStatus = item.status === 'archived' ? 'archived' : 'active';
+  const sourceReferences = Array.isArray(item.sourceReferences)
+    ? item.sourceReferences
+        .map((reference) => normalizeMemoryReference(reference))
+        .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
+        .slice(0, 6)
+    : undefined;
+  const confidence =
+    typeof item.confidence === 'number' && Number.isFinite(item.confidence)
+      ? Math.max(0, Math.min(1, item.confidence))
+      : undefined;
+  return {
+    ...item,
+    kind,
+    status,
+    sourceReferences,
+    confidence,
+  };
+}
+
+function memoryFingerprint(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[，。！？、,.!?;；:："'“”‘’`]/g, '')
+    .trim()
+    .slice(0, 180);
+}
+
+function buildMemoryId(): string {
+  return `private-memory-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function getLocalStudyMemoryUserId(): string {
+  if (typeof window === 'undefined') return 'user-anonymous';
+  try {
+    const raw = localStorage.getItem('synatra-auth');
+    const parsed = raw ? (JSON.parse(raw) as { state?: { userId?: unknown } }) : null;
+    const userId = typeof parsed?.state?.userId === 'string' ? parsed.state.userId.trim() : '';
+    return userId || 'user-anonymous';
+  } catch {
+    return 'user-anonymous';
+  }
+}
+
+export function recordNotebookPrivateMemory(args: {
+  userId?: string;
+  stageId: string;
+  title: string;
+  text: string;
+  reason?: string;
+  question?: string;
+  kind?: StudyMemoryKind;
+  sourceReferences?: NotebookMemorySourceReference[];
+  confidence?: number;
+  source?: NotebookMemoryItem['source'];
+}): { profile: StudyMemoryProfile; item: NotebookMemoryItem | null; created: boolean } {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const title = normalizeMemoryText(args.title, 80) || '聊天里发现的学习补充点';
+  const text = normalizeMemoryText(args.text);
+  const reason = args.reason ? normalizeMemoryText(args.reason, 180) : undefined;
+  const question = args.question ? normalizeMemoryText(args.question, 220) : undefined;
+  const previous = loadStudyMemory(userId, args.stageId);
+
+  if (!text) {
+    return { profile: previous, item: null, created: false };
+  }
+
+  const fingerprint = memoryFingerprint(`${title}\n${text}`);
+  const existing = previous.privateMemories.find(
+    (item) => memoryFingerprint(`${item.title}\n${item.text}`) === fingerprint,
+  );
+  if (existing) {
+    return { profile: previous, item: existing, created: false };
+  }
+
+  const now = Date.now();
+  const item: NotebookMemoryItem = {
+    id: buildMemoryId(),
+    scope: 'private',
+    kind: args.kind ?? 'knowledge_gap',
+    status: 'active',
+    source: args.source ?? 'chat',
+    stageId: args.stageId,
+    title,
+    text,
+    reason,
+    question,
+    sourceReferences: (args.sourceReferences || [])
+      .map((reference) => normalizeMemoryReference(reference))
+      .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
+      .slice(0, 6),
+    confidence:
+      typeof args.confidence === 'number' && Number.isFinite(args.confidence)
+        ? Math.max(0, Math.min(1, args.confidence))
+        : undefined,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const profile: StudyMemoryProfile = {
+    ...previous,
+    lastTouchedAt: now,
+    privateMemories: [item, ...previous.privateMemories].slice(0, MAX_ITEMS),
+  };
+  saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
+  return { profile, item, created: true };
+}
+
+export function listNotebookPrivateMemories(args: {
+  userId?: string;
+  stageId: string;
+  includeArchived?: boolean;
+  limit?: number;
+}): NotebookMemoryItem[] {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const limit = Math.max(1, Math.min(args.limit ?? MAX_ITEMS, MAX_ITEMS));
+  return loadStudyMemory(userId, args.stageId).privateMemories
+    .filter((item) => args.includeArchived || item.status !== 'archived')
+    .sort(
+      (a, b) =>
+        (b.lastUsedAt || b.updatedAt || b.createdAt) - (a.lastUsedAt || a.updatedAt || a.createdAt),
+    )
+    .slice(0, limit);
+}
+
+export function updateNotebookPrivateMemoryStatus(args: {
+  userId?: string;
+  stageId: string;
+  memoryId: string;
+  status: StudyMemoryStatus;
+}): StudyMemoryProfile {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const previous = loadStudyMemory(userId, args.stageId);
+  const now = Date.now();
+  const profile: StudyMemoryProfile = {
+    ...previous,
+    lastTouchedAt: now,
+    privateMemories: previous.privateMemories.map((item) =>
+      item.id === args.memoryId ? { ...item, status: args.status, updatedAt: now } : item,
+    ),
+  };
+  saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
+  return profile;
+}
+
+export function deleteNotebookPrivateMemory(args: {
+  userId?: string;
+  stageId: string;
+  memoryId: string;
+}): StudyMemoryProfile {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const previous = loadStudyMemory(userId, args.stageId);
+  const now = Date.now();
+  const profile: StudyMemoryProfile = {
+    ...previous,
+    lastTouchedAt: now,
+    privateMemories: previous.privateMemories.filter((item) => item.id !== args.memoryId),
+  };
+  saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
+  return profile;
 }
 
 export function getLearningRunStats(userId: string, stageId: string): LearningRunStats {
@@ -174,6 +427,7 @@ export function recordQuizMemory(args: RecordQuizMemoryArgs): {
     weakPoints,
   };
   saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
   return { profile, newWeakPoints };
 }
 

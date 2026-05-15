@@ -55,8 +55,20 @@ export function buildChatMessage(
     senderName: string;
     senderAvatar?: string | null;
     originalRole?: ChatMessageMetadata['originalRole'];
+    senderKind?: ChatMessageMetadata['senderKind'];
+    groupEvent?: ChatMessageMetadata['groupEvent'];
+    groupEventSummary?: string;
+    groupEventDetail?: string;
+    mentionedParticipantIds?: string[];
+    mentionedParticipantDetails?: ChatMessageMetadata['mentionedParticipantDetails'];
+    dispatchVerb?: string;
+    dispatchNote?: string;
+    dispatchPrompt?: string;
+    sourceReferences?: ChatMessageMetadata['sourceReferences'];
     actions?: MessageAction[];
     attachments?: ChatMessageMetadata['attachments'];
+    streaming?: boolean;
+    statusText?: string;
   },
 ): UIMessage<ChatMessageMetadata> {
   const now = Date.now();
@@ -68,9 +80,21 @@ export function buildChatMessage(
       senderName: options.senderName,
       senderAvatar: options.senderAvatar || undefined,
       originalRole: options.originalRole || 'agent',
+      senderKind: options.senderKind,
+      groupEvent: options.groupEvent,
+      groupEventSummary: options.groupEventSummary,
+      groupEventDetail: options.groupEventDetail,
+      mentionedParticipantIds: options.mentionedParticipantIds,
+      mentionedParticipantDetails: options.mentionedParticipantDetails,
+      dispatchVerb: options.dispatchVerb,
+      dispatchNote: options.dispatchNote,
+      dispatchPrompt: options.dispatchPrompt,
+      sourceReferences: options.sourceReferences,
       createdAt: now,
       actions: options.actions,
       attachments: options.attachments,
+      streaming: options.streaming,
+      statusText: options.statusText,
     },
   };
 }
@@ -105,11 +129,17 @@ export function stripAttachmentUrlsFromAgentMessages(
   messages: UIMessage<ChatMessageMetadata>[],
 ): UIMessage<ChatMessageMetadata>[] {
   return messages.map((m) => {
-    if (!m.metadata?.attachments?.length) return m;
+    if (!m.metadata?.attachments?.length) {
+      return m.metadata?.streaming || m.metadata?.statusText
+        ? { ...m, metadata: { ...m.metadata, streaming: false, statusText: undefined } }
+        : m;
+    }
     return {
       ...m,
       metadata: {
         ...m.metadata,
+        streaming: false,
+        statusText: undefined,
         attachments: m.metadata.attachments.map(({ objectUrl: _u, ...rest }) => rest),
       },
     };
@@ -120,6 +150,9 @@ export function stripAttachmentUrlsFromNotebookMessages(
   messages: NotebookChatMessage[],
 ): NotebookChatMessage[] {
   return messages.map((m) => {
+    if (m.role === 'assistant' && (m.streaming || m.statusText)) {
+      return { ...m, streaming: false, statusText: undefined };
+    }
     if (m.role !== 'user' || !m.attachments?.length) return m;
     return {
       ...m,

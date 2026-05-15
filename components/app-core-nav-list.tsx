@@ -89,21 +89,23 @@ type CoreNavSection = {
   items: CoreNavItem[];
 };
 
-/** 聊天右侧栏扁平列表：课程主页 → Dashboard → 商城，其余项按此表随后 */
+/** 聊天右侧栏扁平列表：先放当前课程内入口，再放跨课程入口，其余项按此表随后 */
 const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   'agent-teams': 0,
-  courses: 1,
-  'top-up': 2,
-  'credits-market': 3,
-  gamification: 4,
-  store: 5,
-  'avatar-store': 6,
-  chat: 7,
-  live2d: 8,
-  profile: 9,
-  settings: 10,
-  'contact-support': 11,
-  'report-issue': 12,
+  'course-milestone': 1,
+  'course-problem-bank': 2,
+  courses: 3,
+  store: 4,
+  'top-up': 5,
+  'credits-market': 6,
+  gamification: 7,
+  'avatar-store': 8,
+  chat: 9,
+  live2d: 10,
+  profile: 11,
+  settings: 12,
+  'contact-support': 13,
+  'report-issue': 14,
 };
 
 function sortChatRightRailItems(items: CoreNavItem[]): CoreNavItem[] {
@@ -563,7 +565,7 @@ export function AppCoreNavList({
 
   const rawFlat = visibleSections.flatMap((s) => s.items);
   const ordered = chatRightRailOrder ? sortChatRightRailItems(rawFlat) : rawFlat;
-  const itemLayout = collapsed ? 'list' : 'grid';
+  const itemLayout = collapsed || chatRightRailOrder ? 'list' : 'grid';
 
   if (!collapsed && !chatRightRailOrder) {
     return (
@@ -595,7 +597,7 @@ export function AppCoreNavList({
           collapsed
             ? 'flex flex-col gap-0.5'
             : chatRightRailOrder
-              ? 'grid grid-cols-3 gap-1.5'
+              ? 'flex flex-col gap-1'
               : 'grid grid-cols-2 gap-1.5',
         )}
       >

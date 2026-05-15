@@ -1,23 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { UIMessage } from 'ai';
-import { Loader2 } from 'lucide-react';
+import { BookOpenText, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getStoredApplyNotebookWrites,
   subscribeApplyNotebookWrites,
 } from '@/lib/utils/notebook-write-preference';
-import { useI18n } from '@/lib/hooks/use-i18n';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { useUserProfileStore } from '@/lib/store/user-profile';
-import type { ChatMessageMetadata } from '@/lib/types/chat';
+import type { ChatMessageMetadata, CourseChatGroupMeta } from '@/lib/types/chat';
 import { listAgentsForCourse, type CourseAgentListItem } from '@/lib/utils/course-agents';
 import type { Scene } from '@/lib/types/stage';
 import type { SettingsSection } from '@/lib/types/settings';
-import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
+import {
+  courseChatGroupTargetId,
+  loadContactMessages,
+  loadCourseChatGroupMeta,
+  saveContactMessages,
+} from '@/lib/utils/contact-chat-storage';
 import { listStagesByCourse, loadStageData } from '@/lib/utils/stage-storage';
 import {
   cancelAgentTask,
@@ -50,6 +54,10 @@ import {
   stripAttachmentUrlsFromAgentMessages,
   stripAttachmentUrlsFromNotebookMessages,
 } from '@/components/chat/chat-message-utils';
+import {
+  NOTEBOOK_CHAT_HANDOFF_QUERY_PARAM,
+  takeNotebookChatHandoff,
+} from '@/components/chat/chat-notebook-handoff';
 import { OrchestratorChildTaskDialog } from '@/components/chat/orchestrator-child-task-dialog';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { AgentMessageThread, NotebookMessageThread } from '@/components/chat/chat-message-threads';
@@ -59,6 +67,13 @@ import { useNotebookChatActions } from '@/components/chat/use-notebook-chat-acti
 import { useAgentChatActions } from '@/components/chat/use-agent-chat-actions';
 import { useChatAttachments } from '@/components/chat/use-chat-attachments';
 import { useChatMessageActions } from '@/components/chat/use-chat-message-actions';
+import {
+  COURSE_CHAT_GROUPS_UPDATED_EVENT,
+  makeNotebookParticipant,
+  makeOrchestratorParticipant,
+  refreshGroupParticipants,
+  updateGroupActivity,
+} from '@/components/chat/course-chat-groups';
 import type {
   NotebookChatMessage,
   OrchestratorChildTaskView,
@@ -69,13 +84,29 @@ import type {
 const ORCHESTRATOR_REMOTE_TASK_POLL_INTERVAL_MS = 5000;
 const CONTACT_TASK_HINT_POLL_INTERVAL_MS = 5000;
 const ORCHESTRATOR_CHILD_TASK_POLL_INTERVAL_MS = 3000;
+const chatMessageScrollClassName = cn(
+  'min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 md:px-8',
+  '[scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:rgba(15,23,42,0.16)_transparent]',
+  'dark:[scrollbar-color:rgba(255,255,255,0.18)_transparent]',
+  '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent',
+  '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-900/10',
+  'hover:[&::-webkit-scrollbar-thumb]:bg-slate-900/20',
+  'dark:[&::-webkit-scrollbar-thumb]:bg-white/15 dark:hover:[&::-webkit-scrollbar-thumb]:bg-white/25',
+);
 
 function canPollInCurrentTab(): boolean {
   return document.visibilityState === 'visible';
 }
 
+function isNotebookCreationTaskLike(task: { title: string; detail?: string; notebookId?: string }) {
+  const haystack = `${task.title} ${task.detail || ''}`;
+  return (
+    Boolean(task.notebookId?.trim()) ||
+    /(创建笔记本|生成笔记本|笔记本正在生成|创建完成)/.test(haystack)
+  );
+}
+
 export function ChatPageClient() {
-  const { t } = useI18n();
   const router = useRouter();
   const openSettings = (section?: SettingsSection) => {
     if (section) {
@@ -96,6 +127,7 @@ export function ChatPageClient() {
   const notebookId = searchParams.get('notebook');
   const agentId = searchParams.get('agent');
   const chatView = searchParams.get('view');
+  const groupId = searchParams.get('group');
 
   const nickname = useUserProfileStore((s) => s.nickname);
   const userAvatar = useUserProfileStore((s) => s.avatar);
@@ -111,6 +143,8 @@ export function ChatPageClient() {
   const [nbThread, setNbThread] = useState<NotebookChatMessage[]>([]);
   const [nbThreadHydrated, setNbThreadHydrated] = useState(false);
   const [agThread, setAgThread] = useState<UIMessage<ChatMessageMetadata>[]>([]);
+  const [agThreadHydrated, setAgThreadHydrated] = useState(false);
+  const [currentGroupMeta, setCurrentGroupMeta] = useState<CourseChatGroupMeta | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [notebookPendingAction, setNotebookPendingAction] = useState<'chat' | 'import' | null>(
@@ -151,6 +185,35 @@ export function ChatPageClient() {
   );
   const abortRef = useRef<AbortController | null>(null);
 
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlHeight = html.style.height;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyHeight = body.style.height;
+    const previousBodyPosition = body.style.position;
+    const previousBodyInset = body.style.inset;
+    const previousBodyWidth = body.style.width;
+    window.scrollTo(0, 0);
+    html.style.overflow = 'hidden';
+    html.style.height = '100dvh';
+    body.style.overflow = 'hidden';
+    body.style.height = '100dvh';
+    body.style.position = 'fixed';
+    body.style.inset = '0';
+    body.style.width = '100%';
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      html.style.height = previousHtmlHeight;
+      body.style.overflow = previousBodyOverflow;
+      body.style.height = previousBodyHeight;
+      body.style.position = previousBodyPosition;
+      body.style.inset = previousBodyInset;
+      body.style.width = previousBodyWidth;
+    };
+  }, []);
+
   useEffect(() => {
     const comp = searchParams.get('composer');
     if (agentId !== COURSE_ORCHESTRATOR_ID) return;
@@ -168,28 +231,30 @@ export function ChatPageClient() {
   const orchestratorCompletionAnnouncedRef = useRef<string | null>(null);
   const ORCHESTRATOR_TASK_STALE_MS = 20 * 60 * 1000;
 
+  const effectiveAgentId = groupId ? COURSE_ORCHESTRATOR_ID : agentId;
   const selectedAgent = useMemo(
-    () => agents.find((a) => a.id === agentId) ?? null,
-    [agents, agentId],
+    () => agents.find((a) => a.id === effectiveAgentId) ?? null,
+    [agents, effectiveAgentId],
   );
   const selectedChildTask = useMemo(
     () => orchestratorChildTasks.find((t) => t.id === selectedChildTaskId) || null,
     [orchestratorChildTasks, selectedChildTaskId],
   );
-  const isCourseOrchestrator = agentId === COURSE_ORCHESTRATOR_ID;
+  const isCourseOrchestrator = effectiveAgentId === COURSE_ORCHESTRATOR_ID;
   const orchestratorViewMode: OrchestratorViewMode =
-    isCourseOrchestrator && chatView === 'group' ? 'group' : 'private';
-  const shouldRenderGroupReplies = isCourseOrchestrator && orchestratorViewMode === 'group';
+    isCourseOrchestrator && (chatView === 'group' || groupId) ? 'group' : 'private';
   const agentConversationTargetId =
-    isCourseOrchestrator && agentId
-      ? orchestratorViewMode === 'group'
-        ? `${agentId}::group`
-        : `${agentId}::private`
-      : agentId;
+    groupId && isCourseOrchestrator
+      ? courseChatGroupTargetId(groupId)
+      : isCourseOrchestrator && agentId
+        ? orchestratorViewMode === 'group'
+          ? `${agentId}::group`
+          : `${agentId}::private`
+        : agentId;
 
   const mode = notebookId
     ? ('notebook' as const)
-    : agentId
+    : agentId || groupId
       ? ('agent' as const)
       : ('none' as const);
   const supportsComposerAttachments = mode === 'notebook';
@@ -269,10 +334,18 @@ export function ChatPageClient() {
   useEffect(() => {
     const nb = searchParams.get('notebook');
     const ag = searchParams.get('agent');
-    if (nb && ag) {
+    const grp = searchParams.get('group');
+    if (nb && (ag || grp)) {
       router.replace(`/chat?notebook=${encodeURIComponent(nb)}`);
     }
   }, [searchParams, router]);
+
+  useEffect(() => {
+    if (agentId !== COURSE_ORCHESTRATOR_ID || chatView !== 'group' || groupId) return;
+    router.replace(`/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}`, {
+      scroll: false,
+    });
+  }, [agentId, chatView, groupId, router]);
 
   useEffect(() => {
     if (!courseId) {
@@ -281,7 +354,8 @@ export function ChatPageClient() {
     }
     const nb = searchParams.get('notebook');
     const ag = searchParams.get('agent');
-    if (nb || ag) {
+    const grp = searchParams.get('group');
+    if (nb || ag || grp) {
       setPickContactDone(true);
       return;
     }
@@ -312,6 +386,42 @@ export function ChatPageClient() {
       router.replace('/chat');
     }
   }, [courseId, agentId, agents, router]);
+
+  useEffect(() => {
+    if (!courseId || !groupId) {
+      setCurrentGroupMeta(null);
+      return;
+    }
+    let alive = true;
+    void (async () => {
+      const meta = await loadCourseChatGroupMeta(courseId, groupId);
+      if (!alive) return;
+      if (!meta) {
+        setCurrentGroupMeta(null);
+        return;
+      }
+      const groupParticipantIds = new Set(meta.participants.map((participant) => participant.id));
+      const stages = await listStagesByCourse(courseId);
+      if (!alive) return;
+      const freshParticipants = [
+        ...(groupParticipantIds.has(COURSE_ORCHESTRATOR_ID)
+          ? [
+              makeOrchestratorParticipant({
+                avatarUrl: orchestratorAvatar,
+                joinedAt: meta.createdAt,
+              }),
+            ]
+          : []),
+        ...stages
+          .filter((stage) => groupParticipantIds.has(stage.id))
+          .map((stage) => makeNotebookParticipant(stage, meta.createdAt)),
+      ];
+      setCurrentGroupMeta(refreshGroupParticipants(meta, freshParticipants));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [courseId, groupId, orchestratorAvatar]);
 
   useEffect(() => {
     if (!notebookId) {
@@ -435,9 +545,12 @@ export function ChatPageClient() {
     if (!agentConversationTargetId || !courseId) {
       revokeAgentAttachmentUrls(agThreadRef.current);
       setAgThread([]);
+      setAgThreadHydrated(false);
       return;
     }
     let cancelled = false;
+    setAgThreadHydrated(false);
+    setAgThread([]);
     loadContactMessages<UIMessage<ChatMessageMetadata>>(
       courseId,
       'agent',
@@ -450,6 +563,7 @@ export function ChatPageClient() {
         return;
       }
       setAgThread(hydrated);
+      setAgThreadHydrated(true);
     });
     return () => {
       cancelled = true;
@@ -458,31 +572,77 @@ export function ChatPageClient() {
   }, [agentConversationTargetId, courseId]);
 
   useEffect(() => {
-    if (!agentConversationTargetId || !courseId || !selectedAgent) return;
+    if (!courseId || !groupId || !agentConversationTargetId) return;
+    let cancelled = false;
+    const reloadGroupThread = async () => {
+      const messages = await loadContactMessages<UIMessage<ChatMessageMetadata>>(
+        courseId,
+        'agent',
+        agentConversationTargetId,
+      );
+      const hydrated = await hydrateAgentThread(messages.filter((m) => !isMockAgentMessage(m)));
+      if (cancelled) {
+        revokeAgentAttachmentUrls(hydrated);
+        return;
+      }
+      revokeAgentAttachmentUrls(agThreadRef.current);
+      setAgThread(hydrated);
+      setAgThreadHydrated(true);
+      const meta = await loadCourseChatGroupMeta(courseId, groupId);
+      if (!cancelled && meta) setCurrentGroupMeta(meta);
+    };
+    const onGroupUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ courseId?: string; groupId?: string }>).detail;
+      if (detail?.courseId !== courseId || detail?.groupId !== groupId) return;
+      void reloadGroupThread();
+    };
+    window.addEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onGroupUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onGroupUpdated);
+    };
+  }, [agentConversationTargetId, courseId, groupId]);
+
+  useEffect(() => {
+    if (!agentConversationTargetId || !courseId || !selectedAgent || !agThreadHydrated) return;
+    const groupMeta =
+      groupId && currentGroupMeta ? updateGroupActivity(currentGroupMeta, agThread) : undefined;
     void saveContactMessages<UIMessage<ChatMessageMetadata>>({
       courseId,
       kind: 'agent',
       targetId: agentConversationTargetId,
-      targetName:
-        isCourseOrchestrator && orchestratorViewMode === 'group'
+      targetName: groupMeta
+        ? groupMeta.name
+        : isCourseOrchestrator && orchestratorViewMode === 'group'
           ? `${selectedAgent.name} · 群聊`
           : selectedAgent.name,
+      meta: groupMeta,
       messages: stripAttachmentUrlsFromAgentMessages(
         agThread.filter((m) => !isMockAgentMessage(m)),
       ),
+    }).then(() => {
+      if (!groupMeta || !courseId) return;
+      window.dispatchEvent(
+        new CustomEvent(COURSE_CHAT_GROUPS_UPDATED_EVENT, {
+          detail: { courseId, groupId: groupMeta.groupId },
+        }),
+      );
     });
   }, [
     agentConversationTargetId,
     courseId,
     selectedAgent,
     agThread,
+    agThreadHydrated,
+    currentGroupMeta,
+    groupId,
     isCourseOrchestrator,
     orchestratorViewMode,
   ]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [nbThread.length, agThread.length, sending, orchestratorRemoteTask?.detail]);
+  }, [nbThread, agThread, sending, orchestratorRemoteTask?.detail]);
 
   useEffect(() => {
     return () => {
@@ -517,7 +677,7 @@ export function ChatPageClient() {
           (t) =>
             t.contactKind === 'agent' &&
             t.contactId === COURSE_ORCHESTRATOR_ID &&
-            (t.title.startsWith('总控任务') || Boolean(t.notebookId?.trim())) &&
+            isNotebookCreationTaskLike(t) &&
             (t.status === 'running' || t.status === 'waiting'),
         );
 
@@ -667,7 +827,7 @@ export function ChatPageClient() {
     setPendingAttachments([]);
     setActiveOrchestratorTaskId(null);
     setSelectedChildTaskId(null);
-  }, [notebookId, agentId, setPendingAttachments]);
+  }, [notebookId, agentId, groupId, setPendingAttachments]);
 
   useEffect(() => {
     if (!agentId) {
@@ -776,6 +936,26 @@ export function ChatPageClient() {
       setNbThread,
     });
 
+  const replaceWithGroupChat = useCallback(
+    (nextGroupId: string) => {
+      router.replace(
+        `/chat?agent=${encodeURIComponent(COURSE_ORCHESTRATOR_ID)}&view=group&group=${encodeURIComponent(nextGroupId)}`,
+        { scroll: false },
+      );
+    },
+    [router],
+  );
+
+  const replaceWithNotebookChat = useCallback(
+    (nextNotebookId: string, handoffId?: string | null) => {
+      const next = new URLSearchParams();
+      next.set('notebook', nextNotebookId);
+      if (handoffId) next.set(NOTEBOOK_CHAT_HANDOFF_QUERY_PARAM, handoffId);
+      router.replace(`/chat?${next.toString()}`, { scroll: false });
+    },
+    [router],
+  );
+
   const { handleImportNotebookProblemBank, handleSendNotebook, runNotebookSubtask } =
     useNotebookChatActions({
       courseId,
@@ -784,9 +964,9 @@ export function ChatPageClient() {
       pendingAttachments,
       sending,
       nbThread,
-      selectedNotebookId: notebookId,
+      notebookName: stageMeta?.name,
+      notebookAvatarUrl: stageMeta?.avatarUrl,
       applyNotebookWrites,
-      notebookWritesDisabledHint: t('chat.notebookWritesDisabledHint'),
       reloadNotebookScenes,
       setNbThread,
       setDraft,
@@ -794,6 +974,38 @@ export function ChatPageClient() {
       setNotebookPendingAction,
       setPendingAttachments,
     });
+
+  const notebookHandoffId = searchParams.get(NOTEBOOK_CHAT_HANDOFF_QUERY_PARAM);
+  const handledNotebookHandoffIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!notebookHandoffId || !notebookId || !courseId || !nbThreadHydrated || sending) return;
+    if (handledNotebookHandoffIdsRef.current.has(notebookHandoffId)) return;
+    handledNotebookHandoffIdsRef.current.add(notebookHandoffId);
+
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete(NOTEBOOK_CHAT_HANDOFF_QUERY_PARAM);
+    router.replace(`/chat?${next.toString()}`, { scroll: false });
+
+    const handoff = takeNotebookChatHandoff(notebookHandoffId);
+    if (
+      !handoff ||
+      handoff.courseId !== courseId ||
+      handoff.notebookId !== notebookId ||
+      !handoff.question.trim()
+    ) {
+      return;
+    }
+    void handleSendNotebook({ text: handoff.question });
+  }, [
+    courseId,
+    handleSendNotebook,
+    nbThreadHydrated,
+    notebookHandoffId,
+    notebookId,
+    router,
+    searchParams,
+    sending,
+  ]);
 
   const handleSendAgent = useAgentChatActions({
     agentId,
@@ -803,6 +1015,11 @@ export function ChatPageClient() {
     pendingAttachments,
     orchestratorViewMode,
     orchestratorComposerMode,
+    groupId,
+    currentGroupMeta,
+    setCurrentGroupMeta,
+    replaceWithGroupChat,
+    replaceWithNotebookChat,
     setOrchestratorPdfSelectionFile,
     setOrchestratorPdfSelectionDialogOpen,
     abortRef,
@@ -819,21 +1036,36 @@ export function ChatPageClient() {
     setActiveOrchestratorTaskId,
     setOrchestratorPipelineProgress,
     orchestratorAvatar,
-    shouldRenderGroupReplies,
     runNotebookSubtask,
   });
+
+  const hasStreamingNotebookMessage = nbThread.some(
+    (message) => message.role === 'assistant' && (message.streaming || message.statusText),
+  );
+  const hasStreamingAgentMessage = agThread.some((message) => message.metadata?.streaming);
+  const shouldShowSendingStatus =
+    sending &&
+    (mode === 'notebook'
+      ? notebookPendingAction === 'import' || !hasStreamingNotebookMessage
+      : mode === 'agent'
+        ? !hasStreamingAgentMessage
+        : true);
 
   const titleLine = useMemo(() => {
     if (!courseId) return '聊天';
     if (mode === 'notebook' && stageMeta) return stageMeta.name;
     if (mode === 'agent' && selectedAgent) {
       if (selectedAgent.id === COURSE_ORCHESTRATOR_ID && orchestratorViewMode === 'group') {
-        return '群聊 · 课程内协作会话';
+        return currentGroupMeta?.name || '课程讨论群';
       }
       return selectedAgent.name;
     }
     return '选择联系人';
-  }, [courseId, mode, stageMeta, selectedAgent, orchestratorViewMode]);
+  }, [courseId, currentGroupMeta?.name, mode, stageMeta, selectedAgent, orchestratorViewMode]);
+  const notebookEmptyPrompts = useMemo(
+    () => ['帮我总结这个笔记本的核心概念', '根据 slides 出 3 道练习题', '我想复习最容易混淆的地方'],
+    [],
+  );
 
   if (!courseId) {
     return <NoCourseChatState />;
@@ -841,90 +1073,126 @@ export function ChatPageClient() {
 
   return (
     <div
-      className={cn(
-        'flex h-full min-h-0 flex-col',
-        'bg-[radial-gradient(circle_at_15%_0%,rgba(179,229,252,0.35),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)]',
-        'dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.25),transparent_45%),linear-gradient(180deg,#0b0f16_0%,#111827_100%)]',
-      )}
+      data-chat-page-root
+      className={cn('flex h-full max-h-full min-h-0 flex-col overflow-hidden bg-background text-foreground')}
     >
       <ChatPageHeader
         titleLine={titleLine}
         mode={mode}
+        groupMeta={
+          isCourseOrchestrator && orchestratorViewMode === 'group' ? currentGroupMeta : null
+        }
         contactTaskHint={contactTaskHint}
         isCourseOrchestrator={isCourseOrchestrator}
         orchestratorChildTasks={orchestratorChildTasks}
         selectedChildTaskId={selectedChildTaskId}
         setSelectedChildTaskId={setSelectedChildTaskId}
+        notebookAction={
+          mode === 'notebook' && stageMeta ? { id: stageMeta.id, name: stageMeta.name } : null
+        }
       />
 
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        {mode === 'none' && courseId && pickContactDone ? (
-          <p className="text-center text-sm text-muted-foreground">
-            本课程下还没有笔记本或 Agent。请回到课程页新建笔记本，或从课程内创建界面开始生成。
-          </p>
-        ) : null}
-        {mode === 'none' && courseId && !pickContactDone ? (
-          <p className="text-center text-sm text-muted-foreground">正在打开会话…</p>
-        ) : null}
+      <div
+        ref={scrollRef}
+        className={chatMessageScrollClassName}
+      >
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+          {mode === 'none' && courseId && pickContactDone ? (
+            <p className="text-center text-sm text-muted-foreground">
+              本课程下还没有笔记本或 Agent。请回到课程页新建笔记本，或从课程内创建界面开始生成。
+            </p>
+          ) : null}
+          {mode === 'none' && courseId && !pickContactDone ? (
+            <p className="text-center text-sm text-muted-foreground">正在打开会话…</p>
+          ) : null}
 
-        {mode === 'agent' &&
-        isCourseOrchestrator &&
-        agThread.length === 0 &&
-        !orchestratorPipelineProgress &&
-        !orchestratorRemoteTask ? (
-          <p className="mx-auto max-w-md px-2 text-center text-sm leading-relaxed text-muted-foreground">
-            {orchestratorViewMode === 'group'
-              ? '这里是课程内协作群聊，会显示课程总控与被调度笔记本的协作过程。'
-              : '在此直接向课程总控提问：课程安排、概念解释、与笔记本无关的答疑等。创建笔记本请使用课程内创建界面。'}
-          </p>
-        ) : null}
+          {mode === 'agent' &&
+          isCourseOrchestrator &&
+          agThread.length === 0 &&
+          !orchestratorPipelineProgress &&
+          !orchestratorRemoteTask ? (
+            <p className="mx-auto max-w-md px-2 text-center text-sm leading-relaxed text-muted-foreground">
+              {orchestratorViewMode === 'group'
+                ? '这里是课程内协作群聊，会显示课程总控与被调度笔记本的协作过程。'
+                : '在此直接向课程总控提问：课程安排、概念解释、与笔记本无关的答疑等。创建笔记本请使用课程内创建界面。'}
+            </p>
+          ) : null}
 
-        {mode === 'notebook' ? (
-          <NotebookMessageThread
-            messages={nbThread}
-            userAvatar={userAvatar}
-            nickname={nickname}
-            stageMeta={stageMeta}
-            notebookScenes={notebookScenes}
-            notebookScenesLoading={notebookScenesLoading}
-            copyMessageText={copyMessageText}
-            deleteNotebookMessageAt={deleteNotebookMessageAt}
-            lessonGeneratingAt={lessonGeneratingAt}
-            generateInlineLessonDeck={generateInlineLessonDeck}
-            lessonSavingAt={lessonSavingAt}
-            saveInlineLessonDeckToNotebook={saveInlineLessonDeckToNotebook}
-          />
-        ) : null}
+          {mode === 'notebook' && nbThreadHydrated && nbThread.length === 0 && stageMeta ? (
+            <div className="mx-auto mt-[12vh] w-full max-w-2xl px-2">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#007AFF]/10 text-[#007AFF] dark:bg-[#0A84FF]/15 dark:text-[#64B5FF]">
+                  <BookOpenText className="size-[18px]" strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    从《{stageMeta.name}》开始
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {notebookEmptyPrompts.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setDraft(prompt)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#007AFF]/20 bg-[#007AFF]/5 px-3 text-xs font-medium text-[#0B5CAD] transition-colors hover:bg-[#007AFF]/10 hover:text-[#004A99] dark:border-[#0A84FF]/25 dark:bg-[#0A84FF]/10 dark:text-[#9DCCFF] dark:hover:bg-[#0A84FF]/15"
+                      >
+                        <Sparkles className="size-3.5" strokeWidth={1.7} />
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
-        {mode === 'agent' ? (
-          <AgentMessageThread
-            messages={agThread}
-            userAvatar={userAvatar}
-            nickname={nickname}
-            selectedAgent={selectedAgent}
-            copyMessageText={copyMessageText}
-            deleteAgentMessageById={deleteAgentMessageById}
-          />
-        ) : null}
+          {mode === 'notebook' ? (
+            <NotebookMessageThread
+              messages={nbThread}
+              notebookScenes={notebookScenes}
+              notebookScenesLoading={notebookScenesLoading}
+              copyMessageText={copyMessageText}
+              deleteNotebookMessageAt={deleteNotebookMessageAt}
+              lessonGeneratingAt={lessonGeneratingAt}
+              generateInlineLessonDeck={generateInlineLessonDeck}
+              lessonSavingAt={lessonSavingAt}
+              saveInlineLessonDeckToNotebook={saveInlineLessonDeckToNotebook}
+            />
+          ) : null}
 
-        {mode === 'agent' && isCourseOrchestrator && orchestratorPipelineProgress ? (
-          <OrchestratorNotebookProgressPanel progress={orchestratorPipelineProgress} />
-        ) : mode === 'agent' && isCourseOrchestrator && orchestratorRemoteTask ? (
-          <OrchestratorRemoteTaskBanner
-            detail={orchestratorRemoteTask.detail}
-            onCancel={handleCancelOrchestratorTask}
-            cancelPending={orchestratorTaskCancelling}
-          />
-        ) : sending ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" />
-            {mode === 'notebook'
-              ? notebookPendingAction === 'import'
-                ? '正在导入题库…'
-                : '正在询问笔记本…'
-              : '正在回复…'}
-          </div>
-        ) : null}
+          {mode === 'agent' ? (
+            <AgentMessageThread
+              messages={agThread}
+              selectedAgent={selectedAgent}
+              groupMeta={
+                isCourseOrchestrator && orchestratorViewMode === 'group' ? currentGroupMeta : null
+              }
+              copyMessageText={copyMessageText}
+              deleteAgentMessageById={deleteAgentMessageById}
+            />
+          ) : null}
+
+          {mode === 'agent' && isCourseOrchestrator && orchestratorPipelineProgress ? (
+            <OrchestratorNotebookProgressPanel progress={orchestratorPipelineProgress} />
+          ) : mode === 'agent' && isCourseOrchestrator && orchestratorRemoteTask ? (
+            <OrchestratorRemoteTaskBanner
+              detail={orchestratorRemoteTask.detail}
+              onCancel={handleCancelOrchestratorTask}
+              cancelPending={orchestratorTaskCancelling}
+            />
+          ) : shouldShowSendingStatus ? (
+            <div className="mx-auto flex w-full max-w-5xl items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              {mode === 'notebook'
+                ? notebookPendingAction === 'import'
+                  ? '正在导入题库…'
+                  : '正在询问笔记本…'
+                : isCourseOrchestrator
+                  ? '正在查找合适的笔记本…'
+                  : '正在回复…'}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <PdfPageSelectionDialog
@@ -958,7 +1226,6 @@ export function ChatPageClient() {
         removePendingAttachment={removePendingAttachment}
         draft={draft}
         setDraft={setDraft}
-        selectedAgent={selectedAgent}
         sending={sending}
         handleSendNotebook={handleSendNotebook}
         handleSendAgent={() => handleSendAgent()}
@@ -967,6 +1234,11 @@ export function ChatPageClient() {
         onPickAttachments={onPickAttachments}
         handleImportNotebookProblemBank={() => handleImportNotebookProblemBank()}
         openSettings={openSettings}
+        readOnlyReason={
+          mode === 'agent' && isCourseOrchestrator && orchestratorViewMode === 'group'
+            ? '群聊由课程总控调度，请回到课程总控发送问题'
+            : null
+        }
       />
 
       <OrchestratorChildTaskDialog

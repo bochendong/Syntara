@@ -8,7 +8,32 @@ export const NOTEBOOK_CHAT_PREVIEW_EVENT = 'synatra-notebook-chat-updated';
 
 function tokenizeForMatch(input: string): string[] {
   const lowered = input.toLowerCase();
-  const zhTokens = lowered.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  const zhChunks = lowered.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  const zhStopTokens = new Set([
+    '一下',
+    '一个',
+    '这个',
+    '那个',
+    '我们',
+    '你们',
+    '他们',
+    '为什么',
+    '怎么',
+    '如何',
+    '说明',
+    '解释',
+    '必要',
+  ]);
+  const zhTokens = zhChunks.flatMap((chunk) => {
+    const tokens: string[] = [chunk];
+    for (const size of [2, 3, 4]) {
+      for (let index = 0; index <= chunk.length - size; index++) {
+        const token = chunk.slice(index, index + size);
+        if (!zhStopTokens.has(token)) tokens.push(token);
+      }
+    }
+    return tokens;
+  });
   const latinTokens = lowered.match(/[a-z0-9][a-z0-9-]{1,}/g) || [];
   return Array.from(new Set([...zhTokens, ...latinTokens]));
 }
@@ -237,6 +262,10 @@ export function decideNotebookRoute(
 
   const broadIntent = /(综合|比较|对比|串联|跨|多个|协作|整体|全局|一起)/i.test(text);
   const positive = ranked.filter((item) => item.score > 0);
+
+  if (positive.length === 0 && !broadIntent) {
+    return { type: 'direct' };
+  }
 
   if (
     (broadIntent && ranked.length > 1) ||

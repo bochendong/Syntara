@@ -18,6 +18,27 @@ export interface ChatMessageMetadata {
   senderName?: string;
   senderAvatar?: string;
   originalRole?: 'teacher' | 'agent' | 'user';
+  senderKind?: 'orchestrator' | 'notebook' | 'agent' | 'system';
+  groupEvent?: 'created' | 'members_added' | 'handoff' | 'summary';
+  groupEventSummary?: string;
+  groupEventDetail?: string;
+  mentionedParticipantIds?: string[];
+  mentionedParticipantDetails?: Array<{
+    id: string;
+    kind?: 'orchestrator' | 'notebook' | 'agent';
+    name: string;
+    avatarUrl?: string | null;
+  }>;
+  dispatchVerb?: string;
+  dispatchNote?: string;
+  dispatchPrompt?: string;
+  sourceReferences?: Array<{
+    notebookId?: string;
+    notebookName?: string;
+    order: number;
+    title: string;
+    why?: string;
+  }>;
   actions?: MessageAction[];
   /** 用户消息附带的文件（仅展示，不参与模型协议字段） */
   attachments?: Array<{
@@ -31,7 +52,45 @@ export interface ChatMessageMetadata {
   agentId?: string;
   agentColor?: string;
   createdAt?: number;
+  /** true while the assistant response is still receiving stream deltas */
+  streaming?: boolean;
+  statusText?: string;
   interrupted?: boolean;
+}
+
+export interface CourseChatParticipant {
+  id: string;
+  kind: 'orchestrator' | 'notebook' | 'agent';
+  name: string;
+  avatarUrl?: string | null;
+  joinedAt: number;
+}
+
+export interface CourseChatGroupMeta {
+  version: 1;
+  groupId: string;
+  name: string;
+  participants: CourseChatParticipant[];
+  createdReason?: string;
+  workingMemory?: CourseChatWorkingMemory;
+  lastRoutingReason?: string;
+  memberSummary?: string;
+  lastMessagePreview?: string;
+  lastActiveAt: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CourseChatWorkingMemory {
+  lastUserQuestion?: string;
+  dispatchSummary?: string;
+  recentSources?: Array<{
+    notebookId?: string;
+    notebookName?: string;
+    order: number;
+    title: string;
+  }>;
+  updatedAt: number;
 }
 
 /**
@@ -253,6 +312,19 @@ export interface CourseChatContextNotebook {
   tags?: string[];
   updatedAt?: number;
   pages: CourseChatContextPage[];
+  privateMemories?: Array<{
+    id: string;
+    title: string;
+    text: string;
+    reason?: string;
+    question?: string;
+    sourceScore: number;
+    sourceReferences?: Array<{
+      order: number;
+      title: string;
+      why?: string;
+    }>;
+  }>;
   sourceScore: number;
 }
 

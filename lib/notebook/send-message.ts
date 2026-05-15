@@ -16,6 +16,7 @@ import type {
   SendNotebookMessageResponse,
   SendNotebookMessageRequest,
   NotebookSceneBrief,
+  SendNotebookMessageStreamEvent,
 } from '@/lib/types/notebook-message';
 import type { Scene, SlideContent } from '@/lib/types/stage';
 
@@ -302,6 +303,85 @@ export async function planNotebookMessage(
   };
 }
 
+export async function planNotebookMessageStream(
+  stageId: string,
+  message: string,
+  options: SendMessageOptions = {},
+  callbacks: {
+    onAnswerDelta?: (delta: string) => void;
+    onStatus?: (message: string) => void;
+  } = {},
+): Promise<NotebookPlanResult> {
+  const payload = await loadNotebookRequestPayload(stageId, message, options);
+  const mc = getCurrentModelConfig();
+
+  const resp = await backendFetch('/api/notebooks/send-message?stream=1', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      'x-model': mc.modelString,
+      'x-api-key': mc.apiKey,
+      'x-base-url': mc.baseUrl,
+      'x-provider-type': mc.providerType || '',
+      'x-requires-api-key': mc.requiresApiKey ? 'true' : 'false',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({ error: '请求失败' }));
+    throw new Error(data.error || `请求失败: ${resp.status}`);
+  }
+
+  const reader = resp.body?.getReader();
+  if (!reader) throw new Error('无法读取响应流');
+
+  const decoder = new TextDecoder();
+  let sseBuffer = '';
+  let finalData: SendNotebookMessageResponse | null = null;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      sseBuffer += decoder.decode(value, { stream: true });
+      const events = sseBuffer.split('\n\n');
+      sseBuffer = events.pop() || '';
+
+      for (const eventStr of events) {
+        const line = eventStr.trim();
+        if (!line.startsWith('data: ')) continue;
+
+        const event = JSON.parse(line.slice(6)) as SendNotebookMessageStreamEvent;
+        if (event.type === 'answer_delta') {
+          callbacks.onAnswerDelta?.(event.data.content);
+        } else if (event.type === 'status') {
+          callbacks.onStatus?.(event.data.message);
+        } else if (event.type === 'final') {
+          finalData = event.data;
+        } else if (event.type === 'error') {
+          throw new Error(event.data.message);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (!finalData) throw new Error('响应流未返回最终结果');
+
+  return {
+    answer: finalData.answer,
+    answerDocument: finalData.answerDocument,
+    references: finalData.references || [],
+    knowledgeGap: finalData.knowledgeGap,
+    operations: finalData.operations || { insert: [], update: [], delete: [] },
+    webSearchUsed: finalData.webSearchUsed,
+    prerequisiteHints: finalData.prerequisiteHints,
+  };
+}
+
 export async function applyNotebookPlan(
   stageId: string,
   plan: Pick<NotebookPlanResult, 'operations'>,
@@ -393,12 +473,7 @@ export async function applyNotebookPlan(
       content:
         ins.type === 'quiz'
           ? buildQuizFromInsert(ins.title, ins.keyPoints)
-          : buildSlideFromInsert(
-              ins.title,
-              ins.description,
-              ins.keyPoints,
-              ins.contentDocument,
-            ),
+          : buildSlideFromInsert(ins.title, ins.description, ins.keyPoints, ins.contentDocument),
       actions: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),

@@ -10,7 +10,7 @@ export const chatZhCN = {
     askThreadEmpty: '还没有提问。在下方输入问题并发送，AI 会结合当前课程内容回答。',
     sidebarAskAiLabel: 'AI',
     notebookWritesDisabledHint:
-      '检测到这次问题适合补充 slides；如需自动生成，请在「设置 → 系统设置」中开启「允许根据回答写入笔记本」。',
+      '检测到这次问题适合写入私有记忆；如需后台记录，请在「设置 → 系统设置」中开启「允许后台更新私有记忆」。',
     ended: '已结束',
     unknown: '未知',
     stopDiscussion: '结束讨论',
@@ -89,7 +89,7 @@ export const chatEnUS = {
       'No messages yet. Type a question below—the AI answers using the current lesson context.',
     sidebarAskAiLabel: 'AI',
     notebookWritesDisabledHint:
-      'This answer could benefit from slides. To auto-generate them, enable “Allow answer-based notebook writes” under Settings → System.',
+      'This answer could be saved to private memory. To allow background saves, enable “Allow background private memory” under Settings → System.',
     ended: 'ended',
     unknown: 'Unknown',
     stopDiscussion: 'Stop Discussion',

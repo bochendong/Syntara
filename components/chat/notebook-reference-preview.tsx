@@ -23,10 +23,12 @@ export function NotebookReferencePreviewLi({
   reference,
   scenes,
   scenesLoading,
+  variant = 'list',
 }: {
   reference: NotebookKnowledgeReference;
   scenes: Scene[];
   scenesLoading: boolean;
+  variant?: 'list' | 'chip';
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const scene = useMemo(
@@ -35,11 +37,16 @@ export function NotebookReferencePreviewLi({
   );
 
   return (
-    <li>
+    <li className={cn(variant === 'chip' && 'max-w-full list-none')}>
       <HoverCard openDelay={280} closeDelay={80}>
         <HoverCardTrigger asChild>
           <span
-            className="cursor-help border-b border-dotted border-muted-foreground/45 transition-colors hover:border-foreground/35 hover:text-foreground"
+            className={cn(
+              'cursor-help transition-colors hover:text-foreground',
+              variant === 'chip'
+                ? 'inline-flex max-w-full items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] leading-none text-muted-foreground hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10'
+                : 'border-b border-dotted border-muted-foreground/45 hover:border-foreground/35',
+            )}
             tabIndex={0}
             onClick={() => setPreviewOpen(true)}
             onKeyDown={(e) => {
@@ -49,10 +56,10 @@ export function NotebookReferencePreviewLi({
               }
             }}
           >
-            <span className="font-medium text-foreground">
+            <span className={cn('font-medium text-foreground', variant === 'chip' && 'truncate')}>
               第 {reference.order} 节 · {reference.title}
             </span>
-            {reference.why ? <span> — {reference.why}</span> : null}
+            {reference.why && variant !== 'chip' ? <span> — {reference.why}</span> : null}
           </span>
         </HoverCardTrigger>
         <HoverCardContent

@@ -2,21 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   Bell,
   Bug,
   ChevronLeft,
   ChevronRight,
-  Cpu,
   LifeBuoy,
   LogOut,
   Moon,
   Search,
   Settings,
-  ShoppingBag,
   Sun,
-  Wallet,
 } from 'lucide-react';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useAuthStore } from '@/lib/store/auth';
@@ -27,27 +24,29 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { cn } from '@/lib/utils';
 import { backendJson } from '@/lib/utils/backend-api';
-import {
-  formatCashCreditsLabel,
-  formatComputeCreditsLabel,
-  formatPurchaseCreditsLabel,
-} from '@/lib/utils/credits';
-import {
-  type CreditsBalances,
-  subscribeCreditsBalancesChanged,
-} from '@/lib/utils/credits-balance-events';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
-import { ChatContactsRail } from '@/components/chat-contacts-rail';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
-import { ProfileAvatarPicker } from '@/components/user-profile/profile-avatar-picker';
 import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { NotificationBarStageBackground } from '@/components/notifications/notification-bar-stage-background';
 import { isSolidColorBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
+
+const ChatContactsRail = lazy(() =>
+  import('@/components/chat-contacts-rail').then((mod) => ({ default: mod.ChatContactsRail })),
+);
+const ProfileAvatarPicker = lazy(() =>
+  import('@/components/user-profile/profile-avatar-picker').then((mod) => ({
+    default: mod.ProfileAvatarPicker,
+  })),
+);
+const NotificationBarStageBackground = lazy(() =>
+  import('@/components/notifications/notification-bar-stage-background').then((mod) => ({
+    default: mod.NotificationBarStageBackground,
+  })),
+);
 
 function leftRailScrollClass(lightSurface: boolean) {
   return cn(
@@ -160,18 +159,21 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     };
   })();
   const railSurfaceClass = cn(
-    'flex h-full flex-col overflow-hidden rounded-[20px] border',
-    isLeftRailSolidColor
+    'flex h-full flex-col overflow-hidden rounded-[20px]',
+    showLeftRailStage
       ? cn(
-          'bg-transparent',
-          onLightRail
-            ? 'shadow-[0_12px_40px_rgba(15,23,42,0.1)]'
-            : 'shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+          'border',
+          isLeftRailSolidColor
+            ? cn(
+                'bg-transparent',
+                onLightRail
+                  ? 'shadow-[0_12px_40px_rgba(15,23,42,0.1)]'
+                  : 'shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+              )
+            : 'bg-[linear-gradient(180deg,rgba(16,16,20,0.78),rgba(5,5,5,0.78))] shadow-[0_20px_50px_rgba(0,0,0,0.35)]',
+          railDividers.edge,
         )
-      : onDefaultWhite
-        ? 'bg-[linear-gradient(180deg,rgba(239,244,252,0.86),rgba(248,250,252,0.76))] shadow-xl backdrop-blur-xl'
-        : 'bg-[linear-gradient(180deg,rgba(16,16,20,0.98),rgba(5,5,5,0.98))] shadow-[0_20px_50px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
-    railDividers.edge,
+      : 'apple-glass-heavy',
     'transition-[width,box-shadow,background,border-color] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
   );
   const railIconPadBtn = onLightRail
@@ -180,41 +182,26 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
-  const [balances, setBalances] = useState<{
-    cash: number;
-    compute: number;
-    purchase: number;
-  } | null>(null);
   const [userAffinityLevel, setUserAffinityLevel] = useState<number | null>(null);
 
   const loadRailAccountState = useCallback(
     async (shouldApply: () => boolean = () => true) => {
       if (!isLoggedIn) {
-        setBalances(null);
         setUserAffinityLevel(null);
         return;
       }
 
-      const [creditsResult, gamificationResult] = await Promise.allSettled([
-        backendJson<{
-          success: true;
-          balances: CreditsBalances;
-        }>('/api/profile/credits'),
-        backendJson<{
-          success: true;
-          profile: {
-            affinityLevel: number;
-          };
-        }>('/api/gamification/summary'),
-      ]);
+      const gamificationResult = await backendJson<{
+        success: true;
+        profile: {
+          affinityLevel: number;
+        };
+      }>('/api/gamification/summary').then(
+        (value) => ({ status: 'fulfilled' as const, value }),
+        () => ({ status: 'rejected' as const }),
+      );
 
       if (!shouldApply()) return;
-
-      if (creditsResult.status === 'fulfilled') {
-        setBalances(creditsResult.value.balances);
-      } else {
-        setBalances(null);
-      }
 
       if (gamificationResult.status === 'fulfilled') {
         setUserAffinityLevel(gamificationResult.value.profile.affinityLevel);
@@ -244,16 +231,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     };
   }, [loadRailAccountState]);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    return subscribeCreditsBalancesChanged((nextBalances) => {
-      if (nextBalances) {
-        setBalances(nextBalances);
-      }
-      void loadRailAccountState();
-    });
-  }, [isLoggedIn, loadRailAccountState]);
-
   const expandIfCollapsed = () => {
     if (collapsed) onCollapsedChange(false);
   };
@@ -268,30 +245,22 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
         aria-label="主导航"
       >
         <div className={cn('pointer-events-auto relative h-full', railSurfaceClass)}>
-          {notebookSidebar && leftRailBarStageId === 'default' ? (
-            <div
-              className={cn(
-                'pointer-events-none absolute inset-x-0 top-0 z-0 h-24',
-                onDefaultWhite
-                  ? 'bg-[radial-gradient(ellipse_120%_100%_at_50%_0%,rgba(99,102,241,0.1),rgba(6,182,212,0.05)_40%,transparent_70%)]'
-                  : 'bg-[radial-gradient(ellipse_120%_100%_at_50%_0%,rgba(99,102,241,0.22),rgba(6,182,212,0.1)_40%,transparent_72%)]',
-              )}
-            />
-          ) : null}
           {showLeftRailStage ? (
             <div
               className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[20px]"
               aria-hidden
             >
-              <NotificationBarStageBackground
-                id={leftRailBarStageId}
-                className={cn(
-                  '!min-h-full',
-                  isLeftRailSolidColor
-                    ? 'opacity-100'
-                    : 'opacity-[0.62] [mask-image:linear-gradient(180deg,black_0%,black_88%,transparent_100%)]',
-                )}
-              />
+              <Suspense fallback={null}>
+                <NotificationBarStageBackground
+                  id={leftRailBarStageId}
+                  className={cn(
+                    '!min-h-full',
+                    isLeftRailSolidColor
+                      ? 'opacity-100'
+                      : 'opacity-[0.62] [mask-image:linear-gradient(180deg,black_0%,black_88%,transparent_100%)]',
+                  )}
+                />
+              </Suspense>
             </div>
           ) : null}
           <div
@@ -303,7 +272,11 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
             <div
               className={cn(
                 'relative flex shrink-0 flex-col',
-                collapsed ? 'items-center px-2 py-3' : 'items-stretch px-3 pb-0 pt-3',
+                collapsed
+                  ? 'items-center px-2 py-3'
+                  : isChatPage
+                    ? 'items-stretch px-3 pb-0 pt-0'
+                    : 'items-stretch px-3 pb-0 pt-3',
               )}
             >
               {collapsed ? (
@@ -320,7 +293,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 </button>
               ) : null}
 
-              {!collapsed && (
+              {!collapsed && !isChatPage && (
                 <div
                   className={cn(
                     'relative w-full rounded-[18px] border p-3 shadow-sm backdrop-blur-md',
@@ -450,80 +423,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                       ) : null}
                     </div>
                   </div>
-
-                  {balances != null ? (
-                    <div
-                      className={cn(
-                        'mt-3 grid min-w-0 grid-cols-3 gap-1.5',
-                        onLightRail ? 'text-slate-900' : 'text-zinc-50',
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                          onLightRail
-                            ? 'border-border/60 bg-background/55'
-                            : 'border-white/10 bg-black/12',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'flex size-5 shrink-0 items-center justify-center rounded-full',
-                            onLightRail
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-amber-400/12 text-amber-100',
-                          )}
-                        >
-                          <Wallet className="size-3" strokeWidth={1.75} />
-                        </span>
-                        <span className="truncate text-sm font-semibold leading-none">
-                          {balances.cash}
-                        </span>
-                      </div>
-                      <div
-                        className={cn(
-                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                          onLightRail
-                            ? 'border-border/60 bg-background/55'
-                            : 'border-white/10 bg-black/12',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'flex size-5 shrink-0 items-center justify-center rounded-full',
-                            onLightRail ? 'bg-sky-100 text-sky-700' : 'bg-sky-400/12 text-sky-100',
-                          )}
-                        >
-                          <Cpu className="size-3" strokeWidth={1.75} />
-                        </span>
-                        <span className="truncate text-sm font-semibold leading-none">
-                          {balances.compute}
-                        </span>
-                      </div>
-                      <div
-                        className={cn(
-                          'inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border px-2 py-1.5',
-                          onLightRail
-                            ? 'border-border/60 bg-background/55'
-                            : 'border-white/10 bg-black/12',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'flex size-5 shrink-0 items-center justify-center rounded-full',
-                            onLightRail
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-emerald-400/12 text-emerald-100',
-                          )}
-                        >
-                          <ShoppingBag className="size-3" strokeWidth={1.75} />
-                        </span>
-                        <span className="truncate text-sm font-semibold leading-none">
-                          {balances.purchase}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               )}
 
@@ -598,32 +497,40 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         : '通知'}
                     </TooltipContent>
                   </Tooltip>
-                  {balances != null ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className={cn(
-                            'inline-flex size-8 items-center justify-center rounded-full border transition-colors',
-                            onLightRail
-                              ? 'border-slate-200/90 bg-white/50 text-slate-600 hover:bg-white/80'
-                              : 'border-white/12 bg-white/8 text-zinc-300 hover:bg-white/12',
-                          )}
-                        >
-                          <Wallet className="size-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        {`${formatCashCreditsLabel(balances.cash)} · ${formatComputeCreditsLabel(
-                          balances.compute,
-                        )} · ${formatPurchaseCreditsLabel(balances.purchase)}`}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : null}
                 </div>
               )}
+              {!collapsed && isChatPage ? (
+                <div className="flex h-14 items-center px-2">
+                  <div className="relative w-full">
+                    <Search
+                      className={cn(
+                        'pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2',
+                        onLightRail ? 'text-slate-400' : 'text-zinc-500',
+                      )}
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <Input
+                      type="search"
+                      value={contactSearchQuery}
+                      onChange={(e) => setContactSearchQuery(e.target.value)}
+                      placeholder="搜索联系人…"
+                      aria-label="搜索联系人"
+                      className={cn(
+                        'h-9 rounded-full pl-8 text-sm',
+                        onLightRail
+                          ? 'border border-slate-200/80 bg-white/72 text-slate-900 placeholder:text-slate-400'
+                          : 'border border-white/12 bg-white/5 text-zinc-100 placeholder:text-zinc-500',
+                      )}
+                    />
+                  </div>
+                </div>
+              ) : null}
               <div
-                className={cn('w-full shrink-0', collapsed ? 'px-2 pt-2' : 'px-4 pt-3')}
+                className={cn(
+                  'w-full shrink-0',
+                  collapsed ? 'px-2 pt-2' : isChatPage ? 'px-4 pt-0' : 'px-4 pt-3',
+                )}
                 role="presentation"
                 aria-hidden
               >
@@ -639,33 +546,6 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                 )}
                 aria-label="聊天联系人"
               >
-                {!collapsed ? (
-                  <div className="px-2 pb-1 pt-3">
-                    <div className="relative">
-                      <Search
-                        className={cn(
-                          'pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2',
-                          onLightRail ? 'text-slate-400' : 'text-zinc-500',
-                        )}
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                      <Input
-                        type="search"
-                        value={contactSearchQuery}
-                        onChange={(e) => setContactSearchQuery(e.target.value)}
-                        placeholder="搜索联系人…"
-                        aria-label="搜索联系人"
-                        className={cn(
-                          'h-9 rounded-full pl-8 text-sm',
-                          onLightRail
-                            ? 'border border-slate-200/80 bg-white/72 text-slate-900 placeholder:text-slate-400'
-                            : 'border border-white/12 bg-white/5 text-zinc-100 placeholder:text-zinc-500',
-                        )}
-                      />
-                    </div>
-                  </div>
-                ) : null}
                 <div className={cn(leftRailScrollClass(onLightRail), 'min-h-0 flex-1 px-0')}>
                   <Suspense
                     fallback={
@@ -955,7 +835,15 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
           <DialogHeader>
             <DialogTitle>选择头像</DialogTitle>
           </DialogHeader>
-          <ProfileAvatarPicker size="lg" />
+          {avatarPickerOpen ? (
+            <Suspense
+              fallback={
+                <div className="py-8 text-center text-sm text-muted-foreground">加载头像…</div>
+              }
+            >
+              <ProfileAvatarPicker size="lg" />
+            </Suspense>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>

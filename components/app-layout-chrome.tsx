@@ -2,15 +2,24 @@
 
 import type { ReactNode } from 'react';
 import { Suspense, useState, useLayoutEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { AppLeftRail } from '@/components/app-left-rail';
-import { ChatRightRail } from '@/components/chat-right-rail';
+import { cn } from '@/lib/utils';
 import {
   CHAT_RIGHT_RAIL_COLLAPSED_STORAGE_KEY,
   LEFT_RAIL_COLLAPSED_STORAGE_KEY,
 } from '@/lib/constants/app-rail-storage';
 
-/** 侧栏 inset left-4 / right-4 各 16px；左侧 Dashboard 导航略宽，右侧聊天栏保持 270px。 */
+const AppLeftRail = dynamic(
+  () => import('@/components/app-left-rail').then((mod) => mod.AppLeftRail),
+  { ssr: false },
+);
+const ChatRightRail = dynamic(
+  () => import('@/components/chat-right-rail').then((mod) => mod.ChatRightRail),
+  { ssr: false },
+);
+
+/** 侧栏 inset left-4 / right-4 各 16px；左侧 Dashboard 导航略宽，右侧聊天栏保持紧凑。 */
 const SIDEBAR_GAP = 12;
 const LEFT_RAIL_EXPANDED_WIDTH = 288;
 const RIGHT_RAIL_EXPANDED_WIDTH = 270;
@@ -134,6 +143,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
         leftCollapsed={sidebarCollapsed}
         rightCollapsed={chatRightCollapsed}
         hasRightRail={hasRightRail}
+        lockContentScroll={isChatPage}
       >
         {children}
       </SidebarInset>
@@ -154,11 +164,13 @@ function SidebarInset({
   leftCollapsed,
   rightCollapsed,
   hasRightRail,
+  lockContentScroll = false,
   children,
 }: {
   leftCollapsed: boolean;
   rightCollapsed: boolean;
   hasRightRail: boolean;
+  lockContentScroll?: boolean;
   children: ReactNode;
 }) {
   const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH));
@@ -180,11 +192,19 @@ function SidebarInset({
 
   return (
     <div
-      className="box-border min-h-dvh pt-4 pb-0 transition-[padding-left,padding-right] duration-300 ease-in-out"
+      className={cn(
+        'box-border pt-4 pb-0 transition-[padding-left,padding-right] duration-300 ease-in-out',
+        lockContentScroll ? 'h-dvh overflow-hidden' : 'min-h-dvh',
+      )}
       style={{ paddingLeft: padLeft, paddingRight: padRight }}
     >
       {/* 与侧栏一致：top-4 + h-[calc(100dvh-1rem)] + rounded-[20px] */}
-      <div className="h-[calc(100dvh-1rem)] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-[20px]">
+      <div
+        className={cn(
+          'h-[calc(100dvh-1rem)] w-full min-w-0 overflow-x-hidden rounded-[20px]',
+          lockContentScroll ? 'overflow-y-hidden' : 'overflow-y-auto',
+        )}
+      >
         {children}
       </div>
     </div>

@@ -17,6 +17,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react';
+import { HtmlTestProgressionPanel } from '@/components/generation/html-test-progression-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,9 +38,50 @@ const STORAGE_KEY = 'syntara:generation-quality-html:v3';
 const HTML_SINGLE_PAGE_MODEL = 'gpt-5.4';
 const IMAGE_ASSET_TOKEN = '__SYNTARA_GENERATED_SLIDE_IMAGE_ASSET__';
 const HTML_IMAGE_SLOT_ATTR = 'data-syntara-ai-image-slot';
+const DEFAULT_SLIDE_HEIGHT = 900;
+const DEFAULT_LONG_PAGE_HEIGHT = 2200;
 
-type HtmlPageKind = 'intro' | 'summary' | 'process' | 'table' | 'math' | 'code' | 'example';
-type DensityLevel = 'light' | 'medium' | 'dense';
+type HtmlPageKind =
+  | 'cover'
+  | 'intro'
+  | 'summary'
+  | 'process'
+  | 'table'
+  | 'math'
+  | 'code'
+  | 'example';
+type HtmlCanvasMode = 'slide' | 'long';
+type HtmlCodeRoute = 'execution-trace' | 'memory-trace';
+type HtmlCsRoute =
+  | 'standard'
+  | 'execution-trace'
+  | 'memory-diagram'
+  | 'call-stack'
+  | 'pointer-diagram'
+  | 'tree-diagram'
+  | 'graph-trace'
+  | 'linear-structure'
+  | 'dictionary-diagram'
+  | 'invariant-check'
+  | 'composite-operation';
+type HtmlMathRoute =
+  | 'standard'
+  | 'definition-theorem'
+  | 'formula-focus'
+  | 'derivation'
+  | 'proof'
+  | 'worked-example'
+  | 'concept-map'
+  | 'comparison-table';
+type HtmlCourseRoute =
+  | 'general'
+  | 'math'
+  | 'computer-science'
+  | 'science'
+  | 'business'
+  | 'humanities'
+  | 'social-science';
+type DensityLevel = 'light' | 'medium' | 'dense' | 'long';
 type QualityStatus = 'pass' | 'warn' | 'fail';
 
 type TokenUsage = {
@@ -103,6 +145,12 @@ type HtmlImageAsset = {
 type HtmlSinglePagePreset = {
   id: string;
   kind: HtmlPageKind;
+  canvasMode?: HtmlCanvasMode;
+  canvasHeight?: number;
+  codeRoute?: HtmlCodeRoute;
+  courseRoute?: HtmlCourseRoute;
+  csRoute?: HtmlCsRoute;
+  mathRoute?: HtmlMathRoute;
   label: string;
   version: number;
   description: string;
@@ -128,6 +176,12 @@ type StoredRun = {
   id: string;
   presetId: string;
   pageKind: HtmlPageKind;
+  canvasMode?: HtmlCanvasMode;
+  canvasHeight?: number;
+  codeRoute?: HtmlCodeRoute;
+  courseRoute?: HtmlCourseRoute;
+  csRoute?: HtmlCsRoute;
+  mathRoute?: HtmlMathRoute;
   label: string;
   createdAt: number;
   presetSignature?: string;
@@ -247,12 +301,64 @@ const DENSITY_PROFILES = {
     maxSmallTextRatio: 0.35,
     guidance: '适合表格、代码、公式页；允许更密，但必须靠结构承载，不能靠缩小字号硬塞。',
   },
+  long: {
+    level: 'long',
+    label: '长页面讲解',
+    textChars: { min: 480, max: 1200 },
+    textBlocks: { min: 24, max: 90 },
+    contentCoverage: { min: 0.42, max: 0.9 },
+    smallTextThresholdPx: 20,
+    maxSmallTextRatio: 0.36,
+    guidance: '适合代码题、证明题、长推导；用纵向 section 承载完整过程，但宽度仍是 1600px。',
+  },
 } satisfies Record<DensityLevel, DensityProfile>;
 
 const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
+    id: 'cover-course',
+    kind: 'cover',
+    courseRoute: 'math',
+    mathRoute: 'standard',
+    label: '封面页',
+    version: 1,
+    description: '测试 notebook / 整节课封面页：只建立主题、定位和学习期待，不提前展开正文。',
+    requiredSignal: '大标题 + 一句定位 + 2-3 个短标签 + 主视觉',
+    densityProfile: {
+      ...DENSITY_PROFILES.light,
+      label: '封面轻量',
+      textChars: { min: 60, max: 180 },
+      textBlocks: { min: 5, max: 16 },
+      contentCoverage: { min: 0.3, max: 0.72 },
+      guidance: '封面要有主题门面和视觉重心，但不能变成正文介绍页或营销长 hero。',
+    },
+    requiredAnchors: ['函数与证明习惯', '从定义到可检查推理', '数学'],
+    forbiddenAnchors: ['链式法则', '二分查找', '盈亏平衡', '题库', 'Memory Trace'],
+    prompt: `生成一张 16:9 HTML/CSS PPT 风格的「封面页」。
+
+课程路线：数学
+数学版式：standard（标准封面页，不强行塞公式或证明）
+
+主题：函数与证明习惯
+受众：刚进入离散数学 / 高等数学证明训练的学生
+目的：作为整本 notebook 的第一页，只建立主题、定位和学习期待
+内容：
+- 主标题：函数与证明习惯
+- 副标题：从定义到可检查推理
+- 课程标签：数学 · 证明入门 · 结构化思考
+- 3 个短入口词：定义、反例、证明路线
+- 一句很短的开场定位：先看清对象，再判断条件，最后写出结论
+- 系统会提供一张 AI 配图；把它作为封面主视觉的一部分，但不要铺满整页
+- 不要提前讲导数、链式法则、题目解答、完整目录或证明步骤
+- 总可见文字控制在 70-150 个中文字符之间
+- 主要可读文字字号不要低于 24px，主标题要有封面级视觉权重
+
+风格：中文课程 notebook 封面，白底或浅色底，蓝绿强调，简洁、有主题感，可编辑 HTML/CSS。`,
+  },
+  {
     id: 'intro-course',
     kind: 'intro',
+    courseRoute: 'math',
+    mathRoute: 'standard',
     label: '介绍页',
     version: 6,
     description: '测试开场介绍页：不是 landing hero，而是一张能直接放进课件的导入页。',
@@ -261,6 +367,9 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['导数', '瞬时速度', '平均速度', '切线斜率'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', 'rubric', '题库'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「介绍页」。
+
+课程路线：数学
+数学版式：standard（标准介绍页，不强行塞公式或证明）
 
 主题：用瞬时速度引出导数
 受众：刚开始学习微积分的高中或大一学生
@@ -282,6 +391,7 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
     id: 'summary-outcomes',
     kind: 'summary',
+    courseRoute: 'general',
     label: '总结页',
     version: 6,
     description: '测试总结页：几条 takeaway 和一个收束判断，不能变成长段落。',
@@ -290,6 +400,8 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['本周质量总结', '81%', '68%', '数学讲解', '代码追踪', '表格'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', '链式法则', '二分查找', '盈亏平衡'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「总结页」。
+
+课程路线：通用
 
 主题：rubric 约束生成一周后，质量有哪些提升
 受众：产品团队和学习运营团队
@@ -312,6 +424,7 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
     id: 'process-pipeline',
     kind: 'process',
+    courseRoute: 'general',
     label: '流程页',
     version: 6,
     description: '测试流程页：需要 4-5 步清晰路径，能看出方向和每步产物。',
@@ -326,6 +439,8 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['PDF', '题库', '逐题', '选择题', '保存前'],
     forbiddenAnchors: ['链式法则', '二分查找', '盈亏平衡', 'AI Tutor'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「流程页」。
+
+课程路线：通用
 
 主题：从上传 PDF 到可用题库
 受众：工程团队和教研 QA
@@ -353,6 +468,7 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
     id: 'table-eval',
     kind: 'table',
+    courseRoute: 'general',
     label: '表格页',
     version: 4,
     description: '测试表格页：必须生成真实 table，行列紧凑且可读。',
@@ -361,6 +477,8 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['页面类型', '必须结构', '主要失败', 'QA 信号', '介绍页', '代码页'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', '链式法则', '盈亏平衡'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「表格页」。
+
+课程路线：通用
 
 主题：页面类型稳定性矩阵
 受众：生成质量 QA 团队
@@ -384,6 +502,8 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
     id: 'math-chain-rule',
     kind: 'math',
+    courseRoute: 'math',
+    mathRoute: 'derivation',
     label: '数学页',
     version: 4,
     description: '测试数学页：直接生成 HTML + MathML，公式不能靠纯文本糊过去。',
@@ -392,6 +512,9 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['链式法则', '复合函数', '内层导数', 'sin'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', '题库', '盈亏平衡'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「数学页」。
+
+课程路线：数学
+数学版式：Derivation Ladder / 推导阶梯
 
 主题：链式法则：从复合函数到导数
 受众：大一微积分学生
@@ -415,6 +538,9 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
   {
     id: 'code-trace',
     kind: 'code',
+    codeRoute: 'execution-trace',
+    courseRoute: 'computer-science',
+    csRoute: 'execution-trace',
     label: '代码页',
     version: 4,
     description: '测试代码页：代码块和状态追踪要同时存在，不能只有一坨代码。',
@@ -423,6 +549,9 @@ const PAGE_PRESETS: HtmlSinglePagePreset[] = [
     requiredAnchors: ['binary_search', 'target', 'lo', 'hi', 'mid', 'return 3'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', '链式法则', '盈亏平衡'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「代码追踪页」。
+
+课程路线：计算机科学
+CS 版式：Execution Trace / 代码执行追踪
 
 主题：追踪二分查找的状态变化
 受众：CS1 入门学生
@@ -450,8 +579,146 @@ def binary_search(nums, target):
 风格：左侧代码、右侧状态追踪；等宽字体清晰可读，不要横向溢出。`,
   },
   {
+    id: 'memory-trace',
+    kind: 'code',
+    codeRoute: 'memory-trace',
+    courseRoute: 'computer-science',
+    csRoute: 'memory-diagram',
+    label: '内存追踪页',
+    version: 1,
+    description: '测试 Memory Trace：代码、调用栈、堆对象和引用关系必须同时出现。',
+    requiredSignal: 'Memory Trace + 调用栈 + 堆对象 + 引用关系',
+    densityProfile: DENSITY_PROFILES.dense,
+    requiredAnchors: ['内存追踪', '调用栈', '堆', 'a', 'b', 'append', '同一个列表'],
+    forbiddenAnchors: ['链式法则', '盈亏平衡', 'AI Tutor', 'Evaluation Lab'],
+    prompt: `生成一张 16:9 HTML/CSS PPT 风格的「内存追踪页」。
+
+课程路线：计算机科学
+CS 版式：Memory Diagram / Stack + Heap + References
+
+主题：变量名如何指向同一个列表对象
+受众：CS1 / Python 入门学生
+内容：
+- 标题：内存追踪：a 和 b 指向同一个列表
+- 页面只能包含：标题区、一个 compact 代码块、一个 Memory Trace 主区、一句检查结论
+- 代码块必须展示：
+a = [1, 2]
+b = a
+b.append(3)
+- Memory Trace 主区必须包含：
+  - 当前动作：执行 b.append(3)
+  - 调用栈：变量 a -> list#1，变量 b -> list#1
+  - 堆：对象 list#1，元素为 [1, 2, 3]
+  - 引用关系：a 和 b 都指向同一个列表对象
+- 用 3 个 step tab 表示状态：创建列表、绑定 b、执行 append；但只展开 append 后的最终关键状态
+- 检查结论：修改 b 会影响 a，因为两个名字引用同一个列表
+- 不要生成普通 bullet 总结页，不要只放代码，不要把 memory trace 做成纯表格
+- 用 DOM 和 CSS 画 stack/heap/object/reference，不要 SVG、canvas 或图片
+- 总可见文字控制在 170-300 个中文字符之间，代码字号 20-22px，正文不低于 22px
+
+风格：复用课堂 Memory Trace 视觉语法，白底蓝紫点缀，stack 和 heap 分区清楚，可编辑 HTML/CSS。`,
+  },
+  {
+    id: 'long-code-question',
+    kind: 'code',
+    canvasMode: 'long',
+    canvasHeight: 2200,
+    codeRoute: 'execution-trace',
+    courseRoute: 'computer-science',
+    csRoute: 'execution-trace',
+    label: '长代码题页',
+    version: 1,
+    description: '测试长页面代码讲解：题目、代码、trace、错误点和最终答案都能完整展示。',
+    requiredSignal: '1600 同宽长页 + 代码题完整讲解',
+    densityProfile: DENSITY_PROFILES.long,
+    requiredAnchors: ['压缩连续重复字符', 'compress_runs', '指针', 'count', '返回值'],
+    forbiddenAnchors: ['链式法则', '盈亏平衡', 'AI Tutor', 'Evaluation Lab'],
+    prompt: `生成一张 HTML/CSS 长页面教学版式，不是 16:9 单屏 PPT。
+
+课程路线：计算机科学
+CS 版式：Execution Trace / 代码执行追踪
+
+画布要求：
+- 宽度固定 1600px，目标高度约 2200px
+- 仍然使用 exactly one .slide 和 one .slide-content
+- 允许纵向长页面阅读，但不能横向滚动
+- 不要用内部滚动框隐藏代码或解释；所有内容都应该在长页面中自然展开
+
+主题：一道字符串压缩代码题的完整讲解
+受众：CS1 / Python 入门学生
+内容必须分成 6 个纵向 section：
+1. 题目区：给定字符串，连续相同字符压缩成「字符 + 次数」，例如 aaabbc → a3b2c1
+2. 函数目标：实现 compress_runs(text)，返回压缩后的字符串；空字符串返回空字符串
+3. 关键代码：展示完整 Python 代码，最多 22 行，必须包含 i 指针、count 计数、parts 列表和 while 循环
+4. 状态追踪：用表格追踪输入 "aaabbc" 的 5-7 个关键状态，列包含 i、当前字符、count、输出片段
+5. 常见错误：列出 3 个错误点：忘记处理最后一段、count 重置位置错、空字符串边界
+6. 最终答案 / 检查：返回值 "a3b2c1"，并解释为什么最后一段 c1 会被加入
+
+版式要求：
+- 顶部是标题 + 一句定位，不要做巨大 hero
+- 每个 section 都要有清楚标题和编号
+- 代码块可编辑，使用 <pre><code>，不要横向溢出
+- 表格必须是真实 HTML table
+- 正文字号建议 22-28px，代码字号 20-22px
+- 页面整体像一张可导入 PPT 的长讲解页，不是博客文章
+- 不要生成图片，不要 SVG，不要 canvas，不要外部资源
+
+风格：白底、蓝绿强调、课堂讲义式长页面，结构清楚，适合代码题详细讲解。`,
+  },
+  {
+    id: 'long-math-proof',
+    kind: 'math',
+    canvasMode: 'long',
+    canvasHeight: 2400,
+    courseRoute: 'math',
+    mathRoute: 'proof',
+    label: '长证明页',
+    version: 1,
+    description: '测试长页面数学证明：定义、目标、证明步骤、检查点和总结都完整展示。',
+    requiredSignal: '1600 同宽长页 + MathML 证明步骤',
+    densityProfile: DENSITY_PROFILES.long,
+    requiredAnchors: ['单调递增', '导数非负', '中值定理', '证明目标', '检查点'],
+    forbiddenAnchors: ['二分查找', '盈亏平衡', 'AI Tutor', 'Evaluation Lab'],
+    prompt: `生成一张 HTML/CSS 长页面数学证明版式，不是 16:9 单屏 PPT。
+
+课程路线：数学
+数学版式：Proof Walkthrough / 证明讲解
+
+画布要求：
+- 宽度固定 1600px，目标高度约 2400px
+- 仍然使用 exactly one .slide 和 one .slide-content
+- 允许纵向长页面阅读，但不能横向滚动
+- 不要把证明步骤塞进内部滚动框；所有公式和文字必须自然展开
+
+主题：用中值定理证明导数非负推出函数单调递增
+受众：大一微积分学生
+内容必须分成 6 个纵向 section：
+1. 命题区：若 f 在 [a,b] 连续、在 (a,b) 可导，且对所有 x 属于 (a,b)，f'(x) >= 0，则 f 在 [a,b] 单调递增
+2. 证明目标：任取 x1 < x2，证明 f(x1) <= f(x2)
+3. 使用中值定理：存在 c 属于 (x1,x2)，使得 f(x2)-f(x1) = f'(c)(x2-x1)
+4. 符号判断：f'(c) >= 0 且 x2-x1 > 0，因此 f(x2)-f(x1) >= 0
+5. 结论：f(x2) >= f(x1)，所以 f 单调递增
+6. 检查点：连续性、可导性、任取两点、差值符号，这四个条件分别在哪里用到
+
+数学要求：
+- 核心公式必须用原生 MathML，不要用纯文本 TeX
+- 至少 5 个 <math> 块，最多 10 个
+- 每个公式卡要有短标题和一句解释
+- 不要使用 <mspace>
+
+版式要求：
+- 顶部是标题 + 证明路线图
+- 中间用清楚编号 section 展开证明
+- 底部用检查点卡片收束
+- 正文字号 22-28px，公式字号 22-26px
+- 不要生成图片，不要 SVG，不要 canvas，不要外部资源
+
+风格：白底、蓝绿强调、数学课堂长证明页，重点是可读、可检查、可导入。`,
+  },
+  {
     id: 'worked-example',
     kind: 'example',
+    courseRoute: 'business',
     label: '例题页',
     version: 4,
     description: '测试例题页：题目、已知、步骤和答案必须完整可做。',
@@ -460,6 +727,8 @@ def binary_search(nums, target):
     requiredAnchors: ['盈亏平衡', '1200', '42', '18', '50'],
     forbiddenAnchors: ['AI Tutor', 'Evaluation Lab', '链式法则', '二分查找'],
     prompt: `生成一张 16:9 HTML/CSS PPT 风格的「例题页」。
+
+课程路线：商科经济
 
 主题：盈亏平衡分析例题
 受众：商科入门学生
@@ -483,6 +752,16 @@ def binary_search(nums, target):
 ];
 
 const DEFAULT_PRESET = PAGE_PRESETS[0];
+
+function getPresetCanvasMode(preset: HtmlSinglePagePreset): HtmlCanvasMode {
+  return preset.canvasMode === 'long' ? 'long' : 'slide';
+}
+
+function getPresetCanvasHeight(preset: HtmlSinglePagePreset): number {
+  return getPresetCanvasMode(preset) === 'long'
+    ? preset.canvasHeight || DEFAULT_LONG_PAGE_HEIGHT
+    : DEFAULT_SLIDE_HEIGHT;
+}
 
 function emptyStats(): PreviewStats {
   return {
@@ -738,11 +1017,19 @@ function getPresetSignature(preset: HtmlSinglePagePreset): string {
       version: preset.version,
       prompt: preset.prompt,
       model: HTML_SINGLE_PAGE_MODEL,
+      canvasMode: getPresetCanvasMode(preset),
+      canvasHeight: getPresetCanvasHeight(preset),
+      codeRoute: preset.codeRoute || null,
+      courseRoute: preset.courseRoute || 'general',
+      csRoute: preset.csRoute || 'standard',
+      mathRoute: preset.mathRoute || 'standard',
       densityProfile: preset.densityProfile,
       requiredAnchors: preset.requiredAnchors,
       forbiddenAnchors: preset.forbiddenAnchors || [],
-      illustrationMode: preset.kind === 'intro' ? 'ai-illustration-slot-v1' : 'none',
-      imageGenerationMode: preset.kind === 'intro' ? 'deferred-placeholder-v1' : 'none',
+      illustrationMode: shouldUseGeneratedIllustration(preset) ? 'ai-illustration-slot-v2' : 'none',
+      imageGenerationMode: shouldUseGeneratedIllustration(preset)
+        ? 'deferred-placeholder-v2'
+        : 'none',
     }),
   );
 }
@@ -853,6 +1140,50 @@ function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function courseRouteLabel(route: HtmlCourseRoute | undefined): string {
+  const labels: Record<HtmlCourseRoute, string> = {
+    general: '通用',
+    math: '数学',
+    'computer-science': 'CS',
+    science: '科学',
+    business: '商科',
+    humanities: '人文',
+    'social-science': '社科',
+  };
+  return labels[route || 'general'];
+}
+
+function csRouteLabel(route: HtmlCsRoute | undefined): string {
+  const labels: Record<HtmlCsRoute, string> = {
+    standard: 'CS 标准',
+    'execution-trace': '执行追踪',
+    'memory-diagram': '内存图',
+    'call-stack': '调用栈',
+    'pointer-diagram': '指针图',
+    'tree-diagram': '树图',
+    'graph-trace': '图追踪',
+    'linear-structure': '栈/队列',
+    'dictionary-diagram': '字典图',
+    'invariant-check': '不变量',
+    'composite-operation': '综合操作',
+  };
+  return labels[route || 'standard'];
+}
+
+function mathRouteLabel(route: HtmlMathRoute | undefined): string {
+  const labels: Record<HtmlMathRoute, string> = {
+    standard: '数学标准',
+    'definition-theorem': '定义/定理',
+    'formula-focus': '公式聚焦',
+    derivation: '推导阶梯',
+    proof: '证明讲解',
+    'worked-example': '数学例题',
+    'concept-map': '概念图',
+    'comparison-table': '判别表',
+  };
+  return labels[route || 'standard'];
+}
+
 function getRangeStatus(value: number, min: number, max: number): QualityStatus {
   if (value >= min && value <= max) return 'pass';
   const looseMin = min * 0.75;
@@ -874,10 +1205,22 @@ function getSmallTextRatio(
 }
 
 function shouldUseGeneratedIllustration(preset: HtmlSinglePagePreset): boolean {
-  return preset.kind === 'intro';
+  return preset.kind === 'cover' || preset.kind === 'intro';
 }
 
 function buildSlideIllustrationPrompt(preset: HtmlSinglePagePreset, slidePrompt: string): string {
+  if (preset.kind === 'cover') {
+    return [
+      'Create one standalone inset illustration asset for a Chinese math course notebook cover.',
+      'Subject: abstract structured reasoning, definitions, counterexamples, and proof paths represented as clean geometric objects and connected paths.',
+      'Style: premium clean educational illustration, white and pale blue background, blue and emerald accents, calm and sophisticated.',
+      'Composition: one coherent object/scene only, centered, with generous negative space; suitable for a 4:3 figure area inside a cover slide.',
+      'Hard constraints: no readable text, no letters, no words, no numbers, no formulas, no labels, no watermark.',
+      'Hard constraints: no presentation page, no slide, no poster, no infographic, no UI screenshot, no cards, no panels, no title area.',
+      `Context only, do not render as text: ${slidePrompt.slice(0, 300)}`,
+    ].join('\n');
+  }
+
   if (preset.kind === 'intro') {
     return [
       'Create one standalone inset illustration asset.',
@@ -1081,8 +1424,15 @@ function injectImageAssetIntoHtml(html: string, imageUrl: string): string {
   return html.split(IMAGE_ASSET_TOKEN).join(imageUrl);
 }
 
-function buildDensityContract(profile: DensityProfile): string {
+function buildDensityContract(
+  profile: DensityProfile,
+  canvasMode: HtmlCanvasMode = 'slide',
+  canvasHeight = DEFAULT_SLIDE_HEIGHT,
+): string {
   return [
+    canvasMode === 'long'
+      ? `画布：长页面，宽度固定 1600px，目标高度约 ${canvasHeight}px；允许纵向阅读，但禁止横向滚动。`
+      : '画布：16:9 单屏，固定 1600×900；不能滚动。',
     `密度档：${profile.label}（${profile.level}）`,
     `可见中文字数/等价字符：${profile.textChars.min}-${profile.textChars.max}`,
     `可见文本节点/块数：${profile.textBlocks.min}-${profile.textBlocks.max}`,
@@ -1108,6 +1458,18 @@ function summarizeChecks(checks: QualityCheck[]) {
 function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): QualityCheck[] {
   const { kind } = preset;
   const density = preset.densityProfile;
+  const canvasMode = getPresetCanvasMode(preset);
+  const canvasHeight = getPresetCanvasHeight(preset);
+  const sizeStatus: QualityStatus =
+    canvasMode === 'long'
+      ? stats.scrollWidth > 1601 || stats.scrollHeight > canvasHeight + 120
+        ? 'fail'
+        : stats.scrollHeight < canvasHeight * 0.72
+          ? 'warn'
+          : 'pass'
+      : stats.scrollWidth <= 1601 && stats.scrollHeight <= 901
+        ? 'pass'
+        : 'fail';
   const smallTextRatio = getSmallTextRatio(stats, density.smallTextThresholdPx);
   const checks: QualityCheck[] = [
     {
@@ -1116,16 +1478,21 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
       detail: `需要 exactly one .slide + .slide-content；当前 slide=${stats.slideCount}，content=${stats.hasSlideContent ? '有' : '缺'}。`,
     },
     {
-      status: stats.scrollWidth <= 1601 && stats.scrollHeight <= 901 ? 'pass' : 'fail',
-      label: '16:9 一屏',
-      detail: `iframe scroll=${stats.scrollWidth || '-'} x ${stats.scrollHeight || '-'}，目标是 1600 x 900 且无滚动。`,
+      status: sizeStatus,
+      label: canvasMode === 'long' ? '1600 同宽长页' : '16:9 一屏',
+      detail:
+        canvasMode === 'long'
+          ? `iframe scroll=${stats.scrollWidth || '-'} x ${stats.scrollHeight || '-'}，目标宽 1600，高度约 ${canvasHeight}，允许纵向长页但不允许横向滚动。`
+          : `iframe scroll=${stats.scrollWidth || '-'} x ${stats.scrollHeight || '-'}，目标是 1600 x 900 且无滚动。`,
     },
     {
       status: stats.outOfBoundsCount === 0 ? 'pass' : 'fail',
       label: '无越界元素',
       detail:
         stats.outOfBoundsCount === 0
-          ? '所有可见元素都在 1600 x 900 内。'
+          ? canvasMode === 'long'
+            ? `所有可见元素都在 1600 x ${canvasHeight} 长页面画布内。`
+            : '所有可见元素都在 1600 x 900 内。'
           : `发现 ${stats.outOfBoundsCount} 个越界元素：${stats.outOfBoundsSamples.join(' / ')}`,
     },
     {
@@ -1137,9 +1504,23 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
           : `发现 ${stats.scriptLikeCount} 个不应出现的动态/嵌入节点。`,
     },
     {
-      status: stats.maxTextLength <= 220 ? 'pass' : stats.maxTextLength <= 320 ? 'warn' : 'fail',
+      status:
+        canvasMode === 'long'
+          ? stats.maxTextLength <= 520
+            ? 'pass'
+            : stats.maxTextLength <= 720
+              ? 'warn'
+              : 'fail'
+          : stats.maxTextLength <= 220
+            ? 'pass'
+            : stats.maxTextLength <= 320
+              ? 'warn'
+              : 'fail',
       label: '文本块预算',
-      detail: `最长文本块 ${stats.maxTextLength} 字符；HTML 单页不能变成网页长文。`,
+      detail:
+        canvasMode === 'long'
+          ? `最长文本块 ${stats.maxTextLength} 字符；长页面可以更完整，但仍要分 section，不要变成整段讲义。`
+          : `最长文本块 ${stats.maxTextLength} 字符；HTML 单页不能变成网页长文。`,
     },
     {
       status: getRangeStatus(stats.visibleCharCount, density.textChars.min, density.textChars.max),
@@ -1224,6 +1605,17 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
     });
   }
 
+  if (kind === 'cover') {
+    const hasCoverTitle = stats.headingCount >= 1 || stats.visibleText.includes('函数与证明习惯');
+    const hasCoverTags =
+      stats.visibleText.includes('证明入门') || stats.visibleText.includes('结构化思考');
+    checks.push({
+      status: hasCoverTitle && hasCoverTags ? 'pass' : 'warn',
+      label: '封面页结构',
+      detail: `需要大标题 + 副标题/标签 + 主视觉；当前 heading=${stats.headingCount}，标题=${hasCoverTitle ? '有' : '缺'}，标签=${hasCoverTags ? '有' : '缺'}。`,
+    });
+  }
+
   if (kind === 'intro') {
     const hasIntroTitle = stats.headingCount >= 1 || stats.visibleText.includes('为什么要学习导数');
     checks.push({
@@ -1265,10 +1657,11 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
   }
 
   if (kind === 'math') {
+    const minMathCount = canvasMode === 'long' ? 5 : 3;
     checks.push({
-      status: stats.mathCount >= 3 ? 'pass' : 'fail',
+      status: stats.mathCount >= minMathCount ? 'pass' : 'fail',
       label: 'MathML 公式',
-      detail: `数学页需要真实 <math>，当前 math=${stats.mathCount}。`,
+      detail: `数学页需要真实 <math>，当前 math=${stats.mathCount}，目标至少 ${minMathCount}。`,
     });
     checks.push({
       status: stats.mspaceCount === 0 ? 'pass' : 'fail',
@@ -1281,16 +1674,42 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
   }
 
   if (kind === 'code') {
+    const minTraceSignals = canvasMode === 'long' ? 5 : 3;
+    const minTraceRows = canvasMode === 'long' ? 5 : 4;
+    const isMemoryTrace = preset.codeRoute === 'memory-trace';
     checks.push({
       status: stats.preCount > 0 || stats.codeCount > 0 ? 'pass' : 'fail',
       label: '代码块',
       detail: `需要 editable pre/code；当前 pre=${stats.preCount}，code=${stats.codeCount}。`,
     });
-    checks.push({
-      status: stats.stepishCount >= 3 || stats.tableRowCount >= 4 ? 'pass' : 'fail',
-      label: '状态追踪',
-      detail: `代码页需要 3-5 个 trace/state 步骤；当前 step=${stats.stepishCount}，table rows=${stats.tableRowCount}。`,
-    });
+    if (isMemoryTrace) {
+      const text = normalizeAnchorText(stats.visibleText);
+      const hasStack =
+        text.includes('调用栈') || text.includes('callstack') || text.includes('stack');
+      const hasHeap = text.includes('堆') || text.includes('heap');
+      const hasReference =
+        text.includes('引用') ||
+        text.includes('指向') ||
+        text.includes('->') ||
+        text.includes('同一个');
+      checks.push({
+        status: hasStack && hasHeap && hasReference ? 'pass' : 'fail',
+        label: 'Memory Trace 结构',
+        detail: `需要调用栈、堆对象和引用关系；当前 stack=${hasStack ? '有' : '缺'}，heap=${hasHeap ? '有' : '缺'}，reference=${hasReference ? '有' : '缺'}。`,
+      });
+    } else {
+      checks.push({
+        status:
+          stats.stepishCount >= minTraceSignals || stats.tableRowCount >= minTraceRows
+            ? 'pass'
+            : 'fail',
+        label: '状态追踪',
+        detail:
+          canvasMode === 'long'
+            ? `长代码页需要完整 trace/state 展开；当前 step=${stats.stepishCount}，table rows=${stats.tableRowCount}。`
+            : `代码页需要 3-5 个 trace/state 步骤；当前 step=${stats.stepishCount}，table rows=${stats.tableRowCount}。`,
+      });
+    }
     checks.push({
       status: stats.preOverflowCount === 0 ? 'pass' : 'warn',
       label: '代码不横向撑破',
@@ -1317,9 +1736,15 @@ function buildQualityChecks(preset: HtmlSinglePagePreset, stats: PreviewStats): 
   return checks;
 }
 
-function buildRegenerationFeedback(stats: PreviewStats, checks: QualityCheck[]): string | null {
+function buildRegenerationFeedback(
+  stats: PreviewStats,
+  checks: QualityCheck[],
+  preset: HtmlSinglePagePreset,
+): string | null {
   if (stats.slideCount <= 0 && stats.scrollWidth <= 0 && stats.scrollHeight <= 0) return null;
 
+  const canvasMode = getPresetCanvasMode(preset);
+  const canvasHeight = getPresetCanvasHeight(preset);
   const failedOrWarned = checks.filter((check) => check.status !== 'pass');
   if (failedOrWarned.length === 0) return null;
 
@@ -1328,12 +1753,22 @@ function buildRegenerationFeedback(stats: PreviewStats, checks: QualityCheck[]):
   if (stats.outOfBoundsCount > 0) {
     lines.push(
       '- 重新生成时必须移除所有出界 DOM 元素。不要用负 top/left/right/bottom、负 margin、超大背景块或出界装饰圆形。',
-      '- 背景装饰请改成 .slide 的 CSS background/radial-gradient，或保证装饰元素完整落在 1600×900 画布内部。',
+      canvasMode === 'long'
+        ? `- 背景装饰请改成 .slide 的 CSS background/radial-gradient，或保证装饰元素完整落在 1600×${canvasHeight} 长页面画布内部。`
+        : '- 背景装饰请改成 .slide 的 CSS background/radial-gradient，或保证装饰元素完整落在 1600×900 画布内部。',
     );
   }
 
-  if (stats.scrollWidth > 1601 || stats.scrollHeight > 901) {
-    lines.push('- 页面不能依赖滚动或裁切；如果内容太多，减少文字、卡片高度、表格行数或公式数量。');
+  if (
+    stats.scrollWidth > 1601 ||
+    (canvasMode === 'slide' && stats.scrollHeight > 901) ||
+    (canvasMode === 'long' && stats.scrollHeight > canvasHeight + 120)
+  ) {
+    lines.push(
+      canvasMode === 'long'
+        ? '- 长页面允许纵向阅读，但不能横向滚动或明显超过目标高度；请减少横向列数、压缩次要说明、拆短代码/公式。'
+        : '- 页面不能依赖滚动或裁切；如果内容太多，减少文字、卡片高度、表格行数或公式数量。',
+    );
   }
 
   if (failedOrWarned.some((check) => check.label.startsWith('内容密度'))) {
@@ -1413,6 +1848,9 @@ export default function GenerationHtmlSinglePageTestPage() {
     () => PAGE_PRESETS.find((preset) => preset.id === selectedPresetId) || PAGE_PRESETS[0],
     [selectedPresetId],
   );
+  const selectedCanvasMode = getPresetCanvasMode(selectedPreset);
+  const selectedCanvasHeight = getPresetCanvasHeight(selectedPreset);
+  const selectedIsLongPage = selectedCanvasMode === 'long';
   const result = runsByPreset[selectedPresetId] || null;
   const error = errorsByPreset[selectedPresetId] || null;
   const selectedImageProvider = IMAGE_PROVIDERS[imageProviderId];
@@ -1436,12 +1874,12 @@ export default function GenerationHtmlSinglePageTestPage() {
       result
         ? [
             selectedResultExpired ? '- 当前结果使用的是旧版 preset/prompt，必须重新生成。' : null,
-            buildRegenerationFeedback(previewStats, qualityChecks),
+            buildRegenerationFeedback(previewStats, qualityChecks, selectedPreset),
           ]
             .filter(Boolean)
             .join('\n') || null
         : null,
-    [previewStats, qualityChecks, result, selectedResultExpired],
+    [previewStats, qualityChecks, result, selectedPreset, selectedResultExpired],
   );
   const history = useMemo(
     () => Object.values(runsByPreset).sort((left, right) => right.createdAt - left.createdAt),
@@ -1574,7 +2012,10 @@ export default function GenerationHtmlSinglePageTestPage() {
 
     const updateScale = () => {
       const rect = element.getBoundingClientRect();
-      const nextScale = Math.min(rect.width / 1600, rect.height / 900);
+      const nextScale =
+        selectedCanvasMode === 'long'
+          ? rect.width / 1600
+          : Math.min(rect.width / 1600, rect.height / DEFAULT_SLIDE_HEIGHT);
       setPreviewScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1);
     };
 
@@ -1582,7 +2023,7 @@ export default function GenerationHtmlSinglePageTestPage() {
     const observer = new ResizeObserver(updateScale);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [selectedCanvasHeight, selectedCanvasMode]);
 
   const applyPreset = useCallback(
     (presetId: string) => {
@@ -1606,6 +2047,15 @@ export default function GenerationHtmlSinglePageTestPage() {
     const root = doc.documentElement;
     const body = doc.body;
     const allElements = Array.from(body.querySelectorAll('*'));
+    const canvasMode = getPresetCanvasMode(selectedPreset);
+    const canvasHeight = getPresetCanvasHeight(selectedPreset);
+    const measuredScrollWidth = Math.ceil(Math.max(root.scrollWidth, body.scrollWidth));
+    const measuredScrollHeight = Math.ceil(Math.max(root.scrollHeight, body.scrollHeight));
+    const allowedBottom =
+      canvasMode === 'long'
+        ? Math.max(canvasHeight + 80, measuredScrollHeight + 1)
+        : DEFAULT_SLIDE_HEIGHT + 1;
+    const canvasArea = 1600 * canvasHeight;
     const textLengths: number[] = [];
     let visibleCharCount = 0;
     let fontCharCount = 0;
@@ -1638,7 +2088,7 @@ export default function GenerationHtmlSinglePageTestPage() {
     const outOfBoundsElements = allElements.filter((element) => {
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return false;
-      return rect.left < -1 || rect.top < -1 || rect.right > 1601 || rect.bottom > 901;
+      return rect.left < -1 || rect.top < -1 || rect.right > 1601 || rect.bottom > allowedBottom;
     });
     const outOfBoundsSamples = outOfBoundsElements.slice(0, 5).map((element) => {
       const rect = element.getBoundingClientRect();
@@ -1664,8 +2114,8 @@ export default function GenerationHtmlSinglePageTestPage() {
       const rect = element.getBoundingClientRect();
       const slot = element.closest('figure, .visual-slot, .image-frame');
       const slotRect = slot?.getBoundingClientRect();
-      const imageAreaRatio = (rect.width * rect.height) / (1600 * 900);
-      const slotAreaRatio = slotRect ? (slotRect.width * slotRect.height) / (1600 * 900) : 0;
+      const imageAreaRatio = (rect.width * rect.height) / canvasArea;
+      const slotAreaRatio = slotRect ? (slotRect.width * slotRect.height) / canvasArea : 0;
       return (
         (rect.width >= 200 && rect.height >= 140 && imageAreaRatio >= 0.04) ||
         (slotAreaRatio >= 0.06 && rect.width > 0 && rect.height > 0)
@@ -1688,7 +2138,7 @@ export default function GenerationHtmlSinglePageTestPage() {
           left: Math.max(0, rect.left),
           top: Math.max(0, rect.top),
           right: Math.min(1600, rect.right),
-          bottom: Math.min(900, rect.bottom),
+          bottom: Math.min(canvasHeight, rect.bottom),
         };
       })
       .filter((rect) => rect.right > rect.left && rect.bottom > rect.top);
@@ -1698,7 +2148,7 @@ export default function GenerationHtmlSinglePageTestPage() {
             Math.min(...contentRects.map((rect) => rect.left))) *
             (Math.max(...contentRects.map((rect) => rect.bottom)) -
               Math.min(...contentRects.map((rect) => rect.top)))) /
-          (1600 * 900)
+          canvasArea
         : 0;
     const getElementLabel = (element: Element) => {
       const className =
@@ -1760,7 +2210,7 @@ export default function GenerationHtmlSinglePageTestPage() {
     const largeVisualContainers = allElements.filter((element) => {
       if (!isVisualContainer(element)) return false;
       const rect = element.getBoundingClientRect();
-      const areaRatio = (rect.width * rect.height) / (1600 * 900);
+      const areaRatio = (rect.width * rect.height) / canvasArea;
       return areaRatio >= 0.08 && Boolean(element.textContent?.replace(/\s+/g, '').trim());
     });
     const sparseLargeContainers = largeVisualContainers.filter((element) => {
@@ -1768,7 +2218,7 @@ export default function GenerationHtmlSinglePageTestPage() {
       const hasLargeVisualChild = largeVisualContainers.some((other) => {
         if (other === element || !element.contains(other)) return false;
         const otherRect = other.getBoundingClientRect();
-        return (otherRect.width * otherRect.height) / (1600 * 900) >= 0.06;
+        return (otherRect.width * otherRect.height) / canvasArea >= 0.06;
       });
       if (hasLargeVisualChild) return false;
       if (element.querySelector('img')) return false;
@@ -1788,12 +2238,12 @@ export default function GenerationHtmlSinglePageTestPage() {
       const textChars = element.textContent?.replace(/\s+/g, '').length || 0;
       const textBounds = getTextBounds(element);
       const textHeightRatio = textBounds ? (textBounds.bottom - textBounds.top) / rect.height : 0;
-      return `${getElementLabel(element)} ${formatPercent((rect.width * rect.height) / (1600 * 900))}面积 / ${textChars}字 / ${formatPercent(textHeightRatio)}文字高度`;
+      return `${getElementLabel(element)} ${formatPercent((rect.width * rect.height) / canvasArea)}面积 / ${textChars}字 / ${formatPercent(textHeightRatio)}文字高度`;
     });
 
     setPreviewStats({
-      scrollWidth: Math.ceil(Math.max(root.scrollWidth, body.scrollWidth)),
-      scrollHeight: Math.ceil(Math.max(root.scrollHeight, body.scrollHeight)),
+      scrollWidth: measuredScrollWidth,
+      scrollHeight: measuredScrollHeight,
       slideCount: doc.querySelectorAll('.slide').length,
       hasSlideContent: Boolean(doc.querySelector('.slide-content')),
       outOfBoundsCount: outOfBoundsElements.length,
@@ -1823,7 +2273,7 @@ export default function GenerationHtmlSinglePageTestPage() {
       scriptLikeCount: doc.querySelectorAll('script,iframe,form,object,embed').length,
       preOverflowCount,
     });
-  }, []);
+  }, [selectedPreset]);
 
   const schedulePreviewInspection = useCallback(() => {
     if (qaTimerRef.current != null) window.clearTimeout(qaTimerRef.current);
@@ -1875,7 +2325,17 @@ export default function GenerationHtmlSinglePageTestPage() {
         body: JSON.stringify({
           prompt: trimmedPrompt,
           pageKind: selectedPreset.kind,
-          densityContract: buildDensityContract(selectedPreset.densityProfile),
+          codeRoute: selectedPreset.codeRoute,
+          courseRoute: selectedPreset.courseRoute || 'general',
+          csRoute: selectedPreset.csRoute,
+          mathRoute: selectedPreset.mathRoute,
+          densityContract: buildDensityContract(
+            selectedPreset.densityProfile,
+            getPresetCanvasMode(selectedPreset),
+            getPresetCanvasHeight(selectedPreset),
+          ),
+          canvasMode: getPresetCanvasMode(selectedPreset),
+          canvasHeight: getPresetCanvasHeight(selectedPreset),
           qualityFeedback: regenerationFeedback || undefined,
           imageAsset: imageAsset
             ? {
@@ -1897,6 +2357,12 @@ export default function GenerationHtmlSinglePageTestPage() {
         id: `${Date.now()}`,
         presetId: selectedPreset.id,
         pageKind: selectedPreset.kind,
+        canvasMode: getPresetCanvasMode(selectedPreset),
+        canvasHeight: getPresetCanvasHeight(selectedPreset),
+        codeRoute: selectedPreset.codeRoute,
+        courseRoute: selectedPreset.courseRoute || 'general',
+        csRoute: selectedPreset.csRoute,
+        mathRoute: selectedPreset.mathRoute,
         label: selectedPreset.label,
         createdAt: Date.now(),
         presetSignature: getPresetSignature(selectedPreset),
@@ -2095,7 +2561,8 @@ export default function GenerationHtmlSinglePageTestPage() {
               <h1 className="mt-2 text-3xl font-semibold tracking-normal">HTML 单页质量测试</h1>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
                 现在这一页直接测试 HTML 生成单页，不走 SceneOutline / layoutTemplate。
-                每个样本只指定页面类型和内容目标，用真实 iframe 检查 16:9、结构和类型稳定性。
+                每个样本只指定页面类型和内容目标，用真实 iframe 检查 16:9
+                和同宽长页面的结构、越界和类型稳定性。
               </p>
             </div>
             <Badge variant="outline" className="w-fit">
@@ -2104,24 +2571,28 @@ export default function GenerationHtmlSinglePageTestPage() {
           </div>
         </header>
 
+        <HtmlTestProgressionPanel currentStageId="html-single-page" />
+
         <section className="grid gap-5 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
-          <aside className="flex flex-col gap-4 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)]">
-            <div className="min-h-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <aside className="flex min-h-0 flex-col gap-4 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)]">
+            <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold">页面类型测试</h2>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    不选 layout template，只看 HTML 单页在不同教学页面类型下是否稳定。
+                    不选 layout template，只看 HTML 单页和长页面在不同教学页面类型下是否稳定。
                   </p>
                 </div>
                 <Badge variant="outline">{PAGE_PRESETS.length} tests</Badge>
               </div>
 
-              <div className="space-y-2">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {PAGE_PRESETS.map((preset, index) => {
                   const saved = runsByPreset[preset.id];
                   const savedError = errorsByPreset[preset.id];
                   const isSelected = preset.id === selectedPresetId;
+                  const presetCanvasMode = getPresetCanvasMode(preset);
+                  const presetCanvasHeight = getPresetCanvasHeight(preset);
                   const savedExpired = isRunExpired(saved, preset);
                   const hasLiveQuality = isSelected && saved && qualityChecks.length > 0;
                   const hasSavedQualityProblem = hasLiveQuality
@@ -2172,6 +2643,23 @@ export default function GenerationHtmlSinglePageTestPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-slate-950">{preset.label}</span>
+                            <Badge variant={presetCanvasMode === 'long' ? 'secondary' : 'outline'}>
+                              {presetCanvasMode === 'long'
+                                ? `长页 ${presetCanvasHeight}px`
+                                : '16:9'}
+                            </Badge>
+                            {preset.codeRoute ? (
+                              <Badge variant="outline">
+                                {preset.codeRoute === 'memory-trace' ? 'memory' : 'trace'}
+                              </Badge>
+                            ) : null}
+                            <Badge variant="outline">{courseRouteLabel(preset.courseRoute)}</Badge>
+                            {preset.courseRoute === 'computer-science' ? (
+                              <Badge variant="outline">{csRouteLabel(preset.csRoute)}</Badge>
+                            ) : null}
+                            {preset.courseRoute === 'math' ? (
+                              <Badge variant="outline">{mathRouteLabel(preset.mathRoute)}</Badge>
+                            ) : null}
                             <Badge variant="outline">{preset.densityProfile.label}</Badge>
                             <Badge variant={statusVariant}>{statusLabel}</Badge>
                           </div>
@@ -2207,6 +2695,25 @@ export default function GenerationHtmlSinglePageTestPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{selectedPreset.label}</Badge>
                     <Badge variant="outline">{selectedPreset.kind}</Badge>
+                    <Badge variant="outline">
+                      {courseRouteLabel(selectedPreset.courseRoute)}路线
+                    </Badge>
+                    {selectedPreset.courseRoute === 'computer-science' ? (
+                      <Badge variant="outline">{csRouteLabel(selectedPreset.csRoute)}</Badge>
+                    ) : null}
+                    {selectedPreset.courseRoute === 'math' ? (
+                      <Badge variant="outline">{mathRouteLabel(selectedPreset.mathRoute)}</Badge>
+                    ) : null}
+                    <Badge variant={selectedIsLongPage ? 'secondary' : 'outline'}>
+                      {selectedIsLongPage ? `长页 1600×${selectedCanvasHeight}` : '16:9 1600×900'}
+                    </Badge>
+                    {selectedPreset.codeRoute ? (
+                      <Badge variant="outline">
+                        {selectedPreset.codeRoute === 'memory-trace'
+                          ? 'Memory Trace 路线'
+                          : 'Execution Trace 路线'}
+                      </Badge>
+                    ) : null}
                     <Badge
                       variant={
                         result
@@ -2259,6 +2766,11 @@ export default function GenerationHtmlSinglePageTestPage() {
                     {formatPercent(selectedPreset.densityProfile.contentCoverage.min)}-
                     {formatPercent(selectedPreset.densityProfile.contentCoverage.max)}
                   </p>
+                  {selectedIsLongPage ? (
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      长页模式：宽度仍为 1600px，只允许纵向展开；适合代码题、证明题和长推导。
+                    </p>
+                  ) : null}
                   {selectedUsesIllustration ? (
                     <p className="mt-1 text-sm leading-6 text-slate-600">
                       插图策略：HTML 先放可点击占位图，用户确认后再生成 4:3 AI 教学插图并持久化。
@@ -2302,8 +2814,9 @@ export default function GenerationHtmlSinglePageTestPage() {
                   <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-950">
                     <div className="font-semibold">HTML 生成契约</div>
                     <div className="mt-1">
-                      固定 1600×900；一张 .slide；不用 layout template；所有内容是 DOM 和 CSS；
-                      数学用 MathML，代码用 pre/code。
+                      {selectedIsLongPage
+                        ? `固定宽 1600px，目标高度约 ${selectedCanvasHeight}px；一张 .slide；不用 layout template；所有内容是 DOM 和 CSS；长内容自然纵向展开。`
+                        : '固定 1600×900；一张 .slide；不用 layout template；所有内容是 DOM 和 CSS；数学用 MathML，代码用 pre/code。'}
                     </div>
                     {selectedUsesIllustration ? (
                       <div className="mt-2 rounded-lg border border-blue-100 bg-white/70 px-2 py-1.5">
@@ -2312,7 +2825,11 @@ export default function GenerationHtmlSinglePageTestPage() {
                       </div>
                     ) : null}
                     <div className="mt-2 whitespace-pre-line border-t border-blue-100 pt-2">
-                      {buildDensityContract(selectedPreset.densityProfile)}
+                      {buildDensityContract(
+                        selectedPreset.densityProfile,
+                        getPresetCanvasMode(selectedPreset),
+                        getPresetCanvasHeight(selectedPreset),
+                      )}
                     </div>
                   </div>
                   {regenerationFeedback ? (
@@ -2411,6 +2928,12 @@ export default function GenerationHtmlSinglePageTestPage() {
                           <div className="text-slate-500">图片</div>
                           <div className="font-semibold">{previewStats.imageCount}</div>
                         </div>
+                        <div className="rounded-xl bg-slate-50 px-3 py-2">
+                          <div className="text-slate-500">滚动尺寸</div>
+                          <div className="font-semibold">
+                            {previewStats.scrollWidth || '-'} × {previewStats.scrollHeight || '-'}
+                          </div>
+                        </div>
                       </div>
                       {getRetryCount(result) > 0 ? (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
@@ -2477,7 +3000,9 @@ export default function GenerationHtmlSinglePageTestPage() {
                 <div>
                   <h2 className="text-sm font-semibold">HTML 单页预览</h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    真实 iframe 1600×900。生成后会自动检查滚动、越界、结构和页面类型信号。
+                    {selectedIsLongPage
+                      ? `真实 iframe 1600×${selectedCanvasHeight}，外层只缩放预览；生成后会检查横向滚动、越界、结构和页面类型信号。`
+                      : '真实 iframe 1600×900。生成后会自动检查滚动、越界、结构和页面类型信号。'}
                   </p>
                 </div>
                 {result ? <Badge variant="outline">{formatTime(result.createdAt)}</Badge> : null}
@@ -2486,7 +3011,15 @@ export default function GenerationHtmlSinglePageTestPage() {
               <div className="rounded-2xl bg-slate-100 p-4">
                 <div
                   ref={previewFrameRef}
-                  className="relative mx-auto aspect-video w-full max-w-[1120px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+                  className={cn(
+                    'relative mx-auto w-full max-w-[1120px] rounded-xl border border-slate-200 bg-white shadow-xl',
+                    selectedIsLongPage ? 'overflow-auto' : 'aspect-video overflow-hidden',
+                  )}
+                  style={
+                    selectedIsLongPage
+                      ? { height: Math.min(selectedCanvasHeight * previewScale, 760) }
+                      : undefined
+                  }
                 >
                   {isGenerating ? (
                     <div className="flex size-full flex-col items-center justify-center gap-3 text-sm text-slate-500">
@@ -2494,22 +3027,30 @@ export default function GenerationHtmlSinglePageTestPage() {
                       {generationStage === 'image' ? '正在生成页面插图' : '正在生成 HTML 单页'}
                     </div>
                   ) : result ? (
-                    <iframe
-                      ref={iframeRef}
-                      title="Generated HTML single page preview"
-                      srcDoc={resolvedPreviewHtml || result.html}
-                      className="absolute left-0 top-0 border-0"
+                    <div
+                      className="relative"
                       style={{
-                        width: 1600,
-                        height: 900,
-                        transform: `scale(${previewScale})`,
-                        transformOrigin: 'top left',
+                        width: 1600 * previewScale,
+                        height: selectedCanvasHeight * previewScale,
                       }}
-                      onLoad={() => {
-                        schedulePreviewInspection();
-                        attachImageSlotClickHandler();
-                      }}
-                    />
+                    >
+                      <iframe
+                        ref={iframeRef}
+                        title="Generated HTML single page preview"
+                        srcDoc={resolvedPreviewHtml || result.html}
+                        className="absolute left-0 top-0 border-0"
+                        style={{
+                          width: 1600,
+                          height: selectedCanvasHeight,
+                          transform: `scale(${previewScale})`,
+                          transformOrigin: 'top left',
+                        }}
+                        onLoad={() => {
+                          schedulePreviewInspection();
+                          attachImageSlotClickHandler();
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="flex size-full flex-col items-center justify-center gap-3 text-slate-400">
                       <Presentation className="size-10" />

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "postinstall": "cd packages/mathml2omml && npm run build && cd ../pptxgenjs && npm run build",
-    "dev": "next dev --webpack",
+    "dev": "next dev --turbo",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
@@ -46,6 +46,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@streamdown/code": "^1.1.1",
+    "@streamdown/math": "^1.0.2",
     "@types/js-yaml": "^4.0.9",
     "@xyflow/react": "^12.10.0",
     "ai": "^6.0.42",

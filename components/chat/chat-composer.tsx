@@ -1,19 +1,18 @@
-import type { DragEvent as ReactDragEvent, RefObject } from 'react';
-import { ArrowUp, FolderInput, Loader2, Paperclip, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useMemo, useState, type DragEvent as ReactDragEvent, type RefObject } from 'react';
+import { ArrowUp, Check, FolderInput, Loader2, Paperclip, Plus, Volume2, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   ComposerInputShell,
   composerTextareaClassName,
 } from '@/components/ui/composer-input-shell';
-import {
-  ComposerVoiceSelector,
-  GenerationModelSelector,
-} from '@/components/generation/generation-toolbar';
+import { GenerationModelSelector } from '@/components/generation/generation-toolbar';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { getTTSVoices } from '@/lib/audio/constants';
+import { voiceRowBlurb } from '@/lib/audio/voice-display';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useSettingsStore } from '@/lib/store/settings';
 import type { SettingsSection } from '@/lib/types/settings';
-import type { CourseAgentListItem } from '@/lib/utils/course-agents';
 import { cn } from '@/lib/utils';
 import type { NotebookAttachmentInput, OrchestratorViewMode } from './chat-page-types';
 
@@ -22,7 +21,6 @@ type ChatMode = 'notebook' | 'agent' | 'none';
 export function ChatComposer({
   mode,
   isCourseOrchestrator,
-  orchestratorViewMode,
   supportsComposerAttachments,
   isComposerDragging,
   handleComposerDragEnter,
@@ -33,7 +31,6 @@ export function ChatComposer({
   removePendingAttachment,
   draft,
   setDraft,
-  selectedAgent,
   sending,
   handleSendNotebook,
   handleSendAgent,
@@ -42,6 +39,7 @@ export function ChatComposer({
   onPickAttachments,
   handleImportNotebookProblemBank,
   openSettings,
+  readOnlyReason,
 }: {
   mode: ChatMode;
   isCourseOrchestrator: boolean;
@@ -56,7 +54,6 @@ export function ChatComposer({
   removePendingAttachment: (id: string) => void;
   draft: string;
   setDraft: (next: string | ((prev: string) => string)) => void;
-  selectedAgent: CourseAgentListItem | null;
   sending: boolean;
   handleSendNotebook: () => void | Promise<void>;
   handleSendAgent: () => void | Promise<void>;
@@ -65,180 +62,283 @@ export function ChatComposer({
   onPickAttachments: (files: FileList | null) => void | Promise<void>;
   handleImportNotebookProblemBank: () => void | Promise<void>;
   openSettings: (section?: SettingsSection) => void;
+  readOnlyReason?: string | null;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
+  const ttsVoice = useSettingsStore((s) => s.ttsVoice);
+  const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
+  const voices = useMemo(() => getTTSVoices(ttsProviderId), [ttsProviderId]);
+  const isReadOnly = Boolean(readOnlyReason);
+  const canUseVoiceSelector =
+    !isReadOnly && (mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator));
+  const canOpenAddMenu = !isReadOnly && !sending && (mode === 'notebook' || canUseVoiceSelector);
+  const addMenuLabel = mode === 'none' ? '请选择联系人' : '更多操作';
+  const voiceSectionLabel = locale.startsWith('zh') ? '语音选择' : 'Voice';
+
+  const openAttachmentsFromMenu = () => {
+    setAddMenuOpen(false);
+    openAttachmentPicker();
+  };
+
+  const importProblemBankFromMenu = () => {
+    setAddMenuOpen(false);
+    if (!draft.trim() && pendingAttachments.length === 0) {
+      openAttachmentPicker();
+      return;
+    }
+    void handleImportNotebookProblemBank();
+  };
 
   return (
-    <footer className="shrink-0 border-t border-slate-900/[0.06] px-4 pb-4 pt-3 dark:border-white/[0.06]">
-      <ComposerInputShell
-        className={cn(
-          'relative transition-all',
-          supportsComposerAttachments &&
-            isComposerDragging &&
-            'border-sky-400/80 bg-sky-50/80 shadow-[0_0_0_4px_rgba(56,189,248,0.14)] dark:bg-sky-500/10',
-        )}
-        onDragEnter={handleComposerDragEnter}
-        onDragOver={handleComposerDragOver}
-        onDragLeave={handleComposerDragLeave}
-        onDrop={handleComposerDrop}
-      >
-        {supportsComposerAttachments && isComposerDragging ? (
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-sky-400/80 bg-sky-50/90 text-sky-900 dark:bg-slate-950/80 dark:text-sky-100">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/80 bg-white/90 px-4 py-2 text-sm font-medium shadow-sm dark:border-sky-400/30 dark:bg-slate-900/90">
-              <Paperclip className="size-4" />
-              松开以上传附件
+    <footer className="sticky bottom-0 z-20 shrink-0 bg-background/95 px-4 pb-5 pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/85 md:px-8">
+      <div className="mx-auto w-full max-w-5xl">
+        <ComposerInputShell
+          className={cn(
+            'relative overflow-hidden rounded-[32px] border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all dark:border-white/10 dark:bg-slate-950',
+            supportsComposerAttachments &&
+              isComposerDragging &&
+              'border-sky-400/80 bg-sky-50/90 shadow-[0_0_0_4px_rgba(56,189,248,0.14)] dark:bg-sky-500/10',
+          )}
+          onDragEnter={handleComposerDragEnter}
+          onDragOver={handleComposerDragOver}
+          onDragLeave={handleComposerDragLeave}
+          onDrop={handleComposerDrop}
+        >
+          {supportsComposerAttachments && isComposerDragging ? (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[32px] border-2 border-dashed border-sky-400/80 bg-sky-50/90 text-sky-900 dark:bg-slate-950/80 dark:text-sky-100">
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/80 bg-white/90 px-4 py-2 text-sm font-medium shadow-sm dark:border-sky-400/30 dark:bg-slate-900/90">
+                <Paperclip className="size-4" />
+                松开以上传附件
+              </div>
             </div>
-          </div>
-        ) : null}
-        {mode === 'notebook' && pendingAttachments.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2">
-            {pendingAttachments.map((a) => (
-              <span
-                key={a.id}
-                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-white/70 px-2 py-0.5 text-[11px] text-foreground dark:bg-black/30"
-              >
-                <Paperclip className="size-3" />
-                <span className="max-w-[200px] truncate">{a.name}</span>
+          ) : null}
+
+          {mode === 'notebook' && pendingAttachments.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 px-5 pt-4">
+              {pendingAttachments.map((a) => (
+                <span
+                  key={a.id}
+                  className="inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-slate-50 px-2.5 py-1 text-[11px] text-foreground dark:bg-white/5"
+                >
+                  <Paperclip className="size-3 shrink-0" />
+                  <span className="max-w-[220px] truncate">{a.name}</span>
+                  <button
+                    type="button"
+                    className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+                    onClick={() => removePendingAttachment(a.id)}
+                    aria-label={`移除附件 ${a.name}`}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex items-end gap-2 px-3 py-3">
+            <Popover open={addMenuOpen} onOpenChange={setAddMenuOpen}>
+              <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
-                  onClick={() => removePendingAttachment(a.id)}
-                  aria-label={`移除附件 ${a.name}`}
+                  title={addMenuLabel}
+                  aria-label={addMenuLabel}
+                  disabled={!canOpenAddMenu}
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-900 transition-colors dark:text-slate-100',
+                    canOpenAddMenu
+                      ? 'hover:bg-slate-100 dark:hover:bg-white/10'
+                      : 'cursor-not-allowed opacity-35',
+                  )}
                 >
-                  <X className="size-3" />
+                  <Plus className="size-6" />
                 </button>
-              </span>
-            ))}
-          </div>
-        ) : null}
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                sideOffset={8}
+                className="w-[min(92vw,22rem)] rounded-2xl p-2"
+              >
+                {mode === 'notebook' ? (
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={openAttachmentsFromMenu}
+                      disabled={!supportsComposerAttachments}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-40 dark:hover:bg-white/10"
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                        <Paperclip className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1 font-medium">添加附件</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={importProblemBankFromMenu}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                        <FolderInput className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1 font-medium">题库</span>
+                    </button>
+                  </div>
+                ) : null}
 
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={
-            mode === 'none'
-              ? '请选择左侧联系人…'
-              : mode === 'notebook'
-                ? '向该笔记本提问，或上传 PDF / 文本导入题库…'
-                : isCourseOrchestrator
-                  ? orchestratorViewMode === 'group'
-                    ? '在课程协作群聊中发起多方协作…'
-                    : '向课程总控提问：概念、安排、答疑等…'
-                  : `与 ${selectedAgent?.name ?? 'Agent'} 对话…`
-          }
-          disabled={mode === 'none' || sending}
-          className={cn(
-            composerTextareaClassName,
-            'min-h-[100px] max-h-[min(40vh,280px)] resize-y px-4 pt-1 pb-2 text-[13px] leading-relaxed md:text-[13px]',
-          )}
-          rows={4}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              if (mode === 'notebook') void handleSendNotebook();
-              else if (mode === 'agent') void handleSendAgent();
-            }
-          }}
-        />
-
-        {/* 与创建页一致的底栏：左侧工具区 · 语音 · 主按钮 */}
-        <div className="flex items-end gap-2 px-3 pb-3">
-          <div className="min-h-8 flex-1 min-w-0">
+                {canUseVoiceSelector ? (
+                  <div className={cn(mode === 'notebook' && 'mt-2 border-t border-border/60 pt-2')}>
+                    <div className="flex items-center gap-2 px-3 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
+                      <Volume2 className="size-3.5" />
+                      <span>{voiceSectionLabel}</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto pr-1">
+                      {voices.length === 0 ? (
+                        <p className="px-3 py-3 text-xs text-muted-foreground">
+                          {t('toolbar.ttsVoiceListEmpty')}
+                        </p>
+                      ) : (
+                        voices.map((v) => {
+                          const blurb = voiceRowBlurb(v, t, locale);
+                          const selected = v.id === ttsVoice;
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              className={cn(
+                                'flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+                                selected
+                                  ? 'bg-primary/10 font-medium text-primary'
+                                  : 'text-foreground hover:bg-slate-100 dark:hover:bg-white/10',
+                              )}
+                              onClick={() => {
+                                setTTSVoice(v.id);
+                                setAddMenuOpen(false);
+                              }}
+                            >
+                              <span className="min-w-0 shrink-0">{v.name}</span>
+                              {blurb ? (
+                                <span
+                                  className={cn(
+                                    'min-w-0 flex-1 text-right text-[11px] leading-snug text-muted-foreground line-clamp-2',
+                                    selected && 'text-primary/80',
+                                  )}
+                                >
+                                  {blurb}
+                                </span>
+                              ) : null}
+                              {selected ? <Check className="mt-0.5 size-3.5 shrink-0" /> : null}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-1 flex h-8 w-full items-center justify-center rounded-xl text-xs text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground dark:hover:bg-white/10"
+                      onClick={() => {
+                        setAddMenuOpen(false);
+                        openSettings('tts');
+                      }}
+                    >
+                      {t('toolbar.advancedSettings')}…
+                    </button>
+                  </div>
+                ) : null}
+              </PopoverContent>
+            </Popover>
             {mode === 'notebook' ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
-                  onClick={openAttachmentPicker}
-                  disabled={sending}
-                >
-                  <Paperclip className="mr-1 size-3.5" />
-                  添加附件
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    void onPickAttachments(e.target.files);
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0 rounded-lg border-border/60 bg-white/50 text-xs dark:bg-black/20"
-                  onClick={() => {
-                    if (!draft.trim() && pendingAttachments.length === 0) {
-                      openAttachmentPicker();
-                      return;
-                    }
-                    void handleImportNotebookProblemBank();
-                  }}
-                  disabled={sending}
-                >
-                  <FolderInput className="mr-1 size-3.5" />
-                  导入题库
-                </Button>
-                <GenerationModelSelector onSettingsOpen={openSettings} />
-                <ComposerVoiceSelector onSettingsOpen={openSettings} />
-              </div>
-            ) : mode === 'agent' && isCourseOrchestrator ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <GenerationModelSelector onSettingsOpen={openSettings} />
-                <ComposerVoiceSelector onSettingsOpen={openSettings} />
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  void onPickAttachments(e.target.files);
+                }}
+              />
             ) : null}
+
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
+                mode === 'none'
+                  ? '请选择联系人'
+                  : isReadOnly
+                    ? readOnlyReason || ''
+                    : '有问题，尽管问'
+              }
+              disabled={mode === 'none' || sending || isReadOnly}
+              className={cn(
+                composerTextareaClassName,
+                'min-h-11 max-h-[min(34vh,220px)] flex-1 resize-none px-1 py-2.5 text-base leading-6 placeholder:text-slate-400 md:text-base',
+              )}
+              rows={1}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (isReadOnly) return;
+                  if (mode === 'notebook') void handleSendNotebook();
+                  else if (mode === 'agent') void handleSendAgent();
+                }
+              }}
+            />
+
+            <div className="flex shrink-0 items-center gap-1 self-end">
+              {!isReadOnly &&
+              (mode === 'notebook' || (mode === 'agent' && isCourseOrchestrator)) ? (
+                <div className="hidden items-center gap-1 md:flex">
+                  <GenerationModelSelector
+                    onSettingsOpen={openSettings}
+                    triggerClassName="h-10 max-w-[9rem] rounded-full border-0 bg-transparent px-2 text-sm text-muted-foreground shadow-none hover:bg-slate-100 hover:text-foreground dark:hover:bg-white/10 data-[size=sm]:h-10"
+                  />
+                </div>
+              ) : null}
+
+              <SpeechButton
+                size="md"
+                className="h-10 w-10 rounded-full text-slate-900 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-100 dark:hover:bg-white/10"
+                disabled={mode === 'none' || sending || isReadOnly}
+                onTranscription={(text) => {
+                  setDraft((prev) => {
+                    const next = prev + (prev ? ' ' : '') + text;
+                    return next;
+                  });
+                }}
+              />
+
+              <button
+                type="button"
+                aria-label={t('chat.send')}
+                disabled={
+                  mode === 'none' ||
+                  sending ||
+                  isReadOnly ||
+                  (mode === 'notebook' && !draft.trim()) ||
+                  (mode === 'agent' && !draft.trim())
+                }
+                onClick={() => {
+                  if (mode === 'notebook') void handleSendNotebook();
+                  else if (mode === 'agent') void handleSendAgent();
+                }}
+                className={cn(
+                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all',
+                  mode !== 'none' && !sending && !isReadOnly && draft.trim()
+                    ? 'cursor-pointer bg-black text-white shadow-sm hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90'
+                    : 'cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-500',
+                )}
+              >
+                {sending ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <ArrowUp className="size-5" />
+                )}
+              </button>
+            </div>
           </div>
-
-          <SpeechButton
-            size="md"
-            disabled={
-              mode === 'none' ||
-              sending ||
-              (mode === 'agent' && isCourseOrchestrator && !draft.trim())
-            }
-            onTranscription={(text) => {
-              setDraft((prev) => {
-                const next = prev + (prev ? ' ' : '') + text;
-                return next;
-              });
-            }}
-          />
-
-          <button
-            type="button"
-            disabled={
-              mode === 'none' ||
-              sending ||
-              (mode === 'notebook' && !draft.trim()) ||
-              (mode === 'agent' && !draft.trim())
-            }
-            onClick={() => {
-              if (mode === 'notebook') void handleSendNotebook();
-              else if (mode === 'agent') void handleSendAgent();
-            }}
-            className={cn(
-              'shrink-0 flex h-8 items-center justify-center gap-1.5 rounded-lg px-3 transition-all',
-              mode !== 'none' && !sending && draft.trim()
-                ? 'cursor-pointer bg-primary text-primary-foreground shadow-sm hover:opacity-90'
-                : 'cursor-not-allowed bg-muted text-muted-foreground/40',
-            )}
-          >
-            {sending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <>
-                <span className="text-xs font-medium">{t('chat.send')}</span>
-                <ArrowUp className="size-3.5" />
-              </>
-            )}
-          </button>
-        </div>
-      </ComposerInputShell>
+        </ComposerInputShell>
+      </div>
     </footer>
   );
 }

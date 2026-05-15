@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Bot, ChevronLeft, ChevronRight, Loader2, NotebookPen, Settings } from 'lucide-react';
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  NotebookPen,
+  Settings,
+  Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,14 +27,17 @@ import { OrchestratorGenerateOptionsPanel } from '@/components/chat/orchestrator
 import { listAgentsForCourse, type CourseAgentListItem } from '@/lib/utils/course-agents';
 import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
 import { listActiveAgentTasksByCourse } from '@/lib/utils/agent-task-storage';
+import { loadCourseChatGroupMeta } from '@/lib/utils/contact-chat-storage';
 import type { AgentTaskRecord } from '@/lib/utils/database';
+import type { CourseChatGroupMeta } from '@/lib/types/chat';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { Scene, SlideContent } from '@/lib/types/stage';
 import { ScenePreviewDialog } from '@/components/slide-renderer/components/scene-preview-dialog';
+import { COURSE_CHAT_GROUPS_UPDATED_EVENT } from '@/components/chat/course-chat-groups';
 
 const surfaceClass = cn(
-  'flex h-full flex-col overflow-hidden apple-glass-heavy',
-  'rounded-[20px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+  'flex h-full flex-col overflow-hidden border-0 bg-background/72 shadow-none backdrop-blur-xl',
+  'transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
 );
 
 const thinScrollbarClass =
@@ -53,6 +64,9 @@ const sceneLikeItemClass = cn(
   'border border-slate-900/[0.06] bg-white/55 hover:bg-white/75 dark:border-white/[0.1] dark:bg-black/20 dark:hover:bg-black/35',
 );
 
+const rightRailTabTriggerClass =
+  'text-xs data-active:text-[#007AFF] dark:data-active:text-[#64B5FF]';
+
 const ACTIVE_TASK_POLL_INTERVAL_MS = 8000;
 
 function notebookTagClass() {
@@ -76,6 +90,56 @@ function isImageAvatar(src: string) {
     src.startsWith('http://') ||
     src.startsWith('https://') ||
     src.startsWith('data:')
+  );
+}
+
+type GroupParticipant = CourseChatGroupMeta['participants'][number];
+
+function participantKindLabel(kind: GroupParticipant['kind']): string {
+  if (kind === 'orchestrator') return '主持';
+  if (kind === 'notebook') return '笔记本';
+  return 'Agent';
+}
+
+function participantRoleHint(kind: GroupParticipant['kind']): string {
+  if (kind === 'orchestrator') return '负责拉群、分配和收束';
+  if (kind === 'notebook') return '只补充相关资料';
+  return '按需参与回答';
+}
+
+function participantHref(participant: GroupParticipant): string {
+  if (participant.kind === 'notebook')
+    return `/chat?notebook=${encodeURIComponent(participant.id)}`;
+  return `/chat?agent=${encodeURIComponent(participant.id || COURSE_ORCHESTRATOR_ID)}`;
+}
+
+function ParticipantAvatar({
+  participant,
+  size = 'md',
+}: {
+  participant: GroupParticipant;
+  size?: 'sm' | 'md';
+}) {
+  const sizeClass = size === 'sm' ? 'size-8 rounded-lg' : 'size-10 rounded-xl';
+  const fallbackSizeClass = size === 'sm' ? 'size-8 rounded-lg' : 'size-10 rounded-xl';
+  if (participant.avatarUrl && isImageAvatar(participant.avatarUrl)) {
+    return (
+      <img
+        src={participant.avatarUrl}
+        alt=""
+        className={cn(sizeClass, 'shrink-0 object-cover ring-1 ring-black/5 dark:ring-white/10')}
+      />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        fallbackSizeClass,
+        'flex shrink-0 items-center justify-center bg-violet-100 text-xs font-semibold text-violet-700 ring-1 ring-black/5 dark:bg-white/10 dark:text-violet-100 dark:ring-white/10',
+      )}
+    >
+      {participant.name.trim().slice(0, 1) || '群'}
+    </span>
   );
 }
 
@@ -132,9 +196,16 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
   }, [courseId, courseAvatarUrl]);
   const notebookId = searchParams.get('notebook');
   const agentId = searchParams.get('agent');
+  const chatView = searchParams.get('view');
+  const groupId = searchParams.get('group');
+  const isGroupChat =
+    agentId === COURSE_ORCHESTRATOR_ID && (chatView === 'group' || Boolean(groupId));
+  const tabGridClass = notebookId ? 'grid-cols-3' : 'grid-cols-2';
 
   const [notebookStage, setNotebookStage] = useState<StageListItem | null>(null);
   const [resolvedAgent, setResolvedAgent] = useState<CourseAgentListItem | null>(null);
+  const [groupMeta, setGroupMeta] = useState<CourseChatGroupMeta | null>(null);
+  const [groupMetaLoading, setGroupMetaLoading] = useState(false);
   const [courseStages, setCourseStages] = useState<StageListItem[]>([]);
   const [courseAgents, setCourseAgents] = useState<CourseAgentListItem[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -193,6 +264,38 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
       alive = false;
     };
   }, [courseId, notebookId, agentId, orchestratorAgentLive]);
+
+  useEffect(() => {
+    if (!courseId || !groupId || !isGroupChat) {
+      setGroupMeta(null);
+      setGroupMetaLoading(false);
+      return;
+    }
+    let alive = true;
+    const load = async () => {
+      setGroupMetaLoading(true);
+      try {
+        const meta = await loadCourseChatGroupMeta(courseId, groupId);
+        if (alive) setGroupMeta(meta);
+      } catch {
+        if (alive) setGroupMeta(null);
+      } finally {
+        if (alive) setGroupMetaLoading(false);
+      }
+    };
+    void load();
+    const onUpdated = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ courseId?: string; groupId?: string }>).detail;
+      if (detail?.courseId !== courseId) return;
+      if (detail?.groupId && detail.groupId !== groupId) return;
+      void load();
+    };
+    window.addEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onUpdated as EventListener);
+    return () => {
+      alive = false;
+      window.removeEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onUpdated as EventListener);
+    };
+  }, [courseId, groupId, isGroupChat]);
 
   useEffect(() => {
     if (!notebookId) {
@@ -327,6 +430,100 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
         </div>
       );
     }
+    if (isGroupChat) {
+      if (!groupId) {
+        return (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3 py-8 text-center">
+            <Users className="mb-3 size-9 text-[#86868b] opacity-80 dark:text-[#a1a1a6]" />
+            <p className={cn(profileBodyText, 'text-[12px] text-[#86868b] dark:text-[#a1a1a6]')}>
+              发起多笔记本协作后，这里会显示当前群聊成员。
+            </p>
+          </div>
+        );
+      }
+      if (groupMetaLoading && !groupMeta) {
+        return (
+          <div className="flex justify-center py-12">
+            <Loader2 className="size-7 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />
+          </div>
+        );
+      }
+      if (!groupMeta) {
+        return (
+          <div className="px-1 py-4 text-center">
+            <Users
+              className="mx-auto mb-3 size-9 text-[#86868b] dark:text-[#a1a1a6]"
+              strokeWidth={1.5}
+            />
+            <p className={cn(profileBodyText, 'text-[12px] text-[#86868b] dark:text-[#a1a1a6]')}>
+              未找到这个群聊，可能已经被删除。
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-0.5 pb-2">
+          <div className="shrink-0 text-center">
+            <div className="mb-3 flex justify-center -space-x-2">
+              {groupMeta.participants.slice(0, 5).map((participant) => (
+                <span
+                  key={participant.id}
+                  className="rounded-xl border-2 border-white shadow-sm dark:border-slate-950"
+                >
+                  <ParticipantAvatar participant={participant} size="md" />
+                </span>
+              ))}
+            </div>
+            <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-[#1d1d1f] dark:text-white/95">
+              {groupMeta.name}
+            </h2>
+            <p className="mt-1 text-xs text-[#86868b] dark:text-[#a1a1a6]">
+              {groupMeta.participants.length} 位成员 · 课程总控调度
+            </p>
+          </div>
+
+          <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-black/[0.06] pt-4 dark:border-white/[0.08]">
+            <p className={cn(profileSectionLabel, 'shrink-0')}>成员</p>
+            <div
+              className={cn(
+                'mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5',
+                thinScrollbarClass,
+              )}
+            >
+              {groupMeta.participants.map((participant) => (
+                <Link
+                  key={`${participant.kind}:${participant.id}`}
+                  href={participantHref(participant)}
+                  className="flex items-center gap-2.5 rounded-[12px] border border-slate-900/[0.06] bg-white/55 p-2 transition-colors hover:bg-white/80 dark:border-white/[0.1] dark:bg-black/20 dark:hover:bg-black/35"
+                  title={participant.name}
+                >
+                  <ParticipantAvatar participant={participant} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-xs font-semibold text-foreground">
+                        {participant.name}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-medium text-violet-700 dark:bg-violet-400/15 dark:text-violet-200">
+                        {participantKindLabel(participant.kind)}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                      {participantRoleHint(participant.kind)}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {groupMeta.createdReason ? (
+            <div className="mt-3 shrink-0 rounded-[12px] border border-slate-900/[0.06] bg-slate-50/70 p-2.5 text-[11px] leading-relaxed text-muted-foreground dark:border-white/[0.08] dark:bg-white/[0.05]">
+              {groupMeta.createdReason}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     if (notebookId) {
       if (!notebookStage) {
         return (
@@ -381,9 +578,9 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
             </div>
           </div>
 
-          <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-black/[0.06] pt-4 dark:border-white/[0.08]">
+          <div className="mt-5 flex shrink-0 flex-col border-t border-black/[0.06] pt-4 dark:border-white/[0.08]">
             <p className={cn(profileSectionLabel, 'shrink-0')}>简介</p>
-            <div className={profileIntroScrollClass}>
+            <div className={cn(profileIntroScrollClass, 'max-h-32 flex-none')}>
               {notebookStage.description ? (
                 <p className={profileBodyText}>{notebookStage.description}</p>
               ) : (
@@ -393,18 +590,6 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
               )}
             </div>
           </div>
-
-          <Link
-            href={`/classroom/${encodeURIComponent(notebookId)}`}
-            className={cn(
-              'mt-3 flex h-9 w-full shrink-0 items-center justify-center rounded-[10px] text-xs font-semibold transition-colors',
-              'bg-[#007AFF] text-white shadow-sm hover:opacity-[0.92] active:opacity-85',
-              'dark:bg-[#0A84FF] dark:hover:opacity-[0.92]',
-            )}
-            aria-label={`进入笔记本：${notebookStage.name}`}
-          >
-            进入笔记本
-          </Link>
         </div>
       );
     }
@@ -561,7 +746,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
       return (
         <div className="flex min-h-0 flex-1 items-center justify-center px-3 py-8 text-center">
           <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-            进入课程后可查看该课程下的笔记本侧栏导航。
+            进入课程后可查看该课程下的笔记本内容目录。
           </p>
         </div>
       );
@@ -570,7 +755,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
       return (
         <div className="flex min-h-0 flex-1 items-center justify-center px-3 py-8 text-center">
           <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-            请先在「当前对象」中选择一个笔记本，即可在这里看到该对象的 slides 列表。
+            请先选择一个笔记本，这里会显示该笔记本的内容目录。
           </p>
         </div>
       );
@@ -586,7 +771,7 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
       return (
         <div className="flex min-h-0 flex-1 items-center justify-center px-3 py-8 text-center">
           <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-            当前对象还没有可展示的 slides。
+            当前笔记本还没有可展示的内容页。
           </p>
         </div>
       );
@@ -755,23 +940,20 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
               onValueChange={setRailTab}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <div className="flex shrink-0 items-center gap-1.5 border-b border-slate-900/[0.08] px-2 pb-2 pt-2 dark:border-white/[0.08]">
+              <div className="flex h-14 shrink-0 items-center gap-1.5 border-b border-slate-900/[0.08] px-2 py-0 dark:border-white/[0.08]">
                 <TabsList
-                  className={cn(
-                    'grid min-h-9 min-w-0 flex-1',
-                    notebookId ? 'grid-cols-3' : 'grid-cols-2',
-                  )}
+                  className={cn('grid min-h-9 min-w-0 flex-1', tabGridClass)}
                   variant="default"
                 >
-                  <TabsTrigger value="profile" className="text-xs">
-                    当前对象
+                  <TabsTrigger value="profile" className={rightRailTabTriggerClass}>
+                    对象
                   </TabsTrigger>
                   <TabsTrigger
                     value="active"
                     title={activeTaskCount > 0 ? `${activeTaskCount} 个进行中的任务` : undefined}
-                    className="relative text-xs"
+                    className={cn('relative', rightRailTabTriggerClass)}
                   >
-                    <span className={activeTaskCount > 0 ? 'pr-3.5' : undefined}>进行中</span>
+                    <span className={activeTaskCount > 0 ? 'pr-3.5' : undefined}>任务</span>
                     {activeTaskCount > 0 ? (
                       <span
                         className="pointer-events-none absolute right-1 top-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#007AFF] px-1 text-[8px] font-bold leading-none text-white tabular-nums dark:bg-[#0A84FF]"
@@ -782,8 +964,8 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
                     ) : null}
                   </TabsTrigger>
                   {notebookId ? (
-                    <TabsTrigger value="scene-like" className="text-xs">
-                      侧栏导航
+                    <TabsTrigger value="scene-like" className={rightRailTabTriggerClass}>
+                      目录
                     </TabsTrigger>
                   ) : null}
                 </TabsList>
@@ -815,9 +997,11 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
                 </TabsContent>
               ) : null}
             </Tabs>
-            <div className="shrink-0 border-t border-slate-900/[0.08] px-2 py-2 dark:border-white/[0.08]">
+            <div className="shrink-0 border-t border-slate-900/[0.08] px-3 py-3 dark:border-white/[0.08]">
+              <p className={cn(profileSectionLabel, 'mb-2 px-0')}>课程导航</p>
               <AppCoreNavList
                 collapsed={false}
+                variant="notebook"
                 tooltipSide="left"
                 chatRightRailOrder
                 excludeKeys={[

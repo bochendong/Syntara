@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ArrowRight, Heart, Sparkles, X } from 'lucide-react';
-import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import type { AppNotification } from '@/lib/notifications/types';
 import { buildNotificationCompanionCopy } from '@/lib/notifications/companion-copy';
 import { getNotificationCardTheme } from '@/lib/notifications/card-theme';
@@ -22,6 +22,12 @@ import {
   formatComputeCreditsLabel,
   formatPurchaseCreditsLabel,
 } from '@/lib/utils/credits';
+
+const TalkingAvatarOverlay = dynamic(
+  () =>
+    import('@/components/canvas/talking-avatar-overlay').then((mod) => mod.TalkingAvatarOverlay),
+  { ssr: false },
+);
 
 function formatBannerTime(value: string): string {
   const date = new Date(value);

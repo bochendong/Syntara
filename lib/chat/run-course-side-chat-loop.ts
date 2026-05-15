@@ -105,6 +105,7 @@ async function consumeOneResponse(
                 agentColor,
                 originalRole: 'agent',
                 createdAt: Date.now(),
+                streaming: true,
               },
             });
             onMessages(cloneMessages(working));
@@ -125,6 +126,14 @@ async function consumeOneResponse(
               }
             }
             onMessages(cloneMessages(working));
+            break;
+          }
+          case 'agent_end': {
+            const msg = working.find((m) => m.id === event.data.messageId);
+            if (msg?.metadata) {
+              msg.metadata = { ...msg.metadata, streaming: false };
+              onMessages(cloneMessages(working));
+            }
             break;
           }
           case 'cue_user': {

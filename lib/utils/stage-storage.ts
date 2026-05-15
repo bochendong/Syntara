@@ -12,6 +12,7 @@ import {
 } from '@/lib/utils/stage-draft-snapshot';
 import { clearPersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
+import { pickStableNotebookAgentAvatarUrl } from '@/lib/constants/notebook-agent-avatars';
 
 const log = createLogger('StageStorage');
 
@@ -203,7 +204,7 @@ function makeMockNotebook(args: {
     name: args.name,
     description: args.description,
     tags: args.tags,
-    avatarUrl: undefined,
+    avatarUrl: pickStableNotebookAgentAvatarUrl(args.id),
     sceneCount: args.sceneDefs.length,
     createdAt: MOCK_COURSE_CHAT_CREATED_AT,
     updatedAt: MOCK_COURSE_CHAT_CREATED_AT + args.sceneDefs.length * 1000,

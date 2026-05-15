@@ -183,6 +183,7 @@ model User {
   learningActionLogs      LearningActionLog[]
   characterProgress       UserCharacterProgress[]
   missionProgress         UserMissionProgress[]
+  testResults             TestResult[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -492,6 +493,27 @@ model LLMUsageLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([route, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+}
+
+model TestResult {
+  id           String @id @default(cuid())
+  ownerId      String
+  testId       String
+  resultKey    String
+  status       String @default("saved")
+  title        String?
+  summary      Json?
+  payload      Json?
+  payloadBytes Int    @default(0)
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ownerId, testId, resultKey])
+  @@index([ownerId, testId, updatedAt(sort: Desc)])
+  @@index([ownerId, updatedAt(sort: Desc)])
 }
 
 model CoursePurchase {

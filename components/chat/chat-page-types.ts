@@ -26,6 +26,8 @@ export type NotebookChatMessage =
       lessonDeckScenes?: Scene[];
       lessonSavedLabel?: string;
       lessonError?: string;
+      streaming?: boolean;
+      statusText?: string;
       at: number;
     };
 
@@ -50,6 +52,7 @@ export type OrchestratorChildTaskView = {
 };
 
 export type NotebookRouteDecision =
+  | { type: 'direct' }
   | { type: 'create' }
   | { type: 'single'; notebook: StageListItem }
   | { type: 'multi'; notebooks: StageListItem[] };
@@ -62,6 +65,7 @@ export type OrchestratorComposerMode = 'generate-notebook' | 'send-message';
 export type NotebookSubtaskResult = {
   notebook: StageListItem;
   answer: string;
+  references?: NotebookKnowledgeReference[];
   appliedLabel?: string;
   knowledgeGap: boolean;
 };
