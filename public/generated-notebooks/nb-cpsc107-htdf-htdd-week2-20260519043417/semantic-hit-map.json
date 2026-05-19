@@ -1,0 +1,1453 @@
+{
+  "notebookId": "nb-cpsc107-htdf-htdd-week2-20260519043417",
+  "source": "imagegen-full-slide-cpsc107-htdf-htdd-from-02-pdf",
+  "sourcePdf": "/Users/dongpochen/Desktop/2026 Summer/CPSC 107/02_htdf_htdd/02_htdf_htdd.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "CPSC 107 · 第二节课",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": []
+      }
+    },
+    {
+      "order": 1,
+      "title": "HTDF：一个函数的设计蓝图",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s02-seven-step-map",
+            "semanticId": "seven-step-map",
+            "label": "HTDF 七步蓝图",
+            "sourceRect": [
+              55,
+              155,
+              1490,
+              525
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 96.875,
+              "width": 931.25,
+              "height": 328.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s02-design-before-body",
+            "semanticId": "design-before-body",
+            "label": "先设计，再写 body",
+            "sourceRect": [
+              105,
+              705,
+              1390,
+              140
+            ],
+            "canvasRect": {
+              "left": 65.625,
+              "top": 440.625,
+              "width": 868.75,
+              "height": 87.5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "例题规划：圆面积函数先不急着写 body",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              315,
+              105,
+              835,
+              95
+            ],
+            "canvasRect": {
+              "left": 196.875,
+              "top": 65.625,
+              "width": 521.875,
+              "height": 59.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-htdf-worksheet",
+            "semanticId": "htdf-worksheet",
+            "label": "HTDF 规划表",
+            "sourceRect": [
+              130,
+              190,
+              1095,
+              560
+            ],
+            "canvasRect": {
+              "left": 81.25,
+              "top": 118.75,
+              "width": 684.375,
+              "height": 350
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-circle-formula",
+            "semanticId": "circle-formula",
+            "label": "圆面积公式",
+            "sourceRect": [
+              1245,
+              210,
+              280,
+              470
+            ],
+            "canvasRect": {
+              "left": 778.125,
+              "top": 131.25,
+              "width": 175,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-planning-note",
+            "semanticId": "planning-note",
+            "label": "规划的价值",
+            "sourceRect": [
+              125,
+              765,
+              1320,
+              105
+            ],
+            "canvasRect": {
+              "left": 78.125,
+              "top": 478.125,
+              "width": 825,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "例题代码：circle-area 的完整 HTDF",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-design-record",
+            "semanticId": "design-record",
+            "label": "完整设计记录",
+            "sourceRect": [
+              45,
+              150,
+              745,
+              550
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 93.75,
+              "width": 465.625,
+              "height": 343.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-final-body",
+            "semanticId": "final-body",
+            "label": "最终函数体",
+            "sourceRect": [
+              910,
+              215,
+              630,
+              310
+            ],
+            "canvasRect": {
+              "left": 568.75,
+              "top": 134.375,
+              "width": 393.75,
+              "height": 193.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-test-flow",
+            "semanticId": "test-flow",
+            "label": "调用测试",
+            "sourceRect": [
+              815,
+              595,
+              760,
+              115
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 371.875,
+              "width": 475,
+              "height": 71.875
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-examples-first",
+            "semanticId": "examples-first",
+            "label": "Examples 先写",
+            "sourceRect": [
+              60,
+              750,
+              1490,
+              115
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 468.75,
+              "width": 931.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "为什么要用 HTDF？",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-messy-code",
+            "semanticId": "messy-code",
+            "label": "直接写 body 的问题",
+            "sourceRect": [
+              30,
+              155,
+              500,
+              520
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 96.875,
+              "width": 312.5,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-next-color-cycle",
+            "semanticId": "next-color-cycle",
+            "label": "next-color 的含义",
+            "sourceRect": [
+              545,
+              225,
+              330,
+              360
+            ],
+            "canvasRect": {
+              "left": 340.625,
+              "top": 140.625,
+              "width": 206.25,
+              "height": 225
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-design-record",
+            "semanticId": "design-record",
+            "label": "HTDF 记录",
+            "sourceRect": [
+              900,
+              145,
+              650,
+              525
+            ],
+            "canvasRect": {
+              "left": 562.5,
+              "top": 90.625,
+              "width": 406.25,
+              "height": 328.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-readability-insight",
+            "semanticId": "readability-insight",
+            "label": "可读性提升",
+            "sourceRect": [
+              70,
+              720,
+              1450,
+              120
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 450,
+              "width": 906.25,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "三件事先写：Purpose / Signature / Examples",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-purpose-card",
+            "semanticId": "purpose-card",
+            "label": "Purpose",
+            "sourceRect": [
+              45,
+              190,
+              470,
+              480
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 118.75,
+              "width": 293.75,
+              "height": 300
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-signature-card",
+            "semanticId": "signature-card",
+            "label": "Signature",
+            "sourceRect": [
+              555,
+              190,
+              480,
+              480
+            ],
+            "canvasRect": {
+              "left": 346.875,
+              "top": 118.75,
+              "width": 300,
+              "height": 300
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-examples-card",
+            "semanticId": "examples-card",
+            "label": "Examples",
+            "sourceRect": [
+              1080,
+              190,
+              455,
+              480
+            ],
+            "canvasRect": {
+              "left": 675,
+              "top": 118.75,
+              "width": 284.375,
+              "height": 300
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-three-first",
+            "semanticId": "three-first",
+            "label": "三件事说不清就先停",
+            "sourceRect": [
+              120,
+              735,
+              1360,
+              115
+            ],
+            "canvasRect": {
+              "left": 75,
+              "top": 459.375,
+              "width": 850,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "Stub / Template / Body：从空壳到真正逻辑",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-stub",
+            "semanticId": "stub",
+            "label": "Stub 空壳",
+            "sourceRect": [
+              30,
+              190,
+              470,
+              495
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 118.75,
+              "width": 293.75,
+              "height": 309.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-template",
+            "semanticId": "template",
+            "label": "Template 模板",
+            "sourceRect": [
+              565,
+              190,
+              475,
+              495
+            ],
+            "canvasRect": {
+              "left": 353.125,
+              "top": 118.75,
+              "width": 296.875,
+              "height": 309.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-body",
+            "semanticId": "body",
+            "label": "Body 函数体",
+            "sourceRect": [
+              1100,
+              190,
+              470,
+              495
+            ],
+            "canvasRect": {
+              "left": 687.5,
+              "top": 118.75,
+              "width": 293.75,
+              "height": 309.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-order-insight",
+            "semanticId": "order-insight",
+            "label": "思考顺序",
+            "sourceRect": [
+              75,
+              730,
+              1450,
+              125
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 456.25,
+              "width": 906.25,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "HTDD：先设计数据，再设计函数",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-bridge",
+            "semanticId": "bridge",
+            "label": "现实概念到 Racket data",
+            "sourceRect": [
+              145,
+              135,
+              1310,
+              235
+            ],
+            "canvasRect": {
+              "left": 90.625,
+              "top": 84.375,
+              "width": 818.75,
+              "height": 146.875
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-htdd-checklist",
+            "semanticId": "htdd-checklist",
+            "label": "HTDD 四个部分",
+            "sourceRect": [
+              80,
+              410,
+              990,
+              280
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 256.25,
+              "width": 618.75,
+              "height": 175
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-cityname-code",
+            "semanticId": "cityname-code",
+            "label": "CityName 例子",
+            "sourceRect": [
+              1085,
+              390,
+              430,
+              310
+            ],
+            "canvasRect": {
+              "left": 678.125,
+              "top": 243.75,
+              "width": 268.75,
+              "height": 193.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-data-manual",
+            "semanticId": "data-manual",
+            "label": "数据也需要说明书",
+            "sourceRect": [
+              115,
+              740,
+              1375,
+              115
+            ],
+            "canvasRect": {
+              "left": 71.875,
+              "top": 462.5,
+              "width": 859.375,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "Atomic Data：Non-Distinct vs Distinct",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-non-distinct",
+            "semanticId": "non-distinct",
+            "label": "Atomic Non-Distinct",
+            "sourceRect": [
+              30,
+              150,
+              760,
+              535
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 93.75,
+              "width": 475,
+              "height": 334.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-distinct",
+            "semanticId": "distinct",
+            "label": "Atomic Distinct",
+            "sourceRect": [
+              810,
+              150,
+              760,
+              535
+            ],
+            "canvasRect": {
+              "left": 506.25,
+              "top": 93.75,
+              "width": 475,
+              "height": 334.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-confusion-warning",
+            "semanticId": "confusion-warning",
+            "label": "常见混淆",
+            "sourceRect": [
+              75,
+              725,
+              1450,
+              115
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 453.125,
+              "width": 906.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "为什么不用 String，而要叫 CityName？",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-generic-string",
+            "semanticId": "generic-string",
+            "label": "太泛的 String",
+            "sourceRect": [
+              45,
+              160,
+              630,
+              520
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 100,
+              "width": 393.75,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-cityname-type",
+            "semanticId": "cityname-type",
+            "label": "更清楚的 CityName",
+            "sourceRect": [
+              840,
+              145,
+              700,
+              540
+            ],
+            "canvasRect": {
+              "left": 525,
+              "top": 90.625,
+              "width": 437.5,
+              "height": 337.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-semantic-type-name",
+            "semanticId": "semantic-type-name",
+            "label": "类型名表达语义",
+            "sourceRect": [
+              110,
+              725,
+              1360,
+              120
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 453.125,
+              "width": 850,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "HTDD Template Rules：数据形状决定函数形状",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s11-rules-table",
+            "semanticId": "rules-table",
+            "label": "Template rules 表",
+            "sourceRect": [
+              40,
+              145,
+              1520,
+              575
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 90.625,
+              "width": 950,
+              "height": 359.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s11-rule-insight",
+            "semanticId": "rule-insight",
+            "label": "不要凭感觉写 template",
+            "sourceRect": [
+              90,
+              740,
+              1410,
+              115
+            ],
+            "canvasRect": {
+              "left": 56.25,
+              "top": 462.5,
+              "width": 881.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "Interval：SeatNumber 是 1 到 32",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-seat-interval",
+            "semanticId": "seat-interval",
+            "label": "座位区间",
+            "sourceRect": [
+              155,
+              115,
+              1290,
+              185
+            ],
+            "canvasRect": {
+              "left": 96.875,
+              "top": 71.875,
+              "width": 806.25,
+              "height": 115.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-data-definition",
+            "semanticId": "data-definition",
+            "label": "SeatNumber 定义",
+            "sourceRect": [
+              80,
+              345,
+              560,
+              300
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 215.62500000000003,
+              "width": 350,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-interval-template",
+            "semanticId": "interval-template",
+            "label": "Interval 模板",
+            "sourceRect": [
+              1020,
+              335,
+              500,
+              300
+            ],
+            "canvasRect": {
+              "left": 637.5,
+              "top": 209.375,
+              "width": 312.5,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-interval-summary",
+            "semanticId": "interval-summary",
+            "label": "Interval 小结",
+            "sourceRect": [
+              120,
+              735,
+              1360,
+              120
+            ],
+            "canvasRect": {
+              "left": 75,
+              "top": 459.375,
+              "width": 850,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 12,
+      "title": "One-of：一个数据类型有几种可能形状",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-13.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-enumeration",
+            "semanticId": "enumeration",
+            "label": "Enumeration",
+            "sourceRect": [
+              35,
+              155,
+              520,
+              520
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 96.875,
+              "width": 325,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-branching-data",
+            "semanticId": "branching-data",
+            "label": "one-of 分支",
+            "sourceRect": [
+              595,
+              185,
+              300,
+              420
+            ],
+            "canvasRect": {
+              "left": 371.875,
+              "top": 115.625,
+              "width": 187.5,
+              "height": 262.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-itemization",
+            "semanticId": "itemization",
+            "label": "Itemization",
+            "sourceRect": [
+              970,
+              155,
+              550,
+              520
+            ],
+            "canvasRect": {
+              "left": 606.25,
+              "top": 96.875,
+              "width": 343.75,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-one-of-cond",
+            "semanticId": "one-of-cond",
+            "label": "one-of 对应 cond",
+            "sourceRect": [
+              80,
+              715,
+              1440,
+              125
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 446.875,
+              "width": 900,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 13,
+      "title": "Enumeration：LetterGrade 的每个 case 都是固定值",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-14.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-lettergrade-data",
+            "semanticId": "lettergrade-data",
+            "label": "LetterGrade 数据定义",
+            "sourceRect": [
+              40,
+              145,
+              720,
+              545
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 90.625,
+              "width": 450,
+              "height": 340.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-lettergrade-template",
+            "semanticId": "lettergrade-template",
+            "label": "LetterGrade 模板",
+            "sourceRect": [
+              845,
+              145,
+              705,
+              545
+            ],
+            "canvasRect": {
+              "left": 528.125,
+              "top": 90.625,
+              "width": 440.625,
+              "height": 340.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-no-else-small-enum",
+            "semanticId": "no-else-small-enum",
+            "label": "小枚举不用 else",
+            "sourceRect": [
+              110,
+              730,
+              1390,
+              120
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 456.25,
+              "width": 868.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 14,
+      "title": "Itemization：CountDown 有三种不同形状",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-15.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-cases",
+            "semanticId": "countdown-cases",
+            "label": "CountDown 三种形状",
+            "sourceRect": [
+              300,
+              175,
+              700,
+              420
+            ],
+            "canvasRect": {
+              "left": 187.5,
+              "top": 109.375,
+              "width": 437.5,
+              "height": 262.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-definition",
+            "semanticId": "countdown-definition",
+            "label": "CountDown 定义",
+            "sourceRect": [
+              55,
+              350,
+              330,
+              300
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 218.75,
+              "width": 206.25,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-examples",
+            "semanticId": "countdown-examples",
+            "label": "代表性例子",
+            "sourceRect": [
+              1090,
+              320,
+              430,
+              330
+            ],
+            "canvasRect": {
+              "left": 681.25,
+              "top": 200,
+              "width": 268.75,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-itemization-rule",
+            "semanticId": "itemization-rule",
+            "label": "Itemization 规则",
+            "sourceRect": [
+              85,
+              690,
+              1430,
+              80
+            ],
+            "canvasRect": {
+              "left": 53.125,
+              "top": 431.25000000000006,
+              "width": 893.75,
+              "height": 50
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-itemization-insight",
+            "semanticId": "itemization-insight",
+            "label": "判断方式不同",
+            "sourceRect": [
+              90,
+              770,
+              1410,
+              90
+            ],
+            "canvasRect": {
+              "left": 56.25,
+              "top": 481.25,
+              "width": 881.25,
+              "height": 56.25
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 15,
+      "title": "Itemization 的 cond：先问类型，再问范围",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-16.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-guarded-code",
+            "semanticId": "guarded-code",
+            "label": "guarded cond 代码",
+            "sourceRect": [
+              55,
+              180,
+              720,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 112.5,
+              "width": 450,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-case-callouts",
+            "semanticId": "case-callouts",
+            "label": "每个 case 的问题",
+            "sourceRect": [
+              800,
+              180,
+              420,
+              470
+            ],
+            "canvasRect": {
+              "left": 500,
+              "top": 112.5,
+              "width": 262.5,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-decision-flow",
+            "semanticId": "decision-flow",
+            "label": "判断流程",
+            "sourceRect": [
+              1235,
+              180,
+              310,
+              470
+            ],
+            "canvasRect": {
+              "left": 771.875,
+              "top": 112.5,
+              "width": 193.75,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-predicate-warning",
+            "semanticId": "predicate-warning",
+            "label": "先问类型的原因",
+            "sourceRect": [
+              80,
+              735,
+              1440,
+              120
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 459.375,
+              "width": 900,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 16,
+      "title": "Compound Data：一个值同时带着多个字段",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-17.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-one-of-review",
+            "semanticId": "one-of-review",
+            "label": "one-of 是选一种",
+            "sourceRect": [
+              35,
+              145,
+              520,
+              520
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 90.625,
+              "width": 325,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-compound-record",
+            "semanticId": "compound-record",
+            "label": "compound 字段同时存在",
+            "sourceRect": [
+              605,
+              145,
+              930,
+              330
+            ],
+            "canvasRect": {
+              "left": 378.125,
+              "top": 90.625,
+              "width": 581.25,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-student-code",
+            "semanticId": "student-code",
+            "label": "define-struct student",
+            "sourceRect": [
+              595,
+              500,
+              940,
+              180
+            ],
+            "canvasRect": {
+              "left": 371.875,
+              "top": 312.5,
+              "width": 587.5,
+              "height": 112.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-compound-insight",
+            "semanticId": "compound-insight",
+            "label": "选一种 vs 字段全部都有",
+            "sourceRect": [
+              110,
+              730,
+              1390,
+              125
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 456.25,
+              "width": 868.75,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 17,
+      "title": "Compound Template：用 selector 拆字段",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-18.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-ball-template",
+            "semanticId": "ball-template",
+            "label": "Ball 模板",
+            "sourceRect": [
+              35,
+              145,
+              765,
+              535
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 90.625,
+              "width": 478.125,
+              "height": 334.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-student-template",
+            "semanticId": "student-template",
+            "label": "Student 模板",
+            "sourceRect": [
+              840,
+              145,
+              710,
+              535
+            ],
+            "canvasRect": {
+              "left": 525,
+              "top": 90.625,
+              "width": 443.75,
+              "height": 334.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-selector-insight",
+            "semanticId": "selector-insight",
+            "label": "selector 是核心",
+            "sourceRect": [
+              110,
+              730,
+              1390,
+              125
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 456.25,
+              "width": 868.75,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 18,
+      "title": "今天的核心：函数设计跟着数据设计走",
+      "image": "/generated-notebooks/nb-cpsc107-htdf-htdd-week2-20260519043417/slide-19.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-htdf-summary",
+            "semanticId": "htdf-summary",
+            "label": "HTDF 总结",
+            "sourceRect": [
+              35,
+              150,
+              740,
+              255
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 93.75,
+              "width": 462.5,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-htdd-summary",
+            "semanticId": "htdd-summary",
+            "label": "HTDD 总结",
+            "sourceRect": [
+              830,
+              150,
+              730,
+              255
+            ],
+            "canvasRect": {
+              "left": 518.75,
+              "top": 93.75,
+              "width": 456.25,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-rules-and-pitfalls",
+            "semanticId": "rules-and-pitfalls",
+            "label": "规则与常见坑",
+            "sourceRect": [
+              35,
+              430,
+              1525,
+              265
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 268.75,
+              "width": 953.125,
+              "height": 165.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-next-hook",
+            "semanticId": "next-hook",
+            "label": "下节课钩子",
+            "sourceRect": [
+              100,
+              740,
+              1395,
+              115
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 462.5,
+              "width": 871.875,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

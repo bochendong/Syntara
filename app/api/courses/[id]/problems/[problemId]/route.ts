@@ -5,12 +5,12 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import {
   notebookProblemGradingSchema,
   notebookProblemPublicContentSchema,
-} from '@/lib/problem-bank';
+} from '@/features/problems';
 import {
   deleteCourseProblem,
   getCourseProblemForUser,
   updateCourseProblem,
-} from '@/lib/server/notebook-problems/service';
+} from '@/features/problems/server/service';
 
 const updateProblemSchema = z.object({
   notebookId: z.string().trim().min(1).nullable().optional(),

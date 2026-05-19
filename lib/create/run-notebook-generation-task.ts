@@ -58,6 +58,7 @@ import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
 import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { ensureTitleCoverOutline } from '@/lib/generation/title-cover';
 import {
+  DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
   normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
@@ -154,10 +155,7 @@ function inferPageGenerationFailurePhase(message: string): PageGenerationFailure
   return 'unknown';
 }
 
-function withPageGenerationFailure(
-  stage: Stage,
-  failure: PageGenerationFailureRecord,
-): Stage {
+function withPageGenerationFailure(stage: Stage, failure: PageGenerationFailureRecord): Stage {
   const failures = (stage.pageGenerationFailures || [])
     .filter((item) => item.outlineId !== failure.outlineId)
     .concat(failure)
@@ -506,7 +504,9 @@ export async function runNotebookGenerationTask(
   const language = input.language || 'zh-CN';
   const webSearch = input.webSearch ?? true;
   const generateSlides = input.generateSlides ?? true;
-  const slideGenerationRoute = normalizeNotebookSlideGenerationRoute(input.slideGenerationRoute);
+  const slideGenerationRoute = normalizeNotebookSlideGenerationRoute(
+    input.slideGenerationRoute ?? DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
+  );
   const settings = useSettingsStore.getState();
   const effectiveMediaFlags: EffectiveMediaFlags = {
     imageEnabled:
@@ -784,7 +784,6 @@ export async function runNotebookGenerationTask(
       ensureTitleCoverOutline(outlines, {
         title: stage.name,
         language,
-        insertMissing: false,
       }),
     ).map(normalizeComputerScienceSceneOutline);
 

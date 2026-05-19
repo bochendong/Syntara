@@ -8,12 +8,15 @@ import {
   Bug,
   ChevronLeft,
   ChevronRight,
+  Coins,
+  Cpu,
   LifeBuoy,
   LogOut,
   Moon,
   Search,
   Settings,
   Sun,
+  Wallet,
 } from 'lucide-react';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useAuthStore } from '@/lib/store/auth';
@@ -24,6 +27,15 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { cn } from '@/lib/utils';
 import { backendJson } from '@/lib/utils/backend-api';
+import {
+  formatCashCreditsLabel,
+  formatComputeCreditsLabel,
+  formatPurchaseCreditsLabel,
+} from '@/lib/utils/credits';
+import {
+  subscribeCreditsBalancesChanged,
+  type CreditsBalances,
+} from '@/lib/utils/credits-balance-events';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
@@ -77,6 +89,10 @@ const COURSE_CONTEXT_CLEAR_PREFIXES = [
   '/courses/new',
   '/notifications',
 ] as const;
+
+function formatRailCreditAmount(value: number): string {
+  return Math.max(0, Math.round(value)).toLocaleString('en-US');
+}
 
 export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) {
   const pathname = usePathname();
@@ -183,11 +199,13 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [userAffinityLevel, setUserAffinityLevel] = useState<number | null>(null);
+  const [userCreditBalances, setUserCreditBalances] = useState<CreditsBalances | null>(null);
 
   const loadRailAccountState = useCallback(
     async (shouldApply: () => boolean = () => true) => {
       if (!isLoggedIn) {
         setUserAffinityLevel(null);
+        setUserCreditBalances(null);
         return;
       }
 
@@ -196,6 +214,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
         profile: {
           affinityLevel: number;
         };
+        balances: CreditsBalances;
       }>('/api/gamification/summary').then(
         (value) => ({ status: 'fulfilled' as const, value }),
         () => ({ status: 'rejected' as const }),
@@ -205,12 +224,44 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
 
       if (gamificationResult.status === 'fulfilled') {
         setUserAffinityLevel(gamificationResult.value.profile.affinityLevel);
+        setUserCreditBalances(gamificationResult.value.balances);
       } else {
         setUserAffinityLevel(null);
+        setUserCreditBalances(null);
       }
     },
     [isLoggedIn],
   );
+
+  const railAccountLine = userAffinityLevel != null ? `成长等级 Lv.${userAffinityLevel}` : null;
+  const railCreditItems = userCreditBalances
+    ? [
+        {
+          key: 'cash',
+          label: '现金',
+          value: userCreditBalances.cash,
+          title: formatCashCreditsLabel(userCreditBalances.cash),
+          Icon: Wallet,
+          accentClass: 'text-emerald-500',
+        },
+        {
+          key: 'compute',
+          label: '算力',
+          value: userCreditBalances.compute,
+          title: formatComputeCreditsLabel(userCreditBalances.compute),
+          Icon: Cpu,
+          accentClass: 'text-sky-500',
+        },
+        {
+          key: 'purchase',
+          label: '购买',
+          value: userCreditBalances.purchase,
+          title: formatPurchaseCreditsLabel(userCreditBalances.purchase),
+          Icon: Coins,
+          accentClass: 'text-amber-500',
+        },
+      ]
+    : [];
 
   useEffect(() => {
     if (!pathname) return;
@@ -230,6 +281,17 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
       window.clearTimeout(timeoutId);
     };
   }, [loadRailAccountState]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    return subscribeCreditsBalancesChanged((balances) => {
+      if (balances) {
+        setUserCreditBalances(balances);
+        return;
+      }
+      void loadRailAccountState();
+    });
+  }, [isLoggedIn, loadRailAccountState]);
 
   const expandIfCollapsed = () => {
     if (collapsed) onCollapsedChange(false);
@@ -411,18 +473,50 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
                         >
                           课程工作区
                         </p>
-                      ) : userAffinityLevel != null ? (
+                      ) : railAccountLine ? (
                         <p
                           className={cn(
                             'mt-0.5 truncate text-[11px] leading-4',
                             onLightRail ? 'text-slate-500' : 'text-zinc-400',
                           )}
                         >
-                          {`成长等级 Lv.${userAffinityLevel}`}
+                          {railAccountLine}
                         </p>
                       ) : null}
                     </div>
                   </div>
+                  {railCreditItems.length > 0 ? (
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {railCreditItems.map(({ key, label, value, title, Icon, accentClass }) => (
+                        <div
+                          key={key}
+                          className={cn(
+                            'min-w-0 rounded-[10px] border px-1.5 py-1 text-center',
+                            onLightRail
+                              ? 'border-slate-200/80 bg-white/55 text-slate-600'
+                              : 'border-white/10 bg-white/[0.075] text-zinc-300',
+                          )}
+                          title={title}
+                          aria-label={title}
+                        >
+                          <span className="flex min-w-0 items-center justify-center gap-1">
+                            <Icon className={cn('size-3 shrink-0', accentClass)} strokeWidth={2} />
+                            <span className="truncate text-[10px] font-medium leading-3">
+                              {label}
+                            </span>
+                          </span>
+                          <span
+                            className={cn(
+                              'mt-0.5 block truncate text-[11px] font-semibold leading-3 tabular-nums',
+                              onLightRail ? 'text-slate-950' : 'text-zinc-50',
+                            )}
+                          >
+                            {formatRailCreditAmount(value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
 

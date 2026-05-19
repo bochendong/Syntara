@@ -71,7 +71,102 @@ function repairSplitMathAcrossParagraphs(html: string): string {
  */
 export function renderPlainTitleWithOptionalLatex(title: string): string {
   if (!title) return '';
-  return renderInlineMathAwareHtml(title);
+  const normalized = normalizePlainTitleMath(title);
+  const cached = titleHtmlCache.get(normalized);
+  if (cached !== undefined) return cached;
+
+  const html = renderInlineMathAwareHtml(normalized);
+  titleHtmlCache.set(normalized, html);
+  if (titleHtmlCache.size > TITLE_HTML_CACHE_LIMIT) {
+    const oldestKey = titleHtmlCache.keys().next().value;
+    if (oldestKey !== undefined) titleHtmlCache.delete(oldestKey);
+  }
+  return html;
+}
+
+const TITLE_HTML_CACHE_LIMIT = 500;
+const titleHtmlCache = new Map<string, string>();
+const EXPLICIT_TITLE_MATH_PATTERN =
+  /\\\(|\\\[|\$\$|\$[^$\n]+?\$|\\\\\(|\\\\\[|\\begin\{[a-zA-Z*]+\}/;
+const TITLE_MATH_TRIGGER_PATTERN =
+  /\\[a-zA-Z]+|\^|\/|sqrt\s*\(|\b(?:sin|cos|tan|sec|ln|log|pi|prime)\b|double\s+prime|\[[^\]]*,[^\]]*\]/i;
+const TITLE_MATH_WORD_PATTERN = /(^|[^\\])\b(sin|cos|tan|sec|ln|log)\b/gi;
+const TITLE_PI_PATTERN = /(^|[^\\])\bpi\b/gi;
+
+function normalizePlainTitleMath(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed || EXPLICIT_TITLE_MATH_PATTERN.test(trimmed)) return title;
+  if (!TITLE_MATH_TRIGGER_PATTERN.test(trimmed)) return title;
+
+  const colonMatch = trimmed.match(/^(.{1,90}?[：:])\s*(.+)$/u);
+  if (!colonMatch) return title;
+
+  const prefix = colonMatch[1];
+  const rest = colonMatch[2].trim();
+  if (!TITLE_MATH_TRIGGER_PATTERN.test(rest)) return title;
+
+  const normalizedRest = normalizeTitleMathRest(rest);
+  return normalizedRest === rest ? title : `${prefix} ${normalizedRest}`;
+}
+
+function normalizeTitleMathRest(rest: string): string {
+  const chineseSuffixMatch = rest.match(/^(.+?)(（[^）]*）)$/u);
+  if (chineseSuffixMatch) {
+    const expression = wrapTitleMathSegment(chineseSuffixMatch[1]);
+    return expression === chineseSuffixMatch[1]
+      ? rest
+      : `${expression}${chineseSuffixMatch[2]}`;
+  }
+
+  const onIntervalMatch = rest.match(/^(.+?)\s+(on)\s+(\[[^\]]+\])$/i);
+  if (onIntervalMatch) {
+    const expression = wrapTitleMathSegment(onIntervalMatch[1]);
+    const interval = wrapTitleMathSegment(onIntervalMatch[3]);
+    return `${expression} ${onIntervalMatch[2]} ${interval}`;
+  }
+
+  const fromToMatch = rest.match(/^(.+?)\s+(from)\s+(.+?)\s+(to)\s+(.+)$/i);
+  if (fromToMatch) {
+    return [
+      wrapTitleMathSegment(fromToMatch[1]),
+      fromToMatch[2],
+      wrapTitleMathSegment(fromToMatch[3]),
+      fromToMatch[4],
+      wrapTitleMathSegment(fromToMatch[5]),
+    ].join(' ');
+  }
+
+  const chineseLimitMatch = rest.match(/^(.+?)\s+到\s+(.+)$/u);
+  if (chineseLimitMatch) {
+    return `${wrapTitleMathSegment(chineseLimitMatch[1])} 到 ${wrapTitleMathSegment(
+      chineseLimitMatch[2],
+    )}`;
+  }
+
+  return wrapTitleMathSegment(rest);
+}
+
+function wrapTitleMathSegment(segment: string): string {
+  const value = segment.trim();
+  if (!value || !TITLE_MATH_TRIGGER_PATTERN.test(value)) return segment;
+  return `$${normalizeTitleLatexShorthand(value)}$`;
+}
+
+function normalizeTitleLatexShorthand(value: string): string {
+  return value
+    .replace(/\b([A-Za-z])\s+double\s+prime\s+at\s+(.+)$/i, (_match, name, input: string) => {
+      return `${name}''(${normalizeTitleLatexShorthand(input)})`;
+    })
+    .replace(/\b([A-Za-z])\s+prime$/i, (_match, name) => `${name}'`)
+    .replace(/(^|[^\\])\bsqrt\s*\(([^()]+)\)/gi, (_match, prefix: string, input: string) => {
+      return `${prefix}\\sqrt{${normalizeTitleLatexShorthand(input)}}`;
+    })
+    .replace(TITLE_MATH_WORD_PATTERN, (_match, prefix: string, command: string) => {
+      return `${prefix}\\${command.toLowerCase()}`;
+    })
+    .replace(TITLE_PI_PATTERN, (_match, prefix: string) => `${prefix}\\pi`)
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function renderHtmlWithLatex(html: string): string {

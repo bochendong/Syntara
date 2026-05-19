@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
-import { applyCreditDelta, ensureUserCreditsInitialized } from '@/lib/server/credits';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
-import { creditsFromPriceCents } from '@/lib/utils/credits';
+import { cloneStoreNotebookForUser } from '@/lib/server/services/store-purchase-service';
 
 const bodySchema = z.object({
   sourceNotebookId: z.string().trim().min(1),
@@ -25,100 +23,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const source = await prisma.notebook.findFirst({
-      where: {
-        id: parsed.data.sourceNotebookId,
-        listedInNotebookStore: true,
-        ownerId: { not: userId },
-      },
-      include: {
-        scenes: { orderBy: { order: 'asc' } },
-      },
-    });
-    if (!source) {
+    const result = await cloneStoreNotebookForUser(prisma, userId, parsed.data.sourceNotebookId);
+    if (result.status === 'not_found') {
       return NextResponse.json({ error: '笔记本不存在或未在商城公开' }, { status: 404 });
     }
 
-    const notebookCostCredits = creditsFromPriceCents(source.notebookPriceCents ?? 0);
-    const creatorSaleCredits = creditsFromPriceCents(source.notebookPriceCents ?? 0);
-
-    const existingPurchase = await prisma.notebookPurchase.findFirst({
-      where: { buyerId: userId, sourceNotebookId: source.id },
-      include: { clonedNotebook: true },
-    });
-    if (existingPurchase?.clonedNotebook) {
-      return NextResponse.json({ notebook: existingPurchase.clonedNotebook });
-    }
-
-    const notebook = await prisma.$transaction(async (tx) => {
-      await ensureUserCreditsInitialized(tx, userId);
-      await ensureUserCreditsInitialized(tx, source.ownerId);
-
-      if (notebookCostCredits > 0) {
-        await applyCreditDelta(tx, {
-          userId,
-          delta: -notebookCostCredits,
-          kind: 'NOTEBOOK_PURCHASE',
-          accountType: 'PURCHASE',
-          description: `Purchased notebook "${source.name}"`,
-          referenceType: 'notebook',
-          referenceId: source.id,
-        });
-        if (creatorSaleCredits > 0) {
-          await applyCreditDelta(tx, {
-            userId: source.ownerId,
-            delta: creatorSaleCredits,
-            kind: 'CREATOR_NOTEBOOK_SALE',
-            accountType: 'CASH',
-            description: `Notebook sale: "${source.name}"`,
-            referenceType: 'notebook',
-            referenceId: source.id,
-          });
-        }
-      }
-
-      const clonedNotebook = await tx.notebook.create({
-        data: {
-          ownerId: userId,
-          courseId: null,
-          name: source.name,
-          description: source.description ?? undefined,
-          tags: source.tags,
-          avatarUrl: source.avatarUrl ?? undefined,
-          language: source.language ?? undefined,
-          style: source.style ?? undefined,
-          listedInNotebookStore: false,
-          notebookPriceCents: 0,
-          sourceNotebookId: source.id,
-        },
-      });
-
-      if (source.scenes.length > 0) {
-        await tx.scene.createMany({
-          data: source.scenes.map((scene) => ({
-            notebookId: clonedNotebook.id,
-            title: scene.title,
-            type: scene.type,
-            order: scene.order,
-            content: toPrismaJson(scene.content),
-            actions: toPrismaNullableJson(scene.actions),
-            whiteboard: toPrismaNullableJson(scene.whiteboard),
-          })),
-        });
-      }
-
-      await tx.notebookPurchase.create({
-        data: {
-          buyerId: userId,
-          sourceNotebookId: source.id,
-          clonedNotebookId: clonedNotebook.id,
-          priceCents: source.notebookPriceCents ?? 0,
-        },
-      });
-
-      return clonedNotebook;
-    });
-
-    return NextResponse.json({ notebook }, { status: 201 });
+    return NextResponse.json(
+      { notebook: result.item },
+      { status: result.status === 'created' ? 201 : 200 },
+    );
   });
 }

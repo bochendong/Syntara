@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { judgeNotebookCodeProblem } from '@/lib/server/notebook-problems/judge';
+import { judgeNotebookCodeProblem } from '@/features/problems/server/judge';
 import {
   createNotebookProblemAttempt,
   getNotebookProblemForUser,
-} from '@/lib/server/notebook-problems/service';
+} from '@/features/problems/server/service';
 
 const runSchema = z.object({
   code: z.string().trim().min(1).max(120000),

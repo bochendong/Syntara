@@ -4,13 +4,13 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { evaluateNotebookNonCodeProblem } from '@/lib/server/notebook-problems/evaluate';
-import { judgeNotebookCodeProblem } from '@/lib/server/notebook-problems/judge';
-import { notebookProblemAttemptImageSchema } from '@/lib/problem-bank';
+import { evaluateNotebookNonCodeProblem } from '@/features/problems/server/evaluate';
+import { judgeNotebookCodeProblem } from '@/features/problems/server/judge';
+import { notebookProblemAttemptImageSchema } from '@/features/problems';
 import {
   createNotebookProblemAttempt,
   getNotebookProblemForUser,
-} from '@/lib/server/notebook-problems/service';
+} from '@/features/problems/server/service';
 
 const submitSchema = z.object({
   text: z.string().max(40000).optional(),

@@ -1,0 +1,1487 @@
+{
+  "notebookId": "nb-cpsc107-ref-self-ref-week4-20260519140849",
+  "source": "imagegen-full-slide-cpsc107-ref-self-ref-from-04-pdf",
+  "sourcePdf": "/Users/dongpochen/Desktop/2026 Summer/CPSC 107/03_ref_self_ref/04_ref_self_ref.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "CPSC 107 · Week 4",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": []
+      }
+    },
+    {
+      "order": 1,
+      "title": "今天的地图：ref 和 self-ref 到底在说什么？",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s02-ref-panel",
+            "semanticId": "ref-panel",
+            "label": "ref",
+            "sourceRect": [
+              40,
+              150,
+              490,
+              530
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 93.75,
+              "width": 306.25,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s02-self-ref-panel",
+            "semanticId": "self-ref-panel",
+            "label": "self-ref",
+            "sourceRect": [
+              555,
+              150,
+              490,
+              530
+            ],
+            "canvasRect": {
+              "left": 346.875,
+              "top": 93.75,
+              "width": 306.25,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s02-ref-self-ref-panel",
+            "semanticId": "ref-self-ref-panel",
+            "label": "ref + self-ref",
+            "sourceRect": [
+              1070,
+              150,
+              490,
+              530
+            ],
+            "canvasRect": {
+              "left": 668.75,
+              "top": 93.75,
+              "width": 306.25,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s02-rule",
+            "semanticId": "rule",
+            "label": "判断规则",
+            "sourceRect": [
+              95,
+              725,
+              1415,
+              120
+            ],
+            "canvasRect": {
+              "left": 59.375,
+              "top": 453.125,
+              "width": 884.375,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "Reference：Game 里有一个 Ball",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s03-ball-definition",
+            "semanticId": "ball-definition",
+            "label": "Ball 定义",
+            "sourceRect": [
+              35,
+              150,
+              515,
+              575
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 93.75,
+              "width": 321.875,
+              "height": 359.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s03-game-definition",
+            "semanticId": "game-definition",
+            "label": "Game 定义",
+            "sourceRect": [
+              1080,
+              150,
+              480,
+              565
+            ],
+            "canvasRect": {
+              "left": 675,
+              "top": 93.75,
+              "width": 300,
+              "height": 353.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s03-field-analysis",
+            "semanticId": "field-analysis",
+            "label": "字段类型分析",
+            "sourceRect": [
+              575,
+              220,
+              455,
+              470
+            ],
+            "canvasRect": {
+              "left": 359.375,
+              "top": 137.5,
+              "width": 284.375,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s03-insight",
+            "semanticId": "insight",
+            "label": "ref 的写法",
+            "sourceRect": [
+              75,
+              740,
+              1450,
+              115
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 462.5,
+              "width": 906.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "Reference Template：遇到 ref，就调用 helper template",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s04-template-code",
+            "semanticId": "template-code",
+            "label": "Game 模板",
+            "sourceRect": [
+              45,
+              140,
+              860,
+              610
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 87.5,
+              "width": 537.5,
+              "height": 381.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s04-nested-game",
+            "semanticId": "nested-game",
+            "label": "嵌套记录",
+            "sourceRect": [
+              930,
+              160,
+              600,
+              460
+            ],
+            "canvasRect": {
+              "left": 581.25,
+              "top": 100,
+              "width": 375,
+              "height": 287.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s04-checklist",
+            "semanticId": "checklist",
+            "label": "逐字段检查",
+            "sourceRect": [
+              165,
+              670,
+              1260,
+              190
+            ],
+            "canvasRect": {
+              "left": 103.125,
+              "top": 418.75,
+              "width": 787.5,
+              "height": 118.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "List 的基本组成：empty 和 cons",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s05-cons-chain",
+            "semanticId": "cons-chain",
+            "label": "cons 链",
+            "sourceRect": [
+              75,
+              145,
+              1425,
+              245
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 90.625,
+              "width": 890.625,
+              "height": 153.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s05-cons-examples",
+            "semanticId": "cons-examples",
+            "label": "cons 写法",
+            "sourceRect": [
+              55,
+              430,
+              680,
+              255
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 268.75,
+              "width": 425,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s05-shorthand",
+            "semanticId": "shorthand",
+            "label": "简写",
+            "sourceRect": [
+              790,
+              430,
+              735,
+              255
+            ],
+            "canvasRect": {
+              "left": 493.75,
+              "top": 268.75,
+              "width": 459.375,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s05-list-insight",
+            "semanticId": "list-insight",
+            "label": "first + rest",
+            "sourceRect": [
+              80,
+              735,
+              1440,
+              115
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 459.375,
+              "width": 900,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "List Operations：先看 first，再看 rest",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s06-list-diagram",
+            "semanticId": "list-diagram",
+            "label": "L7 图示",
+            "sourceRect": [
+              70,
+              155,
+              790,
+              515
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 96.875,
+              "width": 493.75,
+              "height": 321.875
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s06-operations-table",
+            "semanticId": "operations-table",
+            "label": "常用操作表",
+            "sourceRect": [
+              925,
+              155,
+              600,
+              530
+            ],
+            "canvasRect": {
+              "left": 578.125,
+              "top": 96.875,
+              "width": 375,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s06-recursive-link",
+            "semanticId": "recursive-link",
+            "label": "递归连接",
+            "sourceRect": [
+              100,
+              735,
+              1400,
+              115
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 459.375,
+              "width": 875,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "ListOfInteger：第一个 self-ref 数据定义",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s07-loi-definition",
+            "semanticId": "loi-definition",
+            "label": "ListOfInteger 定义",
+            "sourceRect": [
+              45,
+              155,
+              650,
+              520
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 96.875,
+              "width": 406.25,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s07-recursive-shape",
+            "semanticId": "recursive-shape",
+            "label": "递归形状",
+            "sourceRect": [
+              735,
+              155,
+              780,
+              520
+            ],
+            "canvasRect": {
+              "left": 459.375,
+              "top": 96.875,
+              "width": 487.5,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s07-template-rule",
+            "semanticId": "template-rule",
+            "label": "template rules",
+            "sourceRect": [
+              120,
+              690,
+              1360,
+              80
+            ],
+            "canvasRect": {
+              "left": 75,
+              "top": 431.25000000000006,
+              "width": 850,
+              "height": 50
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s07-self-ref-insight",
+            "semanticId": "self-ref-insight",
+            "label": "self-ref 意义",
+            "sourceRect": [
+              100,
+              775,
+              1390,
+              90
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 484.375,
+              "width": 868.75,
+              "height": 56.25
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "List Template：base case + recursive case",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s08-template-code",
+            "semanticId": "template-code",
+            "label": "List template",
+            "sourceRect": [
+              35,
+              170,
+              560,
+              520
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 106.25,
+              "width": 350,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s08-callouts",
+            "semanticId": "callouts",
+            "label": "三处关键",
+            "sourceRect": [
+              625,
+              210,
+              345,
+              430
+            ],
+            "canvasRect": {
+              "left": 390.625,
+              "top": 131.25,
+              "width": 215.625,
+              "height": 268.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s08-loi-example",
+            "semanticId": "loi-example",
+            "label": "LOI1 拆分",
+            "sourceRect": [
+              990,
+              170,
+              560,
+              530
+            ],
+            "canvasRect": {
+              "left": 618.75,
+              "top": 106.25,
+              "width": 350,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s08-rhythm",
+            "semanticId": "rhythm",
+            "label": "递归节奏",
+            "sourceRect": [
+              75,
+              735,
+              1450,
+              115
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 459.375,
+              "width": 906.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "递归模板怎么跑：每次吃掉一个 first",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s09-trace-frames",
+            "semanticId": "trace-frames",
+            "label": "递归帧",
+            "sourceRect": [
+              35,
+              140,
+              1180,
+              560
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 87.5,
+              "width": 737.5,
+              "height": 350
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s09-stop-rule",
+            "semanticId": "stop-rule",
+            "label": "停止规则",
+            "sourceRect": [
+              1240,
+              190,
+              300,
+              470
+            ],
+            "canvasRect": {
+              "left": 775,
+              "top": 118.75,
+              "width": 187.5,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s09-shorter-rest",
+            "semanticId": "shorter-rest",
+            "label": "rest 变短",
+            "sourceRect": [
+              75,
+              735,
+              1450,
+              115
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 459.375,
+              "width": 906.25,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "ListOfString：换元素类型，模板节奏不变",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s10-comparison",
+            "semanticId": "comparison",
+            "label": "和 ListOfInteger 对比",
+            "sourceRect": [
+              40,
+              145,
+              590,
+              350
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 90.625,
+              "width": 368.75,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s10-los-definition",
+            "semanticId": "los-definition",
+            "label": "ListOfString 定义",
+            "sourceRect": [
+              685,
+              145,
+              850,
+              350
+            ],
+            "canvasRect": {
+              "left": 428.125,
+              "top": 90.625,
+              "width": 531.25,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s10-los-template",
+            "semanticId": "los-template",
+            "label": "ListOfString 模板",
+            "sourceRect": [
+              260,
+              525,
+              1100,
+              175
+            ],
+            "canvasRect": {
+              "left": 162.5,
+              "top": 328.125,
+              "width": 687.5,
+              "height": 109.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s10-structure-unchanged",
+            "semanticId": "structure-unchanged",
+            "label": "结构不变",
+            "sourceRect": [
+              90,
+              745,
+              1415,
+              110
+            ],
+            "canvasRect": {
+              "left": 56.25,
+              "top": 465.62499999999994,
+              "width": 884.375,
+              "height": 68.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "List of Compound：first 是 Book，rest 是 ListOfBook",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s11-book-template",
+            "semanticId": "book-template",
+            "label": "Book 模板",
+            "sourceRect": [
+              35,
+              135,
+              1530,
+              260
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 84.375,
+              "width": 956.25,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s11-listofbook-chain",
+            "semanticId": "listofbook-chain",
+            "label": "ListOfBook 链",
+            "sourceRect": [
+              65,
+              430,
+              1450,
+              260
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 268.75,
+              "width": 906.25,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s11-ref-and-self-ref",
+            "semanticId": "ref-and-self-ref",
+            "label": "ref + self-ref",
+            "sourceRect": [
+              110,
+              725,
+              1390,
+              125
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 453.125,
+              "width": 868.75,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "ListOfDot：ref + self-ref 的完整模板",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s12-dot-definition",
+            "semanticId": "dot-definition",
+            "label": "Dot 定义",
+            "sourceRect": [
+              35,
+              155,
+              520,
+              585
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 96.875,
+              "width": 325,
+              "height": 365.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s12-field-analysis",
+            "semanticId": "field-analysis",
+            "label": "first / rest 分析",
+            "sourceRect": [
+              575,
+              260,
+              260,
+              340
+            ],
+            "canvasRect": {
+              "left": 359.375,
+              "top": 162.49999999999997,
+              "width": 162.5,
+              "height": 212.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s12-lod-template",
+            "semanticId": "lod-template",
+            "label": "ListOfDot 模板",
+            "sourceRect": [
+              865,
+              155,
+              690,
+              585
+            ],
+            "canvasRect": {
+              "left": 540.625,
+              "top": 96.875,
+              "width": 431.25,
+              "height": 365.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s12-cons-rule",
+            "semanticId": "cons-rule",
+            "label": "看到 cons Dot ListOfDot",
+            "sourceRect": [
+              110,
+              755,
+              1390,
+              105
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 471.875,
+              "width": 868.75,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 12,
+      "title": "考试题策略：先标 shape，再写 template",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-13.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s13-workflow",
+            "semanticId": "workflow",
+            "label": "四步流程",
+            "sourceRect": [
+              30,
+              145,
+              1535,
+              300
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 90.625,
+              "width": 959.375,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s13-rule-table",
+            "semanticId": "rule-table",
+            "label": "规则表",
+            "sourceRect": [
+              80,
+              475,
+              1430,
+              245
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 296.875,
+              "width": 893.75,
+              "height": 153.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s13-mechanical-not-magic",
+            "semanticId": "mechanical-not-magic",
+            "label": "机械推导",
+            "sourceRect": [
+              95,
+              745,
+              1410,
+              105
+            ],
+            "canvasRect": {
+              "left": 59.375,
+              "top": 465.62499999999994,
+              "width": 881.25,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 13,
+      "title": "例题 1：Waldo 的数据形状先读清楚",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-14.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s14-waldo-definition",
+            "semanticId": "waldo-definition",
+            "label": "Waldo 定义",
+            "sourceRect": [
+              40,
+              145,
+              620,
+              560
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 90.625,
+              "width": 387.5,
+              "height": 350
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s14-shape-tree",
+            "semanticId": "shape-tree",
+            "label": "Waldo 形状树",
+            "sourceRect": [
+              700,
+              145,
+              835,
+              560
+            ],
+            "canvasRect": {
+              "left": 437.5,
+              "top": 90.625,
+              "width": 521.875,
+              "height": 350
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s14-waldo-key",
+            "semanticId": "waldo-key",
+            "label": "关键 self-ref",
+            "sourceRect": [
+              100,
+              735,
+              1390,
+              120
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 459.375,
+              "width": 868.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 14,
+      "title": "Waldo 答案：每个 case 对应 cond 的一个问题",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-15.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s15-waldo-rules",
+            "semanticId": "waldo-rules",
+            "label": "Waldo rules",
+            "sourceRect": [
+              35,
+              135,
+              815,
+              255
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 84.375,
+              "width": 509.375,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s15-waldo-template",
+            "semanticId": "waldo-template",
+            "label": "Waldo template",
+            "sourceRect": [
+              45,
+              405,
+              860,
+              335
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 253.125,
+              "width": 537.5,
+              "height": 209.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s15-case-callouts",
+            "semanticId": "case-callouts",
+            "label": "case 标注",
+            "sourceRect": [
+              920,
+              125,
+              620,
+              615
+            ],
+            "canvasRect": {
+              "left": 575,
+              "top": 78.125,
+              "width": 387.5,
+              "height": 384.375
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s15-waldo-insight",
+            "semanticId": "waldo-insight",
+            "label": "Waldo 难点",
+            "sourceRect": [
+              100,
+              760,
+              1400,
+              105
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 475,
+              "width": 875,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 15,
+      "title": "例题 2：Peat 的 self-ref 藏在哪个字段？",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-16.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s16-peat-definition",
+            "semanticId": "peat-definition",
+            "label": "Peat 定义",
+            "sourceRect": [
+              40,
+              145,
+              600,
+              545
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 90.625,
+              "width": 375,
+              "height": 340.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s16-peat-shape-tree",
+            "semanticId": "peat-shape-tree",
+            "label": "Peat 形状树",
+            "sourceRect": [
+              690,
+              145,
+              835,
+              545
+            ],
+            "canvasRect": {
+              "left": 431.25,
+              "top": 90.625,
+              "width": 521.875,
+              "height": 340.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s16-peat-analysis",
+            "semanticId": "peat-analysis",
+            "label": "字段分析",
+            "sourceRect": [
+              80,
+              705,
+              1430,
+              150
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 440.625,
+              "width": 893.75,
+              "height": 93.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 16,
+      "title": "Peat 答案：crim 分支带 self-ref",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-17.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s17-peat-rules",
+            "semanticId": "peat-rules",
+            "label": "Peat rules",
+            "sourceRect": [
+              145,
+              130,
+              1170,
+              235
+            ],
+            "canvasRect": {
+              "left": 90.625,
+              "top": 81.24999999999999,
+              "width": 731.25,
+              "height": 146.875
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s17-peat-template",
+            "semanticId": "peat-template",
+            "label": "Peat template",
+            "sourceRect": [
+              100,
+              380,
+              810,
+              365
+            ],
+            "canvasRect": {
+              "left": 62.5,
+              "top": 237.5,
+              "width": 506.25,
+              "height": 228.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s17-peat-callouts",
+            "semanticId": "peat-callouts",
+            "label": "字段解释",
+            "sourceRect": [
+              960,
+              400,
+              500,
+              330
+            ],
+            "canvasRect": {
+              "left": 600,
+              "top": 250,
+              "width": 312.5,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s17-peat-core",
+            "semanticId": "peat-core",
+            "label": "Peat 核心",
+            "sourceRect": [
+              80,
+              760,
+              1440,
+              105
+            ],
+            "canvasRect": {
+              "left": 50,
+              "top": 475,
+              "width": 900,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 17,
+      "title": "常见错误：ref 和 self-ref 别写反",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-18.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s18-mistake-ref",
+            "semanticId": "mistake-ref",
+            "label": "把 ref 当直接字段",
+            "sourceRect": [
+              30,
+              160,
+              380,
+              485
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 100,
+              "width": 237.5,
+              "height": 303.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s18-mistake-base",
+            "semanticId": "mistake-base",
+            "label": "忘记 base case",
+            "sourceRect": [
+              435,
+              160,
+              370,
+              485
+            ],
+            "canvasRect": {
+              "left": 271.875,
+              "top": 100,
+              "width": 231.25,
+              "height": 303.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s18-mistake-rest",
+            "semanticId": "mistake-rest",
+            "label": "rest 没有递归",
+            "sourceRect": [
+              830,
+              160,
+              370,
+              485
+            ],
+            "canvasRect": {
+              "left": 518.75,
+              "top": 100,
+              "width": 231.25,
+              "height": 303.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s18-mistake-selector",
+            "semanticId": "mistake-selector",
+            "label": "compound 忘记 selector",
+            "sourceRect": [
+              1220,
+              160,
+              350,
+              485
+            ],
+            "canvasRect": {
+              "left": 762.5,
+              "top": 100,
+              "width": 218.75,
+              "height": 303.125
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s18-check-order",
+            "semanticId": "check-order",
+            "label": "检查顺序",
+            "sourceRect": [
+              65,
+              665,
+              1480,
+              195
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 415.625,
+              "width": 925,
+              "height": 121.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 18,
+      "title": "今天总结：数据定义会告诉你函数怎么长",
+      "image": "/generated-notebooks/nb-cpsc107-ref-self-ref-week4-20260519140849/slide-19.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s19-reference-summary",
+            "semanticId": "reference-summary",
+            "label": "Reference",
+            "sourceRect": [
+              35,
+              160,
+              745,
+              265
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 100,
+              "width": 465.625,
+              "height": 165.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s19-self-reference-summary",
+            "semanticId": "self-reference-summary",
+            "label": "Self-Reference",
+            "sourceRect": [
+              820,
+              160,
+              745,
+              265
+            ],
+            "canvasRect": {
+              "left": 512.5,
+              "top": 100,
+              "width": 465.625,
+              "height": 165.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s19-lists-summary",
+            "semanticId": "lists-summary",
+            "label": "Lists",
+            "sourceRect": [
+              35,
+              450,
+              745,
+              270
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 281.25,
+              "width": 465.625,
+              "height": 168.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s19-exam-summary",
+            "semanticId": "exam-summary",
+            "label": "Exam Templates",
+            "sourceRect": [
+              820,
+              450,
+              745,
+              270
+            ],
+            "canvasRect": {
+              "left": 512.5,
+              "top": 281.25,
+              "width": 465.625,
+              "height": 168.75
+            }
+          },
+          {
+            "id": "nb-cpsc107-ref-self-ref-week4-20260519140849-s19-next-hook",
+            "semanticId": "next-hook",
+            "label": "下节课钩子",
+            "sourceRect": [
+              75,
+              745,
+              1450,
+              105
+            ],
+            "canvasRect": {
+              "left": 46.875,
+              "top": 465.62499999999994,
+              "width": 906.25,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,290 @@
+MAT 136
+Calculus II for Mathematical Sciences
+
+导师： Bochen Dong
+
+
+UTM Week 1 Class | 2026/5/15
+                                       WEEK 1    MAT 136 || 2026-05-15
+
+
+
+
+Disclaimer
+This study handout is provided by Speed Up Education and its
+
+affiliated tutors. The study handout seeks to support your study
+
+process and should be used as a complement, not substitute to the
+
+university course material, lecture notes, problem, sets, past tests and
+
+other available resources.
+
+
+
+
+The study handout is distributed for free to the students participating
+
+in Speed Up Education classes and is not for sale or other commercial
+
+uses whatsoever. We kindly ask you to refrain from copying or selling
+
+in part or in whole any information provided in the handout.
+
+
+
+
+Thanks for choosing Speed Up Education. We wish you the best of
+
+luck in your exam.
+
+
+
+
+导师： Bochen Dong   |   UTM 校 区
+                                                                         1
+                                                 WEEK 1        MAT 136 || 2026-05-15
+
+
+
+                                      公式速览
+
+
+和差公式
+                       cos(α + β) = cosα · cosβ − sinα · sinβ
+                      𝑐𝑜𝑠(𝛼 − 𝛽) = 𝑐𝑜𝑠𝛼 · 𝑐𝑜𝑠𝛽 + 𝑠𝑖𝑛𝛼 · 𝑠𝑖𝑛𝛽
+                      𝑠𝑖𝑛(𝛼 ± 𝛽) = 𝑠𝑖𝑛𝛼 · 𝑐𝑜𝑠𝛽 ± 𝑐𝑜𝑠𝛼 · 𝑠𝑖𝑛𝛽
+
+
+
+
+平方关系：
+                                  sin! 𝛼 + cos ! 𝛼 = 1
+                                  1 + cot ! 𝛼 = csc ! 𝛼
+                                  1 + tan! 𝛼 = sec ! 𝛼
+
+
+
+
+二倍角公式
+                                  𝑠𝑖𝑛2𝛼 = 2𝑠𝑖𝑛𝛼 𝑐𝑜𝑠𝛼
+                                  cos 2𝛼 = 1 − 2 sin! 𝛼
+
+
+
+
+半角公式
+
+                        𝛼      1 − cos 𝛼            1 − 𝑠𝑖𝑛2𝛼
+                  sin     = ±<           → sin! 𝛼 =
+                        2          2                    2
+
+                        𝛼     1 + cos 𝛼             1 + 𝑐𝑜𝑠2𝛼
+                  cos     =±<           → cos ! 𝛼 =
+                        2         2                     2
+                                𝛼           𝛼       1 − 𝑐𝑜𝑠𝛼
+                          tan     = sin           =
+                                2       1 + cos 𝛼     sin 𝛼
+
+
+
+
+导师： Bochen Dong   |   UTM 校 区
+                                                                                       2
+                                                WEEK 1      MAT 136 || 2026-05-15
+
+
+
+The Trigonometric Rule
+
+For any positive constant a,
+                                    𝑑
+                                       sin 𝑥 = cos 𝑥
+                                   𝑑𝑥
+                                  𝑑
+                                      cos 𝑥 = − sin 𝑥
+                                 𝑑𝑥
+                                   𝑑
+                                      tan 𝑥 = sec ! 𝑥
+                                  𝑑𝑥
+                                  𝑑
+                                     cot 𝑥 = −csc ! 𝑥
+                                 𝑑𝑥
+                                𝑑
+                                   sec 𝑥 = sec 𝑥 tan 𝑥
+                               𝑑𝑥
+                               𝑑
+                                  csc 𝑥 = −csc 𝑥 cot 𝑥
+                               𝑑𝑥
+
+
+
+
+反三角函数的导数
+                                 𝑑                 1
+                                    sin"# 𝑥 =
+                                𝑑𝑥             √1 − 𝑥 !
+                                𝑑                 −1
+                                    cos "# 𝑥 =
+                                𝑑𝑥              √1 − 𝑥 !
+                                  𝑑                1
+                                     tan"# 𝑥 =
+                                 𝑑𝑥             1 + 𝑥!
+                                  𝑑               −1
+                                     cot "# 𝑥 =
+                                 𝑑𝑥             1 + 𝑥!
+                               𝑑                   1
+                                  sec "# 𝑥 =
+                               𝑑𝑥             |𝑥|√𝑥 ! − 1
+                               𝑑                  −1
+                                  csc "# 𝑥 =
+                               𝑑𝑥             |𝑥|√𝑥 ! − 1
+
+
+
+
+导师： Bochen Dong      |   UTM 校 区
+                                                                                    3
+                                        WEEK 1   MAT 136 || 2026-05-15
+
+
+
+Example：
+
+
+Compute
+
+                           B(2𝑡 − 7)$% 𝑑𝑡
+
+
+Answer：
+
+
+
+
+Example：
+
+Compute
+                          B 𝑡 ! (𝑡 % − 3)#& 𝑑𝑡
+
+Answer：
+
+
+
+
+导师： Bochen Dong   |   UTM 校 区
+                                                                         4
+                                         WEEK 1   MAT 136 || 2026-05-15
+
+
+
+Example：
+
+Compute
+                                cos √𝑥
+                            B            𝑑𝑡
+                                 √𝑥
+Answer：
+
+
+
+
+导师： Bochen Dong   |   UTM 校 区
+                                                                          5
+                                               WEEK 1    MAT 136 || 2026-05-15
+
+
+
+Example：
+
+
+Given that
+                                              %
+                                #          ! !      3𝜋
+                              B     F1 − 𝑥 % G 𝑑𝑥 =
+                               &                   32
+compute the area inside the following asteroid
+
+
+
+
+Answer：
+
+
+
+
+导师： Bochen Dong     |   UTM 校 区
+                                                                                 6
+                                             WEEK 1     MAT 136 || 2026-05-15
+
+
+
+Example：
+
+Consider a differentiable function 𝑓 with the following table of values.
+
+
+       𝑥                                       𝜋             𝑒
+                       0            1                                      3
+                                               2
+     𝑓(𝑥)              5            7          8             20            22
+     𝑓′(𝑥)             2            4          6             9             12
+
+
+
+                %
+a) Evaluate ∫# 𝑓 ' (𝑥)𝑒 ((*) 𝑑𝑥
+                #
+b) Evaluate ∫& 𝑒 * 𝑓′(𝑒 * )𝑑𝑥
+                #               !
+c) Evaluate ∫& 𝑓 ' (𝑥)M𝑓(𝑥)N 𝑑𝑥
+Answer：
+
+
+
+
+导师： Bochen Dong         |   UTM 校 区
+                                                                                7
+                                                          WEEK 1   MAT 136 || 2026-05-15
+
+
+
+Example：
+
+化简成带三角函数的积分
+
+
+                                                 𝑥!
+                                          B               𝑑𝑥
+                                              √𝑥 ! + 16
+
+Answer:
+
+我们选择
+                                          𝑥 = 4 tan 𝑢
+                                          𝑑𝑥 = 4 sec ! 𝑢 𝑑𝑢
+Thus
+                        R𝑥 ! + 16 = R16 tan! 𝑢 + 16 = R16(tan! 𝑢 + 1)
+Since
+                                        tan! 𝑢 + 1 = sec ! 𝑢
+Therefore
+
+                             R16(tan! 𝑢 + 1) = R16 sec ! 𝑢 = 4 𝑠𝑒𝑐 𝑢
+
+
+Hence,
+                   𝑥!                 (4 tan 𝑢)!
+            B                𝑑𝑥 = B              4 sec ! 𝑢 𝑑𝑢 = B 16 tan! 𝑢 𝑠𝑒𝑐 𝑢 𝑑𝑢
+                √𝑥 ! + 16              4 𝑠𝑒𝑐 𝑢
+
+                                  = 16 B(sec ! 𝑢 − 1) 𝑠𝑒𝑐 𝑢 𝑑𝑢
+
+                                      = 16 B sec % 𝑢 − sec 𝑢 𝑑𝑢
+
+
+
+
+导师： Bochen Dong          |   UTM 校 区
+                                                                                           8
+

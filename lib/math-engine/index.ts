@@ -224,6 +224,10 @@ function looksLikeMathCodeLiteral(text: string): boolean {
   return (
     /\\begin\{(?:[pbBvV]?matrix|array|cases|aligned)\}/.test(normalized) ||
     LATEX_INLINE_COMMAND_PATTERN.test(normalized) ||
+    /[A-Za-z0-9)\]}]\s*\^\s*(?:\{[^}\n]+\}|[A-Za-z0-9+-])/.test(normalized) ||
+    /(?:\([A-Za-z][A-Za-z0-9_'’]*\s*\^\s*\{?-?1\}?\)|[A-Za-z][A-Za-z0-9_'’]*)\s*['′]+\s*\([^()\n]*\)/.test(
+      normalized,
+    ) ||
     /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(normalized)
   );
 }
@@ -393,6 +397,33 @@ function protectLatexEnvironmentRowBreaks(text: string): string {
 
 function restoreLatexEnvironmentRowBreaks(text: string): string {
   return text.replaceAll(LATEX_ROW_BREAK_SENTINEL, '\\\\');
+}
+
+function normalizeCasesEnvironmentRows(latex: string): string {
+  if (!latex.includes('\\begin{cases}')) return latex;
+
+  return latex.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (_match, body: string) => {
+    const rows = body
+      .replace(/\${1,2}/g, '')
+      .replace(/,\s*(\\{1,2})\s*(?=([^,&]+,\s*&))/g, (_rowMatch, _slashes, nextRow: string) => {
+        const trimmedNextRow = nextRow.trim();
+        const commandPrefix = /^\\?(?:tan|sin|cos|log|ln|sqrt|frac|lim|int|sum|prod)\b/.test(
+          trimmedNextRow,
+        )
+          ? trimmedNextRow.startsWith('\\')
+            ? ''
+            : '\\'
+          : '';
+        return `,\\\\\n${commandPrefix}`;
+      })
+      .replace(/\\{2,}\s*(?=[^,&]+,\s*&)/g, '\\\\\n')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n');
+
+    return `\\begin{cases}\n${rows}\n\\end{cases}`;
+  });
 }
 
 function looksLikeMathText(text: string): boolean {
@@ -706,7 +737,7 @@ export function normalizeMathSource(text: string): string {
     .replace(/\\begin\{align\}/g, '\\begin{aligned}')
     .replace(/\\end\{align\}/g, '\\end{aligned}');
 
-  return restoreLatexEnvironmentRowBreaks(normalized);
+  return normalizeCasesEnvironmentRows(restoreLatexEnvironmentRowBreaks(normalized));
 }
 
 export function containsMathSyntax(text: string): boolean {

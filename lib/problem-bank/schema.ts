@@ -29,8 +29,28 @@ export const notebookProblemAttemptStatusSchema = z.enum([
 
 export const notebookProblemSourceMetaSchema = z.record(z.string(), z.unknown()).default({});
 
+export const notebookProblemImageAssetSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  src: z.string().trim().min(1).max(8_000_000),
+  alt: z.string().trim().min(1).max(500).optional(),
+  caption: z.string().trim().min(1).max(1000).optional(),
+  sourceImageId: z.string().trim().min(1).max(120).optional(),
+  pageNumber: z.number().int().positive().optional(),
+  width: z.number().int().positive().max(10000).optional(),
+  height: z.number().int().positive().max(10000).optional(),
+  mimeType: z.string().trim().min(1).max(120).optional(),
+  role: z.enum(['question', 'context', 'option', 'explanation']).default('question'),
+});
+
+export const notebookProblemAssetsSchema = z
+  .object({
+    images: z.array(notebookProblemImageAssetSchema).max(8).default([]),
+  })
+  .default({ images: [] });
+
 const notebookProblemPublicBaseSchema = z.object({
   explanation: z.string().trim().min(1).max(8000).optional(),
+  assets: notebookProblemAssetsSchema.optional(),
 });
 
 export const notebookChoiceOptionSchema = z.object({
@@ -286,6 +306,8 @@ export type NotebookProblemSource = z.infer<typeof notebookProblemSourceSchema>;
 export type NotebookProblemDifficulty = z.infer<typeof notebookProblemDifficultySchema>;
 export type NotebookProblemAttemptKind = z.infer<typeof notebookProblemAttemptKindSchema>;
 export type NotebookProblemAttemptStatus = z.infer<typeof notebookProblemAttemptStatusSchema>;
+export type NotebookProblemImageAsset = z.infer<typeof notebookProblemImageAssetSchema>;
+export type NotebookProblemAssets = z.infer<typeof notebookProblemAssetsSchema>;
 export type NotebookProblemPublicContent = z.infer<typeof notebookProblemPublicContentSchema>;
 export type NotebookProblemGrading = z.infer<typeof notebookProblemGradingSchema>;
 export type NotebookProblemSecretJudge = z.infer<typeof notebookProblemSecretJudgeSchema>;

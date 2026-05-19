@@ -1,0 +1,888 @@
+    ·
+
+
+
+
+CPSC 107
+Systematic Program Design
+
+
+导师： Bochen Dong
+
+
+UBC Week 1 Class | 2025/9/11
+                                       WEEK 1    CPSC 107 || 2025-09-11
+
+
+
+
+Disclaimer
+This study handout is provided by Speed Up Education and its
+
+affiliated tutors. The study handout seeks to support your study
+
+process and should be used as a complement, not substitute to the
+
+university course material, lecture notes, problem, sets, past tests and
+
+other available resources.
+
+
+
+
+The study handout is distributed for free to the students participating
+
+in Speed Up Education classes and is not for sale or other commercial
+
+uses whatsoever. We kindly ask you to refrain from copying or selling
+
+in part or in whole any information provided in the handout.
+
+
+
+
+Thanks for choosing Speed Up Education. We wish you the best of
+
+luck in your exam.
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                          1
+                                WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                            答疑须知
+
+上课建议
+
+
+
+有问题随时问
+
+
+
+不要不懂装懂
+
+
+
+你可以用任何东西来记笔记，如果你需要我帮你打印一份讲义，请在上课前提前告知我
+
+
+
+虽然你可以用电脑来记，但是我还是分得清楚你在记笔记，还是你在回微信的，有的同
+
+学一边敲代码，一边脸上带着难以掩饰的微笑，我在上面看的是一清二楚
+
+
+
+把你的手机放在你也看不到，我也看不到的位置
+
+
+
+正常的人类，上课的时候不回盯着自己的裤裆看的，尤其是你还戴个眼镜，我能看到眼
+
+镜上一片绿，我在上面看的特别明显，
+
+
+
+
+请直入主题，不要问我睡没睡，不要问我吃没吃
+
+
+
+有的同学比较腼腆，不太敢问我问题，磨磨蹭蹭半天，但是到了学期末，我们一定会成
+
+为很好的朋友，省去那些客套，直接把你的问题扔我脸上，如果我 12 小时内没回你，大
+
+概率是我漏回了，一定要重新问一遍
+
+
+
+截图，而不是拍照，截图一定要截全
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                  2
+                                WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+
+哪怕你用的是 iphone 16 pro max，哪怕你用的是单反，也请截图
+
+
+
+为什么不要拍照呢，那是个大夏天，我躺在床上，我女朋友手机没电了，在用我的手机
+
+刷抖音，这时，微信弹出通知，某某某发来一条消息：睡了吗？这个她就很好奇了，然
+
+后微信通知又弹了一条，某某某，发来一张照片，她更好奇了，点开一看，一个哥们给
+
+我发了一张题目的拍照，重点是，屏幕的反射里能看到这哥们是光着上身的，哥们，大
+
+晚上的，睡了吗+自拍照，这我咋解释
+
+
+
+其实主要是截图看代码比较清楚，这样你期末复习的时候，咱俩的聊天记录就是你的错
+
+题本，所以截图方便你也方便我，节省咱俩的时间
+
+
+
+
+请不要发语音
+
+
+
+除非我在开车，我是不会给你发语音的，因为第一，我打字比我发语音快，第二，你发
+
+条语音过来，到期末的时候，你知道你都问过什么问题吗？所以为了方便自己也方便
+
+我，请不要发语音
+
+
+
+请不要在交流群里问任何作业相关
+
+
+
+
+如果是编程题有错误，不要跟我说“有错”，给我看题目+代码+test+error message
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                  3
+                                              WEEK 1       CPSC 107 || 2025-09-11
+
+
+
+                             Mathematical Calculation
+
+                      Familiar Notation              DrRacket
+
+                3-2                        (- 3 2)
+
+                3 – 2 + 4 /5               (+ (- 3 2) (/ 4 5))
+
+                (6 - 4)(3 + 2)             (* (- 6 4) (+ 3 2))
+
+
+
+
+Note:
+
+-    在 Racket 中，算式最前面的 Operator 可以是：-， +， *， /，sqr（平方）, sqrt
+
+     （平方根）, quotient（商）, remainder（余数）。这些已经帮你写好的 Operator 我
+
+     们叫做 Primitive Operator （基础操作符）
+
+    (sqr 2)                 ;; Output 4
+
+    (sqrt 9)                ;; Output 3
+
+    (quotient 75 7)         ;; Output 10
+
+    (remainder 75 7)        ;; Output 5
+
+-    我们同时把 sqr，sqrt，quotient，remainder 叫做 built-in functions（编程语言本
+
+     身提供的、直接可以使用的函数。这些函数由语言的开发者定义好，无需自己编写）
+
+-    Operands：The expressions follows operators, is the operands.
+-    我们将 Racket 中对最基础的算式的计算称为 Call to Primitive
+
+-    计算顺序： (从左到右，从里到外)
+
+          ð 将Operands转换为value
+
+          ð 执行Operators
+
+
+
+
+导师： Bochen Dong         |   UBC 校 区
+                                                                                    4
+                                               WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+Example:
+
+Show the step by step evaluation of the following expression.
+                                 (+ (∗ 12 3)(−2 1 3))
+
+
+Answer:
+
+
+(+ (* 12 3) (- 2 1 3))
+
+(+ 36 (- 2 1 3))
+
+(+ 36 -2)
+
+34
+
+
+
+
+导师： Bochen Dong          |   UBC 校 区
+                                                                                 5
+                                           WEEK 1    CPSC 107 || 2025-09-11
+
+
+
+                                     逻辑
+
+                                    逻辑连接词
+
+And
+
+
+
+
+A, B 为 C 为什么值的时候:
+
+                             A and B and C == True
+
+
+
+A. A = True, B = False, C = True
+
+B. A = True, B = True, C = True
+
+C. A= True, B = True, C = True
+
+D. A= False, B = False, C = True
+
+
+
+Or
+
+
+
+A, B 为 C 为什么值的时候:
+
+                              A or B or C == False
+
+
+
+A. A = True, B = False, C = True
+
+B. A = True, B = True, C = True
+
+C. A= True, B = True, C = True
+
+D. A= False, B = False, C = False
+
+
+
+
+导师： Bochen Dong      |   UBC 校 区
+                                                                              6
+                                              WEEK 1        CPSC 107 || 2025-09-11
+
+
+
+Not
+
+
+
+                                not True => False
+
+                                not False => True
+
+
+
+
+Racket 中的逻辑连接词
+
+
+              Familiar Notation                       DrRacket
+
+           A and B                         (and A B)
+
+           A or B                          (or A B)
+
+           Not A                           (not A)
+
+
+
+
+Example
+
+                         (and true true) ;; Output: True
+
+                          (or true false) ;; Output: True
+
+                            (not true) ;; Output: False
+
+                    (and (or true false) false) ;; Output: False
+
+
+
+
+导师： Bochen Dong     |   UBC 校 区
+                                                                                     7
+                                                WEEK 1      CPSC 107 || 2025-09-11
+
+
+
+
+                 短路求值（Short-circuit evaluation）
+当 A, B, C 都为 Fasle 的时候，下列式子是 True 还是 False？
+
+
+
+A) C and (not (A or B and C)) and (not (A and B and C))
+
+B) not C or (not (A or B and C)) or (not A and (B or not C))
+
+
+
+
+Note:
+
+l   当 AND 的第一个运算数的值为 false 时，其结果必定为 False；
+
+l   当 OR 的第一个运算数为 true 时，最后结果必定为 True
+
+
+
+
+Exercise（期中常考知识点）
+
+Show the step by step evaluation of the following expression.
+
+                 (and (< 3 5) (or (< 1 3) (= 1 3)) (or (> 1 5) (> 2 5)))
+
+
+
+⇒ (and true (or (< 1 3) (= 1 3)) (or (> 1 5) (> 2 5)))
+
+⇒ (and true (or true (= 1 3)) (or (> 1 5) (> 2 5)))
+
+⇒ (and true true (or (> 1 5) (> 2 5))) 这一步很关键，直接计算为 true
+
+⇒ (and true true (or false (> 2 5)))
+
+⇒ (and true true (or false false))
+
+⇒ (and true true false)
+
+⇒ false
+
+
+
+
+导师： Bochen Dong       |   UBC 校 区
+                                                                                     8
+                                            WEEK 1      CPSC 107 || 2025-09-11
+
+
+
+Exercise（自己尝试一下）
+
+                      (and (< 3 5) (< 4 8) (7 < 6) (< 2 3))
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                                 9
+                                           WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                                   String
+
+String：用双引号扩起来的数据我们称之为字符串（String）
+
+
+
+
+string-append: 将多个字符串相连
+
+string-length: 检查string的长度
+
+substring: 将string 切片 (前取后不取)
+
+string=?: 比较两个string 是否相等
+
+
+
+Note:
+
+“123” 是String， 123 是number。
+
+
+
+
+Example:
+
+(string-append "123" "456" "789") ;; "123456789"
+
+(string-length "123") ;; 3
+
+(substring "123" 0 1) ;; "1"
+
+(string=? "123" "456") ;; False
+
+
+
+
+导师： Bochen Dong       |   UBC 校 区
+                                                                             10
+                                      WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                                  Image
+
+
+l   (circle 10 “solid”“red”) 画一个红色的实心圆
+
+    注意：（半径为10）
+
+l   (rectangle 10 20“outline”“red”) 画一个红色的空心举行
+
+    注意：（宽为10，长为20）
+
+l   (text “hello” 24 “orange”) 画一个橘色的hello，字体大小为24
+
+    注意：这个画出来的hello是image，而不是string
+
+l   (above image_1 image 2 …) 将一组image从上至下排列 （中心对齐）
+
+l   (beside image_1 image 2 …) 将一组image从左至右排列 （中心对齐）
+
+l   (overlay image_1 image 2 …) 将一组image叠放在一起（中心对齐）
+
+l   (rotate 30 image) 将一个image旋转30度
+
+
+
+Note:
+
+    -   (require 2htdp/image)   如果要使用绘图，将这一行放在最上面
+
+    -   Racket 除了能画圆形，长方形，还能画正方形，椭圆，三角形等
+
+    -   本节课考察定义非常之少，比如，不会考察 (circle 0“solid”“red”)是什么，
+        你考试是带着电脑去的，这玩意你随便测一下就行，重点是让学生理解，非常多的
+        学生喜欢花大量的时间，纠结某个定义，这门课又不考，花那时间干嘛
+
+
+
+
+导师： Bochen Dong     |   UBC 校 区
+                                                                        11
+                                    WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                           Primitive Data
+
+
+我们会主要学习的四种Primitive Data ：
+
+   -   Booleans,
+
+   -   numbers,
+
+   -   image,
+
+   -   String
+
+
+
+这些都是基础数据类型，在我们以后的课程中，我们慢慢会接触到更多的数据类型
+
+
+
+
+可以稍微扩展一下，有两个问题，
+
+1. 为什么计算机需要不同的数据类型
+
+2. 基础数据类型中的“基础”是啥意思，计算机中的其他数据类型，都是由基础数据类型
+  组合而成的，所以我们也会把基础数据类型，叫做原子数据类型，原子是干嘛用的，是
+  用来组成其他元素的
+
+3. 比如，我们要在学校的数据库里存一个学生的数据，那么我就需要同时存储他的名字，
+  学号，成绩，照片等
+
+
+
+
+导师： Bochen Dong    |   UBC 校 区
+                                                                      12
+                                        WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                            Function
+
+Definition：Function（函数）
+
+函数是 一段可以重复使用的代码，用于执行某个特定任务。
+
+就像数学里的 f(x)，在编程中你也可以定义 f(x) 来返回结果
+
+
+函数基本结构：
+
+
+(define (函数名 变量一 变量二)
+
+ 函数逻辑
+
+ )
+
+
+
+
+Example：
+
+把下列数学函数，转化为计算机中的函数
+                          𝑓(𝑥, 𝑦) = 𝑥 ! + 𝑦 !
+
+
+
+
+这里一定要打开 racket，向学生展示怎么使用 racket
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                          13
+                                            WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+
+                                  Evaluation Rule
+
+我们采用惯例，总是先简化最左边需要简化的表达式
+
+
+
+
+Example:
+
+(define (f x) (* x x))
+
+(define (g x y) (- x y))
+
+
+
+(g (f 2) (g 3 1))
+
+ð (g (* 2 2) (g 3 1))
+
+ð (g 4 (g 3 1))
+
+ð (g 4 (- 3 1))
+
+ð (g 4 2)
+
+ð (- 4 2)
+
+ð 2
+
+
+
+
+这里一定要打开 racket，向学生展示验证逻辑
+
+
+
+
+导师： Bochen Dong            |   UBC 校 区
+                                                                              14
+                                       WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+Exercise:
+
+(define (term x y) (* x (sqr y)))
+
+
+
+逐步化简：
+
+(term (- 5 3) (+ 1 2))
+
+ð (term 2 (+ 1 2))
+
+ð (term 2 3)
+
+ð (* 2 (sqr 3))
+
+ð (* 2 9)
+
+ð 18
+
+
+
+
+导师： Bochen Dong          |   UBC 校 区
+                                                                         15
+                                            WEEK 1      CPSC 107 || 2025-09-11
+
+
+
+
+                                Global Variable
+
+
+Global Variable
+
+A global variable is a variable that can be accessed from any part of a computer
+
+program, regardless of the scope or function it's defined within
+
+
+
+Example
+
+考虑如下的代码段，输出是什么
+
+
+
+(define DISCOUNT 0.2)
+
+(define TAX-RATE 0.13)
+
+
+
+(define (cal_final-price total_price)
+
+  (* (* total_price DISCOUNT) TAX-RATE)
+
+  )
+
+
+
+(cal_final-price 200)
+
+
+
+
+要点：
+
+1. 为什么要使用 global variable，先讲如果没有，那么每个 function 都需要这个资源，
+
+      但是如果有个共享的，那么都能用
+
+2. Evaluation rule 是什么
+
+3. 一般为大写
+
+
+
+
+导师： Bochen Dong         |   UBC 校 区
+                                                                                 16
+                                         WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                                    IF
+
+If
+
+在 Question Expression 满足时执行 true-answer, 不满足时执行 false -answer
+
+
+(if question-expression
+
+     true-answer
+
+     false-answer
+
+     )
+
+
+
+Example:
+
+有一天你的男/女朋友跟你说，你去楼下买两个西瓜，如果遇见了卖盐的，就买一个
+
+
+
+请问为什么他只带了一个西瓜回来？
+
+如果想把上述逻辑转化为代码，会是什么样的
+
+
+
+
+(if 遇见卖盐的
+
+     1
+
+     2
+
+     )
+
+
+
+
+导师： Bochen Dong     |     UBC 校 区
+                                                                           17
+                                       WEEK 1    CPSC 107 || 2025-09-11
+
+
+
+Evaluation Rule :
+
+
+
+如果 question expression 被计算为 True，那么将整个 if 替换为 true answer
+
+如果 question expression 被计算为 False，那么将整个 if 替换为 False answer
+
+
+
+
+Exercise （期中必考题型）:
+
+Show the step by step evaluation of the below expression.
+
+(define IMAGE_HEIGHT 10)
+
+(define IMAGE_WIDTH 5)
+
+
+
+(if (> IMAGE_HEIGHT IMAGE_WIDTH)
+
+    "Tall"
+
+    "Wide"
+
+    )
+
+
+
+
+导师： Bochen Dong     |   UBC 校 区
+                                                                          18
+                                        WEEK 1    CPSC 107 || 2025-09-11
+
+
+
+Exercise （期中必考题型）:
+
+
+
+Show the step by step evaluation of the following expression.
+
+
+
+(define A 5)
+
+(define B 10)
+
+
+
+(define (foo x y)
+
+  (+ (* A x y B) (+ x y x)))
+
+
+
+
+(foo 1 2)
+
+
+
+
+导师： Bochen Dong      |   UBC 校 区
+                                                                           19
+                                            WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+                                   Cond
+
+(cond
+
+  [question-expression answer-expression]
+
+  [question-expression answer-expression]
+
+  [else answer-expression])
+
+
+
+Exercise :
+
+Show the step by step evaluation of the following expression.
+
+
+
+(cond
+
+  [(2 > 3) "ab"]
+
+  [(4 < 2) "def"]
+
+  [else "g"])
+
+
+
+(cond
+
+  [(2 > 3) "ab"]
+
+  [(4 < 2) "def"]
+
+  [else "g"])
+
+
+
+(cond
+
+  [false "ab"]
+
+  [(4 < 2) "def"]
+
+  [else "g"])
+
+
+
+
+导师： Bochen Dong     |   UBC 校 区
+                                                                              20
+                                WEEK 1   CPSC 107 || 2025-09-11
+
+
+
+(cond
+
+ [false "def"]
+
+ [else "g"])
+
+
+
+"g"
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                  21
+

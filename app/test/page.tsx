@@ -33,13 +33,19 @@ import { listTestResults, type TestResultRow } from '@/lib/utils/test-results';
 
 type TestKind =
   | 'single-page'
+  | 'openmaic-legacy'
   | 'html-pipeline'
+  | 'chart-showcase'
   | 'html-single-page'
   | 'file-page'
   | 'html-file-page'
   | 'html-lesson'
+  | 'html-openmaic-lesson'
   | 'html-notebook'
-  | 'problem-import'
+  | 'problem-import-stepped'
+  | 'problem-import-direct-llm'
+  | 'problem-image-extraction'
+  | 'problem-workspace-ui'
   | 'custom-review';
 
 type TestSurface = 'slides' | 'chat' | 'problems' | 'review';
@@ -62,6 +68,7 @@ interface TestEntry {
   chips: string[];
   accentClass: string;
   icon: 'file' | 'problem' | 'presentation' | 'code' | 'review';
+  deprecated?: boolean;
 }
 
 interface SlideTestSection {
@@ -109,6 +116,28 @@ const TEST_ENTRIES: TestEntry[] = [
     icon: 'presentation',
   },
   {
+    id: 'openmaic-legacy',
+    title: 'OpenMAIC-org PDF 整节课生成',
+    eyebrow: 'OpenMAIC-org / PDF to classroom',
+    description:
+      '复刻 OpenMAIC-org 上传 PDF 直接生成完整 classroom 的老链路：parse-pdf → generate-classroom → classroom 回放。',
+    href: '/generation-openmaic-test',
+    chips: ['PDF upload', 'generate-classroom', 'openmaic-legacy'],
+    accentClass: 'from-slate-700 to-blue-500',
+    icon: 'presentation',
+  },
+  {
+    id: 'chart-showcase',
+    title: '图表样式探索测试',
+    eyebrow: 'experimental / old pipeline first',
+    description:
+      '旧版单页链路作为主线，保留新图表叙事 prompt 仅做同主题 A/B 探索，验证哪些版式提示可以被吸收到旧线路里。',
+    href: '/generation-chart-style-test',
+    chips: ['old pipeline first', 'experimental prompt', 'same-topic A/B'],
+    accentClass: 'from-blue-600 to-emerald-400',
+    icon: 'presentation',
+  },
+  {
     id: 'html-single-page',
     title: 'HTML 单页质量测试',
     eyebrow: 'HTML / 页面类型 / 16:9',
@@ -153,6 +182,17 @@ const TEST_ENTRIES: TestEntry[] = [
     icon: 'code',
   },
   {
+    id: 'html-openmaic-lesson',
+    title: 'OpenMAIC 思路 HTML 整课生成',
+    eyebrow: 'OpenMAIC outline → old HTML renderer',
+    description:
+      '新增路线：先用 OpenMAIC 式整课大纲规划教学顺序、互动/测验节点，再交给旧 HTML 单页生成器输出，不改旧 HTML 链路。',
+    href: '/generation-html-openmaic-lesson-test',
+    chips: ['OpenMAIC spine', 'HTML renderer', 'isolated v2'],
+    accentClass: 'from-slate-700 to-emerald-400',
+    icon: 'code',
+  },
+  {
     id: 'html-notebook',
     title: 'HTML 整本笔记本生成测试',
     eyebrow: 'testfile 科目文件 / 页数档位 / 全书规划',
@@ -164,14 +204,47 @@ const TEST_ENTRIES: TestEntry[] = [
     icon: 'code',
   },
   {
-    id: 'problem-import',
-    title: 'PDF 导题测试',
-    eyebrow: 'PDF / 题目抽取 / 数据库保存',
-    description:
-      '上传 PDF 后解析题目，生成题库草稿，并把导入记录持久化到通用测试结果表，刷新后继续查看上一次结果。',
-    href: '/problem-import-test',
-    chips: ['pdf import', 'problem drafts', 'persistent QA'],
+    id: 'problem-import-stepped',
+    title: 'PDF 导题分步管线测试',
+    eyebrow: '已弃用 / Source Package → Structure Plan',
+    description: '已弃用，仅保留作历史回归参考；当前导题主链路以 LLM 直读测试为准。',
+    href: '/problem-import-test?mode=stepped',
+    chips: ['deprecated', 'source package', 'structure plan'],
     accentClass: 'from-rose-500 to-orange-400',
+    icon: 'problem',
+    deprecated: true,
+  },
+  {
+    id: 'problem-workspace-ui',
+    title: '做题空间 UI 测试',
+    eyebrow: 'Structured fixtures → answer workspace',
+    description:
+      '内置选择、填空、计算、简答、证明和代码题，直接检查做题空间的题面、作答区、代码区和记录面板 UI。',
+    href: '/problem-workspace-test',
+    chips: ['structured problems', 'answer UI', 'code workspace'],
+    accentClass: 'from-sky-500 to-emerald-400',
+    icon: 'problem',
+  },
+  {
+    id: 'problem-import-direct-llm',
+    title: 'PDF 导题 LLM 直读测试',
+    eyebrow: 'PDF → LLM boundaries → Drafts',
+    description:
+      '让模型直接读取 PDF、判断题目边界并输出题库草稿，用来验证不依赖本地预切题的导入效果。',
+    href: '/problem-import-test?mode=direct-llm',
+    chips: ['direct pdf read', 'llm boundaries', 'latex drafts'],
+    accentClass: 'from-rose-500 to-orange-400',
+    icon: 'problem',
+  },
+  {
+    id: 'problem-image-extraction',
+    title: '图像题提取测试',
+    eyebrow: 'sourceImages → assets.images → preview',
+    description:
+      '用一条含函数图像的 fixture 验证 PDF 图像能绑定到题目 publicContent.assets.images，并在题库预览里正常显示。',
+    href: '/problem-image-extraction-test',
+    chips: ['sourceImages', 'question image', 'visual preview'],
+    accentClass: 'from-sky-500 to-emerald-400',
     icon: 'problem',
   },
   {
@@ -188,13 +261,16 @@ const TEST_ENTRIES: TestEntry[] = [
 ];
 
 const HTML_PIPELINE_TEST_IDS = new Set<TestKind>(['html-pipeline']);
+const HTML_VISUAL_EXPERIMENT_TEST_IDS = new Set<TestKind>(['chart-showcase']);
 const HTML_OUTPUT_REGRESSION_TEST_IDS = new Set<TestKind>([
   'html-single-page',
   'html-file-page',
   'html-lesson',
+  'html-openmaic-lesson',
   'html-notebook',
 ]);
 const BUILT_IN_LAYOUT_TEST_IDS = new Set<TestKind>(['single-page', 'file-page']);
+const OPENMAIC_LEGACY_TEST_IDS = new Set<TestKind>(['openmaic-legacy']);
 
 const SLIDE_TEST_SECTIONS: SlideTestSection[] = [
   {
@@ -203,6 +279,12 @@ const SLIDE_TEST_SECTIONS: SlideTestSection[] = [
     description:
       '先逐步验收 Source Package、coursePlan、slideOutlines 和 slides[].htmlPrompt；前一 gate 通过后，才进入后一 gate。',
     entries: TEST_ENTRIES.filter((entry) => HTML_PIPELINE_TEST_IDS.has(entry.id)),
+  },
+  {
+    id: 'html-visual-experiment',
+    title: 'HTML 视觉实验',
+    description: '验证更像前端 deck 的视觉表达，重点看图表叙事、主题一致性和旧结果对比。',
+    entries: TEST_ENTRIES.filter((entry) => HTML_VISUAL_EXPERIMENT_TEST_IDS.has(entry.id)),
   },
   {
     id: 'html-output-regression',
@@ -219,15 +301,38 @@ const SLIDE_TEST_SECTIONS: SlideTestSection[] = [
     entries: TEST_ENTRIES.filter((entry) => BUILT_IN_LAYOUT_TEST_IDS.has(entry.id)),
     deprecated: true,
   },
+  {
+    id: 'openmaic-legacy',
+    title: 'OpenMAIC-org 整节课链路',
+    description: '上传 PDF 后直接走旧版 OpenMAIC classroom generation，生成整节课并打开回放页。',
+    entries: TEST_ENTRIES.filter((entry) => OPENMAIC_LEGACY_TEST_IDS.has(entry.id)),
+  },
 ];
 
 const SLIDE_TEST_ENTRIES = SLIDE_TEST_SECTIONS.flatMap((section) => section.entries);
-const PROBLEM_IMPORT_TEST_ENTRIES = TEST_ENTRIES.filter((entry) => entry.id === 'problem-import');
+const PROBLEM_IMPORT_TEST_ENTRIES = TEST_ENTRIES.filter(
+  (entry) =>
+    entry.id.startsWith('problem-import-') ||
+    entry.id === 'problem-image-extraction' ||
+    entry.id === 'problem-workspace-ui',
+).sort((left, right) => Number(left.deprecated || false) - Number(right.deprecated || false));
 const REVIEW_TEST_ENTRIES = TEST_ENTRIES.filter((entry) => entry.id === 'custom-review');
+
+function problemMetricLabels(entry: TestEntry): { generated: string; error: string } {
+  if (entry.id === 'problem-workspace-ui') {
+    return { generated: '题目', error: 'UI风险' };
+  }
+  if (entry.id === 'problem-image-extraction') {
+    return { generated: '图像题', error: 'fail' };
+  }
+  return { generated: '草稿', error: '待修正' };
+}
 
 function readStoredTestSurface(): TestSurface {
   if (typeof window === 'undefined') return 'slides';
   try {
+    const queryValue = new URLSearchParams(window.location.search).get('surface');
+    if (TEST_SURFACES.has(queryValue as TestSurface)) return queryValue as TestSurface;
     const value = window.localStorage.getItem(TEST_SURFACE_STORAGE_KEY);
     return TEST_SURFACES.has(value as TestSurface) ? (value as TestSurface) : 'slides';
   } catch {
@@ -323,7 +428,10 @@ function summaryTimestamp(row: TestResultRow | undefined): number | null {
 
 function summarizeRows(entry: TestEntry, rows: TestResultRow[]): TestStatus {
   const entryRows = rows.filter((row) => row.testId === entry.id);
-  const stateRow = entryRows.find((row) => row.resultKey === 'state');
+  const stateRow =
+    entryRows.find((row) => row.resultKey === 'state-v3') ||
+    entryRows.find((row) => row.resultKey === 'state') ||
+    entryRows.find((row) => row.resultKey.startsWith('state-'));
   if (stateRow) {
     return {
       generatedCount: summaryNumber(stateRow, 'generatedCount'),
@@ -383,13 +491,19 @@ export default function GenerationTestsPage() {
   }>({ courseId: null, notebooks: [] });
   const [statuses, setStatuses] = useState<Record<TestKind, TestStatus>>({
     'single-page': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'openmaic-legacy': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-pipeline': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'chart-showcase': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-single-page': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'file-page': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-file-page': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-lesson': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'html-openmaic-lesson': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-notebook': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
-    'problem-import': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'problem-import-stepped': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'problem-import-direct-llm': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'problem-image-extraction': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'problem-workspace-ui': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'custom-review': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
   });
 
@@ -491,7 +605,7 @@ export default function GenerationTestsPage() {
       : activeSurface === 'chat'
         ? '课程总控、群聊路由、笔记本直聊和富文本消息渲染。'
         : activeSurface === 'problems'
-          ? 'PDF 题目抽取、题库草稿、校验错误和导入结果。'
+          ? 'PDF 题目抽取、题库草稿、做题空间 UI、代码题 test case 和导入结果。'
           : '定制化复习画像、题库体检、复习计划生成和路线关卡验收。';
 
   return (
@@ -527,7 +641,7 @@ export default function GenerationTestsPage() {
                   </TabsTrigger>
                   <TabsTrigger value="problems" className="gap-2 rounded-md text-sm">
                     <FileQuestion className="size-4" />
-                    题目导入
+                    题目测试
                   </TabsTrigger>
                   <TabsTrigger value="review" className="gap-2 rounded-md text-sm">
                     <MapIcon className="size-4" />
@@ -771,13 +885,13 @@ export default function GenerationTestsPage() {
             <section className="grid gap-5">
               <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
-                  <h2 className="text-xl font-semibold tracking-normal">题目导入测试</h2>
+                  <h2 className="text-xl font-semibold tracking-normal">题目测试</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    单独验收 PDF 解析、题目抽取、草稿校验和数据库持久化。
+                    单独验收 PDF 解析、题目抽取、做题空间 UI、代码题 test case 和导入结果。
                   </p>
                 </div>
                 <Badge variant="secondary" className="w-fit rounded-md">
-                  PDF Import
+                  Problems QA
                 </Badge>
               </div>
 
@@ -785,22 +899,43 @@ export default function GenerationTestsPage() {
                 {PROBLEM_IMPORT_TEST_ENTRIES.map((entry) => {
                   const status = statuses[entry.id];
                   const EntryIcon = getTestIcon(entry.icon);
+                  const metricLabels = problemMetricLabels(entry);
                   return (
                     <Link
                       key={entry.id}
                       href={entry.href}
-                      className="group block transition hover:bg-slate-50/80"
+                      className="group block border-t border-slate-100 transition first:border-t-0 hover:bg-slate-50/80"
                     >
-                      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_300px_28px] lg:items-center">
+                      <div
+                        className={cn(
+                          'grid gap-4 p-4 lg:grid-cols-[1fr_300px_28px] lg:items-center',
+                          entry.deprecated && 'bg-slate-50/60',
+                        )}
+                      >
                         <div className="flex min-w-0 gap-3">
-                          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600">
+                          <div
+                            className={cn(
+                              'flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600',
+                              entry.deprecated && 'text-slate-400',
+                            )}
+                          >
                             <EntryIcon className="size-5" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-base font-semibold tracking-normal text-slate-950">
+                              <h3
+                                className={cn(
+                                  'text-base font-semibold tracking-normal text-slate-950',
+                                  entry.deprecated && 'text-slate-500',
+                                )}
+                              >
                                 {entry.title}
                               </h3>
+                              {entry.deprecated ? (
+                                <Badge variant="destructive" className="rounded-md">
+                                  弃用
+                                </Badge>
+                              ) : null}
                               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
                                 {entry.eyebrow}
                               </span>
@@ -820,13 +955,17 @@ export default function GenerationTestsPage() {
 
                         <div className="grid grid-cols-3 gap-2 rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
                           <div>
-                            <div className="text-[11px] font-medium text-slate-400">草稿</div>
+                            <div className="text-[11px] font-medium text-slate-400">
+                              {metricLabels.generated}
+                            </div>
                             <div className="mt-0.5 font-semibold text-slate-900">
                               {status.generatedCount}
                             </div>
                           </div>
                           <div>
-                            <div className="text-[11px] font-medium text-slate-400">待修正</div>
+                            <div className="text-[11px] font-medium text-slate-400">
+                              {metricLabels.error}
+                            </div>
                             <div
                               className={cn(
                                 'mt-0.5 font-semibold',

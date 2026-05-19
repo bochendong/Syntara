@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import {
+  buildNotebookProblemDraftsFromReviewInsertRequest,
+  ReviewProblemInsertError,
+  reviewProblemInsertRequestSchema,
+} from '@/lib/problem-bank/review-problem-insert';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { listNotebookProblemsForUser } from '@/lib/server/notebook-problems/service';
+import {
+  createNotebookProblemsFromDrafts,
+  listNotebookProblemsForUser,
+} from '@/features/problems/server/service';
 
 function toClientProblem(problem: Awaited<ReturnType<typeof listNotebookProblemsForUser>>[number]) {
   return {
@@ -33,5 +42,45 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const problems = await listNotebookProblemsForUser(auth.userId, id);
     return NextResponse.json({ problems: problems.map(toClientProblem) });
+  });
+}
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  return safeRoute(async () => {
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { id } = await context.params;
+
+    const payload = reviewProblemInsertRequestSchema.safeParse(await request.json());
+    if (!payload.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: payload.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    let drafts;
+    try {
+      drafts = buildNotebookProblemDraftsFromReviewInsertRequest(payload.data);
+    } catch (error) {
+      const message =
+        error instanceof ReviewProblemInsertError || error instanceof z.ZodError
+          ? error.message
+          : 'Failed to normalize review problems';
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const problems = await createNotebookProblemsFromDrafts({
+      userId: auth.userId,
+      notebookId: id,
+      drafts,
+    });
+    return NextResponse.json(
+      {
+        insertedCount: drafts.length,
+        problems: problems.map(toClientProblem),
+      },
+      { status: 201 },
+    );
   });
 }

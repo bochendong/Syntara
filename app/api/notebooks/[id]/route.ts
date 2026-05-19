@@ -3,6 +3,14 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
+import {
+  deleteOwnedNotebook,
+  findOwnedNotebookForStoreUpdate,
+  findOwnedNotebookId,
+  findOwnedNotebookWithScenes,
+  updateOwnedNotebook,
+} from '@/lib/server/repositories/notebook-repository';
 
 const updateNotebookSchema = z.object({
   courseId: z.string().trim().min(1).nullable().optional(),
@@ -16,17 +24,6 @@ const updateNotebookSchema = z.object({
   notebookPriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
-async function getNotebookForUser(userId: string, id: string) {
-  return prisma.notebook.findFirst({
-    where: { id, ownerId: userId },
-    include: {
-      scenes: {
-        orderBy: { order: 'asc' },
-      },
-    },
-  });
-}
-
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
@@ -34,7 +31,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    const notebook = await getNotebookForUser(userId, id);
+    const notebook = await findOwnedNotebookWithScenes(prisma, userId, id);
     if (!notebook) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
@@ -57,10 +54,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       );
     }
 
-    const existing = await prisma.notebook.findFirst({
-      where: { id, ownerId: userId },
-      select: { id: true, sourceNotebookId: true },
-    });
+    const existing = await findOwnedNotebookForStoreUpdate(prisma, userId, id);
     if (!existing) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
@@ -74,10 +68,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const nextCourseId = payload.data.courseId;
     if (typeof nextCourseId === 'string') {
-      const ownCourse = await prisma.course.findFirst({
-        where: { id: nextCourseId, ownerId: userId },
-        select: { id: true },
-      });
+      const ownCourse = await findOwnedCourse(prisma, userId, nextCourseId);
       if (!ownCourse) {
         return NextResponse.json({ error: 'Course not found' }, { status: 404 });
       }
@@ -85,15 +76,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const shouldPublishNotebook = payload.data.listedInNotebookStore === true;
     const shouldUnpublishNotebook = payload.data.listedInNotebookStore === false;
-    const notebook = await prisma.notebook.update({
-      where: { id },
-      data: {
-        ...payload.data,
-        ...(payload.data.courseId === null ? { courseId: null } : {}),
-        ...(shouldPublishNotebook ? { storePublishedAt: new Date() } : {}),
-        ...(shouldUnpublishNotebook ? { storePublishedAt: null } : {}),
-      },
+    const notebook = await updateOwnedNotebook(prisma, userId, id, {
+      ...payload.data,
+      ...(payload.data.courseId === null ? { courseId: null } : {}),
+      ...(shouldPublishNotebook ? { storePublishedAt: new Date() } : {}),
+      ...(shouldUnpublishNotebook ? { storePublishedAt: null } : {}),
     });
+    if (!notebook) {
+      return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+    }
     return NextResponse.json({ notebook });
   });
 }
@@ -105,15 +96,12 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     const { userId } = auth;
     const { id } = await context.params;
 
-    const existing = await prisma.notebook.findFirst({
-      where: { id, ownerId: userId },
-      select: { id: true },
-    });
+    const existing = await findOwnedNotebookId(prisma, userId, id);
     if (!existing) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
 
-    await prisma.notebook.delete({ where: { id } });
+    await deleteOwnedNotebook(prisma, userId, id);
     return NextResponse.json({ ok: true });
   });
 }

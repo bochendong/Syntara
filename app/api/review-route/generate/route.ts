@@ -5,7 +5,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { requireUserId } from '@/lib/server/api-auth';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { reviewRouteSchema } from '@/lib/learning/review-route-types';
+import { reviewRouteSchema } from '@/features/review';
 
 type JsonObject = Record<string, unknown>;
 
@@ -40,6 +40,37 @@ const problemBankSchema = z
   .nullable()
   .optional();
 
+const privateMemorySchema = z.object({
+  id: z.string().trim().min(1),
+  concept: z.string().trim().min(1),
+  note: z.string().trim().min(1),
+  status: z.enum(['open', 'reviewed']),
+  severity: z.enum(['low', 'medium', 'high']).default('medium'),
+  source: z.string().trim().min(1).optional(),
+  relatedProblemIds: z.array(z.string().trim().min(1)).default([]),
+});
+
+const candidateProblemSchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  type: z.string().trim().min(1),
+  concepts: z.array(z.string().trim().min(1)).default([]),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  status: z.enum(['unattempted', 'passed', 'failed', 'partial', 'error']),
+  score: z.number().nullable().optional(),
+  tags: z.array(z.string().trim().min(1)).default([]),
+  preview: z.string().trim().min(1).optional(),
+});
+
+const reviewHistorySchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  status: z.enum(['completed', 'failed', 'partial', 'skipped']),
+  coveredConcepts: z.array(z.string().trim().min(1)).default([]),
+  failedConcepts: z.array(z.string().trim().min(1)).default([]),
+  problemIds: z.array(z.string().trim().min(1)).default([]),
+});
+
 const bodySchema = z.object({
   notebookId: z.string().trim().min(1),
   notebookName: z.string().trim().min(1),
@@ -47,6 +78,10 @@ const bodySchema = z.object({
   weakPoints: z.array(z.string().trim().min(1)).default([]),
   problemBank: problemBankSchema,
   scenes: z.array(sceneSchema).min(1).max(80),
+  privateMemory: z.array(privateMemorySchema).default([]),
+  candidateProblems: z.array(candidateProblemSchema).default([]),
+  reviewHistory: z.array(reviewHistorySchema).default([]),
+  selectedProblemIds: z.array(z.string().trim().min(1)).default([]),
 });
 
 function stripCodeFences(text: string): string {
@@ -312,6 +347,7 @@ function normalizeReviewRoutePayload(value: unknown): unknown {
                   normalizeOptionalString(node.passCriteria, 120) ??
                   defaultPassCriteria(kind, questionCount),
                 questionCount,
+                problemIds: normalizeStringArray(node.problemIds, 12),
                 sourceSignals: normalizeStringArray(node.sourceSignals, 6),
                 requiresQuestion: normalizeRequiresQuestion(node.requiresQuestion, kind),
                 rewardKind,
@@ -373,6 +409,70 @@ export async function POST(req: NextRequest) {
     })
     .join('\n');
   const problemBank = body.problemBank;
+  const requiredRouteConcepts = problemBank
+    ? Array.from(
+        new Set([
+          ...problemBank.weakConcepts,
+          ...problemBank.untriedConcepts,
+          ...problemBank.thinConcepts,
+          ...problemBank.missingConcepts,
+        ]),
+      )
+    : [];
+  const requiredMemoryConcepts = Array.from(
+    new Set(
+      body.privateMemory.filter((item) => item.status === 'open').map((item) => item.concept),
+    ),
+  );
+  const requiredHistoryRepairConcepts = Array.from(
+    new Set(body.reviewHistory.flatMap((item) => item.failedConcepts)),
+  );
+  const candidateCoverageLines =
+    requiredRouteConcepts.length > 0
+      ? requiredRouteConcepts
+          .map((concept) => {
+            const matches = body.candidateProblems
+              .filter((problem) => problem.concepts.includes(concept))
+              .slice(0, 6)
+              .map((problem) => problem.id);
+            return `- ${concept}: ${matches.length ? matches.join(', ') : '暂无候选题，必须标注需要先补题入题库'}`;
+          })
+          .join('\n')
+      : '- 暂无强制覆盖概念。';
+  const privateMemoryLines =
+    body.privateMemory.length > 0
+      ? body.privateMemory
+          .slice(0, 16)
+          .map(
+            (item) =>
+              `- ${item.concept} [${item.status}/${item.severity}] ${item.note}${
+                item.relatedProblemIds.length ? `；关联题 ${item.relatedProblemIds.join(', ')}` : ''
+              }`,
+          )
+          .join('\n')
+      : '暂无 notebook 私人记忆。';
+  const candidateProblemLines =
+    body.candidateProblems.length > 0
+      ? body.candidateProblems
+          .slice(0, 28)
+          .map(
+            (problem) =>
+              `- ${problem.id}: ${problem.title} (${problem.type}/${problem.difficulty}/${problem.status}) concepts=${problem.concepts.join('、') || '暂无'}${
+                typeof problem.score === 'number' ? ` score=${problem.score}` : ''
+              }${problem.preview ? `；${problem.preview}` : ''}`,
+          )
+          .join('\n')
+      : '暂无候选题。';
+  const reviewHistoryLines =
+    body.reviewHistory.length > 0
+      ? body.reviewHistory
+          .slice(0, 12)
+          .map(
+            (item) =>
+              `- ${item.title} [${item.status}] covered=${item.coveredConcepts.join('、') || '暂无'} failed=${item.failedConcepts.join('、') || '暂无'} problems=${item.problemIds.join(', ') || '暂无'}`,
+          )
+          .join('\n')
+      : '暂无历史复习记录。';
   const problemBankLines = problemBank
     ? [
         `题库总题量：${problemBank.totalProblems}`,
@@ -419,6 +519,24 @@ ${sceneLines}
 题库与学生掌握状态：
 ${problemBankLines}
 
+Notebook 私人记忆：
+${privateMemoryLines}
+
+候选题库题目（优先从这些题里组织 normal/elite/boss）：
+${candidateProblemLines}
+
+本轮路线必须覆盖的目标概念与可用候选题：
+${candidateCoverageLines}
+
+必须精确修复的私人记忆概念：
+${requiredMemoryConcepts.length ? requiredMemoryConcepts.map((concept) => `- ${concept}`).join('\n') : '- 暂无'}
+
+必须精确修复的历史失败概念：
+${requiredHistoryRepairConcepts.length ? requiredHistoryRepairConcepts.map((concept) => `- ${concept}`).join('\n') : '- 暂无'}
+
+历史复习记录：
+${reviewHistoryLines}
+
 请输出这个 JSON 结构：
 {
   "title": "复习路线图标题",
@@ -442,6 +560,7 @@ ${problemBankLines}
           "personalReason": "昨天你在这个知识点停过一次，我想先确认这里已经稳住。",
           "passCriteria": "3 题中至少答对 2 题才算过关",
           "questionCount": 3,
+          "problemIds": ["candidate-problem-id"],
           "sourceSignals": ["weak_point", "wrong_problem"],
           "requiresQuestion": true,
           "rewardKind": "none",
@@ -513,9 +632,12 @@ ${problemBankLines}
 - 最后一层只能有 boss，不能混入商店、营火、宝箱、事件或普通题。
 - normal/elite/boss 的 title 禁止使用“检测”“小测”“练习”这类泛标题，必须像关卡名。
 - normal/elite/boss 的 personalReason 必须引用错题、薄弱、未尝试、题量偏薄、已掌握巩固中的至少一种学生画像信号。
+- normal/elite/boss 必须优先使用候选题库题目，并在 problemIds 写入 1-5 个候选题 id；如果缺题，questionStyle 必须写“需要先补题入题库”。
+- “本轮路线必须覆盖的目标概念”是硬约束：每个有候选题 id 的目标概念，至少要出现在 1 个 normal/elite/boss 节点的 knowledgePoints 里，并且该节点 problemIds 必须包含对应概念的候选题 id。没有候选题的目标概念也要以“需要先补题入题库”显式暴露。
+- “必须精确修复的私人记忆概念”和“必须精确修复的历史失败概念”也是硬约束；请使用原始概念词写入 normal/elite/boss 的 knowledgePoints，不要用上位概念替代。例如输入是“等价无穷小”时，knowledgePoints 里必须出现“等价无穷小”，不能只写“极限”。
 - normal/elite/boss 的 questionCount 必须是 2-5，boss 必须是 4-6；passCriteria 必须明确几题答对几题。
 - 每个节点必须提供 rewardPoints 整数，并在 rewardPreview 里写清楚“通关 +X 奖励积分”。建议 normal 12-22、elite 28-42、boss 70-100、camp/event 8-22、treasure 18-40、shop 0-10。
-- sourceSignals 使用英文短标签，例如 wrong_problem、weak_point、untried_concept、thin_bank、mastered_review、boss_mix、reward。
+- sourceSignals 使用英文短标签，例如 private_memory、review_history、candidate_problem、wrong_problem、weak_point、untried_concept、thin_bank、mastered_review、boss_mix、reward。
 - 事件节点必须给 2 个 eventOptions；商店节点 rewardKind 优先 hint_card/forgiveness/mentor_cosmetic_shard；宝箱节点 rewardKind 优先 run_card/reward_coin/card_back_shard/relic_shard；营火节点 rewardKind 优先 forgiveness/card_upgrade。
 - 路线图要优先安排错题概念、未尝试概念和题量偏薄概念；已掌握概念可以作为 boss 综合题或低频巩固。
 - 如果题库缺少某专题题目，请在节点的 questionStyle 里标注“需要先补题入题库”，不要假装题库已经足够。`;

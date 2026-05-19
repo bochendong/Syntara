@@ -1,123 +1,20 @@
-/**
- * Quiz Grading API
- *
- * POST: Receives a text question + user answer, calls LLM for scoring and feedback.
- * Used for short-answer (text) questions that cannot be graded locally.
- */
-
 import { NextRequest } from 'next/server';
-import { callLLM } from '@/lib/ai/llm';
+
+import { gradeQuizAnswer, type GradeQuizAnswerInput } from '@/features/practice/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
-import { runWithRequestContext } from '@/lib/server/request-context';
+
 const log = createLogger('Quiz Grade');
-
-interface GradeRequest {
-  question: string;
-  userAnswer: string;
-  points: number;
-  commentPrompt?: string;
-  language?: string;
-  questionType?: 'short_answer' | 'proof' | 'code_tracing';
-  referenceAnswer?: string;
-  proof?: string;
-  analysis?: string;
-}
-
-interface GradeResponse {
-  score: number;
-  comment: string;
-}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as GradeRequest;
-    const {
-      question,
-      userAnswer,
-      points,
-      commentPrompt,
-      language,
-      questionType,
-      referenceAnswer,
-      proof,
-      analysis,
-    } = body;
+    const body = (await req.json()) as GradeQuizAnswerInput;
 
-    if (!question || !userAnswer) {
+    if (!body.question || !body.userAnswer) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'question and userAnswer are required');
     }
 
-    // Resolve model from request headers
-    const { model: languageModel } = await resolveModelFromHeaders(req);
-
-    const isZh = language === 'zh-CN';
-    const questionTypeLabel =
-      questionType === 'proof'
-        ? isZh
-          ? '证明题'
-          : 'proof question'
-        : questionType === 'code_tracing'
-          ? isZh
-            ? '代码追踪题'
-            : 'code tracing question'
-          : isZh
-            ? '简答题'
-            : 'short-answer question';
-
-    const systemPrompt = isZh
-      ? `你是一位专业的教育评估专家。你正在评分一道${questionTypeLabel}。请根据题目、参考信息和学生答案进行评分并给出简短评语。
-必须以如下 JSON 格式回复（不要包含其他内容）：
-{"score": <0到${points}的整数>, "comment": "<一两句评语>"}`
-      : `You are a professional educational assessor. You are grading a ${questionTypeLabel}. Grade the student's answer using the question and reference material, then provide brief feedback.
-You must reply in the following JSON format only (no other content):
-{"score": <integer from 0 to ${points}>, "comment": "<one or two sentences of feedback>"}`;
-
-    const userPrompt = isZh
-      ? `题目：${question}
-题型：${questionTypeLabel}
-满分：${points}分
-${commentPrompt ? `评分要点：${commentPrompt}\n` : ''}${referenceAnswer ? `参考答案：${referenceAnswer}\n` : ''}${proof ? `参考证明：${proof}\n` : ''}${analysis ? `解析：${analysis}\n` : ''}学生答案：${userAnswer}`
-      : `Question: ${question}
-Question type: ${questionTypeLabel}
-Full marks: ${points} points
-${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}${referenceAnswer ? `Reference answer: ${referenceAnswer}\n` : ''}${proof ? `Reference proof: ${proof}\n` : ''}${analysis ? `Analysis: ${analysis}\n` : ''}Student answer: ${userAnswer}`;
-
-    const result = await runWithRequestContext(req, '/api/quiz-grade', () =>
-      callLLM(
-        {
-          model: languageModel,
-          system: systemPrompt,
-          prompt: userPrompt,
-        },
-        'quiz-grade',
-      ),
-    );
-
-    // Parse the LLM response as JSON
-    const text = result.text.trim();
-    let gradeResult: GradeResponse;
-
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found');
-      const parsed = JSON.parse(jsonMatch[0]);
-      gradeResult = {
-        score: Math.max(0, Math.min(points, Math.round(Number(parsed.score)))),
-        comment: String(parsed.comment || ''),
-      };
-    } catch {
-      // Fallback: give partial credit with a generic comment
-      gradeResult = {
-        score: Math.round(points * 0.5),
-        comment: isZh
-          ? '已作答，请参考标准答案。'
-          : 'Answer received. Please refer to the standard answer.',
-      };
-    }
-
+    const gradeResult = await gradeQuizAnswer(body, req);
     return apiSuccess({ ...gradeResult });
   } catch (error) {
     log.error('Error:', error);

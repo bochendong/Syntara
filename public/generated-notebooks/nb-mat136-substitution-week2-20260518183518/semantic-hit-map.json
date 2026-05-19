@@ -1,0 +1,780 @@
+{
+  "notebookId": "nb-mat136-substitution-week2-20260518183518",
+  "source": "imagegen-full-slide-substitution-from-week2-pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "MAT 136 · 换元法",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": []
+      }
+    },
+    {
+      "order": 1,
+      "title": "换元法核心：反向链式法则",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s02-reverse-chain-rule",
+            "semanticId": "reverse-chain-rule",
+            "label": "反向链式法则",
+            "sourceRect": [
+              55,
+              175,
+              800,
+              350
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 109.375,
+              "width": 500,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s02-u-choice-signals",
+            "semanticId": "u-choice-signals",
+            "label": "选 u 的三个信号",
+            "sourceRect": [
+              910,
+              155,
+              630,
+              540
+            ],
+            "canvasRect": {
+              "left": 568.75,
+              "top": 96.875,
+              "width": 393.75,
+              "height": 337.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s02-complete-rewrite-warning",
+            "semanticId": "complete-rewrite-warning",
+            "label": "换元警告",
+            "sourceRect": [
+              90,
+              720,
+              1420,
+              115
+            ],
+            "canvasRect": {
+              "left": 56.25,
+              "top": 450,
+              "width": 887.5,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "例 1：括号里面就是 u",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s03-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              310,
+              155,
+              900,
+              150
+            ],
+            "canvasRect": {
+              "left": 193.75,
+              "top": 96.875,
+              "width": 562.5,
+              "height": 93.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s03-three-step-solution",
+            "semanticId": "three-step-solution",
+            "label": "选 u、算 du、全换",
+            "sourceRect": [
+              50,
+              315,
+              1490,
+              300
+            ],
+            "canvasRect": {
+              "left": 31.25,
+              "top": 196.875,
+              "width": 931.25,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s03-final-answer",
+            "semanticId": "final-answer",
+            "label": "积分并换回",
+            "sourceRect": [
+              190,
+              635,
+              1140,
+              120
+            ],
+            "canvasRect": {
+              "left": 118.75,
+              "top": 396.875,
+              "width": 712.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s03-teacher-note",
+            "semanticId": "teacher-note",
+            "label": "做题提醒",
+            "sourceRect": [
+              140,
+              765,
+              1260,
+              100
+            ],
+            "canvasRect": {
+              "left": 87.5,
+              "top": 478.125,
+              "width": 787.5,
+              "height": 62.5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "例 2：差一个常数也可以",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s04-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              415,
+              145,
+              735,
+              140
+            ],
+            "canvasRect": {
+              "left": 259.375,
+              "top": 90.625,
+              "width": 459.375,
+              "height": 87.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s04-constant-factor",
+            "semanticId": "constant-factor",
+            "label": "差常数处理",
+            "sourceRect": [
+              45,
+              315,
+              1510,
+              250
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 196.875,
+              "width": 943.75,
+              "height": 156.25
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s04-final-answer",
+            "semanticId": "final-answer",
+            "label": "答案",
+            "sourceRect": [
+              240,
+              575,
+              1120,
+              190
+            ],
+            "canvasRect": {
+              "left": 150,
+              "top": 359.375,
+              "width": 700,
+              "height": 118.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s04-constant-warning",
+            "semanticId": "constant-warning",
+            "label": "常数提醒",
+            "sourceRect": [
+              210,
+              785,
+              1180,
+              80
+            ],
+            "canvasRect": {
+              "left": 131.25,
+              "top": 490.625,
+              "width": 737.5,
+              "height": 50
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "例 3：负号来自 du",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s05-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              65,
+              170,
+              670,
+              145
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 106.25,
+              "width": 418.75,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s05-negative-du",
+            "semanticId": "negative-du",
+            "label": "负号处理",
+            "sourceRect": [
+              55,
+              350,
+              840,
+              300
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 218.75,
+              "width": 525,
+              "height": 187.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s05-solution",
+            "semanticId": "solution",
+            "label": "换成 u 后积分",
+            "sourceRect": [
+              930,
+              310,
+              615,
+              350
+            ],
+            "canvasRect": {
+              "left": 581.25,
+              "top": 193.75,
+              "width": 384.375,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s05-sign-warning",
+            "semanticId": "sign-warning",
+            "label": "负号提醒",
+            "sourceRect": [
+              55,
+              700,
+              1490,
+              165
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 437.5,
+              "width": 931.25,
+              "height": 103.12499999999999
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "例 4：换完还剩 x 怎么办？",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s06-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              410,
+              150,
+              700,
+              140
+            ],
+            "canvasRect": {
+              "left": 256.25,
+              "top": 93.75,
+              "width": 437.5,
+              "height": 87.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s06-rewrite-leftover-x",
+            "semanticId": "rewrite-leftover-x",
+            "label": "把剩下的 x 也换掉",
+            "sourceRect": [
+              50,
+              310,
+              1500,
+              280
+            ],
+            "canvasRect": {
+              "left": 31.25,
+              "top": 193.75,
+              "width": 937.5,
+              "height": 175
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s06-final-answer",
+            "semanticId": "final-answer",
+            "label": "积分并换回",
+            "sourceRect": [
+              155,
+              615,
+              1290,
+              125
+            ],
+            "canvasRect": {
+              "left": 96.875,
+              "top": 384.375,
+              "width": 806.25,
+              "height": 78.125
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s06-leftover-warning",
+            "semanticId": "leftover-warning",
+            "label": "剩余变量提醒",
+            "sourceRect": [
+              200,
+              760,
+              1200,
+              95
+            ],
+            "canvasRect": {
+              "left": 125,
+              "top": 475,
+              "width": 750,
+              "height": 59.375
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "定积分换元：上下限也要换",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s07-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              270,
+              155,
+              1050,
+              120
+            ],
+            "canvasRect": {
+              "left": 168.75,
+              "top": 96.875,
+              "width": 656.25,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s07-wrong-way",
+            "semanticId": "wrong-way",
+            "label": "错误做法",
+            "sourceRect": [
+              60,
+              300,
+              660,
+              390
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 187.5,
+              "width": 412.5,
+              "height": 243.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s07-correct-way",
+            "semanticId": "correct-way",
+            "label": "正确做法",
+            "sourceRect": [
+              755,
+              300,
+              760,
+              390
+            ],
+            "canvasRect": {
+              "left": 471.875,
+              "top": 187.5,
+              "width": 475,
+              "height": 243.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s07-rule",
+            "semanticId": "rule",
+            "label": "定积分规则",
+            "sourceRect": [
+              45,
+              735,
+              1100,
+              110
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 459.375,
+              "width": 687.5,
+              "height": 68.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "例 5：定积分换元完整流程",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s08-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              340,
+              170,
+              940,
+              120
+            ],
+            "canvasRect": {
+              "left": 212.5,
+              "top": 106.25,
+              "width": 587.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s08-choose-u-and-bounds",
+            "semanticId": "choose-u-and-bounds",
+            "label": "选 u 并换上下限",
+            "sourceRect": [
+              50,
+              355,
+              940,
+              375
+            ],
+            "canvasRect": {
+              "left": 31.25,
+              "top": 221.875,
+              "width": 587.5,
+              "height": 234.375
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s08-integrate",
+            "semanticId": "integrate",
+            "label": "换积分并计算",
+            "sourceRect": [
+              1000,
+              355,
+              540,
+              375
+            ],
+            "canvasRect": {
+              "left": 625,
+              "top": 221.875,
+              "width": 337.5,
+              "height": 234.375
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s08-checklist",
+            "semanticId": "checklist",
+            "label": "定积分四步",
+            "sourceRect": [
+              145,
+              760,
+              1290,
+              90
+            ],
+            "canvasRect": {
+              "left": 90.625,
+              "top": 475,
+              "width": 806.25,
+              "height": 56.25
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "例 6：没有公式也能换元",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s09-problem",
+            "semanticId": "problem",
+            "label": "题目",
+            "sourceRect": [
+              195,
+              155,
+              1210,
+              140
+            ],
+            "canvasRect": {
+              "left": 121.875,
+              "top": 96.875,
+              "width": 756.25,
+              "height": 87.5
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s09-substitution-work",
+            "semanticId": "substitution-work",
+            "label": "换元计算",
+            "sourceRect": [
+              45,
+              340,
+              1510,
+              270
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 212.5,
+              "width": 943.75,
+              "height": 168.75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s09-interval-stretch",
+            "semanticId": "interval-stretch",
+            "label": "区间伸长",
+            "sourceRect": [
+              155,
+              615,
+              1280,
+              145
+            ],
+            "canvasRect": {
+              "left": 96.875,
+              "top": 384.375,
+              "width": 800,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s09-idea",
+            "semanticId": "idea",
+            "label": "本题思想",
+            "sourceRect": [
+              130,
+              775,
+              1360,
+              95
+            ],
+            "canvasRect": {
+              "left": 81.25,
+              "top": 484.375,
+              "width": 850,
+              "height": 59.375
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "换元法总结：每题都问这四件事",
+      "image": "/generated-notebooks/nb-mat136-substitution-week2-20260518183518/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s10-timeline",
+            "semanticId": "timeline",
+            "label": "四步流程",
+            "sourceRect": [
+              60,
+              150,
+              1480,
+              120
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 93.75,
+              "width": 925,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s10-checklist",
+            "semanticId": "checklist",
+            "label": "做题 checklist",
+            "sourceRect": [
+              60,
+              290,
+              750,
+              315
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 181.25,
+              "width": 468.75,
+              "height": 196.875
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s10-common-errors",
+            "semanticId": "common-errors",
+            "label": "常见错误",
+            "sourceRect": [
+              850,
+              290,
+              690,
+              315
+            ],
+            "canvasRect": {
+              "left": 531.25,
+              "top": 181.25,
+              "width": 431.25,
+              "height": 196.875
+            }
+          },
+          {
+            "id": "nb-mat136-substitution-week2-20260518183518-s10-next-hook",
+            "semanticId": "next-hook",
+            "label": "下节课钩子",
+            "sourceRect": [
+              110,
+              755,
+              1380,
+              100
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 471.875,
+              "width": 862.5,
+              "height": 62.5
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

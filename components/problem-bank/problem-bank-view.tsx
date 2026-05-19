@@ -54,7 +54,11 @@ import {
 import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
-import { ProblemRichText, ProblemTitleText } from '@/components/problem-bank/problem-rich-text';
+import {
+  ProblemImageAssets,
+  ProblemRichText,
+  ProblemTitleText,
+} from '@/components/problem-bank/problem-rich-text';
 
 function typeLabel(type: NotebookProblemClientRecord['type'], locale: 'zh-CN' | 'en-US') {
   const zh = {
@@ -1188,6 +1192,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                 {choiceContent ? (
                   <div className="space-y-3">
                     <ProblemRichText content={choiceContent.stem} />
+                    <ProblemImageAssets content={choiceContent} />
                     {choiceContent.options.map((option) => {
                       const selected = choiceAnswer[selectedProblem.id] ?? [];
                       const multi = choiceContent.selectionMode === 'multiple';
@@ -1225,6 +1230,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                 ) : fillBlankContent ? (
                   <div className="space-y-4">
                     <ProblemRichText content={fillBlankContent.stemTemplate} />
+                    <ProblemImageAssets content={fillBlankContent} />
                     {fillBlankContent.blanks.map((blank) => (
                       <div key={blank.id} className="space-y-2">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -1248,6 +1254,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                 ) : codeContent ? (
                   <div className="space-y-4">
                     <ProblemRichText content={codeContent.stem} />
+                    <ProblemImageAssets content={codeContent} />
                     {codeContent.functionSignature ? (
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-950/40">
                         <div className="mb-2 flex items-center gap-2 font-medium">
@@ -1295,6 +1302,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         textLikeContent && 'stem' in textLikeContent ? textLikeContent.stem : ''
                       }
                     />
+                    <ProblemImageAssets content={textLikeContent} />
                     {latestAttempt && typeof latestAttempt.score === 'number' ? (
                       <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-3 text-sm dark:border-sky-900/40 dark:bg-sky-950/20">
                         <div className="flex flex-wrap items-center gap-2">

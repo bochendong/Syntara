@@ -1,0 +1,1549 @@
+{
+  "notebookId": "nb-mat136-riemann-integral-week1-20260518135718",
+  "source": "imagegen-storyboard-first",
+  "slides": [
+    {
+      "order": 0,
+      "title": "MAT 136 · 黎曼积分",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-cover-title",
+            "semanticId": "cover-title",
+            "label": "封面标题区",
+            "sourceRect": [
+              145,
+              70,
+              1210,
+              190
+            ],
+            "canvasRect": {
+              "left": 90.625,
+              "top": 43.75,
+              "width": 756.25,
+              "height": 118.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-coarse-rectangles",
+            "semanticId": "coarse-rectangles",
+            "label": "粗分割图",
+            "sourceRect": [
+              35,
+              360,
+              445,
+              310
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 225,
+              "width": 278.125,
+              "height": 193.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-finer-rectangles",
+            "semanticId": "finer-rectangles",
+            "label": "较细分割图",
+            "sourceRect": [
+              500,
+              360,
+              445,
+              310
+            ],
+            "canvasRect": {
+              "left": 312.5,
+              "top": 225,
+              "width": 278.125,
+              "height": 193.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-finest-rectangles",
+            "semanticId": "finest-rectangles",
+            "label": "更细分割图",
+            "sourceRect": [
+              980,
+              360,
+              430,
+              310
+            ],
+            "canvasRect": {
+              "left": 612.5,
+              "top": 225,
+              "width": 268.75,
+              "height": 193.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-stable-area",
+            "semanticId": "stable-area",
+            "label": "稳定面积数",
+            "sourceRect": [
+              1400,
+              395,
+              145,
+              180
+            ],
+            "canvasRect": {
+              "left": 875,
+              "top": 246.875,
+              "width": 90.625,
+              "height": 112.5
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s01-lesson-flow",
+            "semanticId": "lesson-flow",
+            "label": "课程路线条",
+            "sourceRect": [
+              55,
+              725,
+              1485,
+              125
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 453.125,
+              "width": 928.125,
+              "height": 78.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "黎曼积分：从矩形到极限",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "本页承接",
+            "sourceRect": [
+              35,
+              35,
+              930,
+              120
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 21.875,
+              "width": 581.25,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-area-as-accumulation",
+            "semanticId": "area-as-accumulation",
+            "label": "面积是累积量",
+            "sourceRect": [
+              40,
+              190,
+              335,
+              520
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 118.75,
+              "width": 209.375,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-partition-card",
+            "semanticId": "partition-card",
+            "label": "分割区间卡片",
+            "sourceRect": [
+              420,
+              190,
+              360,
+              520
+            ],
+            "canvasRect": {
+              "left": 262.5,
+              "top": 118.75,
+              "width": 225,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-sample-card",
+            "semanticId": "sample-card",
+            "label": "采样点卡片",
+            "sourceRect": [
+              820,
+              190,
+              350,
+              520
+            ],
+            "canvasRect": {
+              "left": 512.5,
+              "top": 118.75,
+              "width": 218.75,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-limit-card",
+            "semanticId": "limit-card",
+            "label": "网格变细卡片",
+            "sourceRect": [
+              1200,
+              190,
+              360,
+              520
+            ],
+            "canvasRect": {
+              "left": 750,
+              "top": 118.75,
+              "width": 225,
+              "height": 324.99999999999994
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s02-lesson-question",
+            "semanticId": "lesson-question",
+            "label": "底部问题",
+            "sourceRect": [
+              195,
+              735,
+              1225,
+              115
+            ],
+            "canvasRect": {
+              "left": 121.875,
+              "top": 459.375,
+              "width": 765.625,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "面积为什么是累积量？",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接问题",
+            "sourceRect": [
+              35,
+              35,
+              900,
+              115
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 71.875
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-constant-panel-graph",
+            "semanticId": "constant-panel-graph",
+            "label": "恒定高度图像",
+            "sourceRect": [
+              45,
+              155,
+              700,
+              350
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 96.875,
+              "width": 437.5,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-constant-formula",
+            "semanticId": "constant-formula",
+            "label": "速度乘时间",
+            "sourceRect": [
+              170,
+              515,
+              410,
+              125
+            ],
+            "canvasRect": {
+              "left": 106.25,
+              "top": 321.875,
+              "width": 256.25,
+              "height": 78.125
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-changing-panel-graph",
+            "semanticId": "changing-panel-graph",
+            "label": "变化高度图像",
+            "sourceRect": [
+              790,
+              155,
+              760,
+              350
+            ],
+            "canvasRect": {
+              "left": 493.75,
+              "top": 96.875,
+              "width": 475,
+              "height": 218.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-local-approximation",
+            "semanticId": "local-approximation",
+            "label": "局部近似文字",
+            "sourceRect": [
+              890,
+              515,
+              520,
+              140
+            ],
+            "canvasRect": {
+              "left": 556.25,
+              "top": 321.875,
+              "width": 325,
+              "height": 87.5
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s03-core-summary",
+            "semanticId": "core-summary",
+            "label": "底部核心想法",
+            "sourceRect": [
+              160,
+              755,
+              1260,
+              115
+            ],
+            "canvasRect": {
+              "left": 100,
+              "top": 471.875,
+              "width": 787.5,
+              "height": 71.875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "第一步：分割区间 P",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接拆分",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-partition-line",
+            "semanticId": "partition-line",
+            "label": "上方分割线",
+            "sourceRect": [
+              55,
+              145,
+              1470,
+              330
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 90.625,
+              "width": 918.75,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-highlighted-subinterval",
+            "semanticId": "highlighted-subinterval",
+            "label": "橙色小区间",
+            "sourceRect": [
+              770,
+              150,
+              210,
+              230
+            ],
+            "canvasRect": {
+              "left": 481.25,
+              "top": 93.75,
+              "width": 131.25,
+              "height": 143.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-partition-notation",
+            "semanticId": "partition-notation",
+            "label": "左侧分割表示",
+            "sourceRect": [
+              55,
+              500,
+              760,
+              240
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 312.5,
+              "width": 475,
+              "height": 150
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-equal-width-card",
+            "semanticId": "equal-width-card",
+            "label": "右侧等分备注",
+            "sourceRect": [
+              860,
+              500,
+              680,
+              240
+            ],
+            "canvasRect": {
+              "left": 537.5,
+              "top": 312.5,
+              "width": 425,
+              "height": 150
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s04-partition-summary",
+            "semanticId": "partition-summary",
+            "label": "底部直觉",
+            "sourceRect": [
+              205,
+              760,
+              1210,
+              95
+            ],
+            "canvasRect": {
+              "left": 128.125,
+              "top": 475,
+              "width": 756.25,
+              "height": 59.375
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "第二步：选择采样点 c_i",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接宽度",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-left-sample-panel",
+            "semanticId": "left-sample-panel",
+            "label": "左端点面板",
+            "sourceRect": [
+              50,
+              180,
+              480,
+              455
+            ],
+            "canvasRect": {
+              "left": 31.25,
+              "top": 112.5,
+              "width": 300,
+              "height": 284.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-right-sample-panel",
+            "semanticId": "right-sample-panel",
+            "label": "右端点面板",
+            "sourceRect": [
+              570,
+              180,
+              480,
+              455
+            ],
+            "canvasRect": {
+              "left": 356.25,
+              "top": 112.5,
+              "width": 300,
+              "height": 284.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-midpoint-sample-panel",
+            "semanticId": "midpoint-sample-panel",
+            "label": "中点面板",
+            "sourceRect": [
+              1080,
+              180,
+              470,
+              455
+            ],
+            "canvasRect": {
+              "left": 675,
+              "top": 112.5,
+              "width": 293.75,
+              "height": 284.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-area-rule",
+            "semanticId": "area-rule",
+            "label": "面积公式框",
+            "sourceRect": [
+              335,
+              665,
+              930,
+              95
+            ],
+            "canvasRect": {
+              "left": 209.375,
+              "top": 415.625,
+              "width": 581.25,
+              "height": 59.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s05-next-step-hook",
+            "semanticId": "next-step-hook",
+            "label": "底部总结",
+            "sourceRect": [
+              270,
+              780,
+              980,
+              90
+            ],
+            "canvasRect": {
+              "left": 168.75,
+              "top": 487.5,
+              "width": 612.5,
+              "height": 56.25
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "第三步：把矩形面积加起来",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接高度宽度",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-all-rectangles",
+            "semanticId": "all-rectangles",
+            "label": "左侧矩形总图",
+            "sourceRect": [
+              55,
+              165,
+              870,
+              515
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 103.12499999999999,
+              "width": 543.75,
+              "height": 321.875
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-orange-rectangle",
+            "semanticId": "orange-rectangle",
+            "label": "橙色矩形",
+            "sourceRect": [
+              470,
+              260,
+              185,
+              385
+            ],
+            "canvasRect": {
+              "left": 293.75,
+              "top": 162.49999999999997,
+              "width": 115.625,
+              "height": 240.625
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-single-area-card",
+            "semanticId": "single-area-card",
+            "label": "单个矩形公式",
+            "sourceRect": [
+              1035,
+              180,
+              470,
+              205
+            ],
+            "canvasRect": {
+              "left": 646.875,
+              "top": 112.5,
+              "width": 293.75,
+              "height": 128.125
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-sum-card",
+            "semanticId": "sum-card",
+            "label": "所有矩形相加",
+            "sourceRect": [
+              1015,
+              450,
+              560,
+              265
+            ],
+            "canvasRect": {
+              "left": 634.375,
+              "top": 281.25,
+              "width": 350,
+              "height": 165.625
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s06-riemann-sum-name",
+            "semanticId": "riemann-sum-name",
+            "label": "底部名称",
+            "sourceRect": [
+              340,
+              785,
+              860,
+              80
+            ],
+            "canvasRect": {
+              "left": 212.5,
+              "top": 490.625,
+              "width": 537.5,
+              "height": 50
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "例题 1：左黎曼和估计 √x",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-problem-strip",
+            "semanticId": "problem-strip",
+            "label": "题目条件区",
+            "sourceRect": [
+              45,
+              95,
+              1510,
+              110
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 59.375,
+              "width": 943.75,
+              "height": 68.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-graph-panel",
+            "semanticId": "graph-panel",
+            "label": "图像与四段分割",
+            "sourceRect": [
+              65,
+              225,
+              735,
+              470
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 140.625,
+              "width": 459.375,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-left-endpoint-dots",
+            "semanticId": "left-endpoint-dots",
+            "label": "左端点橙点",
+            "sourceRect": [
+              165,
+              355,
+              475,
+              150
+            ],
+            "canvasRect": {
+              "left": 103.125,
+              "top": 221.875,
+              "width": 296.875,
+              "height": 93.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-calculation-panel",
+            "semanticId": "calculation-panel",
+            "label": "计算步骤区",
+            "sourceRect": [
+              820,
+              220,
+              700,
+              510
+            ],
+            "canvasRect": {
+              "left": 512.5,
+              "top": 137.5,
+              "width": 437.5,
+              "height": 318.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-numeric-result",
+            "semanticId": "numeric-result",
+            "label": "数值结果",
+            "sourceRect": [
+              930,
+              650,
+              520,
+              85
+            ],
+            "canvasRect": {
+              "left": 581.25,
+              "top": 406.25,
+              "width": 325,
+              "height": 53.125
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s07-left-reminder",
+            "semanticId": "left-reminder",
+            "label": "底部提醒",
+            "sourceRect": [
+              215,
+              770,
+              1170,
+              95
+            ],
+            "canvasRect": {
+              "left": 134.375,
+              "top": 481.25,
+              "width": 731.25,
+              "height": 59.375
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "例题 2：只有表格，也能算右黎曼和",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-problem-strip",
+            "semanticId": "problem-strip",
+            "label": "表格题目区",
+            "sourceRect": [
+              45,
+              100,
+              1510,
+              105
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 62.5,
+              "width": 943.75,
+              "height": 65.625
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-table-panel",
+            "semanticId": "table-panel",
+            "label": "数据表格区",
+            "sourceRect": [
+              55,
+              235,
+              380,
+              260
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 146.875,
+              "width": 237.5,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-graph-panel",
+            "semanticId": "graph-panel",
+            "label": "右端点矩形区",
+            "sourceRect": [
+              490,
+              220,
+              620,
+              430
+            ],
+            "canvasRect": {
+              "left": 306.25,
+              "top": 137.5,
+              "width": 387.5,
+              "height": 268.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-right-endpoint-list",
+            "semanticId": "right-endpoint-list",
+            "label": "右端点列表",
+            "sourceRect": [
+              1040,
+              260,
+              420,
+              145
+            ],
+            "canvasRect": {
+              "left": 650,
+              "top": 162.49999999999997,
+              "width": 262.5,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-calculation-panel",
+            "semanticId": "calculation-panel",
+            "label": "右黎曼和计算区",
+            "sourceRect": [
+              1025,
+              430,
+              545,
+              180
+            ],
+            "canvasRect": {
+              "left": 640.625,
+              "top": 268.75,
+              "width": 340.625,
+              "height": 112.5
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s08-right-reminder",
+            "semanticId": "right-reminder",
+            "label": "底部提醒",
+            "sourceRect": [
+              200,
+              750,
+              1160,
+              110
+            ],
+            "canvasRect": {
+              "left": 125,
+              "top": 468.75,
+              "width": 725,
+              "height": 68.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "三种常见采样规则",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s09-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接两道例题",
+            "sourceRect": [
+              35,
+              40,
+              900,
+              115
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 25,
+              "width": 562.5,
+              "height": 71.875
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s09-left-rule-panel",
+            "semanticId": "left-rule-panel",
+            "label": "左端点和面板",
+            "sourceRect": [
+              30,
+              185,
+              500,
+              530
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 115.625,
+              "width": 312.5,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s09-right-rule-panel",
+            "semanticId": "right-rule-panel",
+            "label": "右端点和面板",
+            "sourceRect": [
+              540,
+              185,
+              500,
+              530
+            ],
+            "canvasRect": {
+              "left": 337.5,
+              "top": 115.625,
+              "width": 312.5,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s09-midpoint-rule-panel",
+            "semanticId": "midpoint-rule-panel",
+            "label": "中点和面板",
+            "sourceRect": [
+              1060,
+              185,
+              500,
+              530
+            ],
+            "canvasRect": {
+              "left": 662.5,
+              "top": 115.625,
+              "width": 312.5,
+              "height": 331.25
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s09-comparison-summary",
+            "semanticId": "comparison-summary",
+            "label": "底部比较",
+            "sourceRect": [
+              220,
+              760,
+              1160,
+              95
+            ],
+            "canvasRect": {
+              "left": 137.5,
+              "top": 475,
+              "width": 725,
+              "height": 59.375
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "高估 / 低估：先看单调性",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接三规则",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-increasing-left",
+            "semanticId": "increasing-left",
+            "label": "递增左端点低估",
+            "sourceRect": [
+              60,
+              160,
+              720,
+              295
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 100,
+              "width": 450,
+              "height": 184.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-increasing-right",
+            "semanticId": "increasing-right",
+            "label": "递增右端点高估",
+            "sourceRect": [
+              815,
+              160,
+              720,
+              295
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 100,
+              "width": 450,
+              "height": 184.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-decreasing-left",
+            "semanticId": "decreasing-left",
+            "label": "递减左端点高估",
+            "sourceRect": [
+              60,
+              475,
+              720,
+              260
+            ],
+            "canvasRect": {
+              "left": 37.5,
+              "top": 296.875,
+              "width": 450,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-decreasing-right",
+            "semanticId": "decreasing-right",
+            "label": "递减右端点低估",
+            "sourceRect": [
+              815,
+              475,
+              720,
+              260
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 296.875,
+              "width": 450,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s10-inequality-summary",
+            "semanticId": "inequality-summary",
+            "label": "底部不等式",
+            "sourceRect": [
+              85,
+              760,
+              1430,
+              105
+            ],
+            "canvasRect": {
+              "left": 53.125,
+              "top": 475,
+              "width": 893.75,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "让分割变细：mesh 趋近 0",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接误差",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-coarse-partition",
+            "semanticId": "coarse-partition",
+            "label": "粗分割面板",
+            "sourceRect": [
+              40,
+              165,
+              705,
+              430
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 103.12499999999999,
+              "width": 440.625,
+              "height": 268.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-refine-arrow",
+            "semanticId": "refine-arrow",
+            "label": "refine 箭头",
+            "sourceRect": [
+              735,
+              310,
+              140,
+              100
+            ],
+            "canvasRect": {
+              "left": 459.375,
+              "top": 193.75,
+              "width": 87.5,
+              "height": 62.5
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-fine-partition",
+            "semanticId": "fine-partition",
+            "label": "细分割面板",
+            "sourceRect": [
+              870,
+              165,
+              690,
+              430
+            ],
+            "canvasRect": {
+              "left": 543.75,
+              "top": 103.12499999999999,
+              "width": 431.25,
+              "height": 268.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-mesh-definition",
+            "semanticId": "mesh-definition",
+            "label": "mesh 定义框",
+            "sourceRect": [
+              65,
+              630,
+              1475,
+              110
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 393.75,
+              "width": 921.875,
+              "height": 68.75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s11-mesh-hook",
+            "semanticId": "mesh-hook",
+            "label": "底部问题",
+            "sourceRect": [
+              110,
+              795,
+              1390,
+              90
+            ],
+            "canvasRect": {
+              "left": 68.75,
+              "top": 496.875,
+              "width": 868.75,
+              "height": 56.25
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "什么时候叫“可黎曼积分”？",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接 mesh",
+            "sourceRect": [
+              45,
+              35,
+              900,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 562.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-any-sample-point",
+            "semanticId": "any-sample-point",
+            "label": "任意采样点",
+            "sourceRect": [
+              35,
+              175,
+              270,
+              330
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 109.375,
+              "width": 168.75,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-left-right-random-sums",
+            "semanticId": "left-right-random-sums",
+            "label": "三种和收敛",
+            "sourceRect": [
+              315,
+              160,
+              850,
+              355
+            ],
+            "canvasRect": {
+              "left": 196.875,
+              "top": 100,
+              "width": 531.25,
+              "height": 221.875
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-same-limit-box",
+            "semanticId": "same-limit-box",
+            "label": "右侧同一个极限",
+            "sourceRect": [
+              1240,
+              185,
+              310,
+              330
+            ],
+            "canvasRect": {
+              "left": 775,
+              "top": 115.625,
+              "width": 193.75,
+              "height": 206.24999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-definition-box",
+            "semanticId": "definition-box",
+            "label": "可积定义框",
+            "sourceRect": [
+              240,
+              640,
+              1110,
+              130
+            ],
+            "canvasRect": {
+              "left": 150,
+              "top": 400,
+              "width": 693.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s12-next-hook",
+            "semanticId": "next-hook",
+            "label": "下一节命名",
+            "sourceRect": [
+              285,
+              805,
+              1025,
+              85
+            ],
+            "canvasRect": {
+              "left": 178.125,
+              "top": 503.125,
+              "width": 640.625,
+              "height": 53.125
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 12,
+      "title": "本节课总结：黎曼积分的流程",
+      "image": "/generated-notebooks/nb-mat136-riemann-integral-week1-20260518135718/slide-13.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-page-bridge",
+            "semanticId": "page-bridge",
+            "label": "承接定义",
+            "sourceRect": [
+              45,
+              35,
+              1060,
+              120
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 21.875,
+              "width": 662.5,
+              "height": 75
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-five-step-flow",
+            "semanticId": "five-step-flow",
+            "label": "顶部五步流程",
+            "sourceRect": [
+              30,
+              155,
+              1510,
+              245
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 96.875,
+              "width": 943.75,
+              "height": 153.125
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-integrability-statement",
+            "semanticId": "integrability-statement",
+            "label": "左侧可积结论",
+            "sourceRect": [
+              30,
+              500,
+              735,
+              145
+            ],
+            "canvasRect": {
+              "left": 18.75,
+              "top": 312.5,
+              "width": 459.375,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-formula-review",
+            "semanticId": "formula-review",
+            "label": "黎曼和公式回顾",
+            "sourceRect": [
+              215,
+              675,
+              610,
+              95
+            ],
+            "canvasRect": {
+              "left": 134.375,
+              "top": 421.875,
+              "width": 381.25,
+              "height": 59.375
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-refinement-visual",
+            "semanticId": "refinement-visual",
+            "label": "右侧细化图",
+            "sourceRect": [
+              930,
+              430,
+              610,
+              260
+            ],
+            "canvasRect": {
+              "left": 581.25,
+              "top": 268.75,
+              "width": 381.25,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-riemann-integral-week1-20260518135718-s13-next-hook",
+            "semanticId": "next-hook",
+            "label": "底部下节课",
+            "sourceRect": [
+              190,
+              805,
+              1220,
+              80
+            ],
+            "canvasRect": {
+              "left": 118.75,
+              "top": 503.125,
+              "width": 762.5,
+              "height": 50
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

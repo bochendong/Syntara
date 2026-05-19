@@ -6,8 +6,8 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { extractProblemDraftsFromText } from '@/lib/server/notebook-problems/import';
-import { listNotebookProblemsForUser } from '@/lib/server/notebook-problems/service';
+import { extractProblemDraftsFromText } from '@/features/problems/server/import';
+import { listNotebookProblemsForUser } from '@/features/problems/server/service';
 import { estimateWebSearchRetailCostCredits } from '@/lib/utils/openai-pricing';
 import { formatSearchResultsAsContext, searchWithTavily } from '@/lib/web-search/tavily';
 

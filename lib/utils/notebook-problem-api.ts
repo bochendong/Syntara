@@ -9,6 +9,7 @@ import type {
   NotebookProblemGrading,
   NotebookProblemPublicContent,
 } from '@/lib/problem-bank';
+import type { ReviewProblemInsertInput } from '@/lib/problem-bank/review-problem-insert';
 
 export type NotebookProblemClientRecord = {
   id: string;
@@ -61,6 +62,34 @@ export async function listCourseProblems(courseId: string): Promise<NotebookProb
     `/api/courses/${encodeURIComponent(courseId)}/problems`,
   );
   return data.problems;
+}
+
+export async function insertNotebookReviewProblems(args: {
+  notebookId: string;
+  problems: ReviewProblemInsertInput[];
+}): Promise<{ insertedCount: number; problems: NotebookProblemClientRecord[] }> {
+  return backendJson<{ insertedCount: number; problems: NotebookProblemClientRecord[] }>(
+    `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ problems: args.problems }),
+    },
+  );
+}
+
+export async function insertNotebookReviewProblem(args: {
+  notebookId: string;
+  problem: ReviewProblemInsertInput;
+}): Promise<{ insertedCount: number; problems: NotebookProblemClientRecord[] }> {
+  return backendJson<{ insertedCount: number; problems: NotebookProblemClientRecord[] }>(
+    `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ problem: args.problem }),
+    },
+  );
 }
 
 export async function getNotebookProblem(

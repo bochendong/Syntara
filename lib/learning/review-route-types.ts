@@ -11,6 +11,7 @@ export const reviewRouteNodeSchema = z.object({
   personalReason: z.string().trim().min(1).optional(),
   passCriteria: z.string().trim().min(1).optional(),
   questionCount: z.number().int().min(0).max(12).default(1),
+  problemIds: z.array(z.string().trim().min(1)).max(12).default([]),
   sourceSignals: z.array(z.string().trim().min(1)).max(6).default([]),
   requiresQuestion: z.boolean().default(true),
   rewardKind: z

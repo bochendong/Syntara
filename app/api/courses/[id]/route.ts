@@ -5,6 +5,13 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { pickStableCourseAvatarUrl } from '@/lib/constants/course-avatars';
 import { getCoursePublishBlockReasonFromFlags } from '@/lib/utils/course-publish';
+import {
+  countPurchasedNotebooksInOwnedCourse,
+  deleteOwnedCourseWithNotebooks,
+  findOwnedCourse,
+  syncOwnedCourseNotebookStoreState,
+  updateOwnedCourse,
+} from '@/lib/server/repositories/course-repository';
 
 const updateCourseSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -19,12 +26,6 @@ const updateCourseSchema = z.object({
   coursePriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
-async function getCourseForUser(userId: string, id: string) {
-  return prisma.course.findFirst({
-    where: { id, ownerId: userId },
-  });
-}
-
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
@@ -32,15 +33,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    let course = await getCourseForUser(userId, id);
+    let course = await findOwnedCourse(prisma, userId, id);
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
     if (!course.avatarUrl?.trim()) {
-      course = await prisma.course.update({
-        where: { id },
-        data: { avatarUrl: pickStableCourseAvatarUrl(id) },
-      });
+      course =
+        (await updateOwnedCourse(prisma, userId, id, {
+          avatarUrl: pickStableCourseAvatarUrl(id),
+        })) ?? course;
     }
     return NextResponse.json({ course });
   });
@@ -61,19 +62,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       );
     }
 
-    const existing = await getCourseForUser(userId, id);
+    const existing = await findOwnedCourse(prisma, userId, id);
     if (!existing) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
     if (payload.data.listedInCourseStore === true) {
-      const purchasedNotebookCount = await prisma.notebook.count({
-        where: {
-          ownerId: userId,
-          courseId: id,
-          sourceNotebookId: { not: null },
-        },
-      });
+      const purchasedNotebookCount = await countPurchasedNotebooksInOwnedCourse(prisma, userId, id);
       const publishBlockReason = getCoursePublishBlockReasonFromFlags(
         existing,
         purchasedNotebookCount > 0,
@@ -85,25 +80,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const shouldPublishCourse = payload.data.listedInCourseStore === true;
     const shouldUnpublishCourse = payload.data.listedInCourseStore === false;
-    const course = await prisma.course.update({
-      where: { id },
-      data: {
-        ...payload.data,
-        ...(shouldPublishCourse ? { storePublishedAt: new Date() } : {}),
-        ...(shouldUnpublishCourse ? { storePublishedAt: null } : {}),
-      },
+    const course = await updateOwnedCourse(prisma, userId, id, {
+      ...payload.data,
+      ...(shouldPublishCourse ? { storePublishedAt: new Date() } : {}),
+      ...(shouldUnpublishCourse ? { storePublishedAt: null } : {}),
     });
+    if (!course) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
 
     if (payload.data.listedInCourseStore !== undefined) {
-      await prisma.notebook.updateMany({
-        where: { courseId: id, ownerId: userId },
-        data: {
-          listedInNotebookStore: payload.data.listedInCourseStore,
-          ...(payload.data.listedInCourseStore
-            ? { storePublishedAt: new Date() }
-            : { storePublishedAt: null }),
-        },
-      });
+      await syncOwnedCourseNotebookStoreState(prisma, userId, id, payload.data.listedInCourseStore);
     }
     return NextResponse.json({ course });
   });
@@ -116,20 +103,12 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     const { userId } = auth;
     const { id } = await context.params;
 
-    const existing = await getCourseForUser(userId, id);
+    const existing = await findOwnedCourse(prisma, userId, id);
     if (!existing) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    await prisma.$transaction([
-      prisma.notebook.deleteMany({
-        where: {
-          ownerId: userId,
-          courseId: id,
-        },
-      }),
-      prisma.course.delete({ where: { id } }),
-    ]);
+    await deleteOwnedCourseWithNotebooks(prisma, userId, id);
     return NextResponse.json({ ok: true });
   });
 }

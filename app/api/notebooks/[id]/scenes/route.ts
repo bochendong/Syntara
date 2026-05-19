@@ -4,6 +4,11 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { safeRoute } from '@/lib/server/json-error-response';
+import {
+  findOwnedNotebookId,
+  listNotebookScenes,
+  replaceOwnedNotebookScenes,
+} from '@/lib/server/repositories/notebook-repository';
 
 const sceneInputSchema = z.object({
   id: z.string().trim().min(1).optional(),
@@ -39,18 +44,12 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    const notebook = await prisma.notebook.findFirst({
-      where: { id, ownerId: userId },
-      select: { id: true },
-    });
+    const notebook = await findOwnedNotebookId(prisma, userId, id);
     if (!notebook) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
 
-    const scenes = await prisma.scene.findMany({
-      where: { notebookId: id },
-      orderBy: { order: 'asc' },
-    });
+    const scenes = await listNotebookScenes(prisma, id);
     return NextResponse.json({ scenes });
   });
 }
@@ -70,40 +69,25 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       );
     }
 
-    const notebook = await prisma.notebook.findFirst({
-      where: { id, ownerId: userId },
-      select: { id: true },
-    });
-    if (!notebook) {
+    const scenes = await replaceOwnedNotebookScenes(
+      prisma,
+      userId,
+      id,
+      payload.data.scenes.map((s) => ({
+        id: s.id,
+        title: s.title,
+        type: s.type,
+        order: s.order,
+        content: toPrismaJson(
+          attachGenerationDiagnosticsToContent(s.content, s.generationDiagnostics),
+        ),
+        actions: toPrismaNullableJson(s.actions),
+        whiteboard: toPrismaNullableJson(s.whiteboards),
+      })),
+    );
+    if (!scenes) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
-
-    await prisma.$transaction([
-      prisma.scene.deleteMany({ where: { notebookId: id } }),
-      prisma.scene.createMany({
-        data: payload.data.scenes.map((s) => ({
-          id: s.id,
-          notebookId: id,
-          title: s.title,
-          type: s.type,
-          order: s.order,
-          content: toPrismaJson(
-            attachGenerationDiagnosticsToContent(s.content, s.generationDiagnostics),
-          ),
-          actions: toPrismaNullableJson(s.actions),
-          whiteboard: toPrismaNullableJson(s.whiteboards),
-        })),
-      }),
-      prisma.notebook.update({
-        where: { id },
-        data: { updatedAt: new Date() },
-      }),
-    ]);
-
-    const scenes = await prisma.scene.findMany({
-      where: { notebookId: id },
-      orderBy: { order: 'asc' },
-    });
     return NextResponse.json({ scenes });
   });
 }

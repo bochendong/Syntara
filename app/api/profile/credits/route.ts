@@ -7,6 +7,10 @@ import {
   DEFAULT_USER_PURCHASE_CREDITS,
 } from '@/lib/utils/credits';
 import { ensureUserCreditsInitialized, getUserCreditBalances } from '@/lib/server/credits';
+import {
+  countUserCreditTransactions,
+  listUserCreditTransactions,
+} from '@/lib/server/repositories/credit-ledger-repository';
 
 const DEFAULT_PAGE_SIZE = 8;
 const MAX_PAGE_SIZE = 50;
@@ -46,34 +50,17 @@ export async function GET(request: Request) {
 
   await ensureUserCreditsInitialized(prisma, auth.userId);
 
-  const transactionTotal = await prisma.creditTransaction.count({
-    where: { userId: auth.userId },
-  });
+  const transactionTotal = await countUserCreditTransactions(prisma, auth.userId);
   const totalPages = Math.max(1, Math.ceil(transactionTotal / pageSize));
   const safePage = Math.min(page, totalPages);
   const skip = (safePage - 1) * pageSize;
 
   const [balances, recentTransactions] = await Promise.all([
     getUserCreditBalances(prisma, auth.userId),
-    prisma.creditTransaction.findMany({
-      where: {
-        userId: auth.userId,
-        accountType: {
-          in: ['CASH', 'COMPUTE', 'PURCHASE'],
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+    listUserCreditTransactions(prisma, {
+      userId: auth.userId,
       skip,
       take: pageSize,
-      select: {
-        id: true,
-        kind: true,
-        accountType: true,
-        delta: true,
-        balanceAfter: true,
-        description: true,
-        createdAt: true,
-      },
     }),
   ]);
 

@@ -1,0 +1,176 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Bell, Trash2 } from 'lucide-react';
+import { useAuthStore } from '@/lib/store/auth';
+import { useNotificationStore } from '@/lib/store/notifications';
+import { Button } from '@/components/ui/button';
+import { NotificationBannerCard } from '@/components/notifications/notification-banner-card';
+import { cn } from '@/lib/utils';
+
+export function NotificationsPageClient() {
+  const router = useRouter();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const userId = useAuthStore((state) => state.userId);
+  const activeUserId = useNotificationStore((state) => state.activeUserId);
+  const isLoading = useNotificationStore((state) => state.isLoading);
+  const notifications = useNotificationStore((state) => state.notifications);
+  const readByUser = useNotificationStore((state) => state.readByUser);
+  const refreshNotifications = useNotificationStore((state) => state.refreshNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const deleteNotification = useNotificationStore((state) => state.deleteNotification);
+  const clearNotifications = useNotificationStore((state) => state.clearNotifications);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/login');
+      return;
+    }
+
+    if (userId.trim()) {
+      void refreshNotifications({ userId });
+    }
+  }, [isLoggedIn, refreshNotifications, router, userId]);
+
+  if (!isLoggedIn) return null;
+
+  const currentReadSet = new Set(readByUser[(activeUserId || userId).trim()] ?? []);
+  const unreadCount = notifications.reduce(
+    (count, item) => count + (currentReadSet.has(item.id) ? 0 : 1),
+    0,
+  );
+
+  return (
+    <div className="min-h-full w-full apple-mesh-bg">
+      <main className="mx-auto w-full max-w-4xl px-4 pb-12 pt-8 md:px-8">
+        <section className="apple-glass mb-6 rounded-[28px] p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                <Bell
+                  className="size-8 shrink-0 text-sky-600 dark:text-sky-400"
+                  strokeWidth={1.5}
+                />
+                通知中心
+              </h1>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+                达成目标、完成成就、做题反馈和复习陪伴会保留在这里，并同步到侧边栏未读角标。
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-white/8 dark:text-slate-300">
+                {unreadCount > 0 ? `${unreadCount} 条未读` : '全部已读'}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => clearNotifications()}
+                disabled={notifications.length === 0}
+                className="gap-2 rounded-full"
+              >
+                <Trash2 className="size-4" strokeWidth={1.8} />
+                清除所有通知
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {isLoading && notifications.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 px-8 py-16 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-slate-400">
+            正在加载通知…
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white/60 px-8 py-16 text-center dark:border-white/20 dark:bg-white/5">
+            <Bell className="mb-4 size-12 text-slate-300 dark:text-slate-600" strokeWidth={1.25} />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">暂无通知</p>
+            <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-slate-400">
+              完成目标、做题或复习时，陪伴提醒会自动出现在这里。
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((item) => {
+              const isUnread = !currentReadSet.has(item.id);
+
+              return (
+                <article
+                  key={item.id}
+                  className={cn(
+                    'rounded-[30px] border bg-white/50 p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors dark:bg-white/5',
+                    isUnread
+                      ? 'border-sky-300/60 ring-2 ring-sky-300/20 dark:border-sky-400/25 dark:ring-sky-400/10'
+                      : 'border-white/60 dark:border-white/10',
+                  )}
+                >
+                  <NotificationBannerCard
+                    item={item}
+                    onDismiss={deleteNotification}
+                    disableLink
+                    hideViewAction
+                    className="w-full"
+                  />
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isUnread ? (
+                        <span className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-400/12 dark:text-sky-200">
+                          未读
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-white/8 dark:text-slate-400">
+                          已读
+                        </span>
+                      )}
+                      {item.details.length > 0 ? (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {item.details.length} 条明细
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {isUnread ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => markAsRead(item.id)}
+                        className="h-8 rounded-full px-3 text-xs"
+                      >
+                        标记已读
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {item.details.length > 0 ? (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {item.details.map((detail) => (
+                        <div
+                          key={`${item.id}:${detail.key}`}
+                          className="rounded-2xl border border-black/5 bg-white/55 px-3 py-2 dark:border-white/8 dark:bg-white/5"
+                        >
+                          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                            {detail.label}
+                          </div>
+                          <div
+                            className={cn(
+                              'mt-1 text-sm text-slate-700 dark:text-slate-200',
+                              detail.key === 'model' ? 'font-mono text-[13px]' : '',
+                            )}
+                          >
+                            {detail.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

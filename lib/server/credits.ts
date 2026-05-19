@@ -1,15 +1,17 @@
-import type { Prisma, PrismaClient, CreditAccountType } from '@/lib/server/generated-prisma';
+import type { Prisma, CreditAccountType } from '@/lib/server/generated-prisma';
 import { CreditTransactionKind } from '@/lib/server/generated-prisma';
 import { createLogger } from '@/lib/logger';
 import { getOptionalPrisma } from '@/lib/server/prisma-safe';
+import { creditsFromTokenUsage, creditsFromUsd, formatUsdLabel } from '@/lib/utils/credits';
 import {
-  DEFAULT_USER_CASH_CREDITS,
-  DEFAULT_USER_COMPUTE_CREDITS,
-  DEFAULT_USER_PURCHASE_CREDITS,
-  creditsFromTokenUsage,
-  creditsFromUsd,
-  formatUsdLabel,
-} from '@/lib/utils/credits';
+  applyCreditDelta as applyCreditDeltaToLedger,
+  ensureCreditLedgerInitialized,
+  getCreditBalance,
+  getUserCreditBalances as getLedgerCreditBalances,
+  type ApplyCreditDeltaArgs,
+  type UserCreditBalances,
+} from '@/lib/server/repositories/credit-ledger-repository';
+import type { DbClient } from '@/lib/server/repositories/types';
 import {
   estimateOpenAIImageGenerationRetailCostUsd,
   estimateOpenAITextUsageBaseCostUsd,
@@ -19,57 +21,7 @@ import {
   OPENAI_RETAIL_MARKUP_MULTIPLIER,
 } from '@/lib/utils/openai-pricing';
 
-type CreditDbClient = PrismaClient | Prisma.TransactionClient;
 const log = createLogger('Credits');
-
-type BalanceField = 'creditsBalance' | 'computeCreditsBalance' | 'purchaseCreditsBalance';
-
-type UserBalances = {
-  creditsBalance: number;
-  computeCreditsBalance: number;
-  purchaseCreditsBalance: number;
-};
-
-const ACCOUNT_INIT_CONFIG: Array<{
-  accountType: CreditAccountType;
-  defaultAmount: number;
-  referenceType: string;
-  descriptionWhenGranted: string;
-  descriptionWhenEmpty: string;
-}> = [
-  {
-    accountType: 'CASH',
-    defaultAmount: DEFAULT_USER_CASH_CREDITS,
-    referenceType: 'welcome_init_cash',
-    descriptionWhenGranted: 'Initial cash credits',
-    descriptionWhenEmpty: 'Cash credits ledger initialized',
-  },
-  {
-    accountType: 'COMPUTE',
-    defaultAmount: DEFAULT_USER_COMPUTE_CREDITS,
-    referenceType: 'welcome_init_compute',
-    descriptionWhenGranted: 'Welcome compute credits',
-    descriptionWhenEmpty: 'Compute credits ledger initialized',
-  },
-  {
-    accountType: 'PURCHASE',
-    defaultAmount: DEFAULT_USER_PURCHASE_CREDITS,
-    referenceType: 'welcome_init_purchase',
-    descriptionWhenGranted: 'Welcome purchase credits',
-    descriptionWhenEmpty: 'Purchase credits ledger initialized',
-  },
-];
-
-interface ApplyCreditDeltaArgs {
-  userId: string;
-  delta: number;
-  kind: CreditTransactionKind;
-  accountType?: CreditAccountType;
-  description?: string;
-  referenceType?: string;
-  referenceId?: string;
-  metadata?: Prisma.InputJsonValue;
-}
 
 interface ChargeCreditsForUsdArgs {
   userId?: string | null;
@@ -83,40 +35,15 @@ interface ChargeCreditsForUsdArgs {
   metadata?: Prisma.InputJsonObject;
 }
 
-function getBalanceField(accountType: CreditAccountType): BalanceField {
-  if (accountType === 'CASH') return 'creditsBalance';
-  if (accountType === 'PURCHASE') return 'purchaseCreditsBalance';
-  return 'computeCreditsBalance';
-}
-
-function getBalance(user: UserBalances, accountType: CreditAccountType): number {
-  return user[getBalanceField(accountType)];
-}
-
-async function loadUserBalances(db: CreditDbClient, userId: string): Promise<UserBalances | null> {
-  return db.user.findUnique({
-    where: { id: userId },
-    select: {
-      creditsBalance: true,
-      computeCreditsBalance: true,
-      purchaseCreditsBalance: true,
-    },
-  });
+function isInsufficientCreditError(error: unknown): boolean {
+  return error instanceof Error && /积分不足|credits/i.test(error.message);
 }
 
 export async function getUserCreditBalances(
-  db: CreditDbClient,
+  db: DbClient,
   userId: string,
-): Promise<UserBalances> {
-  await ensureUserCreditsInitialized(db, userId);
-  const user = await loadUserBalances(db, userId.trim());
-  return (
-    user ?? {
-      creditsBalance: 0,
-      computeCreditsBalance: 0,
-      purchaseCreditsBalance: 0,
-    }
-  );
+): Promise<UserCreditBalances> {
+  return getLedgerCreditBalances(db, userId);
 }
 
 async function chargeCreditsForUsdCost(args: ChargeCreditsForUsdArgs): Promise<{
@@ -154,23 +81,28 @@ async function chargeCreditsForUsdCost(args: ChargeCreditsForUsdArgs): Promise<{
     const chargedCredits = Math.min(currentBalance, requestedCreditsCost);
     if (chargedCredits <= 0) return;
 
-    await applyCreditDelta(tx, {
-      userId,
-      delta: -chargedCredits,
-      kind: CreditTransactionKind.TOKEN_USAGE,
-      accountType: 'COMPUTE',
-      description: hasUsdCost
-        ? `${args.descriptionPrefix}: ${chargedCredits} compute credits (${formatUsdLabel(usdCost)})`
-        : `${args.descriptionPrefix}: ${chargedCredits} compute credits`,
-      referenceType: args.referenceType,
-      referenceId: args.referenceId?.trim() || undefined,
-      metadata: {
-        ...(args.metadata ?? {}),
-        estimatedUsdCost: hasUsdCost ? usdCost : null,
-        requestedCreditsCost,
-        chargedCredits,
-      },
-    });
+    try {
+      await applyCreditDelta(tx, {
+        userId,
+        delta: -chargedCredits,
+        kind: CreditTransactionKind.TOKEN_USAGE,
+        accountType: 'COMPUTE',
+        description: hasUsdCost
+          ? `${args.descriptionPrefix}: ${chargedCredits} compute credits (${formatUsdLabel(usdCost)})`
+          : `${args.descriptionPrefix}: ${chargedCredits} compute credits`,
+        referenceType: args.referenceType,
+        referenceId: args.referenceId?.trim() || undefined,
+        metadata: {
+          ...(args.metadata ?? {}),
+          estimatedUsdCost: hasUsdCost ? usdCost : null,
+          requestedCreditsCost,
+          chargedCredits,
+        },
+      });
+    } catch (error) {
+      if (isInsufficientCreditError(error)) return;
+      throw error;
+    }
 
     chargeSummary = {
       requestedCreditsCost,
@@ -183,105 +115,12 @@ async function chargeCreditsForUsdCost(args: ChargeCreditsForUsdArgs): Promise<{
   return chargeSummary;
 }
 
-export async function ensureUserCreditsInitialized(
-  db: CreditDbClient,
-  userId: string,
-): Promise<number> {
-  const normalizedUserId = userId.trim();
-  if (!normalizedUserId) return 0;
-
-  const [user, existingInitRows] = await Promise.all([
-    loadUserBalances(db, normalizedUserId),
-    db.creditTransaction.findMany({
-      where: {
-        userId: normalizedUserId,
-        referenceType: {
-          in: ACCOUNT_INIT_CONFIG.map((item) => item.referenceType),
-        },
-      },
-      select: { referenceType: true },
-    }),
-  ]);
-
-  if (!user) return 0;
-
-  const existingInitRefs = new Set(existingInitRows.map((row) => row.referenceType || ''));
-  const nextBalances: UserBalances = { ...user };
-
-  for (const item of ACCOUNT_INIT_CONFIG) {
-    if (existingInitRefs.has(item.referenceType)) continue;
-
-    const field = getBalanceField(item.accountType);
-    const currentBalance = nextBalances[field];
-    const grant = currentBalance > 0 ? 0 : item.defaultAmount;
-    const balanceAfter = currentBalance + grant;
-
-    if (grant > 0) {
-      await db.user.update({
-        where: { id: normalizedUserId },
-        data: { [field]: balanceAfter },
-      });
-      nextBalances[field] = balanceAfter;
-    }
-
-    await db.creditTransaction.create({
-      data: {
-        userId: normalizedUserId,
-        kind: CreditTransactionKind.WELCOME_BONUS,
-        accountType: item.accountType,
-        delta: grant,
-        balanceAfter,
-        description: grant > 0 ? item.descriptionWhenGranted : item.descriptionWhenEmpty,
-        referenceType: item.referenceType,
-      },
-    });
-  }
-
-  return nextBalances.creditsBalance;
+export async function ensureUserCreditsInitialized(db: DbClient, userId: string): Promise<number> {
+  return ensureCreditLedgerInitialized(db, userId);
 }
 
-export async function applyCreditDelta(
-  db: CreditDbClient,
-  args: ApplyCreditDeltaArgs,
-): Promise<number> {
-  const userId = args.userId.trim();
-  const accountType = args.accountType ?? 'CASH';
-  if (!userId) throw new Error('Invalid user for credit transaction');
-
-  await ensureUserCreditsInitialized(db, userId);
-
-  const user = await loadUserBalances(db, userId);
-  if (!user) throw new Error('User not found');
-
-  const field = getBalanceField(accountType);
-  const previousBalance = user[field];
-  const nextBalance = previousBalance + args.delta;
-  if (nextBalance < 0) {
-    if (accountType === 'COMPUTE') throw new Error('算力积分不足，无法继续使用模型能力');
-    if (accountType === 'PURCHASE') throw new Error('购买积分不足，无法继续购买课程或笔记本');
-    throw new Error('积分不足，请先补充 credits');
-  }
-
-  await db.user.update({
-    where: { id: userId },
-    data: { [field]: nextBalance },
-  });
-
-  await db.creditTransaction.create({
-    data: {
-      userId,
-      kind: args.kind,
-      accountType,
-      delta: args.delta,
-      balanceAfter: nextBalance,
-      description: args.description,
-      referenceType: args.referenceType,
-      referenceId: args.referenceId,
-      metadata: args.metadata,
-    },
-  });
-
-  return nextBalance;
+export async function applyCreditDelta(db: DbClient, args: ApplyCreditDeltaArgs): Promise<number> {
+  return applyCreditDeltaToLedger(db, args);
 }
 
 export async function assertUserHasCredits(
@@ -295,7 +134,7 @@ export async function assertUserHasCredits(
   if (!prisma) return;
 
   const balances = await getUserCreditBalances(prisma, normalizedUserId);
-  if (getBalance(balances, accountType) > 0) return;
+  if (getCreditBalance(balances, accountType) > 0) return;
 
   if (accountType === 'PURCHASE') {
     throw new Error('购买积分不足，无法继续购买课程或笔记本');

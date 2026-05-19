@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { BookOpen, HardDrive, Loader2, Plus } from 'lucide-react';
@@ -63,6 +63,19 @@ function purposeLabel(p: CourseRecord['purpose']): string {
   return '日常使用';
 }
 
+const notebookNameCollator = new Intl.Collator(['zh-CN', 'en-US'], {
+  numeric: true,
+  sensitivity: 'base',
+});
+
+function compareNotebooksByName(a: StageListItem, b: StageListItem): number {
+  return (
+    notebookNameCollator.compare(a.name.trim(), b.name.trim()) ||
+    b.updatedAt - a.updatedAt ||
+    a.id.localeCompare(b.id)
+  );
+}
+
 type CourseWorkspaceTab = 'notebooks' | 'materials';
 
 function CreateNotebookGridLink({ href }: { href: string }) {
@@ -120,6 +133,7 @@ export default function CourseDetailPage() {
   const coursePublishActionDisabled = Boolean(
     !course?.listedInCourseStore && coursePublishBlockReason,
   );
+  const sortedNotebooks = useMemo(() => [...notebooks].sort(compareNotebooksByName), [notebooks]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -516,7 +530,7 @@ export default function CourseDetailPage() {
                     <li className="min-w-0">
                       <CreateNotebookGridLink href={createNotebookHref(id)} />
                     </li>
-                    {notebooks.map((nb, i) => (
+                    {sortedNotebooks.map((nb, i) => (
                       <li key={nb.id} className="min-w-0">
                         <CourseGalleryCard
                           variant="notebook"

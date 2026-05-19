@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { findCoursePurchase, upsertCourseReview } from '@/lib/server/repositories/store-repository';
 
 const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -24,31 +25,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       );
     }
 
-    const purchase = await prisma.coursePurchase.findFirst({
-      where: { buyerId: userId, sourceCourseId: id },
-      select: { id: true },
-    });
+    const purchase = await findCoursePurchase(prisma, userId, id);
     if (!purchase) {
       return NextResponse.json({ error: '请先购买课程后再评分' }, { status: 403 });
     }
 
-    const review = await prisma.courseReview.upsert({
-      where: {
-        courseId_reviewerId: {
-          courseId: id,
-          reviewerId: userId,
-        },
-      },
-      update: {
-        rating: payload.data.rating,
-        comment: payload.data.comment?.trim() || null,
-      },
-      create: {
-        courseId: id,
-        reviewerId: userId,
-        rating: payload.data.rating,
-        comment: payload.data.comment?.trim() || null,
-      },
+    const review = await upsertCourseReview(prisma, {
+      courseId: id,
+      reviewerId: userId,
+      rating: payload.data.rating,
+      comment: payload.data.comment?.trim() || null,
     });
 
     return NextResponse.json({ review });

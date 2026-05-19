@@ -7,9 +7,9 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { type NotebookProblemImportDraft } from '@/lib/problem-bank';
-import { extractProblemDraftsFromText } from '@/lib/server/notebook-problems/import';
-import { ensureLegacyProblemsBackfilledForCourse } from '@/lib/server/notebook-problems/service';
+import { type NotebookProblemImportDraft } from '@/features/problems';
+import { extractProblemDraftsFromText } from '@/features/problems/server/import';
+import { ensureLegacyProblemsBackfilledForCourse } from '@/features/problems/server/service';
 import { estimateWebSearchRetailCostCredits } from '@/lib/utils/openai-pricing';
 import { formatSearchResultsAsContext, searchWithTavily } from '@/lib/web-search/tavily';
 

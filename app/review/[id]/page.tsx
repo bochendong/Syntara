@@ -20,35 +20,28 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
-import { backendJson } from '@/lib/utils/backend-api';
-import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { loadStageData, type StageStoreData } from '@/lib/utils/stage-storage';
 import { useAuthStore } from '@/lib/store/auth';
-import { useNotificationStore } from '@/lib/store/notifications';
-import { buildStudyCompanionNotification, loadStudyMemory } from '@/lib/learning/study-memory';
-import type { ReviewRoute, ReviewRouteNode } from '@/lib/learning/review-route-types';
+import { loadStudyMemory } from '@/features/memory';
+import type { ReviewRoute, ReviewRouteNode } from '@/features/review';
 import {
-  addReviewRouteHistoryItem,
   deleteReviewRouteHistoryItem,
   listReviewRouteHistory,
   type ReviewRouteHistoryItem,
-} from '@/lib/learning/review-route-history';
+} from '@/features/review';
 import {
   deleteReviewRouteProgress,
   loadReviewRouteProgress,
   markReviewRouteNodeCompleted,
-} from '@/lib/learning/review-route-progress';
-import {
-  confirmComputeCreditsForGeneration,
-  estimateReviewRouteComputeCredits,
-} from '@/lib/utils/generation-credit-preflight';
+} from '@/features/review';
+import { estimateReviewRouteComputeCredits } from '@/lib/utils/generation-credit-preflight';
 import { listNotebookProblems } from '@/lib/utils/notebook-problem-api';
 import {
   assessProblemBankReadiness,
   deriveProblemBankLearningProfile,
   type ProblemBankReadiness,
   type ProblemBankLearningProfile,
-} from '@/lib/learning/problem-bank-profile';
+} from '@/features/review';
 import {
   commitNotebookProblemImport,
   previewNotebookProblemImport,
@@ -246,7 +239,6 @@ export default function ReviewNotebookPage() {
   const router = useRouter();
   const notebookId = typeof params?.id === 'string' ? params.id : '';
   const userId = useAuthStore((s) => (s.userId?.trim() ? s.userId : 'user-anonymous'));
-  const enqueueBanner = useNotificationStore((s) => s.enqueueBanner);
   const [data, setData] = useState<StageStoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -260,7 +252,7 @@ export default function ReviewNotebookPage() {
   const [challengeAnswer, setChallengeAnswer] = useState('');
   const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
   const [showProblemBankGate, setShowProblemBankGate] = useState(false);
-  const [aiProblemBankReadiness, setAiProblemBankReadiness] =
+  const [aiProblemBankReadiness, _setAiProblemBankReadiness] =
     useState<AiProblemBankReadiness | null>(null);
   const [generatingProblems, setGeneratingProblems] = useState(false);
 

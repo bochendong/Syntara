@@ -4,6 +4,14 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
+import type { Action } from '@/lib/types/action';
+import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
+import {
+  createOwnedNotebook,
+  findNotebookOwner,
+  listOwnedNotebooksWithSpeechActions,
+  updateOwnedNotebook,
+} from '@/lib/server/repositories/notebook-repository';
 
 const createNotebookSchema = z.object({
   /** 客户端生成（如 nanoid）的笔记本 id；不传则使用数据库默认 cuid */
@@ -28,26 +36,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId')?.trim();
 
-    const notebooks = await prisma.notebook.findMany({
-      where: {
-        ownerId: userId,
-        ...(courseId ? { courseId } : {}),
-      },
-      include: {
-        _count: {
-          select: { scenes: true },
-        },
-        scenes: {
-          select: { actions: true },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    const notebooks = await listOwnedNotebooksWithSpeechActions(prisma, userId, courseId);
 
     return NextResponse.json({
       notebooks: notebooks.map(({ scenes, ...notebook }) => {
         const speech = summarizeSpeechReadinessFromScenes(
-          scenes.map((scene) => ({ actions: (scene.actions as any[] | undefined) ?? undefined })),
+          scenes.map((scene) => ({
+            actions: (scene.actions as unknown as Action[] | undefined) ?? undefined,
+          })),
         );
         return {
           ...notebook,
@@ -77,38 +73,29 @@ export async function POST(request: Request) {
     const { id: clientId, ...rest } = payload.data;
 
     if (rest.courseId) {
-      const ownCourse = await prisma.course.findFirst({
-        where: { id: rest.courseId, ownerId: userId },
-        select: { id: true },
-      });
+      const ownCourse = await findOwnedCourse(prisma, userId, rest.courseId);
       if (!ownCourse) {
         return NextResponse.json({ error: 'Course not found' }, { status: 404 });
       }
     }
 
     if (clientId) {
-      const existing = await prisma.notebook.findFirst({
-        where: { id: clientId },
-        select: { id: true, ownerId: true },
-      });
+      const existing = await findNotebookOwner(prisma, clientId);
       if (existing) {
         if (existing.ownerId !== userId) {
           return NextResponse.json({ error: 'Notebook id already in use' }, { status: 409 });
         }
-        const notebook = await prisma.notebook.update({
-          where: { id: clientId },
-          data: rest,
-        });
+        const notebook = await updateOwnedNotebook(prisma, userId, clientId, rest);
+        if (!notebook) {
+          return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+        }
         return NextResponse.json({ notebook });
       }
     }
 
-    const notebook = await prisma.notebook.create({
-      data: {
-        ...(clientId ? { id: clientId } : {}),
-        ownerId: userId,
-        ...rest,
-      },
+    const notebook = await createOwnedNotebook(prisma, userId, {
+      ...(clientId ? { id: clientId } : {}),
+      ...rest,
     });
 
     return NextResponse.json({ notebook }, { status: 201 });

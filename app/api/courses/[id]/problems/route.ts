@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { listCourseProblemsForUser } from '@/lib/server/notebook-problems/service';
+import { listCourseProblemsForUser } from '@/features/problems/server/service';
 
 function toClientProblem(problem: Awaited<ReturnType<typeof listCourseProblemsForUser>>[number]) {
   return {

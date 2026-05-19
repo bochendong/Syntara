@@ -30,6 +30,7 @@ export interface ClassroomGenerationJob {
     hasPdf: boolean;
     pdfTextLength: number;
     pdfImageCount: number;
+    slideGenerationRoute?: string;
   };
   scenesGenerated: number;
   totalScenes?: number;
@@ -53,6 +54,7 @@ function buildInputSummary(input: GenerateClassroomInput): ClassroomGenerationJo
     hasPdf: !!input.pdfContent,
     pdfTextLength: input.pdfContent?.text.length || 0,
     pdfImageCount: input.pdfContent?.images.length || 0,
+    slideGenerationRoute: input.slideGenerationRoute,
   };
 }
 

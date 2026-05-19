@@ -25,10 +25,10 @@ import {
   deriveProblemBankLearningProfile,
   type ProblemBankLearningProfile,
   type ProblemBankReadiness,
-} from '@/lib/learning/problem-bank-profile';
-import type { ReviewRoute } from '@/lib/learning/review-route-types';
-import { addReviewRouteHistoryItem } from '@/lib/learning/review-route-history';
-import { buildStudyCompanionNotification, loadStudyMemory } from '@/lib/learning/study-memory';
+} from '@/features/review';
+import type { ReviewRoute } from '@/features/review';
+import { addReviewRouteHistoryItem } from '@/features/review';
+import { buildStudyCompanionNotification, loadStudyMemory } from '@/features/memory';
 import { useAuthStore } from '@/lib/store/auth';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { backendJson } from '@/lib/utils/backend-api';
@@ -154,8 +154,14 @@ export default function ReviewLoadingPage() {
   const [supplementedCount, setSupplementedCount] = useState(0);
 
   const currentProblemCount = assessment?.currentProblemCount ?? problemProfile?.totalProblems ?? 0;
-  const missingConcepts = assessment?.missingConcepts ?? problemProfile?.missingConcepts ?? [];
-  const thinConcepts = assessment?.thinConcepts ?? problemProfile?.thinConcepts ?? [];
+  const missingConcepts = useMemo(
+    () => assessment?.missingConcepts ?? problemProfile?.missingConcepts ?? [],
+    [assessment?.missingConcepts, problemProfile?.missingConcepts],
+  );
+  const thinConcepts = useMemo(
+    () => assessment?.thinConcepts ?? problemProfile?.thinConcepts ?? [],
+    [assessment?.thinConcepts, problemProfile?.thinConcepts],
+  );
   const reasons = assessment?.reasons ?? [];
   const weakPointCount = useMemo(() => {
     if (!data?.stage) return 0;

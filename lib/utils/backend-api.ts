@@ -28,6 +28,7 @@ function shouldNotifyCreditsAfterRequest(path: string, init?: RequestInit): bool
     '/api/notebooks/send-message',
     '/api/classroom/repair-slide-',
     '/api/review-route/generate',
+    '/api/review-route/supplement-problems',
     '/problems/import-preview',
   ].some((pattern) => normalizedPath.includes(pattern));
 }

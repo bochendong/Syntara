@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware';
 import type { NotebookGenerationModelStage } from '@/lib/constants/notebook-generation-model-stages';
 import type { NotebookGenerationModelMode } from '@/lib/constants/notebook-generation-model-presets';
 import {
-  DEFAULT_SLIDE_GENERATION_ROUTE,
+  DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
+  normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
 
@@ -55,7 +56,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       language: 'zh-CN',
       webSearch: true,
       generateSlides: true,
-      slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
+      slideGenerationRoute: DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
       outlineLength: 'standard',
       workedExampleLevel: 'moderate',
       includeQuizScenes: true,
@@ -90,6 +91,7 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
         language: state.language,
         webSearch: state.webSearch,
         generateSlides: state.generateSlides,
+        slideGenerationRoute: state.slideGenerationRoute,
         outlineLength: state.outlineLength,
         workedExampleLevel: state.workedExampleLevel,
         includeQuizScenes: state.includeQuizScenes,
@@ -98,7 +100,10 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       merge: (persistedState, currentState) => ({
         ...currentState,
         ...((persistedState as Partial<OrchestratorNotebookGenState> | null) ?? {}),
-        slideGenerationRoute: DEFAULT_SLIDE_GENERATION_ROUTE,
+        slideGenerationRoute: normalizeNotebookSlideGenerationRoute(
+          (persistedState as Partial<OrchestratorNotebookGenState> | null)?.slideGenerationRoute ??
+            DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
+        ),
       }),
     },
   ),

@@ -23,13 +23,13 @@ import {
 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 import { QuizView, type QuestionResult } from '@/components/scene-renderers/quiz-view';
-import type { ReviewRoute, ReviewRouteNode } from '@/lib/learning/review-route-types';
-import { listReviewRouteHistory } from '@/lib/learning/review-route-history';
+import type { ReviewRoute, ReviewRouteNode } from '@/features/review';
+import { listReviewRouteHistory } from '@/features/review';
 import {
   loadReviewRouteProgress,
   markReviewRouteNodeCompleted,
   withdrawReviewRouteReward,
-} from '@/lib/learning/review-route-progress';
+} from '@/features/review';
 import { useAuthStore } from '@/lib/store/auth';
 import type { QuizQuestion, Scene } from '@/lib/types/stage';
 import { loadStageData, type StageStoreData } from '@/lib/utils/stage-storage';

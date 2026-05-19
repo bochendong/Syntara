@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { listNotebookProblemAttempts } from '@/lib/server/notebook-problems/service';
+import { listNotebookProblemAttempts } from '@/features/problems/server/service';
 
 export async function GET(
   _request: Request,

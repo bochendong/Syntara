@@ -7,6 +7,12 @@ import {
   pickRandomCourseAvatarUrl,
   pickStableCourseAvatarUrl,
 } from '@/lib/constants/course-avatars';
+import {
+  backfillOwnedCourseAvatars,
+  createOwnedCourse,
+  listOwnedCourses,
+  listOwnedCoursesWithCloneSourceOwner,
+} from '@/lib/server/repositories/course-repository';
 
 function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
   const n = owner.name?.trim();
@@ -35,36 +41,10 @@ export async function GET() {
     if ('response' in auth) return auth.response;
     const { userId } = auth;
 
-    const rows = await prisma.course.findMany({
-      where: { ownerId: userId },
-      orderBy: { updatedAt: 'desc' },
-    });
-    const missingAvatar = rows.filter((r) => !r.avatarUrl?.trim());
-    if (missingAvatar.length > 0) {
-      await prisma.$transaction(
-        missingAvatar.map((c) =>
-          prisma.course.update({
-            where: { id: c.id },
-            data: { avatarUrl: pickStableCourseAvatarUrl(c.id) },
-          }),
-        ),
-      );
-    }
-    const courses = await prisma.course.findMany({
-      where: { ownerId: userId },
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        clonePurchase: {
-          select: {
-            sourceCourse: {
-              select: {
-                owner: { select: { name: true, email: true } },
-              },
-            },
-          },
-        },
-      },
-    });
+    const rows = await listOwnedCourses(prisma, userId);
+    await backfillOwnedCourseAvatars(prisma, rows, pickStableCourseAvatarUrl);
+
+    const courses = await listOwnedCoursesWithCloneSourceOwner(prisma, userId);
     return NextResponse.json({
       courses: courses.map((course) => {
         const sourceOwner = course.clonePurchase?.sourceCourse.owner;
@@ -95,14 +75,11 @@ export async function POST(request: Request) {
     const avatarUrl = payload.data.avatarUrl?.trim() || pickRandomCourseAvatarUrl();
 
     const { listedInCourseStore, ...rest } = payload.data;
-    const course = await prisma.course.create({
-      data: {
-        ownerId: userId,
-        ...rest,
-        avatarUrl,
-        ...(listedInCourseStore ? { storePublishedAt: new Date() } : {}),
-        ...(listedInCourseStore !== undefined ? { listedInCourseStore } : {}),
-      },
+    const course = await createOwnedCourse(prisma, userId, {
+      ...rest,
+      avatarUrl,
+      ...(listedInCourseStore ? { storePublishedAt: new Date() } : {}),
+      ...(listedInCourseStore !== undefined ? { listedInCourseStore } : {}),
     });
 
     return NextResponse.json({ course }, { status: 201 });

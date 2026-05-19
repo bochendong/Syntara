@@ -71,6 +71,12 @@ export function SpotlightOverlay() {
 
   const active = !!spotlightElementId && !!spotlightOptions && !!rect;
   const dimness = spotlightOptions?.dimness ?? 0.7;
+  const cutoutX = rect ? Math.max(0, rect.x - 0.4) : 0;
+  const cutoutY = rect ? Math.max(0, rect.y - 0.6) : 0;
+  const cutoutW = rect ? Math.min(100 - cutoutX, rect.w + 0.8) : 0;
+  const cutoutH = rect ? Math.min(100 - cutoutY, rect.h + 1.2) : 0;
+  const cutoutRight = cutoutX + cutoutW;
+  const cutoutBottom = cutoutY + cutoutH;
 
   return (
     <div
@@ -93,42 +99,28 @@ export function SpotlightOverlay() {
               preserveAspectRatio="none"
               className="absolute inset-0"
             >
-              <defs>
-                <mask id={`mask-${spotlightElementId}`}>
-                  {/* White background = show mask layer (dimmed) */}
-                  <rect x="0" y="0" width="100" height="100" fill="white" />
-                  {/* Black rectangle = hide mask layer (highlighted area / cutout) */}
-                  <motion.rect
-                    fill="black"
-                    initial={{
-                      x: rect.x - 8,
-                      y: rect.y - 8,
-                      width: rect.w + 16,
-                      height: rect.h + 16,
-                      rx: 4,
-                    }}
-                    animate={{
-                      x: rect.x - 0.4,
-                      y: rect.y - 0.6,
-                      width: rect.w + 0.8,
-                      height: rect.h + 1.2,
-                      rx: 1,
-                    }}
-                    transition={{
-                      duration: 0.6,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
-                  />
-                </mask>
-              </defs>
-
-              {/* Dimmed Background */}
+              {/* Four solid dimming panels leave the focused area completely untouched. */}
+              <rect x="0" y="0" width="100" height={cutoutY} fill={`rgba(0,0,0,${dimness})`} />
               <rect
+                x="0"
+                y={cutoutBottom}
                 width="100"
-                height="100"
+                height={Math.max(0, 100 - cutoutBottom)}
                 fill={`rgba(0,0,0,${dimness})`}
-                mask={`url(#mask-${spotlightElementId})`}
-                className="backdrop-blur-[1.5px]"
+              />
+              <rect
+                x="0"
+                y={cutoutY}
+                width={cutoutX}
+                height={cutoutH}
+                fill={`rgba(0,0,0,${dimness})`}
+              />
+              <rect
+                x={cutoutRight}
+                y={cutoutY}
+                width={Math.max(0, 100 - cutoutRight)}
+                height={cutoutH}
+                fill={`rgba(0,0,0,${dimness})`}
               />
 
               {/* THE ONE BORDER - white border */}

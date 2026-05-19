@@ -63,7 +63,11 @@ import {
 } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
-import { ProblemRichText, ProblemTitleText } from '@/components/problem-bank/problem-rich-text';
+import {
+  ProblemImageAssets,
+  ProblemRichText,
+  ProblemTitleText,
+} from '@/components/problem-bank/problem-rich-text';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -1172,6 +1176,7 @@ export function CourseProblemBankView({
                   ) : (
                     <p>{locale === 'zh-CN' ? '暂无题面。' : 'No stem available.'}</p>
                   )}
+                  <ProblemImageAssets content={selectedProblem.publicContent} className="mt-4" />
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/40">

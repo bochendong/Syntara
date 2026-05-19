@@ -80,6 +80,7 @@ export function CreateNotebookComposer({
   const language = useOrchestratorNotebookGenStore((s) => s.language);
   const webSearch = useOrchestratorNotebookGenStore((s) => s.webSearch);
   const generateSlides = useOrchestratorNotebookGenStore((s) => s.generateSlides);
+  const slideGenerationRoute = useOrchestratorNotebookGenStore((s) => s.slideGenerationRoute);
   const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
   const includeQuizScenes = useOrchestratorNotebookGenStore((s) => s.includeQuizScenes);
   const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
@@ -215,6 +216,7 @@ export function CreateNotebookComposer({
           language,
           webSearch,
           generateSlides,
+          slideGenerationRoute,
           sourceFile: form.sourceFile,
           sourcePageSelection: effectiveSelection,
           userNickname: userProfile.nickname || undefined,

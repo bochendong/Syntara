@@ -1,0 +1,575 @@
+    ·
+
+
+
+
+CPSC 107
+Systematic Program Design
+
+
+导师： Bochen Dong
+
+
+UBC Week 4 Class | 2025/5/11
+                                       WEEK 4    CPSC 107 || 2025-05-11
+
+
+
+
+Disclaimer
+This study handout is provided by Speed Up Education and its
+
+affiliated tutors. The study handout seeks to support your study
+
+process and should be used as a complement, not substitute to the
+
+university course material, lecture notes, problem, sets, past tests and
+
+other available resources.
+
+
+
+
+The study handout is distributed for free to the students participating
+
+in Speed Up Education classes and is not for sale or other commercial
+
+uses whatsoever. We kindly ask you to refrain from copying or selling
+
+in part or in whole any information provided in the handout.
+
+
+
+
+Thanks for choosing Speed Up Education. We wish you the best of
+
+luck in your exam.
+
+
+
+
+导师： Bochen Dong   |   UBC 校 区
+                                                                          1
+                                           WEEK 4       CPSC 107 || 2025-05-11
+
+
+
+                                     REF
+
+Reference
+
+某些数据定义包含已定义的其他数据定义
+
+常见情况: 复合数据(compound data)包含其他自定义数据。
+
+(@htdd Ball)
+(define-struct ball (x y))
+;; Ball is (make-ball Number Number)
+;; interp. a ball at position x, y
+(define BALL-1 (make-ball 6 10))
+
+
+(@dd-template-rules compound)        ;2 fields
+(define (fn-for-ball b)
+  (... (ball-x b)        ;Number
+      (ball-y b)))       ;Number
+
+
+(@htdd Game)
+(define-struct game (ball score))
+;; Game is (make-game Ball Number)
+;; interp. the current state of a game, with the ball and score
+
+
+(define GAME-1 (make-game (make-ball 1 5) 2))
+
+
+(@dd-template-rules compound               ; 2 fields
+                           ref)            ; Ball
+
+
+(define (fn-for-game g)
+  (... (fn-for-ball (game-ball g))
+      (game-score g)))                ;Number
+
+
+
+
+导师： Bochen Dong      |   UBC 校 区
+                                                                                 2
+                                               WEEK 4   CPSC 107 || 2025-05-11
+
+
+
+                                      Self-REF
+
+
+
+
+基本组成
+
+
+我们可以通过 cons 来往一个 list 前面添加元素
+
+(define L1 (cons 1 (cons 2 empty)))
+
+
+
+(define L2 (cons 1 (cons 1 (cons 2 empty))))
+
+
+List 可以包含不同种类的元素
+
+
+
+(define L3 (cons "Andy" (cons 2 empty)))
+
+
+
+(define L4 (cons (square 10 "solid" "blue") (cons "Andy" empty)))
+
+
+Note: 简便写法
+
+
+(define L5 (list 1 2 3))
+
+(define L6 `( 1 2 3))
+
+
+
+
+导师： Bochen Dong         |   UBC 校 区
+                                                                                 3
+                                               WEEK 4   CPSC 107 || 2025-05-11
+
+
+
+
+                                   List Operations
+first/second/third
+
+
+(define L7 (list 1 2 3 4 5 6 7))
+
+(first L7) ;; 1
+
+(second L7) ;; 2
+
+(third L7) ;; 3
+
+(fourth L7) ;; 4
+
+
+
+
+rest
+
+(define L1 (cons 1 (cons 2 empty)))
+
+(define L2 (cons 1 (cons 1 (cons 2 empty))))
+
+(define L3 (cons "Andy" (cons 2 empty)))
+
+(define L4 (cons (square 10 "solid" "blue") (cons "Andy" empty)))
+
+
+
+
+(rest L2) ;; (list 1 2)
+
+(rest L4) ;; (list "Andy")
+
+(rest L7) ;; (list 2 3 4 5 6 7)
+
+
+
+
+导师： Bochen Dong           |   UBC 校 区
+                                                                                 4
+                                                   WEEK 4          CPSC 107 || 2025-05-11
+
+
+
+其他常见的方法
+
+
+(length L7) ;; 7
+
+(member? 2 L7) ;; true
+
+(member? 11 L7) ;; false
+
+(append (list 1 2 3 4) (list 5 6 7 8)) ;; (list 1 2 3 4 5 6 7 8)
+
+(revere (list 1 2 3 4)) ;; (list 4 3 2 1)
+
+(empty? (list 1 2 3 4)) ;; false
+
+(empty? empty) ;; true
+
+(empty? `()) ;; true
+
+
+
+
+Question:
+
+
+怎么为一个 Listof 数据设计 htdd 呢？
+
+
+
+
+导师： Bochen Dong          |   UBC 校 区
+                                                                                            5
+                                                WEEK 4   CPSC 107 || 2025-05-11
+
+
+
+Example：设计整数 List 的 htdd
+
+
+(@htdd ListOfInteger)
+
+;; ListOfInteger is one of:
+
+;; - empty
+
+;; - (cons Integer ListOfInteger)
+
+;; interp. a list of integers
+
+
+
+(define LOI0 empty)
+
+(define LOI1 (cons 212 (cons -98 (cons 3 empty))))
+
+
+
+(@dd-template-rules one-of
+
+                              atomic-distinct
+
+                              compound
+
+                              self-ref)
+
+
+
+(define (fn-for-loi loi)
+
+  (cond [(empty? loi) (...)]
+
+         [else
+
+           (... (first loi)
+
+               (fn-for-loi (rest loi)))]))
+
+
+
+
+导师： Bochen Dong               |   UBC 校 区
+                                                                                  6
+                                                       WEEK 4    CPSC 107 || 2025-05-11
+
+
+
+Exercise：设计 String List 的 htdd，你需要做哪些改动？
+
+
+
+
+List of Primitive Data type
+
+
+
+(@htdd ListOfString)
+;; ListOfString is one of:
+
+;; - empty
+
+;; - (cons String ListOfString)
+
+;; interp. a list of strings
+
+
+(define LOS-1 empty)
+(define LOS-2 (cons "a" empty))
+(define LOS-3 (cons "b" (cons "c" empty)))
+
+
+(@dd-template-rules one-of                      ;2 cases
+                          atomic-distinct       ;empty
+                          compound              ;(cons String ListOfString)
+                          self-ref)            ;(rest los) is ListOfString
+
+
+(define (fn-for-los los)
+  (cond [(empty? los) (...)]
+          [else (... (first los)
+                         (fn-for-los (rest los)))]))
+
+
+
+
+导师： Bochen Dong           |    UBC 校 区
+                                                                                          7
+                                                WEEK 4     CPSC 107 || 2025-05-11
+
+
+
+Exercise：
+
+以下是一个 Book 的 htdd, 请设计 ListOfBook 的 Htdd
+
+
+(@htdd Book)
+(define-struct book (title auth year genre))
+;; Book is (make-book String String Natural String)
+;; interp. a book with its title, author, publication year, and genre
+(define B1 (make-book "The Hate U Give" "Angie Thomas" 2017 "Young Adult"))
+(define B2 (make-book "The Girl Who Lived: A Thrilling Suspense Novel"
+                            "Christopher Greyson"
+                            2017
+                            "Suspense"))
+
+
+(@dd-template-rules compound) ;4 fields
+
+
+(define (fn-for-book b)
+  (... (book-title b)
+        (book-auth b)
+        (book-year b)
+        (book-genre b)))
+
+
+
+
+导师： Bochen Dong         |   UBC 校 区
+                                                                                    8
+                                                           WEEK 4           CPSC 107 || 2025-05-11
+
+
+
+Summary：
+
+List of Compound
+(@htdd Dot)
+(define-struct dot (x y))
+;; Dot is (make-dot Integer Integer)
+;; interp. A dot on the screen, w/ x and y coordinates in pixels.
+(define D1 (make-dot 10 30))
+
+
+(@dd-template-rules compound) ;2 fields
+
+
+(define (fn-for-dot d)
+  (... (dot-x d)     ;Integer
+        (dot-y d))) ;Integer
+
+
+(@htdd ListOfDot)
+;; ListOfDot is one of:
+;; - empty
+;; - (cons Dot ListOfDot)
+;; interp. a list of Dot
+(define LOD1 empty)
+(define LOD2 (cons (make-dot 10 20) (cons (make-dot 3 6) empty)))
+
+
+(@dd-template-rules one-of                          ;2 cases
+                           atomic-distinct        ;empty
+                           compound                  ;(cons Dot ListOfDot)
+                           ref                    ;(first lod) is Dot
+                           self-ref)             ;(rest lod) is ListOfDot
+
+
+(define (fn-for-lod lod)
+  (cond [(empty? lod) (...)]
+         [else
+           (... (fn-for-dot (first lod))
+                   (fn-for-lod (rest lod)))]))
+
+
+
+
+导师： Bochen Dong                  |   UBC 校 区
+                                                                                                     9
+                                          WEEK 4    CPSC 107 || 2025-05-11
+
+
+
+2024 W1 P3
+
+(@htdd Waldo)
+
+(define-struct fie (a b))
+
+(define-struct foe (c d))
+
+;; Waldo is one of:
+
+;; - "fee"
+
+;; - "floo"
+
+;; - (make-fie Integer String)
+
+;; - (make-foe Number Waldo)
+
+;; - true
+
+
+
+;; *** DO NOT EDIT ABOVE THIS LINE ***
+
+
+
+;(@dd-template-rules ) ;UNCOMMENT before you start
+
+
+
+;(define (fn-for-waldo w) ) ;UNCOMMENT before you start
+
+
+
+
+导师： Bochen Dong        |    UBC 校 区
+                                                                             10
+                                                     WEEK 4      CPSC 107 || 2025-05-11
+
+
+
+Answer：
+
+
+(@dd-template-rules one-of                   ;4 subclasses
+
+                           atomic-distinct ;"fee"
+
+                           atomic-distinct ;"floo"
+
+                           compound            ;(make-fie Integer String)
+
+                           compound            ;(make-foe Number Waldo)
+
+                           self-ref        ;(foe-d w) is Waldo
+
+                           atomic-distinct);true
+
+
+
+(define (fn-for-waldo w)
+
+  (cond [(and (string? w) (string=? w "fee")) (...)]
+
+        [(string? w) (...)]
+
+        [(fie? w)
+
+          (... (fie-a w)
+
+                (fie-b w))]
+
+        [(foe? w)
+
+          (... (foe-c w)
+
+                (fn-for-waldo (foe-d w)))]
+
+        [else (...)]))
+
+
+
+
+导师： Bochen Dong            |   UBC 校 区
+                                                                                          11
+                                         WEEK 4   CPSC 107 || 2025-05-11
+
+
+
+2024 W2 P2
+
+(@htdd Peat)
+
+(define-struct crim (k d))
+
+(define-struct rudz (s b))
+
+;; Peat is one of:
+
+;; - (make-crim Integer Peat)
+
+;; - (make-rudz String Number)
+
+;; - false
+
+;; - "zap"
+
+
+
+;; *** DO NOT EDIT ABOVE THIS LINE ***
+
+
+
+(@dd-template-rules )
+
+
+
+
+(define (fn-for-peat p) )
+
+
+
+
+导师： Bochen Dong       |     UBC 校 区
+                                                                           12
+                                                  WEEK 4       CPSC 107 || 2025-05-11
+
+
+
+Answer：
+
+(@dd-template-rules one-of                  ;4 subclasses
+
+                         compound            ;(make-crim Integer Peat)
+
+                         self-ref        ;(crim-d p) is Peat
+
+                         compound            ;(make-rudz String Number)
+
+                         atomic-distinct ;false
+
+                         atomic-distinct);"zap"
+
+
+
+(define (fn-for-peat p)
+
+  (cond [(crim? p)
+
+         (... (crim-k p)
+
+                (fn-for-peat (crim-d p)))]
+
+        [(rudz? p)
+
+         (... (rudz-s p)
+
+                (rudz-b p))]
+
+        [(false? p) (...)]
+
+        [else (...)]))
+
+
+
+
+导师： Bochen Dong          |   UBC 校 区
+                                                                                        13
+

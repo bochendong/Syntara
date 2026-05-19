@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { notebookProblemImportDraftSchema } from '@/lib/problem-bank';
-import { createNotebookProblemsFromDrafts } from '@/lib/server/notebook-problems/service';
+import { notebookProblemImportDraftSchema } from '@/features/problems';
+import { createNotebookProblemsFromDrafts } from '@/features/problems/server/service';
 
 const commitSchema = z.object({
   drafts: z.array(notebookProblemImportDraftSchema).min(1).max(200),

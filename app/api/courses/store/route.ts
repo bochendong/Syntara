@@ -3,6 +3,12 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
+import type { Action } from '@/lib/types/action';
+import {
+  listCoursePurchasesForSources,
+  listCourseReviewRatings,
+  listPublicStoreCoursesForUser,
+} from '@/lib/server/repositories/store-repository';
 
 function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
   const n = owner.name?.trim();
@@ -21,35 +27,12 @@ export async function GET() {
     if ('response' in auth) return auth.response;
     const { userId } = auth;
 
-    const rows = await prisma.course.findMany({
-      where: {
-        listedInCourseStore: true,
-        ownerId: { not: userId },
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        owner: { select: { name: true, email: true } },
-        _count: { select: { notebooks: true } },
-        notebooks: {
-          select: {
-            scenes: {
-              select: { actions: true },
-            },
-          },
-        },
-      },
-    });
+    const rows = await listPublicStoreCoursesForUser(prisma, userId);
 
     const courseIds = rows.map((row) => row.id);
     const [reviews, purchases] = await Promise.all([
-      prisma.courseReview.findMany({
-        where: { courseId: { in: courseIds } },
-        select: { courseId: true, rating: true },
-      }),
-      prisma.coursePurchase.findMany({
-        where: { buyerId: userId, sourceCourseId: { in: courseIds } },
-        select: { sourceCourseId: true },
-      }),
+      listCourseReviewRatings(prisma, courseIds),
+      listCoursePurchasesForSources(prisma, userId, courseIds),
     ]);
 
     const reviewMap = new Map<string, { sum: number; count: number }>();
@@ -67,7 +50,7 @@ export async function GET() {
       const speech = summarizeSpeechReadinessFromScenes(
         notebooks.flatMap((notebook) =>
           notebook.scenes.map((scene) => ({
-            actions: (scene.actions as any[] | undefined) ?? undefined,
+            actions: (scene.actions as unknown as Action[] | undefined) ?? undefined,
           })),
         ),
       );

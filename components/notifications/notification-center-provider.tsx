@@ -25,9 +25,13 @@ const GlobalNotificationOverlay = dynamic(
 function shouldSuppressNotificationCenter(pathname: string | null): boolean {
   return Boolean(
     pathname === '/' ||
-    pathname === '/login' ||
-    pathname?.startsWith('/login/') ||
-    pathname === '/register' ||
+      pathname === '/test' ||
+      pathname === '/generation-tests' ||
+      pathname === '/generation-quality' ||
+      /^\/[^/]+-test(?:\/|$)/.test(pathname || '') ||
+      pathname === '/login' ||
+      pathname?.startsWith('/login/') ||
+      pathname === '/register' ||
     pathname?.startsWith('/register/') ||
     pathname === '/live2d' ||
     pathname?.startsWith('/live2d/'),

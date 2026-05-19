@@ -9,7 +9,6 @@ import {
 import { createLogger } from '@/lib/logger';
 import { applyCreditDelta, getUserCreditBalances } from '@/lib/server/credits';
 import type {
-  GamificationAvatarInventorySummary,
   GamificationAvatarRarity,
   GamificationCharacterSummary,
   GamificationClaimKind,
@@ -22,482 +21,57 @@ import type {
   GamificationSummaryResponse,
 } from '@/lib/types/gamification';
 import {
-  DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
-  type Live2DPresenterModelId,
-} from '@/lib/live2d/presenter-models';
-import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
-import {
-  DEFAULT_UNLOCKED_USER_AVATAR_IDS,
   USER_AVATAR_GACHA_CATALOG,
   type UserAvatarCatalogItem,
 } from '@/lib/constants/user-avatars';
+import { getProfileCosmeticItem } from '@/lib/constants/profile-cosmetics';
 import {
-  DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS,
-  PROFILE_COSMETIC_ITEMS,
-  getProfileCosmeticItem,
-} from '@/lib/constants/profile-cosmetics';
+  AVATAR_RARITY_RATES,
+  CHARACTER_DUPLICATE_AFFINITY_GAIN,
+  CHARACTER_FRAGMENT_TARGET,
+  DAILY_AFFINITY_EARN_CAP,
+  DAILY_PURCHASE_EARN_CAP,
+  DAILY_TASK_DEFINITIONS,
+  DEFAULT_CATALOG,
+  DEFAULT_CHARACTER_ID,
+  GACHA_BANNER_CONFIG,
+  REWARD_RULES,
+  WEEKLY_TASK_DEFINITIONS,
+} from '@/lib/server/gamification/config';
+import {
+  addDays,
+  currentWeekKey,
+  dateFromDateKey,
+  dateKeyFromDate,
+  dayDiff,
+  startOfTodayUtc,
+} from '@/lib/server/gamification/time';
+import {
+  getInputMetadataString,
+  getMetadataNumber,
+  getMetadataString,
+  getMetadataStringArray,
+  isJsonObject,
+} from '@/lib/server/gamification/metadata';
+import {
+  type AvatarInventoryState,
+  avatarDisplayName,
+  buildAvatarInventorySummary,
+  buildCosmeticInventorySummary,
+  computeAffinityLevel,
+  getRemainingAvatarDraws,
+  nextLevelExp,
+  normalizeAvatarInventoryState,
+  randomPick,
+  toAvatarInventoryJson,
+  weightedPick,
+} from '@/lib/server/gamification/inventory';
 
 type GamificationDbClient = PrismaClient | Prisma.TransactionClient;
 
 const log = createLogger('Gamification');
-const APP_TIME_ZONE = 'America/Toronto';
-const DAILY_PURCHASE_EARN_CAP = 120;
-const DAILY_AFFINITY_EARN_CAP = 20;
-const DEFAULT_CHARACTER_ID = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
-const CHARACTER_FRAGMENT_TARGET = 10;
-const CHARACTER_DUPLICATE_AFFINITY_GAIN = 6;
 let catalogSeedPromise: Promise<void> | null = null;
 let catalogSeeded = false;
-
-const GACHA_BANNER_CONFIG = {
-  avatar: {
-    singleCost: 30,
-    tenCost: 270,
-  },
-  live2d: {
-    singleCost: 45,
-    tenCost: 405,
-  },
-} as const;
-
-const AVATAR_RARITY_RATES: Record<GamificationAvatarRarity, number> = {
-  R: 0.78,
-  SR: 0.18,
-  SSR: 0.04,
-};
-
-type AvatarInventoryState = {
-  ownedIds: string[];
-  fragmentCounts: Record<string, number>;
-  cosmeticUnlocks: string[];
-};
-
-const REWARD_RULES = {
-  dailySignIn: { purchaseCredits: 5, affinity: 1 },
-  lessonMilestone: { purchaseCredits: 8, affinity: 2 },
-  quizCompletion: { purchaseCredits: 12, affinity: 3 },
-  quizAccuracyBonus: { purchaseCredits: 6, affinity: 0 },
-  reviewCompletion: { purchaseCredits: 10, affinity: 4 },
-  dailyAllClear: { purchaseCredits: 20, affinity: 0 },
-  streakBonus: {
-    3: 15,
-    7: 40,
-    14: 100,
-  } as Record<number, number>,
-} as const;
-
-function getLive2DPersonaMetadata(id: Live2DPresenterModelId): Prisma.InputJsonObject {
-  const persona = LIVE2D_PRESENTER_PERSONAS[id];
-  return {
-    description: persona.description,
-    worldview: persona.worldview,
-    story: persona.story,
-    gathering: persona.gathering,
-    linkLine: persona.linkLine,
-    teachingStyle: persona.teachingStyle,
-    bondLine: persona.bondLine,
-    personalityTags: [...persona.personalityTags],
-  };
-}
-
-const AFFINITY_LEVEL_THRESHOLDS = [0, 30, 80, 160, 300] as const;
-
-const DAILY_TASK_DEFINITIONS: Array<{
-  id: 'daily_lesson' | 'daily_quiz' | 'daily_review';
-  missionType: MissionType;
-  label: string;
-  targetValue: number;
-  rewardPurchaseCredits: number;
-}> = [
-  {
-    id: 'daily_lesson',
-    missionType: MissionType.DAILY_LESSON,
-    label: '看 1 节课',
-    targetValue: 1,
-    rewardPurchaseCredits: 0,
-  },
-  {
-    id: 'daily_quiz',
-    missionType: MissionType.DAILY_QUIZ,
-    label: '做 1 组题',
-    targetValue: 1,
-    rewardPurchaseCredits: 0,
-  },
-  {
-    id: 'daily_review',
-    missionType: MissionType.DAILY_REVIEW,
-    label: '回顾 1 组错题',
-    targetValue: 1,
-    rewardPurchaseCredits: 0,
-  },
-];
-
-const WEEKLY_TASK_DEFINITIONS: Array<{
-  id: 'weekly_study_days' | 'weekly_quiz_batches';
-  missionType: MissionType;
-  label: string;
-  targetValue: number;
-  rewardPurchaseCredits: number;
-}> = [
-  {
-    id: 'weekly_study_days',
-    missionType: MissionType.WEEKLY_STUDY_DAYS,
-    label: '完成 5 次学习日',
-    targetValue: 5,
-    rewardPurchaseCredits: 0,
-  },
-  {
-    id: 'weekly_quiz_batches',
-    missionType: MissionType.WEEKLY_QUIZ_BATCHES,
-    label: '累计完成 8 组题',
-    targetValue: 8,
-    rewardPurchaseCredits: 0,
-  },
-];
-
-const DEFAULT_CATALOG: Array<{
-  id: string;
-  name: string;
-  assetType: CharacterAssetType;
-  unlockCostPurchaseCredits: number;
-  affinityLevelRequired: number;
-  sortOrder: number;
-  isDefault: boolean;
-  metadata: Prisma.InputJsonObject;
-}> = [
-  {
-    id: 'haru',
-    name: 'Haru',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 0,
-    affinityLevelRequired: 1,
-    sortOrder: 10,
-    isDefault: false,
-    metadata: {
-      ...getLive2DPersonaMetadata('haru'),
-      previewSrc: '/live2d/previews/haru.jpg',
-      badgeLabel: 'Haru',
-      accentColor: '#38bdf8',
-    },
-  },
-  {
-    id: 'hiyori',
-    name: 'Hiyori',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 500,
-    affinityLevelRequired: 2,
-    sortOrder: 20,
-    isDefault: false,
-    metadata: {
-      ...getLive2DPersonaMetadata('hiyori'),
-      previewSrc: '/live2d/previews/hiyori.jpg',
-      badgeLabel: 'Hiyori',
-      accentColor: '#fb7185',
-    },
-  },
-  {
-    id: 'mark',
-    name: 'Mark',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 900,
-    affinityLevelRequired: 4,
-    sortOrder: 30,
-    isDefault: true,
-    metadata: {
-      ...getLive2DPersonaMetadata('mark'),
-      previewSrc: '/live2d/previews/mark.jpg',
-      badgeLabel: 'Mark',
-      accentColor: '#f59e0b',
-    },
-  },
-  {
-    id: 'mao',
-    name: 'Mao',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 260,
-    affinityLevelRequired: 1,
-    sortOrder: 40,
-    isDefault: false,
-    metadata: {
-      ...getLive2DPersonaMetadata('mao'),
-      previewSrc: '/live2d/previews/mao.jpg',
-      badgeLabel: 'Mao',
-      accentColor: '#fb7185',
-    },
-  },
-  {
-    id: 'rice',
-    name: 'Rice',
-    assetType: CharacterAssetType.LIVE2D,
-    unlockCostPurchaseCredits: 580,
-    affinityLevelRequired: 1,
-    sortOrder: 60,
-    isDefault: false,
-    metadata: {
-      ...getLive2DPersonaMetadata('rice'),
-      previewSrc: '/live2d/previews/rice.jpg',
-      badgeLabel: 'Rice',
-      accentColor: '#a78bfa',
-    },
-  },
-  {
-    id: 'avatar-r-pack',
-    name: 'R Avatar Pack',
-    assetType: CharacterAssetType.AVATAR,
-    unlockCostPurchaseCredits: 60,
-    affinityLevelRequired: 1,
-    sortOrder: 110,
-    isDefault: false,
-    metadata: {
-      previewSrc: '/avatars/user-avators/R1.avif',
-      collectionLabel: 'R 收藏头像',
-      accentColor: '#93c5fd',
-      description: '基础头像收藏包，适合刚开始攒收藏的阶段。',
-    },
-  },
-  {
-    id: 'avatar-sr-pack',
-    name: 'SR Avatar Pack',
-    assetType: CharacterAssetType.AVATAR,
-    unlockCostPurchaseCredits: 180,
-    affinityLevelRequired: 2,
-    sortOrder: 120,
-    isDefault: false,
-    metadata: {
-      previewSrc: '/avatars/user-avators/SR1.avif',
-      collectionLabel: 'SR 收藏头像',
-      accentColor: '#c084fc',
-      description: '更稀有的头像收藏包，给持续学习的人一些漂亮奖励。',
-    },
-  },
-  {
-    id: 'avatar-ssr-pack',
-    name: 'SSR Avatar Pack',
-    assetType: CharacterAssetType.AVATAR,
-    unlockCostPurchaseCredits: 420,
-    affinityLevelRequired: 4,
-    sortOrder: 130,
-    isDefault: false,
-    metadata: {
-      previewSrc: '/avatars/user-avators/SSR1.avif',
-      collectionLabel: 'SSR 收藏头像',
-      accentColor: '#f472b6',
-      description: '高阶收藏头像，留给真正把学习坚持下来的你。',
-    },
-  },
-];
-
-function getDateParts(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: APP_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-
-  const year = Number(parts.find((part) => part.type === 'year')?.value ?? '0');
-  const month = Number(parts.find((part) => part.type === 'month')?.value ?? '1');
-  const day = Number(parts.find((part) => part.type === 'day')?.value ?? '1');
-
-  return { year, month, day };
-}
-
-function dateKeyFromDate(date = new Date()): string {
-  const { year, month, day } = getDateParts(date);
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
-function dateFromDateKey(dateKey: string): Date {
-  const [yearRaw, monthRaw, dayRaw] = dateKey.split('-');
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-}
-
-function addDays(dateKey: string, offset: number): string {
-  const base = dateFromDateKey(dateKey);
-  base.setUTCDate(base.getUTCDate() + offset);
-  return dateKeyFromDate(base);
-}
-
-function dayDiff(from: Date, to: Date): number {
-  const fromUtc = dateFromDateKey(dateKeyFromDate(from)).getTime();
-  const toUtc = dateFromDateKey(dateKeyFromDate(to)).getTime();
-  return Math.round((toUtc - fromUtc) / 86_400_000);
-}
-
-function currentWeekKey(date = new Date()): string {
-  const key = dateKeyFromDate(date);
-  const localDate = dateFromDateKey(key);
-  const day = localDate.getUTCDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  const mondayKey = addDays(key, mondayOffset);
-  return `week:${mondayKey}`;
-}
-
-function startOfTodayUtc(): Date {
-  return dateFromDateKey(dateKeyFromDate(new Date()));
-}
-
-function isJsonObject(value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function getMetadataString(metadata: Prisma.JsonValue | null | undefined, key: string): string {
-  if (!isJsonObject(metadata)) return '';
-  const value = metadata[key];
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function getMetadataStringArray(
-  metadata: Prisma.JsonValue | null | undefined,
-  key: string,
-): string[] {
-  if (!isJsonObject(metadata)) return [];
-  const value = metadata[key];
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
-}
-
-function getInputMetadataString(
-  metadata: Prisma.InputJsonObject | null | undefined,
-  key: string,
-): string {
-  const value = metadata?.[key];
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function getMetadataNumber(
-  metadata: Prisma.JsonValue | null | undefined,
-  key: string,
-): number | null {
-  if (!isJsonObject(metadata)) return null;
-  const value = metadata[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function computeAffinityLevel(exp: number): number {
-  let level = 1;
-  for (let index = 0; index < AFFINITY_LEVEL_THRESHOLDS.length; index += 1) {
-    if (exp >= AFFINITY_LEVEL_THRESHOLDS[index]) {
-      level = index + 1;
-    }
-  }
-  return level;
-}
-
-function nextLevelExp(level: number): number | null {
-  return AFFINITY_LEVEL_THRESHOLDS[level] ?? null;
-}
-
-function avatarDisplayName(item: UserAvatarCatalogItem): string {
-  if (item.rarity === 'R') return `R 收藏头像 ${item.id.replace('R', '#')}`;
-  if (item.rarity === 'SR') return `SR 收藏头像 ${item.id.replace('SR', '#')}`;
-  return `SSR 收藏头像 ${item.id.replace('SSR', '#')}`;
-}
-
-function normalizeAvatarInventoryState(
-  value: Prisma.JsonValue | null | undefined,
-): AvatarInventoryState {
-  const baseOwned = new Set(DEFAULT_UNLOCKED_USER_AVATAR_IDS);
-  const baseCosmeticUnlocks = new Set(DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS);
-  const baseFragments: Record<string, number> = {};
-  if (!isJsonObject(value)) {
-    return {
-      ownedIds: [...baseOwned],
-      fragmentCounts: baseFragments,
-      cosmeticUnlocks: [...baseCosmeticUnlocks],
-    };
-  }
-
-  const ownedRaw = Array.isArray(value.ownedIds) ? value.ownedIds : [];
-  for (const id of ownedRaw) {
-    if (typeof id === 'string' && id.trim()) baseOwned.add(id.trim());
-  }
-
-  const fragmentRaw = isJsonObject(value.fragmentCounts) ? value.fragmentCounts : null;
-  if (fragmentRaw) {
-    Object.entries(fragmentRaw).forEach(([key, fragmentValue]) => {
-      if (typeof fragmentValue !== 'number' || !Number.isFinite(fragmentValue)) return;
-      baseFragments[key] = Math.max(0, Math.floor(fragmentValue));
-    });
-  }
-
-  const cosmeticRaw = Array.isArray(value.cosmeticUnlocks) ? value.cosmeticUnlocks : [];
-  for (const key of cosmeticRaw) {
-    if (typeof key === 'string' && key.trim()) baseCosmeticUnlocks.add(key.trim());
-  }
-
-  return {
-    ownedIds: [...baseOwned],
-    fragmentCounts: baseFragments,
-    cosmeticUnlocks: [...baseCosmeticUnlocks],
-  };
-}
-
-function toAvatarInventoryJson(state: AvatarInventoryState): Prisma.InputJsonObject {
-  return {
-    version: 1,
-    ownedIds: [...new Set(state.ownedIds)].sort(),
-    fragmentCounts: state.fragmentCounts,
-    cosmeticUnlocks: [...new Set(state.cosmeticUnlocks)].sort(),
-  };
-}
-
-function buildAvatarInventorySummary(
-  inventory: AvatarInventoryState,
-): GamificationAvatarInventorySummary {
-  const owned = new Set(inventory.ownedIds);
-  return {
-    ownedIds: [...owned],
-    items: USER_AVATAR_GACHA_CATALOG.map((item) => ({
-      id: item.id,
-      name: avatarDisplayName(item),
-      url: item.url,
-      rarity: item.rarity,
-      owned: owned.has(item.id),
-      fragmentCount: Math.max(0, inventory.fragmentCounts[item.id] ?? 0),
-      fragmentTarget: item.fragmentTarget,
-      directUnlock: item.directUnlock,
-    })),
-  };
-}
-
-function buildCosmeticInventorySummary(inventory: AvatarInventoryState) {
-  const owned = new Set([...DEFAULT_UNLOCKED_PROFILE_COSMETIC_KEYS, ...inventory.cosmeticUnlocks]);
-  return {
-    ownedKeys: [...owned],
-    items: PROFILE_COSMETIC_ITEMS.map((item) => ({
-      ...item,
-      owned: owned.has(item.key),
-    })),
-  };
-}
-
-function getRemainingAvatarDraws(inventory: AvatarInventoryState): number {
-  const owned = new Set(inventory.ownedIds);
-  return USER_AVATAR_GACHA_CATALOG.reduce((sum, item) => {
-    if (owned.has(item.id)) return sum;
-    if (item.directUnlock) return sum + 1;
-    return sum + Math.max(0, item.fragmentTarget - (inventory.fragmentCounts[item.id] ?? 0));
-  }, 0);
-}
-
-function randomPick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)]!;
-}
-
-function weightedPick<T>(items: Array<{ item: T; weight: number }>): T {
-  const total = items.reduce((sum, entry) => sum + Math.max(0, entry.weight), 0);
-  if (total <= 0) return items[0]!.item;
-  let cursor = Math.random() * total;
-  for (const entry of items) {
-    cursor -= Math.max(0, entry.weight);
-    if (cursor <= 0) return entry.item;
-  }
-  return items[items.length - 1]!.item;
-}
 
 async function ensureCatalogSeeded(db: GamificationDbClient): Promise<void> {
   if (catalogSeeded) return;

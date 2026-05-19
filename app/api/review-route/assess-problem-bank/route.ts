@@ -37,12 +37,47 @@ const problemBankSchema = z
   .nullable()
   .optional();
 
+const privateMemorySchema = z.object({
+  id: z.string().trim().min(1),
+  concept: z.string().trim().min(1),
+  note: z.string().trim().min(1),
+  status: z.enum(['open', 'reviewed']),
+  severity: z.enum(['low', 'medium', 'high']).default('medium'),
+  source: z.string().trim().min(1).optional(),
+  relatedProblemIds: z.array(z.string().trim().min(1)).default([]),
+});
+
+const candidateProblemSchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  type: z.string().trim().min(1),
+  concepts: z.array(z.string().trim().min(1)).default([]),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  status: z.enum(['unattempted', 'passed', 'failed', 'partial', 'error']),
+  score: z.number().nullable().optional(),
+  tags: z.array(z.string().trim().min(1)).default([]),
+  preview: z.string().trim().min(1).optional(),
+});
+
+const reviewHistorySchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  status: z.enum(['completed', 'failed', 'partial', 'skipped']),
+  coveredConcepts: z.array(z.string().trim().min(1)).default([]),
+  failedConcepts: z.array(z.string().trim().min(1)).default([]),
+  problemIds: z.array(z.string().trim().min(1)).default([]),
+});
+
 const bodySchema = z.object({
   notebookId: z.string().trim().min(1),
   notebookName: z.string().trim().min(1),
   notebookDescription: z.string().trim().optional(),
   problemBank: problemBankSchema,
   scenes: z.array(sceneSchema).min(1).max(80),
+  privateMemory: z.array(privateMemorySchema).default([]),
+  candidateProblems: z.array(candidateProblemSchema).default([]),
+  reviewHistory: z.array(reviewHistorySchema).default([]),
+  selectedProblemIds: z.array(z.string().trim().min(1)).default([]),
 });
 
 const assessmentSchema = z.object({
@@ -146,6 +181,40 @@ export async function POST(req: NextRequest) {
     })
     .join('\n');
   const problemBank = body.problemBank;
+  const privateMemoryLines =
+    body.privateMemory.length > 0
+      ? body.privateMemory
+          .slice(0, 16)
+          .map(
+            (item) =>
+              `- ${item.concept} [${item.status}/${item.severity}] ${item.note}${
+                item.relatedProblemIds.length ? `；关联题 ${item.relatedProblemIds.join(', ')}` : ''
+              }`,
+          )
+          .join('\n')
+      : '暂无 notebook 私人记忆。';
+  const candidateProblemLines =
+    body.candidateProblems.length > 0
+      ? body.candidateProblems
+          .slice(0, 24)
+          .map(
+            (problem) =>
+              `- ${problem.id}: ${problem.title} (${problem.type}/${problem.difficulty}/${problem.status}) concepts=${problem.concepts.join('、') || '暂无'}${
+                typeof problem.score === 'number' ? ` score=${problem.score}` : ''
+              }${problem.preview ? `；${problem.preview}` : ''}`,
+          )
+          .join('\n')
+      : '暂无候选题。';
+  const reviewHistoryLines =
+    body.reviewHistory.length > 0
+      ? body.reviewHistory
+          .slice(0, 12)
+          .map(
+            (item) =>
+              `- ${item.title} [${item.status}] covered=${item.coveredConcepts.join('、') || '暂无'} failed=${item.failedConcepts.join('、') || '暂无'} problems=${item.problemIds.join(', ') || '暂无'}`,
+          )
+          .join('\n')
+      : '暂无历史复习记录。';
   const currentProblemCount = problemBank?.totalProblems ?? 0;
   const problemBankLines = problemBank
     ? [
@@ -171,8 +240,10 @@ export async function POST(req: NextRequest) {
 1. 如果题库题量明显不足、关键专题没有题、或某些专题只有极少题，ready=false。
 2. 如果可以用现有题库覆盖 notebook 的主要知识点，并安排普通/精英/Boss 做题节点，ready=true。
 3. 不要因为学生有错题或薄弱点就判不足；错题和薄弱点本来就应该进入复习路线。
-4. 输出语气是可爱的学习导师，温柔提醒；不绑定性别，不要恋爱承诺、占有或成人化表达。
-5. 必须只输出 JSON，不要 markdown，不要解释。`;
+4. 不要因为 notebook 私人记忆为空、历史复习记录为空、或用户是 cold start 就判题库不足；这只能说明个性化信号少，不能说明题库少。
+5. 如果“题量偏薄概念=暂无”“疑似缺题概念=暂无”，且候选题能覆盖主要薄弱/未尝试概念，不能凭空发明 thinConcepts 或 missingConcepts。
+6. 输出语气是可爱的学习导师，温柔提醒；不绑定性别，不要恋爱承诺、占有或成人化表达。
+7. 必须只输出 JSON，不要 markdown，不要解释。`;
 
   const prompt = `请判断这个 notebook 的题库是否足够生成复习路线图。
 
@@ -184,6 +255,15 @@ ${sceneLines}
 
 题库与学生掌握状态：
 ${problemBankLines}
+
+Notebook 私人记忆：
+${privateMemoryLines}
+
+候选题库题目：
+${candidateProblemLines}
+
+历史复习记录：
+${reviewHistoryLines}
 
 请输出 JSON：
 {
@@ -200,6 +280,7 @@ ${problemBankLines}
 - ready=false 时，reasons 要具体说明为什么不能生成路线。
 - missingConcepts 写完全没有题的专题。
 - thinConcepts 写题量明显偏薄、不够支撑复习关卡的专题。
+- 如果输入里的题量偏薄概念和疑似缺题概念都是“暂无”，不要因为没有私人记忆或历史记录而把专题写进 thinConcepts/missingConcepts。
 - requiredProblemCount 是你建议的最低题量，不要机械套公式，要结合 notebook 范围判断。`;
 
   try {

@@ -3,10 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { applyCreditDelta, ensureUserCreditsInitialized } from '@/lib/server/credits';
-import { pickRandomCourseAvatarUrl } from '@/lib/constants/course-avatars';
-import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
-import { creditsFromPriceCents } from '@/lib/utils/credits';
+import { cloneStoreCourseForUser } from '@/lib/server/services/store-purchase-service';
 
 const bodySchema = z.object({
   sourceCourseId: z.string().trim().min(1),
@@ -26,128 +23,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const source = await prisma.course.findFirst({
-      where: {
-        id: parsed.data.sourceCourseId,
-        listedInCourseStore: true,
-        ownerId: { not: userId },
-      },
-      include: {
-        notebooks: {
-          include: {
-            scenes: {
-              orderBy: { order: 'asc' },
-            },
-          },
-          orderBy: { updatedAt: 'asc' },
-        },
-      },
-    });
-
-    if (!source) {
+    const result = await cloneStoreCourseForUser(prisma, userId, parsed.data.sourceCourseId);
+    if (result.status === 'not_found') {
       return NextResponse.json({ error: '课程不存在或未在商城公开' }, { status: 404 });
     }
 
-    const avatarUrl = source.avatarUrl?.trim() || pickRandomCourseAvatarUrl();
-    const courseCostCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
-    const creatorSaleCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
-
-    const existingPurchase = await prisma.coursePurchase.findFirst({
-      where: { buyerId: userId, sourceCourseId: source.id },
-      include: { clonedCourse: true },
-    });
-    if (existingPurchase?.clonedCourse) {
-      return NextResponse.json({ course: existingPurchase.clonedCourse });
-    }
-
-    const course = await prisma.$transaction(async (tx) => {
-      await ensureUserCreditsInitialized(tx, userId);
-      await ensureUserCreditsInitialized(tx, source.ownerId);
-
-      if (courseCostCredits > 0) {
-        await applyCreditDelta(tx, {
-          userId,
-          delta: -courseCostCredits,
-          kind: 'COURSE_PURCHASE',
-          accountType: 'PURCHASE',
-          description: `Purchased course "${source.name}"`,
-          referenceType: 'course',
-          referenceId: source.id,
-        });
-        if (creatorSaleCredits > 0) {
-          await applyCreditDelta(tx, {
-            userId: source.ownerId,
-            delta: creatorSaleCredits,
-            kind: 'CREATOR_COURSE_SALE',
-            accountType: 'CASH',
-            description: `Course sale: "${source.name}"`,
-            referenceType: 'course',
-            referenceId: source.id,
-          });
-        }
-      }
-
-      const clonedCourse = await tx.course.create({
-        data: {
-          ownerId: userId,
-          name: source.name,
-          description: source.description ?? undefined,
-          language: source.language,
-          tags: source.tags,
-          purpose: source.purpose,
-          university: source.university ?? undefined,
-          courseCode: source.courseCode ?? undefined,
-          avatarUrl,
-          listedInCourseStore: false,
-          coursePriceCents: 0,
-          sourceCourseId: source.id,
-        },
-      });
-
-      for (const notebook of source.notebooks) {
-        const clonedNotebook = await tx.notebook.create({
-          data: {
-            ownerId: userId,
-            courseId: clonedCourse.id,
-            name: notebook.name,
-            description: notebook.description ?? undefined,
-            tags: notebook.tags,
-            avatarUrl: notebook.avatarUrl ?? undefined,
-            language: notebook.language ?? undefined,
-            style: notebook.style ?? undefined,
-            listedInNotebookStore: false,
-            notebookPriceCents: 0,
-            sourceNotebookId: notebook.id,
-          },
-        });
-
-        if (notebook.scenes.length > 0) {
-          await tx.scene.createMany({
-            data: notebook.scenes.map((scene) => ({
-              notebookId: clonedNotebook.id,
-              title: scene.title,
-              type: scene.type,
-              order: scene.order,
-              content: toPrismaJson(scene.content),
-              actions: toPrismaNullableJson(scene.actions),
-              whiteboard: toPrismaNullableJson(scene.whiteboard),
-            })),
-          });
-        }
-      }
-
-      await tx.coursePurchase.create({
-        data: {
-          buyerId: userId,
-          sourceCourseId: source.id,
-          clonedCourseId: clonedCourse.id,
-          priceCents: source.coursePriceCents ?? 0,
-        },
-      });
-
-      return clonedCourse;
-    });
-
-    return NextResponse.json({ course }, { status: 201 });
+    return NextResponse.json(
+      { course: result.item },
+      { status: result.status === 'created' ? 201 : 200 },
+    );
   });
 }

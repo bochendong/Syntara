@@ -563,34 +563,6 @@ export function buildTitleCoverSlideContentFromParts(args: {
 }): GeneratedSlideContent {
   const language = args.language || 'zh-CN';
   const topicText = `${args.title} ${args.description || ''} ${(args.keyPoints || []).join(' ')}`;
-  const derivedKeyPoints =
-    args.keyPoints && args.keyPoints.length > 0
-      ? args.keyPoints
-      : hasTweetTopic(topicText)
-        ? language === 'en-US'
-          ? [
-              'One Tweet has author, date, content, and likes.',
-              'A list or dict can store the values but cannot guard their meaning.',
-              'Tweet() gives the shared state and rules one boundary.',
-            ]
-          : [
-              '一条 Tweet 有作者、日期、内容和点赞数。',
-              'list/dict 能存这些值，但守不住含义和规则。',
-              'Tweet() 把这组状态和规则放进同一个边界。',
-            ]
-        : hasOopTopic(topicText)
-          ? language === 'en-US'
-            ? [
-                'Start from the state that belongs together.',
-                'Watch the old representation accept broken states.',
-                'Use the class boundary to keep state, rules, and operations together.',
-              ]
-            : [
-                '先找出必须放在一起的状态。',
-                '看旧表示怎样接受错误状态。',
-                '用类的边界把状态、规则和操作放在一起。',
-              ]
-          : [];
   return buildTitleCoverSlideContent({
     id: TITLE_COVER_OUTLINE_ID,
     type: 'slide',
@@ -608,7 +580,7 @@ export function buildTitleCoverSlideContentFromParts(args: {
     },
     title: args.title,
     description: args.description || '',
-    keyPoints: derivedKeyPoints,
+    keyPoints: [],
     teachingObjective: TITLE_COVER_MARKER,
     estimatedDuration: 20,
     order: 1,
@@ -661,18 +633,6 @@ export function shouldUpgradeLegacyTitleCoverContent(args: {
     hasLegacyGenericWatermark ||
     hasLegacyCoverCopy
   );
-}
-
-function buildCoverKeyPoints(firstOutline: SceneOutline | undefined, language: 'zh-CN' | 'en-US') {
-  const points = (firstOutline?.keyPoints || [])
-    .map((item) => routeItemFromText(item, language))
-    .filter(Boolean);
-  if (points.length >= 3) return points.slice(0, 3);
-  const fallback = fallbackCoverRouteItems({
-    title: firstOutline?.title || '',
-    language,
-  });
-  return [...points, ...fallback].slice(0, 3);
 }
 
 function shouldSkipCoverInsert(outlines: SceneOutline[]): boolean {
@@ -772,7 +732,7 @@ export function ensureTitleCoverOutline(
     description: firstOutline?.description
       ? truncateCoverText(firstOutline.description, language === 'en-US' ? 78 : 42)
       : '',
-    keyPoints: buildCoverKeyPoints(firstOutline, language),
+    keyPoints: [],
     teachingObjective: TITLE_COVER_MARKER,
     estimatedDuration: 20,
     order: 1,
@@ -928,7 +888,7 @@ export function buildTitleCoverSlideContent(outline: SceneOutline): GeneratedSli
     width: 174,
     height: 36,
     html: `<p style="margin:0;text-align:center;font-size:11px;line-height:18px;color:#fff7ed;font-weight:800;letter-spacing:0;">${escapeHtml(
-      language === 'en-US' ? 'Syntara Edition' : 'Syntara 封面页',
+      'Syntara Edition',
     )}</p>`,
     color: '#fff7ed',
     fill:

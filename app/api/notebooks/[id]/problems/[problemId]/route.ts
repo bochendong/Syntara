@@ -5,11 +5,12 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import {
   notebookProblemGradingSchema,
   notebookProblemPublicContentSchema,
-} from '@/lib/problem-bank';
+} from '@/features/problems';
 import {
+  deleteNotebookProblem,
   getNotebookProblemForUser,
   updateNotebookProblem,
-} from '@/lib/server/notebook-problems/service';
+} from '@/features/problems/server/service';
 
 const updateProblemSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -95,7 +96,6 @@ export async function DELETE(
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id, problemId } = await context.params;
-    const { deleteNotebookProblem } = await import('@/lib/server/notebook-problems/service');
     await deleteNotebookProblem({
       userId: auth.userId,
       notebookId: id,

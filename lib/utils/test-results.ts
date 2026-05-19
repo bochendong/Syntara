@@ -40,6 +40,7 @@ export async function listTestResults<TPayload = unknown>(args: {
   resultKey?: string;
   includePayload?: boolean;
   limit?: number;
+  signal?: AbortSignal;
 }): Promise<TestResultRow<TPayload>[]> {
   const params = new URLSearchParams();
   if (args.testIds?.length) params.set('testIds', args.testIds.join(','));
@@ -50,7 +51,7 @@ export async function listTestResults<TPayload = unknown>(args: {
 
   const data = await backendJson<TestResultsResponse<TPayload>>(
     `/api/test-results?${params.toString()}`,
-    { cache: 'no-store' },
+    { cache: 'no-store', signal: args.signal },
   );
   return data.results || [];
 }
@@ -58,12 +59,14 @@ export async function listTestResults<TPayload = unknown>(args: {
 export async function loadTestResult<TPayload = unknown>(args: {
   testId: string;
   resultKey: string;
+  signal?: AbortSignal;
 }): Promise<TestResultRow<TPayload> | null> {
   const rows = await listTestResults<TPayload>({
     testId: args.testId,
     resultKey: args.resultKey,
     includePayload: true,
     limit: 1,
+    signal: args.signal,
   });
   return rows[0] || null;
 }

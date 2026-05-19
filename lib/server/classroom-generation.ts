@@ -26,8 +26,12 @@ import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
 import { persistClassroom } from '@/lib/server/classroom-storage';
 import { generateTTSForClassroom } from '@/lib/server/classroom-media-generation';
-import type { UserRequirements } from '@/lib/types/generation';
+import type { SceneOutline, UserRequirements } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
+import {
+  normalizeSlideGenerationRoute,
+  type SlideGenerationRoute,
+} from '@/lib/generation/slide-generation-route';
 
 const log = createLogger('Classroom');
 
@@ -40,6 +44,7 @@ export interface GenerateClassroomInput {
   enableVideoGeneration?: boolean;
   enableTTS?: boolean;
   agentMode?: 'default' | 'generate';
+  slideGenerationRoute?: SlideGenerationRoute;
 }
 
 export type ClassroomGenerationStep =
@@ -108,6 +113,18 @@ function stripCodeFences(text: string): string {
   return cleaned.trim();
 }
 
+function stripTeachingContractForOpenMaicLegacy(outline: SceneOutline): SceneOutline {
+  const {
+    teachingPlanId: _teachingPlanId,
+    teachingPagePlan: _teachingPagePlan,
+    selectedSkillIds: _selectedSkillIds,
+    skillReasons: _skillReasons,
+    pagePatternId: _pagePatternId,
+    ...rest
+  } = outline;
+  return rest;
+}
+
 async function generateAgentProfiles(
   requirement: string,
   language: string,
@@ -167,6 +184,7 @@ export async function generateClassroom(
   },
 ): Promise<GenerateClassroomResult> {
   const { requirement, pdfContent } = input;
+  const slideGenerationRoute = normalizeSlideGenerationRoute(input.slideGenerationRoute);
 
   await options.onProgress?.({
     step: 'initializing',
@@ -270,6 +288,7 @@ export async function generateClassroom(
       videoGenerationEnabled: input.enableVideoGeneration,
       researchContext,
       teacherContext,
+      useOpenMaicLegacy: slideGenerationRoute === 'openmaic-legacy',
     },
   );
 
@@ -278,12 +297,15 @@ export async function generateClassroom(
     throw new Error(outlinesResult.error || 'Failed to generate scene outlines');
   }
 
-  const outlines = normalizeOutlineStructure(
-    ensureTitleCoverOutline(outlinesResult.data, {
-      language: lang,
-      insertMissing: false,
-    }),
-  ).map(normalizeComputerScienceSceneOutline);
+  const outlines =
+    slideGenerationRoute === 'openmaic-legacy'
+      ? outlinesResult.data.map(stripTeachingContractForOpenMaicLegacy)
+      : normalizeOutlineStructure(
+          ensureTitleCoverOutline(outlinesResult.data, {
+            language: lang,
+            insertMissing: false,
+          }),
+        ).map(normalizeComputerScienceSceneOutline);
   log.info(`Generated ${outlines.length} scene outlines`);
 
   await options.onProgress?.({
@@ -342,7 +364,7 @@ export async function generateClassroom(
       undefined,
       undefined,
       generationDiagnostics,
-      undefined,
+      slideGenerationRoute,
       outlines,
     );
     if (!content) {

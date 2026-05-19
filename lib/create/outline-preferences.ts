@@ -4,6 +4,7 @@ import {
   isFinalSummaryOutline,
   normalizeOutlineStructure,
 } from '@/lib/generation/outline-structure';
+import { isTitleCoverOutline } from '@/lib/generation/title-cover';
 import type { SceneOutline } from '@/lib/types/generation';
 import type {
   OrchestratorOutlineLength,
@@ -24,6 +25,10 @@ export type OutlineCoverageCheck = {
   missingWorkedExampleSequences: number;
   candidateExampleTopics: string[];
 };
+
+export function isCountedTeachingOutline(outline: SceneOutline): boolean {
+  return !isTitleCoverOutline(outline) && outline.type !== 'quiz';
+}
 
 export function filterOutlineMediaGenerations(
   outlines: SceneOutline[],
@@ -140,6 +145,7 @@ function countWorkedExampleSequences(outlines: SceneOutline[]): number {
   let previousWasFallbackExample = false;
 
   for (const outline of outlines) {
+    if (!isCountedTeachingOutline(outline)) continue;
     const cfg = outline.workedExampleConfig;
     if (!cfg) {
       previousWasFallbackExample = false;
@@ -167,6 +173,7 @@ function collectWorkedExampleCandidateTopics(outlines: SceneOutline[], limit = 6
   const seen = new Set<string>();
 
   for (const outline of outlines) {
+    if (!isCountedTeachingOutline(outline)) continue;
     if (outline.type !== 'slide' || outline.workedExampleConfig) continue;
     const title = outline.title.trim();
     if (!title) continue;
@@ -194,13 +201,14 @@ export function analyzeOutlineCoverage(args: {
   const prefs = args.outlinePreferences;
   if (!prefs) return null;
 
-  const totalScenes = args.outlines.length;
+  const contentOutlines = args.outlines.filter(isCountedTeachingOutline);
+  const totalScenes = contentOutlines.length;
   const minSceneCount = getMinimumSceneCount(prefs.length);
   const pageBudget = Math.max(totalScenes, minSceneCount);
   const maxWorkedExamplesByBudget = Math.max(0, pageBudget - 4);
   const desiredWorkedExamples = getBaseWorkedExampleMinimum(prefs.workedExampleLevel ?? 'moderate');
   const minWorkedExampleSequenceCount = Math.min(desiredWorkedExamples, maxWorkedExamplesByBudget);
-  const workedExampleSequenceCount = countWorkedExampleSequences(args.outlines);
+  const workedExampleSequenceCount = countWorkedExampleSequences(contentOutlines);
 
   return {
     totalScenes,
@@ -212,7 +220,7 @@ export function analyzeOutlineCoverage(args: {
       0,
       minWorkedExampleSequenceCount - workedExampleSequenceCount,
     ),
-    candidateExampleTopics: collectWorkedExampleCandidateTopics(args.outlines),
+    candidateExampleTopics: collectWorkedExampleCandidateTopics(contentOutlines),
   };
 }
 
@@ -292,7 +300,8 @@ export function buildOutlineRepairRequirement(args: {
       args.originalRequirement,
       '',
       '## 当前大纲缺口',
-      `- 当前共有 ${args.coverage.totalScenes} 个场景，需要至少 ${args.coverage.minSceneCount} 个，因此还需补充至少 ${args.coverage.missingSceneCount} 个场景。`,
+      '- 页数口径：只统计正文教学页；封面页和 quiz/测验页都不计入页数，也不能拿它们补正文页数。',
+      `- 当前共有 ${args.coverage.totalScenes} 个正文教学页，需要至少 ${args.coverage.minSceneCount} 个，因此还需补充至少 ${args.coverage.missingSceneCount} 个正文教学页。`,
       `- 当前共有 ${args.coverage.workedExampleSequenceCount} 组完整例题 / 走读序列，需要至少 ${args.coverage.minWorkedExampleSequenceCount} 组，因此还需补充至少 ${args.coverage.missingWorkedExampleSequences} 组新的例题序列。`,
       `- 这是第 ${args.passNumber} 次补充，请优先补足缺口而不是重复已有页。`,
       '',
@@ -303,8 +312,9 @@ export function buildOutlineRepairRequirement(args: {
       topicLines,
       '',
       '## 补充输出要求',
-      `- 只输出“新增”的 scene outlines JSON 数组，不要重写整本课。目标新增约 ${Math.max(1, targetAdditionalScenes)} 个场景。`,
+      `- 只输出“新增”的 scene outlines JSON 数组，不要重写整本课。目标新增约 ${Math.max(1, targetAdditionalScenes)} 个正文教学页。`,
       '- 不要复用已有标题，不要生成近似重复的页面。',
+      '- 为了补页数，新增页面必须优先使用 `slide` 或必要的 `interactive`；不要用 `cover` 或 `quiz` 充当正文教学页。',
       '- 如果补充例题序列，优先使用 `slide` + `workedExampleConfig`，并让序列首张通常为 `role: "problem_statement"`。',
       '- 每个新增例题都必须有具体原题；数学/矩阵/线性系统类例题必须写出实际方程、矩阵、行变换、中间结果，不能写成“给定一个矩阵”这种空壳题。',
       hasExistingSummary
@@ -328,7 +338,8 @@ export function buildOutlineRepairRequirement(args: {
     args.originalRequirement,
     '',
     '## Current Gaps',
-    `- The notebook currently has ${args.coverage.totalScenes} scenes, but it needs at least ${args.coverage.minSceneCount}, so add at least ${args.coverage.missingSceneCount} more scenes.`,
+    '- Page-count rule: count teaching/content pages only; cover pages and quiz scenes do not count and must not be used to satisfy the teaching-page budget.',
+    `- The notebook currently has ${args.coverage.totalScenes} teaching/content pages, but it needs at least ${args.coverage.minSceneCount}, so add at least ${args.coverage.missingSceneCount} more teaching/content pages.`,
     `- It currently has ${args.coverage.workedExampleSequenceCount} worked-example sequences, but it needs at least ${args.coverage.minWorkedExampleSequenceCount}, so add at least ${args.coverage.missingWorkedExampleSequences} new worked-example sequences.`,
     `- This is repair pass ${args.passNumber}; prioritize filling the gaps instead of repeating existing pages.`,
     '',
@@ -339,8 +350,9 @@ export function buildOutlineRepairRequirement(args: {
     topicLines,
     '',
     '## Output Rules',
-    `- Output only the NEW scene outlines as a JSON array. Do not regenerate the full notebook. Aim for about ${Math.max(1, targetAdditionalScenes)} additional scenes.`,
+    `- Output only the NEW scene outlines as a JSON array. Do not regenerate the full notebook. Aim for about ${Math.max(1, targetAdditionalScenes)} additional teaching/content pages.`,
     '- Do not reuse existing titles or produce near-duplicate pages.',
+    '- To fill the page gap, new pages should be `slide` or necessary `interactive` scenes; do not use `cover` or `quiz` scenes to satisfy the teaching-page count.',
     '- When adding worked-example sequences, prefer `slide` scenes with `workedExampleConfig`, and usually start each new sequence with `role: "problem_statement"`.',
     '- Every new worked example must contain a concrete original problem. For math / matrix / linear-system topics, include actual equations, matrices, row operations, and intermediate results instead of placeholder wording.',
     hasExistingSummary

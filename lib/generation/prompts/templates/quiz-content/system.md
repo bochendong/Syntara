@@ -186,7 +186,12 @@ Use only for code-related topics. This represents a Python programming exercise.
     {
       "description": "another pair",
       "expression": "two_sum([3, 2, 4], 6)",
-      "expected": "[1, 2]",
+      "expected": "[1, 2]"
+    },
+    {
+      "description": "duplicate values edge case",
+      "expression": "two_sum([3, 3], 6)",
+      "expected": "[0, 1]",
       "hidden": true
     }
   ],
@@ -200,6 +205,11 @@ For `code`:
 
 - Include an `explanation` field that teaches the intended approach, key design decisions, complexity target, and edge cases.
 - The `analysis` should summarize the core solution idea succinctly.
+- Always generate runnable `testCases` at question-generation time. Do not leave test cases to a later grading step.
+- Generate at least 3 test cases for each code question: at least 2 visible/public cases and at least 1 hidden case.
+- Test cases must cover the sample path, one non-trivial edge case, and one common wrong-solution trap.
+- Each `expression` must directly call the function/class/method declared in `starterCode`.
+- Each `expected` must be a JSON/Python-literal-like string that can be compared by the Python runner, such as `"4"`, `"[0, 1]"`, or `"{\"count\": 2}"`.
 
 ## Design Principles
 
@@ -312,3 +322,4 @@ Output a JSON array of question objects. Every question must have `analysis` and
 - Objective question answers must use uppercase letters like `"A"` or `["A", "C"]`
 - `options` length must match the answer letters you use
 - For `code` questions, do not omit `starterCode` or `testCases`
+- For `code` questions, generate at least 3 `testCases`, including at least one with `"hidden": true`

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { PrivateMemoryPageClient } from '@/components/chat/private-memory-page-client';
+import { PrivateMemoryPageClient } from '@/features/memory/components/private-memory-page-client';
 
 export default function PrivateMemoryPage() {
   return (

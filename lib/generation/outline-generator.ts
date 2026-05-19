@@ -180,6 +180,7 @@ export async function generateSceneOutlinesFromRequirements(
     researchContext?: string;
     teacherContext?: string;
     courseContext?: CoursePersonalizationContext;
+    useOpenMaicLegacy?: boolean;
   },
 ): Promise<GenerationResult<SceneOutline[]>> {
   // Build available images description for the prompt
@@ -238,16 +239,17 @@ export async function generateSceneOutlinesFromRequirements(
       '**IMPORTANT: Do NOT include any video mediaGenerations (type: "video") in the outlines. Video generation is disabled. Image generation is allowed.**';
   }
 
-  // Use simplified prompt variables
-  const teachingPlan = buildTeachingPlan(requirements, {
-    pdfText,
-    researchContext: options?.researchContext,
-    courseContext: options?.courseContext,
-  });
-  const teachingPlanGuidance = formatTeachingPlanForOutlinePrompt({
-    teachingPlan,
-    language: requirements.language,
-  });
+  const useOpenMaicLegacy = options?.useOpenMaicLegacy === true;
+  const teachingPlanGuidance = useOpenMaicLegacy
+    ? ''
+    : formatTeachingPlanForOutlinePrompt({
+        teachingPlan: buildTeachingPlan(requirements, {
+          pdfText,
+          researchContext: options?.researchContext,
+          courseContext: options?.courseContext,
+        }),
+        language: requirements.language,
+      });
   const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, {
     // New simplified variables
     requirement: requirements.requirement,
@@ -296,24 +298,25 @@ export async function generateSceneOutlinesFromRequirements(
     }
     // Ensure IDs, order, and language
     const enriched = outlines.map((outline, index) => ({
-      ...normalizeSceneOutlineContentProfile(outline),
+      ...(useOpenMaicLegacy ? outline : normalizeSceneOutlineContentProfile(outline)),
       id: outline.id || nanoid(),
       order: index + 1,
       language: requirements.language,
     }));
 
-    // Replace sequential gen_img_N/gen_vid_N with globally unique IDs
-    const withTeachingPlan = attachGeneratedTeachingPlan({
-      requirements,
-      outlines: normalizeOutlineStructure(normalizeSlideLayoutRhythm(enriched)),
-      pdfText,
-      researchContext: options?.researchContext,
-      courseContext: options?.courseContext,
-    });
-
-    const result = attachDeckMemoryToOutlines(
-      uniquifyMediaElementIds(withTeachingPlan.map(normalizeComputerScienceSceneOutline)),
-    );
+    const result = useOpenMaicLegacy
+      ? uniquifyMediaElementIds(enriched)
+      : attachDeckMemoryToOutlines(
+          uniquifyMediaElementIds(
+            attachGeneratedTeachingPlan({
+              requirements,
+              outlines: normalizeOutlineStructure(normalizeSlideLayoutRhythm(enriched)),
+              pdfText,
+              researchContext: options?.researchContext,
+              courseContext: options?.courseContext,
+            }).map(normalizeComputerScienceSceneOutline),
+          ),
+        );
 
     callbacks?.onProgress?.({
       currentStage: 1,
