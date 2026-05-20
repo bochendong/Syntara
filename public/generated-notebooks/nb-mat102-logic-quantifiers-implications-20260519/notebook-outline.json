@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "03LogicCont.pdf",
+  "slug": "mat102-logic-quantifiers-implications",
+  "title": "Quantifiers, Implications, and Negation",
+  "description": "MAT102 notebook on universal and existential quantifiers, multiple quantifiers, implications, contrapositives, and negating mathematical statements.",
+  "slides": [
+    [
+      "Cover: Logic Continued",
+      "Frame the notebook as the move from simple propositions to full mathematical statements. Preview quantifiers, implications, converses, contrapositives, and negations."
+    ],
+    [
+      "Hook: Everyone vs Someone",
+      "Use everyday claims like every class uses one textbook and there is a black horse to reveal hidden quantifiers. Show that wording controls truth."
+    ],
+    [
+      "Universal and Existential Quantifiers",
+      "Define forall and exists and explain how each turns a predicate into a proposition. Contrast proving all cases with finding one example."
+    ],
+    [
+      "How to Prove Quantified Statements",
+      "For existential statements, give a witness. For universal statements, choose an arbitrary element and prove the claim for it."
+    ],
+    [
+      "Multiple Quantifiers and Order Matters",
+      "Compare forall x exists y with exists y forall x using a real-number example. Emphasize dependency when later choices depend on earlier variables."
+    ],
+    [
+      "Plain-English Translation Practice",
+      "Teach students to rewrite symbolic statements without variable names. Use classroom and polynomial examples to make quantifier structure visible."
+    ],
+    [
+      "Negating Quantifiers",
+      "Show that negating forall creates exists not, and negating exists creates forall not. Connect counterexamples to negated universal claims."
+    ],
+    [
+      "Implications and Vacuous Truth",
+      "Define P => Q using the truth table. Explain why false hypotheses make implications true, using a memorable everyday example."
+    ],
+    [
+      "Converse vs Contrapositive",
+      "Define converse Q => P and contrapositive not Q => not P. Stress that the contrapositive is equivalent to the original but the converse is not."
+    ],
+    [
+      "Proof by Contrapositive",
+      "Walk through if n^2 is even, then n is even. Show how proving if n is odd, then n^2 is odd proves the original."
+    ],
+    [
+      "Negating Implications and Counterexamples",
+      "Teach that the negation of P => Q is P and not Q. Frame counterexamples as objects where the hypothesis is true and conclusion is false."
+    ],
+    [
+      "Common Language Traps and Next Hook",
+      "Summarize inclusive OR, careful placement of NOT, and the difference between English if-then and mathematical implication. Preview contradiction and relations."
+    ]
+  ],
+  "id": "nb-mat102-logic-quantifiers-implications-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "03LogicCont.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519"
+}

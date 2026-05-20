@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "11GroupTheory-2.pdf",
+  "slug": "mat102-group-theory-foundations",
+  "title": "Group Theory: From Symmetry to Cyclic Groups",
+  "description": "MAT102 notebook on group axioms, examples and non-examples, abelian and non-abelian groups, dihedral groups, subgroup test, and cyclic groups.",
+  "slides": [
+    [
+      "Cover: What Is a Group?",
+      "Introduce groups as algebraic systems for describing structure and symmetry across math, science, and computing."
+    ],
+    [
+      "Hook: Same Moves, Different Worlds",
+      "Use rotations, modular arithmetic, and familiar number systems to show that different objects can obey the same rules."
+    ],
+    [
+      "Problem Framing: What Must a Group Do?",
+      "Present the three group axioms: associativity, identity, and inverses, emphasizing that closure is built into the operation."
+    ],
+    [
+      "First Example: Modular Addition in Zn",
+      "Walk through why Zn under addition satisfies the group axioms, using [0]n and additive inverses as anchors."
+    ],
+    [
+      "Non-Examples: Where the Axioms Break",
+      "Compare positive integers under addition and rationals including zero under multiplication to show missing inverses or identity failures."
+    ],
+    [
+      "Abelian vs Non-Abelian Groups",
+      "Introduce commutativity as an extra property, then contrast number groups with the symmetric group where composition order matters."
+    ],
+    [
+      "Symmetry Example: The Dihedral Group D3",
+      "Use triangle symmetries e, r, r^2, s, sr, sr^2 to make rotations and reflections concrete and show sr != rs."
+    ],
+    [
+      "Core Group Facts: Identity, Cancellation, Inverses",
+      "Package basic consequences of the axioms: uniqueness of identity/inverses and (ab)^-1 = b^-1 a^-1."
+    ],
+    [
+      "Order: Groups and Elements",
+      "Explain the difference between the size of a group and the order of an element, using Z8*, D3, and Z as examples."
+    ],
+    [
+      "Subgroups: Groups Inside Groups",
+      "Define subgroups and stress that the operation must be the same; use Z <= Q <= R and modular examples."
+    ],
+    [
+      "The Subgroup Test in Action",
+      "Teach the efficient test ab^-1 in H, then apply it to a stabilizer-like set {h in G : hgh^-1 = g}."
+    ],
+    [
+      "Cyclic Groups and Next Hook",
+      "Show how one element can generate a whole group or subgroup, ending with the idea that cyclic groups lead naturally to same-structure questions."
+    ]
+  ],
+  "id": "nb-mat102-group-theory-foundations-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "11GroupTheory-2.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-group-theory-foundations-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-group-theory-foundations-20260519"
+}

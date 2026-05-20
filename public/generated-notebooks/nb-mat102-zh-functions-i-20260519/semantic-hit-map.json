@@ -1,0 +1,1051 @@
+{
+  "notebookId": "nb-mat102-zh-functions-i-20260519",
+  "source": "mat102-queue-zh-built-in-imagegen-full-slide",
+  "sourcePdf": "05FunctionsI.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "封面：函数是数学机器",
+      "teachingIntent": "介绍函数不是只是一条公式，而是把一个集合的信息运输到另一个集合的结构。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s01-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s01-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s01-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s01-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "总览：一个函数由什么数据决定？",
+      "teachingIntent": "强调 domain、codomain、规则或关系、graph 是函数的核心数据。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s02-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s02-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s02-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s02-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "引入：每个输入恰好一个输出",
+      "teachingIntent": "用箭头图解释 left-total 和 functional，让函数定义变得直观。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s03-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s03-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s03-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s03-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "问题框架：codomain 不是 range",
+      "teachingIntent": "说明输出允许落在哪里，和实际落到哪里，是两个不同概念。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s04-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s04-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s04-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s04-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "集合的像",
+      "teachingIntent": "讲 f(U) 是 U 中输入产生的所有输出，用区间例子解释。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s05-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s05-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s05-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s05-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "集合的原像",
+      "teachingIntent": "讲 f^{-1}(V) 是所有落入 V 的输入，强调这里不需要 inverse function 存在。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s06-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s06-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s06-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s06-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "例题：平方函数作用在区间上",
+      "teachingIntent": "说明为什么 f([-1,2]) = [0,4] 需要两个方向的包含，而不是只看端点。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s07-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s07-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s07-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s07-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "例题：投影与圆柱",
+      "teachingIntent": "用 p: R^3 -> R^2 可视化 preimage 如何变成高维图形。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s08-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s08-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s08-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s08-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "单射：最多一支箭头射入",
+      "teachingIntent": "定义 one-to-one，并把代数证明和箭头图联系起来。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s09-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s09-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s09-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s09-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "满射：至少一支箭头射入",
+      "teachingIntent": "定义 onto，并说明失败与 codomain 的选择有关。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s10-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s10-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s10-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s10-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "常见错误：domain、codomain、f^{-1}",
+      "teachingIntent": "区分公式相同但函数不同、codomain 和 range、preimage notation 和 inverse function。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s11-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s11-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s11-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s11-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "总结与下节钩子：双射就是恰好一个",
+      "teachingIntent": "把单射和满射合成双射，为 inverse 和 cardinality 做铺垫。",
+      "image": "/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s12-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s12-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s12-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-functions-i-20260519-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

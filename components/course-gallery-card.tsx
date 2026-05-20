@@ -3,15 +3,22 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
+  Brain,
+  CheckCircle2,
+  CircleDollarSign,
+  FileQuestion,
   FolderInput,
+  MoreHorizontal,
   Pencil,
+  Presentation,
   School,
+  Send,
   Star,
   Trash2,
 } from 'lucide-react';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { StageListItem } from '@/lib/utils/stage-storage';
-import type { Slide } from '@/lib/types/slides';
+import type { PPTImageElement, Slide } from '@/lib/types/slides';
 import { pickStableGalleryCoverUrl } from '@/lib/constants/gallery-covers';
 import { cn } from '@/lib/utils';
 import {
@@ -40,6 +47,9 @@ import {
 export const courseGalleryListGridClassName =
   'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] gap-5 p-0';
 
+export const notebookAssetListGridClassName =
+  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,_32rem),1fr))] gap-4 p-0';
+
 function isImageUrl(src: string | null | undefined): src is string {
   const s = src?.trim();
   if (!s) return false;
@@ -50,6 +60,25 @@ function isImageUrl(src: string | null | undefined): src is string {
     s.startsWith('data:')
   );
 }
+
+function isSlideImageElement(element: Slide['elements'][number]): element is PPTImageElement {
+  return element.type === 'image' && isImageUrl(element.src);
+}
+
+function pickSlidePreviewImageUrl(slide: Slide | undefined): string | null {
+  const image = slide?.elements
+    .filter(isSlideImageElement)
+    .sort((a, b) => b.width * b.height - a.width * a.height)[0];
+  return image?.src.trim() || null;
+}
+
+const notebookCardBackgroundUrls = [
+  '/covers/notebook-card-bg-blue.jpg',
+  '/covers/notebook-card-bg-emerald.jpg',
+  '/covers/notebook-card-bg-violet.jpg',
+  '/covers/notebook-card-bg-amber.jpg',
+  '/covers/notebook-card-bg-rose.jpg',
+] as const;
 
 interface CourseGalleryCardProps {
   course: StageListItem;
@@ -89,6 +118,8 @@ interface CourseGalleryCardProps {
   onTertiaryAction?: () => void;
   tertiaryActionDisabled?: boolean;
   speechStatusLabel?: string;
+  memoryCount?: number;
+  problemCount?: number;
 }
 
 const variantConfig = {
@@ -167,6 +198,8 @@ export function CourseGalleryCard({
   onTertiaryAction,
   tertiaryActionDisabled = false,
   speechStatusLabel,
+  memoryCount,
+  problemCount,
 }: CourseGalleryCardProps) {
   const cfg = variantConfig[variant];
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -174,6 +207,7 @@ export function CourseGalleryCard({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [coverImgSrc, setCoverImgSrc] = useState<string | null>(null);
+  const [failedSlidePreviewUrl, setFailedSlidePreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const el = thumbRef.current;
@@ -191,10 +225,15 @@ export function CourseGalleryCard({
   const showRatingOnCover = Boolean(ratingLabel?.trim()) || useRatingOnCover;
   const galleryCoverUrl = pickStableGalleryCoverUrl(course.id);
   const preferredCoverUrl = isImageUrl(coverAvatarUrl) ? coverAvatarUrl.trim() : galleryCoverUrl;
+  const slidePreviewImageUrl = pickSlidePreviewImageUrl(slide);
 
   useEffect(() => {
     setCoverImgSrc(null);
   }, [course.id, preferredCoverUrl]);
+
+  useEffect(() => {
+    setFailedSlidePreviewUrl(null);
+  }, [course.id, slidePreviewImageUrl]);
 
   const resolvedCoverUrl = coverImgSrc ?? preferredCoverUrl;
   const coverRightLabel =
@@ -225,6 +264,297 @@ export function CourseGalleryCard({
       : variant === 'owned-course'
         ? 'My Library'
         : 'Notebook Library';
+
+  if (variant === 'notebook') {
+    const statusLabel = course.sourceNotebookId
+      ? '已购副本'
+      : course.listedInNotebookStore
+        ? '已发布'
+        : '草稿';
+    const statusClassName = course.sourceNotebookId
+      ? 'border-sky-200/80 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-200'
+      : course.listedInNotebookStore
+        ? 'border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200'
+        : 'border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200';
+    const compactPriceLabel = priceLabel?.trim() || '免费';
+    const formattedMemoryCount =
+      typeof memoryCount === 'number' && memoryCount > 0 ? memoryCount : 0;
+    const formattedProblemCount =
+      typeof problemCount === 'number' && problemCount > 0 ? problemCount : 0;
+    const shouldUseSlidePreviewImage = Boolean(
+      slidePreviewImageUrl && failedSlidePreviewUrl !== slidePreviewImageUrl,
+    );
+    const hasMoveActions = Boolean(moveToCourseTargets?.length && onMoveToCourse);
+    const hasPublishAction = Boolean(onSecondaryAction && secondaryActionLabel);
+    const hasOverflowActions = hasPublishAction || hasMoveActions || Boolean(onDelete);
+    const notebookCardBackgroundUrl =
+      notebookCardBackgroundUrls[(listIndex ?? 0) % notebookCardBackgroundUrls.length];
+    const notebookMetaParts = [
+      creatorName?.trim() ? `创作者 · ${creatorName.trim()}` : null,
+      subtitle,
+      `${course.sceneCount} ${countUnit}`,
+    ].filter(Boolean);
+
+    return (
+      <article
+        className={cn(
+          'apple-glass group relative flex h-full min-h-[12rem] min-w-0 overflow-hidden rounded-xl border border-slate-200/85 bg-white/90 shadow-[0_14px_34px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-200/80 hover:bg-white/95 hover:shadow-[0_20px_48px_rgba(15,23,42,0.11)] dark:border-white/10 dark:bg-white/[0.06] dark:hover:border-white/18 dark:hover:bg-white/[0.08]',
+        )}
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.28) 18%, rgba(255,255,255,0.76) 54%, rgba(255,255,255,0.88) 100%), url(${notebookCardBackgroundUrl})`,
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover',
+        }}
+      >
+        <div className="flex w-full min-w-0 flex-col gap-3 p-3 pl-12 sm:flex-row sm:items-center">
+          <div
+            ref={thumbRef}
+            className="relative h-[8rem] w-full shrink-0 overflow-hidden rounded-lg border border-slate-200/85 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70 sm:w-[11.25rem] lg:w-[12rem]"
+          >
+            {shouldUseSlidePreviewImage && slidePreviewImageUrl ? (
+              <img
+                src={slidePreviewImageUrl}
+                alt=""
+                className="absolute inset-0 size-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                onError={() => setFailedSlidePreviewUrl(slidePreviewImageUrl)}
+              />
+            ) : slide && thumbWidth > 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-white">
+                <ThumbnailSlide
+                  slide={slide}
+                  size={thumbWidth}
+                  viewportSize={slide.viewportSize ?? 1000}
+                  viewportRatio={slide.viewportRatio ?? 0.5625}
+                />
+              </div>
+            ) : (
+              <img
+                src={resolvedCoverUrl}
+                alt=""
+                className="absolute inset-0 size-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                onError={() => setCoverImgSrc(galleryCoverUrl)}
+              />
+            )}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/14 via-transparent to-white/10" />
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col py-0.5">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-[15px] font-semibold leading-5 tracking-normal text-slate-950 dark:text-white">
+                  {course.name}
+                </h3>
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {notebookMetaParts.map((part, index) => (
+                    <span key={`${part}-${index}`} className="truncate">
+                      {part}
+                    </span>
+                  ))}
+                  {parentCourseName?.trim() ? (
+                    <span className="truncate">{`所属课程 · ${parentCourseName.trim()}`}</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1">
+                {onEdit ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="size-8 rounded-lg border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                    aria-label="编辑"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                  >
+                    <Pencil className="size-3.5" strokeWidth={2} />
+                  </Button>
+                ) : null}
+                {hasOverflowActions ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="size-8 rounded-lg border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                        aria-label="更多操作"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="size-3.5" strokeWidth={2} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-w-[min(100vw-2rem,280px)]">
+                      {hasPublishAction ? (
+                        <DropdownMenuItem
+                          disabled={secondaryActionDisabled}
+                          className="cursor-pointer text-sm"
+                          onSelect={() => {
+                            if (secondaryActionDisabled) return;
+                            onSecondaryAction?.();
+                          }}
+                        >
+                          <Send className="size-4" strokeWidth={1.8} />
+                          {secondaryActionLabel}
+                        </DropdownMenuItem>
+                      ) : null}
+                      {hasPublishAction && (hasMoveActions || onDelete) ? (
+                        <DropdownMenuSeparator />
+                      ) : null}
+                      {moveToCourseTargets && moveToCourseTargets.length > 0 && onMoveToCourse ? (
+                        <>
+                          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                            移动到其他课程
+                          </DropdownMenuLabel>
+                          {moveToCourseTargets.map((target) => (
+                            <DropdownMenuItem
+                              key={target.id}
+                              className="cursor-pointer text-sm"
+                              onSelect={() => {
+                                void onMoveToCourse(target.id);
+                              }}
+                            >
+                              <FolderInput className="size-4" strokeWidth={1.8} />
+                              <span className="truncate">{target.name}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      ) : null}
+                      {hasMoveActions && onDelete ? <DropdownMenuSeparator /> : null}
+                      {onDelete ? (
+                        <DropdownMenuItem
+                          className="cursor-pointer text-sm text-red-600 focus:text-red-600 dark:text-red-300 dark:focus:text-red-200"
+                          onSelect={() => setDeleteOpen(true)}
+                        >
+                          <Trash2 className="size-4" strokeWidth={1.8} />
+                          删除
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+              </div>
+            </div>
+
+            <p className="mt-2 line-clamp-1 text-[12px] leading-5 text-slate-600 dark:text-slate-300">
+              {description}
+            </p>
+
+            <div className="mt-3 flex min-w-0 flex-wrap items-center rounded-lg border border-slate-200/80 bg-white/72 px-2 py-1.5 text-[10px] shadow-inner dark:border-white/10 dark:bg-white/[0.045]">
+              <span className="mr-2 flex min-w-[4.5rem] items-center gap-1.5 border-r border-slate-200/70 pr-2 dark:border-white/10">
+                <Brain className="size-3.5 text-blue-500" strokeWidth={1.8} />
+                <span className="text-slate-500 dark:text-slate-400">记忆</span>
+                <strong className="font-semibold text-blue-600 dark:text-blue-300">
+                  {formattedMemoryCount}
+                </strong>
+              </span>
+              <span className="mr-2 flex min-w-[5rem] items-center gap-1.5 border-r border-slate-200/70 pr-2 dark:border-white/10">
+                <Presentation className="size-3.5 text-emerald-600" strokeWidth={1.8} />
+                <span className="text-slate-500 dark:text-slate-400">Slides</span>
+                <strong className="font-semibold text-emerald-700 dark:text-emerald-300">
+                  {course.sceneCount}
+                </strong>
+              </span>
+              <span className="mr-2 flex min-w-[4.5rem] items-center gap-1.5 border-r border-slate-200/70 pr-2 dark:border-white/10">
+                <FileQuestion className="size-3.5 text-violet-600" strokeWidth={1.8} />
+                <span className="text-slate-500 dark:text-slate-400">题库</span>
+                <strong className="font-semibold text-violet-700 dark:text-violet-300">
+                  {formattedProblemCount}
+                </strong>
+              </span>
+              <span
+                className={cn(
+                  'mr-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-semibold',
+                  statusClassName,
+                )}
+              >
+                {course.listedInNotebookStore ? (
+                  <CheckCircle2 className="size-3" strokeWidth={2} />
+                ) : (
+                  <Send className="size-3" strokeWidth={2} />
+                )}
+                {statusLabel}
+              </span>
+              <span className="ml-auto inline-flex items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+                <CircleDollarSign className="size-3" strokeWidth={2} />
+                {compactPriceLabel}
+              </span>
+              {speechStatusLabel?.trim() ? (
+                <span className="ml-1.5 inline-flex max-w-[8rem] truncate rounded-md border border-slate-200/80 bg-white/70 px-2 py-0.5 font-medium text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                  {speechStatusLabel.trim()}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-auto flex min-w-0 items-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAction();
+                }}
+                className="store-cta-primary h-8 min-w-[6.5rem] rounded-lg px-4 text-sm font-semibold"
+              >
+                {actionLabel.replace('笔记本', '')}
+              </button>
+              {onTertiaryAction && tertiaryActionLabel ? (
+                <button
+                  type="button"
+                  disabled={tertiaryActionDisabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (tertiaryActionDisabled) return;
+                    onTertiaryAction();
+                  }}
+                  className={cn(
+                    'store-cta-secondary h-8 min-w-[5.75rem] rounded-lg px-4 text-sm font-semibold',
+                    tertiaryActionDisabled && 'cursor-not-allowed opacity-55',
+                  )}
+                >
+                  {tertiaryActionLabel}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        {onDelete ? (
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogContent className="border-slate-200 dark:border-white/10">
+              <AlertDialogHeader>
+                <AlertDialogTitle>{deleteDialogTitle}</AlertDialogTitle>
+                <AlertDialogDescription>{deleteDialogDescription}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel type="button">取消</AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteBusy}
+                  className="sm:min-w-[72px]"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setDeleteBusy(true);
+                    try {
+                      await onDelete();
+                      setDeleteOpen(false);
+                    } finally {
+                      setDeleteBusy(false);
+                    }
+                  }}
+                >
+                  {deleteBusy ? '…' : '删除'}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+      </article>
+    );
+  }
 
   return (
     <article

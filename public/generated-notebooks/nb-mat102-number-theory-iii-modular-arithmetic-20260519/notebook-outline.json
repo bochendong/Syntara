@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "09NumberTheoryIII.pdf",
+  "slug": "mat102-number-theory-iii-modular-arithmetic",
+  "title": "Modular Arithmetic and Fermat’s Little Theorem",
+  "description": "MAT102 notebook on congruence modulo n, modular arithmetic, cancellation, prime moduli, Fermat little theorem, and inverses in Zp.",
+  "slides": [
+    [
+      "Cover: Arithmetic on a Clock",
+      "Introduce modular arithmetic as arithmetic where numbers loop around. Frame the lesson as turning equivalence relations into a working number system."
+    ],
+    [
+      "Hook: Why Does Only the Last Digit Matter?",
+      "Ask how to find the last digit of a huge power like 4^441. Use this to motivate reducing numbers modulo 10."
+    ],
+    [
+      "Recall: Equivalence Relations",
+      "Review reflexive, symmetric, and transitive relations. Prepare students to see congruence modulo n as familiar structure."
+    ],
+    [
+      "Definition: Congruence Modulo n",
+      "Define a == b (mod n) as n | (b-a). Use 1 == 29 (mod 4) to anchor the notation."
+    ],
+    [
+      "Why Congruence Is an Equivalence Relation",
+      "Prove reflexive, symmetric, and transitive step by step. Emphasize grouping integers by same remainder."
+    ],
+    [
+      "Well-Defined Addition and Multiplication",
+      "Show that if a == r and b == s mod n, then sums and products stay congruent. This permits arithmetic with remainders."
+    ],
+    [
+      "The World of Zn",
+      "Define classes [0], [1], ..., [n-1] and the set Zn. Use Z4 tables to show addition and multiplication in a finite system."
+    ],
+    [
+      "Example: Last Digit of a Large Power",
+      "Work through the last-digit strategy for 4^441. Focus on reducing powers and spotting cycles rather than brute force."
+    ],
+    [
+      "Common Mistake: Cancelling When You Cannot",
+      "Contrast valid cancellation under a coprime condition with failure modulo 4. Make the coprime condition impossible to miss."
+    ],
+    [
+      "Prime Moduli: Cancellation Works Better",
+      "Explain why in Zp, with p prime, every nonzero class is coprime to p. Set up the special behavior of prime modulus arithmetic."
+    ],
+    [
+      "Fermat Little Theorem",
+      "State and prove a^(p-1) == 1 (mod p) when p is prime and p does not divide a. Teach via rearranging nonzero residue classes."
+    ],
+    [
+      "Summary and Next Hook: Inverses in Zp",
+      "Conclude that every nonzero element of Zp has a multiplicative inverse. Preview algebraic structures with division-like behavior."
+    ]
+  ],
+  "id": "nb-mat102-number-theory-iii-modular-arithmetic-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "09NumberTheoryIII.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-number-theory-iii-modular-arithmetic-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-number-theory-iii-modular-arithmetic-20260519"
+}

@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "06FunctionsII.pdf",
+  "slug": "mat102-functions-ii-cardinality",
+  "title": "Functions II: Inverses, Bijections, and Sizes of Infinity",
+  "description": "MAT102 notebook on inverse functions, bijections, cardinality, countability, Cantor-Schroder-Bernstein, and Cantor diagonalization.",
+  "slides": [
+    [
+      "Cover: Measuring Size with Functions",
+      "Frame injective, surjective, and bijective maps as tools for comparing sets, especially infinite ones."
+    ],
+    [
+      "Overview: From Inverses to Cardinality",
+      "Preview inverses, bijections, countability, diagonalization, and Cantor theorem."
+    ],
+    [
+      "Hook: What Does Inverse Mean?",
+      "Start from additive and multiplicative inverses to motivate identity elements and undoing operations."
+    ],
+    [
+      "Function Composition and Identity Maps",
+      "Build the definition of inverse functions using f o g = id and g o f = id."
+    ],
+    [
+      "Problem Framing: Why Inverses Can Fail",
+      "Show that non-surjective maps miss outputs and non-injective maps collapse inputs, blocking invertibility."
+    ],
+    [
+      "The Big Bridge: Invertible iff Bijective",
+      "Teach the proposition that bijections are exactly the functions with true two-sided inverses."
+    ],
+    [
+      "Cardinality: Defining |S| <= |T|",
+      "Introduce injections as the formal meaning of no larger than, including finite-set sanity checks."
+    ],
+    [
+      "Examples: Infinite Sets Can Match Subsets",
+      "Use N and even natural numbers to show that infinite cardinality violates finite intuition."
+    ],
+    [
+      "Cantor-Schroder-Bernstein",
+      "Present the theorem as the rule that mutual injections imply equal cardinality."
+    ],
+    [
+      "Countable Sets: N, Z, and Q",
+      "Explain countable and countably infinite sets, then outline why integers and rationals can be listed."
+    ],
+    [
+      "Common Mistakes: Bigger Looking Is Not Bigger",
+      "Address traps: subset does not imply smaller for infinite sets, and dense rationals are still countable."
+    ],
+    [
+      "Summary and Next Hook: Diagonalization",
+      "Close with R being uncountable and Cantor theorem showing every set has a strictly larger power set."
+    ]
+  ],
+  "id": "nb-mat102-functions-ii-cardinality-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "06FunctionsII.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519"
+}

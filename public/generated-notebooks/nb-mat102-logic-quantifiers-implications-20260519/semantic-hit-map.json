@@ -1,0 +1,1051 @@
+{
+  "notebookId": "nb-mat102-logic-quantifiers-implications-20260519",
+  "source": "mat102-queue-full-slide-imagegen",
+  "sourcePdf": "03LogicCont.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "Cover: Logic Continued",
+      "teachingIntent": "Frame the notebook as the move from simple propositions to full mathematical statements. Preview quantifiers, implications, converses, contrapositives, and negations.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s01-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s01-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s01-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s01-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "Hook: Everyone vs Someone",
+      "teachingIntent": "Use everyday claims like every class uses one textbook and there is a black horse to reveal hidden quantifiers. Show that wording controls truth.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s02-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s02-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s02-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s02-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "Universal and Existential Quantifiers",
+      "teachingIntent": "Define forall and exists and explain how each turns a predicate into a proposition. Contrast proving all cases with finding one example.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s03-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s03-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s03-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s03-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "How to Prove Quantified Statements",
+      "teachingIntent": "For existential statements, give a witness. For universal statements, choose an arbitrary element and prove the claim for it.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s04-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s04-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s04-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s04-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "Multiple Quantifiers and Order Matters",
+      "teachingIntent": "Compare forall x exists y with exists y forall x using a real-number example. Emphasize dependency when later choices depend on earlier variables.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s05-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s05-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s05-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s05-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "Plain-English Translation Practice",
+      "teachingIntent": "Teach students to rewrite symbolic statements without variable names. Use classroom and polynomial examples to make quantifier structure visible.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s06-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s06-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s06-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s06-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "Negating Quantifiers",
+      "teachingIntent": "Show that negating forall creates exists not, and negating exists creates forall not. Connect counterexamples to negated universal claims.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s07-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s07-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s07-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s07-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "Implications and Vacuous Truth",
+      "teachingIntent": "Define P => Q using the truth table. Explain why false hypotheses make implications true, using a memorable everyday example.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s08-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s08-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s08-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s08-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "Converse vs Contrapositive",
+      "teachingIntent": "Define converse Q => P and contrapositive not Q => not P. Stress that the contrapositive is equivalent to the original but the converse is not.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s09-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s09-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s09-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s09-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "Proof by Contrapositive",
+      "teachingIntent": "Walk through if n^2 is even, then n is even. Show how proving if n is odd, then n^2 is odd proves the original.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s10-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s10-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s10-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s10-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "Negating Implications and Counterexamples",
+      "teachingIntent": "Teach that the negation of P => Q is P and not Q. Frame counterexamples as objects where the hypothesis is true and conclusion is false.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s11-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s11-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s11-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s11-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "Common Language Traps and Next Hook",
+      "teachingIntent": "Summarize inclusive OR, careful placement of NOT, and the difference between English if-then and mathematical implication. Preview contradiction and relations.",
+      "image": "/generated-notebooks/nb-mat102-logic-quantifiers-implications-20260519/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s12-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s12-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s12-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-logic-quantifiers-implications-20260519-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

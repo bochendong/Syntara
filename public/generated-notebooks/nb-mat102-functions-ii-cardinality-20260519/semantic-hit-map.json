@@ -1,0 +1,1051 @@
+{
+  "notebookId": "nb-mat102-functions-ii-cardinality-20260519",
+  "source": "mat102-queue-full-slide-imagegen",
+  "sourcePdf": "06FunctionsII.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "Cover: Measuring Size with Functions",
+      "teachingIntent": "Frame injective, surjective, and bijective maps as tools for comparing sets, especially infinite ones.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s01-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s01-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s01-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s01-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "Overview: From Inverses to Cardinality",
+      "teachingIntent": "Preview inverses, bijections, countability, diagonalization, and Cantor theorem.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s02-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s02-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s02-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s02-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "Hook: What Does Inverse Mean?",
+      "teachingIntent": "Start from additive and multiplicative inverses to motivate identity elements and undoing operations.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s03-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s03-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s03-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s03-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "Function Composition and Identity Maps",
+      "teachingIntent": "Build the definition of inverse functions using f o g = id and g o f = id.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s04-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s04-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s04-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s04-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "Problem Framing: Why Inverses Can Fail",
+      "teachingIntent": "Show that non-surjective maps miss outputs and non-injective maps collapse inputs, blocking invertibility.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s05-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s05-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s05-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s05-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "The Big Bridge: Invertible iff Bijective",
+      "teachingIntent": "Teach the proposition that bijections are exactly the functions with true two-sided inverses.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s06-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s06-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s06-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s06-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "Cardinality: Defining |S| <= |T|",
+      "teachingIntent": "Introduce injections as the formal meaning of no larger than, including finite-set sanity checks.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s07-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s07-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s07-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s07-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "Examples: Infinite Sets Can Match Subsets",
+      "teachingIntent": "Use N and even natural numbers to show that infinite cardinality violates finite intuition.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s08-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s08-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s08-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s08-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "Cantor-Schroder-Bernstein",
+      "teachingIntent": "Present the theorem as the rule that mutual injections imply equal cardinality.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s09-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s09-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s09-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s09-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "Countable Sets: N, Z, and Q",
+      "teachingIntent": "Explain countable and countably infinite sets, then outline why integers and rationals can be listed.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s10-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s10-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s10-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s10-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "Common Mistakes: Bigger Looking Is Not Bigger",
+      "teachingIntent": "Address traps: subset does not imply smaller for infinite sets, and dense rationals are still countable.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s11-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s11-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s11-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s11-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "Summary and Next Hook: Diagonalization",
+      "teachingIntent": "Close with R being uncountable and Cantor theorem showing every set has a strictly larger power set.",
+      "image": "/generated-notebooks/nb-mat102-functions-ii-cardinality-20260519/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s12-title",
+            "semanticId": "title",
+            "label": "Title and lesson position",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s12-main-idea",
+            "semanticId": "main-idea",
+            "label": "Main concept region",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s12-worked-board",
+            "semanticId": "worked-board",
+            "label": "Worked board or visual example",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-functions-ii-cardinality-20260519-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "Bottom takeaway and next step",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

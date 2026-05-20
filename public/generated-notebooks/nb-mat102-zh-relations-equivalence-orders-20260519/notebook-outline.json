@@ -1,0 +1,67 @@
+{
+  "sourcePdf": "04Relations.pdf",
+  "slug": "mat102-zh-relations-equivalence-orders",
+  "title": "关系、等价与序",
+  "description": "MAT102 中文 notebook：反证法、二元关系、关系性质、等价类、偏序、极大极小元素和上下界。",
+  "slides": [
+    [
+      "封面：关系是数学里的比较方式",
+      "介绍 relation 是比较对象的工具。预览反证法、关系性质、等价类和偏序。"
+    ],
+    [
+      "引入：什么叫两个对象有关？",
+      "从等号、小于号和整除出发，让学生把 relation 看成从 Cartesian product 中挑出的 pair。"
+    ],
+    [
+      "反证法的基本结构",
+      "说明先假设目标为假，再推出不可能的事情。用 R and not R 展示 contradiction pattern。"
+    ],
+    [
+      "经典反证例子",
+      "概览 sqrt(2) 无理、没有最小正实数、某方程无自然数解等例子。强调是哪一步假设触发矛盾。"
+    ],
+    [
+      "二元关系是乘积的子集",
+      "定义 A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义。"
+    ],
+    [
+      "关系性质检查表",
+      "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。"
+    ],
+    [
+      "用例子测试关系性质",
+      "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。"
+    ],
+    [
+      "等价关系",
+      "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。"
+    ],
+    [
+      "等价类与划分",
+      "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。"
+    ],
+    [
+      "序关系与偏序集",
+      "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。"
+    ],
+    [
+      "极大、极小、最大、最小",
+      "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。"
+    ],
+    [
+      "上下界、上确界、下确界",
+      "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。"
+    ]
+  ],
+  "id": "nb-mat102-zh-relations-equivalence-orders-20260519",
+  "language": "zh-CN",
+  "tags": [
+    "MAT102",
+    "zh-CN",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "04Relations.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519"
+}

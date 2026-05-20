@@ -76,8 +76,13 @@ export async function updateCourse(id: string, input: UpdateCourseInput): Promis
 }
 
 export async function listCommunityStoreCourses(): Promise<CommunityCourseListItem[]> {
-  const data = await backendJson<{ courses: CommunityCourseListItem[] }>('/api/courses/store');
-  return data.courses;
+  try {
+    const data = await backendJson<{ courses: CommunityCourseListItem[] }>('/api/courses/store');
+    return data.courses;
+  } catch (error) {
+    console.warn('[course-storage] Failed to list store courses:', error);
+    return [];
+  }
 }
 
 export async function cloneCourseFromStore(sourceCourseId: string): Promise<CourseRecord> {
@@ -91,8 +96,13 @@ export async function cloneCourseFromStore(sourceCourseId: string): Promise<Cour
 }
 
 export async function listCourses(): Promise<CourseRecord[]> {
-  const data = await backendJson<{ courses: CourseRecord[] }>('/api/courses');
-  return data.courses;
+  try {
+    const data = await backendJson<{ courses: CourseRecord[] }>('/api/courses');
+    return data.courses;
+  } catch (error) {
+    console.warn('[course-storage] Failed to list courses:', error);
+    return [];
+  }
 }
 
 export async function getCourse(id: string): Promise<CourseRecord | undefined> {

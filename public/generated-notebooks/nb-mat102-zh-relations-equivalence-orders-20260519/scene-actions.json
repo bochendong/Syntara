@@ -1,0 +1,758 @@
+[
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01",
+    "title": "封面：关系是数学里的比较方式",
+    "order": 0,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《封面：关系是数学里的比较方式》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "介绍 relation 是比较对象的工具。预览反证法、关系性质、等价类和偏序。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：引入：什么叫两个对象有关？。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02",
+    "title": "引入：什么叫两个对象有关？",
+    "order": 1,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《引入：什么叫两个对象有关？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "从等号、小于号和整除出发，让学生把 relation 看成从 Cartesian product 中挑出的 pair。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：反证法的基本结构。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03",
+    "title": "反证法的基本结构",
+    "order": 2,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《反证法的基本结构》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "说明先假设目标为假，再推出不可能的事情。用 R and not R 展示 contradiction pattern。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：经典反证例子。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04",
+    "title": "经典反证例子",
+    "order": 3,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《经典反证例子》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "概览 sqrt(2) 无理、没有最小正实数、某方程无自然数解等例子。强调是哪一步假设触发矛盾。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：二元关系是乘积的子集。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05",
+    "title": "二元关系是乘积的子集",
+    "order": 4,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《二元关系是乘积的子集》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义 A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：关系性质检查表。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06",
+    "title": "关系性质检查表",
+    "order": 5,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《关系性质检查表》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：用例子测试关系性质。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07",
+    "title": "用例子测试关系性质",
+    "order": 6,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《用例子测试关系性质》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：等价关系。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08",
+    "title": "等价关系",
+    "order": 7,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《等价关系》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：等价类与划分。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09",
+    "title": "等价类与划分",
+    "order": 8,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《等价类与划分》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：序关系与偏序集。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10",
+    "title": "序关系与偏序集",
+    "order": 9,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《序关系与偏序集》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：极大、极小、最大、最小。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11",
+    "title": "极大、极小、最大、最小",
+    "order": 10,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《极大、极小、最大、最小》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：上下界、上确界、下确界。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12",
+    "title": "上下界、上确界、下确界",
+    "order": 11,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《上下界、上确界、下确界》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+      }
+    ]
+  }
+]

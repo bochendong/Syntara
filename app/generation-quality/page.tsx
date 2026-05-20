@@ -1,3 +1,5 @@
-import Page from './_components/generation-quality-client';
+import GenerationQualityClient from './_components/generation-quality-client';
 
-export default Page;
+export default function GenerationQualityPage() {
+  return <GenerationQualityClient />;
+}

@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "05FunctionsI.pdf",
+  "slug": "mat102-functions-i",
+  "title": "Functions I: Images, Preimages, and Mapping Behavior",
+  "description": "MAT102 notebook on the formal definition of functions, images, preimages, injective/surjective/bijective behavior, and common notation mistakes.",
+  "slides": [
+    [
+      "Cover: Functions as Mathematical Machines",
+      "Introduce functions as structured ways to transport information from one set to another, not just formulas."
+    ],
+    [
+      "Overview: What Data Defines a Function?",
+      "Emphasize domain, codomain, rule or relation, and graph as the core data of a function."
+    ],
+    [
+      "Hook: Every Input Gets Exactly One Output",
+      "Use arrow diagrams to make left-total and functional relations intuitive."
+    ],
+    [
+      "Problem Framing: Codomain Is Not Range",
+      "Clarify why where outputs are allowed to live differs from what outputs actually occur."
+    ],
+    [
+      "Images of Sets",
+      "Teach f(U) as the set of outputs produced from inputs in U, using interval examples."
+    ],
+    [
+      "Preimages of Sets",
+      "Teach f^{-1}(V) as all inputs landing in V, stressing that no inverse function is required."
+    ],
+    [
+      "Worked Example: Squaring an Interval",
+      "Show why f([-1,2]) = [0,4] requires both containment directions."
+    ],
+    [
+      "Worked Example: Projection and Cylinders",
+      "Use p: R^3 -> R^2 to visualize preimages as higher-dimensional shapes."
+    ],
+    [
+      "Injective Functions: At Most One Arrow In",
+      "Define one-to-one behavior and connect algebraic proofs to arrow diagrams."
+    ],
+    [
+      "Surjective Functions: At Least One Arrow In",
+      "Define onto behavior and show how failure depends on the codomain."
+    ],
+    [
+      "Common Mistakes: Domains, Codomains, f^{-1}",
+      "Contrast equal formulas with equal functions, codomain with range, and preimage notation with inverse functions."
+    ],
+    [
+      "Summary and Next Hook: Bijective Means Exactly One",
+      "Close by combining injective and surjective into bijective functions, setting up inverses and cardinality."
+    ]
+  ],
+  "id": "nb-mat102-functions-i-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "05FunctionsI.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-functions-i-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-functions-i-20260519"
+}

@@ -1,10 +1,7 @@
 import type { NextRequest } from 'next/server';
-import {
-  CLASSROOM_GENERATION_MAX_DURATION_SECONDS,
-  handleCreateClassroomGenerationJobRequest,
-} from '@/features/ppt-generation/server';
+import { handleCreateClassroomGenerationJobRequest } from '@/features/ppt-generation/server';
 
-export const maxDuration = CLASSROOM_GENERATION_MAX_DURATION_SECONDS;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   return handleCreateClassroomGenerationJobRequest(req);

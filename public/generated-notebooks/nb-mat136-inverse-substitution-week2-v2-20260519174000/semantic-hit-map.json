@@ -1,0 +1,918 @@
+{
+  "notebookId": "nb-mat136-inverse-substitution-week2-v2-20260519174000",
+  "source": "imagegen-full-slide-inverse-substitution-v2-with-introduction-hooks",
+  "sourceNotebookId": "nb-mat136-inverse-substitution-week2-20260519011900",
+  "slides": [
+    {
+      "order": 0,
+      "title": "MAT 136 · 逆换元法",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-01.png",
+      "hitMap": {
+        "regions": [],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 1,
+      "title": "为什么普通换元会卡住？",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s02-ordinary-substitution",
+            "semanticId": "ordinary-substitution",
+            "label": "换元法擅长的形状",
+            "sourceRect": [
+              20,
+              180,
+              460,
+              510
+            ],
+            "canvasRect": {
+              "left": 12.5,
+              "top": 112.5,
+              "width": 287.5,
+              "height": 318.75
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s02-radicals-do-not-cooperate",
+            "semanticId": "radicals-do-not-cooperate",
+            "label": "根号不配合",
+            "sourceRect": [
+              520,
+              180,
+              510,
+              510
+            ],
+            "canvasRect": {
+              "left": 325,
+              "top": 112.5,
+              "width": 318.75,
+              "height": 318.75
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s02-theta-idea",
+            "semanticId": "theta-idea",
+            "label": "换成 theta 的新想法",
+            "sourceRect": [
+              1060,
+              180,
+              520,
+              510
+            ],
+            "canvasRect": {
+              "left": 662.5,
+              "top": 112.5,
+              "width": 325,
+              "height": 318.75
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s02-opening-question",
+            "semanticId": "opening-question",
+            "label": "本节课问题",
+            "sourceRect": [
+              35,
+              750,
+              1520,
+              110
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 468.75,
+              "width": 950,
+              "height": 68.75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "这类根号到底在问什么？",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s03-radical-shapes",
+            "semanticId": "radical-shapes",
+            "label": "三种根号形状",
+            "sourceRect": [
+              35,
+              170,
+              440,
+              540
+            ],
+            "canvasRect": {
+              "left": 21.875,
+              "top": 106.25,
+              "width": 275,
+              "height": 337.5
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s03-trig-identities",
+            "semanticId": "trig-identities",
+            "label": "三角恒等式",
+            "sourceRect": [
+              520,
+              160,
+              460,
+              540
+            ],
+            "canvasRect": {
+              "left": 325,
+              "top": 100,
+              "width": 287.5,
+              "height": 337.5
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s03-matching-task",
+            "semanticId": "matching-task",
+            "label": "把形状配到恒等式",
+            "sourceRect": [
+              1010,
+              160,
+              545,
+              540
+            ],
+            "canvasRect": {
+              "left": 631.25,
+              "top": 100,
+              "width": 340.625,
+              "height": 337.5
+            }
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s03-strategy",
+            "semanticId": "strategy",
+            "label": "策略",
+            "sourceRect": [
+              95,
+              755,
+              1400,
+              105
+            ],
+            "canvasRect": {
+              "left": 59.375,
+              "top": 471.875,
+              "width": 875,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "三种根号，三种代换",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-04.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s04-minus-shape",
+            "label": "第一种：a² − x²",
+            "canvasRect": {
+              "top": 140.625,
+              "left": 12.5,
+              "width": 975,
+              "height": 109.375
+            },
+            "semanticId": "minus-shape",
+            "sourceRect": [
+              20,
+              225,
+              1560,
+              175
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s04-plus-shape",
+            "label": "第二种：a² + x²",
+            "canvasRect": {
+              "top": 253.125,
+              "left": 12.5,
+              "width": 975,
+              "height": 109.375
+            },
+            "semanticId": "plus-shape",
+            "sourceRect": [
+              20,
+              405,
+              1560,
+              175
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s04-outside-shape",
+            "label": "第三种：x² − a²",
+            "canvasRect": {
+              "top": 365.625,
+              "left": 12.5,
+              "width": 975,
+              "height": 112.5
+            },
+            "semanticId": "outside-shape",
+            "sourceRect": [
+              20,
+              585,
+              1560,
+              180
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s04-shape-rule",
+            "label": "选择规则",
+            "canvasRect": {
+              "top": 490.625,
+              "left": 93.75,
+              "width": 812.5,
+              "height": 56.25
+            },
+            "semanticId": "shape-rule",
+            "sourceRect": [
+              150,
+              785,
+              1300,
+              90
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 4,
+      "title": "为什么 √(a² − x²) 要选 sin?",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-05.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s05-triangle",
+            "label": "用三角形解释代换",
+            "canvasRect": {
+              "top": 90.625,
+              "left": 37.5,
+              "width": 446.875,
+              "height": 337.5
+            },
+            "semanticId": "triangle",
+            "sourceRect": [
+              60,
+              145,
+              715,
+              540
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s05-root-simplification",
+            "label": "根号被消掉",
+            "canvasRect": {
+              "top": 84.375,
+              "left": 521.875,
+              "width": 418.75,
+              "height": 353.125
+            },
+            "semanticId": "root-simplification",
+            "sourceRect": [
+              835,
+              135,
+              670,
+              565
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s05-dx-also-simple",
+            "label": "dx 也一起变简单",
+            "canvasRect": {
+              "top": 450,
+              "left": 50,
+              "width": 890.625,
+              "height": 81.24999999999999
+            },
+            "semanticId": "dx-also-simple",
+            "sourceRect": [
+              80,
+              720,
+              1425,
+              130
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 5,
+      "title": "例 1：先配方，再看形状",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-06.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s06-problem",
+            "label": "题目",
+            "canvasRect": {
+              "top": 68.75,
+              "left": 34.375,
+              "width": 493.75,
+              "height": 90.625
+            },
+            "semanticId": "problem",
+            "sourceRect": [
+              55,
+              110,
+              790,
+              145
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s06-complete-square",
+            "label": "配方成圆的形状",
+            "canvasRect": {
+              "top": 187.5,
+              "left": 25,
+              "width": 265.625,
+              "height": 312.5
+            },
+            "semanticId": "complete-square",
+            "sourceRect": [
+              40,
+              300,
+              425,
+              500
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s06-shift-variable",
+            "label": "平移变量",
+            "canvasRect": {
+              "top": 184.375,
+              "left": 315.625,
+              "width": 246.875,
+              "height": 209.375
+            },
+            "semanticId": "shift-variable",
+            "sourceRect": [
+              505,
+              295,
+              395,
+              335
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s06-standard-formula",
+            "label": "套用标准公式",
+            "canvasRect": {
+              "top": 184.375,
+              "left": 603.125,
+              "width": 365.625,
+              "height": 209.375
+            },
+            "semanticId": "standard-formula",
+            "sourceRect": [
+              965,
+              295,
+              585,
+              335
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s06-final-answer",
+            "label": "换回 x",
+            "canvasRect": {
+              "top": 415.625,
+              "left": 281.25,
+              "width": 687.5,
+              "height": 100
+            },
+            "semanticId": "final-answer",
+            "sourceRect": [
+              450,
+              665,
+              1100,
+              160
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 6,
+      "title": "一般形状：∫√(α² − x²) dx 怎么变？",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-07.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s07-problem",
+            "label": "一般问题",
+            "canvasRect": {
+              "top": 106.25,
+              "left": 31.25,
+              "width": 475,
+              "height": 78.125
+            },
+            "semanticId": "problem",
+            "sourceRect": [
+              50,
+              170,
+              760,
+              125
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s07-four-step-flow",
+            "label": "四步变形",
+            "canvasRect": {
+              "top": 228.125,
+              "left": 28.125,
+              "width": 725,
+              "height": 178.125
+            },
+            "semanticId": "four-step-flow",
+            "sourceRect": [
+              45,
+              365,
+              1160,
+              285
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s07-triangle-memory",
+            "label": "三角形记忆",
+            "canvasRect": {
+              "top": 112.5,
+              "left": 765.625,
+              "width": 200,
+              "height": 324.9999999999999
+            },
+            "semanticId": "triangle-memory",
+            "sourceRect": [
+              1225,
+              180,
+              320,
+              520
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s07-power-reduction",
+            "label": "剩下是三角积分",
+            "canvasRect": {
+              "top": 437.5,
+              "left": 34.375,
+              "width": 750,
+              "height": 78.125
+            },
+            "semanticId": "power-reduction",
+            "sourceRect": [
+              55,
+              700,
+              1200,
+              125
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 7,
+      "title": "例 2：定积分也要换上下限",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-08.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s08-problem",
+            "label": "题目",
+            "canvasRect": {
+              "top": 78.125,
+              "left": 28.125,
+              "width": 490.625,
+              "height": 106.25
+            },
+            "semanticId": "problem",
+            "sourceRect": [
+              45,
+              125,
+              785,
+              170
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s08-substitution",
+            "label": "代换与根号",
+            "canvasRect": {
+              "top": 206.25,
+              "left": 28.125,
+              "width": 253.125,
+              "height": 243.75
+            },
+            "semanticId": "substitution",
+            "sourceRect": [
+              45,
+              330,
+              405,
+              390
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s08-bounds",
+            "label": "上下限换成 θ",
+            "canvasRect": {
+              "top": 200,
+              "left": 334.375,
+              "width": 268.75,
+              "height": 246.875
+            },
+            "semanticId": "bounds",
+            "sourceRect": [
+              535,
+              320,
+              430,
+              395
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s08-replace-all",
+            "label": "全换掉并降幂",
+            "canvasRect": {
+              "top": 200,
+              "left": 650,
+              "width": 312.5,
+              "height": 246.875
+            },
+            "semanticId": "replace-all",
+            "sourceRect": [
+              1040,
+              320,
+              500,
+              395
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s08-answer",
+            "label": "答案",
+            "canvasRect": {
+              "top": 462.5,
+              "left": 250,
+              "width": 475,
+              "height": 68.75
+            },
+            "semanticId": "answer",
+            "sourceRect": [
+              400,
+              740,
+              760,
+              110
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 8,
+      "title": "例 3：√(x² + 16) 看见 tan",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-09.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s09-problem",
+            "label": "题目",
+            "canvasRect": {
+              "top": 75,
+              "left": 25,
+              "width": 387.5,
+              "height": 93.75
+            },
+            "semanticId": "problem",
+            "sourceRect": [
+              40,
+              120,
+              620,
+              150
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s09-substitution",
+            "label": "tan 代换",
+            "canvasRect": {
+              "top": 175,
+              "left": 28.125,
+              "width": 253.125,
+              "height": 268.75
+            },
+            "semanticId": "substitution",
+            "sourceRect": [
+              45,
+              280,
+              405,
+              430
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s09-simplify",
+            "label": "化成 sec 积分",
+            "canvasRect": {
+              "top": 168.75,
+              "left": 312.5,
+              "width": 315.625,
+              "height": 268.75
+            },
+            "semanticId": "simplify",
+            "sourceRect": [
+              500,
+              270,
+              505,
+              430
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s09-standard-integrals",
+            "label": "标准积分",
+            "canvasRect": {
+              "top": 168.75,
+              "left": 650,
+              "width": 315.625,
+              "height": 268.75
+            },
+            "semanticId": "standard-integrals",
+            "sourceRect": [
+              1040,
+              270,
+              505,
+              430
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s09-final-answer",
+            "label": "反代回 x",
+            "canvasRect": {
+              "top": 450,
+              "left": 68.75,
+              "width": 865.625,
+              "height": 78.125
+            },
+            "semanticId": "final-answer",
+            "sourceRect": [
+              110,
+              720,
+              1385,
+              125
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 9,
+      "title": "例 4：√(9x² − 1) 看见 sec",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-10.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s10-problem",
+            "label": "题目",
+            "canvasRect": {
+              "top": 71.875,
+              "left": 28.125,
+              "width": 387.5,
+              "height": 106.25
+            },
+            "semanticId": "problem",
+            "sourceRect": [
+              45,
+              115,
+              620,
+              170
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s10-sec-substitution",
+            "label": "sec 代换",
+            "canvasRect": {
+              "top": 187.5,
+              "left": 15.625,
+              "width": 290.625,
+              "height": 240.625
+            },
+            "semanticId": "sec-substitution",
+            "sourceRect": [
+              25,
+              300,
+              465,
+              385
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s10-bounds",
+            "label": "换上下限",
+            "canvasRect": {
+              "top": 181.25,
+              "left": 331.25,
+              "width": 343.75,
+              "height": 246.875
+            },
+            "semanticId": "bounds",
+            "sourceRect": [
+              530,
+              290,
+              550,
+              395
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s10-clean-simplification",
+            "label": "漂亮化简",
+            "canvasRect": {
+              "top": 181.25,
+              "left": 693.75,
+              "width": 284.375,
+              "height": 225
+            },
+            "semanticId": "clean-simplification",
+            "sourceRect": [
+              1110,
+              290,
+              455,
+              360
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s10-power-reduction",
+            "label": "剩下用降幂",
+            "canvasRect": {
+              "top": 450,
+              "left": 71.875,
+              "width": 825,
+              "height": 71.875
+            },
+            "semanticId": "power-reduction",
+            "sourceRect": [
+              115,
+              720,
+              1320,
+              115
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    },
+    {
+      "order": 10,
+      "title": "逆换元法总结",
+      "image": "/generated-notebooks/nb-mat136-inverse-substitution-week2-v2-20260519174000/slide-11.png",
+      "hitMap": {
+        "regions": [
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s11-five-step-flow",
+            "label": "五步流程",
+            "canvasRect": {
+              "top": 90.625,
+              "left": 25,
+              "width": 950,
+              "height": 234.375
+            },
+            "semanticId": "five-step-flow",
+            "sourceRect": [
+              40,
+              145,
+              1520,
+              375
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s11-common-errors",
+            "label": "常见错误",
+            "canvasRect": {
+              "top": 328.125,
+              "left": 28.125,
+              "width": 453.125,
+              "height": 206.25
+            },
+            "semanticId": "common-errors",
+            "sourceRect": [
+              45,
+              525,
+              725,
+              330
+            ]
+          },
+          {
+            "id": "nb-mat136-inverse-substitution-week2-v2-20260519174000-s11-next-hook",
+            "label": "下节课钩子",
+            "canvasRect": {
+              "top": 346.875,
+              "left": 506.25,
+              "width": 459.375,
+              "height": 184.375
+            },
+            "semanticId": "next-hook",
+            "sourceRect": [
+              810,
+              555,
+              735,
+              295
+            ]
+          }
+        ],
+        "version": 1,
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    }
+  ]
+}

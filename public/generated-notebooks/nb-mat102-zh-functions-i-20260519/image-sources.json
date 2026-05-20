@@ -1,0 +1,67 @@
+{
+  "mode": "copy-from-list",
+  "sourceRoot": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/selected-image-sources.json",
+  "copiedAt": "2026-05-20T01:51:52.608Z",
+  "images": [
+    {
+      "order": 0,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0e5e25148193b108ad1631ef7893.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-01.png"
+    },
+    {
+      "order": 1,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0ead8b448193a786919a29dcdebd.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-02.png"
+    },
+    {
+      "order": 2,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0f0ae5ec81938b3edb48d8dc0c43.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-03.png"
+    },
+    {
+      "order": 3,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0f4f54f0819381374fbf088eb753.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-04.png"
+    },
+    {
+      "order": 4,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0f9c73308193bf9d9a421387af40.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-05.png"
+    },
+    {
+      "order": 5,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d0ff088c08193bb7a1abcf5991b54.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-06.png"
+    },
+    {
+      "order": 6,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d1040bf408193b5838e08eceab6bf.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-07.png"
+    },
+    {
+      "order": 7,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d1095d6588193aa25f0bde2aaac2d.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-08.png"
+    },
+    {
+      "order": 8,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d10f2aa488193a252a115b57c308d.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-09.png"
+    },
+    {
+      "order": 9,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d12c5586881939b8d09593d78d9ed.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-10.png"
+    },
+    {
+      "order": 10,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d120a27708193916a9aa953751069.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-11.png"
+    },
+    {
+      "order": 11,
+      "source": "/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0c4e478ee5abb974016a0d126061808193a0c0be02b2734540.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-functions-i-20260519/slide-12.png"
+    }
+  ]
+}

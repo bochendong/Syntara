@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { BookOpen, HardDrive, Loader2, Plus } from 'lucide-react';
 import {
   CourseGalleryCard,
-  courseGalleryListGridClassName,
+  notebookAssetListGridClassName,
 } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { CourseMaterialsPanel } from '@/components/courses/course-materials-panel';
@@ -35,6 +35,8 @@ import { toast } from '@/lib/notifications/client-toast';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
+import { getLocalStudyMemoryUserId, loadStudyMemory } from '@/lib/learning/study-memory';
+import { listCourseProblems } from '@/lib/utils/notebook-problem-api';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +47,7 @@ import {
 import { ensureSpeechActionsHaveAudio } from '@/lib/hooks/use-scene-generator';
 import type { SpeechAction } from '@/lib/types/action';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
-import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/credits';
+import { creditsFromPriceCents } from '@/lib/utils/credits';
 import {
   courseContainsPurchasedNotebook,
   getCoursePublishBlockReasonFromFlags,
@@ -55,6 +57,11 @@ import {
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString();
+}
+
+function compactPurchaseCreditsLabel(priceCents: number | null | undefined): string {
+  const credits = creditsFromPriceCents(priceCents);
+  return credits > 0 ? `${credits} 积分` : '免费';
 }
 
 function purposeLabel(p: CourseRecord['purpose']): string {
@@ -76,6 +83,14 @@ function compareNotebooksByName(a: StageListItem, b: StageListItem): number {
   );
 }
 
+function countStudyMemoryItems(notebookId: string): number {
+  const profile = loadStudyMemory(getLocalStudyMemoryUserId(), notebookId);
+  const activePublic = profile.publicMemories.filter((item) => item.status !== 'archived').length;
+  const activePrivate = profile.privateMemories.filter((item) => item.status !== 'archived').length;
+  const openWeakPoints = profile.weakPoints.filter((item) => item.status !== 'reviewed').length;
+  return activePublic + activePrivate + openWeakPoints;
+}
+
 type CourseWorkspaceTab = 'notebooks' | 'materials';
 
 function CreateNotebookGridLink({ href }: { href: string }) {
@@ -83,18 +98,18 @@ function CreateNotebookGridLink({ href }: { href: string }) {
     <Link
       href={href}
       className={cn(
-        'group flex h-full min-h-[29rem] min-w-0 flex-col items-center justify-center rounded-[30px]',
-        'border-2 border-dashed border-slate-300/90 bg-white/45 text-slate-500 shadow-[0_20px_60px_rgba(15,23,42,0.04)] backdrop-blur-xl',
-        'transition-all duration-300 hover:-translate-y-1 hover:border-slate-500/70 hover:bg-white/72 hover:text-slate-900 hover:shadow-[0_26px_80px_rgba(15,23,42,0.1)]',
+        'group flex h-full min-h-[12rem] min-w-0 items-center justify-center gap-5 rounded-xl',
+        'border-2 border-dashed border-slate-300/90 bg-white/42 px-5 text-slate-500 shadow-[0_14px_34px_rgba(15,23,42,0.04)] backdrop-blur-xl',
+        'transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/70 hover:bg-white/72 hover:text-slate-900 hover:shadow-[0_20px_48px_rgba(15,23,42,0.1)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/25 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         'dark:border-white/20 dark:bg-white/[0.045] dark:text-white/55 dark:hover:border-white/45 dark:hover:bg-white/[0.075] dark:hover:text-white dark:focus-visible:ring-white/30',
       )}
       aria-label="新建笔记本"
     >
-      <span className="flex size-20 items-center justify-center rounded-full border border-dashed border-current/45 bg-white/60 transition-transform duration-300 group-hover:scale-105 dark:bg-white/10">
-        <Plus className="size-10" strokeWidth={1.8} />
+      <span className="flex size-14 shrink-0 items-center justify-center rounded-full border border-slate-300/90 bg-white/70 transition-transform duration-300 group-hover:scale-105 dark:border-white/20 dark:bg-white/10">
+        <Plus className="size-7" strokeWidth={1.9} />
       </span>
-      <span className="mt-5 text-sm font-medium">新建笔记本</span>
+      <span className="text-base font-semibold tracking-normal">新建笔记本</span>
     </Link>
   );
 }
@@ -109,6 +124,8 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
+  const [memoryCounts, setMemoryCounts] = useState<Record<string, number>>({});
+  const [problemCounts, setProblemCounts] = useState<Record<string, number>>({});
   const [moveTargets, setMoveTargets] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>('notebooks');
@@ -150,18 +167,35 @@ export default function CourseDetailPage() {
         setCourse(null);
         setNotebooks([]);
         setThumbnails({});
+        setMemoryCounts({});
+        setProblemCounts({});
         setLoading(false);
         return;
       }
       setCourse(c);
       const list = await listStagesByCourse(id);
-      const slides = await getFirstSlideByStages(list.map((n) => n.id));
-      const targets: Array<{ id: string; name: string }> = (await listCourses())
+      const [slides, allCourses, problems] = await Promise.all([
+        getFirstSlideByStages(list.map((n) => n.id)),
+        listCourses(),
+        listCourseProblems(id).catch(() => []),
+      ]);
+      const targets: Array<{ id: string; name: string }> = allCourses
         .filter((x) => x.id !== id)
         .map((x) => ({ id: x.id, name: x.name }));
+      const nextMemoryCounts = Object.fromEntries(
+        list.map((notebook) => [notebook.id, countStudyMemoryItems(notebook.id)]),
+      );
+      const nextProblemCounts = problems.reduce<Record<string, number>>((acc, problem) => {
+        if (problem.notebookId) {
+          acc[problem.notebookId] = (acc[problem.notebookId] ?? 0) + 1;
+        }
+        return acc;
+      }, {});
       if (!alive) return;
       setNotebooks(list);
       setThumbnails(slides);
+      setMemoryCounts(nextMemoryCounts);
+      setProblemCounts(nextProblemCounts);
       setMoveTargets(targets);
       setLoading(false);
     })();
@@ -205,6 +239,9 @@ export default function CourseDetailPage() {
       const list = await listStagesByCourse(id);
       setNotebooks(list);
       setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+      setMemoryCounts(
+        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '移动失败');
     }
@@ -217,6 +254,9 @@ export default function CourseDetailPage() {
       const list = await listStagesByCourse(id);
       setNotebooks(list);
       setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+      setMemoryCounts(
+        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
+      );
       toast.success(`已删除「${notebookName}」`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败');
@@ -337,6 +377,9 @@ export default function CourseDetailPage() {
       if (next) setCourse(next);
       const list = await listStagesByCourse(id);
       setNotebooks(list);
+      setMemoryCounts(
+        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
+      );
       setPublishState('published');
       toast.success(
         publishTarget.kind === 'course'
@@ -368,6 +411,9 @@ export default function CourseDetailPage() {
     const list = await listStagesByCourse(id);
     setNotebooks(list);
     setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+    setMemoryCounts(
+      Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
+    );
     toast.success('已更新笔记本信息');
     setEditingNotebook(null);
   };
@@ -389,18 +435,18 @@ export default function CourseDetailPage() {
 
   return (
     <div className="min-h-full w-full apple-mesh-bg">
-      <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
+      <main className="mx-auto w-full max-w-[86rem] px-4 pb-12 pt-8 md:px-8">
         {loading || !course ? (
           <div className="space-y-6">
             <div
               className="h-40 animate-pulse rounded-[28px] bg-white/40 dark:bg-white/5"
               style={{ backdropFilter: 'blur(10px)' }}
             />
-            <div className={courseGalleryListGridClassName}>
-              {Array.from({ length: 3 }).map((_, i) => (
+            <div className={notebookAssetListGridClassName}>
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-72 min-w-0 animate-pulse rounded-[26px] bg-white/40 dark:bg-white/5"
+                  className="h-[12rem] min-w-0 animate-pulse rounded-xl bg-white/40 dark:bg-white/5"
                   style={{ backdropFilter: 'blur(10px)' }}
                 />
               ))}
@@ -502,19 +548,26 @@ export default function CourseDetailPage() {
               onValueChange={(value) => setWorkspaceTab(value as CourseWorkspaceTab)}
               className="gap-5"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="border-b border-slate-200/80 dark:border-white/10">
                 <TabsList
+                  variant="line"
                   aria-label="课程内容切换"
-                  className="grid h-11 w-full grid-cols-2 rounded-2xl border border-slate-200/70 bg-white/60 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.055] sm:w-[360px]"
+                  className="h-14 w-full justify-start gap-0 rounded-none bg-transparent p-0 text-slate-500"
                 >
-                  <TabsTrigger value="notebooks" className="gap-2 rounded-xl text-sm">
+                  <TabsTrigger
+                    value="notebooks"
+                    className="h-14 flex-none gap-2 rounded-t-xl border border-transparent px-6 text-base data-[state=active]:border-slate-200/80 data-[state=active]:border-b-white data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm data-[state=active]:after:bg-blue-600 data-[state=active]:after:opacity-100 dark:data-[state=active]:border-white/10 dark:data-[state=active]:border-b-slate-950 dark:data-[state=active]:bg-white/[0.06]"
+                  >
                     <BookOpen className="size-4" strokeWidth={1.8} />
                     笔记本
-                    <span className="rounded-full bg-slate-900/[0.06] px-1.5 py-0.5 text-[11px] leading-none text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs leading-none text-blue-600 dark:bg-blue-500/10 dark:text-blue-200">
                       {notebooks.length}
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="materials" className="gap-2 rounded-xl text-sm">
+                  <TabsTrigger
+                    value="materials"
+                    className="h-14 flex-none gap-2 rounded-t-xl border border-transparent px-6 text-base data-[state=active]:border-slate-200/80 data-[state=active]:border-b-white data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm data-[state=active]:after:bg-blue-600 data-[state=active]:after:opacity-100 dark:data-[state=active]:border-white/10 dark:data-[state=active]:border-b-slate-950 dark:data-[state=active]:bg-white/[0.06]"
+                  >
                     <HardDrive className="size-4" strokeWidth={1.8} />
                     课程资料
                   </TabsTrigger>
@@ -526,7 +579,7 @@ export default function CourseDetailPage() {
                   <h2 id="course-notebooks-heading" className="sr-only">
                     笔记本列表
                   </h2>
-                  <ul className={courseGalleryListGridClassName}>
+                  <ul className={notebookAssetListGridClassName}>
                     <li className="min-w-0">
                       <CreateNotebookGridLink href={createNotebookHref(id)} />
                     </li>
@@ -547,9 +600,9 @@ export default function CourseDetailPage() {
                             purposeType: purposeLabel(course.purpose),
                             courseCode: course.courseCode?.trim() || undefined,
                           }}
-                          priceLabel={formatPurchaseCreditsLabel(
-                            creditsFromPriceCents(nb.notebookPriceCents),
-                          )}
+                          priceLabel={compactPurchaseCreditsLabel(nb.notebookPriceCents)}
+                          memoryCount={memoryCounts[nb.id] ?? 0}
+                          problemCount={problemCounts[nb.id] ?? 0}
                           actionLabel="打开笔记本"
                           onAction={() => router.push(`/classroom/${nb.id}`)}
                           onEdit={() => setEditingNotebook(nb)}

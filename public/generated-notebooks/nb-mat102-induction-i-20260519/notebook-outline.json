@@ -1,0 +1,65 @@
+{
+  "sourcePdf": "10InductionI-1.pdf",
+  "slug": "mat102-induction-i",
+  "title": "Mathematical Induction, Strong Induction, and Recursion",
+  "description": "MAT102 notebook on ordinary induction, induction examples, sigma notation, strong induction, recursive definitions, and structural induction.",
+  "slides": [
+    [
+      "Cover: Proof by Dominoes",
+      "Introduce induction as a method for proving infinitely many statements with finite work. Use the domino metaphor for base case and induction step."
+    ],
+    [
+      "Hook: How Can One Proof Cover Every n?",
+      "Pose 2n + 2 <= 4n for all positive integers. Frame the mystery: checking examples is not proof, but a chain reaction can be."
+    ],
+    [
+      "The Induction Principle",
+      "State the principle: prove P(1) and prove P(k) => P(k+1). Emphasize base case, induction hypothesis, and target statement."
+    ],
+    [
+      "Worked Example: An Inequality Proof",
+      "Prove 2n + 2 <= 4n by induction. Teach how the induction hypothesis is inserted into an inequality chain."
+    ],
+    [
+      "Worked Example: Divisibility by Induction",
+      "Prove 5 | (6^k - 1) for positive k. Show how divisibility proofs translate the hypothesis into an equation."
+    ],
+    [
+      "Visual Example: L-Tiling a Board",
+      "Use the 2^n by 2^n chessboard with one missing square. Show induction as a constructive geometric strategy."
+    ],
+    [
+      "Sigma Notation as a For-Loop",
+      "Introduce summation notation, bounds, index, and summand. Connect sigma notation to iteration."
+    ],
+    [
+      "Induction on a Sum Formula",
+      "Prove a telescoping-style formula such as sum 1/[n(n+1)] = k/(k+1). Show old sum plus new term."
+    ],
+    [
+      "Common Mistakes in Induction Proofs",
+      "Address missing base cases, assuming the conclusion, changing variables carelessly, and failing to state the induction hypothesis."
+    ],
+    [
+      "Beyond Standard Induction",
+      "Explain that induction can start at other values or move in different step sizes. Match the induction structure to the statement."
+    ],
+    [
+      "Strong Induction and Multiple Base Cases",
+      "Introduce strong induction with the postage example using 3-cent and 5-cent stamps. Explain why several base cases may be needed."
+    ],
+    [
+      "Recursion, Structural Induction, Next Hook",
+      "Define recursive construction through basis elements and constructors, then connect it to structural induction. Preview recursive objects."
+    ]
+  ],
+  "id": "nb-mat102-induction-i-20260519",
+  "tags": [
+    "MAT102",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "10InductionI-1.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-induction-i-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-induction-i-20260519"
+}
