@@ -350,6 +350,28 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+.app-left-rail-bordered.apple-glass-heavy {
+  border-color: rgba(100, 116, 139, 0.26);
+  box-shadow:
+    0 8px 40px rgba(15, 23, 42, 0.08),
+    0 2px 4px rgba(15, 23, 42, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.dark .app-left-rail-bordered.apple-glass-heavy {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.035) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-left-rail-borderless.apple-glass-heavy {
+  border-color: transparent;
+}
+
 /* Apple-style button with shine effect */
 .apple-btn {
   position: relative;

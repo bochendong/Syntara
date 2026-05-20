@@ -1,0 +1,758 @@
+[
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p01",
+    "title": "封面：用函数测量集合大小",
+    "order": 0,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s01-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s01-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s01-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《封面：用函数测量集合大小》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s01-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s01-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s01-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "把单射、满射、双射定位为比较集合大小的工具，尤其用于无限集合。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s01-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s01-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s01-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s01-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s01-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s01-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：总览：从逆函数到基数。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p02",
+    "title": "总览：从逆函数到基数",
+    "order": 1,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s02-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s02-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s02-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《总览：从逆函数到基数》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s02-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s02-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s02-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "预览 inverse、bijection、countability、diagonalization 和 Cantor theorem。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s02-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s02-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s02-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s02-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s02-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s02-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：引入：inverse 到底在 undo 什么？。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p03",
+    "title": "引入：inverse 到底在 undo 什么？",
+    "order": 2,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s03-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s03-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s03-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《引入：inverse 到底在 undo 什么？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s03-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s03-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s03-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "从加法逆元和乘法逆元出发，引出 identity 和 undo 操作。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s03-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s03-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s03-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s03-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s03-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s03-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：函数复合与恒等映射。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p04",
+    "title": "函数复合与恒等映射",
+    "order": 3,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s04-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s04-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s04-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《函数复合与恒等映射》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s04-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s04-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s04-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "用 f o g = id 和 g o f = id 建立 inverse function 的定义。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s04-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s04-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s04-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s04-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s04-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s04-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：问题框架：逆函数为什么会失败？。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p05",
+    "title": "问题框架：逆函数为什么会失败？",
+    "order": 4,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s05-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s05-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s05-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《问题框架：逆函数为什么会失败？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s05-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s05-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s05-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "说明非满射会漏掉输出，非单射会合并输入，两者都会阻碍真正的 inverse。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s05-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s05-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s05-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s05-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s05-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s05-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：核心桥梁：可逆 iff 双射。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p06",
+    "title": "核心桥梁：可逆 iff 双射",
+    "order": 5,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s06-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s06-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s06-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《核心桥梁：可逆 iff 双射》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s06-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s06-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s06-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "讲 bijection 正是有双边 inverse 的函数。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s06-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s06-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s06-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s06-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s06-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s06-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：基数：定义 |S| <= |T|。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p07",
+    "title": "基数：定义 |S| <= |T|",
+    "order": 6,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s07-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s07-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s07-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《基数：定义 |S| <= |T|》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s07-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s07-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s07-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "用 injection 作为 no larger than 的正式含义，并用有限集合做 sanity check。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s07-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s07-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s07-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s07-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s07-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s07-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：无限集合可以和真子集一样大。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p08",
+    "title": "无限集合可以和真子集一样大",
+    "order": 7,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s08-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s08-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s08-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《无限集合可以和真子集一样大》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s08-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s08-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s08-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "用 N 和偶自然数展示无限集合违背有限直觉。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s08-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s08-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s08-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s08-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s08-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s08-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：Cantor-Schroder-Bernstein 定理。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p09",
+    "title": "Cantor-Schroder-Bernstein 定理",
+    "order": 8,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s09-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s09-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s09-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《Cantor-Schroder-Bernstein 定理》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s09-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s09-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s09-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "把定理解释为：互相有 injection，就能得到相同基数。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s09-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s09-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s09-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s09-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s09-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s09-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：可数集合：N、Z、Q。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p10",
+    "title": "可数集合：N、Z、Q",
+    "order": 9,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s10-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s10-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s10-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《可数集合：N、Z、Q》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s10-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s10-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s10-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "解释 countable 和 countably infinite，并概览整数、有理数为什么可以排成列表。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s10-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s10-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s10-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s10-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s10-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s10-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：常见错误：看起来更大不等于更大。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p11",
+    "title": "常见错误：看起来更大不等于更大",
+    "order": 10,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s11-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s11-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s11-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《常见错误：看起来更大不等于更大》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s11-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s11-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s11-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "提醒无限集合里 subset 不一定严格更小，dense 的有理数仍然可数。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s11-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s11-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s11-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s11-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s11-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s11-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：总结与下节钩子：对角线法。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-functions-ii-cardinality-20260519-p12",
+    "title": "总结与下节钩子：对角线法",
+    "order": 11,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s12-01",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s12-title",
+        "title": "标题与本页位置",
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s12-01",
+        "type": "speech",
+        "title": "讲解：标题与本页位置",
+        "text": "这一页是《总结与下节钩子：对角线法》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s12-02",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s12-main-idea",
+        "title": "左侧核心概念区",
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s12-02",
+        "type": "speech",
+        "title": "讲解：左侧核心概念区",
+        "text": "总结 R 不可数，Cantor theorem 说明 power set 总是更大。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s12-03",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s12-worked-board",
+        "title": "右侧例题或图像区",
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s12-03",
+        "type": "speech",
+        "title": "讲解：右侧例题或图像区",
+        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-spotlight-s12-04",
+        "type": "spotlight",
+        "elementId": "nb-mat102-zh-functions-ii-cardinality-20260519-s12-takeaway",
+        "title": "底部总结与下一步",
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
+        "dimOpacity": 0.76
+      },
+      {
+        "id": "nb-mat102-zh-functions-ii-cardinality-20260519-speech-s12-04",
+        "type": "speech",
+        "title": "讲解：底部总结与下一步",
+        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+      }
+    ]
+  }
+]

@@ -21,7 +21,7 @@ const apiKey = process.env.IMAGE_OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_
 const baseUrl = (
   process.env.IMAGE_OPENAI_IMAGE_BASE_URL || 'https://api.openai.com/v1'
 ).replace(/\/$/, '');
-const model = process.argv[2] || 'gpt-image-1.5';
+const model = process.argv[2] || 'gpt-image-2';
 const prompt =
   process.argv[3] ||
   'A minimal flat icon: single blue circle on white background, centered, no text';

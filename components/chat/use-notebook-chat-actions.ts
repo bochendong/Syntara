@@ -153,9 +153,7 @@ export function useNotebookChatActions({
             action: {
               label: '查看',
               onClick: () => {
-                router.push(
-                  `/chat/private-memory?notebook=${encodeURIComponent(args.notebook.id)}`,
-                );
+                router.push(`/classroom/${encodeURIComponent(args.notebook.id)}/memory`);
               },
             },
             cancel: {

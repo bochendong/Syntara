@@ -42,6 +42,7 @@ type TestKind =
   | 'html-lesson'
   | 'html-openmaic-lesson'
   | 'html-notebook'
+  | 'ppt-image'
   | 'problem-import-stepped'
   | 'problem-import-direct-llm'
   | 'problem-image-extraction'
@@ -204,6 +205,17 @@ const TEST_ENTRIES: TestEntry[] = [
     icon: 'code',
   },
   {
+    id: 'ppt-image',
+    title: 'OpenAI Image2 PPT 位图生成',
+    eyebrow: 'openai-image → gpt-image-2',
+    description:
+      '把整页 PPT 当作一张图片生成：/api/generate/image → openai-image → gpt-image-2，专门验收课堂板书式 16:9 位图 slide。',
+    href: '/generation-ppt-image-test',
+    chips: ['image2', 'full-slide bitmap', '16:9 PPT'],
+    accentClass: 'from-indigo-600 to-sky-400',
+    icon: 'presentation',
+  },
+  {
     id: 'problem-import-stepped',
     title: 'PDF 导题分步管线测试',
     eyebrow: '已弃用 / Source Package → Structure Plan',
@@ -269,6 +281,7 @@ const HTML_OUTPUT_REGRESSION_TEST_IDS = new Set<TestKind>([
   'html-openmaic-lesson',
   'html-notebook',
 ]);
+const PPT_IMAGE_TEST_IDS = new Set<TestKind>(['ppt-image']);
 const BUILT_IN_LAYOUT_TEST_IDS = new Set<TestKind>(['single-page', 'file-page']);
 const OPENMAIC_LEGACY_TEST_IDS = new Set<TestKind>(['openmaic-legacy']);
 
@@ -292,6 +305,13 @@ const SLIDE_TEST_SECTIONS: SlideTestSection[] = [
     description:
       '这些是不同输入粒度的输出回归入口，不再当作生成逻辑的前后步骤；主流程以分步管线测试为准。',
     entries: TEST_ENTRIES.filter((entry) => HTML_OUTPUT_REGRESSION_TEST_IDS.has(entry.id)),
+  },
+  {
+    id: 'ppt-image',
+    title: 'Image2 整页 PPT 位图测试',
+    description:
+      '专门测试 OpenAI image endpoint 生成完整 16:9 PPT 位图，不经过 HTML/SVG/截图渲染。',
+    entries: TEST_ENTRIES.filter((entry) => PPT_IMAGE_TEST_IDS.has(entry.id)),
   },
   {
     id: 'built-in-layout',
@@ -500,6 +520,7 @@ export default function GenerationTestsPage() {
     'html-lesson': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-openmaic-lesson': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-notebook': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
+    'ppt-image': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-import-stepped': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-import-direct-llm': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-image-extraction': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },

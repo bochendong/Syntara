@@ -8,7 +8,7 @@ export default function PrivateMemoryPage() {
       fallback={
         <div className="flex h-full min-h-[50dvh] items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
-          加载私有记忆…
+          加载笔记本记忆…
         </div>
       }
     >

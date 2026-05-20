@@ -81,17 +81,17 @@ export function ChatPageHeader({
               进入笔记本
             </Link>
             <Link
-              href={`/chat/private-memory?notebook=${encodeURIComponent(notebookAction.id)}`}
+              href={`/classroom/${encodeURIComponent(notebookAction.id)}/memory`}
               className={cn(
                 'inline-flex h-8 items-center justify-center gap-1.5 rounded-[10px] px-2.5 text-xs font-semibold transition-colors',
                 'border border-[#007AFF]/18 bg-[#007AFF]/[0.06] text-[#0057B8] hover:bg-[#007AFF]/10',
                 'dark:border-[#0A84FF]/24 dark:bg-[#0A84FF]/12 dark:text-[#B9DCFF] dark:hover:bg-[#0A84FF]/18',
               )}
-              aria-label={`查看私有记忆：${notebookAction.name}`}
-              title="查看私有记忆"
+              aria-label={`查看记忆：${notebookAction.name}`}
+              title="查看记忆"
             >
               <Brain className="size-3.5" strokeWidth={1.8} />
-              私有记忆
+              记忆
             </Link>
           </div>
         ) : groupMeta ? (

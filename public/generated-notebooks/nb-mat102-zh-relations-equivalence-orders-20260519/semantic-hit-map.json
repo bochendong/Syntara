@@ -6,7 +6,7 @@
     {
       "order": 0,
       "title": "封面：关系是数学里的比较方式",
-      "teachingIntent": "介绍 relation 是比较对象的工具。预览反证法、关系性质、等价类和偏序。",
+      "teachingIntent": "介绍 relation 是比较对象的工具。先说明上一节量词和否定会变成证明策略：遇到关系性质时，常用反例和反证处理“不是这样”的情况。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-01.png",
       "hitMap": {
         "version": 1,
@@ -92,8 +92,8 @@
     },
     {
       "order": 1,
-      "title": "引入：什么叫两个对象有关？",
-      "teachingIntent": "从等号、小于号和整除出发，让学生把 relation 看成从 Cartesian product 中挑出的 pair。",
+      "title": "引入：关系命题为什么需要证明策略？",
+      "teachingIntent": "从等号、小于号和整除出发，让学生把 relation 看成从 Cartesian product 中挑出的 pair。强调判断 aRb、全称性质或反例时，需要先会处理否定。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-02.png",
       "hitMap": {
         "version": 1,
@@ -179,8 +179,8 @@
     },
     {
       "order": 2,
-      "title": "反证法的基本结构",
-      "teachingIntent": "说明先假设目标为假，再推出不可能的事情。用 R and not R 展示 contradiction pattern。",
+      "title": "桥梁：从否定命题到反证法",
+      "teachingIntent": "把上一节 not forall、exists not 接到证明动作：当直接证明困难时，先假设目标为假，再推出与定义或已知事实冲突。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-03.png",
       "hitMap": {
         "version": 1,
@@ -266,8 +266,8 @@
     },
     {
       "order": 3,
-      "title": "经典反证例子",
-      "teachingIntent": "概览 sqrt(2) 无理、没有最小正实数、某方程无自然数解等例子。强调是哪一步假设触发矛盾。",
+      "title": "反证法的基本结构",
+      "teachingIntent": "正式整理反证法四步：反设目标为假，结合定义和已知条件推理，推出矛盾，再回到原命题成立。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-04.png",
       "hitMap": {
         "version": 1,
@@ -353,8 +353,8 @@
     },
     {
       "order": 4,
-      "title": "二元关系是乘积的子集",
-      "teachingIntent": "定义 A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义。",
+      "title": "反证法热身：先练一招再回到关系",
+      "teachingIntent": "用 sqrt(2) 无理、没有最小正实数等例子演示反证法。强调这不是换主题，而是为了后面证明关系性质和排除错误关系。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-05.png",
       "hitMap": {
         "version": 1,
@@ -440,8 +440,8 @@
     },
     {
       "order": 5,
-      "title": "关系性质检查表",
-      "teachingIntent": "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。",
+      "title": "回到关系：二元关系是乘积的子集",
+      "teachingIntent": "定义 A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义，并把反例/反证作为之后检查关系性质的工具。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-06.png",
       "hitMap": {
         "version": 1,
@@ -527,8 +527,8 @@
     },
     {
       "order": 6,
-      "title": "用例子测试关系性质",
-      "teachingIntent": "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。",
+      "title": "关系性质检查表",
+      "teachingIntent": "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-07.png",
       "hitMap": {
         "version": 1,
@@ -614,8 +614,8 @@
     },
     {
       "order": 7,
-      "title": "等价关系",
-      "teachingIntent": "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。",
+      "title": "用例子测试关系性质",
+      "teachingIntent": "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-08.png",
       "hitMap": {
         "version": 1,
@@ -701,8 +701,8 @@
     },
     {
       "order": 8,
-      "title": "等价类与划分",
-      "teachingIntent": "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。",
+      "title": "等价关系",
+      "teachingIntent": "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-09.png",
       "hitMap": {
         "version": 1,
@@ -788,8 +788,8 @@
     },
     {
       "order": 9,
-      "title": "序关系与偏序集",
-      "teachingIntent": "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。",
+      "title": "等价类与划分",
+      "teachingIntent": "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-10.png",
       "hitMap": {
         "version": 1,
@@ -875,8 +875,8 @@
     },
     {
       "order": 10,
-      "title": "极大、极小、最大、最小",
-      "teachingIntent": "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。",
+      "title": "序关系与偏序集",
+      "teachingIntent": "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-11.png",
       "hitMap": {
         "version": 1,
@@ -962,8 +962,8 @@
     },
     {
       "order": 11,
-      "title": "上下界、上确界、下确界",
-      "teachingIntent": "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。",
+      "title": "极大、极小、最大、最小",
+      "teachingIntent": "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。",
       "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-12.png",
       "hitMap": {
         "version": 1,
@@ -1029,6 +1029,93 @@
           },
           {
             "id": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 12,
+      "title": "上下界、上确界、下确界",
+      "teachingIntent": "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。",
+      "image": "/generated-notebooks/nb-mat102-zh-relations-equivalence-orders-20260519/slide-13.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-takeaway",
             "semanticId": "takeaway",
             "label": "底部总结与下一步",
             "sourceRect": [

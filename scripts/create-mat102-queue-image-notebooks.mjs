@@ -13,7 +13,7 @@ const SOURCE_HEIGHT = 900;
 const HOTSPOT_PATH = 'M 0 0 L 200 0 L 200 200 L 0 200 Z';
 
 const DEFAULT_PROVIDER = 'openai-image';
-const DEFAULT_MODEL = 'gpt-image-1.5';
+const DEFAULT_MODEL = 'gpt-image-2';
 const DEFAULT_CONCURRENCY = 2;
 
 const themeColors = {

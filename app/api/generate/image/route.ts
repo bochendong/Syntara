@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await generateImage({ providerId, apiKey, baseUrl, model: clientModel }, body);
-      const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-1.5';
+      const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-2';
       const costEstimate = createImageCostEstimate(providerId, resolvedModelId, result);
 
       if (providerId === 'openai-image' && !skipCreditCharge) {

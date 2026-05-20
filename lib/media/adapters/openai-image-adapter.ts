@@ -1,5 +1,5 @@
 /**
- * OpenAI Images API — GPT Image models (e.g. gpt-image-1.5)
+ * OpenAI Images API — GPT Image models (e.g. gpt-image-2)
  *
  * POST {baseUrl}/images/generations
  * GPT image models return base64 by default (URLs are not supported).
@@ -13,7 +13,7 @@ import type {
   ImageGenerationResult,
 } from '../types';
 
-const DEFAULT_MODEL = 'gpt-image-1.5';
+const DEFAULT_MODEL = 'gpt-image-2';
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 
 type OpenAiImageSize = '1024x1024' | '1024x1536' | '1536x1024';

@@ -74,6 +74,7 @@ function leftRailScrollClass(lightSurface: boolean) {
 export interface AppLeftRailProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
+  workspaceScale?: number;
 }
 
 /** 进入这些路由时清空「当前课程」。侧栏「商城」：未选课程 → `/store/courses`（课程商城）；已选课程 → `/store`（笔记本商城） */
@@ -94,7 +95,11 @@ function formatRailCreditAmount(value: number): string {
   return Math.max(0, Math.round(value)).toLocaleString('en-US');
 }
 
-export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) {
+export function AppLeftRail({
+  collapsed,
+  onCollapsedChange,
+  workspaceScale = 1,
+}: AppLeftRailProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
@@ -178,7 +183,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     'flex h-full flex-col overflow-hidden rounded-[20px]',
     showLeftRailStage
       ? cn(
-          'border',
+          isChatPage ? 'border border-transparent' : 'border',
           isLeftRailSolidColor
             ? cn(
                 'bg-transparent',
@@ -189,7 +194,7 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
             : 'bg-[linear-gradient(180deg,rgba(16,16,20,0.78),rgba(5,5,5,0.78))] shadow-[0_20px_50px_rgba(0,0,0,0.35)]',
           railDividers.edge,
         )
-      : 'apple-glass-heavy',
+      : cn('apple-glass-heavy', isChatPage ? 'app-left-rail-borderless' : 'app-left-rail-bordered'),
     'transition-[width,box-shadow,background,border-color] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
   );
   const railIconPadBtn = onLightRail
@@ -301,9 +306,17 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     <>
       <aside
         className={cn(
-          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] overflow-hidden rounded-[20px]',
+          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] origin-top-left overflow-hidden rounded-[20px]',
           collapsed ? 'w-[88px]' : 'w-[min(288px,calc(100vw-2rem))]',
         )}
+        style={
+          workspaceScale === 1
+            ? undefined
+            : {
+                height: `calc((100dvh - 2rem) / ${workspaceScale})`,
+                transform: `scale(${workspaceScale})`,
+              }
+        }
         aria-label="主导航"
       >
         <div className={cn('pointer-events-auto relative h-full', railSurfaceClass)}>

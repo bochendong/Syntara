@@ -3,6 +3,7 @@
 import type { AppNotification } from '@/lib/notifications/types';
 import type { QuizQuestion } from '@/lib/types/stage';
 import type { LearningRunStats } from '@/lib/learning/quiz-roguelike';
+import { getDefaultNotebookPublicMemories } from '@/lib/learning/default-public-memories';
 
 const MEMORY_PREFIX = 'synatra-study-memory-v1';
 const MAX_ITEMS = 80;
@@ -98,14 +99,27 @@ function emptyProfile(userId: string, stageId: string): StudyMemoryProfile {
   };
 }
 
+function withDefaultPublicMemories(profile: StudyMemoryProfile): StudyMemoryProfile {
+  const defaultPublicMemories = getDefaultNotebookPublicMemories(profile.stageId);
+  if (defaultPublicMemories.length === 0) return profile;
+  return {
+    ...profile,
+    publicMemories: defaultPublicMemories,
+  };
+}
+
 export function loadStudyMemory(userId: string, stageId: string): StudyMemoryProfile {
-  if (typeof window === 'undefined' || !userId || !stageId) return emptyProfile(userId, stageId);
+  if (typeof window === 'undefined' || !userId || !stageId) {
+    return withDefaultPublicMemories(emptyProfile(userId, stageId));
+  }
   try {
     const raw = localStorage.getItem(storageKey(userId, stageId));
-    if (!raw) return emptyProfile(userId, stageId);
+    if (!raw) return withDefaultPublicMemories(emptyProfile(userId, stageId));
     const parsed = JSON.parse(raw) as StudyMemoryProfile;
-    if (!parsed || typeof parsed !== 'object') return emptyProfile(userId, stageId);
-    return {
+    if (!parsed || typeof parsed !== 'object') {
+      return withDefaultPublicMemories(emptyProfile(userId, stageId));
+    }
+    return withDefaultPublicMemories({
       ...emptyProfile(userId, stageId),
       ...parsed,
       weakPoints: Array.isArray(parsed.weakPoints) ? parsed.weakPoints.slice(0, MAX_ITEMS) : [],
@@ -118,9 +132,9 @@ export function loadStudyMemory(userId: string, stageId: string): StudyMemoryPro
       privateMemories: Array.isArray(parsed.privateMemories)
         ? parsed.privateMemories.slice(0, MAX_ITEMS).map(normalizeNotebookMemoryItem)
         : [],
-    };
+    });
   } catch {
-    return emptyProfile(userId, stageId);
+    return withDefaultPublicMemories(emptyProfile(userId, stageId));
   }
 }
 
@@ -297,8 +311,8 @@ export function listNotebookPrivateMemories(args: {
 }): NotebookMemoryItem[] {
   const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
   const limit = Math.max(1, Math.min(args.limit ?? MAX_ITEMS, MAX_ITEMS));
-  return loadStudyMemory(userId, args.stageId).privateMemories
-    .filter((item) => args.includeArchived || item.status !== 'archived')
+  return loadStudyMemory(userId, args.stageId)
+    .privateMemories.filter((item) => args.includeArchived || item.status !== 'archived')
     .sort(
       (a, b) =>
         (b.lastUsedAt || b.updatedAt || b.createdAt) - (a.lastUsedAt || a.updatedAt || a.createdAt),

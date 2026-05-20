@@ -1,0 +1,67 @@
+{
+  "mode": "deterministic-svg-sharp",
+  "source": "/Users/dongpochen/Github/OpenMAIC/scripts/mat102-queue-zh-notebooks.json",
+  "renderedAt": "2026-05-20T09:13:27.911Z",
+  "slides": [
+    {
+      "order": 0,
+      "title": "封面：逻辑进入数论",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-01.png"
+    },
+    {
+      "order": 1,
+      "title": "总览：从整除到 Bezout",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-02.png"
+    },
+    {
+      "order": 2,
+      "title": "引入：为什么余数重要？",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-03.png"
+    },
+    {
+      "order": 3,
+      "title": "整除语言：b | a",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-04.png"
+    },
+    {
+      "order": 4,
+      "title": "问题框架：怎样证明整除规则？",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-05.png"
+    },
+    {
+      "order": 5,
+      "title": "良序原理",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-06.png"
+    },
+    {
+      "order": 6,
+      "title": "带余除法",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-07.png"
+    },
+    {
+      "order": 7,
+      "title": "例题：证明 3 | n^3 - n",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-08.png"
+    },
+    {
+      "order": 8,
+      "title": "最大公因数",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-09.png"
+    },
+    {
+      "order": 9,
+      "title": "欧几里得算法实战",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-10.png"
+    },
+    {
+      "order": 10,
+      "title": "Bezout 恒等式与回代",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-11.png"
+    },
+    {
+      "order": 11,
+      "title": "常见错误与下节钩子",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-i-euclidean-algorithm-20260519/slide-12.png"
+    }
+  ]
+}

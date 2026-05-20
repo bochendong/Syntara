@@ -9,6 +9,7 @@ import {
   courseGalleryListGridClassName,
 } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
+import { MyCoursesCourseGridLoading } from '@/components/loading/app-page-skeletons';
 import { useAuthStore } from '@/lib/store/auth';
 import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
@@ -214,21 +215,7 @@ export default function MyCoursesPage() {
 
         {/* Course list: semantic section + list for layout and a11y */}
         {loading ? (
-          <section aria-busy="true" aria-label="正在加载课程列表">
-            <ul className={courseGalleryListGridClassName}>
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <li key={idx} className="min-w-0" aria-hidden="true">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1, duration: 0.5 }}
-                    className="h-72 rounded-[26px] bg-white/40 animate-pulse dark:bg-white/5"
-                    style={{ backdropFilter: 'blur(10px)' }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
+          <MyCoursesCourseGridLoading />
         ) : courses.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

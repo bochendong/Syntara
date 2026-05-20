@@ -27,21 +27,13 @@ import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide
 import { readGenerationContext } from '@/lib/utils/generation-context-storage';
 import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
 import { backendFetch } from '@/lib/utils/backend-api';
+import { ClassroomLoadingSkeleton } from '@/components/loading/app-page-skeletons';
 
 const log = createLogger('Classroom');
 
 const Stage = dynamic(() => import('@/components/stage').then((mod) => mod.Stage), {
   ssr: false,
-  loading: () => (
-    <div className="apple-mesh-bg flex flex-1 items-center justify-center px-4">
-      <div className="apple-glass max-w-md rounded-[20px] px-8 py-6 text-center">
-        <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">正在打开教室</p>
-        <p className="mt-2 text-xs leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
-          正在准备课堂画布…
-        </p>
-      </div>
-    </div>
-  ),
+  loading: () => <ClassroomLoadingSkeleton subtitle="正在准备课堂画布…" />,
 });
 
 function summarizeSpeechProgress(scenes: Array<{ actions?: Array<{ type: string }> }>) {
@@ -551,14 +543,7 @@ export default function ClassroomDetailPage() {
       <MediaStageProvider value={classroomId}>
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           {loading ? (
-            <div className="apple-mesh-bg flex flex-1 items-center justify-center px-4">
-              <div className="apple-glass max-w-md rounded-[20px] px-8 py-6 text-center">
-                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">正在加载教室</p>
-                <p className="mt-2 text-xs leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
-                  {loadingSubtitle}
-                </p>
-              </div>
-            </div>
+            <ClassroomLoadingSkeleton subtitle={loadingSubtitle} />
           ) : error ? (
             <div className="apple-mesh-bg flex flex-1 items-center justify-center px-4">
               <div className="apple-glass max-w-md rounded-[20px] px-8 py-6 text-center">

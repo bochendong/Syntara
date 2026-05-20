@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Suspense, useState, useLayoutEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
@@ -18,17 +18,22 @@ const ChatRightRail = dynamic(
   () => import('@/components/chat-right-rail').then((mod) => mod.ChatRightRail),
   { ssr: false },
 );
+const Live2DStudyCompanion = dynamic(
+  () => import('@/components/live2d-study-companion').then((mod) => mod.Live2DStudyCompanion),
+  { ssr: false },
+);
 
 /** 侧栏 inset left-4 / right-4 各 16px；左侧 Dashboard 导航略宽，右侧聊天栏保持紧凑。 */
 const SIDEBAR_GAP = 12;
 const LEFT_RAIL_EXPANDED_WIDTH = 288;
 const RIGHT_RAIL_EXPANDED_WIDTH = 270;
 const RAIL_COLLAPSED_WIDTH = 88;
+const SIDEBAR_WORKSPACE_SCALE = 0.88;
 
-function railOuterPaddingPx(collapsed: boolean, expandedWidth: number): number {
+function railOuterPaddingPx(collapsed: boolean, expandedWidth: number, scale = 1): number {
   const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : expandedWidth;
   const w = collapsed ? RAIL_COLLAPSED_WIDTH : Math.min(expandedWidth, maxW);
-  return 16 + w + SIDEBAR_GAP;
+  return 16 + w * scale + SIDEBAR_GAP;
 }
 
 function getInitialSidebarCollapsed(): boolean {
@@ -97,6 +102,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isReviewImmersive =
     pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
+  const sidebarWorkspaceScale = SIDEBAR_WORKSPACE_SCALE;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [chatRightCollapsed, setChatRightCollapsed] = useState(getInitialChatRightCollapsed);
 
@@ -123,24 +129,38 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isNotebookCreatePage =
     pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
   const hasRightRail = isChatPage || isNotebookCreatePage;
+  const withStudyCompanion = (content: ReactNode) => (
+    <>
+      {content}
+      <Suspense fallback={null}>
+        <Live2DStudyCompanion />
+      </Suspense>
+    </>
+  );
 
   if (isLogin || isRegister || isLanding) {
-    return <>{children}</>;
+    return withStudyCompanion(<>{children}</>);
   }
 
   if (isReviewImmersive || isCourseProblemBank || isTestPage) {
-    return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
+    return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
   }
 
   if (isClassroom || isAdmin) {
-    return <MainShellNoRail>{children}</MainShellNoRail>;
+    return withStudyCompanion(<MainShellNoRail>{children}</MainShellNoRail>);
   }
 
-  return (
+  return withStudyCompanion(
     <>
-      <AppLeftRail collapsed={sidebarCollapsed} onCollapsedChange={persistSidebarCollapsed} />
+      <AppLeftRail
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={persistSidebarCollapsed}
+        workspaceScale={sidebarWorkspaceScale}
+      />
       <SidebarInset
         leftCollapsed={sidebarCollapsed}
+        leftRailScale={sidebarWorkspaceScale}
+        contentScale={sidebarWorkspaceScale}
         rightCollapsed={chatRightCollapsed}
         hasRightRail={hasRightRail}
         lockContentScroll={isChatPage}
@@ -156,31 +176,37 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
           />
         </Suspense>
       ) : null}
-    </>
+    </>,
   );
 }
 
 function SidebarInset({
   leftCollapsed,
+  leftRailScale = 1,
+  contentScale = 1,
   rightCollapsed,
   hasRightRail,
   lockContentScroll = false,
   children,
 }: {
   leftCollapsed: boolean;
+  leftRailScale?: number;
+  contentScale?: number;
   rightCollapsed: boolean;
   hasRightRail: boolean;
   lockContentScroll?: boolean;
   children: ReactNode;
 }) {
-  const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH));
+  const [padLeft, setPadLeft] = useState(() =>
+    railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH, leftRailScale),
+  );
   const [padRight, setPadRight] = useState(() =>
     hasRightRail ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
   );
 
   useLayoutEffect(() => {
     const sync = () => {
-      setPadLeft(railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH));
+      setPadLeft(railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH, leftRailScale));
       setPadRight(
         hasRightRail ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
       );
@@ -188,7 +214,15 @@ function SidebarInset({
     sync();
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [leftCollapsed, rightCollapsed, hasRightRail]);
+  }, [leftCollapsed, leftRailScale, rightCollapsed, hasRightRail]);
+
+  const scaledContentStyle =
+    contentScale === 1
+      ? undefined
+      : ({
+          '--sidebar-workspace-scale': String(contentScale),
+          '--sidebar-workspace-min-height': `calc((100dvh - 1rem) / ${contentScale})`,
+        } as CSSProperties);
 
   return (
     <div
@@ -205,7 +239,15 @@ function SidebarInset({
           lockContentScroll ? 'overflow-y-hidden' : 'overflow-y-auto',
         )}
       >
-        {children}
+        {contentScale === 1 ? (
+          children
+        ) : (
+          <div className="min-h-full w-full overflow-x-clip" style={scaledContentStyle}>
+            <div className="min-h-[var(--sidebar-workspace-min-height)] w-[calc(100%/var(--sidebar-workspace-scale))] origin-top-left scale-[var(--sidebar-workspace-scale)] [&>*]:min-h-[var(--sidebar-workspace-min-height)]">
+              {children}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

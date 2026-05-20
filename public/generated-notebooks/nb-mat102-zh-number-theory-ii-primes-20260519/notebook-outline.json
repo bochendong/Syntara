@@ -1,0 +1,67 @@
+{
+  "sourcePdf": "08NumberTheoryII.pdf",
+  "slug": "mat102-zh-number-theory-ii-primes",
+  "title": "线性丢番图方程与素数",
+  "description": "MAT102 中文 notebook：互素整除、线性丢番图方程、整数通解、素数、算术基本定理和欧几里得无限素数证明。",
+  "slides": [
+    [
+      "封面：从 gcd 走向素数",
+      "把本节设为欧几里得算法到素因数分解之间的桥梁。预览整数方程和素数如何控制整除。"
+    ],
+    [
+      "引入：什么时候有整数解？",
+      "从 504x + 1155y = 42 出发，问为什么有理数解容易，但整数解特殊。"
+    ],
+    [
+      "关键工具：互素整除",
+      "介绍若 a | bc 且 gcd(a,b)=1，则 a | c。这是后面 prime argument 的 cancellation principle。"
+    ],
+    [
+      "问题框架：线性丢番图方程",
+      "定义 ax + by = d，核心问题不是有无有理数解，而是什么时候有整数解。"
+    ],
+    [
+      "存在性定理：gcd 检查",
+      "给出 ax + by = c 有整数解 iff gcd(a,b) | c，并连接 Bezout identity。"
+    ],
+    [
+      "例题：找一个解",
+      "用 504x + 1155y = 42 展示 gcd、divisibility check、反向回代、scale 的完整流程。"
+    ],
+    [
+      "所有解，不只是一个解",
+      "从一个 particular solution 推出 general solution，并解释参数如何沿着整数解格点滑动。"
+    ],
+    [
+      "限制条件例题：非负解",
+      "用 x = -32 + 55n、y = 14 - 24n 的不等式检查是否有 non-negative solutions。"
+    ],
+    [
+      "重新定义素数",
+      "比较“不能再分解”的直觉定义和 p | ab => p | a or p | b 的整除定义。"
+    ],
+    [
+      "素数推论与无理性",
+      "用 p | n iff p | n^2 和 sqrt(p) 无理展示素数作为证明引擎。"
+    ],
+    [
+      "算术基本定理",
+      "陈述素因数分解的存在唯一性。说明证明思路：well-ordering 给存在，prime divisibility 给唯一。"
+    ],
+    [
+      "总结与下节钩子：无限多个素数",
+      "用 Euclid proof 收束无限素数，并预告 modular arithmetic 与 prime moduli。"
+    ]
+  ],
+  "id": "nb-mat102-zh-number-theory-ii-primes-20260519",
+  "language": "zh-CN",
+  "tags": [
+    "MAT102",
+    "zh-CN",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "08NumberTheoryII.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-number-theory-ii-primes-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-zh-number-theory-ii-primes-20260519"
+}

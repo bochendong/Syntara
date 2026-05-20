@@ -33,11 +33,16 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { cn } from '@/lib/utils';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { formatComputeCreditsLabel, formatUsdLabel } from '@/lib/utils/credits';
+import { saveTestResult } from '@/lib/utils/test-results';
 
 const STORAGE_KEY = 'syntara:ppt-image-generation-test:v1';
+const TEST_ID = 'ppt-image';
+const STATE_RESULT_KEY = 'state';
+const PREFERRED_PROVIDER_ID: ImageProviderId = 'openai-image';
+const PREFERRED_MODEL_ID = 'gpt-image-2';
 
 const DEFAULT_PROMPT =
-  'Create a realistic screenshot of a single 16:9 PowerPoint slide, not an illustration. The slide topic is "AI-Powered Learning". Use a clean white presentation canvas with a clear top title area, a short subtitle, three concise bullet cards on the left, a simple data chart or process diagram on the right, a small footer line, generous margins, aligned grid layout, professional SaaS presentation style, crisp readable English text, no logos, no watermarks.';
+  'Create one complete 16:9 classroom PPT slide as a single generated bitmap image, not SVG, not HTML, not a screenshot, and not a programmatic template. Topic: integration by parts. Style: beautiful grid paper, careful hand-drawn teacher board, clear broad sections, blue/teal/orange marker accents, readable math handwriting, generous margins. Slide title: “分部积分：从乘积法则倒推”. Include the formula ∫u dv = uv − ∫v du, a small worked example ∫x e^x dx, and a bottom takeaway: “先选 u，再算 dv，最后检查积分是否更简单。” Keep formulas exact and legible. No logos, no watermarks, no tiny text.';
 
 type ServerProvidersResponse = {
   image?: Record<string, { baseUrl?: string; models?: string[] }>;
@@ -154,6 +159,26 @@ function formatCostEstimate(costEstimate: ImageGenerationCostEstimate | null | u
   ].join(' · ');
 }
 
+function savePptImageTestState(next: StoredState) {
+  void saveTestResult({
+    testId: TEST_ID,
+    resultKey: STATE_RESULT_KEY,
+    status: next.errors.length > 0 ? 'saved-with-errors' : 'saved',
+    title: 'OpenAI Image2 PPT 位图生成测试',
+    summary: {
+      generatedCount: next.history.length,
+      errorCount: next.errors.length,
+      lastUpdatedAt: Date.now(),
+    },
+    payload: {
+      history: next.history.slice(0, 20),
+      errors: next.errors.slice(0, 20),
+    },
+  }).catch(() => {
+    /* The test page should still work when the local database is unavailable. */
+  });
+}
+
 function getAspectRatioStatus(width: number | undefined, height: number | undefined) {
   if (!width || !height) return null;
   const actual = width / height;
@@ -168,15 +193,15 @@ function getAspectRatioStatus(width: number | undefined, height: number | undefi
 
 export default function GenerationPptImageTestPage() {
   const settingsProviderId = useSettingsStore((state) => state.imageProviderId);
-  const settingsModelId = useSettingsStore((state) => state.imageModelId);
   const imageProvidersConfig = useSettingsStore((state) => state.imageProvidersConfig);
 
   const [serverProviders, setServerProviders] = useState<
     Record<string, { baseUrl?: string; models?: string[] }>
   >({});
   const [serverStatus, setServerStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [selectedProviderId, setSelectedProviderId] = useState<ImageProviderId>(settingsProviderId);
-  const [selectedModelId, setSelectedModelId] = useState(settingsModelId);
+  const [selectedProviderId, setSelectedProviderId] =
+    useState<ImageProviderId>(PREFERRED_PROVIDER_ID);
+  const [selectedModelId, setSelectedModelId] = useState(PREFERRED_MODEL_ID);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -244,9 +269,11 @@ export default function GenerationPptImageTestPage() {
   useEffect(() => {
     if (!providerOptions.length) return;
     if (!providerOptions.some((provider) => provider.id === selectedProviderId)) {
-      setSelectedProviderId(providerOptions[0].id);
+      const fallbackProvider =
+        providerOptions.find((provider) => provider.id === settingsProviderId) || providerOptions[0];
+      setSelectedProviderId(fallbackProvider.id);
     }
-  }, [providerOptions, selectedProviderId]);
+  }, [providerOptions, selectedProviderId, settingsProviderId]);
 
   useEffect(() => {
     if (!currentModels.length) {
@@ -258,6 +285,11 @@ export default function GenerationPptImageTestPage() {
     }
   }, [currentModels, selectedModelId]);
 
+  const handleUseOpenAiImage2Route = useCallback(() => {
+    setSelectedProviderId(PREFERRED_PROVIDER_ID);
+    setSelectedModelId(PREFERRED_MODEL_ID);
+  }, []);
+
   const persistRun = useCallback((run: StoredRun) => {
     setStoredRuns((prev) => {
       const next = {
@@ -265,6 +297,7 @@ export default function GenerationPptImageTestPage() {
         errors: prev.errors,
       };
       writeStoredRuns(next);
+      savePptImageTestState(next);
       return next;
     });
   }, []);
@@ -276,6 +309,7 @@ export default function GenerationPptImageTestPage() {
         errors: [imageError, ...prev.errors].slice(0, 20),
       };
       writeStoredRuns(next);
+      savePptImageTestState(next);
       return next;
     });
   }, []);
@@ -295,6 +329,7 @@ export default function GenerationPptImageTestPage() {
           'x-image-model': selectedModelId,
           'x-api-key': selectedProviderConfig?.apiKey || '',
           'x-base-url': selectedProviderConfig?.baseUrl || '',
+          'x-generation-test-no-charge': 'true',
         },
         body: JSON.stringify({
           prompt: cleanPrompt,
@@ -388,8 +423,8 @@ export default function GenerationPptImageTestPage() {
               </div>
               <h1 className="mt-2 text-3xl font-semibold tracking-normal">PPT 图片测试</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                只测图片模型能不能生成适合放进幻灯片的 16:9 PPT 位图。SVG 转换在独立页面测试，
-                不混在这里。
+                这条线专门验收 OpenAI Image2 生成整页 PPT 位图：测试页 → /api/generate/image
+                → openai-image → gpt-image-2 → OpenAI Images API。SVG、HTML 和截图链路不混在这里。
               </p>
             </div>
             <Button
@@ -412,6 +447,25 @@ export default function GenerationPptImageTestPage() {
             </div>
 
             <div className="mt-5 grid gap-4">
+              <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-3 text-sm leading-6 text-indigo-900">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">当前目标线路：OpenAI Image2 PPT bitmap</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-indigo-200 bg-white"
+                    onClick={handleUseOpenAiImage2Route}
+                  >
+                    切到 Image2
+                  </Button>
+                </div>
+                <div className="mt-2 font-mono text-xs text-indigo-800">
+                  /api/generate/image · x-image-provider=openai-image ·
+                  x-image-model=gpt-image-2 · aspectRatio=16:9
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="ppt-image-provider">图片服务</Label>
                 <Select
