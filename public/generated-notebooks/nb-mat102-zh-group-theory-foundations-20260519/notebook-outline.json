@@ -1,0 +1,67 @@
+{
+  "sourcePdf": "11GroupTheory-2.pdf",
+  "slug": "mat102-zh-group-theory-foundations",
+  "title": "群论：从对称到循环群",
+  "description": "MAT102 中文 notebook：群公理、例子与反例、交换群与非交换群、二面体群、子群判别法和循环群。",
+  "slides": [
+    [
+      "封面：什么是群？",
+      "介绍 group 是描述结构与对称性的代数系统，出现在数学、科学和计算中。"
+    ],
+    [
+      "引入：不同世界里的相同动作",
+      "用旋转、模运算和常见数系展示看似不同的对象可能遵守同一套规则。"
+    ],
+    [
+      "问题框架：群必须满足什么？",
+      "给出 associativity、identity、inverses 三个群公理，并强调 closure 已包含在 binary operation 中。"
+    ],
+    [
+      "第一个例子：Z_n 的加法",
+      "证明 Z_n 在加法下满足群公理，用 [0]_n 和 additive inverse 固定直觉。"
+    ],
+    [
+      "反例：公理在哪里坏掉？",
+      "比较正整数加法、含 0 的有理数乘法等例子，看缺少 inverse 或 identity 的地方。"
+    ],
+    [
+      "Abelian 与 non-Abelian",
+      "把 commutativity 作为额外性质介绍，对比数系群和 composition order matters 的 symmetric group。"
+    ],
+    [
+      "对称例子：二面体群 D3",
+      "用三角形对称 e、r、r^2、s、sr、sr^2 解释 rotation/reflection，并展示 sr != rs。"
+    ],
+    [
+      "群公理推出的基本事实",
+      "整理 identity/inverse 唯一性、cancellation、(ab)^-1 = b^-1 a^-1 等结论。"
+    ],
+    [
+      "群的阶与元素的阶",
+      "区分 group order 和 element order，用 Z8*、D3、Z 等例子说明。"
+    ],
+    [
+      "子群：群里面的群",
+      "定义 subgroup，并强调 operation 必须相同。用 Z <= Q <= R 和模运算例子区分 subset 和 subgroup。"
+    ],
+    [
+      "子群判别法实战",
+      "讲高效判别法 ab^-1 in H，并应用到 {h in G : hgh^-1 = g} 这类集合。"
+    ],
+    [
+      "循环群与下节钩子",
+      "展示一个元素如何生成整个群或子群，并引出“同构：同一个结构的不同名字”。"
+    ]
+  ],
+  "id": "nb-mat102-zh-group-theory-foundations-20260519",
+  "language": "zh-CN",
+  "tags": [
+    "MAT102",
+    "zh-CN",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "11GroupTheory-2.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-theory-foundations-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-zh-group-theory-foundations-20260519"
+}

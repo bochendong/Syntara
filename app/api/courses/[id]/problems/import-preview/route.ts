@@ -7,6 +7,7 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
+import { createProblemImportBatch } from '@/lib/server/notebook-problems/import-batch-store';
 import { type NotebookProblemImportDraft } from '@/features/problems';
 import { extractProblemDraftsFromText } from '@/features/problems/server/import';
 import { ensureLegacyProblemsBackfilledForCourse } from '@/features/problems/server/service';
@@ -19,6 +20,8 @@ const previewSchema = z
     text: z.string().trim().max(120000).default(''),
     searchQuery: z.string().trim().max(400).optional(),
     webSearchApiKey: z.string().trim().max(200).optional(),
+    sourceFileName: z.string().trim().max(240).optional(),
+    sourceFileMime: z.string().trim().max(120).optional(),
     language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
   })
   .superRefine((value, ctx) => {
@@ -235,6 +238,22 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       },
     );
 
+    const importBatch = await createProblemImportBatch({
+      prisma,
+      userId: auth.userId,
+      targetType: 'course',
+      courseId: id,
+      notebookId: null,
+      source: payload.data.source,
+      sourceText: importText,
+      sourceFileName: payload.data.sourceFileName,
+      sourceFileMime: payload.data.sourceFileMime,
+      draftSnapshot: result.drafts,
+      draftCount: result.drafts.length,
+      usage: result.usage,
+      webSearch,
+    });
+
     return NextResponse.json({
       ...result,
       notebooks: notebooks.map((notebook) => ({
@@ -242,6 +261,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         name: notebook.name,
       })),
       webSearch,
+      importBatch: {
+        id: importBatch.id,
+        status: importBatch.status,
+        source: importBatch.source,
+        draftCount: importBatch.draftCount,
+        committedCount: importBatch.committedCount,
+        sourceFileName: importBatch.sourceFileName,
+        createdAt: importBatch.createdAt,
+      },
     });
   });
 }

@@ -237,58 +237,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s01-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s01-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《封面：像时钟一样做算术》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：封面：像时钟一样做算术 1",
+        "text": "这本《模运算与费马小定理》从一个主问题开始：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？先把整本课的入口问题立起来。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：封面：像时钟一样做算术 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s01-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s01-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "介绍 modular arithmetic 是会循环的算术，并把 equivalence relation 变成可计算的 number system。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：封面：像时钟一样做算术 3",
+        "text": "这里先介绍模运算是会循环的算术，并把等价关系变成可计算的数系。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：封面：像时钟一样做算术 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s01-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s01-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：封面：像时钟一样做算术 5",
+        "text": "现在看右侧的视觉线索，把它当成这一讲的第一张路线图。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：封面：像时钟一样做算术 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s01-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s01-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s01-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：引入：为什么只看最后一位？。"
+        "title": "讲解：封面：像时钟一样做算术 7",
+        "text": "本页真正要带走的是一个动作：遇到像时钟一样做算术，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p01-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：封面：像时钟一样做算术 8",
+        "text": "这一页先收到这里。下一页进入《引入：为什么只看最后一位？》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -533,58 +557,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s02-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s02-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《引入：为什么只看最后一位？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：引入：为什么只看最后一位？ 1",
+        "text": "上一页《封面：像时钟一样做算术》已经铺好一个动作，现在《引入：为什么只看最后一位？》把它推进到为什么只看最后一位？。用一个具体入口，把新概念为什么需要出现讲清楚。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：引入：为什么只看最后一位？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s02-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s02-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "用 4^441 的最后一位作为问题，动机是把大数降到 mod 10。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：引入：为什么只看最后一位？ 3",
+        "text": "用四的四百四十一次方的最后一位作为问题，动机是把大数降到模十。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：引入：为什么只看最后一位？ 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s02-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s02-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：引入：为什么只看最后一位？ 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：引入：为什么只看最后一位？ 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s02-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s02-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s02-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：回顾：等价关系。"
+        "title": "讲解：引入：为什么只看最后一位？ 7",
+        "text": "本页真正要带走的是一个动作：遇到为什么只看最后一位？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p02-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：引入：为什么只看最后一位？ 8",
+        "text": "这一页先收到这里。下一页进入《回顾：等价关系》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -829,58 +877,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s03-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s03-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《回顾：等价关系》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：回顾：等价关系 1",
+        "text": "上一页《引入：为什么只看最后一位？》已经铺好一个动作，现在《回顾：等价关系》把它推进到等价关系。把之前已经学过的工具拿回来，作为这一页的支点。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：回顾：等价关系 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s03-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s03-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "简要复习 reflexive、symmetric、transitive，为 congruence modulo n 做铺垫。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：回顾：等价关系 3",
+        "text": "简要复习自反、对称、传递，为模 n 同余做铺垫。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：回顾：等价关系 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s03-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s03-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：回顾：等价关系 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：回顾：等价关系 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s03-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s03-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s03-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：定义：模 n 同余。"
+        "title": "讲解：回顾：等价关系 7",
+        "text": "本页真正要带走的是一个动作：遇到等价关系，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p03-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：回顾：等价关系 8",
+        "text": "这一页先收到这里。下一页进入《定义：模 n 同余》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -1125,58 +1197,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s04-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s04-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《定义：模 n 同余》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：定义：模 n 同余 1",
+        "text": "上一页《回顾：等价关系》已经铺好一个动作，现在《定义：模 n 同余》把它推进到模 n 同余。把直觉压成可检查、可引用的定义。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：定义：模 n 同余 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s04-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s04-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 a congruent b mod n 当且仅当 n | (b-a)，并用 1 congruent 29 mod 4 固定记号。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：定义：模 n 同余 3",
+        "text": "这里给出定义：a 与 b 模 n 同余当且仅当 n 整除 b 减 a，并用一与二十九模四同余固定记号。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：定义：模 n 同余 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s04-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s04-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：定义：模 n 同余 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：定义：模 n 同余 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s04-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s04-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s04-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：为什么同余是等价关系。"
+        "title": "讲解：定义：模 n 同余 7",
+        "text": "本页真正要带走的是一个动作：遇到模 n 同余，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p04-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：定义：模 n 同余 8",
+        "text": "这一页先收到这里。下一页进入《为什么同余是等价关系》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -1421,58 +1517,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s05-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s05-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《为什么同余是等价关系》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：为什么同余是等价关系 1",
+        "text": "上一页《定义：模 n 同余》已经铺好一个动作，现在《为什么同余是等价关系》把它推进到为什么同余是等价关系。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：为什么同余是等价关系 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s05-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s05-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "逐步证明 reflexive、symmetric、transitive。强调同余按相同余数给整数分组。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：为什么同余是等价关系 3",
+        "text": "逐步证明自反、对称、传递。强调同余按相同余数给整数分组。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：为什么同余是等价关系 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s05-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s05-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：为什么同余是等价关系 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：为什么同余是等价关系 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s05-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s05-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s05-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：加法和乘法良定义。"
+        "title": "讲解：为什么同余是等价关系 7",
+        "text": "本页真正要带走的是一个动作：遇到为什么同余是等价关系，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p05-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：为什么同余是等价关系 8",
+        "text": "这一页先收到这里。下一页进入《加法和乘法良定义》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -1717,58 +1837,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s06-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s06-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《加法和乘法良定义》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：加法和乘法良定义 1",
+        "text": "上一页《为什么同余是等价关系》已经铺好一个动作，现在《加法和乘法良定义》把它推进到加法和乘法良定义。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：加法和乘法良定义 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s06-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s06-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "说明若 a congruent r、b congruent s，则和与积仍保持同余。这允许我们用余数做算术。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：加法和乘法良定义 3",
+        "text": "这里要说明若 a 与 r 同余，b 与 s 同余，则和与积仍保持同余。这允许我们用余数做算术。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：加法和乘法良定义 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s06-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s06-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：加法和乘法良定义 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：加法和乘法良定义 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s06-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s06-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s06-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：Z_n 的世界。"
+        "title": "讲解：加法和乘法良定义 7",
+        "text": "本页真正要带走的是一个动作：遇到加法和乘法良定义，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p06-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：加法和乘法良定义 8",
+        "text": "这一页先收到这里。下一页进入《Z 下标 n 的世界》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -2013,58 +2157,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s07-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s07-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《Z_n 的世界》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：Z_n 的世界 1",
+        "text": "上一页《加法和乘法良定义》已经铺好一个动作，现在《Z 下标 n 的世界》把它推进到 Z 下标 n 的世界。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：Z_n 的世界 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s07-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s07-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 [0] 到 [n-1] 和 Z_n，用 Z4 表格展示有限系统里的加法乘法。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：Z_n 的世界 3",
+        "text": "这里给出定义：零类到 n 减一类，以及 Z 下标 n，用 Z 下标四表格展示有限系统里的加法乘法。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：Z_n 的世界 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s07-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s07-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：Z_n 的世界 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：Z_n 的世界 6",
+        "text": "不要跳过中间的判断动作。看起来像直觉的地方，往往正是需要写清楚的证明步骤。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s07-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s07-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s07-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：例题：大幂的最后一位。"
+        "title": "讲解：Z_n 的世界 7",
+        "text": "本页真正要带走的是一个动作：遇到 Z 下标 n 的世界，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p07-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：Z_n 的世界 8",
+        "text": "这一页先收到这里。下一页进入《例题：大幂的最后一位》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -2309,58 +2477,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s08-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s08-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《例题：大幂的最后一位》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：例题：大幂的最后一位 1",
+        "text": "上一页《Z 下标 n 的世界》已经铺好一个动作，现在《例题：大幂的最后一位》把它推进到大幂的最后一位。把刚才的方法放进具体题目里，检查每一步为什么能走。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：例题：大幂的最后一位 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s08-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s08-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "讲 4^441 的最后一位策略：分阶段降幂、观察循环，而不是硬算。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：例题：大幂的最后一位 3",
+        "text": "讲四的四百四十一次方的最后一位策略：分阶段降幂、观察循环，而不是硬算。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：例题：大幂的最后一位 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s08-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s08-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：例题：大幂的最后一位 5",
+        "text": "现在看右侧例题。先读题目给了什么，再判断要调用哪一个定义或定理。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：例题：大幂的最后一位 6",
+        "text": "不要跳过中间的判断动作。看起来像直觉的地方，往往正是需要写清楚的证明步骤。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s08-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s08-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s08-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：常见错误：不能随便消去。"
+        "title": "讲解：例题：大幂的最后一位 7",
+        "text": "本页真正要带走的是一个动作：遇到大幂的最后一位，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p08-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：例题：大幂的最后一位 8",
+        "text": "这一页先收到这里。下一页进入《常见错误：不能随便消去》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -2605,58 +2797,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s09-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s09-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《常见错误：不能随便消去》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：常见错误：不能随便消去 1",
+        "text": "上一页《例题：大幂的最后一位》已经铺好一个动作，现在《常见错误：不能随便消去》把它推进到不能随便消去。反过来检查哪些习惯会让证明或计算断掉。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：常见错误：不能随便消去 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s09-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s09-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "对比 coprime 条件下的合法消去和 mod 4 中的失败例子。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：常见错误：不能随便消去 3",
+        "text": "对比 coprime 条件下的合法消去和模四中的失败例子。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：常见错误：不能随便消去 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s09-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s09-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：常见错误：不能随便消去 5",
+        "text": "现在看右侧错误提醒。不要只记错在哪里，要说出是哪条定义或条件被破坏了。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：常见错误：不能随便消去 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s09-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s09-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s09-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：素数模：消去律更好用。"
+        "title": "讲解：常见错误：不能随便消去 7",
+        "text": "本页真正要带走的是一个动作：遇到不能随便消去，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p09-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：常见错误：不能随便消去 8",
+        "text": "这一页先收到这里。下一页进入《素数模：消去律更好用》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -2901,58 +3117,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s10-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s10-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《素数模：消去律更好用》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：素数模：消去律更好用 1",
+        "text": "上一页《常见错误：不能随便消去》已经铺好一个动作，现在《素数模：消去律更好用》把它推进到素数模：消去律更好用。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：素数模：消去律更好用 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s10-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s10-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "解释在 Zp 中，p 为素数时每个非零类都与 p 互素，因此行为更像普通算术。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：素数模：消去律更好用 3",
+        "text": "这里要解释在 Z 下标 p 中，p 为素数时每个非零类都与 p 互素，因此行为更像普通算术。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：素数模：消去律更好用 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s10-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s10-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：素数模：消去律更好用 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：素数模：消去律更好用 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s10-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s10-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s10-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：费马小定理。"
+        "title": "讲解：素数模：消去律更好用 7",
+        "text": "本页真正要带走的是一个动作：遇到素数模：消去律更好用，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p10-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：素数模：消去律更好用 8",
+        "text": "这一页先收到这里。下一页进入《费马小定理》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -3197,58 +3437,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s11-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s11-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《费马小定理》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：费马小定理 1",
+        "text": "上一页《素数模：消去律更好用》已经铺好一个动作，现在《费马小定理》把它推进到费马小定理。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：费马小定理 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s11-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s11-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "陈述并证明 p 为素数且 p 不整除 a 时，a^(p-1) congruent 1 mod p。用非零剩余类重排解释。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：费马小定理 3",
+        "text": "陈述并证明 p 为素数且 p 不整除 a 时，a 的 p 减一次方与一模 p 同余。用非零剩余类重排解释。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：费马小定理 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s11-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s11-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：费马小定理 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：费马小定理 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s11-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s11-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s11-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：总结与下节钩子：Zp 中的逆元。"
+        "title": "讲解：费马小定理 7",
+        "text": "本页真正要带走的是一个动作：遇到费马小定理，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p11-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：费马小定理 8",
+        "text": "这一页先收到这里。下一页进入《总结与下节钩子：Z 下标 p 中的逆元》，刚才这个动作会变成下一步要检查的工具。"
       }
     ],
     "whiteboard": null,
@@ -3493,58 +3757,82 @@
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s12-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s12-01",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《总结与下节钩子：Zp 中的逆元》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 1",
+        "text": "上一页《费马小定理》已经铺好一个动作，现在《总结与下节钩子：Z 下标 p 中的逆元》把它推进到 Z 下标 p 中的逆元。把整本课的工具收成一张可以继续使用的地图。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：为什么只看余数也能可靠计算，什么时候消去和逆元才合法？"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s12-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s12-02",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "总结 Zp 的每个非零元素都有乘法逆元，并预告更抽象的代数结构。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 3",
+        "text": "最后总结 Z 下标 p 的每个非零元素都有乘法逆元，并预告更抽象的代数结构。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 4",
+        "text": "这一步回到本节主线：把整数按余数分组，在有限的同余世界里做加法、乘法和证明。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s12-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s12-03",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 5",
+        "text": "现在看右侧总结区，把分散工具重新排成一条可复用的路线。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 6",
+        "text": "不要把普通算术的消去直接搬进模运算。能不能消去，通常要先看互素条件或模数是不是素数。"
       },
       {
         "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-spotlight-s12-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-s12-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-speech-s12-04",
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 7",
+        "text": "本页真正要带走的是一个动作：遇到 Z 下标 p 中的逆元，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-number-theory-iii-modular-arithmetic-20260519-p12-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：Zp 中的逆元 8",
+        "text": "最后把《模运算与费马小定理》收束成一条主线：模运算先看同余类，再看运算是否良定义，最后检查能否消去或取逆。"
       }
     ],
     "whiteboard": null,

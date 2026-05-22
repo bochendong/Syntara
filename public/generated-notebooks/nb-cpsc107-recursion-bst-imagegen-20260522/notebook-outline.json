@@ -1,0 +1,141 @@
+{
+  "id": "nb-cpsc107-recursion-bst-imagegen-20260522",
+  "title": "递归、Helper 与 BST",
+  "description": "从阶乘和 Fibonacci 建立递归直觉，再进入 list recursion、helper function 和 binary search tree lookup。",
+  "courseId": "cmpc9dqgv000p8ogmrsjl5co8",
+  "slideCount": 26,
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522",
+  "publicDir": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522",
+  "slides": [
+    {
+      "order": 0,
+      "title": "递归先从公式加 base case",
+      "intent": "建立整章路线：先用阶乘和 Fibonacci 认识递归，再回到 list、helper、BST。"
+    },
+    {
+      "order": 1,
+      "title": "阶乘先写更小的问题",
+      "intent": "先只看递推关系，让学生看到当前问题如何变成更小的问题。"
+    },
+    {
+      "order": 2,
+      "title": "没有 base case 会不会停",
+      "intent": "用阶乘的错误版本制造问题：递归会继续往负数走，永远没有停止点。"
+    },
+    {
+      "order": 3,
+      "title": "阶乘加上 base case",
+      "intent": "把递归核心压成 recurrence plus base case。"
+    },
+    {
+      "order": 4,
+      "title": "Fibonacci 一个 base case 不够",
+      "intent": "让学生看到 base case 数量由 recurrence 决定。"
+    },
+    {
+      "order": 5,
+      "title": "Fibonacci 需要两个 base cases",
+      "intent": "用递归树说明每条分支都必须能停在 base case。"
+    },
+    {
+      "order": 6,
+      "title": "回到 list：empty 就是 base case",
+      "intent": "把数学递归桥接回数据递归：rest 是更小的问题。"
+    },
+    {
+      "order": 7,
+      "title": "ListOfInteger 的 self-reference 在 rest",
+      "intent": "看清 ListOfInteger 的递归位置，不把 cons 的两个槽混在一起。"
+    },
+    {
+      "order": 8,
+      "title": "List template：两个 case 一个 recursive call",
+      "intent": "把 empty 和 cons 两个分支对应到模板里的代码位置。"
+    },
+    {
+      "order": 9,
+      "title": "递归 trace：一次处理一个元素",
+      "intent": "在写具体函数前先训练 current first 和 remaining rest 的 mental model。"
+    },
+    {
+      "order": 10,
+      "title": "Helper problem：先看函数要产出什么",
+      "intent": "从 package-required-dims 的期望输出出发，而不是直接把 helper 代码塞给学生。"
+    },
+    {
+      "order": 11,
+      "title": "三个数据定义，三个职责",
+      "intent": "区分 Gift、Package、Dimensions 各自知道什么。"
+    },
+    {
+      "order": 12,
+      "title": "Package 不知道 ball 或 block 的细节",
+      "intent": "让 helper 的必要性从数据定义里自然出现。"
+    },
+    {
+      "order": 13,
+      "title": "Template helper：Package 调用 Gift",
+      "intent": "区分模板里的 helper call 和最终真实函数里的 helper call。"
+    },
+    {
+      "order": 14,
+      "title": "Outer function 只拆掉 Package 外壳",
+      "intent": "说明 package-required-dims 的工作只是取 contents 并交给 Gift helper。"
+    },
+    {
+      "order": 15,
+      "title": "Gift helper：ball 分支",
+      "intent": "单独讲 ball 的盒子尺寸为什么要用 diameter。"
+    },
+    {
+      "order": 16,
+      "title": "Gift helper：block 分支",
+      "intent": "单独讲 block 已经有 width、length、height，可以直接组成 dims。"
+    },
+    {
+      "order": 17,
+      "title": "Trace：block 例子跨过 helper 边界",
+      "intent": "把 outer function 和 gift helper 串成一条执行链。"
+    },
+    {
+      "order": 18,
+      "title": "Trace：ball 分支单独看",
+      "intent": "防止学生误以为 helper 只是在 block 情况下有用。"
+    },
+    {
+      "order": 19,
+      "title": "从 list 到 tree：递归可以分叉",
+      "intent": "从一个 rest 过渡到 left 和 right 两个递归方向。"
+    },
+    {
+      "order": 20,
+      "title": "BST 数据形状：false 或 node",
+      "intent": "按 PDF 的三字段 node 讲清楚 BST 的 base case 和 self-reference。"
+    },
+    {
+      "order": 21,
+      "title": "BST invariant：左小右大",
+      "intent": "说明 lookup-key 为什么能跳过不可能的子树。"
+    },
+    {
+      "order": 22,
+      "title": "用 make-node 读出一棵 BST",
+      "intent": "按 key、left subtree、right subtree 的顺序读 make-node。"
+    },
+    {
+      "order": 23,
+      "title": "lookup-key 的 base case：空树找不到",
+      "intent": "先隔离 false 情况，明确它是停止并返回 false 的地方。"
+    },
+    {
+      "order": 24,
+      "title": "lookup-key 的三路选择",
+      "intent": "拆开 equal、less、greater 三种情况，避免嵌套 cond 一页塞太满。"
+    },
+    {
+      "order": 25,
+      "title": "trace：lookup-key 只走一条路",
+      "intent": "用一条高亮 search path 说明 BST lookup 不会访问每个节点。"
+    }
+  ]
+}

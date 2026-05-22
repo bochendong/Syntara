@@ -74,6 +74,7 @@ import { StageConfirmationDialogs } from '@/components/stage/stage-confirmation-
 import { useSlideRepair } from '@/components/stage/use-slide-repair';
 
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
+const CLASSROOM_LIVE2D_PRESENTER_ENABLED = false;
 const LIVE2D_PRESENTER_AVATAR_BY_ID = {
   haru: '/liv2d_poster/haru-avator.png',
   hiyori: '/liv2d_poster/hiyori-avator.png',
@@ -290,7 +291,6 @@ export function Stage({
   // Layout state from settings store (persisted via localStorage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore((s) => s.setSidebarCollapsed);
-  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
   const live2dPresenterModelId = useSettingsStore((s) => s.live2dPresenterModelId);
 
   // PlaybackEngine state
@@ -1619,8 +1619,9 @@ export function Stage({
     }
   }, [slideEditorOpen, mainClassroomView, isPendingScene, currentScene]);
 
-  /** 侧栏 Live2D 标签应持续可见；问答中也保留入口，仅在白板/待生成页隐藏。 */
-  const live2dSidebarEligible = live2dPresenterVisible && !isPendingScene && !whiteboardOpen;
+  /** 课堂讲解 Live2D 暂时下线；保留计算入口，后续恢复时只需要打开这个开关。 */
+  const live2dSidebarEligible =
+    CLASSROOM_LIVE2D_PRESENTER_ENABLED && !isPendingScene && !whiteboardOpen;
 
   const sceneSidebarLive2d = live2dSidebarEligible
     ? mode === 'playback' && currentScene?.type === 'slide'

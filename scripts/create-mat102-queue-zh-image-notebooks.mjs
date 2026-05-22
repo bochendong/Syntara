@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { PrismaClient } from '@prisma/client';
+import { sanitizeMathForSpeech } from './mat136-tts-speech.mjs';
 
 const RUN_STAMP = '20260519';
 const CANVAS_WIDTH = 1000;
@@ -51,7 +52,12 @@ function parseArgs(argv) {
     } else if (arg.startsWith('--image-root=')) {
       options.imageRoot = path.resolve(arg.slice('--image-root='.length));
     } else if (arg.startsWith('--only=')) {
-      options.only = new Set(arg.slice('--only='.length).split(',').map((s) => s.trim()));
+      options.only = new Set(
+        arg
+          .slice('--only='.length)
+          .split(',')
+          .map((s) => s.trim()),
+      );
     } else if (arg.startsWith('--course-id=')) {
       options.courseId = arg.slice('--course-id='.length).trim();
     }
@@ -289,14 +295,16 @@ function speechFor(notebook, order, regionIndex) {
   const [title, intent] = notebook.slides[order];
   const nextTitle = notebook.slides[order + 1]?.[0] || '下一节内容';
   const speeches = [
-    `这一页是《${title}》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。`,
-    `${intent} 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。`,
-    `用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。`,
+    `这一页是《${title}》。先把它在整节课里的位置放清楚，不急着把结论全部说完。`,
+    `${intent} 这里先问：对象是什么，条件是什么，最后要判断什么。`,
+    `看右侧例题或图像时，按照一步一步的推理来读。先看起点，再看为什么能写下一行，最后再看结论。`,
     order === notebook.slides.length - 1
       ? '最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。'
       : `用底部总结把本页结论压成一句话，然后顺势引到下一页：${nextTitle}。`,
   ];
-  return speeches[regionIndex];
+  return sanitizeMathForSpeech(
+    speeches[regionIndex].replaceAll('让学生', '让你').replaceAll('学生', '你'),
+  );
 }
 
 function actionsFor(notebook, order) {
@@ -332,7 +340,10 @@ function canvasFor(notebook, order) {
       outline: { color: themeColors.teal, width: 2, style: 'solid' },
       shadow: { h: 0, v: 0, blur: 10, color: '#000000' },
     },
-    elements: [imageElement(notebook, order), ...hitMap.regions.map((region) => hotspotElement(region))],
+    elements: [
+      imageElement(notebook, order),
+      ...hitMap.regions.map((region) => hotspotElement(region)),
+    ],
     background: { type: 'solid', color: '#ffffff' },
     type: 'content',
   };
@@ -414,7 +425,9 @@ async function renderMetadataAssets(selectedNotebooks) {
       .map((_, order) => slidePath(notebook, order))
       .filter((file) => !fs.existsSync(file));
     if (missing.length > 0) {
-      console.warn(`[metadata] ${notebook.slug}: ${missing.length} slides missing; metadata still written`);
+      console.warn(
+        `[metadata] ${notebook.slug}: ${missing.length} slides missing; metadata still written`,
+      );
     }
 
     const hitMap = {
@@ -432,12 +445,19 @@ async function renderMetadataAssets(selectedNotebooks) {
 
     const scenes = scenesFor(notebook);
     fs.writeFileSync(path.join(dir, 'semantic-hit-map.json'), JSON.stringify(hitMap, null, 2));
-    fs.writeFileSync(path.join(dir, 'scene-actions.json'), JSON.stringify(scenes.map((scene) => ({
-      id: scene.id,
-      title: scene.title,
-      order: scene.order,
-      actions: scene.actions,
-    })), null, 2));
+    fs.writeFileSync(
+      path.join(dir, 'scene-actions.json'),
+      JSON.stringify(
+        scenes.map((scene) => ({
+          id: scene.id,
+          title: scene.title,
+          order: scene.order,
+          actions: scene.actions,
+        })),
+        null,
+        2,
+      ),
+    );
     fs.writeFileSync(path.join(dir, 'notebook-scenes.json'), JSON.stringify(scenes, null, 2));
     fs.writeFileSync(
       path.join(dir, 'notebook-outline.json'),
@@ -466,9 +486,12 @@ async function findMat102Course(prisma, explicitCourseId) {
     orderBy: { updatedAt: 'desc' },
     take: 10,
   });
-  if (courses.length === 0) throw new Error('No MAT102 course found. Re-run with --course-id=<id>.');
+  if (courses.length === 0)
+    throw new Error('No MAT102 course found. Re-run with --course-id=<id>.');
+  const normalizedCourseCode = (course) =>
+    (course.courseCode || '').replace(/\s+/g, '').toUpperCase();
   const exact =
-    courses.find((course) => /^MAT102$/i.test(course.courseCode || '')) ||
+    courses.find((course) => normalizedCourseCode(course) === 'MAT102') ||
     courses.find((course) => /MAT102/i.test(course.name || '')) ||
     courses[0];
   console.log(`[db] Using course ${exact.id}: ${exact.name}`);

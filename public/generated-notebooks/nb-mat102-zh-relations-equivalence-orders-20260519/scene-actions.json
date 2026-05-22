@@ -7,58 +7,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页先给学生定位：本节的主线是关系，但关系性质一出现，就会马上用到上一节的量词和否定。"
+        "title": "讲解：封面：关系是数学里的比较方式 1",
+        "text": "这本《关系、等价与序》从一个主问题开始：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？先把整本课的入口问题立起来。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：封面：关系是数学里的比较方式 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "关系会不断出现“任意对象是否满足某性质”“怎样否定一个性质”这类问题，所以先补一条通往反证法的桥。"
+        "title": "讲解：封面：关系是数学里的比较方式 3",
+        "text": "这里先介绍 relation 是比较对象的工具。先说明上一节量词和否定会变成证明策略：遇到关系性质时，常用反例和反证处理“不是这样”的情况。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：封面：关系是数学里的比较方式 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "学习路线是：先理解对象之间的关系，再学习证明或反驳关系性质的方法。"
+        "title": "讲解：封面：关系是数学里的比较方式 5",
+        "text": "现在看右侧的视觉线索，把它当成这一讲的第一张路线图。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：封面：关系是数学里的比较方式 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s01-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s01-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s01-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "底部总结时自然引到下一页：判断两个对象有关，其实就是从可能的 pair 中筛选。"
+        "title": "讲解：封面：关系是数学里的比较方式 7",
+        "text": "本页真正要带走的是一个动作：遇到关系是数学里的比较方式，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p01-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：封面：关系是数学里的比较方式 8",
+        "text": "这一页先收到这里。下一页进入《引入：关系命题为什么需要证明策略？》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -70,58 +94,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "从等号、小于号、整除这些熟悉例子开始，让学生先回答什么叫 a 和 b 有关。"
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 1",
+        "text": "上一页《封面：关系是数学里的比较方式》已经铺好一个动作，现在《引入：关系命题为什么需要证明策略？》把它推进到关系命题为什么需要证明策略？。用一个具体入口，把新概念为什么需要出现讲清楚。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "把关系看成从 A x B 中挑出来的一批 ordered pairs。"
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 3",
+        "text": "从等号、小于号和整除出发，把 relation 看成从 Cartesian product 中挑出的 pair。强调判断 aRb、全称性质或反例时，需要先会处理否定。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "一旦要证明关系有某种性质，我们往往要处理“所有 pair 都满足吗”或者“哪里有反例”。"
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s02-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s02-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s02-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "所以这页不直接跳到反证法，而是先说明：关系命题需要证明策略。"
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 7",
+        "text": "本页真正要带走的是一个动作：遇到关系命题为什么需要证明策略？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p02-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：引入：关系命题为什么需要证明策略？ 8",
+        "text": "这一页先收到这里。下一页进入《桥梁：从否定命题到反证法》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -133,58 +181,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页专门做过渡：从上一节的否定命题，走到反证法。"
+        "title": "讲解：桥梁：从否定命题到反证法 1",
+        "text": "上一页《引入：关系命题为什么需要证明策略？》已经铺好一个动作，现在《桥梁：从否定命题到反证法》把它推进到从否定命题到反证法。把前面的语言接到今天要用的关键工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：桥梁：从否定命题到反证法 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "not forall 会变成 exists not，也就是找反例；not exists 会变成 forall not，也就是排除所有可能。"
+        "title": "讲解：桥梁：从否定命题到反证法 3",
+        "text": "把上一节 not 对所有、存在 not 接到证明动作：当直接证明困难时，先假设目标为假，再推出与定义或已知事实冲突。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：桥梁：从否定命题到反证法 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "当直接证明目标困难时，我们可以先假设目标为假，再让这个否定和定义或已知条件碰撞。"
+        "title": "讲解：桥梁：从否定命题到反证法 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：桥梁：从否定命题到反证法 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s03-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s03-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s03-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "这页讲完，学生应该知道：反证法不是突然出现的，它是“否定”这件事的证明版本。"
+        "title": "讲解：桥梁：从否定命题到反证法 7",
+        "text": "本页真正要带走的是一个动作：遇到从否定命题到反证法，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p03-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：桥梁：从否定命题到反证法 8",
+        "text": "这一页先收到这里。下一页进入《反证法的基本结构》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -196,58 +268,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页正式整理反证法的基本结构。先把目标 S 写清楚。"
+        "title": "讲解：反证法的基本结构 1",
+        "text": "上一页《桥梁：从否定命题到反证法》已经铺好一个动作，现在《反证法的基本结构》把它推进到反证法的基本结构。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：反证法的基本结构 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "第一步反设：假设 S 为假。第二步推理：结合定义和已知条件继续往下走。"
+        "title": "讲解：反证法的基本结构 3",
+        "text": "正式整理反证法四步：反设目标为假，结合定义和已知条件推理，推出矛盾，再回到原命题成立。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：反证法的基本结构 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "第三步要得到真正的矛盾，比如 R 和 not R 同时出现，或者推出不可能的结论。"
+        "title": "讲解：反证法的基本结构 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：反证法的基本结构 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s04-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s04-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s04-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "最后回到原目标：既然否定目标会导致矛盾，目标 S 就必须成立。"
+        "title": "讲解：反证法的基本结构 7",
+        "text": "本页真正要带走的是一个动作：遇到反证法的基本结构，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p04-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：反证法的基本结构 8",
+        "text": "这一页先收到这里。下一页进入《反证法热身：先练一招再回到关系》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -259,58 +355,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这页是热身，不是新章节。用几个熟悉例子让学生感受反证法的节奏。"
+        "title": "讲解：反证法热身：先练一招再回到关系 1",
+        "text": "上一页《反证法的基本结构》已经铺好一个动作，现在《反证法热身：先练一招再回到关系》把它推进到反证法热身：先练一招再回到关系。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：反证法热身：先练一招再回到关系 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "每个例子都要问：我们反设了什么？矛盾具体发生在哪一步？"
+        "title": "讲解：反证法热身：先练一招再回到关系 3",
+        "text": "用 sqrt(2) 无理、没有最小正实数等例子演示反证法。强调这不是换主题，而是为了后面证明关系性质和排除错误关系。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：反证法热身：先练一招再回到关系 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "不要只背格式，要看到反证法适合处理“假设不存在、不可能、不是某性质”的场景。"
+        "title": "讲解：反证法热身：先练一招再回到关系 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：反证法热身：先练一招再回到关系 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s05-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s05-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s05-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "收束时回到关系：接下来检查关系性质时，我们会经常用这个思路找矛盾或反例。"
+        "title": "讲解：反证法热身：先练一招再回到关系 7",
+        "text": "本页真正要带走的是一个动作：遇到反证法热身：先练一招再回到关系，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p05-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：反证法热身：先练一招再回到关系 8",
+        "text": "这一页先收到这里。下一页进入《回到关系：二元关系是乘积的子集》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -322,58 +442,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "现在回到主线：关系就是 A x B 的子集。"
+        "title": "讲解：回到关系：二元关系是乘积的子集 1",
+        "text": "上一页《反证法热身：先练一招再回到关系》已经铺好一个动作，现在《回到关系：二元关系是乘积的子集》把它推进到回到关系：二元关系是乘积的子集。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：回到关系：二元关系是乘积的子集 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "aRb 表示 pair (a,b) 被选进 R；没有被选进去就是 not aRb。"
+        "title": "讲解：回到关系：二元关系是乘积的子集 3",
+        "text": "这里给出定义：A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义，并把反例/反证作为之后检查关系性质的工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：回到关系：二元关系是乘积的子集 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "这个定义和前面的否定、反证连接起来：证明性质要管所有相关 pair，反驳性质只要找到坏 pair。"
+        "title": "讲解：回到关系：二元关系是乘积的子集 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：回到关系：二元关系是乘积的子集 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s06-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s06-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s06-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "下一页进入性质检查表，学生就能看见为什么前面要先铺证明策略。"
+        "title": "讲解：回到关系：二元关系是乘积的子集 7",
+        "text": "本页真正要带走的是一个动作：遇到回到关系：二元关系是乘积的子集，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p06-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：回到关系：二元关系是乘积的子集 8",
+        "text": "这一页先收到这里。下一页进入《关系性质检查表》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -385,58 +529,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《关系性质检查表》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：关系性质检查表 1",
+        "text": "上一页《回到关系：二元关系是乘积的子集》已经铺好一个动作，现在《关系性质检查表》把它推进到关系性质检查表。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：关系性质检查表 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：关系性质检查表 3",
+        "text": "这里给出定义：自反、ir自反、对称、anti-对称、传递、完全、左全关系、函数性关系，并把每条变成可检查问题。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：关系性质检查表 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：关系性质检查表 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：关系性质检查表 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s07-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s07-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s07-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：用例子测试关系性质。"
+        "title": "讲解：关系性质检查表 7",
+        "text": "本页真正要带走的是一个动作：遇到关系性质检查表，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p07-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：关系性质检查表 8",
+        "text": "这一页先收到这里。下一页进入《用例子测试关系性质》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -448,58 +616,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《用例子测试关系性质》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：用例子测试关系性质 1",
+        "text": "上一页《关系性质检查表》已经铺好一个动作，现在《用例子测试关系性质》把它推进到用例子测试关系性质。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：用例子测试关系性质 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：用例子测试关系性质 3",
+        "text": "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：用例子测试关系性质 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：用例子测试关系性质 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：用例子测试关系性质 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s08-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s08-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s08-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：等价关系。"
+        "title": "讲解：用例子测试关系性质 7",
+        "text": "本页真正要带走的是一个动作：遇到用例子测试关系性质，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p08-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：用例子测试关系性质 8",
+        "text": "这一页先收到这里。下一页进入《等价关系》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -511,58 +703,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《等价关系》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：等价关系 1",
+        "text": "上一页《用例子测试关系性质》已经铺好一个动作，现在《等价关系》把它推进到等价关系。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：等价关系 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：等价关系 3",
+        "text": "这里给出定义：等价关系是 自反、对称、传递。解释它表示“在某种意义下相同”。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：等价关系 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：等价关系 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：等价关系 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s09-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s09-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s09-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：等价类与划分。"
+        "title": "讲解：等价关系 7",
+        "text": "本页真正要带走的是一个动作：遇到等价关系，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p09-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：等价关系 8",
+        "text": "这一页先收到这里。下一页进入《等价类与划分》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -574,58 +790,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《等价类与划分》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：等价类与划分 1",
+        "text": "上一页《等价关系》已经铺好一个动作，现在《等价类与划分》把它推进到等价类与划分。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：等价类与划分 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：等价类与划分 3",
+        "text": "这里给出定义：[a] = x : x ~ a。说明等价类如何把对象分组，并用 mod 或角度例子可视化。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：等价类与划分 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：等价类与划分 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：等价类与划分 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s10-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s10-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s10-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：序关系与偏序集。"
+        "title": "讲解：等价类与划分 7",
+        "text": "本页真正要带走的是一个动作：遇到等价类与划分，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p10-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：等价类与划分 8",
+        "text": "这一页先收到这里。下一页进入《序关系与偏序集》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -637,58 +877,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《序关系与偏序集》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：序关系与偏序集 1",
+        "text": "上一页《等价类与划分》已经铺好一个动作，现在《序关系与偏序集》把它推进到序关系与偏序集。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：序关系与偏序集 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：序关系与偏序集 3",
+        "text": "这里给出定义：弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：序关系与偏序集 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：序关系与偏序集 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：序关系与偏序集 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s11-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s11-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s11-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：极大、极小、最大、最小。"
+        "title": "讲解：序关系与偏序集 7",
+        "text": "本页真正要带走的是一个动作：遇到序关系与偏序集，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p11-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：序关系与偏序集 8",
+        "text": "这一页先收到这里。下一页进入《极大、极小、最大、最小》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -700,58 +964,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《极大、极小、最大、最小》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：极大、极小、最大、最小 1",
+        "text": "上一页《序关系与偏序集》已经铺好一个动作，现在《极大、极小、最大、最小》把它推进到极大、极小、最大、最小。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：极大、极小、最大、最小 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：极大、极小、最大、最小 3",
+        "text": "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：极大、极小、最大、最小 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：极大、极小、最大、最小 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：极大、极小、最大、最小 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s12-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s12-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s12-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：上下界、上确界、下确界。"
+        "title": "讲解：极大、极小、最大、最小 7",
+        "text": "本页真正要带走的是一个动作：遇到极大、极小、最大、最小，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p12-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：极大、极小、最大、最小 8",
+        "text": "这一页先收到这里。下一页进入《上下界、上确界、下确界》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -763,58 +1051,82 @@
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s13-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s13-01",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《上下界、上确界、下确界》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：上下界、上确界、下确界 1",
+        "text": "上一页《极大、极小、最大、最小》已经铺好一个动作，现在《上下界、上确界、下确界》把它推进到上下界、上确界、下确界。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：上下界、上确界、下确界 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个关系到底比较了什么，哪些性质是真的，失败时反例在哪里？"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s13-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s13-02",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：上下界、上确界、下确界 3",
+        "text": "这里给出定义：upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：上下界、上确界、下确界 4",
+        "text": "这一步回到本节主线：把对象之间的比较关系变成可以逐条检查的性质和结构。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s13-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s13-03",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：上下界、上确界、下确界 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：上下界、上确界、下确界 6",
+        "text": "不要凭图像感觉说它成立。性质成立要能覆盖所有对象；性质失败只需要拿出一个清楚的反例。"
       },
       {
         "id": "nb-mat102-zh-relations-equivalence-orders-20260519-spotlight-s13-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-relations-equivalence-orders-20260519-s13-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-speech-s13-04",
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+        "title": "讲解：上下界、上确界、下确界 7",
+        "text": "本页真正要带走的是一个动作：遇到上下界、上确界、下确界，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-relations-equivalence-orders-20260519-p13-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：上下界、上确界、下确界 8",
+        "text": "最后把《关系、等价与序》收束成一条主线：先把关系看成一批有序对，再用性质、反例和反证组织证明。"
       }
     ]
   }

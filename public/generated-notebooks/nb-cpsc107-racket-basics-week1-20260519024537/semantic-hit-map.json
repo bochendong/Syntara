@@ -5,7 +5,7 @@
   "slides": [
     {
       "order": 0,
-      "title": "CPSC 107 · 第一节课",
+      "title": "CPSC 107 · Racket 基础",
       "image": "/generated-notebooks/nb-cpsc107-racket-basics-week1-20260519024537/slide-01.png",
       "hitMap": {
         "version": 1,
@@ -1347,7 +1347,7 @@
     },
     {
       "order": 17,
-      "title": "第一节课总结",
+      "title": "Racket 基础总结",
       "image": "/generated-notebooks/nb-cpsc107-racket-basics-week1-20260519024537/slide-18.png",
       "hitMap": {
         "version": 1,

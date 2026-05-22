@@ -4,7 +4,6 @@ import type { NotebookGenerationModelStage } from '@/lib/constants/notebook-gene
 import type { NotebookGenerationModelMode } from '@/lib/constants/notebook-generation-model-presets';
 import {
   DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
-  normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
 
@@ -100,10 +99,9 @@ export const useOrchestratorNotebookGenStore = create<OrchestratorNotebookGenSta
       merge: (persistedState, currentState) => ({
         ...currentState,
         ...((persistedState as Partial<OrchestratorNotebookGenState> | null) ?? {}),
-        slideGenerationRoute: normalizeNotebookSlideGenerationRoute(
-          (persistedState as Partial<OrchestratorNotebookGenState> | null)?.slideGenerationRoute ??
-            DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
-        ),
+        // New notebook creation is image-first; older persisted html/semantic choices should not
+        // keep silently routing fresh notebooks through the previous renderers.
+        slideGenerationRoute: DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
       }),
     },
   ),

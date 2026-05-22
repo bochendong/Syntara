@@ -25,7 +25,7 @@ const themeColors = {
 
 const slides = [
   {
-    title: 'CPSC 107 · Week 4',
+    title: 'CPSC 107 · Reference + Self-Reference',
     steps: [],
   },
   {
@@ -764,9 +764,9 @@ async function seedNotebook() {
       update: {
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 4：Reference + Self-Reference · Lists',
+        name: 'Reference + Self-Reference · Lists',
         description:
-          'CPSC 107 Week 4 notebook in image-generated full-slide format. Covers reference, self-reference, list construction and operations, ListOfInteger, ListOfString, list of compound data, Waldo and Peat exam-style recursive templates, common mistakes, and a next-lesson hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers reference, self-reference, list construction and operations, ListOfInteger, ListOfString, list of compound data, Waldo and Peat exam-style recursive templates, common mistakes, and a next-lesson hook.',
         tags: [
           'CPSC107',
           'Reference',
@@ -785,9 +785,9 @@ async function seedNotebook() {
         id: NOTEBOOK_ID,
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 4：Reference + Self-Reference · Lists',
+        name: 'Reference + Self-Reference · Lists',
         description:
-          'CPSC 107 Week 4 notebook in image-generated full-slide format. Covers reference, self-reference, list construction and operations, ListOfInteger, ListOfString, list of compound data, Waldo and Peat exam-style recursive templates, common mistakes, and a next-lesson hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers reference, self-reference, list construction and operations, ListOfInteger, ListOfString, list of compound data, Waldo and Peat exam-style recursive templates, common mistakes, and a next-lesson hook.',
         tags: [
           'CPSC107',
           'Reference',

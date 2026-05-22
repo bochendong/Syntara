@@ -184,6 +184,8 @@ model User {
   characterProgress       UserCharacterProgress[]
   missionProgress         UserMissionProgress[]
   testResults             TestResult[]
+  studyMemories           StudyMemory[]
+  problemImportBatches    ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -247,14 +249,16 @@ model Course {
   storePublishedAt    DateTime?
   sourceCourseId      String?
 
-  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner           User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   notebooks       Notebook[]
   problems        NotebookProblem[]
   conversations   Conversation[]
   agentTasks      AgentTask[]
-  sourcePurchases CoursePurchase[]  @relation("CoursePurchaseSource")
-  clonePurchase   CoursePurchase?   @relation("CoursePurchaseClone")
+  sourcePurchases CoursePurchase[]     @relation("CoursePurchaseSource")
+  clonePurchase   CoursePurchase?      @relation("CoursePurchaseClone")
   reviews         CourseReview[]
+  studyMemories   StudyMemory[]
+  problemImports  ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,15 +282,17 @@ model Notebook {
   storePublishedAt      DateTime?
   sourceNotebookId      String?
 
-  owner           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  course          Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  owner           User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course          Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
   scenes          Scene[]
   problems        NotebookProblem[]
   conversations   Conversation[]
   agentTasks      AgentTask[]
-  sourcePurchases NotebookPurchase[] @relation("NotebookPurchaseSource")
-  clonePurchase   NotebookPurchase?  @relation("NotebookPurchaseClone")
+  sourcePurchases NotebookPurchase[]   @relation("NotebookPurchaseSource")
+  clonePurchase   NotebookPurchase?    @relation("NotebookPurchaseClone")
   reviews         NotebookReview[]
+  studyMemories   StudyMemory[]
+  problemImports  ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -343,6 +349,36 @@ model NotebookProblem {
   @@index([courseId, updatedAt(sort: Desc)])
   @@index([notebookId, order])
   @@index([notebookId, updatedAt(sort: Desc)])
+}
+
+model ProblemImportBatch {
+  id                String   @id @default(cuid())
+  ownerId           String
+  courseId          String?
+  notebookId        String?
+  targetType        String
+  source            String
+  status            String   @default("previewed")
+  sourceFileName    String?
+  sourceFileMime    String?
+  sourceTextHash    String?
+  draftCount        Int      @default(0)
+  committedCount    Int      @default(0)
+  draftSnapshotJson Json?
+  usageJson         Json?
+  webSearchJson     Json?
+  warnings          String[]
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notebook Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, targetType, courseId, updatedAt(sort: Desc)])
+  @@index([ownerId, targetType, notebookId, updatedAt(sort: Desc)])
+  @@index([ownerId, status, updatedAt(sort: Desc)])
 }
 
 model NotebookProblemSecret {
@@ -496,15 +532,15 @@ model LLMUsageLog {
 }
 
 model TestResult {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   ownerId      String
   testId       String
   resultKey    String
-  status       String @default("saved")
+  status       String  @default("saved")
   title        String?
   summary      Json?
   payload      Json?
-  payloadBytes Int    @default(0)
+  payloadBytes Int     @default(0)
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -514,6 +550,35 @@ model TestResult {
   @@unique([ownerId, testId, resultKey])
   @@index([ownerId, testId, updatedAt(sort: Desc)])
   @@index([ownerId, updatedAt(sort: Desc)])
+}
+
+model StudyMemory {
+  id               String  @id @default(cuid())
+  ownerId          String
+  courseId         String?
+  notebookId       String?
+  targetType       String
+  scope            String
+  kind             String  @default("manual")
+  status           String  @default("active")
+  source           String  @default("manual")
+  title            String
+  text             String  @db.Text
+  reason           String? @db.Text
+  question         String? @db.Text
+  sourceReferences Json?
+  confidence       Float?
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notebook Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, targetType, courseId, updatedAt(sort: Desc)])
+  @@index([ownerId, targetType, notebookId, updatedAt(sort: Desc)])
+  @@index([ownerId, scope, status, updatedAt(sort: Desc)])
 }
 
 model CoursePurchase {

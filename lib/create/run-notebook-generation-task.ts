@@ -56,12 +56,16 @@ import {
 } from './api-errors';
 import { normalizeOutlineStructure } from '@/lib/generation/outline-structure';
 import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
-import { ensureTitleCoverOutline } from '@/lib/generation/title-cover';
+import { ensureTitleCoverOutline, isTitleCoverOutline } from '@/lib/generation/title-cover';
 import {
   DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE,
   normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
+import {
+  recordNotebookPublicMemory,
+  type NotebookMemorySourceReference,
+} from '@/lib/learning/study-memory';
 import {
   createLinkedAbortController,
   errorMessage,
@@ -166,6 +170,145 @@ function withPageGenerationFailure(stage: Stage, failure: PageGenerationFailureR
     updatedAt: Math.max(stage.updatedAt || 0, Date.now()),
     pageGenerationFailures: failures,
   };
+}
+
+function compactPublicMemoryLine(value: string | undefined | null, maxLength = 160): string {
+  const text = (value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function uniquePublicMemoryLines(
+  values: Array<string | undefined | null>,
+  limit: number,
+): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const value of values) {
+    const line = compactPublicMemoryLine(value);
+    if (!line) continue;
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push(line);
+    if (lines.length >= limit) break;
+  }
+  return lines;
+}
+
+function getTeachingOutlinesForPublicMemory(outlines: SceneOutline[]): SceneOutline[] {
+  const teachingOutlines = outlines.filter((outline) => !isTitleCoverOutline(outline));
+  return teachingOutlines.length > 0 ? teachingOutlines : outlines;
+}
+
+function buildNotebookPublicMemoryText(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+  language: 'zh-CN' | 'en-US';
+}): string {
+  const teachingOutlines = getTeachingOutlinesForPublicMemory(args.outlines);
+  const keyPoints = uniquePublicMemoryLines(
+    teachingOutlines.flatMap((outline) => outline.keyPoints || []),
+    18,
+  );
+  const teachingMoves = uniquePublicMemoryLines(
+    teachingOutlines.flatMap((outline) => [
+      outline.teachingObjective,
+      outline.studentThinkingMove,
+      outline.description,
+    ]),
+    12,
+  );
+  const workedExamples = uniquePublicMemoryLines(
+    teachingOutlines.flatMap((outline) => [
+      outline.workedExampleConfig?.problemStatement,
+      ...(outline.workedExampleConfig?.solutionPlan || []),
+      ...(outline.workedExampleConfig?.commonPitfalls || []),
+    ]),
+    8,
+  );
+  const pageRows = teachingOutlines.slice(0, 18).map((outline, index) => {
+    const pageNumber = outline.order > 0 ? outline.order : index + 1;
+    const focus =
+      outline.teachingObjective ||
+      outline.studentThinkingMove ||
+      outline.keyPoints?.[0] ||
+      outline.description;
+    return `| ${pageNumber} | ${compactPublicMemoryLine(outline.title, 48)} | ${compactPublicMemoryLine(focus, 88)} |`;
+  });
+
+  const objective =
+    compactPublicMemoryLine(args.stage.description, 260) ||
+    (args.language === 'en-US'
+      ? `Notebook: ${compactPublicMemoryLine(args.stage.name, 120)}`
+      : `笔记本：${compactPublicMemoryLine(args.stage.name, 120)}`);
+  const sections = [
+    '## 笔记本目标',
+    `- ${objective}`,
+    '',
+    '## 涉及知识点',
+    ...(keyPoints.length > 0 ? keyPoints.map((line) => `- ${line}`) : ['- 暂未提取明确知识点']),
+    '',
+    '## 讲解重点',
+    ...(teachingMoves.length > 0
+      ? teachingMoves.map((line) => `- ${line}`)
+      : ['- 暂未提取明确讲解重点']),
+  ];
+
+  if (workedExamples.length > 0) {
+    sections.push('', '## 例题与易错点', ...workedExamples.map((line) => `- ${line}`));
+  }
+
+  if (pageRows.length > 0) {
+    sections.push('', '## 页面索引', '| 页码 | 页面 | 重点 |', '| --- | --- | --- |', ...pageRows);
+  }
+
+  return sections.join('\n').slice(0, 12000);
+}
+
+function buildNotebookPublicMemorySourceReferences(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+}): NotebookMemorySourceReference[] {
+  return getTeachingOutlinesForPublicMemory(args.outlines)
+    .slice(0, 12)
+    .map((outline, index) => ({
+      notebookId: args.stage.id,
+      notebookName: args.stage.name,
+      order: outline.order > 0 ? outline.order : index + 1,
+      title: compactPublicMemoryLine(outline.title, 80),
+      why: compactPublicMemoryLine(
+        outline.teachingObjective ||
+          outline.studentThinkingMove ||
+          outline.description ||
+          outline.keyPoints?.[0],
+        160,
+      ),
+    }));
+}
+
+function persistNotebookPublicMemory(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+  language: 'zh-CN' | 'en-US';
+}): void {
+  try {
+    recordNotebookPublicMemory({
+      stageId: args.stage.id,
+      title: '涉及知识点与讲解重点',
+      text: buildNotebookPublicMemoryText(args),
+      reason: '笔记本生成时根据最终大纲自动写入，供问答和复习路线读取。',
+      kind: 'manual',
+      source: 'manual',
+      sourceReferences: buildNotebookPublicMemorySourceReferences(args),
+      confidence: 0.9,
+    });
+  } catch (memoryError) {
+    console.warn('[NotebookGeneration] Failed to persist public memory', {
+      stageId: args.stage.id,
+      error: errorMessage(memoryError, '公共记忆写入失败'),
+    });
+  }
 }
 
 async function maybeGenerateAgents(args: {
@@ -522,6 +665,7 @@ export async function runNotebookGenerationTask(
     includeQuizScenes: input.outlinePreferences?.includeQuizScenes ?? true,
     webSearch,
     imageGenerationEnabled: effectiveMediaFlags.imageEnabled,
+    fullPageImageGeneration: generateSlides && slideGenerationRoute === 'image-ppt',
     sourceFileSize: sourceFile?.size ?? 0,
   });
   const notebookGenerationSessionId = nanoid(12);
@@ -789,6 +933,7 @@ export async function runNotebookGenerationTask(
 
     if (!outlines.length) throw new Error('未生成任何课程大纲');
     writePersistedStageOutlines(stage.id, outlines);
+    persistNotebookPublicMemory({ stage, outlines, language });
 
     const scenes: Scene[] = [];
     const failedScenes: PageGenerationFailureRecord[] = [];

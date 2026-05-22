@@ -1,0 +1,67 @@
+{
+  "mode": "copy-from-list",
+  "sourceRoot": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/mat102-zh-imagegen-selected-remaining-queue.json",
+  "copiedAt": "2026-05-21T01:12:39.109Z",
+  "images": [
+    {
+      "order": 0,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5009914c8196a851abc547d94609.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-01.png"
+    },
+    {
+      "order": 1,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5044e44c8196baaaa7b58bf268c8.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-02.png"
+    },
+    {
+      "order": 2,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e507b08e48196a9f74b7987323012.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-03.png"
+    },
+    {
+      "order": 3,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e50b21be88196a294ef9fb88f1cae.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-04.png"
+    },
+    {
+      "order": 4,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e50ed23308196a74b6e40e9542c26.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-05.png"
+    },
+    {
+      "order": 5,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5125f4b881969eb9499ff7b6383b.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-06.png"
+    },
+    {
+      "order": 6,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e519630548196bfc0e31e3882db18.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-07.png"
+    },
+    {
+      "order": 7,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e51cec0ec8196b3f56a426edab57c.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-08.png"
+    },
+    {
+      "order": 8,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5208c7288196b679590fc03afc39.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-09.png"
+    },
+    {
+      "order": 9,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e524c91c481969cd737b6d315e24e.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-10.png"
+    },
+    {
+      "order": 10,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e52df36f08196a47e88815c943a8d.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-11.png"
+    },
+    {
+      "order": 11,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e536da3d88196b678fa663990ac48.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-induction-i-20260519/slide-12.png"
+    }
+  ]
+}

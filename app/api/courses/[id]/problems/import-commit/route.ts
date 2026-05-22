@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import {
+  getProblemImportBatchForTarget,
+  markProblemImportBatchCommitted,
+} from '@/lib/server/notebook-problems/import-batch-store';
 import { notebookProblemImportDraftSchema } from '@/features/problems';
 import { createCourseProblemsFromDrafts } from '@/features/problems/server/service';
 
 const commitSchema = z.object({
   drafts: z.array(notebookProblemImportDraftSchema).min(1).max(200),
+  importBatchId: z.string().trim().min(1).optional(),
 });
 
 function toClientProblem(
@@ -48,11 +54,34 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       );
     }
 
+    const importBatchId = payload.data.importBatchId?.trim() || null;
+    if (importBatchId) {
+      const batch = await getProblemImportBatchForTarget({
+        prisma,
+        userId: auth.userId,
+        batchId: importBatchId,
+        targetType: 'course',
+        courseId: id,
+      });
+      if (!batch) {
+        return NextResponse.json({ error: 'Import batch not found' }, { status: 404 });
+      }
+    }
+
     const problems = await createCourseProblemsFromDrafts({
       userId: auth.userId,
       courseId: id,
       drafts: payload.data.drafts,
+      importBatchId,
     });
+    if (importBatchId) {
+      await markProblemImportBatchCommitted({
+        prisma,
+        userId: auth.userId,
+        batchId: importBatchId,
+        committedCount: payload.data.drafts.length,
+      });
+    }
     return NextResponse.json({ problems: problems.map(toClientProblem) });
   });
 }

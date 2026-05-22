@@ -102,9 +102,16 @@ function emptyProfile(userId: string, stageId: string): StudyMemoryProfile {
 function withDefaultPublicMemories(profile: StudyMemoryProfile): StudyMemoryProfile {
   const defaultPublicMemories = getDefaultNotebookPublicMemories(profile.stageId);
   if (defaultPublicMemories.length === 0) return profile;
+  const existingFingerprints = new Set(
+    profile.publicMemories.map((item) => memoryFingerprint(`${item.title}\n${item.text}`)),
+  );
+  const missingDefaults = defaultPublicMemories.filter(
+    (item) => !existingFingerprints.has(memoryFingerprint(`${item.title}\n${item.text}`)),
+  );
+  if (missingDefaults.length === 0) return profile;
   return {
     ...profile,
-    publicMemories: defaultPublicMemories,
+    publicMemories: [...missingDefaults, ...profile.publicMemories].slice(0, MAX_ITEMS),
   };
 }
 
@@ -156,6 +163,16 @@ export function saveStudyMemory(profile: StudyMemoryProfile): void {
   }
 }
 
+export function clearStudyMemory(stageId: string, userId = getLocalStudyMemoryUserId()): void {
+  if (typeof window === 'undefined' || !userId || !stageId) return;
+  try {
+    localStorage.removeItem(storageKey(userId, stageId));
+    emitStudyMemoryUpdated(stageId);
+  } catch {
+    // local-first cleanup should never block deletion
+  }
+}
+
 function normalizeMemoryText(input: string, maxLength = MAX_NOTEBOOK_MEMORY_TEXT): string {
   return input
     .replace(/\r/g, '')
@@ -199,7 +216,7 @@ function normalizeNotebookMemoryItem(item: NotebookMemoryItem): NotebookMemoryIt
     ? item.sourceReferences
         .map((reference) => normalizeMemoryReference(reference))
         .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
-        .slice(0, 6)
+        .slice(0, item.scope === 'public' ? 12 : 6)
     : undefined;
   const confidence =
     typeof item.confidence === 'number' && Number.isFinite(item.confidence)
@@ -223,8 +240,8 @@ function memoryFingerprint(input: string): string {
     .slice(0, 180);
 }
 
-function buildMemoryId(): string {
-  return `private-memory-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+function buildMemoryId(scope: StudyMemoryScope): string {
+  return `${scope}-memory-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function getLocalStudyMemoryUserId(): string {
@@ -272,7 +289,7 @@ export function recordNotebookPrivateMemory(args: {
 
   const now = Date.now();
   const item: NotebookMemoryItem = {
-    id: buildMemoryId(),
+    id: buildMemoryId('private'),
     scope: 'private',
     kind: args.kind ?? 'knowledge_gap',
     status: 'active',
@@ -297,6 +314,67 @@ export function recordNotebookPrivateMemory(args: {
     ...previous,
     lastTouchedAt: now,
     privateMemories: [item, ...previous.privateMemories].slice(0, MAX_ITEMS),
+  };
+  saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
+  return { profile, item, created: true };
+}
+
+export function recordNotebookPublicMemory(args: {
+  userId?: string;
+  stageId: string;
+  title: string;
+  text: string;
+  reason?: string;
+  kind?: StudyMemoryKind;
+  sourceReferences?: NotebookMemorySourceReference[];
+  confidence?: number;
+  source?: NotebookMemoryItem['source'];
+}): { profile: StudyMemoryProfile; item: NotebookMemoryItem | null; created: boolean } {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const title = normalizeMemoryText(args.title, 100) || '涉及知识点与讲解重点';
+  const text = normalizeMemoryText(args.text, 12000);
+  const reason = args.reason ? normalizeMemoryText(args.reason, 180) : undefined;
+  const previous = loadStudyMemory(userId, args.stageId);
+
+  if (!text) {
+    return { profile: previous, item: null, created: false };
+  }
+
+  const fingerprint = memoryFingerprint(`${title}\n${text}`);
+  const existing = previous.publicMemories.find(
+    (item) => memoryFingerprint(`${item.title}\n${item.text}`) === fingerprint,
+  );
+  if (existing) {
+    return { profile: previous, item: existing, created: false };
+  }
+
+  const now = Date.now();
+  const item: NotebookMemoryItem = {
+    id: buildMemoryId('public'),
+    scope: 'public',
+    kind: args.kind ?? 'manual',
+    status: 'active',
+    source: args.source ?? 'manual',
+    stageId: args.stageId,
+    title,
+    text,
+    reason,
+    sourceReferences: (args.sourceReferences || [])
+      .map((reference) => normalizeMemoryReference(reference))
+      .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
+      .slice(0, 12),
+    confidence:
+      typeof args.confidence === 'number' && Number.isFinite(args.confidence)
+        ? Math.max(0, Math.min(1, args.confidence))
+        : undefined,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const profile: StudyMemoryProfile = {
+    ...previous,
+    lastTouchedAt: now,
+    publicMemories: [item, ...previous.publicMemories].slice(0, MAX_ITEMS),
   };
   saveStudyMemory(profile);
   emitStudyMemoryUpdated(args.stageId);

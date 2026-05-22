@@ -1,0 +1,2795 @@
+[
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p01",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "封面：Area & Volume",
+    "type": "slide",
+    "order": 0,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-01",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-01",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-01.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-01",
+            "name": "semantic-hit-map: 主题入口",
+            "type": "shape",
+            "left": 43.75,
+            "top": 59.375,
+            "width": 325,
+            "height": 118.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-02",
+            "name": "semantic-hit-map: 面积到体积",
+            "type": "shape",
+            "left": 381.25,
+            "top": 75,
+            "width": 512.5,
+            "height": 293.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-03",
+            "name": "semantic-hit-map: 本章 take-away",
+            "type": "shape",
+            "left": 71.875,
+            "top": 437.5,
+            "width": 850,
+            "height": 71.875,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "主题入口",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：主题入口"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-01",
+        "text": "这一节进入定积分的应用：面积和体积。先不要把它看成一堆新公式，而是看成同一个核心动作的延伸。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-02",
+        "text": "左边的面积图告诉我们：如果每一小段的高度是 f 括号 x 括号，小宽度是 d x，那么小面积就是 f 括号 x 括号 d x。把它们累加，就得到总面积。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-03",
+        "text": "这里的关键词仍然是“切片”。面积问题是把平面区域切成细条，再把细条面积加起来。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "面积到体积",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：面积到体积"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-04",
+        "text": "中间和右边进入体积。体积不是直接凭空算出来的，而是把立体切成很多薄片。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-05",
+        "text": "每一片有一个截面积 A 括号 x 括号 或 A 括号 y 括号，再乘上很小的厚度 d x 或 d y。总体积就是这些薄片体积的累加。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-06",
+        "text": "所以从面积到体积，真正变化的是：从“高度函数”变成“截面积函数”。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "本章 take-away",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：本章 take-away"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-07",
+        "text": "右侧列出常见方法：曲线间面积、水平切片、圆盘法、非圆截面。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-08",
+        "text": "本章 take-away 是底部这条线：先理解几何图形，再选切片方向，再写小量，最后积分累加。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p01-speech-area-volume-09",
+        "text": "下一页先从最基本的曲线间面积开始：什么时候用上函数减下函数。",
+        "type": "speech",
+        "title": "讲解：封面：Area & Volume 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p02",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "曲线间面积：核心方法",
+    "type": "slide",
+    "order": 1,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-02",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-02",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-02.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-01",
+            "name": "semantic-hit-map: 找边界",
+            "type": "shape",
+            "left": 50,
+            "top": 75,
+            "width": 287.5,
+            "height": 115.625,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-02",
+            "name": "semantic-hit-map: 判断上下",
+            "type": "shape",
+            "left": 350,
+            "top": 93.75,
+            "width": 450,
+            "height": 206.24999999999997,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-03",
+            "name": "semantic-hit-map: 方法清单",
+            "type": "shape",
+            "left": 56.25,
+            "top": 375,
+            "width": 862.5,
+            "height": 112.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "找边界",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：找边界"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-01",
+        "text": "曲线间面积的第一步不是积分，而是找边界。先看图上两条曲线在 a 和 b 之间围成的区域。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-02",
+        "text": "积分上下限来自交点或题目给定区间。如果边界找错，后面上减下即使做对，答案也会错。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-03",
+        "text": "所以每道曲线间面积题，先问：区域从哪里开始，到哪里结束？",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "判断上下",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：判断上下"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-04",
+        "text": "第二步是判断上下。对于竖直小条，面积小片的高度是 top(x) 减 bottom(x)。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-05",
+        "text": "这不是死公式，而是几何长度：上边界的 y 值减下边界的 y 值，才是这一条的实际高度。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-06",
+        "text": "如果上下关系在区间中间发生变化，就必须分段。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "方法清单",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：方法清单"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-07",
+        "text": "右侧方法清单可以作为做题流程：先找交点，再判断上下，再建立积分，最后必要时分段相加。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-08",
+        "text": "这页要带走的句子是：曲线间面积等于宽度 d x 上的一条条高度差之和。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p02-speech-area-volume-09",
+        "text": "下一页用 y=x 的平方 和 y=根号 x 的例子，把这套流程完整走一遍。",
+        "type": "speech",
+        "title": "讲解：曲线间面积：核心方法 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p03",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "例题：y=x^2 与 y=sqrt(x)",
+    "type": "slide",
+    "order": 2,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-03",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-03",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-03.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-01",
+            "name": "semantic-hit-map: 交点",
+            "type": "shape",
+            "left": 59.375,
+            "top": 93.75,
+            "width": 268.75,
+            "height": 106.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-02",
+            "name": "semantic-hit-map: 上减下",
+            "type": "shape",
+            "left": 337.5,
+            "top": 78.125,
+            "width": 475,
+            "height": 262.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-03",
+            "name": "semantic-hit-map: 积分结果",
+            "type": "shape",
+            "left": 75,
+            "top": 400,
+            "width": 787.5,
+            "height": 93.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "交点",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：交点"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-01",
+        "text": "先读题：两条曲线是 y 等于 x 的平方 和 y 等于 根号 x，区域限制在 从零到一。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-02",
+        "text": "第一步仍然是找交点。令 x 的平方 等于 根号 x，可以得到 x 等于零和 x 等于一。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-03",
+        "text": "这说明区域正好从零到一闭合，积分上下限就是零和一。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "上减下",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：上减下"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-04",
+        "text": "接下来判断上下。在零到一之间，根号 x 在上面，x 的平方 在下面。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-05",
+        "text": "可以试一个点，比如 x 等于四分之一，根号 x 是二分之一，而 x 的平方 是十六分之一。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-06",
+        "text": "所以每条竖直小片的高度是 根号 x 减 x 的平方。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "积分结果",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：积分结果"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-07",
+        "text": "建立积分后，从零到一积分 根号 x 减 x 的平方。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-08",
+        "text": "计算时把 根号 x 写成 x 的二分之一次方，再分别积分。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p03-speech-area-volume-09",
+        "text": "最终得到三分之一。这里答案不是重点，重点是交点、上下关系、上减下这三步。",
+        "type": "speech",
+        "title": "讲解：例题：y=x^2 与 y=sqrt(x) 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p04",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "分段面积 I：绝对值函数先找交点",
+    "type": "slide",
+    "order": 3,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-04",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-04",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-04.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-01",
+            "name": "semantic-hit-map: 绝对值拆分",
+            "type": "shape",
+            "left": 50,
+            "top": 78.125,
+            "width": 331.25,
+            "height": 134.375,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-02",
+            "name": "semantic-hit-map: 两个交点",
+            "type": "shape",
+            "left": 418.75,
+            "top": 75,
+            "width": 431.25,
+            "height": 218.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-03",
+            "name": "semantic-hit-map: 分段区间",
+            "type": "shape",
+            "left": 71.875,
+            "top": 406.25,
+            "width": 831.25,
+            "height": 78.125,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "绝对值拆分",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：绝对值拆分"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-01",
+        "text": "这道题开始变复杂，因为出现了绝对值函数。第一步不是马上积分，而是把绝对值拆开。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-02",
+        "text": "f 括号 x 括号=|2x| 在 x 小于零时等于负二 x，在 x 大于零时等于二 x。这个折点会影响上下关系。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-03",
+        "text": "所以绝对值题通常先画图或分段，再找交点。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "两个交点",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：两个交点"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-04",
+        "text": "第二步找两个交点。图中 f 括号 x 括号=|2x| 和 g 括号 x 括号=x+2 相交于 A 和 B。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-05",
+        "text": "左边交点来自负二 x 等于 x 加二，右边交点来自二 x 等于 x 加二。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-06",
+        "text": "得到两个交点以后，区域就被自然切成不同区间。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "分段区间",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：分段区间"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-07",
+        "text": "第三步确定分段区间。因为绝对值函数在零点左右表达式不同，上下关系也要分段处理。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-08",
+        "text": "这一页先把几何结构找清楚：哪里交、哪里折、哪里需要分段。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p04-speech-area-volume-09",
+        "text": "下一页再真正建立积分并计算面积。",
+        "type": "speech",
+        "title": "讲解：分段面积 I：绝对值函数先找交点 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p05",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "分段面积 II：建立并计算积分",
+    "type": "slide",
+    "order": 4,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-05",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-05",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-05.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-01",
+            "name": "semantic-hit-map: 第一段",
+            "type": "shape",
+            "left": 43.75,
+            "top": 93.75,
+            "width": 403.125,
+            "height": 143.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-02",
+            "name": "semantic-hit-map: 第二段",
+            "type": "shape",
+            "left": 493.75,
+            "top": 93.75,
+            "width": 400,
+            "height": 143.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-03",
+            "name": "semantic-hit-map: 合并结果",
+            "type": "shape",
+            "left": 81.25,
+            "top": 368.75,
+            "width": 781.25,
+            "height": 112.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "第一段",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：第一段"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-01",
+        "text": "现在接着上一页，把区域拆成两个积分。第一段在左侧区间，使用绝对值拆开后的左侧表达式。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-02",
+        "text": "这一段的面积仍然是上函数减下函数，只是下函数或上函数要用对应分段公式。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-03",
+        "text": "请注意：分段不是为了形式复杂，而是因为同一个公式不能覆盖整个区域。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "第二段",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：第二段"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-04",
+        "text": "第二段换到右侧区间。这里绝对值函数已经变成另一个表达式，所以 integrand 也要跟着改变。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-05",
+        "text": "如果继续用左段公式算右段，几何意义就不对了。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-06",
+        "text": "这一步训练的是：每个区间都要重新确认上下关系。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "合并结果",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：合并结果"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-07",
+        "text": "最后把两段面积相加。面积题的结果应该是正数，如果算出负数，通常说明上下函数顺序写反了。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-08",
+        "text": "本题的迁移方法是：遇到绝对值或曲线交叉，先找分段点，再在每段内部做上减下。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p05-speech-area-volume-09",
+        "text": "下一页我们看三角函数曲线之间的面积，那里上下关系也会随区间变化。",
+        "type": "speech",
+        "title": "讲解：分段面积 II：建立并计算积分 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p06",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "三角函数曲线之间的面积",
+    "type": "slide",
+    "order": 5,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-06",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-06",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-06.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-01",
+            "name": "semantic-hit-map: 交点",
+            "type": "shape",
+            "left": 56.25,
+            "top": 84.375,
+            "width": 293.75,
+            "height": 131.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-02",
+            "name": "semantic-hit-map: 上下关系",
+            "type": "shape",
+            "left": 381.25,
+            "top": 78.125,
+            "width": 481.25,
+            "height": 240.625,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-03",
+            "name": "semantic-hit-map: 两段积分",
+            "type": "shape",
+            "left": 59.375,
+            "top": 387.5,
+            "width": 856.25,
+            "height": 100,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "交点",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：交点"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-01",
+        "text": "三角函数面积题的第一步仍然是找交点。这里两条曲线是 正弦括号二 x 括号 和 余弦括号二 x 括号。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-02",
+        "text": "令 正弦括号二 x 括号 等于 余弦括号二 x 括号，可以找到它们在区间内的交点。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-03",
+        "text": "交点的作用是把区域分成不同部分，因为交点两侧谁在上面可能会改变。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "上下关系",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：上下关系"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-04",
+        "text": "接下来判断上下关系。页面用图像展示，某些区间 正弦括号二 x 括号 在上，另一些区间 余弦括号二 x 括号 在上。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-05",
+        "text": "这时不能用一个简单的 top 减 bottom 覆盖整个区间。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-06",
+        "text": "如果上下关系变化，就要在交点处分段。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "两段积分",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：两段积分"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-07",
+        "text": "右侧两段积分就是把面积拆开。每一段都写成本段的上函数减下函数。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-08",
+        "text": "三角函数题的难点常常不是积分技巧，而是先判断哪段谁在上。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p06-speech-area-volume-09",
+        "text": "下一页从曲线间面积转到水平切片：当竖直切不方便时，我们可以改用 y 方向切片。",
+        "type": "speech",
+        "title": "讲解：三角函数曲线之间的面积 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p07",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "水平切片：三角形面积",
+    "type": "slide",
+    "order": 6,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-07",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-07",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-07.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-01",
+            "name": "semantic-hit-map: 水平条",
+            "type": "shape",
+            "left": 62.5,
+            "top": 75,
+            "width": 337.5,
+            "height": 250,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-02",
+            "name": "semantic-hit-map: 相似三角形",
+            "type": "shape",
+            "left": 450,
+            "top": 78.125,
+            "width": 387.5,
+            "height": 162.49999999999997,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-03",
+            "name": "semantic-hit-map: 面积积分",
+            "type": "shape",
+            "left": 106.25,
+            "top": 390.625,
+            "width": 737.5,
+            "height": 93.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "水平条",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：水平条"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-01",
+        "text": "这一页开始讲水平切片。先看左边图形：不是用竖直条，而是沿着高度方向切成一条条水平薄片。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-02",
+        "text": "水平切片的变量通常是 y 或 h。每一片的面积等于这一层的长度乘以厚度 d h。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-03",
+        "text": "所以第一步要确定：在高度 h 处，这条水平片有多长。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "相似三角形",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：相似三角形"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-04",
+        "text": "中间用相似三角形建立宽度函数。三角形顶部窄、底部宽，宽度会随着高度变化。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-05",
+        "text": "通过相似比例，可以得到 w 括号 h 括号 这样的宽度函数。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-06",
+        "text": "这一步非常关键：没有宽度函数，就没有每一片的小面积。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "面积积分",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：面积积分"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-07",
+        "text": "右边把小面积写成 w 括号 h 括号 d h，然后从底部高度积分到顶部高度。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-08",
+        "text": "所以水平切片面积题的流程是：选高度变量，找宽度函数，写小面积，积分。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p07-speech-area-volume-09",
+        "text": "下一页用半圆面积继续练水平切片，不过宽度函数来自圆方程。",
+        "type": "speech",
+        "title": "讲解：水平切片：三角形面积 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p08",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "水平切片：半圆面积",
+    "type": "slide",
+    "order": 7,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-08",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-08",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-08.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-01",
+            "name": "semantic-hit-map: 圆方程",
+            "type": "shape",
+            "left": 50,
+            "top": 81.24999999999999,
+            "width": 337.5,
+            "height": 156.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-02",
+            "name": "semantic-hit-map: 宽度函数",
+            "type": "shape",
+            "left": 437.5,
+            "top": 75,
+            "width": 406.25,
+            "height": 162.49999999999997,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-03",
+            "name": "semantic-hit-map: 半圆面积",
+            "type": "shape",
+            "left": 75,
+            "top": 381.25,
+            "width": 800,
+            "height": 106.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "圆方程",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：圆方程"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-01",
+        "text": "半圆这页先从圆方程开始。图中半圆来自 x 的平方 加 h 的平方 等于 四十九。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-02",
+        "text": "如果用水平切片，高度变量是 h，我们需要在每个 h 上找到左右边界。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-03",
+        "text": "圆方程可以解出 x 等于正负 根号 四十九 减 h 的平方。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "宽度函数",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：宽度函数"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-04",
+        "text": "水平片的宽度是右边界减左边界，所以是 二 根号 四十九 减 h 的平方。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-05",
+        "text": "这一步要慢讲：不是只取右半边长度，而是整条水平弦长。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-06",
+        "text": "宽度函数一旦写出，小面积就是这个宽度乘 d h。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "半圆面积",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：半圆面积"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-07",
+        "text": "面积积分是从 h 等于零到七，积分 二 根号 四十九 减 h 的平方 d h。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-08",
+        "text": "这个积分结果等于半个半径为七的圆面积，也就是 四十九 派 除以 二。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p08-speech-area-volume-09",
+        "text": "这页的重点是：水平切片时，宽度函数常常来自“右边界减左边界”。",
+        "type": "speech",
+        "title": "讲解：水平切片：半圆面积 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p09",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "体积方法：圆盘与截面切片",
+    "type": "slide",
+    "order": 8,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-09",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-09",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-09.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-01",
+            "name": "semantic-hit-map: 体积切片",
+            "type": "shape",
+            "left": 50,
+            "top": 75,
+            "width": 325,
+            "height": 156.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-02",
+            "name": "semantic-hit-map: 圆盘法",
+            "type": "shape",
+            "left": 406.25,
+            "top": 75,
+            "width": 225,
+            "height": 225,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-03",
+            "name": "semantic-hit-map: 非圆截面",
+            "type": "shape",
+            "left": 662.5,
+            "top": 78.125,
+            "width": 225,
+            "height": 225,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-04",
+            "name": "semantic-hit-map: 总公式",
+            "type": "shape",
+            "left": 71.875,
+            "top": 387.5,
+            "width": 843.75,
+            "height": 96.875,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "体积切片",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：体积切片"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-01",
+        "text": "现在从面积进入体积。体积题的核心是把立体切成很多薄片。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-02",
+        "text": "每一片的体积约等于截面积 A 括号 x 括号 乘以厚度 d x，或者 A 括号 h 括号 乘以 d h。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-03",
+        "text": "所以体积题第一问不是马上积分，而是：这一片的截面积是什么？",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "圆盘法",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：圆盘法"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-04",
+        "text": "圆盘法是最常见的体积切片。如果旋转后每一片是圆盘，那么截面积就是 派 r 的平方。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-05",
+        "text": "这里的半径 r 通常来自曲线到旋转轴的距离。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-06",
+        "text": "所以圆盘法的关键是找半径函数。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "非圆截面",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：非圆截面"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-07",
+        "text": "非圆截面题也一样，只是截面积不再是 派 r 的平方。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-08",
+        "text": "比如截面可能是正方形、三角形或半圆，那就先写出对应的 A 括号 x 括号。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-09",
+        "text": "方法没有变：先找每片截面积，再积分累加。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 9"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-spotlight-focus-010",
+        "type": "spotlight",
+        "title": "总公式",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-04",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：总公式"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-10",
+        "text": "总公式可以记成 V 等于 integral A 括号 x 括号 d x 或 integral A 括号 h 括号 d h。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 10"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-11",
+        "text": "这一页的迁移句是：体积积分不是背形状，而是先问每一片长什么样。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 11"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p09-speech-area-volume-12",
+        "text": "下一页用圆锥和球体说明，同一种切片结构可以推出熟悉的体积公式。",
+        "type": "speech",
+        "title": "讲解：体积方法：圆盘与截面切片 12"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p10",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "圆锥与球体体积",
+    "type": "slide",
+    "order": 9,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-10",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-10",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-10.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-01",
+            "name": "semantic-hit-map: 圆锥半径",
+            "type": "shape",
+            "left": 46.875,
+            "top": 84.375,
+            "width": 406.25,
+            "height": 206.24999999999997,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-02",
+            "name": "semantic-hit-map: 球体半径",
+            "type": "shape",
+            "left": 509.375,
+            "top": 84.375,
+            "width": 406.25,
+            "height": 206.24999999999997,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-03",
+            "name": "semantic-hit-map: 同一种结构",
+            "type": "shape",
+            "left": 81.25,
+            "top": 390.625,
+            "width": 800,
+            "height": 93.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "圆锥半径",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：圆锥半径"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-01",
+        "text": "先看圆锥。圆锥横切以后，每一片是圆盘，但半径随着高度变化。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-02",
+        "text": "通过相似三角形，可以把半径 r 写成高度 h 的函数。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-03",
+        "text": "于是每片面积是 派 r 括号 h 括号 的平方，体积就是把这些圆盘面积沿高度积分。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "球体半径",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：球体半径"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-04",
+        "text": "再看球体。球体横切以后，每一片也是圆盘，但半径来自圆方程。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-05",
+        "text": "如果球半径是 R，高度为 h 的截面半径满足 r 的平方 等于 R 的平方 减 h 的平方。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-06",
+        "text": "所以截面积是 派 乘 R 的平方 减 h 的平方。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "同一种结构",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：同一种结构"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-07",
+        "text": "右边总结同一种结构：不管是圆锥还是球体，都先找半径函数，再写 A 括号 h 括号，最后积分。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-08",
+        "text": "熟悉的体积公式并不是凭空背出来的，而是无数薄圆盘累加的结果。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p10-speech-area-volume-09",
+        "text": "下一页看非圆截面的例子：金字塔体积。",
+        "type": "speech",
+        "title": "讲解：圆锥与球体体积 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p11",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "金字塔体积：非圆截面",
+    "type": "slide",
+    "order": 10,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-11",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-11",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-11.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-01",
+            "name": "semantic-hit-map: 截面形状",
+            "type": "shape",
+            "left": 46.875,
+            "top": 75,
+            "width": 325,
+            "height": 237.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-02",
+            "name": "semantic-hit-map: 边长函数",
+            "type": "shape",
+            "left": 425,
+            "top": 75,
+            "width": 431.25,
+            "height": 187.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-03",
+            "name": "semantic-hit-map: 体积积分",
+            "type": "shape",
+            "left": 65.625,
+            "top": 381.25,
+            "width": 837.5,
+            "height": 106.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "截面形状",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：截面形状"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-01",
+        "text": "金字塔不是旋转体，所以横切片不是圆盘。先看截面形状：每一片是一个正方形。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-02",
+        "text": "这意味着截面积不是 派 r 的平方，而是边长的平方。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-03",
+        "text": "所以第一步要找高度 h 处的正方形边长。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "边长函数",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：边长函数"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-04",
+        "text": "边长函数来自相似三角形。越接近顶点，截面越小；越接近底部，截面越大。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-05",
+        "text": "页面中把边长写成 s 括号 h 括号。一旦有了 s 括号 h 括号，截面积就是 s 括号 h 括号 的平方。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-06",
+        "text": "这一步和圆盘法完全平行，只是截面积公式换了。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "体积积分",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：体积积分"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-07",
+        "text": "体积积分就是从底到顶积分 s 括号 h 括号 的平方 d h。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-08",
+        "text": "本页的重点是：非圆截面题也不难，只要先写出截面积 A 括号 h 括号。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p11-speech-area-volume-09",
+        "text": "下一页进入旋转体，学习绕 x 轴旋转时如何用圆盘法建立体积。",
+        "type": "speech",
+        "title": "讲解：金字塔体积：非圆截面 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p12",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "旋转体：绕 x 轴的圆盘法",
+    "type": "slide",
+    "order": 11,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-12",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-12",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-12.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-01",
+            "name": "semantic-hit-map: 旋转区域",
+            "type": "shape",
+            "left": 50,
+            "top": 78.125,
+            "width": 356.25,
+            "height": 218.75,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-02",
+            "name": "semantic-hit-map: 圆盘半径",
+            "type": "shape",
+            "left": 459.375,
+            "top": 78.125,
+            "width": 387.5,
+            "height": 187.5,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-03",
+            "name": "semantic-hit-map: 体积公式",
+            "type": "shape",
+            "left": 81.25,
+            "top": 381.25,
+            "width": 781.25,
+            "height": 106.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "旋转区域",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：旋转区域"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-01",
+        "text": "这一页是旋转体。先看左边区域：曲线下方的区域绕 x 轴旋转，会形成一个立体。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-02",
+        "text": "如果用垂直于 x 轴的切片，每一片旋转后是一个圆盘。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-03",
+        "text": "所以这里自然使用圆盘法。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "圆盘半径",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：圆盘半径"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-04",
+        "text": "圆盘半径来自曲线到 x 轴的距离。若曲线是 y=f 括号 x 括号，那么半径就是 f 括号 x 括号。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-05",
+        "text": "每片截面积是 派 f 括号 x 括号 的平方。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-06",
+        "text": "注意是半径平方，不是函数本身直接积分。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "体积公式",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：体积公式"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-07",
+        "text": "体积公式就是从 a 到 b 积分 派 f 括号 x 括号 的平方 d x。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-08",
+        "text": "这页最容易错的是把面积公式和体积公式混掉：面积是高度乘 d x，体积是截面积乘 d x。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p12-speech-area-volume-09",
+        "text": "下一页看变量半径应用，用同样思想计算桌腿体积。",
+        "type": "speech",
+        "title": "讲解：旋转体：绕 x 轴的圆盘法 9"
+      }
+    ],
+    "whiteboard": null
+  },
+  {
+    "id": "nb-mat136-area-volume-imagegen-20260521-p13",
+    "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+    "title": "变量半径应用：桌腿体积",
+    "type": "slide",
+    "order": 12,
+    "content": {
+      "type": "slide",
+      "canvas": {
+        "id": "nb-mat136-area-volume-imagegen-20260521-canvas-13",
+        "viewportSize": 1000,
+        "viewportRatio": 1.7777777777777777,
+        "theme": {
+          "backgroundColor": "#ffffff",
+          "themeColors": [
+            "#0f766e",
+            "#2563eb",
+            "#f97316",
+            "#7c3aed"
+          ],
+          "fontColor": "#0f172a",
+          "fontName": "Inter",
+          "outline": {
+            "color": "#0f766e",
+            "width": 2,
+            "style": "solid"
+          },
+          "shadow": {
+            "h": 0,
+            "v": 0,
+            "blur": 10,
+            "color": "#000000"
+          }
+        },
+        "elements": [
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-image-13",
+            "type": "image",
+            "left": 0,
+            "top": 0,
+            "width": 1000,
+            "height": 562.5,
+            "rotate": 0,
+            "fixedRatio": false,
+            "src": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-13.png",
+            "imageType": "pageFigure",
+            "radius": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-01",
+            "name": "semantic-hit-map: 变量半径",
+            "type": "shape",
+            "left": 50,
+            "top": 78.125,
+            "width": 337.5,
+            "height": 225,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-02",
+            "name": "semantic-hit-map: 建立积分",
+            "type": "shape",
+            "left": 443.75,
+            "top": 75,
+            "width": 425,
+            "height": 156.25,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          },
+          {
+            "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-03",
+            "name": "semantic-hit-map: 计算提示",
+            "type": "shape",
+            "left": 81.25,
+            "top": 387.5,
+            "width": 800,
+            "height": 100,
+            "rotate": 0,
+            "lock": true,
+            "viewBox": [
+              200,
+              200
+            ],
+            "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+            "fixedRatio": false,
+            "fill": "#ffffff",
+            "outline": {
+              "color": "#ffffff",
+              "width": 0,
+              "style": "solid"
+            },
+            "opacity": 0
+          }
+        ],
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "type": "content"
+      },
+      "webRenderMode": "slide"
+    },
+    "actions": [
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-spotlight-focus-001",
+        "type": "spotlight",
+        "title": "变量半径",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-01",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：变量半径"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-01",
+        "text": "最后一个应用题是桌腿体积。先看左边模型：桌腿可以看成绕中心轴旋转出来的立体。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 1"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-02",
+        "text": "不同高度处的半径不一样，所以不能用一个固定圆柱公式直接算。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 2"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-03",
+        "text": "这正是变量半径圆盘法要解决的问题。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 3"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-spotlight-focus-004",
+        "type": "spotlight",
+        "title": "建立积分",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-02",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：建立积分"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-04",
+        "text": "题目给了半径函数 r 括号 y 括号。在高度 y 处，截面是半径 r 括号 y 括号 的圆。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 4"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-05",
+        "text": "所以截面积 A 括号 y 括号 等于 派 r 括号 y 括号 的平方。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 5"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-06",
+        "text": "总体积就是沿着高度方向积分 A 括号 y 括号 d y。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 6"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-spotlight-focus-007",
+        "type": "spotlight",
+        "title": "计算提示",
+        "elementId": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-03",
+        "dimOpacity": 0.76,
+        "description": "聚焦讲解区域：计算提示"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-07",
+        "text": "计算时先把 r 括号 y 括号 代入，再展开或使用合适的三角恒等式处理平方。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 7"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-08",
+        "text": "这里的重点不是桌腿本身，而是建模流程：识别旋转体，找变量半径，写截面积，积分。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 8"
+      },
+      {
+        "id": "nb-mat136-area-volume-imagegen-20260521-p13-speech-area-volume-09",
+        "text": "到这里，本章面积与体积的主线就收束了：所有问题都回到“切片的小量如何累加”。",
+        "type": "speech",
+        "title": "讲解：变量半径应用：桌腿体积 9"
+      }
+    ],
+    "whiteboard": null
+  }
+]

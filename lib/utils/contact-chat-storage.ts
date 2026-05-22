@@ -113,6 +113,27 @@ function removeLocalSnapshot(args: {
   }
 }
 
+function removeLocalSnapshotsForTarget(kind: ContactConversationKind, targetId: string): void {
+  if (typeof window === 'undefined') return;
+  const encodedKind = encodeURIComponent(kind);
+  const encodedTargetId = encodeURIComponent(targetId);
+  const keySuffix = `:${encodedKind}:${encodedTargetId}`;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(LOCAL_CONTACT_MESSAGES_PREFIX) && key.endsWith(keySuffix)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* localStorage may be unavailable */
+  }
+}
+
 function backendKey(args: {
   courseId: string;
   kind: ContactConversationKind;
@@ -241,7 +262,9 @@ function parseCourseChatGroupMeta(value: unknown): CourseChatGroupMeta | null {
                       title: String(recordSource.title || ''),
                     };
                   })
-                  .filter((source) => Number.isFinite(source.order) && source.order > 0 && source.title)
+                  .filter(
+                    (source) => Number.isFinite(source.order) && source.order > 0 && source.title,
+                  )
                   .slice(0, 8)
               : undefined,
             updatedAt: record.workingMemory.updatedAt,
@@ -461,6 +484,40 @@ export async function deleteCourseChatGroup(courseId: string, groupId: string): 
 
   try {
     const q = new URLSearchParams({ kind: 'agent', targetId, courseId });
+    const listed = await backendJson<{ conversations: ConversationRow[] }>(
+      `/api/conversations?${q.toString()}`,
+    );
+    await Promise.all(
+      listed.conversations.map((row) =>
+        backendJson<{ ok: true }>(`/api/conversations/${encodeURIComponent(row.id)}`, {
+          method: 'DELETE',
+        }),
+      ),
+    );
+  } catch {
+    /* Backend persistence is best-effort; local-first deletion already completed. */
+  }
+}
+
+export async function deleteContactMessages(args: {
+  courseId?: string | null;
+  kind: ContactConversationKind;
+  targetId: string;
+  ignoreCourseId?: boolean;
+}): Promise<void> {
+  removeLocalSnapshotsForTarget(args.kind, args.targetId);
+
+  const courseId = args.courseId?.trim() || '';
+  if (courseId && shouldUseLocalOnly(courseId)) return;
+
+  try {
+    const q = new URLSearchParams({
+      kind: args.kind,
+      targetId: args.targetId,
+    });
+    if (courseId && !args.ignoreCourseId) {
+      q.set('courseId', courseId);
+    }
     const listed = await backendJson<{ conversations: ConversationRow[] }>(
       `/api/conversations?${q.toString()}`,
     );

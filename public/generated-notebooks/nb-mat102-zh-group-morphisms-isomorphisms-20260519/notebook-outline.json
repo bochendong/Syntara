@@ -1,0 +1,67 @@
+{
+  "sourcePdf": "12GroupTheoryII.pdf",
+  "slug": "mat102-zh-group-morphisms-isomorphisms",
+  "title": "同态与同构：换名字后的同一个群",
+  "description": "MAT102 中文 notebook：群同态、模类上的良定义映射、核、像、单射判别、同构、不变量和循环群分类。",
+  "slides": [
+    [
+      "封面：同态与结构",
+      "把本节围绕 preserving group operation 的函数展开，并说明这些函数揭示哪些群结构相同。"
+    ],
+    [
+      "引入：三张表，一个群",
+      "比较 Z2、{[1]6,[5]6} 和 <[2]4>，展示只改元素名字但结构不变。"
+    ],
+    [
+      "问题框架：普通函数不够",
+      "解释群之间的映射不仅要送元素，还必须尊重两边的 operation。"
+    ],
+    [
+      "同态：保留运算",
+      "定义 group homomorphism phi(xy)=phi(x)phi(y)，强调 domain 和 codomain 的 operation 可以不同。"
+    ],
+    [
+      "模类映射必须良定义",
+      "用 phi: Z6 -> Z12, phi([x]6)=[2x]12 说明 equivalence classes 上的映射要先检查 well-defined。"
+    ],
+    [
+      "常见错误：公式好看但映射失败",
+      "对比 [x]6 -> [3x]12 或 [x]6 -> [x]12，区分 not well-defined 和 well-defined but not homomorphic。"
+    ],
+    [
+      "核与像：什么被压缩，什么出现",
+      "定义 ker(phi) 和 im(phi)，用 Z12 -> Z6 例子说明 kernel 记录被送到 identity 的元素。"
+    ],
+    [
+      "同态的基本性质",
+      "总结 identity map to identity、inverse map to inverse、finite orders may shrink、kernel/image are subgroups。"
+    ],
+    [
+      "通过 kernel 判断单射",
+      "讲 powerful test：homomorphism 是 injective iff kernel 只有 identity。"
+    ],
+    [
+      "同构：完美翻译",
+      "定义 isomorphism 是 bijective homomorphism，并连接到 same group in disguise。"
+    ],
+    [
+      "例子与不变量",
+      "展示 Z2、U、<[2]4> 同构，并用 order、cyclic、abelian、element order 等不变量做证据。"
+    ],
+    [
+      "总结：循环群分类",
+      "以 every infinite cyclic group is isomorphic to Z、finite cyclic group of order n is isomorphic to Zn 收束。"
+    ]
+  ],
+  "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519",
+  "language": "zh-CN",
+  "tags": [
+    "MAT102",
+    "zh-CN",
+    "imagegen-full-slide",
+    "semantic-hit-map",
+    "12GroupTheoryII.pdf"
+  ],
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519",
+  "publicDir": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519"
+}

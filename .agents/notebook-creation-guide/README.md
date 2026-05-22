@@ -38,6 +38,12 @@
 - 颜色好看但克制，颜色服务教学重点。
 - 图像有教学意图，不只是装饰。
 
+所有 notebook 生图页都不要显示：
+
+- week 几 / Week 几 / W1 / W2 这类周次信息。
+- 页码、page number、PDF 页码、slide number。
+- 课号或课程编号，例如 `CPSC 107`、`MAT136`、`MAT102`。课程信息由产品 UI 承载，图片里不要重复写。
+
 生成节奏：
 
 - 一批最好 4 页左右。
@@ -125,6 +131,137 @@ Riemann sum 转定积分必须明确：
 - 如何代入 `int u dv = uv - int v du`。
 - 剩下的积分为什么更简单。
 - 最终答案和 `+ C`。
+
+## CS / 代码课特殊规范
+
+CS 科目的 notebook 仍然必须是整页生图，不允许用 SVG、HTML、程序排版截图或模板卡片冒充。区别在于：CS 页既要讲概念，也要教代码；代码通常更长，所以必须先拆教学动作，再决定一页能承载多少代码。
+
+### 代码页的核心原则
+
+- 一页只教一个代码动作，例如：
+  - 读数据定义里的一个字段类型。
+  - 从 template 里看出一个 helper call。
+  - 写 outer function 的一行 delegation。
+  - 解释一个 `cond` 分支。
+  - trace 一步递归调用。
+- 如果一页同时需要展示数据定义、template、真实函数、trace，必须拆成 2 到 4 页。
+- 不要为了保持页数少，把完整长代码塞进一页。学生读不清，就等于没教。
+- 代码页要有“讲解区”或“trace 区”，不能只有代码框。
+- 每页底部 takeaway 要说清楚这页学到的代码判断，而不是重复标题。
+
+### 长代码分页规则
+
+长代码应该按教学用途切开：
+
+1. Data shape page  
+   只展示数据定义和字段类型。目标是让学生知道“这个数据长什么样”。
+
+2. Template page  
+   只展示由数据定义推出的 template。目标是说明 helper / recursion 从哪里来。
+
+3. Function body page  
+   只展示把 template hole 替换成真实表达式的那一段代码。
+
+4. Trace page  
+   只展示一个具体调用如何经过这些 helper 或 recursive calls。
+
+例如 `package-required-dims` 不应该一页讲完。更好的拆法是：
+
+- 先讲 `Package` 只有 `contents : Gift`。
+- 再讲 template 里为什么 `fn-for-package` 调 `fn-for-gift`。
+- 再讲真实 outer function 为什么只写 `(gift-required-dims (package-contents p))`。
+- 再单独讲 `gift-required-dims` 的 `ball?` / `block?` 两个分支。
+- 最后 trace 一个 block 例子和一个 ball 例子。
+
+### 代码正确性和课程边界
+
+CS 页比数学页更容易出现“看起来合理但课程没学过”的语法。生成前必须列出本节课允许出现的语法白名单，并在 prompt 和 QA 中强制执行。
+
+以 CPSC 107 Racket 初学阶段为例，若 PDF 没有引入，则不要出现：
+
+- `let`
+- `local`
+- `lambda`
+- `map`
+- `filter`
+- `foldr` / `foldl`
+- `match`
+- `begin` / block-style sequencing
+- `for`
+- 高阶函数或内部命名函数
+
+如果源 PDF 只使用 `define`、`define-struct`、`cond`、`if`、`empty?`、`false?`、`cons`、`first`、`rest`、`list`、`append`、selector、predicate、constructor 和基础算术比较，那么生成页也只能使用这些写法。
+
+不要引入“更优雅”的代码。对初学 CS 课来说，正确的 notebook 不是展示专家会怎么写，而是展示这节课的学生应该怎么想、怎么读、怎么一步步写。
+
+### image generation 和代码文本的关系
+
+每一页最终必须是 image generation 生成的完整教学页。可以在 prompt 里提供短代码片段或要求代码框，但必须满足：
+
+- 代码片段要短，最好不超过 6 到 8 行；超过就拆页。
+- 每页只出现必要代码，不把整题所有代码塞进去。
+- 代码必须来自源材料或由源材料直接推出。
+- prompt 必须明确“不要发明额外 Racket 语法”。
+- 生成后要人工检查文字和代码。如果代码错、语法超纲或读不清，重生该页，不要用后期 SVG 覆盖来掩盖。
+
+允许使用脚本做的事情：
+
+- 复制和整理 imagegen 产物。
+- 统一裁切或 letterbox 到 `1600x900`，但不能裁掉内容。
+- 生成 `semantic-hit-map.json`。
+- 创建透明 hotspot、speech actions 和 contact sheet。
+- 写入数据库 scenes。
+
+不允许使用脚本做的事情：
+
+- 用 SVG 重新画整页。
+- 用 HTML/CSS 截图当整页图。
+- 用程序排版代码框、图示、takeaway 来冒充 image generation。
+- 把一张空背景图加上程序文字后当作“生图页”。
+
+### CS 例题讲解规范
+
+每个代码例题至少要交代：
+
+- 输入数据的形状是什么。
+- 当前函数负责哪个数据定义。
+- 这行代码来自哪个字段、哪个 case 或哪个 template hole。
+- helper call 是因为 `ref`，recursive call 是因为 `self-ref`。
+- base case 为什么返回这个值。
+- recursive case 为什么让问题变小。
+- trace 至少走一个具体输入。
+- 指出一个学生会犯的错误，例如把 `rest` 当成单个元素、把 helper 写进错误的数据层、或使用尚未学过的语法。
+
+对于树和 mutual recursion：
+
+- 先画数据关系图，再写函数。
+- `Node` helper 和 `ListOfNode` helper 分页讲。
+- `first` 的 helper 和 `rest` 的递归 helper 要分清楚。
+- 如果一个 child subtree 返回的是 list，就解释为什么要用 `append`，不要跳到 `filter` 或 `map`。
+
+对于递归入门页：
+
+- 不要一上来就直接进入复杂数据定义。可以先用学生熟悉的数学递推例子建立直觉。
+- 推荐顺序是：
+  1. 阶乘：先写只有递推关系、没有 base case 的版本，让学生判断会不会停。
+  2. 阶乘：加入 `n = 0` 或 `n = 1` 的 base case，说明递归必须有停点。
+  3. 斐波那契：展示一个 base case 不一定够，因为 `fib(1)` 会继续拆到 `fib(0)` 和 `fib(-1)` 之类的无效方向。
+  4. 斐波那契：加入两个 base cases，再说明每次把问题拆成更小问题。
+  5. 回到数据递归：list 的 `empty` 就是 base case，`rest` 就是更小的问题。
+- 这类页的目标不是讲数学公式本身，而是让学生形成递归核心判断：recurrence relation + enough base cases + smaller subproblem。
+
+### CS 页 QA 清单
+
+除通用 QA 外，CS notebook 交付前还要检查：
+
+- 每页都是整页 imagegen 图，不是 SVG/HTML/程序排版图。
+- 代码没有横向溢出、没有被裁切、没有小到读不清。
+- 长代码已经拆页，不靠一页强塞。
+- 没有出现本节课没学过的语法。
+- 每个 helper 都说明了“为什么需要”，而不是只展示最终代码。
+- 每个 recursive call 都说明了“问题如何变小”。
+- trace 页和函数页分开，除非代码非常短。
+- contact sheet 里能看出知识点递进，而不是一组孤立代码截图。
 
 ## 公式正确性
 

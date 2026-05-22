@@ -7,58 +7,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s01-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s01-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s01-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s01-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《封面：函数是数学机器》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：封面：函数是数学机器 1",
+        "text": "这本《函数 I：像、原像与映射行为》从一个主问题开始：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？先把整本课的入口问题立起来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：封面：函数是数学机器 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s01-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s01-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s01-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s01-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "介绍函数不是只是一条公式，而是把一个集合的信息运输到另一个集合的结构。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：封面：函数是数学机器 3",
+        "text": "这里先介绍函数不是只是一条公式，而是把一个集合的信息运输到另一个集合的结构。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：封面：函数是数学机器 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s01-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s01-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s01-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s01-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：封面：函数是数学机器 5",
+        "text": "现在看右侧的视觉线索，把它当成这一讲的第一张路线图。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：封面：函数是数学机器 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s01-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s01-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s01-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s01-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：总览：一个函数由什么数据决定？。"
+        "title": "讲解：封面：函数是数学机器 7",
+        "text": "本页真正要带走的是一个动作：遇到函数是数学机器，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p01-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：封面：函数是数学机器 8",
+        "text": "这一页先收到这里。下一页进入《总览：一个函数由什么数据决定？》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -70,58 +94,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s02-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s02-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s02-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s02-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《总览：一个函数由什么数据决定？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：总览：一个函数由什么数据决定？ 1",
+        "text": "上一页《封面：函数是数学机器》已经铺好一个动作，现在《总览：一个函数由什么数据决定？》把它推进到一个函数由什么数据决定？。先把后面会反复出现的工具排成路线。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：总览：一个函数由什么数据决定？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s02-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s02-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s02-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s02-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "强调 domain、codomain、规则或关系、graph 是函数的核心数据。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：总览：一个函数由什么数据决定？ 3",
+        "text": "这里特别强调定义域、陪域、规则或关系、图像是函数的核心数据。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：总览：一个函数由什么数据决定？ 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s02-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s02-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s02-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s02-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：总览：一个函数由什么数据决定？ 5",
+        "text": "现在看右侧的路线材料，先确认这些工具会按什么顺序出现。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：总览：一个函数由什么数据决定？ 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s02-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s02-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s02-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s02-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：引入：每个输入恰好一个输出。"
+        "title": "讲解：总览：一个函数由什么数据决定？ 7",
+        "text": "本页真正要带走的是一个动作：遇到一个函数由什么数据决定？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p02-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：总览：一个函数由什么数据决定？ 8",
+        "text": "这一页先收到这里。下一页进入《引入：每个输入恰好一个输出》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -133,58 +181,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s03-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s03-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s03-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s03-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《引入：每个输入恰好一个输出》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：引入：每个输入恰好一个输出 1",
+        "text": "上一页《总览：一个函数由什么数据决定？》已经铺好一个动作，现在《引入：每个输入恰好一个输出》把它推进到每个输入恰好一个输出。用一个具体入口，把新概念为什么需要出现讲清楚。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：引入：每个输入恰好一个输出 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s03-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s03-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s03-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s03-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "用箭头图解释 left-total 和 functional，让函数定义变得直观。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：引入：每个输入恰好一个输出 3",
+        "text": "用箭头图解释左全关系和 函数性关系，让函数定义变得直观。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：引入：每个输入恰好一个输出 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s03-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s03-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s03-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s03-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：引入：每个输入恰好一个输出 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：引入：每个输入恰好一个输出 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s03-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s03-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s03-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s03-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：问题框架：codomain 不是 range。"
+        "title": "讲解：引入：每个输入恰好一个输出 7",
+        "text": "本页真正要带走的是一个动作：遇到每个输入恰好一个输出，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p03-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：引入：每个输入恰好一个输出 8",
+        "text": "这一页先收到这里。下一页进入《问题框架：陪域不是值域》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -196,58 +268,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s04-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s04-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s04-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s04-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《问题框架：codomain 不是 range》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：问题框架：codomain 不是 range 1",
+        "text": "上一页《引入：每个输入恰好一个输出》已经铺好一个动作，现在《问题框架：陪域不是值域》把它推进到陪域不是值域。把真正容易卡住的问题摆到台面上。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：问题框架：codomain 不是 range 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s04-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s04-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s04-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s04-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "说明输出允许落在哪里，和实际落到哪里，是两个不同概念。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：问题框架：codomain 不是 range 3",
+        "text": "这里要说明输出允许落在哪里，和实际落到哪里，是两个不同概念。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：问题框架：codomain 不是 range 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s04-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s04-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s04-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s04-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：问题框架：codomain 不是 range 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：问题框架：codomain 不是 range 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s04-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s04-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s04-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s04-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：集合的像。"
+        "title": "讲解：问题框架：codomain 不是 range 7",
+        "text": "本页真正要带走的是一个动作：遇到陪域不是值域，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p04-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：问题框架：codomain 不是 range 8",
+        "text": "这一页先收到这里。下一页进入《集合的像》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -259,58 +355,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s05-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s05-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s05-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s05-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《集合的像》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：集合的像 1",
+        "text": "上一页《问题框架：陪域不是值域》已经铺好一个动作，现在《集合的像》把它推进到集合的像。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：集合的像 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s05-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s05-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s05-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s05-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "讲 f(U) 是 U 中输入产生的所有输出，用区间例子解释。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：集合的像 3",
+        "text": "讲 f(U) 是 U 中输入产生的所有输出，用区间例子解释。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：集合的像 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s05-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s05-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s05-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s05-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：集合的像 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：集合的像 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s05-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s05-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s05-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s05-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：集合的原像。"
+        "title": "讲解：集合的像 7",
+        "text": "本页真正要带走的是一个动作：遇到集合的像，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p05-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：集合的像 8",
+        "text": "这一页先收到这里。下一页进入《集合的原像》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -322,58 +442,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s06-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s06-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s06-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s06-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《集合的原像》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：集合的原像 1",
+        "text": "上一页《集合的像》已经铺好一个动作，现在《集合的原像》把它推进到集合的原像。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：集合的原像 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s06-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s06-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s06-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s06-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "讲 f^{-1}(V) 是所有落入 V 的输入，强调这里不需要 inverse function 存在。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：集合的原像 3",
+        "text": "讲 f 的逆像记号作用在 V 上是所有落入 V 的输入，强调这里不需要反函数存在。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：集合的原像 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s06-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s06-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s06-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s06-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：集合的原像 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：集合的原像 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s06-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s06-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s06-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s06-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：例题：平方函数作用在区间上。"
+        "title": "讲解：集合的原像 7",
+        "text": "本页真正要带走的是一个动作：遇到集合的原像，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p06-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：集合的原像 8",
+        "text": "这一页先收到这里。下一页进入《例题：平方函数作用在区间上》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -385,58 +529,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s07-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s07-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s07-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s07-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《例题：平方函数作用在区间上》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：例题：平方函数作用在区间上 1",
+        "text": "上一页《集合的原像》已经铺好一个动作，现在《例题：平方函数作用在区间上》把它推进到平方函数作用在区间上。把刚才的方法放进具体题目里，检查每一步为什么能走。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：例题：平方函数作用在区间上 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s07-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s07-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s07-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s07-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "说明为什么 f([-1,2]) = [0,4] 需要两个方向的包含，而不是只看端点。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：例题：平方函数作用在区间上 3",
+        "text": "这里要说明为什么 f 作用在负一到二这个区间上，得到零到四这个区间需要两个方向的包含，而不是只看端点。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：例题：平方函数作用在区间上 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s07-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s07-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s07-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s07-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：例题：平方函数作用在区间上 5",
+        "text": "现在看右侧例题。先读题目给了什么，再判断要调用哪一个定义或定理。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：例题：平方函数作用在区间上 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s07-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s07-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s07-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s07-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：例题：投影与圆柱。"
+        "title": "讲解：例题：平方函数作用在区间上 7",
+        "text": "本页真正要带走的是一个动作：遇到平方函数作用在区间上，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p07-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：例题：平方函数作用在区间上 8",
+        "text": "这一页先收到这里。下一页进入《例题：投影与圆柱》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -448,58 +616,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s08-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s08-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s08-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s08-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《例题：投影与圆柱》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：例题：投影与圆柱 1",
+        "text": "上一页《例题：平方函数作用在区间上》已经铺好一个动作，现在《例题：投影与圆柱》把它推进到投影与圆柱。把刚才的方法放进具体题目里，检查每一步为什么能走。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：例题：投影与圆柱 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s08-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s08-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s08-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s08-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "用 p: R^3 -> R^2 可视化 preimage 如何变成高维图形。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：例题：投影与圆柱 3",
+        "text": "用 p 是从三维实数空间到二维实数空间的映射可视化原像如何变成高维图形。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：例题：投影与圆柱 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s08-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s08-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s08-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s08-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：例题：投影与圆柱 5",
+        "text": "现在看右侧例题。先读题目给了什么，再判断要调用哪一个定义或定理。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：例题：投影与圆柱 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s08-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s08-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s08-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s08-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：单射：最多一支箭头射入。"
+        "title": "讲解：例题：投影与圆柱 7",
+        "text": "本页真正要带走的是一个动作：遇到投影与圆柱，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p08-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：例题：投影与圆柱 8",
+        "text": "这一页先收到这里。下一页进入《单射：最多一支箭头射入》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -511,58 +703,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s09-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s09-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s09-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s09-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《单射：最多一支箭头射入》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：单射：最多一支箭头射入 1",
+        "text": "上一页《例题：投影与圆柱》已经铺好一个动作，现在《单射：最多一支箭头射入》把它推进到单射：最多一支箭头射入。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：单射：最多一支箭头射入 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s09-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s09-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s09-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s09-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 one-to-one，并把代数证明和箭头图联系起来。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：单射：最多一支箭头射入 3",
+        "text": "这里给出定义：单射，并把代数证明和箭头图联系起来。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：单射：最多一支箭头射入 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s09-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s09-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s09-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s09-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：单射：最多一支箭头射入 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：单射：最多一支箭头射入 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s09-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s09-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s09-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s09-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：满射：至少一支箭头射入。"
+        "title": "讲解：单射：最多一支箭头射入 7",
+        "text": "本页真正要带走的是一个动作：遇到单射：最多一支箭头射入，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p09-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：单射：最多一支箭头射入 8",
+        "text": "这一页先收到这里。下一页进入《满射：至少一支箭头射入》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -574,58 +790,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s10-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s10-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s10-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s10-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《满射：至少一支箭头射入》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：满射：至少一支箭头射入 1",
+        "text": "上一页《单射：最多一支箭头射入》已经铺好一个动作，现在《满射：至少一支箭头射入》把它推进到满射：至少一支箭头射入。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：满射：至少一支箭头射入 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s10-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s10-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s10-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s10-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 onto，并说明失败与 codomain 的选择有关。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：满射：至少一支箭头射入 3",
+        "text": "这里给出定义：满射，并说明失败与陪域的选择有关。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：满射：至少一支箭头射入 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s10-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s10-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s10-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s10-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：满射：至少一支箭头射入 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：满射：至少一支箭头射入 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s10-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s10-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s10-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s10-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：常见错误：domain、codomain、f^{-1}。"
+        "title": "讲解：满射：至少一支箭头射入 7",
+        "text": "本页真正要带走的是一个动作：遇到满射：至少一支箭头射入，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p10-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：满射：至少一支箭头射入 8",
+        "text": "这一页先收到这里。下一页进入《常见错误：定义域、陪域、f 的逆像记号》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -637,58 +877,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s11-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s11-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s11-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s11-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《常见错误：domain、codomain、f^{-1}》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 1",
+        "text": "上一页《满射：至少一支箭头射入》已经铺好一个动作，现在《常见错误：定义域、陪域、f 的逆像记号》把它推进到定义域、陪域、f 的逆像记号。反过来检查哪些习惯会让证明或计算断掉。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s11-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s11-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s11-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s11-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "区分公式相同但函数不同、codomain 和 range、preimage notation 和 inverse function。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 3",
+        "text": "区分公式相同但函数不同、陪域和 值域、原像 notation 和反函数。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s11-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s11-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s11-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s11-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 5",
+        "text": "现在看右侧错误提醒。不要只记错在哪里，要说出是哪条定义或条件被破坏了。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s11-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s11-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s11-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s11-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：总结与下节钩子：双射就是恰好一个。"
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 7",
+        "text": "本页真正要带走的是一个动作：遇到定义域、陪域、f 的逆像记号，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p11-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：常见错误：domain、codomain、f^{-1} 8",
+        "text": "这一页先收到这里。下一页进入《总结与下节钩子：双射就是恰好一个》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -700,58 +964,82 @@
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s12-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s12-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s12-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s12-01",
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《总结与下节钩子：双射就是恰好一个》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 1",
+        "text": "上一页《常见错误：定义域、陪域、f 的逆像记号》已经铺好一个动作，现在《总结与下节钩子：双射就是恰好一个》把它推进到双射就是恰好一个。把整本课的工具收成一张可以继续使用的地图。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一个函数到底把哪些输入送到哪里，哪些行为由定义域和陪域决定？"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s12-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s12-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s12-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s12-02",
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "把单射和满射合成双射，为 inverse 和 cardinality 做铺垫。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 3",
+        "text": "把单射和满射合成双射，为逆映射和基数做铺垫。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 4",
+        "text": "这一步回到本节主线：把函数看成带有定义域、陪域和规则的结构运输工具。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s12-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s12-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s12-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s12-03",
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 5",
+        "text": "现在看右侧总结区，把分散工具重新排成一条可复用的路线。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 6",
+        "text": "特别注意陪域和值域不一样，原像也不等于真的反函数。先判断定义，再谈计算。"
       },
       {
         "id": "nb-mat102-zh-functions-i-20260519-spotlight-s12-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-functions-i-20260519-s12-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-functions-i-20260519-s12-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-functions-i-20260519-speech-s12-04",
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 7",
+        "text": "本页真正要带走的是一个动作：遇到双射就是恰好一个，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-functions-i-20260519-p12-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：总结与下节钩子：双射就是恰好一个 8",
+        "text": "最后把《函数 I：像、原像与映射行为》收束成一条主线：每次做函数题，都先分清定义域、陪域、规则、像和原像。"
       }
     ]
   }

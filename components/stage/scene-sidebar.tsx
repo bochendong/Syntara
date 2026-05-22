@@ -26,12 +26,19 @@ import {
   type TalkingAvatarOverlayState,
   type TalkingAvatarPointerInteractionState,
 } from '@/components/canvas/talking-avatar-overlay';
+import type { LectureNoteEntry, LectureNoteItem, LectureNoteVisualCue } from '@/lib/types/chat';
 import { useStageStore } from '@/lib/store';
+import { useCanvasStore } from '@/lib/store/canvas';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import type { SceneType } from '@/lib/types/stage';
+import type { Scene, SceneType } from '@/lib/types/stage';
+import type { PPTElement } from '@/lib/types/slides';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
 import { buildLectureNotesFromScenes } from '@/lib/utils/build-lecture-notes-from-scenes';
+import {
+  buildSemanticSpotlightSections,
+  resolveSemanticSpotlightTargetForText,
+} from '@/lib/notebook-content/semantic-spotlight';
 import { LectureNotesView } from '@/components/chat/lecture-notes-view';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -144,6 +151,79 @@ const DEFAULT_WIDTH = 300;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 440;
 
+function lectureNoteItemKey(note: LectureNoteEntry, item: LectureNoteItem): string {
+  return `${note.sceneId}:${item.id}`;
+}
+
+function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isManualSpotlightCandidate(element: PPTElement): boolean {
+  if (element.type === 'line' || element.type === 'audio') return false;
+  if (element.type === 'text') return stripHtml(element.content).length > 0;
+  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
+  return true;
+}
+
+function pickManualSpotlightTarget(
+  elements: readonly PPTElement[],
+  speechIndex: number,
+): PPTElement | undefined {
+  const candidates = elements
+    .filter(isManualSpotlightCandidate)
+    .sort((a, b) => a.top - b.top || a.left - b.left)
+    .filter((element) => !(element.type === 'text' && element.textType === 'title'));
+
+  if (candidates.length === 0) return undefined;
+  return candidates[Math.min(Math.max(0, speechIndex), candidates.length - 1)] ?? candidates[0];
+}
+
+function applyLectureVisualCue(cue: LectureNoteVisualCue): void {
+  const canvasStore = useCanvasStore.getState();
+
+  if (cue.type === 'semantic_step') {
+    canvasStore.setSemanticStep(cue.blockId, cue.stepIndex);
+    canvasStore.setSpotlight(cue.blockId, { dimness: 0.62 });
+    return;
+  }
+
+  canvasStore.setSpotlight(cue.elementId, { dimness: 0.62 });
+  if (cue.type === 'laser') {
+    canvasStore.setLaser(cue.elementId, { color: '#2563eb' });
+  }
+}
+
+function applyLectureFallbackSpotlight(scene: Scene, item: LectureNoteItem): boolean {
+  if (scene.type !== 'slide' || scene.content.type !== 'slide') return false;
+
+  const canvasStore = useCanvasStore.getState();
+  const speechIndex = item.kind === 'speech' ? item.speechIndex : 0;
+
+  if (scene.content.semanticDocument && scene.content.webRenderMode !== 'slide') {
+    const sections = buildSemanticSpotlightSections(scene.content.semanticDocument);
+    const targetId =
+      item.kind === 'speech'
+        ? resolveSemanticSpotlightTargetForText(item.text, sections) ||
+          sections[Math.min(speechIndex, Math.max(0, sections.length - 1))]?.id ||
+          sections[0]?.id ||
+          'header'
+        : sections[0]?.id || 'header';
+
+    if (!targetId) return false;
+    canvasStore.setSpotlight(targetId, { dimness: 0.62 });
+    return true;
+  }
+
+  const target = pickManualSpotlightTarget(scene.content.canvas.elements, speechIndex);
+  if (!target) return false;
+  canvasStore.setSpotlight(target.id, { dimness: 0.62 });
+  return true;
+}
+
 export function SceneSidebar({
   collapsed,
   onCollapseChange,
@@ -180,6 +260,50 @@ export function SceneSidebar({
   const asrEnabled = useSettingsStore((state) => state.asrEnabled);
   const live2dPresenterModelId = useSettingsStore((state) => state.live2dPresenterModelId);
   const [stageSkinRecord, setStageSkinRecord] = useState<Record<string, string>>({});
+  const [selectedLectureCueKey, setSelectedLectureCueKey] = useState<string | null>(null);
+  const manualLectureCueSelectedRef = useRef(false);
+
+  const clearLectureCueSelection = useCallback(() => {
+    const canvasStore = useCanvasStore.getState();
+    canvasStore.clearSpotlight();
+    canvasStore.clearHighlight();
+    canvasStore.clearLaser();
+    canvasStore.clearSemanticStep();
+    manualLectureCueSelectedRef.current = false;
+    setSelectedLectureCueKey(null);
+  }, []);
+
+  const handleLectureNoteItemSelect = useCallback(
+    (note: LectureNoteEntry, item: LectureNoteItem) => {
+      const scene = scenes.find((candidate) => candidate.id === note.sceneId);
+      if (!scene) return;
+
+      const canvasStore = useCanvasStore.getState();
+      canvasStore.clearSpotlight();
+      canvasStore.clearHighlight();
+      canvasStore.clearLaser();
+      canvasStore.clearSemanticStep();
+
+      const cue = item.kind === 'speech' ? item.visualCues[0] : item.visualCue;
+      if (cue) {
+        applyLectureVisualCue(cue);
+      } else {
+        applyLectureFallbackSpotlight(scene, item);
+      }
+
+      manualLectureCueSelectedRef.current = true;
+      setSelectedLectureCueKey(lectureNoteItemKey(note, item));
+    },
+    [scenes],
+  );
+
+  useEffect(() => {
+    if (manualLectureCueSelectedRef.current) {
+      clearLectureCueSelection();
+      return;
+    }
+    setSelectedLectureCueKey(null);
+  }, [clearLectureCueSelection, currentSceneId]);
 
   const handleRetryOutline = async (outlineId: string) => {
     if (!onRetryOutline) return;
@@ -803,7 +927,14 @@ export function SceneSidebar({
             className="mt-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none data-[state=inactive]:hidden"
           >
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-0 pt-1">
-              <LectureNotesView notes={lectureNotes} currentSceneId={currentSceneId} currentOnly />
+              <LectureNotesView
+                notes={lectureNotes}
+                currentSceneId={currentSceneId}
+                currentOnly
+                selectedItemKey={selectedLectureCueKey}
+                onItemSelect={handleLectureNoteItemSelect}
+                onClearSelection={clearLectureCueSelection}
+              />
             </div>
           </TabsContent>
 

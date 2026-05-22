@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   BarChart3,
   BookOpen,
+  Brain,
   CalendarDays,
   CircleCheck,
   Clock3,
@@ -47,6 +48,7 @@ import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import { getLocalStudyMemoryUserId, loadStudyMemory } from '@/lib/learning/study-memory';
+import { countDefaultCoursePublicMemories } from '@/lib/learning/default-public-memories';
 import { listCourseProblems } from '@/lib/utils/notebook-problem-api';
 import {
   Dialog,
@@ -176,8 +178,10 @@ export default function CourseDetailPage() {
     [sortedNotebooks],
   );
   const totalMemoryCount = useMemo(
-    () => sortedNotebooks.reduce((sum, notebook) => sum + (memoryCounts[notebook.id] ?? 0), 0),
-    [sortedNotebooks, memoryCounts],
+    () =>
+      sortedNotebooks.reduce((sum, notebook) => sum + (memoryCounts[notebook.id] ?? 0), 0) +
+      (course ? countDefaultCoursePublicMemories(course) : 0),
+    [course, sortedNotebooks, memoryCounts],
   );
   const problemReadyNotebookCount = useMemo(
     () => sortedNotebooks.filter((notebook) => (problemCounts[notebook.id] ?? 0) > 0).length,
@@ -531,6 +535,16 @@ export default function CourseDetailPage() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center lg:pt-2">
                   <Button
+                    asChild
+                    variant="outline"
+                    className="h-9 rounded-xl border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
+                  >
+                    <Link href={`/course/${encodeURIComponent(course.id)}/memory`}>
+                      <Brain className="mr-1.5 size-4" strokeWidth={1.8} />
+                      课程记忆
+                    </Link>
+                  </Button>
+                  <Button
                     type="button"
                     variant="outline"
                     className="h-9 rounded-xl border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
@@ -695,16 +709,16 @@ export default function CourseDetailPage() {
                       </div>
                       <div className="mt-3 flex min-w-0 flex-col gap-3">
                         <div
-                          className="mx-auto grid size-16 shrink-0 place-items-center rounded-full"
+                          className="mx-auto grid size-20 shrink-0 place-items-center rounded-full"
                           style={{
                             background: `conic-gradient(#2f6df6 ${weeklyStudyProgress * 3.6}deg, #e7edf7 0deg)`,
                           }}
                         >
-                          <div className="grid size-12 place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-950">
-                            <span className="text-base font-semibold tabular-nums text-slate-950 dark:text-white">
+                          <div className="grid size-14 place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-950">
+                            <span className="text-lg font-semibold tabular-nums text-slate-950 dark:text-white">
                               {weeklyStudyProgress}%
                             </span>
-                            <span className="-mt-1 text-[8px] text-slate-500 dark:text-slate-400">
+                            <span className="-mt-1 text-[9px] text-slate-500 dark:text-slate-400">
                               学习进度
                             </span>
                           </div>

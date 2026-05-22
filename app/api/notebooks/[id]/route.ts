@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { cleanupGeneratedNotebookArtifacts } from '@/lib/server/notebook-artifacts';
 import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
 import {
   deleteOwnedNotebook,
@@ -102,6 +103,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     }
 
     await deleteOwnedNotebook(prisma, userId, id);
-    return NextResponse.json({ ok: true });
+    const artifactCleanup = await cleanupGeneratedNotebookArtifacts(id);
+    return NextResponse.json({ ok: true, artifactCleanup });
   });
 }

@@ -86,7 +86,10 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
     isPlaceholder && !showDisabled && !!task && task.status !== 'done' && task.status !== 'failed';
   const showError = isPlaceholder && task?.status === 'failed';
   const showIdle = isPlaceholder && !showDisabled && !showSkeleton && !showError && !resolvedSrc;
-  const isFullSlideImage = elementInfo.width >= 1500 && elementInfo.height >= 840;
+  const isFullSlideImage =
+    elementInfo.name === 'full_page_bitmap' ||
+    (elementInfo.width >= 990 && elementInfo.height >= 550) ||
+    (elementInfo.width >= 1500 && elementInfo.height >= 840);
   const usePaperFrame =
     !isFullSlideImage &&
     (isPlaceholder || Boolean(elementInfo.outline) || elementInfo.width <= 620);

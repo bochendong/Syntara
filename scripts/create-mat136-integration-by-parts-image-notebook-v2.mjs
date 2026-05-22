@@ -32,6 +32,8 @@ const sourceImages = [
   '/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0fcd108200572cfa016a0cb410c2c881959a0072bba34fa401.png',
   '/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0fcd108200572cfa016a0cb475b234819588345d4745c1381e.png',
   '/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0fcd108200572cfa016a0cb4d4c11c8195ad58c4a624c18f8d.png',
+  '/Users/dongpochen/.codex/generated_images/019e4dac-7e3f-7f21-b03a-c835dad2a4e8/ig_0c8e8c6ded9df511016a0fcbece00481958c0275c7accacc6c.png',
+  '/Users/dongpochen/.codex/generated_images/019e4dac-7e3f-7f21-b03a-c835dad2a4e8/ig_0c8e8c6ded9df511016a0fcc37393c81958fe19b54f4107d32.png',
   '/Users/dongpochen/.codex/generated_images/019e416c-3d64-7843-bacd-a9436ed9d25f/ig_0fcd108200572cfa016a0cb5a7e60c81958d30b169b7ad1914.png',
 ];
 
@@ -83,8 +85,7 @@ const slides = [
         id: 'opening-question',
         label: '今天的问题',
         rect: [45, 735, 1510, 115],
-        speech:
-          '这页只提出问题：怎样把一个乘积积分拆成更容易处理的东西？下一页先看公式怎么用。',
+        speech: '这页只提出问题：怎样把一个乘积积分拆成更容易处理的东西？下一页先看公式怎么用。',
       },
     ],
   },
@@ -123,8 +124,7 @@ const slides = [
         id: 'position-check',
         label: '位置检查',
         rect: [100, 775, 1400, 90],
-        speech:
-          '这页的重点不是证明，而是看懂公式的四个位置：u、dv、du、v 分别从哪里来。',
+        speech: '这页的重点不是证明，而是看懂公式的四个位置：u、dv、du、v 分别从哪里来。',
       },
     ],
   },
@@ -135,8 +135,7 @@ const slides = [
         id: 'product-rule',
         label: '乘积法则',
         rect: [15, 220, 400, 315],
-        speech:
-          '现在回头证明公式。起点是乘积法则：uv 的导数等于 u prime v 加 u v prime。',
+        speech: '现在回头证明公式。起点是乘积法则：uv 的导数等于 u prime v 加 u v prime。',
       },
       {
         id: 'differential-form',
@@ -149,8 +148,7 @@ const slides = [
         id: 'integrate-both-sides',
         label: '两边积分',
         rect: [845, 220, 395, 315],
-        speech:
-          '两边积分以后，左边回到 uv，右边出现两个积分：u dv 的积分和 v du 的积分。',
+        speech: '两边积分以后，左边回到 uv，右边出现两个积分：u dv 的积分和 v du 的积分。',
       },
       {
         id: 'move-term',
@@ -229,8 +227,7 @@ const slides = [
         id: 'common-error',
         label: '常见错误',
         rect: [45, 625, 430, 220],
-        speech:
-          '这题最常见的错误是把最后写成减 cosine x。正确答案是 x sine x 加 cosine x 加 C。',
+        speech: '这题最常见的错误是把最后写成减 cosine x。正确答案是 x sine x 加 cosine x 加 C。',
       },
     ],
   },
@@ -248,29 +245,25 @@ const slides = [
         id: 'choose-u-dv',
         label: '选择 u 和 dv',
         rect: [595, 300, 400, 345],
-        speech:
-          '选 u 等于 ln x，因为它求导变成一除以 x；选 dv 等于 dx，所以 v 等于 x。',
+        speech: '选 u 等于 ln x，因为它求导变成一除以 x；选 dv 等于 dx，所以 v 等于 x。',
       },
       {
         id: 'plug-and-simplify',
         label: '套公式并化简',
         rect: [1045, 300, 510, 345],
-        speech:
-          '套公式后出现 x 乘一除以 x，这正好化成一。于是剩下的积分是最简单的一的积分。',
+        speech: '套公式后出现 x 乘一除以 x，这正好化成一。于是剩下的积分是最简单的一的积分。',
       },
       {
         id: 'answer',
         label: '最终答案',
         rect: [80, 690, 770, 150],
-        speech:
-          '所以 ln x 的积分是 x ln x 减 x 加 C。这也是为什么 ln x 的积分常常要靠分部积分。',
+        speech: '所以 ln x 的积分是 x ln x 减 x 加 C。这也是为什么 ln x 的积分常常要靠分部积分。',
       },
       {
         id: 'wrong-choice',
         label: '错误选择',
         rect: [930, 720, 620, 125],
-        speech:
-          '不要把 dv 选成 ln x dx，因为它正是原题本身；如果你已经会积它，就不需要这道题了。',
+        speech: '不要把 dv 选成 ln x dx，因为它正是原题本身；如果你已经会积它，就不需要这道题了。',
       },
     ],
   },
@@ -304,6 +297,83 @@ const slides = [
         rect: [90, 735, 1380, 120],
         speech:
           '这页留下一个规律：多项式乘指数时，每分部一次，多项式次数通常下降一。次数降到零就结束。',
+      },
+    ],
+  },
+  {
+    title: '挑战例题 4：先换元再分部',
+    steps: [
+      {
+        id: 'read-structure',
+        label: '先读结构',
+        rect: [55, 175, 465, 255],
+        speech:
+          '这题比前面的例子更难一点，因为它不是直接分部。先看结构：cos 里面有 x 平方，外面还有 x 的三次方。',
+      },
+      {
+        id: 'substitution-first',
+        label: '先做换元',
+        rect: [570, 175, 460, 255],
+        speech:
+          '先令 t 等于 x 平方。因为 dt 等于二 x dx，所以 x 的三次方 dx 可以拆成 x 平方乘 x dx，也就是二分之一 t dt。',
+      },
+      {
+        id: 'parts-in-t',
+        label: '在 t 里分部',
+        rect: [1080, 175, 465, 255],
+        speech:
+          '现在才进入分部积分。对 t cosine t 分部，选 u 等于 t，dv 等于 cosine t dt，剩下的 sine t 积分带来正 cosine t。',
+      },
+      {
+        id: 'substitute-back',
+        label: '代回 x',
+        rect: [125, 500, 630, 260],
+        speech:
+          '最后把 t 换回 x 平方。答案是二分之一乘 x 平方 sine x 平方加 cosine x 平方，再加 C。',
+      },
+      {
+        id: 'method-warning',
+        label: '方法提醒',
+        rect: [840, 500, 610, 260],
+        speech:
+          '这题的重点是顺序：先换元，把题目变成标准的乘积积分；再分部。不要一上来硬分部，否则步骤会很乱。',
+      },
+    ],
+  },
+  {
+    title: '挑战例题 5：∫ arctan x dx',
+    steps: [
+      {
+        id: 'hidden-product',
+        label: '隐藏的乘积',
+        rect: [55, 175, 465, 255],
+        speech: '这题看起来不像乘积，但和 ln x 一样，可以把 arctan x 看成 arctan x 乘以一。',
+      },
+      {
+        id: 'choose-roles',
+        label: '选择 u 和 dv',
+        rect: [570, 175, 460, 255],
+        speech: '选择 u 等于 arctan x，因为它求导会变成一个有理函数。dv 就是 dx，所以 v 等于 x。',
+      },
+      {
+        id: 'apply-formula',
+        label: '套分部积分',
+        rect: [1080, 175, 465, 255],
+        speech: '套公式后，原积分变成 x arctan x，减去 x 除以一加 x 平方的积分。难点已经降成换元。',
+      },
+      {
+        id: 'log-integral',
+        label: '处理剩余积分',
+        rect: [125, 500, 630, 260],
+        speech:
+          '剩下的积分用换元。令 w 等于一加 x 平方，那么 x dx 是二分之一 dw，所以得到二分之一 ln 一加 x 平方。',
+      },
+      {
+        id: 'final-answer',
+        label: '最终答案',
+        rect: [840, 500, 610, 260],
+        speech:
+          '最后答案是 x arctan x 减二分之一 ln 一加 x 平方，再加 C。这里的负号仍然来自分部积分公式。',
       },
     ],
   },
@@ -349,8 +419,7 @@ const slides = [
         id: 'next-hook',
         label: '下节课钩子',
         rect: [1040, 750, 530, 110],
-        speech:
-          '下节课可以继续讲表格法，以及定积分里的分部积分。那时还会多一个上下限处理问题。',
+        speech: '下节课可以继续讲表格法，以及定积分里的分部积分。那时还会多一个上下限处理问题。',
       },
     ],
   },
@@ -491,12 +560,15 @@ async function renderSlides() {
     }
   }
 
-  for (const [index, source] of sourceImages.entries()) {
+  for (const [index, slide] of slides.entries()) {
+    const outputFile = path.join(OUTPUT_DIR, `slide-${String(index + 1).padStart(2, '0')}.png`);
+    const source = sourceImages[index];
+    if (!source) throw new Error(`Missing visual source for slide ${index + 1}: ${slide.title}`);
     if (!fs.existsSync(source)) throw new Error(`Missing generated image: ${source}`);
     await sharp(source)
       .resize(SOURCE_WIDTH, SOURCE_HEIGHT, { fit: 'cover', position: 'center' })
       .png()
-      .toFile(path.join(OUTPUT_DIR, `slide-${String(index + 1).padStart(2, '0')}.png`));
+      .toFile(outputFile);
   }
 
   const hitMap = {
@@ -560,7 +632,7 @@ async function seedNotebook() {
         courseId: course.id,
         name: 'Week 2：分部积分 · 教学重排版',
         description:
-          'MAT 136 Week 2 integration by parts notebook in image-generated full-slide format. V2 follows a teacher-led lesson arc: overview, motivation, formula use, proof, u/dv choice, three worked examples, and summary hook.',
+          'MAT 136 Week 2 integration by parts notebook in image-generated full-slide format. V2 follows a teacher-led lesson arc: overview, motivation, formula use, proof, u/dv choice, worked examples, two PDF-derived challenge examples, and a final summary.',
         tags: ['MAT136', 'Integration by Parts', '分部积分', 'calculus', 'semantic-hit-map'],
         avatarUrl: '/avatars/notebook-agents/avatar8.avif',
         language: 'zh-CN',
@@ -573,7 +645,7 @@ async function seedNotebook() {
         courseId: course.id,
         name: 'Week 2：分部积分 · 教学重排版',
         description:
-          'MAT 136 Week 2 integration by parts notebook in image-generated full-slide format. V2 follows a teacher-led lesson arc: overview, motivation, formula use, proof, u/dv choice, three worked examples, and summary hook.',
+          'MAT 136 Week 2 integration by parts notebook in image-generated full-slide format. V2 follows a teacher-led lesson arc: overview, motivation, formula use, proof, u/dv choice, worked examples, two PDF-derived challenge examples, and a final summary.',
         tags: ['MAT136', 'Integration by Parts', '分部积分', 'calculus', 'semantic-hit-map'],
         avatarUrl: '/avatars/notebook-agents/avatar8.avif',
         language: 'zh-CN',

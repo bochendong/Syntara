@@ -2,7 +2,7 @@ import type { Stage, Scene, SceneGenerationDiagnostics } from '../types/stage';
 import type { ChatSession } from '../types/chat';
 import { createLogger } from '@/lib/logger';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
-import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
+import { deleteContactMessages, loadContactMessages } from '@/lib/utils/contact-chat-storage';
 import type { Slide } from '../types/slides';
 import {
   clearStageDraftSnapshot,
@@ -13,6 +13,7 @@ import {
 import { clearPersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 import { pickStableNotebookAgentAvatarUrl } from '@/lib/constants/notebook-agent-avatars';
+import { clearStudyMemory } from '@/lib/learning/study-memory';
 
 const log = createLogger('StageStorage');
 
@@ -596,6 +597,8 @@ export async function deleteStageData(stageId: string): Promise<void> {
   });
   await clearStageDraftSnapshot(stageId);
   clearPersistedStageOutlines(stageId);
+  clearStudyMemory(stageId);
+  await deleteContactMessages({ kind: 'notebook', targetId: stageId, ignoreCourseId: true });
 }
 
 /**

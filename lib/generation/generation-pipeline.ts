@@ -9,6 +9,10 @@
 export type {
   AgentInfo,
   CoursePersonalizationContext,
+  SceneActionContinuityContext,
+  SceneActionCourseSpineContext,
+  SceneActionFocusPlanItem,
+  SceneActionNarrationPolicy,
   SceneGenerationContext,
   GeneratedSlideData,
   GenerationResult,

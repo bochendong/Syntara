@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   Brain,
-  CheckCircle2,
   CircleDollarSign,
   FileQuestion,
   FolderInput,
@@ -265,17 +264,11 @@ export function CourseGalleryCard({
         : 'Notebook Library';
 
   if (variant === 'notebook') {
-    const statusLabel = course.sourceNotebookId
-      ? '已购副本'
-      : course.listedInNotebookStore
-        ? '已发布'
-        : '草稿';
-    const statusClassName = course.sourceNotebookId
-      ? 'border-sky-200/80 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-200'
-      : course.listedInNotebookStore
-        ? 'border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200'
-        : 'border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200';
     const compactPriceLabel = priceLabel?.trim() || '免费';
+    const priceInlineClassName =
+      compactPriceLabel === '免费'
+        ? 'bg-emerald-50/70 text-emerald-700 ring-1 ring-emerald-100/80 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-400/20'
+        : 'bg-amber-50/70 text-amber-700 ring-1 ring-amber-100/80 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-400/20';
     const formattedMemoryCount =
       typeof memoryCount === 'number' && memoryCount > 0 ? memoryCount : 0;
     const formattedProblemCount =
@@ -314,35 +307,37 @@ export function CourseGalleryCard({
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-2.5 p-2.5 pl-9 sm:flex-row sm:items-center">
-          <div
-            ref={thumbRef}
-            className="relative h-[6.75rem] w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/85 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70 sm:w-[36%] sm:min-w-[5.5rem] 2xl:min-w-[6.5rem]"
-          >
-            {shouldUseSlidePreviewImage && slidePreviewImageUrl ? (
-              <img
-                src={slidePreviewImageUrl}
-                alt=""
-                className="absolute inset-0 size-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.03]"
-                onError={() => setFailedSlidePreviewUrl(slidePreviewImageUrl)}
-              />
-            ) : slide && thumbWidth > 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-white">
-                <ThumbnailSlide
-                  slide={slide}
-                  size={thumbWidth}
-                  viewportSize={slide.viewportSize ?? 1000}
-                  viewportRatio={slide.viewportRatio ?? 0.5625}
+          <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-[36%] sm:min-w-[5.5rem] 2xl:min-w-[6.5rem]">
+            <div
+              ref={thumbRef}
+              className="relative h-[6.75rem] w-full overflow-hidden rounded-xl border border-slate-200/85 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70"
+            >
+              {shouldUseSlidePreviewImage && slidePreviewImageUrl ? (
+                <img
+                  src={slidePreviewImageUrl}
+                  alt=""
+                  className="absolute inset-0 size-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                  onError={() => setFailedSlidePreviewUrl(slidePreviewImageUrl)}
                 />
-              </div>
-            ) : (
-              <img
-                src={resolvedCoverUrl}
-                alt=""
-                className="absolute inset-0 size-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.03]"
-                onError={() => setCoverImgSrc(galleryCoverUrl)}
-              />
-            )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/14 via-transparent to-white/10" />
+              ) : slide && thumbWidth > 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-white">
+                  <ThumbnailSlide
+                    slide={slide}
+                    size={thumbWidth}
+                    viewportSize={slide.viewportSize ?? 1000}
+                    viewportRatio={slide.viewportRatio ?? 0.5625}
+                  />
+                </div>
+              ) : (
+                <img
+                  src={resolvedCoverUrl}
+                  alt=""
+                  className="absolute inset-0 size-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                  onError={() => setCoverImgSrc(galleryCoverUrl)}
+                />
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/14 via-transparent to-white/10" />
+            </div>
           </div>
 
           <div className="flex min-w-0 flex-1 self-stretch py-0.5">
@@ -361,6 +356,15 @@ export function CourseGalleryCard({
                     {parentCourseName?.trim() ? (
                       <span className="truncate">{`所属课程 · ${parentCourseName.trim()}`}</span>
                     ) : null}
+                    <span
+                      className={cn(
+                        'inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none',
+                        priceInlineClassName,
+                      )}
+                    >
+                      <CircleDollarSign className="size-2.5 shrink-0" strokeWidth={2} />
+                      {compactPriceLabel}
+                    </span>
                   </div>
                 </div>
 
@@ -500,30 +504,13 @@ export function CourseGalleryCard({
                     </span>
                   </span>
                 </div>
-                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
-                  <span
-                    className={cn(
-                      'inline-flex w-fit max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 font-semibold',
-                      statusClassName,
-                    )}
-                  >
-                    {course.listedInNotebookStore ? (
-                      <CheckCircle2 className="size-3" strokeWidth={2} />
-                    ) : (
-                      <Send className="size-3" strokeWidth={2} />
-                    )}
-                    {statusLabel}
-                  </span>
-                  <span className="inline-flex w-fit max-w-full items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-                    <CircleDollarSign className="size-3" strokeWidth={2} />
-                    {compactPriceLabel}
-                  </span>
-                  {speechStatusLabel?.trim() ? (
+                {speechStatusLabel?.trim() ? (
+                  <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
                     <span className="inline-flex max-w-full truncate rounded-md border border-slate-200/80 bg-white/70 px-1.5 py-0.5 font-medium text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                       {speechStatusLabel.trim()}
                     </span>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-auto grid min-w-0 grid-cols-2 gap-2 pt-2">

@@ -16,12 +16,59 @@ export interface AgentInfo {
 
 // ==================== Cross-Page Context ====================
 
+export interface SceneActionCourseSpineContext {
+  logline?: string;
+  openingHook?: string;
+  centralQuestion?: string;
+  recurringExample?: string;
+  visualMotif?: string;
+  closingCallback?: string;
+  acts?: Array<{
+    id?: string;
+    act?: string;
+    title?: string;
+    purpose?: string;
+    pages?: number[];
+    keyQuestion?: string;
+  }>;
+}
+
+export interface SceneActionContinuityContext {
+  actId?: string;
+  rhetoricalRole?: string;
+  fromPrevious?: string;
+  pageMove?: string;
+  toNext?: string;
+  callbackToSpine?: string;
+}
+
+export interface SceneActionFocusPlanItem {
+  targetId?: string;
+  label: string;
+  role?: string;
+  targetHint?: string;
+  order?: number;
+}
+
+export interface SceneActionNarrationPolicy {
+  minSpeechSegments?: number;
+  preferredSpeechSegments?: string;
+  maxConsecutiveSpeechWithoutFocus?: number;
+  requireFocusBeforeSpeech?: boolean;
+  requireSpeechAfterFocus?: boolean;
+  directAddress?: boolean;
+}
+
 /** Cross-page context for maintaining speech coherence across scenes */
 export interface SceneGenerationContext {
   pageIndex: number; // Current page (1-based)
   totalPages: number; // Total number of pages
   allTitles: string[]; // All page titles in order
   previousSpeeches: string[]; // Speech texts from the previous page only
+  courseSpine?: SceneActionCourseSpineContext;
+  continuity?: SceneActionContinuityContext;
+  focusPlan?: SceneActionFocusPlanItem[];
+  narrationPolicy?: SceneActionNarrationPolicy;
 }
 
 /** Course-level personalization context used by all generation stages */

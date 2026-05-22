@@ -7,58 +7,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s01-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s01-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《封面：逻辑继续》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：封面：逻辑继续 1",
+        "text": "这本《量词、蕴含与否定》从一个主问题开始：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？先把整本课的入口问题立起来。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：封面：逻辑继续 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s01-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s01-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "把本节定位为从简单命题进入完整数学语句。预览量词、蕴含、逆命题、逆否命题和否定。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：封面：逻辑继续 3",
+        "text": "把本节定位为从简单命题进入完整数学语句。预览量词、蕴含、逆命题、逆否命题和否定。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：封面：逻辑继续 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s01-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s01-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：封面：逻辑继续 5",
+        "text": "现在看右侧的视觉线索，把它当成这一讲的第一张路线图。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：封面：逻辑继续 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s01-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s01-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s01-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：引入：“所有人”还是“某个人”？。"
+        "title": "讲解：封面：逻辑继续 7",
+        "text": "本页真正要带走的是一个动作：遇到逻辑继续，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p01-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：封面：逻辑继续 8",
+        "text": "这一页先收到这里。下一页进入《引入：“所有人”还是“某个人”？》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -70,58 +94,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s02-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s02-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《引入：“所有人”还是“某个人”？》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：引入：“所有人”还是“某个人”？ 1",
+        "text": "上一页《封面：逻辑继续》已经铺好一个动作，现在《引入：“所有人”还是“某个人”？》把它推进到“所有人”还是“某个人”？。用一个具体入口，把新概念为什么需要出现讲清楚。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：引入：“所有人”还是“某个人”？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s02-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s02-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "用 everyday claims 展示隐藏量词。让学生看到一句话的真值常常由量词位置决定。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：引入：“所有人”还是“某个人”？ 3",
+        "text": "用 everyday claims 展示隐藏量词。看见一句话的真值常常由量词位置决定。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：引入：“所有人”还是“某个人”？ 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s02-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s02-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：引入：“所有人”还是“某个人”？ 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：引入：“所有人”还是“某个人”？ 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s02-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s02-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s02-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：全称量词与存在量词。"
+        "title": "讲解：引入：“所有人”还是“某个人”？ 7",
+        "text": "本页真正要带走的是一个动作：遇到“所有人”还是“某个人”？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p02-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：引入：“所有人”还是“某个人”？ 8",
+        "text": "这一页先收到这里。下一页进入《全称量词与存在量词》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -133,58 +181,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s03-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s03-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《全称量词与存在量词》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：全称量词与存在量词 1",
+        "text": "上一页《引入：“所有人”还是“某个人”？》已经铺好一个动作，现在《全称量词与存在量词》把它推进到全称量词与存在量词。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：全称量词与存在量词 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s03-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s03-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 forall 和 exists，并解释它们如何把 predicate 变成 proposition。对比证明所有情况和找一个例子。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：全称量词与存在量词 3",
+        "text": "这里给出定义：对所有和 存在，并解释它们如何把 predicate 变成 proposition。对比证明所有情况和找一个例子。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：全称量词与存在量词 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s03-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s03-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：全称量词与存在量词 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：全称量词与存在量词 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s03-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s03-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s03-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：怎样证明带量词的语句。"
+        "title": "讲解：全称量词与存在量词 7",
+        "text": "本页真正要带走的是一个动作：遇到全称量词与存在量词，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p03-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：全称量词与存在量词 8",
+        "text": "这一页先收到这里。下一页进入《怎样证明带量词的语句》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -196,58 +268,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s04-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s04-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《怎样证明带量词的语句》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：怎样证明带量词的语句 1",
+        "text": "上一页《全称量词与存在量词》已经铺好一个动作，现在《怎样证明带量词的语句》把它推进到怎样证明带量词的语句。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：怎样证明带量词的语句 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s04-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s04-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "存在命题给 witness，全称命题任取 arbitrary element 再证明。把证明动作和量词类型配对。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：怎样证明带量词的语句 3",
+        "text": "存在命题给 witness，全称命题任取 arbitrary element 再证明。把证明动作和量词类型配对。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：怎样证明带量词的语句 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s04-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s04-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：怎样证明带量词的语句 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：怎样证明带量词的语句 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s04-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s04-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s04-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：多重量词：顺序很重要。"
+        "title": "讲解：怎样证明带量词的语句 7",
+        "text": "本页真正要带走的是一个动作：遇到怎样证明带量词的语句，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p04-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：怎样证明带量词的语句 8",
+        "text": "这一页先收到这里。下一页进入《多重量词：顺序很重要》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -259,58 +355,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s05-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s05-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《多重量词：顺序很重要》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：多重量词：顺序很重要 1",
+        "text": "上一页《怎样证明带量词的语句》已经铺好一个动作，现在《多重量词：顺序很重要》把它推进到多重量词：顺序很重要。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：多重量词：顺序很重要 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s05-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s05-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "比较 forall x exists y 和 exists y forall x。强调后出现的选择是否可以依赖前面的变量。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：多重量词：顺序很重要 3",
+        "text": "比较对所有 x 存在 y 和存在 y 对所有 x。强调后出现的选择是否可以依赖前面的变量。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：多重量词：顺序很重要 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s05-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s05-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：多重量词：顺序很重要 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：多重量词：顺序很重要 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s05-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s05-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s05-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：把符号翻译成白话。"
+        "title": "讲解：多重量词：顺序很重要 7",
+        "text": "本页真正要带走的是一个动作：遇到多重量词：顺序很重要，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p05-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：多重量词：顺序很重要 8",
+        "text": "这一页先收到这里。下一页进入《把符号翻译成白话》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -322,58 +442,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s06-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s06-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《把符号翻译成白话》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：把符号翻译成白话 1",
+        "text": "上一页《多重量词：顺序很重要》已经铺好一个动作，现在《把符号翻译成白话》把它推进到把符号翻译成白话。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：把符号翻译成白话 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s06-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s06-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "练习把符号语句改写成不含变量名的自然语言。用课堂、生日或多项式例子显示量词结构。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：把符号翻译成白话 3",
+        "text": "练习把符号语句改写成不含变量名的自然语言。用课堂、生日或多项式例子显示量词结构。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：把符号翻译成白话 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s06-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s06-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：把符号翻译成白话 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：把符号翻译成白话 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s06-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s06-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s06-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：否定量词。"
+        "title": "讲解：把符号翻译成白话 7",
+        "text": "本页真正要带走的是一个动作：遇到把符号翻译成白话，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p06-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：把符号翻译成白话 8",
+        "text": "这一页先收到这里。下一页进入《否定量词》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -385,58 +529,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s07-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s07-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《否定量词》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：否定量词 1",
+        "text": "上一页《把符号翻译成白话》已经铺好一个动作，现在《否定量词》把它推进到否定量词。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：否定量词 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s07-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s07-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "展示 not forall 变成 exists not，not exists 变成 forall not。把 counterexample 和全称命题的否定联系起来。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：否定量词 3",
+        "text": "展示 not 对所有变成存在 not，not 存在变成对所有 not。把 counterexample 和全称命题的否定联系起来。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：否定量词 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s07-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s07-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：否定量词 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：否定量词 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s07-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s07-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s07-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：蕴含与 vacuous truth。"
+        "title": "讲解：否定量词 7",
+        "text": "本页真正要带走的是一个动作：遇到否定量词，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p07-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：否定量词 8",
+        "text": "这一页先收到这里。下一页进入《蕴含与 vacuous truth》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -448,58 +616,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s08-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s08-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《蕴含与 vacuous truth》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：蕴含与 vacuous truth 1",
+        "text": "上一页《否定量词》已经铺好一个动作，现在《蕴含与 vacuous truth》把它推进到蕴含与 vacuous truth。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：蕴含与 vacuous truth 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s08-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s08-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "用真值表定义 P => Q，并解释当前提为假时蕴含为什么为真。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：蕴含与 vacuous truth 3",
+        "text": "用真值表定义 P 推出 Q，并解释当前提为假时蕴含为什么为真。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：蕴含与 vacuous truth 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s08-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s08-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：蕴含与 vacuous truth 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：蕴含与 vacuous truth 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s08-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s08-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s08-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：逆命题 vs 逆否命题。"
+        "title": "讲解：蕴含与 vacuous truth 7",
+        "text": "本页真正要带走的是一个动作：遇到蕴含与 vacuous truth，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p08-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：蕴含与 vacuous truth 8",
+        "text": "这一页先收到这里。下一页进入《逆命题 vs 逆否命题》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -511,58 +703,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s09-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s09-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《逆命题 vs 逆否命题》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：逆命题 vs 逆否命题 1",
+        "text": "上一页《蕴含与 vacuous truth》已经铺好一个动作，现在《逆命题 vs 逆否命题》把它推进到逆命题 vs 逆否命题。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：逆命题 vs 逆否命题 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s09-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s09-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "定义 converse 和 contrapositive。强调原命题等价于逆否命题，但不等价于逆命题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：逆命题 vs 逆否命题 3",
+        "text": "这里给出定义：converse 和 contrapositive。强调原命题等价于逆否命题，但不等价于逆命题。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：逆命题 vs 逆否命题 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s09-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s09-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：逆命题 vs 逆否命题 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：逆命题 vs 逆否命题 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s09-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s09-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s09-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：用逆否命题证明。"
+        "title": "讲解：逆命题 vs 逆否命题 7",
+        "text": "本页真正要带走的是一个动作：遇到逆命题 vs 逆否命题，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p09-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：逆命题 vs 逆否命题 8",
+        "text": "这一页先收到这里。下一页进入《用逆否命题证明》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -574,58 +790,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s10-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s10-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《用逆否命题证明》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：用逆否命题证明 1",
+        "text": "上一页《逆命题 vs 逆否命题》已经铺好一个动作，现在《用逆否命题证明》把它推进到用逆否命题证明。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：用逆否命题证明 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s10-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s10-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "讲解“若 n^2 为偶数，则 n 为偶数”。通过证明 n 为奇数推出 n^2 为奇数来完成原命题。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：用逆否命题证明 3",
+        "text": "讲解“若 n的2 为偶数，则 n 为偶数”。通过证明 n 为奇数推出 n的2 为奇数来完成原命题。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：用逆否命题证明 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s10-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s10-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：用逆否命题证明 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：用逆否命题证明 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s10-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s10-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s10-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：否定蕴含与反例。"
+        "title": "讲解：用逆否命题证明 7",
+        "text": "本页真正要带走的是一个动作：遇到用逆否命题证明，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p10-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：用逆否命题证明 8",
+        "text": "这一页先收到这里。下一页进入《否定蕴含与反例》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -637,58 +877,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s11-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s11-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《否定蕴含与反例》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：否定蕴含与反例 1",
+        "text": "上一页《用逆否命题证明》已经铺好一个动作，现在《否定蕴含与反例》把它推进到否定蕴含与反例。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：否定蕴含与反例 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s11-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s11-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "说明 not(P => Q) 等于 P and not Q。反例就是让假设成立、结论失败的对象。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：否定蕴含与反例 3",
+        "text": "这里要说明 not(P 推出 Q) 等于 P and not Q。反例就是让假设成立、结论失败的对象。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：否定蕴含与反例 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s11-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s11-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：否定蕴含与反例 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：否定蕴含与反例 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s11-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s11-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s11-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "用底部总结把本页结论压成一句话，然后顺势引到下一页：语言陷阱与下节钩子。"
+        "title": "讲解：否定蕴含与反例 7",
+        "text": "本页真正要带走的是一个动作：遇到否定蕴含与反例，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p11-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：否定蕴含与反例 8",
+        "text": "这一页先收到这里。下一页进入《语言陷阱与下节钩子》，刚才这个动作会变成下一步要检查的工具。"
       }
     ]
   },
@@ -700,58 +964,82 @@
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s12-01",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-title",
         "title": "标题与本页位置",
-        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s12-01",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-01",
         "type": "speech",
-        "title": "讲解：标题与本页位置",
-        "text": "这一页是《语言陷阱与下节钩子》。先让学生知道它在整节课中的位置，不急着把结论全部讲完。"
+        "title": "讲解：语言陷阱与下节钩子 1",
+        "text": "上一页《否定蕴含与反例》已经铺好一个动作，现在《语言陷阱与下节钩子》把它推进到语言陷阱与下节钩子。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：语言陷阱与下节钩子 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：一句数学话到底在对哪些对象下承诺，又要怎样证明或否定？"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s12-02",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-main-idea",
         "title": "左侧核心概念区",
-        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s12-02",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-03",
         "type": "speech",
-        "title": "讲解：左侧核心概念区",
-        "text": "总结 inclusive OR、NOT 的位置、英文 if-then 与数学蕴含的差异。预告反证法和关系。 讲的时候先问学生会怎么判断，再把图中的关键对象圈出来。"
+        "title": "讲解：语言陷阱与下节钩子 3",
+        "text": "最后总结 inclusive OR、NOT 的位置、英文如果那么与数学蕴含的差异。预告反证法和关系。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：语言陷阱与下节钩子 4",
+        "text": "这一步回到本节主线：把含变量的句子变成可证明、可反驳的数学断言。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s12-03",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-worked-board",
         "title": "右侧例题或图像区",
-        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s12-03",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-05",
         "type": "speech",
-        "title": "讲解：右侧例题或图像区",
-        "text": "用右侧例题或图像把定义变成一步一步的推理。这里要明确“先看什么、为什么这样写、下一步怎么来”，不要直接跳到答案。"
+        "title": "讲解：语言陷阱与下节钩子 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：语言陷阱与下节钩子 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
       },
       {
         "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-spotlight-s12-04",
         "type": "spotlight",
-        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-takeaway",
         "title": "底部总结与下一步",
-        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。",
-        "dimOpacity": 0.76
+        "elementId": "nb-mat102-zh-logic-quantifiers-implications-20260519-s12-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
       },
       {
-        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-speech-s12-04",
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-07",
         "type": "speech",
-        "title": "讲解：底部总结与下一步",
-        "text": "最后收束本节主线：今天学了哪些语言、哪些证明动作、哪些坑要避开；再把问题自然交给下一节。"
+        "title": "讲解：语言陷阱与下节钩子 7",
+        "text": "本页真正要带走的是一个动作：遇到语言陷阱与下节钩子，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-logic-quantifiers-implications-20260519-p12-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：语言陷阱与下节钩子 8",
+        "text": "最后把《量词、蕴含与否定》收束成一条主线：先找量词和条件，再决定证明、反例、逆否或否定该怎么走。"
       }
     ]
   }

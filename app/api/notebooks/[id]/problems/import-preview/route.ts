@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { assertUserHasCredits, chargeCreditsForWebSearch } from '@/lib/server/credits';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
+import { createProblemImportBatch } from '@/lib/server/notebook-problems/import-batch-store';
 import { extractProblemDraftsFromText } from '@/features/problems/server/import';
 import { listNotebookProblemsForUser } from '@/features/problems/server/service';
 import { estimateWebSearchRetailCostCredits } from '@/lib/utils/openai-pricing';
@@ -17,6 +19,8 @@ const previewSchema = z
     text: z.string().trim().max(120000).default(''),
     searchQuery: z.string().trim().max(400).optional(),
     webSearchApiKey: z.string().trim().max(200).optional(),
+    sourceFileName: z.string().trim().max(240).optional(),
+    sourceFileMime: z.string().trim().max(120).optional(),
     language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
   })
   .superRefine((value, ctx) => {
@@ -45,6 +49,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     if ('response' in auth) return auth.response;
     const { id } = await context.params;
 
+    const notebook = await prisma.notebook.findFirst({
+      where: { id, ownerId: auth.userId },
+      select: { id: true, courseId: true },
+    });
+    if (!notebook) {
+      return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+    }
     await listNotebookProblemsForUser(auth.userId, id);
 
     const payload = previewSchema.safeParse(await req.json());
@@ -161,9 +172,34 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       },
     );
 
+    const importBatch = await createProblemImportBatch({
+      prisma,
+      userId: auth.userId,
+      targetType: 'notebook',
+      courseId: notebook.courseId,
+      notebookId: id,
+      source: payload.data.source,
+      sourceText: importText,
+      sourceFileName: payload.data.sourceFileName,
+      sourceFileMime: payload.data.sourceFileMime,
+      draftSnapshot: result.drafts,
+      draftCount: result.drafts.length,
+      usage: result.usage,
+      webSearch,
+    });
+
     return NextResponse.json({
       ...result,
       webSearch,
+      importBatch: {
+        id: importBatch.id,
+        status: importBatch.status,
+        source: importBatch.source,
+        draftCount: importBatch.draftCount,
+        committedCount: importBatch.committedCount,
+        sourceFileName: importBatch.sourceFileName,
+        createdAt: importBatch.createdAt,
+      },
     });
   });
 }

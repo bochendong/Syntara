@@ -1,0 +1,3148 @@
+[
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01",
+    "title": "递归先从公式加 base case",
+    "order": 0,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 1",
+        "text": "这本《递归、Helper 与 BST》先抓住一个主问题：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p01-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：递归先从公式加 停止情形 12",
+        "text": "下一页进入《阶乘先写更小的问题》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02",
+    "title": "阶乘先写更小的问题",
+    "order": 1,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 1",
+        "text": "上一页《递归先从公式加停止情形》先铺好一个动作，现在这一页继续推进到《阶乘先写更小的问题》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 3",
+        "text": "现在看树结构。先分清当前 node、它的 value，以及它下面还有哪些 children。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 4",
+        "text": "树递归的重点是：当前节点做一件事，子节点列表交给另一个函数或递归过程继续处理。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p02-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：阶乘先写更小的问题 12",
+        "text": "下一页进入《没有停止情形会不会停》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03",
+    "title": "没有 base case 会不会停",
+    "order": 2,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 1",
+        "text": "上一页《阶乘先写更小的问题》先铺好一个动作，现在这一页继续推进到《没有停止情形会不会停》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p03-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：没有 停止情形 会不会停 12",
+        "text": "下一页进入《阶乘加上停止情形》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04",
+    "title": "阶乘加上 base case",
+    "order": 3,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 1",
+        "text": "上一页《没有停止情形会不会停》先铺好一个动作，现在这一页继续推进到《阶乘加上停止情形》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p04-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：阶乘加上 停止情形 12",
+        "text": "下一页进入《Fibonacci 一个停止情形不够》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05",
+    "title": "Fibonacci 一个 base case 不够",
+    "order": 4,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 1",
+        "text": "上一页《阶乘加上停止情形》先铺好一个动作，现在这一页继续推进到《Fibonacci 一个停止情形不够》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p05-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Fibonacci 一个 停止情形 不够 12",
+        "text": "下一页进入《Fibonacci 需要两个停止情形》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06",
+    "title": "Fibonacci 需要两个 base cases",
+    "order": 5,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 1",
+        "text": "上一页《Fibonacci 一个停止情形不够》先铺好一个动作，现在这一页继续推进到《Fibonacci 需要两个停止情形》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p06-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Fibonacci 需要两个 停止情形 12",
+        "text": "下一页进入《回到 list：empty 就是停止情形》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07",
+    "title": "回到 list：empty 就是 base case",
+    "order": 6,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 1",
+        "text": "上一页《Fibonacci 需要两个停止情形》先铺好一个动作，现在这一页继续推进到《回到 list：empty 就是停止情形》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p07-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：回到 list：empty 就是 停止情形 12",
+        "text": "下一页进入《整数列表的 自引用在 rest》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08",
+    "title": "ListOfInteger 的 self-reference 在 rest",
+    "order": 7,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 1",
+        "text": "上一页《回到 list：empty 就是停止情形》先铺好一个动作，现在这一页继续推进到《整数列表的 自引用在 rest》。这一页要靠字段类型做判断：直接使用、调用 helper，还是递归处理。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 3",
+        "text": "现在看递归位置。先找停止情形，再找哪一部分变成了更小的问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 4",
+        "text": "递归调用不是重复自己这么简单，它必须朝着停止情形靠近。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p08-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：整数列表 的 自引用 在 rest 12",
+        "text": "下一页进入《List 模板：两个 case 一个递归调用》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09",
+    "title": "List template：两个 case 一个 recursive call",
+    "order": 8,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 1",
+        "text": "上一页《整数列表的 自引用在 rest》先铺好一个动作，现在这一页继续推进到《List 模板：两个 case 一个递归调用》。这一页要靠字段类型做判断：直接使用、调用 helper，还是递归处理。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p09-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：List 模板：两个 case 一个 递归调用 12",
+        "text": "下一页进入《递归 trace：一次处理一个元素》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10",
+    "title": "递归 trace：一次处理一个元素",
+    "order": 9,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 1",
+        "text": "上一页《List 模板：两个 case 一个递归调用》先铺好一个动作，现在这一页继续推进到《递归 trace：一次处理一个元素》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 3",
+        "text": "现在看递归位置。先找停止情形，再找哪一部分变成了更小的问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 4",
+        "text": "递归调用不是重复自己这么简单，它必须朝着停止情形靠近。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p10-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：递归 trace：一次处理一个元素 12",
+        "text": "下一页进入《Helper problem：先看函数要产出什么》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11",
+    "title": "Helper problem：先看函数要产出什么",
+    "order": 10,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 1",
+        "text": "上一页《递归 trace：一次处理一个元素》先铺好一个动作，现在这一页继续推进到《Helper problem：先看函数要产出什么》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 3",
+        "text": "现在看 helper 或引用位置。字段如果是另一个 HTDD，就不要在这里硬展开，交给对应 helper。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 4",
+        "text": "这样做的好处是每个函数只负责自己的数据形状，代码不会混成一团。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p11-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Helper problem：先看函数要产出什么 12",
+        "text": "下一页进入《三个数据定义，三个职责》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12",
+    "title": "三个数据定义，三个职责",
+    "order": 11,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 1",
+        "text": "上一页《Helper problem：先看函数要产出什么》先铺好一个动作，现在这一页继续推进到《三个数据定义，三个职责》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 3",
+        "text": "现在看左侧定义或图像。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 4",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p12-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：三个数据定义，三个职责 12",
+        "text": "下一页进入《Package 不知道 ball 或 block 的细节》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13",
+    "title": "Package 不知道 ball 或 block 的细节",
+    "order": 12,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 1",
+        "text": "上一页《三个数据定义，三个职责》先铺好一个动作，现在这一页继续推进到《Package 不知道 ball 或 block 的细节》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 3",
+        "text": "现在看树结构。先分清当前 node、它的 value，以及它下面还有哪些 children。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 4",
+        "text": "树递归的重点是：当前节点做一件事，子节点列表交给另一个函数或递归过程继续处理。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p13-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Package 不知道 ball 或 block 的细节 12",
+        "text": "下一页进入《模板 helper：Package 调用 Gift》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14",
+    "title": "Template helper：Package 调用 Gift",
+    "order": 13,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 1",
+        "text": "上一页《Package 不知道 ball 或 block 的细节》先铺好一个动作，现在这一页继续推进到《模板 helper：Package 调用 Gift》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p14-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：模板 helper：Package 调用 Gift 12",
+        "text": "下一页进入《Outer function 只拆掉 Package 外壳》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15",
+    "title": "Outer function 只拆掉 Package 外壳",
+    "order": 14,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 1",
+        "text": "上一页《模板 helper：Package 调用 Gift》先铺好一个动作，现在这一页继续推进到《Outer function 只拆掉 Package 外壳》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 3",
+        "text": "现在看树结构。先分清当前 node、它的 value，以及它下面还有哪些 children。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 4",
+        "text": "树递归的重点是：当前节点做一件事，子节点列表交给另一个函数或递归过程继续处理。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p15-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Outer function 只拆掉 Package 外壳 12",
+        "text": "下一页进入《Gift helper：ball 分支》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16",
+    "title": "Gift helper：ball 分支",
+    "order": 15,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 1",
+        "text": "上一页《Outer function 只拆掉 Package 外壳》先铺好一个动作，现在这一页继续推进到《Gift helper：ball 分支》。这一页要训练读代码顺序：先找 operator，再看 operand、类型和求值顺序。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p16-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Gift helper：ball 分支 12",
+        "text": "下一页进入《Gift helper：block 分支》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17",
+    "title": "Gift helper：block 分支",
+    "order": 16,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 1",
+        "text": "上一页《Gift helper：ball 分支》先铺好一个动作，现在这一页继续推进到《Gift helper：block 分支》。这一页要训练读代码顺序：先找 operator，再看 operand、类型和求值顺序。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p17-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Gift helper：block 分支 12",
+        "text": "下一页进入《Trace：block 例子跨过 helper 边界》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18",
+    "title": "Trace：block 例子跨过 helper 边界",
+    "order": 17,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 1",
+        "text": "上一页《Gift helper：block 分支》先铺好一个动作，现在这一页继续推进到《Trace：block 例子跨过 helper 边界》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 3",
+        "text": "现在看 helper 或引用位置。字段如果是另一个 HTDD，就不要在这里硬展开，交给对应 helper。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 4",
+        "text": "这样做的好处是每个函数只负责自己的数据形状，代码不会混成一团。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p18-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Trace：block 例子跨过 helper 边界 12",
+        "text": "下一页进入《Trace：ball 分支单独看》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19",
+    "title": "Trace：ball 分支单独看",
+    "order": 18,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 1",
+        "text": "上一页《Trace：block 例子跨过 helper 边界》先铺好一个动作，现在这一页继续推进到《Trace：ball 分支单独看》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p19-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：Trace：ball 分支单独看 12",
+        "text": "下一页进入《从 list 到 tree：递归可以分叉》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20",
+    "title": "从 list 到 tree：递归可以分叉",
+    "order": 19,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 1",
+        "text": "上一页《Trace：ball 分支单独看》先铺好一个动作，现在这一页继续推进到《从 list 到 tree：递归可以分叉》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 3",
+        "text": "现在看递归位置。先找停止情形，再找哪一部分变成了更小的问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 4",
+        "text": "递归调用不是重复自己这么简单，它必须朝着停止情形靠近。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p20-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：从 list 到 tree：递归可以分叉 12",
+        "text": "下一页进入《BST 数据形状：false 或 node》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21",
+    "title": "BST 数据形状：false 或 node",
+    "order": 20,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 1",
+        "text": "上一页《从 list 到 tree：递归可以分叉》先铺好一个动作，现在这一页继续推进到《BST 数据形状：false 或 node》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 3",
+        "text": "现在看递归位置。先找停止情形，再找哪一部分变成了更小的问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 4",
+        "text": "递归调用不是重复自己这么简单，它必须朝着停止情形靠近。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p21-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：BST 数据形状：false 或 node 12",
+        "text": "下一页进入《BST invariant：左小右大》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22",
+    "title": "BST invariant：左小右大",
+    "order": 21,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 1",
+        "text": "上一页《BST 数据形状：false 或 node》先铺好一个动作，现在这一页继续推进到《BST invariant：左小右大》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 3",
+        "text": "现在看 BST 结构。先分清当前节点、左边子树、右边子树，以及空树的停止情形。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 4",
+        "text": "BST 页还要多问一句：这一步有没有利用左小右大的 invariant 排除不可能的方向？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p22-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：BST invariant：左小右大 12",
+        "text": "下一页进入《用 make-node 读出一棵 BST》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23",
+    "title": "用 make-node 读出一棵 BST",
+    "order": 22,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 1",
+        "text": "上一页《BST invariant：左小右大》先铺好一个动作，现在这一页继续推进到《用 make-node 读出一棵 BST》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 3",
+        "text": "现在看 BST 结构。先分清当前节点、左边子树、右边子树，以及空树的停止情形。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 4",
+        "text": "BST 页还要多问一句：这一步有没有利用左小右大的 invariant 排除不可能的方向？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p23-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：用 make-node 读出一棵 BST 12",
+        "text": "下一页进入《lookup key 的停止情形：空树找不到》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24",
+    "title": "lookup-key 的 base case：空树找不到",
+    "order": 23,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 1",
+        "text": "上一页《用 make-node 读出一棵 BST》先铺好一个动作，现在这一页继续推进到《lookup key 的停止情形：空树找不到》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 4",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p24-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：lookup key 的 停止情形：空树找不到 12",
+        "text": "下一页进入《lookup key 的三路选择》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25",
+    "title": "lookup-key 的三路选择",
+    "order": 24,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 1",
+        "text": "上一页《lookup key 的停止情形：空树找不到》先铺好一个动作，现在这一页继续推进到《lookup key 的三路选择》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 3",
+        "text": "现在看 BST 结构。先分清当前节点、左边子树、右边子树，以及空树的停止情形。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 4",
+        "text": "BST 页还要多问一句：这一步有没有利用左小右大的 invariant 排除不可能的方向？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p25-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：lookup key 的三路选择 12",
+        "text": "下一页进入《trace：lookup key 只走一条路》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26",
+    "title": "trace：lookup-key 只走一条路",
+    "order": 25,
+    "actions": [
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：标题与本页目标",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 1",
+        "text": "上一页《lookup key 的三路选择》先铺好一个动作，现在这一页继续推进到《trace：lookup key 只走一条路》。这一页要沿着递归三问走：哪里停，哪里变小，返回以后怎么组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：每一次递归调用为什么会停，又为什么只需要处理这个更小的问题？"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：左侧定义或图像",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-left-board",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 3",
+        "text": "现在按 trace 的顺序读。先确认当前 frame 正在处理什么输入，再看下一步调用哪里。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 4",
+        "text": "trace 不是为了报答案，而是为了看见每一层调用怎样进入、返回和组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代码入口与函数职责",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-lecture-focus-generated-code-entry",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 5",
+        "text": "这一小块先看代码入口：函数名、输入变量或当前数据定义先告诉你这段代码负责什么。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 6",
+        "text": "在写下一行之前，先确认它处理的是哪一种数据形状。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：分支、字段或当前 case",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-lecture-focus-generated-code-branch",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 7",
+        "text": "这一小块看中间分支。先判断当前 case 是停止情形、字段拆分，还是某个条件判断。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 8",
+        "text": "如果这里是 cond，每一行都要能说出它在问什么问题。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：递归调用、辅助函数调用 或返回值",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-lecture-focus-generated-code-recursive",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 9",
+        "text": "这一小块看递归调用、辅助函数调用或返回值。这里决定当前层怎样把子问题答案接回来。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 10",
+        "text": "读到这一行时，先问它有没有变小，再问返回结果会怎样被当前层组合。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-spotlight-cpsc107-06",
+        "type": "spotlight",
+        "title": "聚焦：底部总结",
+        "elementId": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 11",
+        "text": "最后看底部总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-recursion-bst-imagegen-20260522-p26-speech-cpsc107-12",
+        "type": "speech",
+        "title": "讲解：trace：lookup key 只走一条路 12",
+        "text": "最后把这本课收束成一句话：递归题先找停止情形，再找变小的位置，最后看当前层怎样组合返回值。"
+      }
+    ]
+  }
+]

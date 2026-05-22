@@ -37,6 +37,16 @@ export type NotebookProblemClientRecord = {
   } | null;
 };
 
+export type ProblemImportBatchClientRecord = {
+  id: string;
+  status: 'previewed' | 'committed' | 'cancelled';
+  source: 'chat' | 'pdf' | 'manual' | 'web' | string;
+  draftCount: number;
+  committedCount: number;
+  sourceFileName?: string | null;
+  createdAt: string;
+};
+
 function withModelHeaders(headers?: HeadersInit): Headers {
   const next = new Headers(headers || {});
   const mc = getCurrentModelConfig();
@@ -118,6 +128,8 @@ export async function previewNotebookProblemImport(args: {
   text?: string;
   searchQuery?: string;
   webSearchApiKey?: string;
+  sourceFileName?: string;
+  sourceFileMime?: string;
   language: 'zh-CN' | 'en-US';
 }): Promise<{
   drafts: NotebookProblemImportDraft[];
@@ -134,6 +146,7 @@ export async function previewNotebookProblemImport(args: {
     estimatedCostCredits: number;
     sources: Array<{ title: string; url: string }>;
   } | null;
+  importBatch?: ProblemImportBatchClientRecord;
 }> {
   const response = await backendFetch(
     `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems/import-preview`,
@@ -145,6 +158,8 @@ export async function previewNotebookProblemImport(args: {
         text: args.text || '',
         searchQuery: args.searchQuery,
         webSearchApiKey: args.webSearchApiKey,
+        sourceFileName: args.sourceFileName,
+        sourceFileMime: args.sourceFileMime,
         language: args.language,
       }),
     },
@@ -168,6 +183,7 @@ export async function previewNotebookProblemImport(args: {
       estimatedCostCredits: number;
       sources: Array<{ title: string; url: string }>;
     } | null;
+    importBatch?: ProblemImportBatchClientRecord;
   };
 }
 
@@ -177,6 +193,8 @@ export async function previewCourseProblemImport(args: {
   text?: string;
   searchQuery?: string;
   webSearchApiKey?: string;
+  sourceFileName?: string;
+  sourceFileMime?: string;
   language: 'zh-CN' | 'en-US';
 }): Promise<{
   drafts: NotebookProblemImportDraft[];
@@ -193,6 +211,7 @@ export async function previewCourseProblemImport(args: {
     estimatedCostCredits: number;
     sources: Array<{ title: string; url: string }>;
   } | null;
+  importBatch?: ProblemImportBatchClientRecord;
 }> {
   const response = await backendFetch(
     `/api/courses/${encodeURIComponent(args.courseId)}/problems/import-preview`,
@@ -204,6 +223,8 @@ export async function previewCourseProblemImport(args: {
         text: args.text || '',
         searchQuery: args.searchQuery,
         webSearchApiKey: args.webSearchApiKey,
+        sourceFileName: args.sourceFileName,
+        sourceFileMime: args.sourceFileMime,
         language: args.language,
       }),
     },
@@ -227,19 +248,21 @@ export async function previewCourseProblemImport(args: {
       estimatedCostCredits: number;
       sources: Array<{ title: string; url: string }>;
     } | null;
+    importBatch?: ProblemImportBatchClientRecord;
   };
 }
 
 export async function commitNotebookProblemImport(args: {
   notebookId: string;
   drafts: NotebookProblemImportDraft[];
+  importBatchId?: string | null;
 }): Promise<NotebookProblemClientRecord[]> {
   const data = await backendJson<{ problems: NotebookProblemClientRecord[] }>(
     `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems/import-commit`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ drafts: args.drafts }),
+      body: JSON.stringify({ drafts: args.drafts, importBatchId: args.importBatchId || undefined }),
     },
   );
   return data.problems;
@@ -274,13 +297,14 @@ export async function updateNotebookProblem(args: {
 export async function commitCourseProblemImport(args: {
   courseId: string;
   drafts: NotebookProblemImportDraft[];
+  importBatchId?: string | null;
 }): Promise<NotebookProblemClientRecord[]> {
   const data = await backendJson<{ problems: NotebookProblemClientRecord[] }>(
     `/api/courses/${encodeURIComponent(args.courseId)}/problems/import-commit`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ drafts: args.drafts }),
+      body: JSON.stringify({ drafts: args.drafts, importBatchId: args.importBatchId || undefined }),
     },
   );
   return data.problems;

@@ -11,7 +11,7 @@ export type StageMode = 'autonomous' | 'playback';
 export type Whiteboard = Omit<Slide, 'theme' | 'turningMode' | 'sectionTag' | 'type'>;
 
 export interface SceneGenerationDiagnostics {
-  pipeline?: 'semantic' | 'legacy' | 'interactive' | 'quiz' | 'pbl' | 'unknown';
+  pipeline?: 'semantic' | 'legacy' | 'interactive' | 'image' | 'quiz' | 'pbl' | 'unknown';
   slideGenerationRoute?: string | null;
   selectedSkillIds?: string[];
   skillSelectionReasons?: string[];
@@ -26,6 +26,16 @@ export interface SceneGenerationDiagnostics {
   outlineId?: string;
   outlineTitle?: string;
   generatedAt?: number;
+  lectureActionDiagnostics?: {
+    speechCount: number;
+    focusCount: number;
+    focusTargetCount: number;
+    unresolvedFocusElementIds: string[];
+    focusOutsidePlanIds?: string[];
+    maxConsecutiveSpeech: number;
+    focusWithoutFollowingSpeech: number;
+    warnings: string[];
+  };
 }
 
 export interface PageGenerationFailureRecord {

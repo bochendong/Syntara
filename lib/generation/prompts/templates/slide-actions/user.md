@@ -24,9 +24,9 @@ Requirements:
 
 1. Output only a JSON array, with no explanatory text or markdown fence.
 2. Every speech segment must be entirely in `{{language}}`; source-code names may remain as written.
-3. Generate 3-6 substantive speech segments; pair each with a relevant spotlight when possible.
+3. Follow the Narration policy pacing. If no policy is provided, generate 6-10 substantive speech segments for teaching pages; complex code, proof, or derivation pages should move more slowly.
 4. When focusing semantic content, use the corresponding semantic block id from the input.
-5. Start from the concrete object, problem, or state on the page, then give the thinking method.
+5. Start from the concrete object, problem, or state on the page, then give the thinking method; do not use detached lesson-plan phrasing about what "students should understand".
 
 Example shape:
 

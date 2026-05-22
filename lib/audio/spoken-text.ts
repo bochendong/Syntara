@@ -4,8 +4,7 @@ import { normalizeLatexSource } from '@/lib/latex-utils';
 export type SpokenNarrationLanguage = 'zh-CN' | 'en-US';
 
 const CJK_CHAR_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/u;
-const SIMPLE_TOKEN_PATTERN =
-  String.raw`(?:[\p{L}\p{N}π∞]+(?:\s*[\^_]\s*\{?[\p{L}\p{N}π∞+\-]+\}?)?|\([^()]+\)|\[[^\]]+\]|\{[^{}]+\})`;
+const SIMPLE_TOKEN_PATTERN = String.raw`(?:[\p{L}\p{N}π∞]+(?:\s*[\^_]\s*\{?[\p{L}\p{N}π∞+\-]+\}?)?|\([^()]+\)|\[[^\]]+\]|\{[^{}]+\})`;
 const SIMPLE_FORMULA_PATTERN = String.raw`(?:${SIMPLE_TOKEN_PATTERN}(?:\s*[+\-*/]\s*${SIMPLE_TOKEN_PATTERN})*)`;
 
 const LATEX_COMMAND_MAP: Record<string, Record<SpokenNarrationLanguage, string>> = {
@@ -28,7 +27,11 @@ function inferNarrationLanguage(text: string): SpokenNarrationLanguage {
 }
 
 function cleanupMathToken(token: string): string {
-  return token.trim().replace(/^\{|\}$/g, '').replace(/^\(|\)$/g, '').trim();
+  return token
+    .trim()
+    .replace(/^\{|\}$/g, '')
+    .replace(/^\(|\)$/g, '')
+    .trim();
 }
 
 function cleanupSpokenText(text: string): string {
@@ -53,11 +56,7 @@ function stripOuterBrackets(token: string): string {
   return trimmed;
 }
 
-function replaceBinaryOperator(
-  text: string,
-  operatorPattern: string,
-  spoken: string,
-): string {
+function replaceBinaryOperator(text: string, operatorPattern: string, spoken: string): string {
   const regex = new RegExp(
     `(${SIMPLE_TOKEN_PATTERN})\\s*(?:${operatorPattern})\\s*(${SIMPLE_TOKEN_PATTERN})`,
     'gu',
@@ -78,11 +77,7 @@ function replaceBinaryOperator(
   return next;
 }
 
-function formatPower(
-  base: string,
-  exponent: string,
-  language: SpokenNarrationLanguage,
-): string {
+function formatPower(base: string, exponent: string, language: SpokenNarrationLanguage): string {
   const normalizedBase = cleanupMathToken(base);
   const normalizedExponent = cleanupMathToken(exponent);
 
@@ -227,10 +222,7 @@ function formatLogarithm(
   return `the logarithm of ${normalizedArgument}`;
 }
 
-function verbalizeMathText(
-  text: string,
-  language: SpokenNarrationLanguage,
-): string {
+function verbalizeMathText(text: string, language: SpokenNarrationLanguage): string {
   let next = normalizeLatexSource(text).replace(/\\left|\\right/g, '');
 
   for (const [command, translations] of Object.entries(LATEX_COMMAND_MAP).sort(
@@ -280,14 +272,12 @@ function verbalizeMathText(
 
   next = next.replace(
     /\\frac\s*\{d\}\s*\{d\s*([^{}]+)\}\s*([A-Za-z0-9\u3400-\u9fffπ∞]+(?:\([^()]*\))?)/gu,
-    (_match, variable: string, subject: string) =>
-      formatDerivative(subject, variable, language),
+    (_match, variable: string, subject: string) => formatDerivative(subject, variable, language),
   );
 
   next = next.replace(
     /\\frac\s*\{d\s*([^{}]+)\}\s*\{d\s*([^{}]+)\}/gu,
-    (_match, subject: string, variable: string) =>
-      formatDerivative(subject, variable, language),
+    (_match, subject: string, variable: string) => formatDerivative(subject, variable, language),
   );
 
   next = next.replace(
@@ -298,14 +288,11 @@ function verbalizeMathText(
 
   next = next.replace(
     /d\/d([A-Za-z])\s*([A-Za-z0-9\u3400-\u9fffπ∞]+(?:\([^()]*\))?)/gu,
-    (_match, variable: string, subject: string) =>
-      formatDerivative(subject, variable, language),
+    (_match, variable: string, subject: string) => formatDerivative(subject, variable, language),
   );
 
-  next = next.replace(
-    /d([A-Za-z])\/d([A-Za-z])/gu,
-    (_match, subject: string, variable: string) =>
-      formatDerivative(subject, variable, language),
+  next = next.replace(/d([A-Za-z])\/d([A-Za-z])/gu, (_match, subject: string, variable: string) =>
+    formatDerivative(subject, variable, language),
   );
 
   next = next.replace(
@@ -324,10 +311,7 @@ function verbalizeMathText(
   );
 
   next = next.replace(
-    new RegExp(
-      `\\\\int\\s*(${SIMPLE_FORMULA_PATTERN})\\s*d\\s*([A-Za-z])`,
-      'gu',
-    ),
+    new RegExp(`\\\\int\\s*(${SIMPLE_FORMULA_PATTERN})\\s*d\\s*([A-Za-z])`, 'gu'),
     (_match, integrand: string, respectTo: string) =>
       formatIntegral(integrand, respectTo, language),
   );
@@ -417,8 +401,16 @@ function verbalizeMathText(
       formatRoot(verbalizeMathText(radicand, language), degree, language),
   );
 
-  next = replaceBinaryOperator(next, '>=|≥', language === 'zh-CN' ? '大于等于' : 'is greater than or equal to');
-  next = replaceBinaryOperator(next, '<=|≤', language === 'zh-CN' ? '小于等于' : 'is less than or equal to');
+  next = replaceBinaryOperator(
+    next,
+    '>=|≥',
+    language === 'zh-CN' ? '大于等于' : 'is greater than or equal to',
+  );
+  next = replaceBinaryOperator(
+    next,
+    '<=|≤',
+    language === 'zh-CN' ? '小于等于' : 'is less than or equal to',
+  );
   next = replaceBinaryOperator(next, '!=|≠', language === 'zh-CN' ? '不等于' : 'does not equal');
   next = replaceBinaryOperator(next, '=', language === 'zh-CN' ? '等于' : 'equals');
   next = replaceBinaryOperator(next, '\\+', language === 'zh-CN' ? '加' : 'plus');
@@ -455,9 +447,8 @@ function verbalizeMathText(
       language === 'zh-CN' ? `${base}下标${subscript}` : `${base} sub ${subscript}`,
   );
 
-  next = next.replace(
-    /(\d+(?:\.\d+)?)\s*%/gu,
-    (_match, value: string) => (language === 'zh-CN' ? `百分之${value}` : `${value} percent`),
+  next = next.replace(/(\d+(?:\.\d+)?)\s*%/gu, (_match, value: string) =>
+    language === 'zh-CN' ? `百分之${value}` : `${value} percent`,
   );
 
   next = next.replace(/≥/g, language === 'zh-CN' ? '大于等于' : 'is greater than or equal to');
@@ -468,23 +459,68 @@ function verbalizeMathText(
   return cleanupSpokenText(next);
 }
 
-export function verbalizeNarrationText(
-  text: string,
-  language?: SpokenNarrationLanguage,
-): string {
+function verbalizeCodeSpanText(code: string, language: SpokenNarrationLanguage): string {
+  const inner = code.replace(/^`|`$/g, '').trim();
+  if (!inner) return '';
+
+  const looksLikeMath =
+    /[\^_=<>≤≥∈∉⊂⊆∪∩\\]/u.test(inner) &&
+    !/[()[\];]|define|lambda|cond|check-expect|require/u.test(inner);
+  if (looksLikeMath) return verbalizeMathText(inner, language);
+
+  let next = inner
+    .replace(/\bcheck-expect\b/gi, 'check expect')
+    .replace(/\bdefine-struct\b/gi, 'define struct')
+    .replace(/\belse\b/g, language === 'zh-CN' ? 'else 分支' : 'else branch')
+    .replace(/=>/g, language === 'zh-CN' ? ' 得到 ' : ' returns ')
+    .replace(/->/g, language === 'zh-CN' ? ' 到 ' : ' to ')
+    .replace(/[()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  next = next.replace(/\b([A-Za-z][\w-]*)\?/g, (_match, name: string) =>
+    language === 'zh-CN' ? `${name} 问号` : `${name} question mark`,
+  );
+
+  return cleanupSpokenText(next);
+}
+
+function cleanupDirectAddressMeta(text: string, language: SpokenNarrationLanguage): string {
+  if (language !== 'zh-CN') {
+    return text
+      .replace(/\bstudents should understand\b/gi, 'you should notice')
+      .replace(/\bstudents need to see\b/gi, 'you need to notice')
+      .replace(/\bthis page is designed to\b/gi, 'we use this page to');
+  }
+
+  return text
+    .replace(/要让学生明白/g, '这里要看清')
+    .replace(/让学生明白/g, '先看清')
+    .replace(/学生需要看到/g, '你需要看到')
+    .replace(/学生需要/g, '你需要')
+    .replace(/学生要/g, '你要')
+    .replace(/学生可以/g, '你可以')
+    .replace(/本页旨在/g, '这一页我们用来')
+    .replace(/本页的目标是让学生/g, '这一页我们要');
+}
+
+export function verbalizeNarrationText(text: string, language?: SpokenNarrationLanguage): string {
   const trimmed = text.trim();
   if (!trimmed) return text;
+  const resolvedLanguage = language || inferNarrationLanguage(trimmed);
   const codeSpans: string[] = [];
   const masked = trimmed.replace(/`[^`]+`/g, (match) => {
     const marker = `\uE000CODE${codeSpans.length}\uE001`;
     codeSpans.push(match);
     return marker;
   });
-  const spoken = verbalizeMathText(masked, language || inferNarrationLanguage(trimmed));
-  return codeSpans.reduce(
-    (next, code, index) => next.replaceAll(`\uE000CODE${index}\uE001`, code),
+  const spoken = verbalizeMathText(masked, resolvedLanguage);
+  const restored = codeSpans.reduce(
+    (next, code, index) =>
+      next.replaceAll(`\uE000CODE${index}\uE001`, verbalizeCodeSpanText(code, resolvedLanguage)),
     spoken,
   );
+  return cleanupDirectAddressMeta(cleanupSpokenText(restored), resolvedLanguage);
 }
 
 export function verbalizeSpeechActions(

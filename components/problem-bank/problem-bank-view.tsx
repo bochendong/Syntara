@@ -463,6 +463,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     estimatedCostCredits: number;
     sources: Array<{ title: string; url: string }>;
   } | null>(null);
+  const [importBatchId, setImportBatchId] = useState<string | null>(null);
 
   const loadProblems = useCallback(async () => {
     if (!notebookId) {
@@ -691,6 +692,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     setImportSummaryNote(null);
     setImportUsage(null);
     setImportWebSearchSummary(null);
+    setImportBatchId(null);
     try {
       if (importMode === 'manual') {
         const manualDraft = createManualProblemDraft(locale, notebookId);
@@ -788,11 +790,14 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
         text,
         searchQuery,
         webSearchApiKey: webSearchProvidersConfig[webSearchProviderId]?.apiKey || undefined,
+        sourceFileName: importFile?.name,
+        sourceFileMime: importFile?.type,
         language: locale,
       });
       const nextDrafts = previewResult.drafts;
       setImportUsage(previewResult.usage);
       setImportWebSearchSummary(previewResult.webSearch);
+      setImportBatchId(previewResult.importBatch?.id ?? null);
       setImportProcessingStage('validating');
       setImportProcessingDetail(
         locale === 'zh-CN' ? '正在校验题目 schema，并整理待修正项…' : 'Validating drafts…',
@@ -836,6 +841,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       setImportProcessingDetail('');
       setImportEstimatedProblemCount(0);
       setImportProcessedProblemCount(0);
+      setImportBatchId(null);
     } finally {
       setPreviewLoading(false);
     }
@@ -896,6 +902,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       const nextProblems = await commitNotebookProblemImport({
         notebookId,
         drafts: selectedDrafts,
+        importBatchId,
       });
       setProblems(nextProblems);
       setSelectedProblemId(nextProblems[0]?.id ?? null);
@@ -904,6 +911,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       setImportText('');
       setImportFile(null);
       setImportWebQuery('');
+      setImportBatchId(null);
       setImportProcessedProblemCount(selectedDrafts.length);
       setImportProcessingStage('completed');
       setImportProcessingDetail(
@@ -929,7 +937,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     } finally {
       setCommitLoading(false);
     }
-  }, [drafts, importUsage, includedDraftIds, locale, notebookId]);
+  }, [drafts, importBatchId, importUsage, includedDraftIds, locale, notebookId]);
 
   const editingDraft = drafts.find((draft) => draft.draftId === editingDraftId) || null;
   const editingDraftIsManual =

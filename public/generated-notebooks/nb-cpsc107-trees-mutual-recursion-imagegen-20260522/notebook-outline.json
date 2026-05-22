@@ -1,0 +1,101 @@
+{
+  "id": "nb-cpsc107-trees-mutual-recursion-imagegen-20260522",
+  "title": "Trees 与 Mutual Recursion",
+  "description": "从 reference 分类进入 Node/ListOfNode tree，再拆解 sum、greater-than 和 all-course-numbers。",
+  "courseId": "cmpc9dqgv000p8ogmrsjl5co8",
+  "slideCount": 18,
+  "outputDir": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-trees-mutual-recursion-imagegen-20260522",
+  "publicDir": "/generated-notebooks/nb-cpsc107-trees-mutual-recursion-imagegen-20260522",
+  "slides": [
+    {
+      "order": 0,
+      "title": "R、SR、MR：先认箭头",
+      "intent": "建立 reference、self-reference、mutual-reference 词汇。"
+    },
+    {
+      "order": 1,
+      "title": "Employee / Grant：路径判断",
+      "intent": "用路径判断 SR、MR、R，不让字母位置干扰理解。"
+    },
+    {
+      "order": 2,
+      "title": "Foo / Baz / ListOfFoo 的数据环",
+      "intent": "展示三个数据定义也可以组成 mutual reference。"
+    },
+    {
+      "order": 3,
+      "title": "函数箭头：NH、NR、NMR",
+      "intent": "把数据箭头转换成函数 call graph。"
+    },
+    {
+      "order": 4,
+      "title": "Tree：有 root，没有 cycle",
+      "intent": "进入树结构概念：root、child、leaf、subtree、no cycle。"
+    },
+    {
+      "order": 5,
+      "title": "Node 和 ListOfNode 互相引用",
+      "intent": "按 PDF 的 Node/ListOfNode 数据定义讲 arbitrary-branch tree。"
+    },
+    {
+      "order": 6,
+      "title": "用 constants 组出一棵 tree",
+      "intent": "用 N2、N3、N5、N7、T1、T2 读出树结构。"
+    },
+    {
+      "order": 7,
+      "title": "两个数据定义，需要两个函数",
+      "intent": "说明 Node 函数和 ListOfNode 函数为什么成对出现。"
+    },
+    {
+      "order": 8,
+      "title": "sum--node：当前 value 加 childrens",
+      "intent": "单独讲 Node 层：当前值加 childrens 的总和。"
+    },
+    {
+      "order": 9,
+      "title": "sum--lon：empty 与 first/rest",
+      "intent": "单独讲 ListOfNode 层：empty 为 0，cons 拆 first/rest。"
+    },
+    {
+      "order": 10,
+      "title": "trace：sum--node T2",
+      "intent": "把 mutually recursive sum 跑过 T2，得到 22。"
+    },
+    {
+      "order": 11,
+      "title": "目标：找出大于 3 的 values",
+      "intent": "先看 greater-than 例题目标和预期输出。"
+    },
+    {
+      "order": 12,
+      "title": "greater-than--node：当前值要不要 cons",
+      "intent": "单独讲 node 函数中的 if：保留当前值或跳过当前值。"
+    },
+    {
+      "order": 13,
+      "title": "greater-than--lon：append first 和 rest",
+      "intent": "单独讲 list 函数如何 append first subtree 和 rest subtree 的结果。"
+    },
+    {
+      "order": 14,
+      "title": "trace：greater-than--node T2",
+      "intent": "跑过 T2，得到 (list 4 7 5)。"
+    },
+    {
+      "order": 15,
+      "title": "Course 与 ListOfCourse 成对出现",
+      "intent": "用正式命名模式重新写 mutually recursive data。"
+    },
+    {
+      "order": 16,
+      "title": "template：Course 交给 ListOfCourse",
+      "intent": "把 Course 模板和 ListOfCourse 模板的职责拆开。"
+    },
+    {
+      "order": 17,
+      "title": "all-course-numbers：当前 number 加 dependents",
+      "intent": "把模板替换成正式函数：course 用 cons，loc 用 append。"
+    }
+  ]
+}

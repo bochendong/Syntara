@@ -1,0 +1,1046 @@
+[
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p01",
+    "title": "封面：什么是群？",
+    "order": 0,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s01-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s01-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 1",
+        "text": "这本《群论：从对称到循环群》从一个主问题开始：哪些规则足够保证一个运算世界像群一样运行？先把整本课的入口问题立起来。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s01-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s01-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 3",
+        "text": "这里先介绍 group 是描述结构与对称性的代数系统，出现在数学、科学和计算中。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s01-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s01-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 5",
+        "text": "现在看右侧的视觉线索，把它当成这一讲的第一张路线图。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s01-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s01-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 7",
+        "text": "本页真正要带走的是一个动作：遇到什么是群？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p01-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：封面：什么是群？ 8",
+        "text": "这一页先收到这里。下一页进入《引入：不同世界里的相同动作》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p02",
+    "title": "引入：不同世界里的相同动作",
+    "order": 1,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s02-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s02-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 1",
+        "text": "上一页《封面：什么是群？》已经铺好一个动作，现在《引入：不同世界里的相同动作》把它推进到不同世界里的相同动作。用一个具体入口，把新概念为什么需要出现讲清楚。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s02-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s02-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 3",
+        "text": "用旋转、模运算和常见数系展示看似不同的对象可能遵守同一套规则。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s02-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s02-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 6",
+        "text": "不要跳过中间的判断动作。看起来像直觉的地方，往往正是需要写清楚的证明步骤。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s02-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s02-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 7",
+        "text": "本页真正要带走的是一个动作：遇到不同世界里的相同动作，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p02-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：引入：不同世界里的相同动作 8",
+        "text": "这一页先收到这里。下一页进入《问题框架：群必须满足什么？》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p03",
+    "title": "问题框架：群必须满足什么？",
+    "order": 2,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s03-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s03-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 1",
+        "text": "上一页《引入：不同世界里的相同动作》已经铺好一个动作，现在《问题框架：群必须满足什么？》把它推进到群必须满足什么？。把真正容易卡住的问题摆到台面上。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s03-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s03-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 3",
+        "text": "给出结合律、单位元、逆映射s 三个群公理，并强调封闭性已包含在 binary 运算中。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s03-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s03-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s03-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s03-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 7",
+        "text": "本页真正要带走的是一个动作：遇到群必须满足什么？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p03-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：问题框架：群必须满足什么？ 8",
+        "text": "这一页先收到这里。下一页进入《第一个例子：Z 下标 n 的加法》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p04",
+    "title": "第一个例子：Z_n 的加法",
+    "order": 3,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s04-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s04-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 1",
+        "text": "上一页《问题框架：群必须满足什么？》已经铺好一个动作，现在《第一个例子：Z 下标 n 的加法》把它推进到第一个例子：Z 下标 n 的加法。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s04-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s04-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 3",
+        "text": "证明 Z 下标 n 在加法下满足群公理，用零类下标 n 和 additive 逆映射固定直觉。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s04-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s04-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s04-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s04-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 7",
+        "text": "本页真正要带走的是一个动作：遇到第一个例子：Z 下标 n 的加法，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p04-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：第一个例子：Z_n 的加法 8",
+        "text": "这一页先收到这里。下一页进入《反例：公理在哪里坏掉？》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p05",
+    "title": "反例：公理在哪里坏掉？",
+    "order": 4,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s05-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s05-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 1",
+        "text": "上一页《第一个例子：Z 下标 n 的加法》已经铺好一个动作，现在《反例：公理在哪里坏掉？》把它推进到反例：公理在哪里坏掉？。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s05-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s05-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 3",
+        "text": "比较正整数加法、含 0 的有理数乘法等例子，看缺少逆映射或 单位元的地方。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s05-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s05-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 6",
+        "text": "最容易乱的是顺序和否定位置。只要量词顺序变了，后面的选择能不能依赖前面的变量，意思就可能完全改变。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s05-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s05-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 7",
+        "text": "本页真正要带走的是一个动作：遇到反例：公理在哪里坏掉？，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p05-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：反例：公理在哪里坏掉？ 8",
+        "text": "这一页先收到这里。下一页进入《阿贝尔与 非阿贝尔》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p06",
+    "title": "Abelian 与 non-Abelian",
+    "order": 5,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s06-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s06-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 1",
+        "text": "上一页《反例：公理在哪里坏掉？》已经铺好一个动作，现在《阿贝尔与 非阿贝尔》把它推进到阿贝尔与 非阿贝尔。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s06-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s06-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 3",
+        "text": "把交换律作为额外性质介绍，对比数系群和 composition order matters 的对称 group。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s06-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s06-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s06-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s06-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 7",
+        "text": "本页真正要带走的是一个动作：遇到阿贝尔与 非阿贝尔，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p06-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：Abelian 与 non-Abelian 8",
+        "text": "这一页先收到这里。下一页进入《对称例子：二面体群 D 三》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p07",
+    "title": "对称例子：二面体群 D3",
+    "order": 6,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s07-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s07-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 1",
+        "text": "上一页《阿贝尔与 非阿贝尔》已经铺好一个动作，现在《对称例子：二面体群 D 三》把它推进到对称例子：二面体群 D 三。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s07-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s07-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 3",
+        "text": "用三角形对称 e、r、r的2、s、sr、sr的2 解释旋转/反射，并展示 sr 不等于 rs。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s07-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s07-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s07-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s07-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 7",
+        "text": "本页真正要带走的是一个动作：遇到对称例子：二面体群 D 三，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p07-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：对称例子：二面体群 D3 8",
+        "text": "这一页先收到这里。下一页进入《群公理推出的基本事实》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p08",
+    "title": "群公理推出的基本事实",
+    "order": 7,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s08-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s08-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 1",
+        "text": "上一页《对称例子：二面体群 D 三》已经铺好一个动作，现在《群公理推出的基本事实》把它推进到群公理推出的基本事实。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s08-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s08-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 3",
+        "text": "整理单位元/逆映射唯一性、cancellation、a b 的逆元等于 b 的逆元乘 a 的逆元等结论。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s08-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s08-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s08-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s08-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 7",
+        "text": "本页真正要带走的是一个动作：遇到群公理推出的基本事实，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p08-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：群公理推出的基本事实 8",
+        "text": "这一页先收到这里。下一页进入《群的阶与元素的阶》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p09",
+    "title": "群的阶与元素的阶",
+    "order": 8,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s09-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s09-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 1",
+        "text": "上一页《群公理推出的基本事实》已经铺好一个动作，现在《群的阶与元素的阶》把它推进到群的阶与元素的阶。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s09-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s09-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 3",
+        "text": "区分 group order 和 element order，用 Z 八星号、D 三、Z 等例子说明。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s09-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s09-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s09-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s09-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 7",
+        "text": "本页真正要带走的是一个动作：遇到群的阶与元素的阶，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p09-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：群的阶与元素的阶 8",
+        "text": "这一页先收到这里。下一页进入《子群：群里面的群》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p10",
+    "title": "子群：群里面的群",
+    "order": 9,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s10-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s10-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 1",
+        "text": "上一页《群的阶与元素的阶》已经铺好一个动作，现在《子群：群里面的群》把它推进到子群：群里面的群。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s10-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s10-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 3",
+        "text": "这里给出定义：子群，并强调运算必须相同。用 Z 小于等于 Q 小于等于 R 和模运算例子区分 subset 和子群。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s10-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s10-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s10-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s10-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 7",
+        "text": "本页真正要带走的是一个动作：遇到子群：群里面的群，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p10-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：子群：群里面的群 8",
+        "text": "这一页先收到这里。下一页进入《子群判别法实战》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p11",
+    "title": "子群判别法实战",
+    "order": 10,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s11-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s11-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 1",
+        "text": "上一页《子群：群里面的群》已经铺好一个动作，现在《子群判别法实战》把它推进到子群判别法实战。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s11-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s11-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 3",
+        "text": "讲高效判别法 a 乘 b 的逆元属于 H，并应用到所有满足 h g h 的逆元等于 g 的 h 组成的集合这类集合。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s11-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s11-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s11-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s11-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 7",
+        "text": "本页真正要带走的是一个动作：遇到子群判别法实战，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p11-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：子群判别法实战 8",
+        "text": "这一页先收到这里。下一页进入《循环群与下节钩子》，刚才这个动作会变成下一步要检查的工具。"
+      }
+    ]
+  },
+  {
+    "id": "nb-mat102-zh-group-theory-foundations-20260519-p12",
+    "title": "循环群与下节钩子",
+    "order": 11,
+    "actions": [
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s12-01",
+        "type": "spotlight",
+        "title": "标题与本页位置",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s12-title",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：标题与本页位置；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-01",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 1",
+        "text": "上一页《子群判别法实战》已经铺好一个动作，现在《循环群与下节钩子》把它推进到循环群与下节钩子。继续推进本节的下一步工具。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-02",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 2",
+        "text": "先看标题区：这一页在整条路线里的位置，是为了回应这个主问题：哪些规则足够保证一个运算世界像群一样运行？"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s12-02",
+        "type": "spotlight",
+        "title": "左侧核心概念区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s12-main-idea",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：左侧核心概念区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-03",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 3",
+        "text": "展示一个元素如何生成整个群或子群，并引出“同构：同一个结构的不同名字”。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-04",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 4",
+        "text": "这一步回到本节主线：从具体对称和模运算里抽出同一套群结构。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s12-03",
+        "type": "spotlight",
+        "title": "右侧例题或图像区",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s12-worked-board",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：右侧例题或图像区；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-05",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 5",
+        "text": "现在看右侧材料。先确定对象，再看条件，最后看结论是怎样被推出或定义出来的。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-06",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 6",
+        "text": "不要只看公式好不好看。要先检查运算有没有定义好，再检查单位元、逆元、封闭性或保运算这些条件。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-spotlight-s12-04",
+        "type": "spotlight",
+        "title": "底部总结与下一步",
+        "elementId": "nb-mat102-zh-group-theory-foundations-20260519-s12-takeaway",
+        "dimOpacity": 0.76,
+        "description": "遮罩聚焦父级区域：底部总结与下一步；其他区域暗下去，当前区域保持正常亮度。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-07",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 7",
+        "text": "本页真正要带走的是一个动作：遇到循环群与下节钩子，先把对象、条件和要证明的结论分开。"
+      },
+      {
+        "id": "nb-mat102-zh-group-theory-foundations-20260519-p12-speech-mat102-08",
+        "type": "speech",
+        "title": "讲解：循环群与下节钩子 8",
+        "text": "最后把《群论：从对称到循环群》收束成一条主线：每个群例子都要回到运算、公理、单位元、逆元和子群判别。"
+      }
+    ]
+  }
+]

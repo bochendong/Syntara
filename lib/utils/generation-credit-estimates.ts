@@ -10,6 +10,7 @@ export type NotebookGenerationCreditEstimateInput = {
   includeQuizScenes?: boolean | null;
   webSearch?: boolean | null;
   imageGenerationEnabled?: boolean | null;
+  fullPageImageGeneration?: boolean | null;
   sourceFileSize?: number | null;
 };
 
@@ -54,6 +55,7 @@ export function estimateNotebookGenerationComputeCredits(
     (input.includeQuizScenes === false ? 0 : 8) +
     (input.webSearch ? 4 : 0) +
     (input.imageGenerationEnabled ? 28 : 0) +
+    (input.fullPageImageGeneration ? 56 : 0) +
     Math.min(20, Math.max(0, sourceMegabytes - 1) * 2)
   );
 }

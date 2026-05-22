@@ -1,0 +1,2272 @@
+{
+  "notebookId": "nb-cpsc107-recursion-bst-imagegen-20260522",
+  "source": "cpsc107-built-in-imagegen-full-slide",
+  "sourcePdfs": [
+    "/Users/dongpochen/Desktop/2026 Summer/CPSC 107/04_Recursion_BST/04_recursion_bst.pdf",
+    "/Users/dongpochen/Desktop/2026 Summer/CPSC 107/05_Trees/05_trees.pdf"
+  ],
+  "slides": [
+    {
+      "order": 0,
+      "title": "递归先从公式加 base case",
+      "teachingIntent": "建立整章路线：先用阶乘和 Fibonacci 认识递归，再回到 list、helper、BST。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s01-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "阶乘先写更小的问题",
+      "teachingIntent": "先只看递推关系，让学生看到当前问题如何变成更小的问题。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s02-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "没有 base case 会不会停",
+      "teachingIntent": "用阶乘的错误版本制造问题：递归会继续往负数走，永远没有停止点。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s03-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "阶乘加上 base case",
+      "teachingIntent": "把递归核心压成 recurrence plus base case。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s04-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "Fibonacci 一个 base case 不够",
+      "teachingIntent": "让学生看到 base case 数量由 recurrence 决定。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s05-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "Fibonacci 需要两个 base cases",
+      "teachingIntent": "用递归树说明每条分支都必须能停在 base case。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s06-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "回到 list：empty 就是 base case",
+      "teachingIntent": "把数学递归桥接回数据递归：rest 是更小的问题。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s07-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "ListOfInteger 的 self-reference 在 rest",
+      "teachingIntent": "看清 ListOfInteger 的递归位置，不把 cons 的两个槽混在一起。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s08-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "List template：两个 case 一个 recursive call",
+      "teachingIntent": "把 empty 和 cons 两个分支对应到模板里的代码位置。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s09-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "递归 trace：一次处理一个元素",
+      "teachingIntent": "在写具体函数前先训练 current first 和 remaining rest 的 mental model。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s10-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "Helper problem：先看函数要产出什么",
+      "teachingIntent": "从 package-required-dims 的期望输出出发，而不是直接把 helper 代码塞给学生。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s11-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "三个数据定义，三个职责",
+      "teachingIntent": "区分 Gift、Package、Dimensions 各自知道什么。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 12,
+      "title": "Package 不知道 ball 或 block 的细节",
+      "teachingIntent": "让 helper 的必要性从数据定义里自然出现。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-13.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s13-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 13,
+      "title": "Template helper：Package 调用 Gift",
+      "teachingIntent": "区分模板里的 helper call 和最终真实函数里的 helper call。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-14.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s14-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 14,
+      "title": "Outer function 只拆掉 Package 外壳",
+      "teachingIntent": "说明 package-required-dims 的工作只是取 contents 并交给 Gift helper。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-15.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s15-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 15,
+      "title": "Gift helper：ball 分支",
+      "teachingIntent": "单独讲 ball 的盒子尺寸为什么要用 diameter。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-16.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s16-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 16,
+      "title": "Gift helper：block 分支",
+      "teachingIntent": "单独讲 block 已经有 width、length、height，可以直接组成 dims。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-17.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s17-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 17,
+      "title": "Trace：block 例子跨过 helper 边界",
+      "teachingIntent": "把 outer function 和 gift helper 串成一条执行链。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-18.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s18-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 18,
+      "title": "Trace：ball 分支单独看",
+      "teachingIntent": "防止学生误以为 helper 只是在 block 情况下有用。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-19.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s19-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 19,
+      "title": "从 list 到 tree：递归可以分叉",
+      "teachingIntent": "从一个 rest 过渡到 left 和 right 两个递归方向。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-20.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s20-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 20,
+      "title": "BST 数据形状：false 或 node",
+      "teachingIntent": "按 PDF 的三字段 node 讲清楚 BST 的 base case 和 self-reference。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-21.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s21-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 21,
+      "title": "BST invariant：左小右大",
+      "teachingIntent": "说明 lookup-key 为什么能跳过不可能的子树。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-22.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s22-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 22,
+      "title": "用 make-node 读出一棵 BST",
+      "teachingIntent": "按 key、left subtree、right subtree 的顺序读 make-node。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-23.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s23-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 23,
+      "title": "lookup-key 的 base case：空树找不到",
+      "teachingIntent": "先隔离 false 情况，明确它是停止并返回 false 的地方。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-24.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s24-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 24,
+      "title": "lookup-key 的三路选择",
+      "teachingIntent": "拆开 equal、less、greater 三种情况，避免嵌套 cond 一页塞太满。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-25.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s25-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 25,
+      "title": "trace：lookup-key 只走一条路",
+      "teachingIntent": "用一条高亮 search path 说明 BST lookup 不会访问每个节点。",
+      "image": "/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-26.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-title",
+            "semanticId": "title",
+            "label": "标题与本页目标",
+            "sourceRect": [
+              40,
+              45,
+              1520,
+              145
+            ],
+            "canvasRect": {
+              "left": 25,
+              "top": 28.125,
+              "width": 950,
+              "height": 90.625
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-left-board",
+            "semanticId": "left-board",
+            "label": "左侧定义或图像",
+            "sourceRect": [
+              55,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-right-board",
+            "semanticId": "right-board",
+            "label": "右侧代码或推导",
+            "sourceRect": [
+              805,
+              195,
+              700,
+              465
+            ],
+            "canvasRect": {
+              "left": 503.12500000000006,
+              "top": 121.875,
+              "width": 437.5,
+              "height": 290.62500000000006
+            }
+          },
+          {
+            "id": "nb-cpsc107-recursion-bst-imagegen-20260522-s26-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结",
+            "sourceRect": [
+              65,
+              720,
+              1470,
+              120
+            ],
+            "canvasRect": {
+              "left": 40.625,
+              "top": 450,
+              "width": 918.75,
+              "height": 75
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -371,7 +371,8 @@ function buildTeachingPagePlanActions(
 ): Action[] {
   if (!pagePlan) return [];
   const lang = language === 'en-US' ? 'en-US' : 'zh-CN';
-  const targetId = pickSemanticSpotlightTarget(semanticDocument) || pickSpotlightTarget(elements)?.id;
+  const targetId =
+    pickSemanticSpotlightTarget(semanticDocument) || pickSpotlightTarget(elements)?.id;
   const nextId = () => `action_${nanoid(8)}`;
   const actions: Action[] = [];
 
@@ -456,7 +457,9 @@ function formatActionTeachingContext(
     });
     sections.push(
       [
-        lang === 'zh-CN' ? '## 当前页面语义内容（讲稿事实来源）' : '## Current semantic slide content',
+        lang === 'zh-CN'
+          ? '## 当前页面语义内容（讲稿事实来源）'
+          : '## Current semantic slide content',
         `- title: ${semanticDocument.title || ''}`,
         `- profile: ${semanticDocument.profile || 'general'}`,
         `- archetype: ${semanticDocument.archetype || 'concept'}`,
@@ -527,8 +530,13 @@ function stripHtml(text: string): string {
     .trim();
 }
 
+function isGeneratedLectureFocusElement(element: PPTElement): boolean {
+  return /lecture-focus-generated|semantic-hit-map/i.test(`${element.id} ${element.name || ''}`);
+}
+
 function isSpotlightableElement(element: PPTElement): boolean {
   if (element.type === 'line' || element.type === 'audio') return false;
+  if (isGeneratedLectureFocusElement(element)) return true;
   if (element.type === 'text') return stripHtml(element.content).length > 0;
   if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
   return true;
@@ -541,6 +549,7 @@ function pickSpotlightTarget(elements: PPTElement[]): PPTElement | undefined {
   if (candidates.length === 0) return undefined;
 
   return (
+    candidates.find(isGeneratedLectureFocusElement) ||
     candidates.find(
       (element) => !(element.type === 'text' && element.textType === 'title') && element.top >= 90,
     ) ||

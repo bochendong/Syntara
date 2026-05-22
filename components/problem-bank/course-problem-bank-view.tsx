@@ -398,6 +398,7 @@ export function CourseProblemBankView({
     estimatedCostCredits: number;
     sources: Array<{ title: string; url: string }>;
   } | null>(null);
+  const [importBatchId, setImportBatchId] = useState<string | null>(null);
   const [previewNotebookOptions, setPreviewNotebookOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -518,6 +519,7 @@ export function CourseProblemBankView({
     setImportSummaryNote(null);
     setImportUsage(null);
     setImportWebSearchSummary(null);
+    setImportBatchId(null);
     try {
       if (importMode === 'manual') {
         const manualDraft = createManualProblemDraft(locale, initialNotebookId ?? null);
@@ -607,12 +609,15 @@ export function CourseProblemBankView({
         text,
         searchQuery,
         webSearchApiKey: webSearchProvidersConfig[webSearchProviderId]?.apiKey || undefined,
+        sourceFileName: importFile?.name,
+        sourceFileMime: importFile?.type,
         language: locale,
       });
 
       setPreviewNotebookOptions(previewResult.notebooks);
       setImportUsage(previewResult.usage);
       setImportWebSearchSummary(previewResult.webSearch);
+      setImportBatchId(previewResult.importBatch?.id ?? null);
       setImportProcessingStage('validating');
       setImportProcessingDetail(
         locale === 'zh-CN'
@@ -648,6 +653,7 @@ export function CourseProblemBankView({
       setImportProcessingDetail('');
       setImportEstimatedProblemCount(0);
       setImportProcessedProblemCount(0);
+      setImportBatchId(null);
     } finally {
       setPreviewLoading(false);
     }
@@ -711,6 +717,7 @@ export function CourseProblemBankView({
       const nextProblems = await commitCourseProblemImport({
         courseId,
         drafts: selectedDrafts,
+        importBatchId,
       });
       setProblems(nextProblems);
       setSelectedProblemId(nextProblems[0]?.id ?? null);
@@ -718,6 +725,7 @@ export function CourseProblemBankView({
       setImportText('');
       setImportFile(null);
       setImportWebQuery('');
+      setImportBatchId(null);
       setDrafts([]);
       setImportProcessingStage('completed');
       setImportProcessingDetail(
@@ -730,7 +738,7 @@ export function CourseProblemBankView({
     } finally {
       setCommitLoading(false);
     }
-  }, [courseId, drafts, includedDraftIds, locale]);
+  }, [courseId, drafts, importBatchId, includedDraftIds, locale]);
 
   const editingDraft = drafts.find((draft) => draft.draftId === editingDraftId) || null;
   const editingDraftIsManual =

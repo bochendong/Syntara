@@ -1,0 +1,1051 @@
+{
+  "notebookId": "nb-mat102-zh-group-morphisms-isomorphisms-20260519",
+  "source": "mat102-queue-zh-built-in-imagegen-full-slide",
+  "sourcePdf": "12GroupTheoryII.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "封面：同态与结构",
+      "teachingIntent": "把本节围绕 preserving group operation 的函数展开，并说明这些函数揭示哪些群结构相同。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-01.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s01-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s01-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s01-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s01-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 1,
+      "title": "引入：三张表，一个群",
+      "teachingIntent": "比较 Z2、{[1]6,[5]6} 和 <[2]4>，展示只改元素名字但结构不变。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-02.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s02-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s02-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s02-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s02-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "title": "问题框架：普通函数不够",
+      "teachingIntent": "解释群之间的映射不仅要送元素，还必须尊重两边的 operation。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-03.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s03-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s03-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s03-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s03-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "title": "同态：保留运算",
+      "teachingIntent": "定义 group homomorphism phi(xy)=phi(x)phi(y)，强调 domain 和 codomain 的 operation 可以不同。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-04.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s04-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s04-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s04-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s04-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "title": "模类映射必须良定义",
+      "teachingIntent": "用 phi: Z6 -> Z12, phi([x]6)=[2x]12 说明 equivalence classes 上的映射要先检查 well-defined。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-05.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s05-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s05-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s05-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s05-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 5,
+      "title": "常见错误：公式好看但映射失败",
+      "teachingIntent": "对比 [x]6 -> [3x]12 或 [x]6 -> [x]12，区分 not well-defined 和 well-defined but not homomorphic。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-06.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s06-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s06-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s06-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s06-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 6,
+      "title": "核与像：什么被压缩，什么出现",
+      "teachingIntent": "定义 ker(phi) 和 im(phi)，用 Z12 -> Z6 例子说明 kernel 记录被送到 identity 的元素。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-07.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s07-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s07-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s07-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s07-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 7,
+      "title": "同态的基本性质",
+      "teachingIntent": "总结 identity map to identity、inverse map to inverse、finite orders may shrink、kernel/image are subgroups。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-08.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s08-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s08-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s08-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s08-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 8,
+      "title": "通过 kernel 判断单射",
+      "teachingIntent": "讲 powerful test：homomorphism 是 injective iff kernel 只有 identity。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-09.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s09-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s09-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s09-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s09-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "同构：完美翻译",
+      "teachingIntent": "定义 isomorphism 是 bijective homomorphism，并连接到 same group in disguise。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s10-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s10-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s10-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s10-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "例子与不变量",
+      "teachingIntent": "展示 Z2、U、<[2]4> 同构，并用 order、cyclic、abelian、element order 等不变量做证据。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s11-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s11-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s11-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s11-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 11,
+      "title": "总结：循环群分类",
+      "teachingIntent": "以 every infinite cyclic group is isomorphic to Z、finite cyclic group of order n is isomorphic to Zn 收束。",
+      "image": "/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-12.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s12-title",
+            "semanticId": "title",
+            "label": "标题与本页位置",
+            "sourceRect": [
+              45,
+              80,
+              1510,
+              130
+            ],
+            "canvasRect": {
+              "left": 28.125,
+              "top": 50,
+              "width": 943.75,
+              "height": 81.24999999999999
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s12-main-idea",
+            "semanticId": "main-idea",
+            "label": "左侧核心概念区",
+            "sourceRect": [
+              55,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s12-worked-board",
+            "semanticId": "worked-board",
+            "label": "右侧例题或图像区",
+            "sourceRect": [
+              815,
+              220,
+              690,
+              470
+            ],
+            "canvasRect": {
+              "left": 509.375,
+              "top": 137.5,
+              "width": 431.25,
+              "height": 293.75
+            }
+          },
+          {
+            "id": "nb-mat102-zh-group-morphisms-isomorphisms-20260519-s12-takeaway",
+            "semanticId": "takeaway",
+            "label": "底部总结与下一步",
+            "sourceRect": [
+              70,
+              735,
+              1460,
+              105
+            ],
+            "canvasRect": {
+              "left": 43.75,
+              "top": 459.375,
+              "width": 912.5,
+              "height": 65.625
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

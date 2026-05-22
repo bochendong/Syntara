@@ -78,6 +78,7 @@ next-env.d.ts
 # docs
 /docs/*
 !/docs/course-settings-generation-effects.md
+!/docs/lecture-narration-guidelines.md
 !/docs/notebook-generation-sidebar-options.md
 
 # OS / 杂项

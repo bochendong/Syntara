@@ -1,0 +1,158 @@
+[
+  {
+    "order": 0,
+    "title": "递归先从公式加 base case",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe25884b88197bf5d189479c3bf44.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-01.png"
+  },
+  {
+    "order": 1,
+    "title": "阶乘先写更小的问题",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fedb208d8819397830cbfc31ea09d.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-02.png"
+  },
+  {
+    "order": 2,
+    "title": "没有 base case 会不会停",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe2b152548197a1d050de2036804d.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-03.png"
+  },
+  {
+    "order": 3,
+    "title": "阶乘加上 base case",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe314c1a881978c29cbcbbd01d91b.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-04.png"
+  },
+  {
+    "order": 4,
+    "title": "Fibonacci 一个 base case 不够",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe370a67c81978d342f2dc2a967a8.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-05.png"
+  },
+  {
+    "order": 5,
+    "title": "Fibonacci 需要两个 base cases",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe3c95fe48197b5009182e419c44b.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-06.png"
+  },
+  {
+    "order": 6,
+    "title": "回到 list：empty 就是 base case",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe427242c81979e7e64945ae267d6.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-07.png"
+  },
+  {
+    "order": 7,
+    "title": "ListOfInteger 的 self-reference 在 rest",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fde63cff081979fa9d29b6d764705.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-08.png"
+  },
+  {
+    "order": 8,
+    "title": "List template：两个 case 一个 recursive call",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fdeac07788197978acf2b5819af97.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-09.png"
+  },
+  {
+    "order": 9,
+    "title": "递归 trace：一次处理一个元素",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fdfc316408197a0db3c73ad2ad797.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-10.png"
+  },
+  {
+    "order": 10,
+    "title": "Helper problem：先看函数要产出什么",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe01bbd2881979f7da6853358df0d.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-11.png"
+  },
+  {
+    "order": 11,
+    "title": "三个数据定义，三个职责",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe070a1ac8197a9328bb3265fee38.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-12.png"
+  },
+  {
+    "order": 12,
+    "title": "Package 不知道 ball 或 block 的细节",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe0d318cc8197b81b0930c754c362.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-13.png"
+  },
+  {
+    "order": 13,
+    "title": "Template helper：Package 调用 Gift",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe57e54288197a40b3cd9e4a7b425.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-14.png"
+  },
+  {
+    "order": 14,
+    "title": "Outer function 只拆掉 Package 外壳",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe5cacae08197b0afb46db1ab2f6d.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-15.png"
+  },
+  {
+    "order": 15,
+    "title": "Gift helper：ball 分支",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe6331d6c81978d60095d615c8bb8.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-16.png"
+  },
+  {
+    "order": 16,
+    "title": "Gift helper：block 分支",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe6918ee48197b0bb2150a9b048f1.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-17.png"
+  },
+  {
+    "order": 17,
+    "title": "Trace：block 例子跨过 helper 边界",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe6f3b7488197aaf986f36ab1dce8.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-18.png"
+  },
+  {
+    "order": 18,
+    "title": "Trace：ball 分支单独看",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_08f24da1389d63bb016a0fe75b21a08197822aa06e7d31fb83.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-19.png"
+  },
+  {
+    "order": 19,
+    "title": "从 list 到 tree：递归可以分叉",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fe88e786c8193842c4de4f3901b48.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-20.png"
+  },
+  {
+    "order": 20,
+    "title": "BST 数据形状：false 或 node",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0feb9fd54c8193839b61bd82d74f6d.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-21.png"
+  },
+  {
+    "order": 21,
+    "title": "BST invariant：左小右大",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fe90945808193bcf876c625c23171.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-22.png"
+  },
+  {
+    "order": 22,
+    "title": "用 make-node 读出一棵 BST",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0febe36a4881939ae4c306bcd5b937.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-23.png"
+  },
+  {
+    "order": 23,
+    "title": "lookup-key 的 base case：空树找不到",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fecd6634881939ebdd1c3fa145cc4.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-24.png"
+  },
+  {
+    "order": 24,
+    "title": "lookup-key 的三路选择",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fec3acc5481939b99a5f95860ec21.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-25.png"
+  },
+  {
+    "order": 25,
+    "title": "trace：lookup-key 只走一条路",
+    "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_0f8d7312aa06bafb016a0fec87b58c819382fb92afc67dc4d8.png",
+    "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-cpsc107-recursion-bst-imagegen-20260522/slide-26.png"
+  }
+]

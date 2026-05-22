@@ -709,7 +709,7 @@
     },
     {
       "order": 8,
-      "title": "本节总结：分部积分怎么想",
+      "title": "挑战例题 4：先换元再分部",
       "image": "/generated-notebooks/nb-mat136-integration-by-parts-week2-v2-20260519151624/slide-09.png",
       "hitMap": {
         "version": 1,
@@ -723,7 +723,213 @@
         },
         "regions": [
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-main-flow",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-read-structure",
+            "semanticId": "read-structure",
+            "label": "先读结构",
+            "sourceRect": [
+              55,
+              175,
+              465,
+              255
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 109.375,
+              "width": 290.625,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-substitution-first",
+            "semanticId": "substitution-first",
+            "label": "先做换元",
+            "sourceRect": [
+              570,
+              175,
+              460,
+              255
+            ],
+            "canvasRect": {
+              "left": 356.25,
+              "top": 109.375,
+              "width": 287.5,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-parts-in-t",
+            "semanticId": "parts-in-t",
+            "label": "在 t 里分部",
+            "sourceRect": [
+              1080,
+              175,
+              465,
+              255
+            ],
+            "canvasRect": {
+              "left": 675,
+              "top": 109.375,
+              "width": 290.625,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-substitute-back",
+            "semanticId": "substitute-back",
+            "label": "代回 x",
+            "sourceRect": [
+              125,
+              500,
+              630,
+              260
+            ],
+            "canvasRect": {
+              "left": 78.125,
+              "top": 312.5,
+              "width": 393.75,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-method-warning",
+            "semanticId": "method-warning",
+            "label": "方法提醒",
+            "sourceRect": [
+              840,
+              500,
+              610,
+              260
+            ],
+            "canvasRect": {
+              "left": 525,
+              "top": 312.5,
+              "width": 381.25,
+              "height": 162.49999999999997
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 9,
+      "title": "挑战例题 5：∫ arctan x dx",
+      "image": "/generated-notebooks/nb-mat136-integration-by-parts-week2-v2-20260519151624/slide-10.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s10-hidden-product",
+            "semanticId": "hidden-product",
+            "label": "隐藏的乘积",
+            "sourceRect": [
+              55,
+              175,
+              465,
+              255
+            ],
+            "canvasRect": {
+              "left": 34.375,
+              "top": 109.375,
+              "width": 290.625,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s10-choose-roles",
+            "semanticId": "choose-roles",
+            "label": "选择 u 和 dv",
+            "sourceRect": [
+              570,
+              175,
+              460,
+              255
+            ],
+            "canvasRect": {
+              "left": 356.25,
+              "top": 109.375,
+              "width": 287.5,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s10-apply-formula",
+            "semanticId": "apply-formula",
+            "label": "套分部积分",
+            "sourceRect": [
+              1080,
+              175,
+              465,
+              255
+            ],
+            "canvasRect": {
+              "left": 675,
+              "top": 109.375,
+              "width": 290.625,
+              "height": 159.375
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s10-log-integral",
+            "semanticId": "log-integral",
+            "label": "处理剩余积分",
+            "sourceRect": [
+              125,
+              500,
+              630,
+              260
+            ],
+            "canvasRect": {
+              "left": 78.125,
+              "top": 312.5,
+              "width": 393.75,
+              "height": 162.49999999999997
+            }
+          },
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s10-final-answer",
+            "semanticId": "final-answer",
+            "label": "最终答案",
+            "sourceRect": [
+              840,
+              500,
+              610,
+              260
+            ],
+            "canvasRect": {
+              "left": 525,
+              "top": 312.5,
+              "width": 381.25,
+              "height": 162.49999999999997
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 10,
+      "title": "本节总结：分部积分怎么想",
+      "image": "/generated-notebooks/nb-mat136-integration-by-parts-week2-v2-20260519151624/slide-11.png",
+      "hitMap": {
+        "version": 1,
+        "sourceSize": {
+          "width": 1600,
+          "height": 900
+        },
+        "canvasSize": {
+          "width": 1000,
+          "height": 562.5
+        },
+        "regions": [
+          {
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-main-flow",
             "semanticId": "main-flow",
             "label": "一条主线",
             "sourceRect": [
@@ -740,7 +946,7 @@
             }
           },
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-four-steps",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-four-steps",
             "semanticId": "four-steps",
             "label": "做题四步",
             "sourceRect": [
@@ -757,7 +963,7 @@
             }
           },
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-core-formula",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-core-formula",
             "semanticId": "core-formula",
             "label": "核心公式",
             "sourceRect": [
@@ -774,7 +980,7 @@
             }
           },
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-example-types",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-example-types",
             "semanticId": "example-types",
             "label": "今天见过的题型",
             "sourceRect": [
@@ -791,7 +997,7 @@
             }
           },
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-common-errors",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-common-errors",
             "semanticId": "common-errors",
             "label": "常见错误",
             "sourceRect": [
@@ -808,7 +1014,7 @@
             }
           },
           {
-            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s09-next-hook",
+            "id": "nb-mat136-integration-by-parts-week2-v2-20260519151624-s11-next-hook",
             "semanticId": "next-hook",
             "label": "下节课钩子",
             "sourceRect": [

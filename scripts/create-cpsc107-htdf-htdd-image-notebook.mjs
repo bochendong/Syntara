@@ -25,7 +25,7 @@ const themeColors = {
 
 const slides = [
   {
-    title: 'CPSC 107 · 第二节课',
+    title: 'CPSC 107 · HTDF + HTDD',
     steps: [],
   },
   {
@@ -766,9 +766,9 @@ async function seedNotebook() {
       update: {
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 2：HTDF + HTDD · 设计函数与数据',
+        name: 'HTDF + HTDD · 设计函数与数据',
         description:
-          'CPSC 107 Week 2 notebook in image-generated full-slide format. Covers How to Design Functions, How to Design Data, atomic data, one-of data, enumerations, itemizations, compound data, templates, examples, and a next-lesson hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers How to Design Functions, How to Design Data, atomic data, one-of data, enumerations, itemizations, compound data, templates, examples, and a next-lesson hook.',
         tags: [
           'CPSC107',
           'HTDF',
@@ -786,9 +786,9 @@ async function seedNotebook() {
         id: NOTEBOOK_ID,
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 2：HTDF + HTDD · 设计函数与数据',
+        name: 'HTDF + HTDD · 设计函数与数据',
         description:
-          'CPSC 107 Week 2 notebook in image-generated full-slide format. Covers How to Design Functions, How to Design Data, atomic data, one-of data, enumerations, itemizations, compound data, templates, examples, and a next-lesson hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers How to Design Functions, How to Design Data, atomic data, one-of data, enumerations, itemizations, compound data, templates, examples, and a next-lesson hook.',
         tags: [
           'CPSC107',
           'HTDF',

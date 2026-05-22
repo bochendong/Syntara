@@ -92,8 +92,16 @@ export async function updateOwnedNotebook(
   });
 }
 
-export function deleteOwnedNotebook(db: DbClient, userId: string, notebookId: string) {
-  return db.notebook.deleteMany({ where: { id: notebookId, ownerId: userId } });
+export function deleteOwnedNotebook(db: RootDbClient, userId: string, notebookId: string) {
+  return db.$transaction([
+    db.conversation.deleteMany({
+      where: {
+        ownerId: userId,
+        OR: [{ notebookId }, { kind: 'notebook', targetId: notebookId }],
+      },
+    }),
+    db.notebook.deleteMany({ where: { id: notebookId, ownerId: userId } }),
+  ]);
 }
 
 export function listNotebookScenes(db: DbClient, notebookId: string) {

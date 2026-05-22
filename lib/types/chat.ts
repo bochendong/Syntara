@@ -266,9 +266,36 @@ export function toSessionListItem(session: ChatSession): SessionListItem {
  * A single item in a lecture note — either speech text or an action badge.
  * Ordered to match the original action sequence in the scene.
  */
+export type LectureNoteVisualCue =
+  | {
+      type: 'spotlight' | 'laser';
+      actionId: string;
+      elementId: string;
+    }
+  | {
+      type: 'semantic_step';
+      actionId: string;
+      blockId: string;
+      stepIndex: number;
+    };
+
 export type LectureNoteItem =
-  | { kind: 'speech'; text: string }
-  | { kind: 'action'; type: string; label?: string };
+  | {
+      kind: 'speech';
+      id: string;
+      actionIndex: number;
+      speechIndex: number;
+      text: string;
+      visualCues: LectureNoteVisualCue[];
+    }
+  | {
+      kind: 'action';
+      id: string;
+      actionIndex: number;
+      type: string;
+      label?: string;
+      visualCue?: LectureNoteVisualCue;
+    };
 
 /**
  * A completed lecture note entry for one scene.

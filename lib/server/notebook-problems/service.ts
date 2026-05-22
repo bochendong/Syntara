@@ -256,6 +256,7 @@ async function createProblemFromDraftTx(args: {
       publicContentJson: toPrismaJson(normalized.publicContent),
       gradingJson: toPrismaJson(normalized.grading),
       sourceMeta: toPrismaNullableJson(normalized.sourceMeta),
+      courseId: args.courseId ?? null,
       notebookId: args.notebookId ?? null,
     },
   });
@@ -302,6 +303,21 @@ function normalizeAssignedNotebookId(
   const notebookId = rawNotebookId?.trim();
   if (!notebookId) return null;
   return allowedNotebookIds.has(notebookId) ? notebookId : null;
+}
+
+function draftWithImportBatchId(
+  draft: NotebookProblemImportDraft,
+  importBatchId?: string | null,
+): NotebookProblemImportDraft {
+  const batchId = importBatchId?.trim();
+  if (!batchId) return draft;
+  return {
+    ...draft,
+    sourceMeta: {
+      ...draft.sourceMeta,
+      importBatchId: batchId,
+    },
+  };
 }
 
 async function listLatestAttemptsForUser(
@@ -412,10 +428,14 @@ export async function listCourseProblemsForUser(
   await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
   const notebooks = await listOwnedCourseNotebooks(userId, courseId);
   const notebookIds = notebooks.map((notebook) => notebook.id);
-  if (notebookIds.length === 0) return [];
 
   const problems = await loadProblemsWithNotebook({
-    where: { notebookId: { in: notebookIds } },
+    where:
+      notebookIds.length > 0
+        ? {
+            OR: [{ courseId }, { notebookId: { in: notebookIds } }],
+          }
+        : { courseId },
   });
 
   const latestByProblemId = await listLatestAttemptsForUser(
@@ -490,7 +510,7 @@ export async function getCourseProblemForUser(
   const row = (await prismaDb.notebookProblem.findFirst({
     where: {
       id: problemId,
-      notebook: { courseId, ownerId: userId },
+      OR: [{ courseId }, { notebook: { courseId, ownerId: userId } }],
     },
     include: {
       notebook: {
@@ -536,6 +556,7 @@ export async function createNotebookProblemsFromDrafts(args: {
   userId: string;
   notebookId: string;
   drafts: NotebookProblemImportDraft[];
+  importBatchId?: string | null;
 }): Promise<NotebookProblemSummary[]> {
   const notebook = await requireNotebookOwnership(args.userId, args.notebookId);
   await ensureLegacyProblemsBackfilled(args.userId, args.notebookId);
@@ -550,7 +571,7 @@ export async function createNotebookProblemsFromDrafts(args: {
         tx,
         courseId: notebook.courseId,
         notebookId: args.notebookId,
-        draft: args.drafts[index],
+        draft: draftWithImportBatchId(args.drafts[index], args.importBatchId),
         order: count + index,
       });
     }
@@ -568,16 +589,21 @@ export async function createCourseProblemsFromDrafts(args: {
   userId: string;
   courseId: string;
   drafts: NotebookProblemImportDraft[];
+  importBatchId?: string | null;
 }): Promise<NotebookProblemSummary[]> {
   await requireCourseOwnership(args.userId, args.courseId);
   await ensureLegacyProblemsBackfilledForCourse(args.userId, args.courseId);
 
   const notebooks = await listOwnedCourseNotebooks(args.userId, args.courseId);
-  if (notebooks.length === 0) return [];
   const allowedNotebookIds = new Set(notebooks.map((notebook) => notebook.id));
   const allowedNotebookIdList = Array.from(allowedNotebookIds);
   const count = await prismaDb.notebookProblem.count({
-    where: { notebookId: { in: allowedNotebookIdList } },
+    where:
+      allowedNotebookIdList.length > 0
+        ? {
+            OR: [{ courseId: args.courseId }, { notebookId: { in: allowedNotebookIdList } }],
+          }
+        : { courseId: args.courseId },
   });
 
   await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -588,10 +614,7 @@ export async function createCourseProblemsFromDrafts(args: {
         tx,
         courseId: args.courseId,
         notebookId,
-        draft: {
-          ...draft,
-          notebookId,
-        },
+        draft: draftWithImportBatchId({ ...draft, notebookId }, args.importBatchId),
         order: count + index,
       });
     }
@@ -815,6 +838,7 @@ export async function updateCourseProblem(args: {
         publicContentJson: toPrismaJson(normalizedDraft.publicContent),
         gradingJson: toPrismaJson(normalizedDraft.grading),
         sourceMeta: toPrismaNullableJson(normalizedDraft.sourceMeta),
+        courseId: args.courseId,
         notebookId: nextNotebookId,
       },
       include: {

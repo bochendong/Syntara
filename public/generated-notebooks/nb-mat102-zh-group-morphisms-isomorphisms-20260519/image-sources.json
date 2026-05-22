@@ -1,0 +1,67 @@
+{
+  "mode": "copy-from-list",
+  "sourceRoot": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/mat102-zh-imagegen-selected-remaining-queue.json",
+  "copiedAt": "2026-05-21T01:12:41.552Z",
+  "images": [
+    {
+      "order": 0,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e57369ff48196a42d990f08110155.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-01.png"
+    },
+    {
+      "order": 1,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e577ddfac8196a1bbc1264ef6f20a.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-02.png"
+    },
+    {
+      "order": 2,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e57cba4a08196b6466178d96c1b0a.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-03.png"
+    },
+    {
+      "order": 3,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5819b6a88196b57060fc2273a69c.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-04.png"
+    },
+    {
+      "order": 4,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5867132c8196afa943c3ac1825d4.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-05.png"
+    },
+    {
+      "order": 5,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e58b0f0e881969570072d0dd9d99b.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-06.png"
+    },
+    {
+      "order": 6,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e58f955e4819698bbb77fe4096bb8.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-07.png"
+    },
+    {
+      "order": 7,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e594696548196bfca471beb94ab96.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-08.png"
+    },
+    {
+      "order": 8,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e59fdcf808196af75b89cbed90c62.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-09.png"
+    },
+    {
+      "order": 9,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5a45ca448196bc31f573e3c3f0d6.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-10.png"
+    },
+    {
+      "order": 10,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5a92452c819698f6de1477a00e4c.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-11.png"
+    },
+    {
+      "order": 11,
+      "source": "/Users/dongpochen/.codex/generated_images/019e4728-6509-7983-8486-a7a68237847f/ig_017ce69f1061528b016a0e5ae4f2808196a192d0fff0923d14.png",
+      "destination": "/Users/dongpochen/Github/OpenMAIC/public/generated-notebooks/nb-mat102-zh-group-morphisms-isomorphisms-20260519/slide-12.png"
+    }
+  ]
+}

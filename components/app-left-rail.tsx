@@ -62,7 +62,7 @@ const NotificationBarStageBackground = lazy(() =>
 
 function leftRailScrollClass(lightSurface: boolean) {
   return cn(
-    'min-h-0 flex-1 overflow-y-auto py-2 pb-24',
+    'min-h-0 flex-1 overflow-y-auto pt-2 pb-3',
     '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent',
     '[&::-webkit-scrollbar-thumb]:rounded-full',
     lightSurface
@@ -74,7 +74,6 @@ function leftRailScrollClass(lightSurface: boolean) {
 export interface AppLeftRailProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
-  workspaceScale?: number;
 }
 
 /** 进入这些路由时清空「当前课程」。侧栏「商城」：未选课程 → `/store/courses`（课程商城）；已选课程 → `/store`（笔记本商城） */
@@ -95,11 +94,7 @@ function formatRailCreditAmount(value: number): string {
   return Math.max(0, Math.round(value)).toLocaleString('en-US');
 }
 
-export function AppLeftRail({
-  collapsed,
-  onCollapsedChange,
-  workspaceScale = 1,
-}: AppLeftRailProps) {
+export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
@@ -306,17 +301,9 @@ export function AppLeftRail({
     <>
       <aside
         className={cn(
-          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] origin-top-left overflow-hidden rounded-[20px]',
-          collapsed ? 'w-[88px]' : 'w-[min(288px,calc(100vw-2rem))]',
+          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] overflow-hidden rounded-[20px]',
+          collapsed ? 'w-[78px]' : 'w-[min(256px,calc(100vw-2rem))]',
         )}
-        style={
-          workspaceScale === 1
-            ? undefined
-            : {
-                height: `calc((100dvh - 2rem) / ${workspaceScale})`,
-                transform: `scale(${workspaceScale})`,
-              }
-        }
         aria-label="主导航"
       >
         <div className={cn('pointer-events-auto relative h-full', railSurfaceClass)}>

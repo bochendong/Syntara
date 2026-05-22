@@ -24,9 +24,9 @@ Key Points:
 
 1. 只输出 JSON array，不要解释文字或 markdown fence。
 2. 每段 speech 必须完全使用 `{{language}}`；源码中的类名、函数名、变量名可以保留原文。
-3. 生成 3-6 段有信息量的 speech；每段最好配一个相关 spotlight。
+3. 按 Narration policy 的密度生成；如果没有 policy，正文页通常生成 6-10 段有信息量的 speech，复杂代码、证明、推导页要更慢一点。
 4. 如果 spotlight 某个语义 block，用输入中对应的 block id。
-5. 讲解稿要先进入具体对象/题目/状态，再给判断方法。
+5. 讲解稿要先进入具体对象/题目/状态，再给判断方法；不要写“让学生明白”“学生需要”这类站在教案外面的句子。
 
 输出格式示例：
 

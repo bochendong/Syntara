@@ -1,0 +1,1601 @@
+[
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01",
+    "title": "CPSC 107 · HTDF + HTDD",
+    "order": 0,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：封面标题",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s01-lecture-focus-generated-cover-title",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 1",
+        "text": "这本《HTDF + HTDD》先抓住一个主问题：从题目到代码，中间每一步为什么必须先设计出来？这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：本节路线",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s01-lecture-focus-generated-cover-route",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 3",
+        "text": "先看封面，这里不是开场装饰，而是在告诉你《HTDF + HTDD》要训练哪一种编程动作。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 4",
+        "text": "带着这个问题往后看：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：进入下一页",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s01-lecture-focus-generated-cover-takeaway",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 5",
+        "text": "先看封面，这里不是开场装饰，而是在告诉你《HTDF + HTDD》要训练哪一种编程动作。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 6",
+        "text": "带着这个问题往后看：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p01-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：CPSC 107 · HTDF + HTDD 7",
+        "text": "下一页进入《HTDF：一个函数的设计蓝图》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02",
+    "title": "HTDF：一个函数的设计蓝图",
+    "order": 1,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：HTDF 七步蓝图",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s02-seven-step-map",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 1",
+        "text": "上一页《CPSC 107 · HTDF + HTDD》先铺好一个动作，现在这一页继续推进到《HTDF：一个函数的设计蓝图》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 3",
+        "text": "现在看 HTDF 七步蓝图。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：先设计，再写 函数体",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s02-design-before-body",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 4",
+        "text": "现在才看函数体。函数体是在模板已经摆好之后，填入真正计算或判断逻辑。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 5",
+        "text": "这里最容易错的是太早写函数体；正确顺序是先有承诺、例子和模板，再填实现。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p02-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：HTDF：一个函数的设计蓝图 6",
+        "text": "下一页进入《例题规划：圆面积函数先不急着写函数体》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03",
+    "title": "例题规划：圆面积函数先不急着写 body",
+    "order": 2,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：题目",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-problem",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 1",
+        "text": "上一页《HTDF：一个函数的设计蓝图》先铺好一个动作，现在这一页继续推进到《例题规划：圆面积函数先不急着写函数体》。这一页继续把概念落实成可执行的判断动作。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 3",
+        "text": "现在看题目。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：HTDF 规划表",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-htdf-worksheet",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 4",
+        "text": "现在看 HTDF 规划表。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 5",
+        "text": "把这块读成一个动作：它让后面的函数设计或代码追踪多了一步可检查依据。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：圆面积公式",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-circle-formula",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 6",
+        "text": "现在看圆面积公式。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 7",
+        "text": "把这块读成一个动作：它让后面的函数设计或代码追踪多了一步可检查依据。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：规划的价值",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s03-planning-note",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 8",
+        "text": "最后看规划的价值。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p03-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：例题规划：圆面积函数先不急着写 函数体 9",
+        "text": "下一页进入《例题代码：circle-area 的完整 HTDF》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04",
+    "title": "例题代码：circle-area 的完整 HTDF",
+    "order": 3,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：完整设计记录",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-design-record",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 1",
+        "text": "上一页《例题规划：圆面积函数先不急着写函数体》先铺好一个动作，现在这一页继续推进到《例题代码：circle-area 的完整 HTDF》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 3",
+        "text": "现在看完整设计记录。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：最终函数体",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-final-body",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 4",
+        "text": "现在才看函数体。函数体是在模板已经摆好之后，填入真正计算或判断逻辑。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 5",
+        "text": "这里最容易错的是太早写函数体；正确顺序是先有承诺、例子和模板，再填实现。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：调用测试",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-test-flow",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 6",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 7",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：例子 先写",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s04-examples-first",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 8",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 9",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p04-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：例题代码：circle-area 的完整 HTDF 10",
+        "text": "下一页进入《为什么要用 HTDF？》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05",
+    "title": "为什么要用 HTDF？",
+    "order": 4,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：直接写 函数体 的问题",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-messy-code",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 1",
+        "text": "上一页《例题代码：circle-area 的完整 HTDF》先铺好一个动作，现在这一页继续推进到《为什么要用 HTDF？》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 3",
+        "text": "现在才看函数体。函数体是在模板已经摆好之后，填入真正计算或判断逻辑。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：next-color 的含义",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-next-color-cycle",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 4",
+        "text": "现在看 next-color 的含义。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 5",
+        "text": "把这块读成一个动作：它让后面的函数设计或代码追踪多了一步可检查依据。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：HTDF 记录",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-design-record",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 6",
+        "text": "现在看 HTDF 记录。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 7",
+        "text": "把这块读成一个动作：它让后面的函数设计或代码追踪多了一步可检查依据。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：可读性提升",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s05-readability-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 8",
+        "text": "最后看可读性提升。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p05-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：为什么要用 HTDF？ 9",
+        "text": "下一页进入《三件事先写：目的说明 / 签名 / 例子》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06",
+    "title": "三件事先写：Purpose / Signature / Examples",
+    "order": 5,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：目的说明",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-purpose-card",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 1",
+        "text": "上一页《为什么要用 HTDF？》先铺好一个动作，现在这一页继续推进到《三件事先写：目的说明 / 签名 / 例子》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 3",
+        "text": "先看目的说明。它不是一句注释装饰，而是在函数体出现之前，先承诺这个函数到底要做什么。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：签名",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-signature-card",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 4",
+        "text": "现在看签名。这里先限定输入和输出类型，等于给函数画出边界。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 5",
+        "text": "写函数体之前先看签名，可以避免把数字、字符串、真假值或图片混在一起。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：例子",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-examples-card",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 6",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 7",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：三件事说不清就先停",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s06-three-first",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 8",
+        "text": "现在看三件事说不清就先停。先确定这里是在给定义、例子、代码，还是执行过程。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 9",
+        "text": "把这块读成一个动作：它让后面的函数设计或代码追踪多了一步可检查依据。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p06-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：三件事先写：目的说明 / 签名 / 例子 10",
+        "text": "下一页进入《空壳 / 模板 / 函数体：从空壳到真正逻辑》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07",
+    "title": "Stub / Template / Body：从空壳到真正逻辑",
+    "order": 6,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：空壳",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-stub",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 1",
+        "text": "上一页《三件事先写：目的说明 / 签名 / 例子》先铺好一个动作，现在这一页继续推进到《空壳 / 模板 / 函数体：从空壳到真正逻辑》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 3",
+        "text": "现在看空壳。空壳的作用不是解决问题，而是先返回一个类型正确的占位值。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-template",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 4",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 5",
+        "text": "看到模板里的分支、selector 或递归调用，要回头问：它对应数据定义里的哪一块？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：函数体",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-body",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 6",
+        "text": "现在才看函数体。函数体是在模板已经摆好之后，填入真正计算或判断逻辑。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 7",
+        "text": "这里最容易错的是太早写函数体；正确顺序是先有承诺、例子和模板，再填实现。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：思考顺序",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s07-order-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 8",
+        "text": "最后看思考顺序。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p07-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：空壳 / 模板 / 函数体：从空壳到真正逻辑 9",
+        "text": "下一页进入《HTDD：先设计数据，再设计函数》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08",
+    "title": "HTDD：先设计数据，再设计函数",
+    "order": 7,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：现实概念到 Racket data",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-bridge",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 1",
+        "text": "上一页《空壳 / 模板 / 函数体：从空壳到真正逻辑》先铺好一个动作，现在这一页继续推进到《HTDD：先设计数据，再设计函数》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 3",
+        "text": "现在看现实概念到 Racket data。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：HTDD 四个部分",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-htdd-checklist",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 4",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 5",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：CityName 例子",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-cityname-code",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 6",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 7",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：数据也需要说明书",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s08-data-manual",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 8",
+        "text": "现在看数据也需要说明书。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 9",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p08-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：HTDD：先设计数据，再设计函数 10",
+        "text": "下一页进入《Atomic Data：Non-Distinct vs Distinct》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09",
+    "title": "Atomic Data：Non-Distinct vs Distinct",
+    "order": 8,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：Atomic Non-Distinct",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-non-distinct",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 1",
+        "text": "上一页《HTDD：先设计数据，再设计函数》先铺好一个动作，现在这一页继续推进到《Atomic Data：Non-Distinct vs Distinct》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 3",
+        "text": "现在看 Atomic Non-Distinct。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：Atomic Distinct",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-distinct",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 4",
+        "text": "现在看 Atomic Distinct。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 5",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：常见混淆",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s09-confusion-warning",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 6",
+        "text": "现在看常见混淆。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 7",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p09-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Atomic Data：Non-Distinct vs Distinct 8",
+        "text": "下一页进入《为什么不用 String，而要叫 CityName？》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10",
+    "title": "为什么不用 String，而要叫 CityName？",
+    "order": 9,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：太泛的 String",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-generic-string",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 1",
+        "text": "上一页《Atomic Data：Non-Distinct vs Distinct》先铺好一个动作，现在这一页继续推进到《为什么不用 String，而要叫 CityName？》。这一页要训练读代码顺序：先找 operator，再看 operand、类型和求值顺序。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 3",
+        "text": "现在按 Racket 的读法来：先找这一块里的 operator，再看它后面的 operands。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：更清楚的 CityName",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-cityname-type",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 4",
+        "text": "现在按 Racket 的读法来：先找这一块里的 operator，再看它后面的 operands。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 5",
+        "text": "不要被括号数量吓到。每一层 list 都先问第一个位置是谁，它决定这一层怎么求值。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：类型名表达语义",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s10-semantic-type-name",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 6",
+        "text": "现在按 Racket 的读法来：先找这一块里的 operator，再看它后面的 operands。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 7",
+        "text": "不要被括号数量吓到。每一层 list 都先问第一个位置是谁，它决定这一层怎么求值。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p10-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：为什么不用 String，而要叫 CityName？ 8",
+        "text": "下一页进入《HTDD 模板 Rules：数据形状决定函数形状》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11",
+    "title": "HTDD Template Rules：数据形状决定函数形状",
+    "order": 10,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：模板 rules 表",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s11-rules-table",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 1",
+        "text": "上一页《为什么不用 String，而要叫 CityName？》先铺好一个动作，现在这一页继续推进到《HTDD 模板 Rules：数据形状决定函数形状》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 3",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：不要凭感觉写 模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s11-rule-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 4",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 5",
+        "text": "看到模板里的分支、selector 或递归调用，要回头问：它对应数据定义里的哪一块？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p11-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：HTDD 模板 Rules：数据形状决定函数形状 6",
+        "text": "下一页进入《Interval：SeatNumber 是 1 到 32》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12",
+    "title": "Interval：SeatNumber 是 1 到 32",
+    "order": 11,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：座位区间",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-seat-interval",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 1",
+        "text": "上一页《HTDD 模板 Rules：数据形状决定函数形状》先铺好一个动作，现在这一页继续推进到《Interval：SeatNumber 是 1 到 32》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 3",
+        "text": "现在看座位区间。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：SeatNumber 定义",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-data-definition",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 4",
+        "text": "现在看 SeatNumber 定义。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 5",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：Interval 模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-interval-template",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 6",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 7",
+        "text": "看到模板里的分支、selector 或递归调用，要回头问：它对应数据定义里的哪一块？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：Interval 小结",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s12-interval-summary",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 8",
+        "text": "最后看 Interval 小结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p12-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Interval：SeatNumber 是 1 到 32 9",
+        "text": "下一页进入《One-of：一个数据类型有几种可能形状》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13",
+    "title": "One-of：一个数据类型有几种可能形状",
+    "order": 12,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：Enumeration",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-enumeration",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 1",
+        "text": "上一页《Interval：SeatNumber 是 1 到 32》先铺好一个动作，现在这一页继续推进到《One-of：一个数据类型有几种可能形状》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 3",
+        "text": "现在看 Enumeration。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：one-of 分支",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-branching-data",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 4",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 5",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：Itemization",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-itemization",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 6",
+        "text": "现在看 Itemization。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 7",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：one-of 对应 cond",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s13-one-of-cond",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 8",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 9",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p13-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：One-of：一个数据类型有几种可能形状 10",
+        "text": "下一页进入《Enumeration：LetterGrade 的每个 case 都是固定值》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14",
+    "title": "Enumeration：LetterGrade 的每个 case 都是固定值",
+    "order": 13,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：LetterGrade 数据定义",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-lettergrade-data",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 1",
+        "text": "上一页《One-of：一个数据类型有几种可能形状》先铺好一个动作，现在这一页继续推进到《Enumeration：LetterGrade 的每个 case 都是固定值》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 3",
+        "text": "现在看 LetterGrade 数据定义。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：LetterGrade 模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-lettergrade-template",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 4",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 5",
+        "text": "看到模板里的分支、selector 或递归调用，要回头问：它对应数据定义里的哪一块？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：小枚举不用 else",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s14-no-else-small-enum",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 6",
+        "text": "现在看小枚举不用 else。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 7",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p14-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Enumeration：LetterGrade 的每个 case 都是固定值 8",
+        "text": "下一页进入《Itemization：CountDown 有三种不同形状》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15",
+    "title": "Itemization：CountDown 有三种不同形状",
+    "order": 14,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：CountDown 三种形状",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-cases",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 1",
+        "text": "上一页《Enumeration：LetterGrade 的每个 case 都是固定值》先铺好一个动作，现在这一页继续推进到《Itemization：CountDown 有三种不同形状》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：CountDown 定义",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-definition",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 4",
+        "text": "现在看 CountDown 定义。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 5",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：代表性例子",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-countdown-examples",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 6",
+        "text": "现在看例子或 check expect。这里先把“什么算对”固定下来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 7",
+        "text": "函数体还没写完时，例子已经在提醒你：最后代码必须回到这些具体行为上。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：Itemization 规则",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-itemization-rule",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 8",
+        "text": "最后看 Itemization 规则。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-spotlight-cpsc107-05",
+        "type": "spotlight",
+        "title": "聚焦：判断方式不同",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s15-itemization-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 9",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 10",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p15-speech-cpsc107-11",
+        "type": "speech",
+        "title": "讲解：Itemization：CountDown 有三种不同形状 11",
+        "text": "下一页进入《Itemization 的 cond：先问类型，再问范围》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16",
+    "title": "Itemization 的 cond：先问类型，再问范围",
+    "order": 15,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：guarded cond 代码",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-guarded-code",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 1",
+        "text": "上一页《Itemization：CountDown 有三种不同形状》先铺好一个动作，现在这一页继续推进到《Itemization 的 cond：先问类型，再问范围》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 3",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：每个 case 的问题",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-case-callouts",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 4",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 5",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：判断流程",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-decision-flow",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 6",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 7",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：先问类型的原因",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s16-predicate-warning",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 8",
+        "text": "现在看分支或 case。每个分支都应该对应一个清楚的问题，而不是随便排几行条件。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 9",
+        "text": "读 cond 时按顺序检查：这一行的问题是什么，满足后返回什么，没满足才进入下一行。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p16-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Itemization 的 cond：先问类型，再问范围 10",
+        "text": "下一页进入《Compound Data：一个值同时带着多个字段》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17",
+    "title": "Compound Data：一个值同时带着多个字段",
+    "order": 16,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：one-of 是选一种",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-one-of-review",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 1",
+        "text": "上一页《Itemization 的 cond：先问类型，再问范围》先铺好一个动作，现在这一页继续推进到《Compound Data：一个值同时带着多个字段》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 3",
+        "text": "现在看 one-of 是选一种。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：compound 字段同时存在",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-compound-record",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 4",
+        "text": "现在看 selector。compound data 不能凭感觉取字段，必须用对应 selector 把字段拆出来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 5",
+        "text": "selector 这一行通常就是数据定义和函数体真正接上的位置。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：define struct student",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-student-code",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 6",
+        "text": "现在看 define struct student。先别写函数，先读这个数据有哪些可能形状、哪些字段。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 7",
+        "text": "字段类型决定后面的模板动作：原子值直接用，compound 要 selector，别的 HTDD 要 helper。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：选一种 vs 字段全部都有",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s17-compound-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 8",
+        "text": "现在看 selector。compound data 不能凭感觉取字段，必须用对应 selector 把字段拆出来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-09",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 9",
+        "text": "selector 这一行通常就是数据定义和函数体真正接上的位置。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p17-speech-cpsc107-10",
+        "type": "speech",
+        "title": "讲解：Compound Data：一个值同时带着多个字段 10",
+        "text": "下一页进入《Compound 模板：用 selector 拆字段》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18",
+    "title": "Compound Template：用 selector 拆字段",
+    "order": 17,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：Ball 模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-ball-template",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 1",
+        "text": "上一页《Compound Data：一个值同时带着多个字段》先铺好一个动作，现在这一页继续推进到《Compound 模板：用 selector 拆字段》。这一页要把数据形状和函数形状接起来：数据怎么长，模板就怎么长。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 3",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：Student 模板",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-student-template",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 4",
+        "text": "现在看模板。模板不是凭感觉写出来的，它是由数据定义逼出来的代码骨架。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 5",
+        "text": "看到模板里的分支、selector 或递归调用，要回头问：它对应数据定义里的哪一块？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：selector 是核心",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s18-selector-insight",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 6",
+        "text": "现在看 selector。compound data 不能凭感觉取字段，必须用对应 selector 把字段拆出来。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 7",
+        "text": "selector 这一行通常就是数据定义和函数体真正接上的位置。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p18-speech-cpsc107-08",
+        "type": "speech",
+        "title": "讲解：Compound 模板：用 selector 拆字段 8",
+        "text": "下一页进入《今天的核心：函数设计跟着数据设计走》，刚才这个判断会变成下一步写代码或追踪代码的依据。"
+      }
+    ]
+  },
+  {
+    "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19",
+    "title": "今天的核心：函数设计跟着数据设计走",
+    "order": 18,
+    "actions": [
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-spotlight-cpsc107-01",
+        "type": "spotlight",
+        "title": "聚焦：HTDF 总结",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-htdf-summary",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-01",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 1",
+        "text": "上一页《Compound 模板：用 selector 拆字段》先铺好一个动作，现在这一页继续推进到《今天的核心：函数设计跟着数据设计走》。这一页的重点不是背格式，而是看见函数设计为什么必须按顺序展开。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-02",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 2",
+        "text": "先看这个区域，整页都围绕这个主问题展开：从题目到代码，中间每一步为什么必须先设计出来？"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-03",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 3",
+        "text": "最后看 HTDF 总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-spotlight-cpsc107-02",
+        "type": "spotlight",
+        "title": "聚焦：HTDD 总结",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-htdd-summary",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-04",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 4",
+        "text": "最后看 HTDD 总结。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-spotlight-cpsc107-03",
+        "type": "spotlight",
+        "title": "聚焦：规则与常见坑",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-rules-and-pitfalls",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-05",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 5",
+        "text": "最后看规则与常见坑。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-spotlight-cpsc107-04",
+        "type": "spotlight",
+        "title": "聚焦：下节课钩子",
+        "elementId": "nb-cpsc107-htdf-htdd-week2-20260519043417-s19-next-hook",
+        "padding": 12
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-06",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 6",
+        "text": "最后看下节课钩子。这里把本页收成一个可复用动作，而不是再背一个术语。"
+      },
+      {
+        "id": "nb-cpsc107-htdf-htdd-week2-20260519043417-p19-speech-cpsc107-07",
+        "type": "speech",
+        "title": "讲解：今天的核心：函数设计跟着数据设计走 7",
+        "text": "最后把这本课收束成一句话：先写清函数承诺，再让数据形状推出模板，最后才填函数体。"
+      }
+    ]
+  }
+]

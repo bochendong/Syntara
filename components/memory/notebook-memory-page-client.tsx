@@ -73,11 +73,11 @@ type ConversationMemory = {
 const EMPTY_SCENES: Scene[] = [];
 const markdownMath = createMathPlugin({ singleDollarTextMath: true });
 
-const tabItems: Array<{ value: MemoryTab; label: string }> = [
-  { value: 'all', label: '全部记忆' },
-  { value: 'public', label: '共有记忆' },
-  { value: 'private', label: '私有记忆' },
-  { value: 'sources', label: '来源页面' },
+const tabItems: Array<{ value: MemoryTab; label: string; description: string }> = [
+  { value: 'all', label: '全部记忆', description: '共有和私有一起看' },
+  { value: 'public', label: '共有记忆', description: 'Markdown 知识点' },
+  { value: 'private', label: '私有记忆', description: '用户学习状态' },
+  { value: 'sources', label: '来源页面', description: '页面知识索引' },
 ];
 
 function isImageAvatar(src: string | null | undefined): src is string {
@@ -306,16 +306,48 @@ function SourceChips({ sources }: { sources: NotebookMemorySourceReference[] }) 
 }
 
 function normalizeMarkdownBody(input: string): string {
-  return input
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|li|h[1-6]|div)>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[ \t]{2,}/g, ' ')
+  const chunks: string[] = [];
+  const outsideFenceLines: string[] = [];
+  let inFence = false;
+
+  function normalizeOutsideFence(text: string): string {
+    return text
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|li|h[1-6]|div)>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .split('\n')
+      .map((line) => line.replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+$/g, ''))
+      .join('\n');
+  }
+
+  function flushOutsideFence(): void {
+    if (outsideFenceLines.length === 0) return;
+    chunks.push(normalizeOutsideFence(outsideFenceLines.join('\n')));
+    outsideFenceLines.length = 0;
+  }
+
+  for (const line of input.replace(/\r\n?/g, '\n').split('\n')) {
+    if (/^[ \t]*(```|~~~)/.test(line)) {
+      flushOutsideFence();
+      chunks.push(line.replace(/[ \t]+$/g, ''));
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) {
+      chunks.push(line.replace(/[ \t]+$/g, ''));
+    } else {
+      outsideFenceLines.push(line);
+    }
+  }
+  flushOutsideFence();
+
+  return chunks
+    .join('\n')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -415,6 +447,9 @@ function SharedMemoryMarkdownDocument({ markdown }: { markdown: string }) {
           '[&_p]:my-3 [&_p]:text-slate-600 dark:[&_p]:text-slate-300',
           '[&_blockquote]:my-4 [&_blockquote]:rounded-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-400 [&_blockquote]:bg-emerald-50/70 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-sm [&_blockquote]:text-emerald-900 dark:[&_blockquote]:bg-emerald-500/10 dark:[&_blockquote]:text-emerald-100',
           '[&_ul]:my-3 [&_ul]:grid [&_ul]:gap-1.5 [&_ul]:pl-5 [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-slate-950 dark:[&_strong]:text-white',
+          '[&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:rounded-xl [&_table]:border [&_table]:border-slate-200 [&_table]:text-left dark:[&_table]:border-white/10',
+          '[&_thead]:bg-slate-50 dark:[&_thead]:bg-white/8 [&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-slate-700 dark:[&_th]:border-white/10 dark:[&_th]:text-slate-200',
+          '[&_td]:border-b [&_td]:border-slate-100 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-xs [&_td]:leading-5 dark:[&_td]:border-white/8',
           '[&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] dark:[&_code]:bg-white/10',
         )}
       >
@@ -652,6 +687,77 @@ export function NotebookMemoryPageClient({
   const showShared = tab === 'all' || tab === 'public' || tab === 'sources';
   const showPrivate = tab === 'all' || tab === 'private';
   const isSingleColumn = showShared !== showPrivate;
+  const tabCounts: Record<MemoryTab, number> = {
+    all: sharedMemories.length + privateMemories.length + weakPoints.length,
+    public: sharedMemories.length,
+    private: privateMemories.length + weakPoints.length,
+    sources: sharedMemories.length,
+  };
+  const memoryViewControls = (
+    <section className="rounded-[24px] border border-blue-200/90 bg-blue-50/75 p-3 shadow-[0_18px_50px_rgba(37,99,235,0.12)] dark:border-blue-300/20 dark:bg-blue-500/10 md:p-4">
+      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-blue-700 dark:text-blue-200">
+            记忆视图
+          </p>
+          <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+            选择要查看的记忆范围
+          </h2>
+        </div>
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-2xl border border-blue-200/90 bg-white px-3 text-xs font-semibold text-slate-500 shadow-sm dark:border-white/10 dark:bg-black/20 dark:text-slate-400 md:w-80">
+          <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+            placeholder="搜索知识点、页面、私有记忆…"
+          />
+        </label>
+      </div>
+      <div
+        role="tablist"
+        aria-label="记忆分类"
+        className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4"
+      >
+        {tabItems.map((item) => {
+          const active = tab === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(item.value)}
+              className={cn(
+                'min-h-16 rounded-2xl border px-3 py-2 text-left transition-colors',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+                active
+                  ? 'border-blue-600 bg-white text-blue-800 shadow-sm dark:border-blue-300 dark:bg-white dark:text-blue-950'
+                  : 'border-blue-200/80 bg-white/55 text-slate-700 hover:border-blue-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-200 dark:hover:bg-white/[0.09]',
+              )}
+            >
+              <span className="flex min-w-0 items-center justify-between gap-2">
+                <span className="truncate text-sm font-bold">{item.label}</span>
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums',
+                    active
+                      ? 'bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-950'
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-100',
+                  )}
+                >
+                  {tabCounts[item.value]}
+                </span>
+              </span>
+              <span className="mt-1 block text-xs font-medium leading-5 opacity-80">
+                {item.description}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
 
   const archiveMemory = (memory: NotebookMemoryItem) => {
     updateNotebookPrivateMemoryStatus({
@@ -756,6 +862,8 @@ export function NotebookMemoryPageClient({
           </div>
         </header>
 
+        {memoryViewControls}
+
         <section className="rounded-[24px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] dark:border-white/10 dark:bg-white/[0.065] md:p-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
             <div className="flex min-w-0 gap-4">
@@ -825,35 +933,6 @@ export function NotebookMemoryPageClient({
             </div>
           </div>
         </section>
-
-        <div className="flex flex-col gap-2 rounded-[18px] border border-slate-200/80 bg-white/78 p-2 shadow-sm dark:border-white/10 dark:bg-white/[0.045] md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 gap-1 overflow-x-auto">
-            {tabItems.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setTab(item.value)}
-                className={cn(
-                  'h-9 shrink-0 rounded-xl px-3 text-xs font-bold transition-colors',
-                  tab === item.value
-                    ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-                    : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10',
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <label className="flex h-9 min-w-0 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/86 px-3 text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-black/15 dark:text-slate-400 md:w-80">
-            <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-              placeholder="搜索知识点、页面、私有记忆…"
-            />
-          </label>
-        </div>
 
         <div
           className={cn(

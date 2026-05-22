@@ -25,7 +25,7 @@ const themeColors = {
 
 const slides = [
   {
-    title: 'CPSC 107 · 第一节课',
+    title: 'CPSC 107 · Racket 基础',
     steps: [],
   },
   {
@@ -36,7 +36,7 @@ const slides = [
         label: 'Expression 到 Value',
         rect: [65, 170, 1470, 290],
         speech:
-          '第一节课先建立 Racket 的基本读法：我们写下的是 expression，Racket 会按照求值规则 evaluation，把它变成一个 value。后面所有知识都在这条线上。',
+          '先建立 Racket 的基本读法：我们写下的是 expression，Racket 会按照求值规则 evaluation，把它变成一个 value。后面所有知识都在这条线上。',
       },
       {
         id: 'prefix-notation',
@@ -525,14 +525,14 @@ const slides = [
     ],
   },
   {
-    title: '第一节课总结',
+    title: 'Racket 基础总结',
     steps: [
       {
         id: 'four-actions',
         label: '四个核心动作',
         rect: [25, 150, 1530, 390],
         speech:
-          '第一节课可以收束成四个动作：读表达式、算成 value、区分类型、组织程序。Racket 的基础不是背很多函数，而是把这四个动作练熟。',
+          'Racket 基础可以收束成四个动作：读表达式、算成 value、区分类型、组织程序。重点不是背很多函数，而是把这四个动作练熟。',
       },
       {
         id: 'common-errors',
@@ -749,9 +749,9 @@ async function seedNotebook() {
       update: {
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 1：Racket 基础 · Systematic Program Design',
+        name: 'Racket 基础 · Systematic Program Design',
         description:
-          'CPSC 107 Week 1 notebook in image-generated full-slide format. Covers Racket expression reading, primitive operators, evaluation rules, Boolean short-circuiting, strings, images, primitive data, function definitions, function-call evaluation, globals, if, cond, and a Design Recipe hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers Racket expression reading, primitive operators, evaluation rules, Boolean short-circuiting, strings, images, primitive data, function definitions, function-call evaluation, globals, if, cond, and a Design Recipe hook.',
         tags: [
           'CPSC107',
           'Racket',
@@ -769,9 +769,9 @@ async function seedNotebook() {
         id: NOTEBOOK_ID,
         ownerId: course.ownerId,
         courseId: course.id,
-        name: 'Week 1：Racket 基础 · Systematic Program Design',
+        name: 'Racket 基础 · Systematic Program Design',
         description:
-          'CPSC 107 Week 1 notebook in image-generated full-slide format. Covers Racket expression reading, primitive operators, evaluation rules, Boolean short-circuiting, strings, images, primitive data, function definitions, function-call evaluation, globals, if, cond, and a Design Recipe hook.',
+          'CPSC 107 notebook in image-generated full-slide format. Covers Racket expression reading, primitive operators, evaluation rules, Boolean short-circuiting, strings, images, primitive data, function definitions, function-call evaluation, globals, if, cond, and a Design Recipe hook.',
         tags: [
           'CPSC107',
           'Racket',

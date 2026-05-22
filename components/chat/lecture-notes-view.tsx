@@ -1,18 +1,47 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { BookOpen, MessageSquare } from 'lucide-react';
+import { BookOpen, MessageSquare, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import type { LectureNoteEntry } from '@/lib/types/chat';
+import type { LectureNoteEntry, LectureNoteItem } from '@/lib/types/chat';
 
 interface LectureNotesViewProps {
   notes: LectureNoteEntry[];
   currentSceneId?: string | null;
   currentOnly?: boolean;
+  selectedItemKey?: string | null;
+  onItemSelect?: (note: LectureNoteEntry, item: LectureNoteItem) => void;
+  onClearSelection?: () => void;
 }
 
-export function LectureNotesView({ notes, currentSceneId, currentOnly = false }: LectureNotesViewProps) {
+function lectureNoteItemKey(note: LectureNoteEntry, item: LectureNoteItem): string {
+  return `${note.sceneId}:${item.id}`;
+}
+
+function actionLabel(type: string): string {
+  switch (type) {
+    case 'spotlight':
+      return '聚焦';
+    case 'laser':
+      return '指示';
+    case 'semantic_step':
+      return '步骤';
+    case 'play_video':
+      return '视频';
+    default:
+      return '动作';
+  }
+}
+
+export function LectureNotesView({
+  notes,
+  currentSceneId,
+  currentOnly = false,
+  selectedItemKey,
+  onItemSelect,
+  onClearSelection,
+}: LectureNotesViewProps) {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const visibleNotes = currentOnly
@@ -51,7 +80,19 @@ export function LectureNotesView({ notes, currentSceneId, currentOnly = false }:
       ref={containerRef}
       className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 scrollbar-hide"
     >
-      {visibleNotes.map((note, index) => {
+      {onClearSelection && selectedItemKey ? (
+        <div className="sticky top-0 z-10 mb-2 flex justify-end bg-white/85 py-1 backdrop-blur-md dark:bg-slate-950/75">
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="inline-flex h-7 items-center gap-1 rounded-full border border-slate-200/80 bg-white/90 px-2.5 text-[11px] font-medium text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-800 dark:border-white/10 dark:bg-slate-900/90 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
+          >
+            <XCircle className="size-3.5" strokeWidth={1.9} />
+            清空选择
+          </button>
+        </div>
+      ) : null}
+      {visibleNotes.map((note) => {
         const isCurrent = note.sceneId === currentSceneId;
 
         return (
@@ -76,11 +117,22 @@ export function LectureNotesView({ notes, currentSceneId, currentOnly = false }:
                 // Build render rows: group inline actions (spotlight/laser) with next speech,
                 // but render discussion as its own block
                 type Row =
-                  | { kind: 'speech'; inlineActions: string[]; text: string }
-                  | { kind: 'discussion'; label?: string }
-                  | { kind: 'trailing'; inlineActions: string[] };
+                  | {
+                      kind: 'speech';
+                      inlineActions: Extract<LectureNoteItem, { kind: 'action' }>[];
+                      item: Extract<LectureNoteItem, { kind: 'speech' }>;
+                    }
+                  | {
+                      kind: 'discussion';
+                      item: Extract<LectureNoteItem, { kind: 'action' }>;
+                      label?: string;
+                    }
+                  | {
+                      kind: 'trailing';
+                      inlineActions: Extract<LectureNoteItem, { kind: 'action' }>[];
+                    };
                 const rows: Row[] = [];
-                let pendingInline: string[] = [];
+                let pendingInline: Extract<LectureNoteItem, { kind: 'action' }>[] = [];
                 for (const item of note.items) {
                   if (item.kind === 'action' && item.type === 'discussion') {
                     // Flush pending inline actions as trailing if any
@@ -91,14 +143,14 @@ export function LectureNotesView({ notes, currentSceneId, currentOnly = false }:
                       });
                       pendingInline = [];
                     }
-                    rows.push({ kind: 'discussion', label: item.label });
+                    rows.push({ kind: 'discussion', item, label: item.label });
                   } else if (item.kind === 'action') {
-                    pendingInline.push(item.type);
+                    pendingInline.push(item);
                   } else {
                     rows.push({
                       kind: 'speech',
                       inlineActions: pendingInline,
-                      text: item.text,
+                      item,
                     });
                     pendingInline = [];
                   }
@@ -121,12 +173,61 @@ export function LectureNotesView({ notes, currentSceneId, currentOnly = false }:
                     );
                   }
                   return (
-                    <p
+                    <button
                       key={i}
-                      className="rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-[12px] leading-[1.8] text-gray-700 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/55 dark:text-gray-300"
+                      type="button"
+                      title={onItemSelect ? '查看遮罩' : undefined}
+                      onClick={() => {
+                        if (row.kind === 'speech') {
+                          onItemSelect?.(note, row.item);
+                        } else {
+                          const item = row.inlineActions.find((action) => action.visualCue);
+                          if (item) onItemSelect?.(note, item);
+                        }
+                      }}
+                      className={cn(
+                        'w-full rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-left text-[12px] leading-[1.8] text-gray-700 shadow-sm transition dark:border-slate-700/40 dark:bg-slate-900/55 dark:text-gray-300',
+                        onItemSelect &&
+                          'cursor-pointer hover:border-sky-200 hover:bg-sky-50/80 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10 dark:hover:text-white',
+                        row.kind === 'speech' &&
+                          selectedItemKey === lectureNoteItemKey(note, row.item) &&
+                          'border-sky-300 bg-sky-50 text-slate-950 ring-1 ring-sky-200 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-white dark:ring-sky-400/20',
+                        row.kind === 'trailing' &&
+                          row.inlineActions.some(
+                            (action) => selectedItemKey === lectureNoteItemKey(note, action),
+                          ) &&
+                          'border-sky-300 bg-sky-50 text-slate-950 ring-1 ring-sky-200 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-white dark:ring-sky-400/20',
+                      )}
                     >
-                      {row.kind === 'speech' ? row.text : null}
-                    </p>
+                      {row.kind === 'speech' ? (
+                        <>
+                          {row.inlineActions.length > 0 ? (
+                            <span className="mb-1 flex flex-wrap gap-1">
+                              {row.inlineActions.map((action) => (
+                                <span
+                                  key={action.id}
+                                  className="rounded-full bg-sky-100/80 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sky-700 dark:bg-sky-400/10 dark:text-sky-200"
+                                >
+                                  {actionLabel(action.type)}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                          {row.item.text}
+                        </>
+                      ) : (
+                        <span className="flex flex-wrap gap-1">
+                          {row.inlineActions.map((action) => (
+                            <span
+                              key={action.id}
+                              className="rounded-full bg-sky-100/80 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sky-700 dark:bg-sky-400/10 dark:text-sky-200"
+                            >
+                              {actionLabel(action.type)}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </button>
                   );
                 });
               })()}

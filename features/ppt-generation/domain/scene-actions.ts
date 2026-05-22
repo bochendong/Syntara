@@ -7,6 +7,10 @@ export {
 export type {
   AgentInfo,
   CoursePersonalizationContext,
+  SceneActionContinuityContext,
+  SceneActionCourseSpineContext,
+  SceneActionFocusPlanItem,
+  SceneActionNarrationPolicy,
   SceneGenerationContext,
 } from '@/lib/generation/generation-pipeline';
 export type {

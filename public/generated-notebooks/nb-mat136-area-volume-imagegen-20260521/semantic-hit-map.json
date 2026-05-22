@@ -1,0 +1,551 @@
+{
+  "notebookId": "nb-mat136-area-volume-imagegen-20260521",
+  "source": "built-in-imagegen-full-slide",
+  "sourcePdf": "/Users/dongpochen/Desktop/05_Area_Volume.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "封面：Area & Volume",
+      "teachingIntent": "建立本章主线：把几何量切成小片，再用积分累加。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-01.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-01",
+          "label": "主题入口",
+          "rect": [
+            70,
+            95,
+            520,
+            190
+          ],
+          "speech": "这一章只抓一个思想：面积和体积都可以被切成很多小片。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-02",
+          "label": "面积到体积",
+          "rect": [
+            610,
+            120,
+            820,
+            470
+          ],
+          "speech": "同样的切片思想，可以从曲线间面积过渡到圆盘、截面和旋转体体积。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s01-hotspot-03",
+          "label": "本章 take-away",
+          "rect": [
+            115,
+            700,
+            1360,
+            115
+          ],
+          "speech": "关键不是死背公式，而是先判断每一小片的尺寸。"
+        }
+      ]
+    },
+    {
+      "order": 1,
+      "title": "曲线间面积：核心方法",
+      "teachingIntent": "用“上方函数减下方函数”建立曲线间面积公式。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-02.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-01",
+          "label": "找边界",
+          "rect": [
+            80,
+            120,
+            460,
+            185
+          ],
+          "speech": "先找交点或题目给出的区间，确定积分上下限。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-02",
+          "label": "判断上下",
+          "rect": [
+            560,
+            150,
+            720,
+            330
+          ],
+          "speech": "竖着切时，每一条小矩形的高度是上方函数减下方函数。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s02-hotspot-03",
+          "label": "方法清单",
+          "rect": [
+            90,
+            600,
+            1380,
+            180
+          ],
+          "speech": "完整流程是找交点、判断上下、建立积分；上下关系改变时就要分段。"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "例题：y=x^2 与 y=sqrt(x)",
+      "teachingIntent": "完成一个不需要分段的曲线间面积例题。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-03.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-01",
+          "label": "交点",
+          "rect": [
+            95,
+            150,
+            430,
+            170
+          ],
+          "speech": "两条曲线在 x=0 和 x=1 相交，所以区间是从 0 到 1。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-02",
+          "label": "上减下",
+          "rect": [
+            540,
+            125,
+            760,
+            420
+          ],
+          "speech": "在这个区间里，sqrt(x) 在上面，x^2 在下面。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s03-hotspot-03",
+          "label": "积分结果",
+          "rect": [
+            120,
+            640,
+            1260,
+            150
+          ],
+          "speech": "面积就是 integral_0^1 sqrt(x)-x^2 dx，计算结果是三分之一。"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "title": "分段面积 I：绝对值函数先找交点",
+      "teachingIntent": "把绝对值函数拆开，先完成交点与区间分析。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-04.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-01",
+          "label": "绝对值拆分",
+          "rect": [
+            80,
+            125,
+            530,
+            215
+          ],
+          "speech": "遇到绝对值，不要急着积分，先按 x 的正负把表达式拆开。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-02",
+          "label": "两个交点",
+          "rect": [
+            670,
+            120,
+            690,
+            350
+          ],
+          "speech": "左边交点来自 -2x=x+2，右边交点来自 2x=x+2。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s04-hotspot-03",
+          "label": "分段区间",
+          "rect": [
+            115,
+            650,
+            1330,
+            125
+          ],
+          "speech": "得到区域从 -2/3 到 2，并且 0 是表达式切换点。"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "title": "分段面积 II：建立并计算积分",
+      "teachingIntent": "把上一页的分段信息转成两个面积积分并计算。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-05.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-01",
+          "label": "第一段",
+          "rect": [
+            70,
+            150,
+            645,
+            230
+          ],
+          "speech": "在 [-2/3,0]，下方函数是 -2x，所以上减下是 x+2-(-2x)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-02",
+          "label": "第二段",
+          "rect": [
+            790,
+            150,
+            640,
+            230
+          ],
+          "speech": "在 [0,2]，下方函数是 2x，所以上减下是 x+2-2x。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s05-hotspot-03",
+          "label": "合并结果",
+          "rect": [
+            130,
+            590,
+            1250,
+            180
+          ],
+          "speech": "两个积分相加，得到总面积 8/3；分段的意义是让每段公式都正确。"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "title": "三角函数曲线之间的面积",
+      "teachingIntent": "处理上下关系在交点处改变的三角函数面积题。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-06.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-01",
+          "label": "交点",
+          "rect": [
+            90,
+            135,
+            470,
+            210
+          ],
+          "speech": "先解 sin(2x)=cos(2x)，交点是 x=pi/8。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-02",
+          "label": "上下关系",
+          "rect": [
+            610,
+            125,
+            770,
+            385
+          ],
+          "speech": "在左段 cos(2x) 在上，在右段 sin(2x) 在上。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s06-hotspot-03",
+          "label": "两段积分",
+          "rect": [
+            95,
+            620,
+            1370,
+            160
+          ],
+          "speech": "因此总面积必须写成两个积分，最后得到 sqrt(2)。"
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "title": "水平切片：三角形面积",
+      "teachingIntent": "用水平切片和相似三角形建立三角形面积积分。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-07.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-01",
+          "label": "水平条",
+          "rect": [
+            100,
+            120,
+            540,
+            400
+          ],
+          "speech": "横着切时，小片宽度是 w(h)，厚度是 dh。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-02",
+          "label": "相似三角形",
+          "rect": [
+            720,
+            125,
+            620,
+            260
+          ],
+          "speech": "利用相似三角形可以得到 w(h)=10-2h。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s07-hotspot-03",
+          "label": "面积积分",
+          "rect": [
+            170,
+            625,
+            1180,
+            150
+          ],
+          "speech": "把所有水平条累加，integral_0^5 (10-2h) dh = 25。"
+        }
+      ]
+    },
+    {
+      "order": 7,
+      "title": "水平切片：半圆面积",
+      "teachingIntent": "从圆方程推出半圆横向切片的宽度函数。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-08.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-01",
+          "label": "圆方程",
+          "rect": [
+            80,
+            130,
+            540,
+            250
+          ],
+          "speech": "横向切片的半宽来自圆方程 h^2+(w/2)^2=7^2。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-02",
+          "label": "宽度函数",
+          "rect": [
+            700,
+            120,
+            650,
+            260
+          ],
+          "speech": "所以整条水平切片宽度是 w(h)=2sqrt(49-h^2)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s08-hotspot-03",
+          "label": "半圆面积",
+          "rect": [
+            120,
+            610,
+            1280,
+            170
+          ],
+          "speech": "面积写成 integral_0^7 2sqrt(49-h^2) dh，结果是 49pi/2。"
+        }
+      ]
+    },
+    {
+      "order": 8,
+      "title": "体积方法：圆盘与截面切片",
+      "teachingIntent": "把面积切片思想推广到体积：小体积等于截面积乘厚度。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-09.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-01",
+          "label": "体积切片",
+          "rect": [
+            80,
+            120,
+            520,
+            250
+          ],
+          "speech": "体积题的核心是找到每一片的截面积 A(h)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-02",
+          "label": "圆盘法",
+          "rect": [
+            650,
+            120,
+            360,
+            360
+          ],
+          "speech": "圆形截面时，A=pi r^2。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-03",
+          "label": "非圆截面",
+          "rect": [
+            1060,
+            125,
+            360,
+            360
+          ],
+          "speech": "正方形或其他截面也一样，只要能写出 A(h)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s09-hotspot-04",
+          "label": "总公式",
+          "rect": [
+            115,
+            620,
+            1350,
+            155
+          ],
+          "speech": "总体积就是 integral A(h) dh 或 integral A(x) dx。"
+        }
+      ]
+    },
+    {
+      "order": 9,
+      "title": "圆锥与球体体积",
+      "teachingIntent": "用同一个圆盘法处理圆锥和球体。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-10.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-01",
+          "label": "圆锥半径",
+          "rect": [
+            75,
+            135,
+            650,
+            330
+          ],
+          "speech": "圆锥的半径随高度线性变化，比如 r(h)=5-h。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-02",
+          "label": "球体半径",
+          "rect": [
+            815,
+            135,
+            650,
+            330
+          ],
+          "speech": "球体的截面半径来自圆方程，r(h)=sqrt(49-h^2)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s10-hotspot-03",
+          "label": "同一种结构",
+          "rect": [
+            130,
+            625,
+            1280,
+            150
+          ],
+          "speech": "两个题都是 integral pi r(h)^2 dh，差别只在半径函数。"
+        }
+      ]
+    },
+    {
+      "order": 10,
+      "title": "金字塔体积：非圆截面",
+      "teachingIntent": "用正方形截面和相似三角形建立金字塔体积积分。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-11.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-01",
+          "label": "截面形状",
+          "rect": [
+            75,
+            120,
+            520,
+            380
+          ],
+          "speech": "金字塔横着切出来的是正方形，不是圆盘。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-02",
+          "label": "边长函数",
+          "rect": [
+            680,
+            120,
+            690,
+            300
+          ],
+          "speech": "利用相似三角形得到边长 s(h)=(756/481)(481-h)。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s11-hotspot-03",
+          "label": "体积积分",
+          "rect": [
+            105,
+            610,
+            1340,
+            170
+          ],
+          "speech": "每片面积是 s(h)^2，所以体积是 integral_0^481 s(h)^2 dh。"
+        }
+      ]
+    },
+    {
+      "order": 11,
+      "title": "旋转体：绕 x 轴的圆盘法",
+      "teachingIntent": "把平面区域绕 x 轴旋转，半径来自函数值。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-12.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-01",
+          "label": "旋转区域",
+          "rect": [
+            80,
+            125,
+            570,
+            350
+          ],
+          "speech": "把 y=e^x 下方区域绕 x 轴旋转，会形成一个立体。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-02",
+          "label": "圆盘半径",
+          "rect": [
+            735,
+            125,
+            620,
+            300
+          ],
+          "speech": "每个垂直小片转起来是圆盘，半径就是 y=e^x。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s12-hotspot-03",
+          "label": "体积公式",
+          "rect": [
+            130,
+            610,
+            1250,
+            170
+          ],
+          "speech": "因此 V=integral_0^1 pi(e^x)^2 dx。"
+        }
+      ]
+    },
+    {
+      "order": 12,
+      "title": "变量半径应用：桌腿体积",
+      "teachingIntent": "用变量半径函数建立更复杂的圆盘体积积分。",
+      "image": "/generated-notebooks/nb-mat136-area-volume-imagegen-20260521/slide-13.png",
+      "hitMap": [
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-01",
+          "label": "变量半径",
+          "rect": [
+            80,
+            125,
+            540,
+            360
+          ],
+          "speech": "桌腿每个高度 y 的截面仍是圆，但半径 r(y) 会变化。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-02",
+          "label": "建立积分",
+          "rect": [
+            710,
+            120,
+            680,
+            250
+          ],
+          "speech": "截面积是 pi[r(y)]^2，所以先写出 integral pi(3+cos(pi y/25))^2 dy。"
+        },
+        {
+          "id": "nb-mat136-area-volume-imagegen-20260521-s13-hotspot-03",
+          "label": "计算提示",
+          "rect": [
+            130,
+            620,
+            1280,
+            160
+          ],
+          "speech": "展开后会出现 cos^2，用恒等式 cos^2 u=(1+cos 2u)/2 来积分。"
+        }
+      ]
+    }
+  ]
+}

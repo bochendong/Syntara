@@ -1,5 +1,7 @@
 'use client';
 
+import { nanoid } from 'nanoid';
+import { useSettingsStore } from '@/lib/store/settings';
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
 import { isTitleCoverOutline } from '@/lib/generation/title-cover';
@@ -17,9 +19,17 @@ import {
   type HtmlSlidePlanContract,
 } from '@/features/ppt-generation/html-slide-contracts';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
+import type {
+  SceneActionContinuityContext,
+  SceneActionCourseSpineContext,
+  SceneActionFocusPlanItem,
+  SceneActionNarrationPolicy,
+} from '@/lib/generation/pipeline-types';
 import type { SlideGenerationRoute } from '@/lib/generation/slide-generation-route';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
 import type { Scene, SceneGenerationDiagnostics, Stage } from '@/lib/types/stage';
+import type { ImageGenerationResult } from '@/lib/media/types';
+import type { PPTElement, SlideBackground, SlideTheme } from '@/lib/types/slides';
 import type { SourceImageAsset } from '@/features/ppt-generation/server/html-ppt-slide/types';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { buildPayloadTooLargeMessage, readApiErrorMessage } from './api-errors';
@@ -32,6 +42,15 @@ export type GeneratedSceneContentBundle = {
   allOutlinesForActions: SceneOutline[];
   generationDiagnostics?: SceneGenerationDiagnostics;
   contentDiagnosticsByOutlineId?: Record<string, SceneGenerationDiagnostics>;
+  actionContextsByOutlineId?: Record<
+    string,
+    {
+      courseSpine?: SceneActionCourseSpineContext;
+      continuity?: SceneActionContinuityContext;
+      focusPlan?: SceneActionFocusPlanItem[];
+      narrationPolicy?: SceneActionNarrationPolicy;
+    }
+  >;
 };
 
 export type SceneContentJobResult =
@@ -202,7 +221,10 @@ function pickCoverBackgroundUrl(args: {
   return candidates[stableHash(key) % candidates.length];
 }
 
-function getTeachingPageOrder(outline: SceneOutline, allOutlines: SceneOutline[]): number | undefined {
+function getTeachingPageOrder(
+  outline: SceneOutline,
+  allOutlines: SceneOutline[],
+): number | undefined {
   if (!isCountedTeachingOutline(outline)) return undefined;
   let order = 0;
   for (const item of allOutlines) {
@@ -279,14 +301,13 @@ function toHtmlSlideSeed(
       : outline.teachingObjective || outline.description,
     keyPoints,
     sourceAnchors: outline.sourceFactIds,
-    visualPlan:
-      isSystemCover
-        ? '封面页：全幅本地背景图，标题直接叠在背景上；只保留主标题和最多一行短副标题/元信息，不放正文卡片。'
-        : outline.layoutIntent?.layoutTemplate || outline.contentProfile
-          ? `参考现有教学页面意图：${[outline.contentProfile, outline.layoutIntent?.layoutTemplate]
-              .filter(Boolean)
-              .join(' / ')}`
-          : '使用旧版 HTML/CSS PPT 的正常网格/卡片/图解排版，避免重叠。',
+    visualPlan: isSystemCover
+      ? '封面页：全幅本地背景图，标题直接叠在背景上；只保留主标题和最多一行短副标题/元信息，不放正文卡片。'
+      : outline.layoutIntent?.layoutTemplate || outline.contentProfile
+        ? `参考现有教学页面意图：${[outline.contentProfile, outline.layoutIntent?.layoutTemplate]
+            .filter(Boolean)
+            .join(' / ')}`
+        : '使用旧版 HTML/CSS PPT 的正常网格/卡片/图解排版，避免重叠。',
     mandatoryVisibleContent,
     optionalContent,
     contentBudget: {
@@ -384,7 +405,9 @@ function buildNotebookHtmlPlan(args: {
           act: 'development',
           title: args.stage.name,
           purpose: '按 notebook 页面顺序推进核心理解。',
-          pages: teachingOutlines.map((outline) => getTeachingPageOrder(outline, args.allOutlines) || 0),
+          pages: teachingOutlines.map(
+            (outline) => getTeachingPageOrder(outline, args.allOutlines) || 0,
+          ),
           keyQuestion: args.outline.teachingObjective || args.outline.title,
         },
       ],
@@ -442,6 +465,568 @@ function sourceImagesFromMedia(args: {
     .filter((image) => Boolean(image.id && image.src));
 }
 
+function headersInitToRecord(headers: HeadersInit): Record<string, string> {
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
+  if (Array.isArray(headers)) return Object.fromEntries(headers);
+  return Object.fromEntries(
+    Object.entries(headers).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
+
+function buildImageGenerationHeaders(baseHeaders: HeadersInit): Record<string, string> {
+  const settings = useSettingsStore.getState();
+  const providerId = settings.imageProviderId || 'openai-image';
+  const providerConfig = settings.imageProvidersConfig?.[providerId];
+  const trackingHeaders = headersInitToRecord(baseHeaders);
+
+  return {
+    'Content-Type': 'application/json',
+    'x-image-provider': providerId,
+    'x-image-model': settings.imageModelId || '',
+    'x-api-key': providerConfig?.apiKey || '',
+    'x-base-url': providerConfig?.baseUrl || '',
+    ...(trackingHeaders['x-notebook-generation-session-id']
+      ? {
+          'x-notebook-generation-session-id': trackingHeaders['x-notebook-generation-session-id'],
+        }
+      : {}),
+    ...(trackingHeaders['x-notebook-generation-task-id']
+      ? {
+          'x-notebook-generation-task-id': trackingHeaders['x-notebook-generation-task-id'],
+        }
+      : {}),
+  };
+}
+
+function imageResultToUrl(result: ImageGenerationResult | undefined): string {
+  if (!result) return '';
+  if (result.url) return result.url;
+  if (!result.base64) return '';
+  return result.base64.startsWith('data:')
+    ? result.base64
+    : `data:image/png;base64,${result.base64}`;
+}
+
+function compactLine(value: string | undefined, maxLength = 240): string {
+  const text = (value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
+
+const GENERATED_FOCUS_PATH = 'M 0 0 L 200 0 L 200 200 L 0 200 Z';
+
+type SceneActionContextSeed = NonNullable<
+  GeneratedSceneContentBundle['actionContextsByOutlineId']
+>[string];
+
+function outlineHaystack(outline: SceneOutline, stage?: Stage): string {
+  return [
+    stage?.name,
+    stage?.description,
+    outline.title,
+    outline.description,
+    outline.teachingObjective,
+    outline.studentThinkingMove,
+    outline.teachingPagePlan?.role,
+    outline.teachingPagePlan?.layoutFamily,
+    outline.teachingPagePlan?.layoutTemplate,
+    outline.workedExampleConfig?.kind,
+    outline.workedExampleConfig?.codeSnippet,
+    ...(outline.keyPoints || []),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function isCodeLikeOutline(outline: SceneOutline, stage?: Stage): boolean {
+  return /computer|program|code|racket|scheme|function|algorithm|recursion|tree|stack|queue|HTDF|HTDD|代码|函数|程序|递归|算法|数据结构/i.test(
+    outlineHaystack(outline, stage),
+  );
+}
+
+function isMathLikeOutline(outline: SceneOutline, stage?: Stage): boolean {
+  return /math|calculus|integral|derivative|proof|formula|theorem|matrix|algebra|set|logic|函数|积分|导数|证明|公式|定理|集合|逻辑|矩阵/i.test(
+    outlineHaystack(outline, stage),
+  );
+}
+
+function generatedFocusShape(args: {
+  id: string;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): PPTElement {
+  return {
+    id: args.id,
+    name: `lecture-focus-generated: ${args.label}`,
+    type: 'shape',
+    left: args.left,
+    top: args.top,
+    width: args.width,
+    height: args.height,
+    rotate: 0,
+    lock: true,
+    viewBox: [200, 200],
+    path: GENERATED_FOCUS_PATH,
+    fixedRatio: false,
+    fill: '#ffffff',
+    opacity: 0,
+    outline: { color: '#ffffff', width: 0, style: 'solid' },
+  };
+}
+
+function generatedImageFocusElements(outline: SceneOutline, stage?: Stage): PPTElement[] {
+  const page = String(outline.order || 1).padStart(2, '0');
+  const prefix = `${outline.id || 'scene'}-s${page}-lecture-focus-generated`;
+  const title = generatedFocusShape({
+    id: `${prefix}-title`,
+    label: '页面标题与入口问题',
+    left: 40,
+    top: 24,
+    width: 920,
+    height: 72,
+  });
+  const takeaway = generatedFocusShape({
+    id: `${prefix}-takeaway`,
+    label: '本页收束与转场',
+    left: 60,
+    top: 488,
+    width: 880,
+    height: 52,
+  });
+
+  if (isCodeLikeOutline(outline, stage)) {
+    return [
+      title,
+      generatedFocusShape({
+        id: `${prefix}-code-entry`,
+        label: '代码入口、签名或数据定义',
+        left: 500,
+        top: 118,
+        width: 430,
+        height: 96,
+      }),
+      generatedFocusShape({
+        id: `${prefix}-code-body`,
+        label: '分支、条件或模板结构',
+        left: 500,
+        top: 225,
+        width: 430,
+        height: 126,
+      }),
+      generatedFocusShape({
+        id: `${prefix}-code-return`,
+        label: '递归调用、helper 调用或返回值',
+        left: 500,
+        top: 365,
+        width: 430,
+        height: 92,
+      }),
+      generatedFocusShape({
+        id: `${prefix}-concept-board`,
+        label: '左侧概念、例子或执行状态',
+        left: 60,
+        top: 128,
+        width: 400,
+        height: 320,
+      }),
+      takeaway,
+    ];
+  }
+
+  if (isMathLikeOutline(outline, stage)) {
+    return [
+      title,
+      generatedFocusShape({
+        id: `${prefix}-problem-or-definition`,
+        label: '定义、题目或已知条件',
+        left: 60,
+        top: 118,
+        width: 880,
+        height: 112,
+      }),
+      generatedFocusShape({
+        id: `${prefix}-formula-main`,
+        label: '主公式、图像或关键表达式',
+        left: 80,
+        top: 245,
+        width: 840,
+        height: 128,
+      }),
+      generatedFocusShape({
+        id: `${prefix}-method-check`,
+        label: '推导步骤、判断方法或易错检查',
+        left: 80,
+        top: 388,
+        width: 840,
+        height: 76,
+      }),
+      takeaway,
+    ];
+  }
+
+  return [
+    title,
+    generatedFocusShape({
+      id: `${prefix}-main-anchor`,
+      label: '主概念或核心问题',
+      left: 60,
+      top: 122,
+      width: 880,
+      height: 132,
+    }),
+    generatedFocusShape({
+      id: `${prefix}-supporting-evidence`,
+      label: '例子、图示或证据区',
+      left: 70,
+      top: 275,
+      width: 860,
+      height: 172,
+    }),
+    takeaway,
+  ];
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function elementsFromGeneratedContent(content: unknown): PPTElement[] {
+  if (!isRecordValue(content) || !Array.isArray(content.elements)) return [];
+  return content.elements.filter(
+    (item): item is PPTElement => isRecordValue(item) && typeof item.id === 'string',
+  );
+}
+
+function stripElementText(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function focusLabelForElement(element: PPTElement): string {
+  const record = element as PPTElement & { label?: unknown; text?: { content?: unknown } };
+  const name = typeof element.name === 'string' ? element.name : '';
+  const label = typeof record.label === 'string' ? record.label : '';
+  const text =
+    element.type === 'text'
+      ? stripElementText(element.content)
+      : stripElementText(record.text?.content);
+  return compactLine(
+    label ||
+      name.replace(/^lecture-focus-generated:\s*/, '').replace(/^semantic-hit-map:\s*/, '') ||
+      text ||
+      element.id,
+    96,
+  );
+}
+
+function focusRoleForElement(element: PPTElement, label: string): string {
+  const haystack = `${element.id} ${element.name || ''} ${label}`;
+  if (/title|标题|入口/.test(haystack)) return 'opening';
+  if (/code-entry|signature|purpose|data definition|签名|数据定义|入口/.test(haystack)) {
+    return 'code-entry';
+  }
+  if (/code-body|branch|case|condition|template|分支|条件|模板/.test(haystack)) {
+    return 'code-structure';
+  }
+  if (/recursive|return|helper|递归|返回/.test(haystack)) return 'code-result';
+  if (/formula|equation|表达式|公式/.test(haystack)) return 'formula';
+  if (/problem|definition|given|题目|定义|已知/.test(haystack)) return 'setup';
+  if (/method|check|takeaway|summary|转场|收束|检查|方法/.test(haystack)) return 'takeaway';
+  if (/visual|diagram|example|图|例子|证据/.test(haystack)) return 'example-or-visual';
+  return element.type;
+}
+
+function isPreferredFocusElement(element: PPTElement): boolean {
+  const name = element.name || '';
+  if (/lecture-focus-generated|semantic-hit-map/i.test(`${element.id} ${name}`)) return true;
+  if (element.type === 'latex' || element.type === 'table') return true;
+  if (element.type === 'text') {
+    const text = stripElementText(element.content);
+    return text.length >= 8 && text.length <= 320;
+  }
+  return false;
+}
+
+function buildFocusPlanFromContent(content: unknown): SceneActionFocusPlanItem[] {
+  const elements = elementsFromGeneratedContent(content);
+  const preferred = elements.filter(isPreferredFocusElement);
+  const targets = (
+    preferred.length ? preferred : elements.filter((element) => element.type !== 'image')
+  ).slice(0, 10);
+  return targets.map((element, index) => {
+    const label = focusLabelForElement(element);
+    return {
+      targetId: element.id,
+      label,
+      role: focusRoleForElement(element, label),
+      order: index + 1,
+    };
+  });
+}
+
+function buildNarrationPolicy(outline: SceneOutline, stage?: Stage): SceneActionNarrationPolicy {
+  const isCover = isTitleCoverOutline(outline);
+  const minSpeechSegments = isCover
+    ? 3
+    : isCodeLikeOutline(outline, stage) || isMathLikeOutline(outline, stage)
+      ? 8
+      : 6;
+  return {
+    minSpeechSegments,
+    preferredSpeechSegments: isCover
+      ? '封面只建立主题、主问题和进入下一页的期待。'
+      : isCodeLikeOutline(outline, stage)
+        ? '代码页要按设计动作慢讲，通常 8-12 段；每段只讲一个签名、例子、模板、分支、递归或返回值判断。'
+        : isMathLikeOutline(outline, stage)
+          ? '数学页要按题目/定义、关键表达式、每一步依据、最后检查慢讲，通常 8-12 段。'
+          : '正文页通常 6-9 段；每段只推进一个观察、例子、比较或收束动作。',
+    maxConsecutiveSpeechWithoutFocus: 3,
+    requireFocusBeforeSpeech: true,
+    requireSpeechAfterFocus: true,
+    directAddress: true,
+  };
+}
+
+function defaultCourseSpine(args: {
+  stage: Stage;
+  allOutlines: SceneOutline[];
+}): SceneActionCourseSpineContext {
+  const teachingOutlines = args.allOutlines.filter(isCountedTeachingOutline);
+  return {
+    logline: args.stage.description || args.stage.name,
+    centralQuestion: args.stage.name,
+    acts: [
+      {
+        id: 'act-main',
+        act: 'development',
+        title: args.stage.name,
+        purpose: '按 notebook 页面顺序推进核心理解。',
+        pages: teachingOutlines.map(
+          (outline) => getTeachingPageOrder(outline, args.allOutlines) || 0,
+        ),
+        keyQuestion: teachingOutlines[0]?.teachingObjective || teachingOutlines[0]?.title,
+      },
+    ],
+    closingCallback: '回到本 notebook 的核心目标并收束为可执行检查点。',
+  };
+}
+
+function continuityForActionContext(args: {
+  outline: SceneOutline;
+  allOutlines: SceneOutline[];
+  lessonPlan?: HtmlLessonPlanContract;
+  slidePlan?: HtmlSlidePlanContract;
+}): SceneActionContinuityContext {
+  const pageOrder = getTeachingPageOrder(args.outline, args.allOutlines) || args.outline.order || 1;
+  const slideContinuity =
+    args.slidePlan?.continuity ||
+    args.lessonPlan?.slides?.find(
+      (slide) => slide.id === args.outline.id || slide.order === pageOrder,
+    )?.continuity ||
+    args.lessonPlan?.slideOutlines?.find(
+      (slide) => slide.id === args.outline.id || slide.order === pageOrder,
+    )?.continuity;
+  const previous = args.allOutlines.find((outline) => outline.order === args.outline.order - 1);
+  const next = args.allOutlines.find((outline) => outline.order === args.outline.order + 1);
+  return {
+    actId: slideContinuity?.actId,
+    rhetoricalRole:
+      slideContinuity?.rhetoricalRole ||
+      args.outline.teachingRole ||
+      args.outline.teachingPagePlan?.role ||
+      inferHtmlPageKind(
+        args.outline,
+        Math.max(getTeachingPageCount(args.allOutlines), 1),
+        pageOrder,
+      ),
+    fromPrevious:
+      slideContinuity?.fromPrevious ||
+      args.outline.continuity?.previousHandoff ||
+      (previous ? `承接上一页「${previous.title}」。` : undefined),
+    pageMove:
+      slideContinuity?.pageMove ||
+      args.outline.continuity?.currentJob ||
+      args.outline.teachingObjective ||
+      args.outline.description,
+    toNext:
+      slideContinuity?.toNext ||
+      args.outline.continuity?.nextHandoff ||
+      (next ? `交给下一页「${next.title}」。` : undefined),
+    callbackToSpine:
+      slideContinuity?.callbackToSpine ||
+      args.lessonPlan?.courseSpine?.centralQuestion ||
+      args.lessonPlan?.courseSpine?.closingCallback,
+  };
+}
+
+function buildSceneActionContextSeed(args: {
+  outline: SceneOutline;
+  allOutlines: SceneOutline[];
+  stage: Stage;
+  content?: unknown;
+  lessonPlan?: HtmlLessonPlanContract;
+  slidePlan?: HtmlSlidePlanContract;
+}): SceneActionContextSeed {
+  return {
+    courseSpine: args.lessonPlan?.courseSpine || defaultCourseSpine(args),
+    continuity: continuityForActionContext(args),
+    focusPlan: args.content ? buildFocusPlanFromContent(args.content) : undefined,
+    narrationPolicy: buildNarrationPolicy(args.outline, args.stage),
+  };
+}
+
+function formatImageSourceHints(images: SourceImageAsset[]): string {
+  if (images.length === 0) return 'No source images are available for this page.';
+  return images
+    .slice(0, 4)
+    .map((image, index) =>
+      [
+        `${index + 1}. id=${image.id}`,
+        image.pageNumber ? `source page=${image.pageNumber}` : '',
+        image.description ? `description=${compactLine(image.description, 160)}` : '',
+        image.width && image.height ? `size=${image.width}x${image.height}` : '',
+      ]
+        .filter(Boolean)
+        .join(', '),
+    )
+    .join('\n');
+}
+
+function formatWorkedExampleForImagePrompt(outline: SceneOutline): string {
+  const cfg = outline.workedExampleConfig;
+  if (!cfg) return '';
+  return [
+    `Worked example role: ${cfg.role}`,
+    cfg.problemStatement ? `Problem: ${compactLine(cfg.problemStatement, 360)}` : '',
+    cfg.givens?.length ? `Givens: ${cfg.givens.join('; ')}` : '',
+    cfg.asks?.length ? `Goal: ${cfg.asks.join('; ')}` : '',
+    cfg.solutionPlan?.length ? `Solution plan: ${cfg.solutionPlan.join('; ')}` : '',
+    cfg.walkthroughSteps?.length ? `Walkthrough: ${cfg.walkthroughSteps.join('; ')}` : '',
+    cfg.commonPitfalls?.length ? `Pitfalls: ${cfg.commonPitfalls.join('; ')}` : '',
+    cfg.finalAnswer ? `Final answer: ${cfg.finalAnswer}` : '',
+    cfg.codeSnippet ? `Code snippet: ${compactLine(cfg.codeSnippet, 420)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildNotebookImagePrompt(args: {
+  outline: SceneOutline;
+  allOutlines: SceneOutline[];
+  stage: Stage;
+  assignedSourceImages: SourceImageAsset[];
+}): string {
+  const { outline, allOutlines, stage } = args;
+  const language = outline.language || stage.language || 'zh-CN';
+  const pageIndex = Math.max(
+    1,
+    allOutlines.findIndex((item) => item.id === outline.id) + 1 || outline.order || 1,
+  );
+  const totalPages = Math.max(allOutlines.length, pageIndex);
+  const surroundingTitles = allOutlines
+    .slice(Math.max(0, pageIndex - 3), Math.min(allOutlines.length, pageIndex + 2))
+    .map((item) => `${item.order}. ${item.title}`)
+    .join('\n');
+  const workedExample = formatWorkedExampleForImagePrompt(outline);
+  const quiz = outline.quizConfig
+    ? [
+        `Quiz page: ${outline.quizConfig.questionCount} question(s)`,
+        `Difficulty: ${outline.quizConfig.difficulty}`,
+        `Question types: ${outline.quizConfig.questionTypes.join(', ')}`,
+      ].join('\n')
+    : '';
+
+  return [
+    'Create one polished 16:9 classroom PPT slide as a single bitmap image.',
+    'The image is the final notebook page, not a decorative illustration.',
+    'The slide must contain the visible teaching content directly in the image.',
+    '',
+    `Notebook: ${stage.name}`,
+    stage.description ? `Notebook goal: ${compactLine(stage.description, 320)}` : '',
+    `Page ${pageIndex} of ${totalPages}`,
+    `Language for visible text: ${language}`,
+    `Page title: ${outline.title}`,
+    `Page purpose: ${compactLine(outline.description, 420)}`,
+    outline.teachingObjective
+      ? `Teaching objective: ${compactLine(outline.teachingObjective, 360)}`
+      : '',
+    outline.studentThinkingMove
+      ? `Student thinking move: ${compactLine(outline.studentThinkingMove, 260)}`
+      : '',
+    '',
+    'Required visible content:',
+    ...(outline.keyPoints || []).slice(0, 5).map((point, index) => `${index + 1}. ${point}`),
+    workedExample ? `\n${workedExample}` : '',
+    quiz ? `\n${quiz}` : '',
+    '',
+    'Nearby notebook sequence:',
+    surroundingTitles || outline.title,
+    '',
+    'Available source-image hints:',
+    formatImageSourceHints(args.assignedSourceImages),
+    '',
+    'Design requirements:',
+    '- Use a clean teaching-slide layout with a strong title, one main explanation area, and one visual/diagram/problem area.',
+    '- Text must be large, readable, and sparse enough for a projected slide; do not create paragraphs of tiny text.',
+    '- Prefer board-like diagrams, arrows, tables, code traces, formulas, or worked-example structure when they fit the topic.',
+    '- Preserve mathematical notation, code identifiers, and domain vocabulary accurately.',
+    '- Do not include browser chrome, UI mockup frames, watermarks, stock-photo clutter, or placeholder text.',
+    '- Do not mention that this was generated by AI.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildFullPageImageSlideContent(args: {
+  imageUrl: string;
+  prompt: string;
+  outline: SceneOutline;
+  stage: Stage;
+}): {
+  elements: PPTElement[];
+  background: SlideBackground;
+  theme: SlideTheme;
+  remark: string;
+} {
+  const imageElementId = `full_page_bitmap_${nanoid(8)}`;
+  const focusElements = generatedImageFocusElements(args.outline, args.stage);
+  return {
+    elements: [
+      {
+        id: imageElementId,
+        type: 'image',
+        name: 'full_page_bitmap',
+        left: 0,
+        top: 0,
+        width: 1000,
+        height: 562.5,
+        rotate: 0,
+        fixedRatio: false,
+        src: args.imageUrl,
+        imageType: 'background',
+        lock: true,
+      },
+      ...focusElements,
+    ],
+    background: { type: 'solid', color: '#0f172a' },
+    theme: {
+      backgroundColor: '#0f172a',
+      themeColors: ['#0f172a', '#2563eb', '#14b8a6', '#f59e0b', '#f8fafc'],
+      fontColor: '#f8fafc',
+      fontName: 'Microsoft YaHei',
+    },
+    remark: args.prompt,
+  };
+}
+
 function normalizeSceneGenerationDiagnostics(
   value: unknown,
 ): SceneGenerationDiagnostics | undefined {
@@ -451,6 +1036,7 @@ function normalizeSceneGenerationDiagnostics(
     normalizedPipeline === 'semantic' ||
     normalizedPipeline === 'legacy' ||
     normalizedPipeline === 'interactive' ||
+    normalizedPipeline === 'image' ||
     normalizedPipeline === 'quiz' ||
     normalizedPipeline === 'pbl' ||
     normalizedPipeline === 'unknown'
@@ -542,6 +1128,98 @@ export async function generateSceneContentBundle(args: {
 
   const headers = (args.getHeaders ?? (() => getApiHeaders()))();
 
+  if (args.slideGenerationRoute === 'image-ppt') {
+    const assignedSourceImages = sourceImagesFromMedia({
+      pdfImages: budgetedMedia.pdfImages,
+      imageMapping: budgetedMedia.imageMapping || args.imageMapping,
+    });
+    const imagePrompt = buildNotebookImagePrompt({
+      outline: normalizedOutline,
+      allOutlines: normalizedAllOutlines,
+      stage: args.stage,
+      assignedSourceImages,
+    });
+    const imageResp = await backendFetch('/api/generate/image', {
+      method: 'POST',
+      headers: buildImageGenerationHeaders(headers),
+      body: JSON.stringify({
+        prompt: imagePrompt,
+        aspectRatio: '16:9',
+        notebookContext: {
+          id: args.stage.id,
+          name: args.stage.name,
+          courseId: args.stage.courseId,
+          sceneId: normalizedOutline.id,
+          sceneTitle: normalizedOutline.title,
+          sceneOrder: normalizedOutline.order,
+          sceneType: normalizedOutline.type,
+        },
+      }),
+      signal: args.signal,
+    });
+
+    if (!imageResp.ok) {
+      const responseLanguage: 'zh-CN' | 'en-US' =
+        args.stage.language === 'en-US' ? 'en-US' : 'zh-CN';
+      const fallback =
+        responseLanguage === 'en-US' ? 'PPT image page generation failed' : 'PPT 图片页生成失败';
+      const message = await readApiErrorMessage(imageResp, fallback);
+      throw new Error(message || fallback);
+    }
+
+    const imageData = (await imageResp.json().catch(() => ({}))) as {
+      success?: boolean;
+      result?: ImageGenerationResult;
+      error?: string;
+    };
+    const imageUrl = imageResultToUrl(imageData.result);
+    if (!imageData.success || !imageUrl) {
+      throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
+    }
+
+    const effectiveOutline: SceneOutline = {
+      ...normalizedOutline,
+      type: 'slide',
+    };
+    const diagnostics: SceneGenerationDiagnostics = {
+      pipeline: 'image',
+      slideGenerationRoute: 'image-ppt',
+      generatedAt: Date.now(),
+    };
+    const allOutlinesForActions = normalizedAllOutlines.map((outline) =>
+      outline.id === effectiveOutline.id ? effectiveOutline : outline,
+    );
+
+    const imageContent = buildFullPageImageSlideContent({
+      imageUrl,
+      prompt: imagePrompt,
+      outline: effectiveOutline,
+      stage: args.stage,
+    });
+
+    return {
+      contents: [imageContent],
+      effectiveOutlines: [effectiveOutline],
+      allOutlinesForActions,
+      generationDiagnostics: diagnostics,
+      contentDiagnosticsByOutlineId: {
+        [effectiveOutline.id]: {
+          ...diagnostics,
+          outlineId: effectiveOutline.id,
+          outlineTitle: effectiveOutline.title,
+        },
+      },
+      actionContextsByOutlineId: {
+        [effectiveOutline.id]: buildSceneActionContextSeed({
+          outline: effectiveOutline,
+          allOutlines: allOutlinesForActions,
+          stage: args.stage,
+          content: imageContent,
+        }),
+      },
+    };
+  }
+
   if (args.slideGenerationRoute === 'html-ppt' && normalizedOutline.type === 'slide') {
     const { lessonPlan, slidePlan } = buildNotebookHtmlPlan({
       outline: normalizedOutline,
@@ -631,6 +1309,16 @@ export async function generateSceneContentBundle(args: {
           outlineTitle: effectiveOutline.title,
         },
       },
+      actionContextsByOutlineId: {
+        [effectiveOutline.id]: buildSceneActionContextSeed({
+          outline: effectiveOutline,
+          allOutlines: normalizedAllOutlines,
+          stage: args.stage,
+          content: { html: htmlData.html },
+          lessonPlan,
+          slidePlan,
+        }),
+      },
     };
   }
 
@@ -706,6 +1394,17 @@ export async function generateSceneContentBundle(args: {
     sharedDiagnostics: generationDiagnostics,
     effectiveOutlines,
   });
+  const actionContextsByOutlineId = Object.fromEntries(
+    effectiveOutlines.map((outline: SceneOutline, index: number) => [
+      outline.id,
+      buildSceneActionContextSeed({
+        outline,
+        allOutlines: allOutlinesForActions,
+        stage: args.stage,
+        content: contents[index],
+      }),
+    ]),
+  );
 
   return {
     contents,
@@ -713,6 +1412,7 @@ export async function generateSceneContentBundle(args: {
     allOutlinesForActions,
     generationDiagnostics,
     contentDiagnosticsByOutlineId,
+    actionContextsByOutlineId,
   };
 }
 
@@ -734,6 +1434,19 @@ export async function generateSceneActionsFromContent(args: {
 
   for (let pageIndex = 0; pageIndex < contents.length; pageIndex += 1) {
     const pageOutline = effectiveOutlines[pageIndex] || args.outline;
+    const seededActionContext = args.bundle.actionContextsByOutlineId?.[pageOutline.id];
+    const actionContext: SceneActionContextSeed = {
+      ...buildSceneActionContextSeed({
+        outline: pageOutline,
+        allOutlines: allOutlinesForActions,
+        stage: args.stage,
+        content: contents[pageIndex],
+      }),
+      ...seededActionContext,
+      focusPlan: seededActionContext?.focusPlan?.length
+        ? seededActionContext.focusPlan
+        : buildFocusPlanFromContent(contents[pageIndex]),
+    };
     const actionsResp = await backendFetch('/api/generate/scene-actions', {
       method: 'POST',
       headers: (args.getHeaders ?? (() => getApiHeaders()))(),
@@ -747,6 +1460,7 @@ export async function generateSceneActionsFromContent(args: {
         previousSpeeches,
         userProfile: args.userProfile,
         courseContext: args.courseContext,
+        actionContext,
       }),
       signal: args.signal,
     });
@@ -767,6 +1481,7 @@ export async function generateSceneActionsFromContent(args: {
       args.bundle.generationDiagnostics;
     if (sceneDiagnostics) {
       scene.generationDiagnostics = {
+        ...scene.generationDiagnostics,
         ...sceneDiagnostics,
         outlineId: pageOutline.id,
         outlineTitle: pageOutline.title,

@@ -27,6 +27,8 @@ Actions and narration may interleave. Usually focus first, then speak about the 
 ## Narration Quality
 
 - Each speech segment should perform one clear teaching move: pose a question, explain one state change, compare two representations, justify one step, or close with a transferable rule.
+- Speak directly to the learner with "you/we"; do not write lesson-plan meta phrases such as "students should understand", "students need to see", or "this page is designed to".
+- If the input includes a Lecture focus plan or Narration policy, obey that focus order, pacing, and continuity contract first.
 - For code, OOP, data-structure, or algorithm pages, narrate what happens to the current object, state, structure, or invariant instead of restating the title.
 - For problem-statement pages, orient students to what is given, what is being asked, and what must be decided before moving toward a solution.
 - For concept pages, ground the concept boundary in a concrete example rather than lesson-plan prose.

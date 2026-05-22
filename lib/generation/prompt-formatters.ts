@@ -10,6 +10,114 @@ import type {
   CoursePersonalizationContext,
 } from './pipeline-types';
 
+function compactPromptLine(value: string | undefined, maxLength = 260): string {
+  const text = (value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
+
+function formatCourseSpineContext(ctx: SceneGenerationContext): string {
+  const spine = ctx.courseSpine;
+  if (!spine) return '';
+  const lines = [
+    'Course spine for this notebook:',
+    spine.logline ? `- logline: ${compactPromptLine(spine.logline)}` : '',
+    spine.openingHook ? `- opening hook: ${compactPromptLine(spine.openingHook)}` : '',
+    spine.centralQuestion ? `- central question: ${compactPromptLine(spine.centralQuestion)}` : '',
+    spine.recurringExample
+      ? `- recurring example: ${compactPromptLine(spine.recurringExample)}`
+      : '',
+    spine.visualMotif ? `- visual motif: ${compactPromptLine(spine.visualMotif)}` : '',
+    spine.closingCallback ? `- closing callback: ${compactPromptLine(spine.closingCallback)}` : '',
+  ].filter(Boolean);
+
+  const acts = spine.acts || [];
+  if (acts.length) {
+    lines.push(
+      '- acts:',
+      ...acts
+        .slice(0, 6)
+        .map((act) =>
+          [
+            `  - ${act.id || act.act || 'act'}`,
+            act.title ? `title=${compactPromptLine(act.title, 80)}` : '',
+            act.purpose ? `purpose=${compactPromptLine(act.purpose, 140)}` : '',
+            act.keyQuestion ? `question=${compactPromptLine(act.keyQuestion, 120)}` : '',
+            act.pages?.length ? `pages=${act.pages.join(',')}` : '',
+          ]
+            .filter(Boolean)
+            .join('; '),
+        ),
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function formatContinuityContext(ctx: SceneGenerationContext): string {
+  const continuity = ctx.continuity;
+  if (!continuity) return '';
+  return [
+    'Current page continuity beat:',
+    continuity.actId ? `- act id: ${compactPromptLine(continuity.actId, 80)}` : '',
+    continuity.rhetoricalRole
+      ? `- page role: ${compactPromptLine(continuity.rhetoricalRole, 120)}`
+      : '',
+    continuity.fromPrevious ? `- from previous: ${compactPromptLine(continuity.fromPrevious)}` : '',
+    continuity.pageMove ? `- page move: ${compactPromptLine(continuity.pageMove)}` : '',
+    continuity.toNext ? `- to next: ${compactPromptLine(continuity.toNext)}` : '',
+    continuity.callbackToSpine
+      ? `- callback to spine: ${compactPromptLine(continuity.callbackToSpine)}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function formatFocusPlanContext(ctx: SceneGenerationContext): string {
+  const focusPlan = ctx.focusPlan || [];
+  if (!focusPlan.length) return '';
+  return [
+    'Lecture focus plan:',
+    'Use these targets in order when they are available. The speech immediately after a focus must explain that target, not a different region.',
+    ...focusPlan
+      .slice(0, 12)
+      .map((item, index) =>
+        [
+          `- ${item.order ?? index + 1}.`,
+          item.targetId ? `id="${item.targetId}"` : '',
+          `label="${compactPromptLine(item.label, 80)}"`,
+          item.role ? `role="${compactPromptLine(item.role, 80)}"` : '',
+          item.targetHint ? `hint="${compactPromptLine(item.targetHint, 140)}"` : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      ),
+  ].join('\n');
+}
+
+function formatNarrationPolicyContext(ctx: SceneGenerationContext): string {
+  const policy = ctx.narrationPolicy;
+  if (!policy) return '';
+  return [
+    'Narration policy:',
+    policy.minSpeechSegments
+      ? `- minimum speech segments for this page: ${policy.minSpeechSegments}`
+      : '',
+    policy.preferredSpeechSegments ? `- preferred pacing: ${policy.preferredSpeechSegments}` : '',
+    policy.maxConsecutiveSpeechWithoutFocus
+      ? `- no more than ${policy.maxConsecutiveSpeechWithoutFocus} consecutive speech actions without a focus action when targets exist`
+      : '',
+    policy.requireFocusBeforeSpeech ? '- normally focus before explaining a visual region' : '',
+    policy.requireSpeechAfterFocus ? '- every focus action should be followed by speech' : '',
+    policy.directAddress
+      ? '- speak directly to the learner as “you/we”; do not write meta phrases such as “让学生明白”, “学生需要”, or “本页旨在” in speech text'
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 /** Build a course context string for injection into action prompts */
 export function buildCourseContext(ctx?: SceneGenerationContext): string {
   if (!ctx) return '';
@@ -49,6 +157,17 @@ export function buildCourseContext(ctx?: SceneGenerationContext): string {
     lines.push('Previous page speech (for transition reference):');
     const lastSpeech = ctx.previousSpeeches[ctx.previousSpeeches.length - 1];
     lines.push(`  "...${lastSpeech.slice(-150)}"`);
+  }
+
+  const actionContexts = [
+    formatCourseSpineContext(ctx),
+    formatContinuityContext(ctx),
+    formatFocusPlanContext(ctx),
+    formatNarrationPolicyContext(ctx),
+  ].filter(Boolean);
+  if (actionContexts.length) {
+    lines.push('');
+    lines.push(actionContexts.join('\n\n'));
   }
 
   return lines.join('\n');

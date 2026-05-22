@@ -1,0 +1,73 @@
+{
+  "id": "nb-mat136-area-volume-imagegen-20260521",
+  "title": "Area & Volume：面积与体积",
+  "courseCode": "MAT136",
+  "sourcePdf": "/Users/dongpochen/Desktop/05_Area_Volume.pdf",
+  "slides": [
+    {
+      "order": 0,
+      "title": "封面：Area & Volume",
+      "teachingIntent": "建立本章主线：把几何量切成小片，再用积分累加。"
+    },
+    {
+      "order": 1,
+      "title": "曲线间面积：核心方法",
+      "teachingIntent": "用“上方函数减下方函数”建立曲线间面积公式。"
+    },
+    {
+      "order": 2,
+      "title": "例题：y=x^2 与 y=sqrt(x)",
+      "teachingIntent": "完成一个不需要分段的曲线间面积例题。"
+    },
+    {
+      "order": 3,
+      "title": "分段面积 I：绝对值函数先找交点",
+      "teachingIntent": "把绝对值函数拆开，先完成交点与区间分析。"
+    },
+    {
+      "order": 4,
+      "title": "分段面积 II：建立并计算积分",
+      "teachingIntent": "把上一页的分段信息转成两个面积积分并计算。"
+    },
+    {
+      "order": 5,
+      "title": "三角函数曲线之间的面积",
+      "teachingIntent": "处理上下关系在交点处改变的三角函数面积题。"
+    },
+    {
+      "order": 6,
+      "title": "水平切片：三角形面积",
+      "teachingIntent": "用水平切片和相似三角形建立三角形面积积分。"
+    },
+    {
+      "order": 7,
+      "title": "水平切片：半圆面积",
+      "teachingIntent": "从圆方程推出半圆横向切片的宽度函数。"
+    },
+    {
+      "order": 8,
+      "title": "体积方法：圆盘与截面切片",
+      "teachingIntent": "把面积切片思想推广到体积：小体积等于截面积乘厚度。"
+    },
+    {
+      "order": 9,
+      "title": "圆锥与球体体积",
+      "teachingIntent": "用同一个圆盘法处理圆锥和球体。"
+    },
+    {
+      "order": 10,
+      "title": "金字塔体积：非圆截面",
+      "teachingIntent": "用正方形截面和相似三角形建立金字塔体积积分。"
+    },
+    {
+      "order": 11,
+      "title": "旋转体：绕 x 轴的圆盘法",
+      "teachingIntent": "把平面区域绕 x 轴旋转，半径来自函数值。"
+    },
+    {
+      "order": 12,
+      "title": "变量半径应用：桌腿体积",
+      "teachingIntent": "用变量半径函数建立更复杂的圆盘体积积分。"
+    }
+  ]
+}
