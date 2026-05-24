@@ -39,11 +39,6 @@ import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
-import type { PPTElement } from '@/lib/types/slides';
-import {
-  buildSemanticSpotlightSections,
-  resolveSemanticSpotlightTargetForText,
-} from '@/lib/notebook-content/semantic-spotlight';
 
 const log = createLogger('PlaybackEngine');
 
@@ -53,35 +48,6 @@ const log = createLogger('PlaybackEngine');
  * numbers, and short Latin fragments (e.g. "AI课堂").
  */
 const CJK_LANG_THRESHOLD = 0.3;
-
-function stripHtml(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isPlaybackSpotlightCandidate(element: PPTElement): boolean {
-  if (element.type === 'line' || element.type === 'audio') return false;
-  if (element.type === 'text') return stripHtml(element.content).length > 0;
-  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
-  return true;
-}
-
-function pickPlaybackSpotlightTarget(elements: readonly PPTElement[]): PPTElement | undefined {
-  const candidates = elements
-    .filter(isPlaybackSpotlightCandidate)
-    .sort((a, b) => a.top - b.top || a.left - b.left);
-  if (candidates.length === 0) return undefined;
-
-  return (
-    candidates.find(
-      (element) => !(element.type === 'text' && element.textType === 'title') && element.top >= 90,
-    ) ||
-    candidates.find((element) => !(element.type === 'text' && element.textType === 'title')) ||
-    candidates[0]
-  );
-}
 
 export class PlaybackEngine {
   private scenes: Scene[] = [];
@@ -429,29 +395,6 @@ export class PlaybackEngine {
     return null;
   }
 
-  private ensureSpeechSpotlight(scene: Scene, speechText?: string): void {
-    if (scene.type !== 'slide' || scene.content.type !== 'slide') return;
-
-    const canvasStore = useCanvasStore.getState();
-
-    if (scene.content.semanticDocument && scene.content.webRenderMode !== 'slide') {
-      const sections = buildSemanticSpotlightSections(scene.content.semanticDocument);
-      const semanticTargetId =
-        (speechText ? resolveSemanticSpotlightTargetForText(speechText, sections) : null) ||
-        (!canvasStore.spotlightElementId ? sections[0]?.id || 'header' : null);
-      if (!semanticTargetId) return;
-      canvasStore.setSpotlight(semanticTargetId, { dimness: 0.55 });
-      return;
-    }
-
-    if (canvasStore.spotlightElementId) return;
-
-    const target = pickPlaybackSpotlightTarget(scene.content.canvas.elements);
-    if (!target) return;
-
-    canvasStore.setSpotlight(target.id, { dimness: 0.55 });
-  }
-
   /**
    * Core processing loop: consume the next action.
    */
@@ -476,6 +419,7 @@ export class PlaybackEngine {
     }
 
     const { action, scene } = current;
+    const currentActionIndex = this.actionIndex;
 
     // Notify progress BEFORE advancing the cursor so the snapshot points at
     // the current action.  On restore the same action will be replayed — this
@@ -486,8 +430,15 @@ export class PlaybackEngine {
 
     switch (action.type) {
       case 'speech': {
+        const previousAction = scene.actions?.[currentActionIndex - 1];
+        const hasImmediateFocus =
+          previousAction?.type === 'spotlight' ||
+          previousAction?.type === 'laser' ||
+          previousAction?.type === 'semantic_step';
+        if (!hasImmediateFocus) {
+          this.actionEngine.clearEffects();
+        }
         const speechAction = action as SpeechAction;
-        this.ensureSpeechSpotlight(scene, speechAction.text);
         this.callbacks.onSpeechStart?.(speechAction);
 
         // onEnded → processNext; if paused, resume() will call processNext

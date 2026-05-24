@@ -172,43 +172,58 @@ export function LectureNotesView({
                       </div>
                     );
                   }
+                  const visualInlineActions =
+                    row.kind === 'speech'
+                      ? []
+                      : row.inlineActions.filter((action) => action.visualCue);
+                  const visualCues =
+                    row.kind === 'speech'
+                      ? row.item.visualCues
+                      : visualInlineActions
+                          .map((action) => action.visualCue)
+                          .filter((cue): cue is NonNullable<typeof cue> => Boolean(cue));
+                  const hasVisualCue = visualCues.length > 0;
+                  const isSelected =
+                    hasVisualCue &&
+                    (row.kind === 'speech'
+                      ? selectedItemKey === lectureNoteItemKey(note, row.item)
+                      : visualInlineActions.some(
+                          (action) => selectedItemKey === lectureNoteItemKey(note, action),
+                        ));
+
                   return (
                     <button
                       key={i}
                       type="button"
-                      title={onItemSelect ? '查看遮罩' : undefined}
+                      title={onItemSelect && hasVisualCue ? '查看聚焦' : undefined}
                       onClick={() => {
                         if (row.kind === 'speech') {
                           onItemSelect?.(note, row.item);
                         } else {
-                          const item = row.inlineActions.find((action) => action.visualCue);
+                          const item = visualInlineActions[0];
                           if (item) onItemSelect?.(note, item);
                         }
                       }}
                       className={cn(
                         'w-full rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-left text-[12px] leading-[1.8] text-gray-700 shadow-sm transition dark:border-slate-700/40 dark:bg-slate-900/55 dark:text-gray-300',
                         onItemSelect &&
+                          hasVisualCue &&
                           'cursor-pointer hover:border-sky-200 hover:bg-sky-50/80 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10 dark:hover:text-white',
-                        row.kind === 'speech' &&
-                          selectedItemKey === lectureNoteItemKey(note, row.item) &&
-                          'border-sky-300 bg-sky-50 text-slate-950 ring-1 ring-sky-200 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-white dark:ring-sky-400/20',
-                        row.kind === 'trailing' &&
-                          row.inlineActions.some(
-                            (action) => selectedItemKey === lectureNoteItemKey(note, action),
-                          ) &&
+                        onItemSelect && !hasVisualCue && 'cursor-default',
+                        isSelected &&
                           'border-sky-300 bg-sky-50 text-slate-950 ring-1 ring-sky-200 dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-white dark:ring-sky-400/20',
                       )}
                     >
                       {row.kind === 'speech' ? (
                         <>
-                          {row.inlineActions.length > 0 ? (
+                          {visualCues.length > 0 ? (
                             <span className="mb-1 flex flex-wrap gap-1">
-                              {row.inlineActions.map((action) => (
+                              {visualCues.map((cue) => (
                                 <span
-                                  key={action.id}
+                                  key={cue.actionId}
                                   className="rounded-full bg-sky-100/80 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sky-700 dark:bg-sky-400/10 dark:text-sky-200"
                                 >
-                                  {actionLabel(action.type)}
+                                  {actionLabel(cue.type)}
                                 </span>
                               ))}
                             </span>
@@ -217,7 +232,7 @@ export function LectureNotesView({
                         </>
                       ) : (
                         <span className="flex flex-wrap gap-1">
-                          {row.inlineActions.map((action) => (
+                          {visualInlineActions.map((action) => (
                             <span
                               key={action.id}
                               className="rounded-full bg-sky-100/80 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sky-700 dark:bg-sky-400/10 dark:text-sky-200"

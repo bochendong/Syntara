@@ -1,2 +1,3 @@
 export * from './schema';
+export * from './i18n';
 export * from './review-problem-insert';

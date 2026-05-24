@@ -21,6 +21,7 @@ export type NotebookProblemClientRecord = {
   status: 'draft' | 'published' | 'archived';
   source: 'chat' | 'pdf' | 'manual' | 'web' | 'legacy_quiz_scene';
   order: number;
+  problemNumber?: number | null;
   points: number;
   tags: string[];
   difficulty: 'easy' | 'medium' | 'hard';

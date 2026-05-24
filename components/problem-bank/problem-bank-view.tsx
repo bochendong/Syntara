@@ -24,7 +24,11 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import {
+  getLocalizedProblemContent,
+  getLocalizedProblemTitle,
+  hasProblemTranslation,
   notebookProblemImportDraftSchema,
+  type ProblemContentLanguage,
   type NotebookProblemAttemptRecord,
   type NotebookProblemImportDraft,
 } from '@/lib/problem-bank';
@@ -54,6 +58,7 @@ import {
 import { AnswerComposer } from '@/components/problem-bank/answer-composer';
 import { ProblemEditDialog } from '@/components/problem-bank/problem-edit-dialog';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
+import { ProblemLanguageToggle } from '@/components/problem-bank/problem-language-toggle';
 import {
   ProblemImageAssets,
   ProblemRichText,
@@ -418,6 +423,9 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
 
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const [problemLanguage, setProblemLanguage] = useState<ProblemContentLanguage>(
+    locale === 'zh-CN' ? 'zh-CN' : 'en-US',
+  );
   const [attempts, setAttempts] = useState<NotebookProblemAttemptRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -487,6 +495,10 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     void loadProblems();
   }, [loadProblems]);
 
+  useEffect(() => {
+    setProblemLanguage(locale === 'zh-CN' ? 'zh-CN' : 'en-US');
+  }, [locale]);
+
   const filteredProblems = useMemo(
     () =>
       problems.filter((problem) => {
@@ -504,15 +516,22 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
       null,
     [filteredProblems, problems, selectedProblemId],
   );
+  const selectedProblemContent = selectedProblem
+    ? getLocalizedProblemContent(selectedProblem.publicContent, problemLanguage)
+    : null;
+  const selectedProblemTitle = selectedProblem
+    ? getLocalizedProblemTitle(selectedProblem, problemLanguage)
+    : '';
+  const selectedProblemHasTranslation = hasProblemTranslation(selectedProblem);
   const choiceContent =
-    selectedProblem?.publicContent.type === 'choice' ? selectedProblem.publicContent : null;
+    selectedProblemContent?.type === 'choice' ? selectedProblemContent : null;
   const fillBlankContent =
-    selectedProblem?.publicContent.type === 'fill_blank' ? selectedProblem.publicContent : null;
+    selectedProblemContent?.type === 'fill_blank' ? selectedProblemContent : null;
   const codeContent =
-    selectedProblem?.publicContent.type === 'code' ? selectedProblem.publicContent : null;
+    selectedProblemContent?.type === 'code' ? selectedProblemContent : null;
   const textLikeContent =
-    selectedProblem && !choiceContent && !fillBlankContent && !codeContent
-      ? selectedProblem.publicContent
+    selectedProblemContent && !choiceContent && !fillBlankContent && !codeContent
+      ? selectedProblemContent
       : null;
   const latestDetailedAttempt = attempts[0] ?? null;
   const latestAttempt = latestDetailedAttempt ?? selectedProblem?.latestAttempt ?? null;
@@ -1008,7 +1027,9 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredProblems.map((problem) => (
+              {filteredProblems.map((problem) => {
+                const listTitle = getLocalizedProblemTitle(problem, problemLanguage);
+                return (
                 <div
                   key={problem.id}
                   className={cn(
@@ -1026,7 +1047,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         className="block w-full min-w-0 text-left"
                       >
                         <ProblemTitleText
-                          content={problem.title}
+                          content={listTitle}
                           className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100"
                         />
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -1065,7 +1086,8 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                     ) : null}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1082,9 +1104,9 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <CardTitle className="text-xl" title={selectedProblem.title}>
+                    <CardTitle className="text-xl" title={selectedProblemTitle}>
                       <ProblemTitleText
-                        content={selectedProblem.title}
+                        content={selectedProblemTitle}
                         className="block truncate"
                       />
                     </CardTitle>
@@ -1127,6 +1149,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                   </div>
                   {selectedProblem.type === 'code' ? (
                     <div className="flex flex-wrap gap-2">
+                      {selectedProblemHasTranslation ? (
+                        <ProblemLanguageToggle
+                          value={problemLanguage}
+                          locale={locale}
+                          onChange={setProblemLanguage}
+                        />
+                      ) : null}
                       <Button
                         variant="outline"
                         onClick={() => openEditProblemDialog(selectedProblem.id)}
@@ -1165,6 +1194,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
+                      {selectedProblemHasTranslation ? (
+                        <ProblemLanguageToggle
+                          value={problemLanguage}
+                          locale={locale}
+                          onChange={setProblemLanguage}
+                        />
+                      ) : null}
                       <Button
                         variant="outline"
                         onClick={() => openEditProblemDialog(selectedProblem.id)}

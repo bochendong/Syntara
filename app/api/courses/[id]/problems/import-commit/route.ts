@@ -28,6 +28,7 @@ function toClientProblem(
     status: problem.status,
     source: problem.source,
     order: problem.order,
+    problemNumber: problem.problemNumber ?? null,
     points: problem.points,
     tags: problem.tags,
     difficulty: problem.difficulty,

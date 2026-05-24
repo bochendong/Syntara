@@ -73,6 +73,7 @@ function leftRailScrollClass(lightSurface: boolean) {
 
 export interface AppLeftRailProps {
   collapsed: boolean;
+  hasGlobalHeader?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
@@ -94,7 +95,11 @@ function formatRailCreditAmount(value: number): string {
   return Math.max(0, Math.round(value)).toLocaleString('en-US');
 }
 
-export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) {
+export function AppLeftRail({
+  collapsed,
+  hasGlobalHeader = true,
+  onCollapsedChange,
+}: AppLeftRailProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
@@ -301,7 +306,8 @@ export function AppLeftRail({ collapsed, onCollapsedChange }: AppLeftRailProps) 
     <>
       <aside
         className={cn(
-          'pointer-events-none fixed left-4 top-4 z-[1300] h-[calc(100dvh-2rem)] overflow-hidden rounded-[20px]',
+          'pointer-events-none fixed left-4 z-[1300] overflow-hidden rounded-[20px]',
+          hasGlobalHeader ? 'top-[76px] h-[calc(100dvh-92px)]' : 'top-4 h-[calc(100dvh-2rem)]',
           collapsed ? 'w-[78px]' : 'w-[min(256px,calc(100vw-2rem))]',
         )}
         aria-label="主导航"

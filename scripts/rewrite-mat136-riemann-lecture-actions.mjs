@@ -3,6 +3,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import {
+  rebuildActions,
+  rebuildSceneContent,
+  targetsForScene,
+  validateScene,
+} from './enhance-mat136-spotlight-focus.mjs';
 import { sanitizeMathForSpeech } from './mat136-tts-speech.mjs';
 
 const NOTEBOOK_ID = 'nb-mat136-riemann-integral-week1-20260518135718';
@@ -356,23 +362,11 @@ const RIEMANN_NARRATION = {
   ],
 };
 
-function buildActions(scene, groups) {
-  const previousActions = Array.isArray(scene.actions) ? scene.actions : [];
-  const spotlights = previousActions.filter((action) => action?.type === 'spotlight');
+function buildSpeechActions(scene, groups) {
   const actions = [];
   let speechIndex = 1;
 
-  groups.forEach((lines, groupIndex) => {
-    const spotlight = spotlights[groupIndex];
-    if (spotlight) {
-      actions.push({
-        ...spotlight,
-        id:
-          spotlight.id ||
-          `${scene.id}-spotlight-riemann-${String(groupIndex + 1).padStart(2, '0')}`,
-      });
-    }
-
+  groups.forEach((lines) => {
     lines.forEach((text) => {
       actions.push({
         id: `${scene.id}-speech-riemann-${String(speechIndex).padStart(2, '0')}`,
@@ -420,14 +414,20 @@ async function main() {
 
     for (const scene of notebook.scenes) {
       const groups = RIEMANN_NARRATION[scene.title];
-      const actions = buildActions(scene, groups);
+      const speechActions = buildSpeechActions(scene, groups);
+      const sceneForAlignment = { ...scene, actions: speechActions };
+      const targets = targetsForScene(NOTEBOOK_ID, sceneForAlignment);
+      const content = rebuildSceneContent(sceneForAlignment, targets);
+      const actions = rebuildActions(sceneForAlignment, targets);
+      validateScene(sceneForAlignment, content, actions);
+
       speechTotal += actions.filter((action) => action.type === 'speech').length;
       sceneTotal += 1;
 
       if (!DRY_RUN) {
         await prisma.scene.update({
           where: { id: scene.id },
-          data: { actions },
+          data: { content, actions },
         });
       }
     }

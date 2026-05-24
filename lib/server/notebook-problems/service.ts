@@ -1,4 +1,4 @@
-import type { Prisma } from '@/lib/server/generated-prisma';
+import { Prisma } from '@/lib/server/generated-prisma';
 import { prisma } from '@/lib/server/prisma';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import {
@@ -43,6 +43,7 @@ type ProblemRow = {
   status: string;
   source: string;
   order: number;
+  problemNumber: number | null;
   points: number;
   tags: string[];
   difficulty: string;
@@ -107,6 +108,7 @@ function mapProblemRow(
     status: row.status,
     source: row.source,
     order: row.order,
+    problemNumber: row.problemNumber,
     points: row.points,
     tags: row.tags ?? [],
     difficulty: row.difficulty,
@@ -241,6 +243,7 @@ async function createProblemFromDraftTx(args: {
   notebookId?: string | null;
   draft: NotebookProblemImportDraft;
   order: number;
+  problemNumber?: number | null;
 }) {
   const normalized = normalizeDraftForPersistence(args.draft, args.order);
   const created = await args.tx.notebookProblem.create({
@@ -250,6 +253,7 @@ async function createProblemFromDraftTx(args: {
       status: normalized.status,
       source: normalized.source,
       order: args.order,
+      problemNumber: args.problemNumber ?? null,
       points: normalized.points,
       tags: normalized.tags,
       difficulty: normalized.difficulty,
@@ -343,8 +347,93 @@ async function listLatestAttemptsForUser(
   return latestByProblemId;
 }
 
+function courseProblemNumberScopeWhere(
+  courseId: string,
+  notebookIds: string[],
+): Prisma.NotebookProblemWhereInput {
+  return notebookIds.length > 0
+    ? {
+        OR: [{ courseId }, { notebookId: { in: notebookIds } }],
+      }
+    : { courseId };
+}
+
+function notebookProblemNumberScopeWhere(notebookId: string): Prisma.NotebookProblemWhereInput {
+  return { notebookId };
+}
+
+async function assignMissingProblemNumbersTx(
+  tx: Prisma.TransactionClient,
+  where: Prisma.NotebookProblemWhereInput,
+): Promise<void> {
+  const rows = await tx.notebookProblem.findMany({
+    where,
+    select: {
+      id: true,
+      order: true,
+      problemNumber: true,
+      createdAt: true,
+    },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+  });
+
+  const usedNumbers = new Set<number>();
+  const rowsNeedingNumber: typeof rows = [];
+  for (const row of rows) {
+    if (
+      typeof row.problemNumber === 'number' &&
+      row.problemNumber > 0 &&
+      !usedNumbers.has(row.problemNumber)
+    ) {
+      usedNumbers.add(row.problemNumber);
+      continue;
+    }
+    rowsNeedingNumber.push(row);
+  }
+
+  let nextNumber = 1;
+  const assignments: Array<{ id: string; problemNumber: number }> = [];
+  for (const row of rowsNeedingNumber) {
+    while (usedNumbers.has(nextNumber)) nextNumber += 1;
+    assignments.push({ id: row.id, problemNumber: nextNumber });
+    usedNumbers.add(nextNumber);
+  }
+  if (assignments.length === 0) return;
+
+  await tx.$executeRaw`
+    UPDATE "NotebookProblem" AS p
+    SET "problemNumber" = v."problemNumber"
+    FROM (
+      VALUES ${Prisma.join(
+        assignments.map((assignment) => Prisma.sql`(${assignment.id}, ${assignment.problemNumber})`),
+      )}
+    ) AS v("id", "problemNumber")
+    WHERE p."id" = v."id"
+  `;
+}
+
+async function ensureProblemNumbersBackfilled(
+  where: Prisma.NotebookProblemWhereInput,
+): Promise<void> {
+  await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    await assignMissingProblemNumbersTx(tx, where);
+  });
+}
+
+async function nextProblemNumberForScopeTx(
+  tx: Prisma.TransactionClient,
+  where: Prisma.NotebookProblemWhereInput,
+): Promise<number> {
+  await assignMissingProblemNumbersTx(tx, where);
+  const aggregate = await tx.notebookProblem.aggregate({
+    where,
+    _max: { problemNumber: true },
+  });
+  return (aggregate._max.problemNumber ?? 0) + 1;
+}
+
 async function loadProblemsWithNotebook(args: {
-  where: Record<string, unknown>;
+  where: Prisma.NotebookProblemWhereInput;
 }): Promise<ProblemRow[]> {
   return (await prismaDb.notebookProblem.findMany({
     where: args.where,
@@ -404,11 +493,45 @@ export async function ensureLegacyProblemsBackfilledForCourse(
   }
 }
 
+async function ensureProblemNumbersBackfilledForNotebook(
+  userId: string,
+  notebookId: string,
+): Promise<void> {
+  const notebook = await requireNotebookOwnership(userId, notebookId);
+  if (notebook.courseId) {
+    const notebooks = await listOwnedCourseNotebooks(userId, notebook.courseId);
+    await ensureProblemNumbersBackfilled(
+      courseProblemNumberScopeWhere(
+        notebook.courseId,
+        notebooks.map((item) => item.id),
+      ),
+    );
+    return;
+  }
+
+  await ensureProblemNumbersBackfilled(notebookProblemNumberScopeWhere(notebookId));
+}
+
+async function ensureProblemNumbersBackfilledForCourse(
+  userId: string,
+  courseId: string,
+): Promise<void> {
+  await requireCourseOwnership(userId, courseId);
+  const notebooks = await listOwnedCourseNotebooks(userId, courseId);
+  await ensureProblemNumbersBackfilled(
+    courseProblemNumberScopeWhere(
+      courseId,
+      notebooks.map((notebook) => notebook.id),
+    ),
+  );
+}
+
 export async function listNotebookProblemsForUser(
   userId: string,
   notebookId: string,
 ): Promise<NotebookProblemSummary[]> {
   await ensureLegacyProblemsBackfilled(userId, notebookId);
+  await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
   const problems = await loadProblemsWithNotebook({
     where: { notebookId },
   });
@@ -426,6 +549,7 @@ export async function listCourseProblemsForUser(
   courseId: string,
 ): Promise<NotebookProblemSummary[]> {
   await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
+  await ensureProblemNumbersBackfilledForCourse(userId, courseId);
   const notebooks = await listOwnedCourseNotebooks(userId, courseId);
   const notebookIds = notebooks.map((notebook) => notebook.id);
 
@@ -456,6 +580,7 @@ export async function getNotebookProblemForUser(
   secretJudge?: NotebookProblemSecretJudge;
 }> {
   await ensureLegacyProblemsBackfilled(userId, notebookId);
+  await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
   const row = (await prismaDb.notebookProblem.findFirst({
     where: { id: problemId, notebookId },
     include: {
@@ -485,6 +610,7 @@ export async function getNotebookProblemForUser(
       status: row.status,
       source: row.source,
       order: row.order,
+      problemNumber: row.problemNumber,
       points: row.points,
       tags: row.tags ?? [],
       difficulty: row.difficulty,
@@ -507,6 +633,7 @@ export async function getCourseProblemForUser(
   secretJudge?: NotebookProblemSecretJudge;
 }> {
   await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
+  await ensureProblemNumbersBackfilledForCourse(userId, courseId);
   const row = (await prismaDb.notebookProblem.findFirst({
     where: {
       id: problemId,
@@ -539,6 +666,7 @@ export async function getCourseProblemForUser(
       status: row.status,
       source: row.source,
       order: row.order,
+      problemNumber: row.problemNumber,
       points: row.points,
       tags: row.tags ?? [],
       difficulty: row.difficulty,
@@ -560,12 +688,19 @@ export async function createNotebookProblemsFromDrafts(args: {
 }): Promise<NotebookProblemSummary[]> {
   const notebook = await requireNotebookOwnership(args.userId, args.notebookId);
   await ensureLegacyProblemsBackfilled(args.userId, args.notebookId);
+  const problemNumberScopeWhere = notebook.courseId
+    ? courseProblemNumberScopeWhere(
+        notebook.courseId,
+        (await listOwnedCourseNotebooks(args.userId, notebook.courseId)).map((item) => item.id),
+      )
+    : notebookProblemNumberScopeWhere(args.notebookId);
 
   const count = await prismaDb.notebookProblem.count({
     where: { notebookId: args.notebookId },
   });
 
   await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    const firstProblemNumber = await nextProblemNumberForScopeTx(tx, problemNumberScopeWhere);
     for (let index = 0; index < args.drafts.length; index += 1) {
       await createProblemFromDraftTx({
         tx,
@@ -573,6 +708,7 @@ export async function createNotebookProblemsFromDrafts(args: {
         notebookId: args.notebookId,
         draft: draftWithImportBatchId(args.drafts[index], args.importBatchId),
         order: count + index,
+        problemNumber: firstProblemNumber + index,
       });
     }
     await touchOwnersAfterProblemWriteTx({
@@ -597,16 +733,16 @@ export async function createCourseProblemsFromDrafts(args: {
   const notebooks = await listOwnedCourseNotebooks(args.userId, args.courseId);
   const allowedNotebookIds = new Set(notebooks.map((notebook) => notebook.id));
   const allowedNotebookIdList = Array.from(allowedNotebookIds);
+  const problemNumberScopeWhere = courseProblemNumberScopeWhere(
+    args.courseId,
+    allowedNotebookIdList,
+  );
   const count = await prismaDb.notebookProblem.count({
-    where:
-      allowedNotebookIdList.length > 0
-        ? {
-            OR: [{ courseId: args.courseId }, { notebookId: { in: allowedNotebookIdList } }],
-          }
-        : { courseId: args.courseId },
+    where: problemNumberScopeWhere,
   });
 
   await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    const firstProblemNumber = await nextProblemNumberForScopeTx(tx, problemNumberScopeWhere);
     for (let index = 0; index < args.drafts.length; index += 1) {
       const draft = args.drafts[index];
       const notebookId = normalizeAssignedNotebookId(draft.notebookId, allowedNotebookIds);
@@ -616,6 +752,7 @@ export async function createCourseProblemsFromDrafts(args: {
         notebookId,
         draft: draftWithImportBatchId({ ...draft, notebookId }, args.importBatchId),
         order: count + index,
+        problemNumber: firstProblemNumber + index,
       });
     }
     await touchOwnersAfterProblemWriteTx({
@@ -747,6 +884,7 @@ export async function updateNotebookProblem(args: {
     status: updated.status,
     source: updated.source,
     order: updated.order,
+    problemNumber: updated.problemNumber,
     points: updated.points,
     tags: updated.tags ?? [],
     difficulty: updated.difficulty,
@@ -885,6 +1023,7 @@ export async function updateCourseProblem(args: {
     status: updated.status,
     source: updated.source,
     order: updated.order,
+    problemNumber: updated.problemNumber,
     points: updated.points,
     tags: updated.tags ?? [],
     difficulty: updated.difficulty,

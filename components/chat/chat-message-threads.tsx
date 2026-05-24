@@ -35,25 +35,25 @@ const threadRowClassName = 'mx-auto w-full max-w-5xl';
 const groupThreadRowClassName = 'mx-auto w-full max-w-4xl';
 
 const userBubbleClassName = cn(
-  'max-w-[min(78%,680px)] rounded-[28px] bg-black px-5 py-3',
-  'text-[15px] leading-6 text-white shadow-sm sm:text-base dark:bg-white dark:text-black',
+  'max-w-[min(78%,680px)] rounded-[24px] bg-black px-4 py-2.5',
+  'text-[13px] leading-5 text-white shadow-sm dark:bg-white dark:text-black',
 );
 
 const assistantShellClassName = cn(
-  'w-full max-w-3xl py-1 text-[15.5px] leading-7 text-slate-950 dark:text-slate-50',
+  'w-full max-w-3xl py-1 text-[13.5px] leading-6 text-slate-950 dark:text-slate-50',
 );
 
 const assistantRichTextClassName = cn(
-  'h-auto w-full break-words text-[15.5px] leading-7 text-slate-950 dark:text-slate-50',
-  '[&_p]:my-3 [&_ul]:my-3 [&_ol]:my-3 [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1',
-  '[&_h1]:mt-6 [&_h1]:mb-2.5 [&_h1]:text-xl [&_h1]:font-semibold',
-  '[&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-lg [&_h2]:font-semibold',
-  '[&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold',
+  'h-auto w-full break-words text-[13.5px] leading-6 text-slate-950 dark:text-slate-50',
+  '[&_p]:my-2.5 [&_ul]:my-2.5 [&_ol]:my-2.5 [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5',
+  '[&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold',
+  '[&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold',
+  '[&_h3]:mt-4 [&_h3]:mb-1.5 [&_h3]:text-sm [&_h3]:font-semibold',
   '[&_blockquote]:my-5 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:text-slate-700 dark:[&_blockquote]:border-slate-600 dark:[&_blockquote]:text-slate-300',
   '[&_[data-streamdown=code-block]]:my-5 [&_[data-streamdown=code-block]]:rounded-[24px]',
   '[&_[data-streamdown=code-block]]:border-slate-200 [&_[data-streamdown=code-block]]:bg-[#f7f7f8] [&_[data-streamdown=code-block]]:p-3 dark:[&_[data-streamdown=code-block]]:border-white/10 dark:[&_[data-streamdown=code-block]]:bg-slate-950',
-  '[&_[data-streamdown=code-block-header]]:h-9 [&_[data-streamdown=code-block-header]]:px-1 [&_[data-streamdown=code-block-header]]:text-sm',
-  '[&_[data-streamdown=code-block-body]]:rounded-[18px] [&_[data-streamdown=code-block-body]]:border-0 [&_[data-streamdown=code-block-body]]:bg-transparent [&_[data-streamdown=code-block-body]]:p-4 [&_[data-streamdown=code-block-body]]:text-[13px] [&_[data-streamdown=code-block-body]]:leading-6',
+  '[&_[data-streamdown=code-block-header]]:h-8 [&_[data-streamdown=code-block-header]]:px-1 [&_[data-streamdown=code-block-header]]:text-xs',
+  '[&_[data-streamdown=code-block-body]]:rounded-[18px] [&_[data-streamdown=code-block-body]]:border-0 [&_[data-streamdown=code-block-body]]:bg-transparent [&_[data-streamdown=code-block-body]]:p-3 [&_[data-streamdown=code-block-body]]:text-[12px] [&_[data-streamdown=code-block-body]]:leading-5',
   '[&_[data-streamdown=code-block-actions]]:rounded-full [&_[data-streamdown=code-block-actions]]:border-slate-200 [&_[data-streamdown=code-block-actions]]:bg-white/90 dark:[&_[data-streamdown=code-block-actions]]:border-white/10 dark:[&_[data-streamdown=code-block-actions]]:bg-slate-900/90',
 );
 
@@ -246,7 +246,7 @@ function GroupDispatchCard({
               return (
                 <p
                   key={`${line}-${index}`}
-                  className="whitespace-pre-wrap text-sm leading-6 text-slate-900 dark:text-slate-100"
+                  className="whitespace-pre-wrap text-[13px] leading-5 text-slate-900 dark:text-slate-100"
                 >
                   {mention ? (
                     <span className="mr-1.5 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-100">

@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import { sanitizeMathForSpeech } from './mat136-tts-speech.mjs';
 
@@ -284,7 +285,7 @@ function uniqueTargets(targets) {
   });
 }
 
-function targetsForScene(notebookId, scene) {
+export function targetsForScene(notebookId, scene) {
   const baseTargets = shapeTargets(scene).filter((target) => !target.generated);
   const expanded = expandTargets(notebookId, scene, baseTargets);
   const fallback =
@@ -484,7 +485,7 @@ function generatedElementsForTargets(targets) {
     .map((target) => makeShape(target.id, target.label, target.rect));
 }
 
-function rebuildSceneContent(scene, targets) {
+export function rebuildSceneContent(scene, targets) {
   const content = structuredClone(scene.content ?? {});
   if (!content.canvas) content.canvas = {};
   if (!Array.isArray(content.canvas.elements)) content.canvas.elements = [];
@@ -501,7 +502,7 @@ function rebuildSceneContent(scene, targets) {
   return content;
 }
 
-function rebuildActions(scene, targets) {
+export function rebuildActions(scene, targets) {
   const speechActions = (Array.isArray(scene.actions) ? scene.actions : []).filter(
     (action) => action?.type === 'speech',
   );
@@ -530,7 +531,7 @@ function rebuildActions(scene, targets) {
   return actions;
 }
 
-function validateScene(scene, content, actions) {
+export function validateScene(scene, content, actions) {
   const elementIds = new Set(
     (content.canvas?.elements ?? []).map((element) => element?.id).filter(Boolean),
   );
@@ -599,7 +600,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

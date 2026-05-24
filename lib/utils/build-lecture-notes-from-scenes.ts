@@ -53,7 +53,9 @@ export function buildLectureNotesFromScenes(scenes: Scene[]): LectureNoteEntry[]
           action.type === 'laser' ||
           action.type === 'semantic_step'
         ) {
-          if (visualCue) pendingVisualCues.push(visualCue);
+          if (visualCue) {
+            pendingVisualCues = [...pendingVisualCues, visualCue];
+          }
           items.push({
             kind: 'action',
             id: action.id,
@@ -87,6 +89,7 @@ export function buildLectureNotesFromScenes(scenes: Scene[]): LectureNoteEntry[]
             label: action.type === 'discussion' ? (action as DiscussionAction).topic : undefined,
           });
         }
+        pendingVisualCues = [];
       }
 
       return {

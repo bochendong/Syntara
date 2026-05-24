@@ -272,7 +272,7 @@ export function ChatComposer({
               disabled={mode === 'none' || sending || isReadOnly}
               className={cn(
                 composerTextareaClassName,
-                'min-h-11 max-h-[min(34vh,220px)] flex-1 resize-none px-1 py-2.5 text-base leading-6 placeholder:text-slate-400 md:text-base',
+                'min-h-11 max-h-[min(34vh,220px)] flex-1 resize-none px-1 py-2.5 text-[13px] leading-5 placeholder:text-slate-400 md:text-[13px]',
               )}
               rows={1}
               onKeyDown={(e) => {

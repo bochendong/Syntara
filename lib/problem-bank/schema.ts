@@ -48,14 +48,30 @@ export const notebookProblemAssetsSchema = z
   })
   .default({ images: [] });
 
-const notebookProblemPublicBaseSchema = z.object({
-  explanation: z.string().trim().min(1).max(8000).optional(),
-  assets: notebookProblemAssetsSchema.optional(),
-});
-
 export const notebookChoiceOptionSchema = z.object({
   id: z.string().trim().min(1).max(64),
   label: z.string().trim().min(1).max(4000),
+});
+
+export const notebookProblemLocalizedContentSchema = z.object({
+  stem: z.string().trim().min(1).max(16000).optional(),
+  stemTemplate: z.string().trim().min(1).max(16000).optional(),
+  explanation: z.string().trim().min(1).max(8000).optional(),
+  options: z.array(notebookChoiceOptionSchema).max(12).optional(),
+});
+
+export const notebookProblemTranslationsSchema = z
+  .object({
+    'zh-CN': notebookProblemLocalizedContentSchema.optional(),
+    'en-US': notebookProblemLocalizedContentSchema.optional(),
+  })
+  .partial()
+  .optional();
+
+const notebookProblemPublicBaseSchema = z.object({
+  explanation: z.string().trim().min(1).max(8000).optional(),
+  assets: notebookProblemAssetsSchema.optional(),
+  translations: notebookProblemTranslationsSchema,
 });
 
 export const notebookProblemPublicShortAnswerSchema = notebookProblemPublicBaseSchema.extend({
@@ -204,6 +220,7 @@ export const notebookProblemRecordSchema = z.object({
   status: notebookProblemStatusSchema,
   source: notebookProblemSourceSchema,
   order: z.number().int().min(0),
+  problemNumber: z.number().int().positive().nullable().optional(),
   points: z.number().int().min(0).max(1000).default(1),
   tags: z.array(z.string().trim().min(1).max(30)).max(16).default([]),
   difficulty: notebookProblemDifficultySchema.default('medium'),
@@ -308,6 +325,10 @@ export type NotebookProblemAttemptKind = z.infer<typeof notebookProblemAttemptKi
 export type NotebookProblemAttemptStatus = z.infer<typeof notebookProblemAttemptStatusSchema>;
 export type NotebookProblemImageAsset = z.infer<typeof notebookProblemImageAssetSchema>;
 export type NotebookProblemAssets = z.infer<typeof notebookProblemAssetsSchema>;
+export type NotebookProblemLocalizedContent = z.infer<
+  typeof notebookProblemLocalizedContentSchema
+>;
+export type NotebookProblemTranslations = z.infer<typeof notebookProblemTranslationsSchema>;
 export type NotebookProblemPublicContent = z.infer<typeof notebookProblemPublicContentSchema>;
 export type NotebookProblemGrading = z.infer<typeof notebookProblemGradingSchema>;
 export type NotebookProblemSecretJudge = z.infer<typeof notebookProblemSecretJudgeSchema>;

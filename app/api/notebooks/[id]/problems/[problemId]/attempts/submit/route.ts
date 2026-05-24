@@ -60,6 +60,22 @@ export async function POST(
           });
         }
 
+        if (
+          loaded.problem.type === 'choice' ||
+          loaded.problem.type === 'fill_blank' ||
+          ((loaded.problem.type === 'calculation' ||
+            loaded.problem.type === 'short_answer' ||
+            loaded.problem.type === 'proof') &&
+            (answer.images?.length ?? 0) > 0 &&
+            !(answer.text ?? '').trim())
+        ) {
+          return evaluateNotebookNonCodeProblem({
+            problem: loaded.problem,
+            answer,
+            language: payload.data.language,
+          });
+        }
+
         const { model } = await resolveModelFromHeaders(req, {
           allowOpenAIModelOverride: true,
         });

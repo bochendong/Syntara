@@ -10,8 +10,8 @@ export function NoCourseChatState() {
     <div className="flex h-full min-h-0 flex-col items-center justify-center gap-4 px-6 text-center">
       <BookOpen className="size-12 text-muted-foreground/40" strokeWidth={1.25} />
       <div className="max-w-md space-y-2">
-        <p className="text-lg font-medium text-foreground">尚未选择课程</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base font-medium text-foreground">尚未选择课程</p>
+        <p className="text-[13px] leading-5 text-muted-foreground">
           请先从「我的课程」进入一门课，或从课堂返回以保留侧栏课程上下文，再使用聊天。
         </p>
       </div>
@@ -53,7 +53,7 @@ export function ChatPageHeader({
     <header className="shrink-0 border-b border-slate-900/[0.06] bg-background/90 px-5 backdrop-blur-md dark:border-white/[0.08]">
       <div className="flex min-h-14 min-w-0 items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold tracking-tight text-foreground">
+          <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">
             {titleLine}
           </h1>
           {groupMeta ? (

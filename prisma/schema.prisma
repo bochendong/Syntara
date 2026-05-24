@@ -329,6 +329,7 @@ model NotebookProblem {
   status            NotebookProblemStatus     @default(draft)
   source            NotebookProblemSource     @default(manual)
   order             Int
+  problemNumber     Int?
   points            Int                       @default(1)
   tags              String[]
   difficulty        NotebookProblemDifficulty @default(medium)
@@ -345,9 +346,11 @@ model NotebookProblem {
   updatedAt DateTime @updatedAt
 
   @@index([courseId, order])
+  @@index([courseId, problemNumber])
   @@index([courseId, status, order])
   @@index([courseId, updatedAt(sort: Desc)])
   @@index([notebookId, order])
+  @@index([notebookId, problemNumber])
   @@index([notebookId, updatedAt(sort: Desc)])
 }
 

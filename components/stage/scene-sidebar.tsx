@@ -30,15 +30,10 @@ import type { LectureNoteEntry, LectureNoteItem, LectureNoteVisualCue } from '@/
 import { useStageStore } from '@/lib/store';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import type { Scene, SceneType } from '@/lib/types/stage';
-import type { PPTElement } from '@/lib/types/slides';
+import type { SceneType } from '@/lib/types/stage';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
 import { buildLectureNotesFromScenes } from '@/lib/utils/build-lecture-notes-from-scenes';
-import {
-  buildSemanticSpotlightSections,
-  resolveSemanticSpotlightTargetForText,
-} from '@/lib/notebook-content/semantic-spotlight';
 import { LectureNotesView } from '@/components/chat/lecture-notes-view';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -155,33 +150,6 @@ function lectureNoteItemKey(note: LectureNoteEntry, item: LectureNoteItem): stri
   return `${note.sceneId}:${item.id}`;
 }
 
-function stripHtml(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isManualSpotlightCandidate(element: PPTElement): boolean {
-  if (element.type === 'line' || element.type === 'audio') return false;
-  if (element.type === 'text') return stripHtml(element.content).length > 0;
-  if (element.type === 'shape') return stripHtml(element.text?.content || '').length > 0;
-  return true;
-}
-
-function pickManualSpotlightTarget(
-  elements: readonly PPTElement[],
-  speechIndex: number,
-): PPTElement | undefined {
-  const candidates = elements
-    .filter(isManualSpotlightCandidate)
-    .sort((a, b) => a.top - b.top || a.left - b.left)
-    .filter((element) => !(element.type === 'text' && element.textType === 'title'));
-
-  if (candidates.length === 0) return undefined;
-  return candidates[Math.min(Math.max(0, speechIndex), candidates.length - 1)] ?? candidates[0];
-}
-
 function applyLectureVisualCue(cue: LectureNoteVisualCue): void {
   const canvasStore = useCanvasStore.getState();
 
@@ -197,30 +165,9 @@ function applyLectureVisualCue(cue: LectureNoteVisualCue): void {
   }
 }
 
-function applyLectureFallbackSpotlight(scene: Scene, item: LectureNoteItem): boolean {
-  if (scene.type !== 'slide' || scene.content.type !== 'slide') return false;
-
-  const canvasStore = useCanvasStore.getState();
-  const speechIndex = item.kind === 'speech' ? item.speechIndex : 0;
-
-  if (scene.content.semanticDocument && scene.content.webRenderMode !== 'slide') {
-    const sections = buildSemanticSpotlightSections(scene.content.semanticDocument);
-    const targetId =
-      item.kind === 'speech'
-        ? resolveSemanticSpotlightTargetForText(item.text, sections) ||
-          sections[Math.min(speechIndex, Math.max(0, sections.length - 1))]?.id ||
-          sections[0]?.id ||
-          'header'
-        : sections[0]?.id || 'header';
-
-    if (!targetId) return false;
-    canvasStore.setSpotlight(targetId, { dimness: 0.62 });
-    return true;
-  }
-
-  const target = pickManualSpotlightTarget(scene.content.canvas.elements, speechIndex);
-  if (!target) return false;
-  canvasStore.setSpotlight(target.id, { dimness: 0.62 });
+function applyLectureVisualCues(cues: readonly LectureNoteVisualCue[]): boolean {
+  if (cues.length === 0) return false;
+  cues.forEach(applyLectureVisualCue);
   return true;
 }
 
@@ -284,11 +231,19 @@ export function SceneSidebar({
       canvasStore.clearLaser();
       canvasStore.clearSemanticStep();
 
-      const cue = item.kind === 'speech' ? item.visualCues[0] : item.visualCue;
-      if (cue) {
-        applyLectureVisualCue(cue);
+      if (item.kind === 'speech') {
+        const applied = applyLectureVisualCues(item.visualCues);
+        if (!applied) {
+          manualLectureCueSelectedRef.current = false;
+          setSelectedLectureCueKey(null);
+          return;
+        }
+      } else if (item.visualCue) {
+        applyLectureVisualCues([item.visualCue]);
       } else {
-        applyLectureFallbackSpotlight(scene, item);
+        manualLectureCueSelectedRef.current = false;
+        setSelectedLectureCueKey(null);
+        return;
       }
 
       manualLectureCueSelectedRef.current = true;

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Suspense, useState, useLayoutEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { AppGlobalHeader } from '@/components/app-global-header';
 import { cn } from '@/lib/utils';
 import {
   CHAT_RIGHT_RAIL_COLLAPSED_STORAGE_KEY,
@@ -28,6 +29,7 @@ const SIDEBAR_GAP = 12;
 const LEFT_RAIL_EXPANDED_WIDTH = 256;
 const RIGHT_RAIL_EXPANDED_WIDTH = 270;
 const RAIL_COLLAPSED_WIDTH = 78;
+const GLOBAL_HEADER_OFFSET_PX = 76;
 
 function railOuterPaddingPx(collapsed: boolean, expandedWidth: number): number {
   const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : expandedWidth;
@@ -70,24 +72,24 @@ function shouldHideStudyCompanion(pathname: string | null): boolean {
 function MainShellNoRail({
   children,
   balancedInset = false,
+  showHeader = false,
 }: {
   children: ReactNode;
   balancedInset?: boolean;
+  showHeader?: boolean;
 }) {
-  if (balancedInset) {
-    return (
-      <div className="box-border min-h-dvh px-4 py-4">
-        <div className="h-[calc(100dvh-2rem)] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-[20px]">
+  return (
+    <div className={cn('box-border min-h-dvh px-4', balancedInset ? 'py-4' : 'pt-4 pb-0')}>
+      <div
+        className={cn(
+          'flex min-h-0 w-full min-w-0 flex-col gap-3',
+          balancedInset ? 'h-[calc(100dvh-2rem)]' : 'h-[calc(100dvh-1rem)]',
+        )}
+      >
+        {showHeader ? <AppGlobalHeader /> : null}
+        <div className="min-h-0 w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto rounded-[20px]">
           {children}
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="box-border min-h-dvh px-4 pt-4 pb-0">
-      <div className="h-[calc(100dvh-1rem)] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-[20px]">
-        {children}
       </div>
     </div>
   );
@@ -98,11 +100,16 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLogin = pathname === '/login' || pathname?.startsWith('/login/');
   const isRegister = pathname === '/register' || pathname?.startsWith('/register/');
   const isLanding = pathname === '/';
+  const isMyCourses = pathname === '/my-courses' || pathname?.startsWith('/my-courses/');
   const isClassroom = pathname?.startsWith('/classroom/');
   const isAdmin = pathname?.startsWith('/admin');
   const isTestPage = isTestSurface(pathname);
+  const isCourseHome = pathname != null && /^\/course\/[^/]+\/?$/.test(pathname);
+  const isCourseProblemDetail =
+    pathname != null && /^\/course\/[^/]+\/problem-bank\/[^/]+\/?$/.test(pathname);
   const isCourseProblemBank =
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
+  const isCourseMemory = pathname != null && /^\/course\/[^/]+\/memory(?:\/|$)/.test(pathname);
   const isReviewImmersive =
     pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
   const hideStudyCompanion = shouldHideStudyCompanion(pathname);
@@ -132,6 +139,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isNotebookCreatePage =
     pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
   const hasRightRail = isChatPage || isNotebookCreatePage;
+  const hasGlobalHeader = !isMyCourses && !isChatPage;
   const withStudyCompanion = (content: ReactNode) => {
     if (hideStudyCompanion) return <>{content}</>;
 
@@ -149,21 +157,63 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return withStudyCompanion(<>{children}</>);
   }
 
-  if (isReviewImmersive || isCourseProblemBank || isTestPage) {
+  if (isReviewImmersive || isTestPage) {
     return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
   }
 
-  if (isClassroom || isAdmin) {
+  if (isCourseHome) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isCourseProblemDetail) {
+    return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
+  }
+
+  if (isCourseProblemBank) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isCourseMemory) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isAdmin) {
+    return withStudyCompanion(<MainShellNoRail>{children}</MainShellNoRail>);
+  }
+
+  if (isClassroom) {
     return withStudyCompanion(<MainShellNoRail>{children}</MainShellNoRail>);
   }
 
   return withStudyCompanion(
     <>
-      <AppLeftRail collapsed={sidebarCollapsed} onCollapsedChange={persistSidebarCollapsed} />
+      {hasGlobalHeader ? (
+        <div className="fixed left-4 right-4 top-4 z-[1400]">
+          <AppGlobalHeader />
+        </div>
+      ) : null}
+      <AppLeftRail
+        collapsed={sidebarCollapsed}
+        hasGlobalHeader={hasGlobalHeader}
+        onCollapsedChange={persistSidebarCollapsed}
+      />
       <SidebarInset
         leftCollapsed={sidebarCollapsed}
         rightCollapsed={chatRightCollapsed}
         hasRightRail={hasRightRail}
+        hasGlobalHeader={hasGlobalHeader}
         lockContentScroll={isChatPage}
       >
         {children}
@@ -172,6 +222,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <ChatRightRail
             collapsed={chatRightCollapsed}
+            hasGlobalHeader={hasGlobalHeader}
             onCollapsedChange={persistChatRightCollapsed}
             mode={isNotebookCreatePage ? 'notebook-create' : 'chat'}
           />
@@ -185,12 +236,14 @@ function SidebarInset({
   leftCollapsed,
   rightCollapsed,
   hasRightRail,
+  hasGlobalHeader = true,
   lockContentScroll = false,
   children,
 }: {
   leftCollapsed: boolean;
   rightCollapsed: boolean;
   hasRightRail: boolean;
+  hasGlobalHeader?: boolean;
   lockContentScroll?: boolean;
   children: ReactNode;
 }) {
@@ -214,19 +267,30 @@ function SidebarInset({
   return (
     <div
       className={cn(
-        'box-border pt-4 pb-0 transition-[padding-left,padding-right] duration-300 ease-in-out',
+        'box-border pb-0 transition-[padding-left,padding-right] duration-300 ease-in-out',
         lockContentScroll ? 'h-dvh overflow-hidden' : 'min-h-dvh',
       )}
-      style={{ paddingLeft: padLeft, paddingRight: padRight }}
+      style={{
+        paddingLeft: padLeft,
+        paddingRight: padRight,
+        paddingTop: hasGlobalHeader ? GLOBAL_HEADER_OFFSET_PX : 16,
+      }}
     >
-      {/* 与侧栏一致：top-4 + h-[calc(100dvh-1rem)] + rounded-[20px] */}
+      {/* 与侧栏一致：有全局 header 时从 header 下方开始；无 header 时回到普通页面 inset。 */}
       <div
-        className={cn(
-          'h-[calc(100dvh-1rem)] w-full min-w-0 overflow-x-hidden rounded-[20px]',
-          lockContentScroll ? 'overflow-y-hidden' : 'overflow-y-auto',
-        )}
+        className="flex w-full min-w-0 flex-col gap-3 overflow-hidden"
+        style={{
+          height: `calc(100dvh - ${hasGlobalHeader ? GLOBAL_HEADER_OFFSET_PX : 32}px)`,
+        }}
       >
-        {children}
+        <div
+          className={cn(
+            'min-h-0 w-full min-w-0 flex-1 overflow-x-hidden rounded-[20px]',
+            lockContentScroll ? 'overflow-y-hidden' : 'overflow-y-auto',
+          )}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

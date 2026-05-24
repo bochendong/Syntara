@@ -3,6 +3,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import {
+  rebuildActions,
+  rebuildSceneContent,
+  targetsForScene,
+  validateScene,
+} from './enhance-mat136-spotlight-focus.mjs';
 import { sanitizeMathForSpeech } from './mat136-tts-speech.mjs';
 
 const NOTEBOOK_ID = 'nb-mat136-integration-by-parts-week2-v2-20260519151624';
@@ -249,46 +255,11 @@ const PARTS_NARRATION = {
   ],
 };
 
-function getFallbackTarget(scene) {
-  const elements = scene.content?.canvas?.elements;
-  if (!Array.isArray(elements)) return null;
-  return (
-    elements.find(
-      (element) =>
-        element?.type === 'shape' && String(element?.name ?? '').includes('semantic-hit-map'),
-    )?.id ??
-    elements.find((element) => element?.type === 'shape' && element?.id)?.id ??
-    elements.find((element) => element?.id)?.id ??
-    null
-  );
-}
-
-function buildActions(scene, groups) {
-  const previousActions = Array.isArray(scene.actions) ? scene.actions : [];
-  const spotlights = previousActions.filter((action) => action?.type === 'spotlight');
-  const fallbackTarget = getFallbackTarget(scene);
+function buildSpeechActions(scene, groups) {
   const actions = [];
   let speechIndex = 1;
 
-  groups.forEach((lines, groupIndex) => {
-    const spotlight = spotlights[groupIndex] ?? spotlights[spotlights.length - 1];
-    if (spotlight) {
-      actions.push({
-        ...spotlight,
-        id:
-          spotlight.id || `${scene.id}-spotlight-parts-${String(groupIndex + 1).padStart(2, '0')}`,
-      });
-    } else if (groupIndex === 0 && fallbackTarget) {
-      actions.push({
-        id: `${scene.id}-spotlight-parts-01`,
-        type: 'spotlight',
-        elementId: fallbackTarget,
-        title: scene.title,
-        description: `聚焦页面：${scene.title}`,
-        dimOpacity: 0.72,
-      });
-    }
-
+  groups.forEach((lines) => {
     lines.forEach((text) => {
       actions.push({
         id: `${scene.id}-speech-parts-${String(speechIndex).padStart(2, '0')}`,
@@ -336,14 +307,20 @@ async function main() {
 
     for (const scene of notebook.scenes) {
       const groups = PARTS_NARRATION[scene.title];
-      const actions = buildActions(scene, groups);
+      const speechActions = buildSpeechActions(scene, groups);
+      const sceneForAlignment = { ...scene, actions: speechActions };
+      const targets = targetsForScene(NOTEBOOK_ID, sceneForAlignment);
+      const content = rebuildSceneContent(sceneForAlignment, targets);
+      const actions = rebuildActions(sceneForAlignment, targets);
+      validateScene(sceneForAlignment, content, actions);
+
       speechTotal += actions.filter((action) => action.type === 'speech').length;
       sceneTotal += 1;
 
       if (!DRY_RUN) {
         await prisma.scene.update({
           where: { id: scene.id },
-          data: { actions },
+          data: { content, actions },
         });
       }
     }

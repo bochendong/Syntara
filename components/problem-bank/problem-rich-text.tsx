@@ -5,6 +5,7 @@ import {
   renderHtmlWithLatex,
   renderPlainTitleWithOptionalLatex,
 } from '@/lib/render-html-with-latex';
+import { renderMathToHtml, renderTextWithMathToHtml } from '@/lib/math-engine';
 import type { NotebookProblemImageAsset, NotebookProblemPublicContent } from '@/lib/problem-bank';
 import { cn } from '@/lib/utils';
 
@@ -249,16 +250,36 @@ function renderCasesDisplayMath(latex: string): string | null {
     .join('')}</span></div>`;
 }
 
+function isBracketDisplayMathStart(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed === String.raw`\[` || trimmed === String.raw`\\[`;
+}
+
+function isBracketDisplayMathEnd(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed === String.raw`\]` || trimmed === String.raw`\\]`;
+}
+
+function stripDisplayMathDelimiters(latex: string): string {
+  return latex
+    .replace(/^\s*\\{1,2}\[\s*/, '')
+    .replace(/\s*\\{1,2}\]\s*$/, '')
+    .replace(/\${2,}/g, '')
+    .trim();
+}
+
 function renderDisplayMath(lines: string[]): string {
-  const latex = normalizeDisplayMathLatex(
-    lines
-      .join('\n')
-      .replace(/\${2,}/g, '')
-      .trim(),
-  );
+  const latex = normalizeDisplayMathLatex(stripDisplayMathDelimiters(lines.join('\n')));
   if (!latex) return '';
+
+  const renderedMath = renderMathToHtml(latex, { displayMode: true });
+  if (renderedMath.includes('data-syntara-math')) {
+    return `<div class="problem-rich-display-math">${renderedMath}</div>`;
+  }
+
   const casesHtml = renderCasesDisplayMath(latex);
   if (casesHtml) return casesHtml;
+
   return `<div class="problem-rich-display-math">${escapeHtml(`$$\n${latex}\n$$`)}</div>`;
 }
 
@@ -276,14 +297,16 @@ function textToHtml(text: string): string {
       continue;
     }
 
-    if (line.trim() === '$$') {
+    if (line.trim() === '$$' || isBracketDisplayMathStart(line)) {
+      const endMatcher =
+        line.trim() === '$$' ? (value: string) => value.trim() === '$$' : isBracketDisplayMathEnd;
       const mathLines: string[] = [];
       index += 1;
-      while (index < lines.length && lines[index].trim() !== '$$') {
+      while (index < lines.length && !endMatcher(lines[index])) {
         mathLines.push(lines[index]);
         index += 1;
       }
-      if (index < lines.length && lines[index].trim() === '$$') {
+      if (index < lines.length && endMatcher(lines[index])) {
         index += 1;
       }
       const displayMath = renderDisplayMath(mathLines);
@@ -341,6 +364,9 @@ function textToHtml(text: string): string {
     while (
       index < lines.length &&
       lines[index].trim() &&
+      lines[index].trim() !== '$$' &&
+      !isBracketDisplayMathStart(lines[index]) &&
+      !lines[index].includes('\\begin{cases}') &&
       !(isPipeTableRow(lines[index]) && lines[index + 1] && isTableSeparator(lines[index + 1])) &&
       !/^\s*[-*]\s+/.test(lines[index]) &&
       !/^\s*\d+[\.)]\s+/.test(lines[index])
@@ -355,6 +381,10 @@ function textToHtml(text: string): string {
   return renderHtmlWithLatex(html);
 }
 
+export function renderProblemRichTextHtml(content: string): string {
+  return content.trim() ? textToHtml(content) : '';
+}
+
 export const ProblemRichText = memo(function ProblemRichText({
   content,
   className,
@@ -362,7 +392,10 @@ export const ProblemRichText = memo(function ProblemRichText({
   content?: string;
   className?: string;
 }) {
-  const html = useMemo(() => (content?.trim() ? textToHtml(content) : ''), [content]);
+  const html = useMemo(
+    () => (content?.trim() ? renderProblemRichTextHtml(content) : ''),
+    [content],
+  );
   if (!html) return null;
   return (
     <div
@@ -372,7 +405,8 @@ export const ProblemRichText = memo(function ProblemRichText({
         '[&_.problem-rich-cases]:my-3 [&_.problem-rich-cases]:flex [&_.problem-rich-cases]:items-center [&_.problem-rich-cases]:justify-center [&_.problem-rich-cases]:gap-2 [&_.problem-rich-cases]:overflow-x-auto',
         '[&_.problem-rich-cases-lhs]:whitespace-nowrap [&_.problem-rich-cases-brace]:text-5xl [&_.problem-rich-cases-brace]:font-light [&_.problem-rich-cases-brace]:leading-none',
         '[&_.problem-rich-cases-rows]:grid [&_.problem-rich-cases-rows]:gap-1 [&_.problem-rich-cases-row]:grid [&_.problem-rich-cases-row]:grid-cols-[auto_auto] [&_.problem-rich-cases-row]:gap-3 [&_.problem-rich-cases-row]:whitespace-nowrap',
-        '[&_.problem-rich-table-wrap]:my-3 [&_.problem-rich-table-wrap]:overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-slate-900 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1',
+        '[&_.problem-rich-table-wrap]:my-3 [&_.problem-rich-table-wrap]:overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-slate-900',
+        '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li]:my-1 [&_li]:pl-1',
         className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}
@@ -416,22 +450,6 @@ export function ProblemImageAssets({
               className="max-h-[420px] w-full rounded-lg object-contain"
             />
           </div>
-          {(image.caption || image.sourceImageId || image.pageNumber) && (
-            <figcaption className="space-y-1 px-3 py-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              {image.caption ? (
-                <div className="text-slate-700 dark:text-slate-200">{image.caption}</div>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                {image.sourceImageId ? <span>{image.sourceImageId}</span> : null}
-                {image.pageNumber ? <span>page {image.pageNumber}</span> : null}
-                {image.width && image.height ? (
-                  <span>
-                    {image.width}×{image.height}
-                  </span>
-                ) : null}
-              </div>
-            </figcaption>
-          )}
         </figure>
       ))}
     </div>
@@ -441,13 +459,20 @@ export function ProblemImageAssets({
 export const ProblemTitleText = memo(function ProblemTitleText({
   content,
   className,
+  forceInlineMath = false,
 }: {
   content?: string;
   className?: string;
+  forceInlineMath?: boolean;
 }) {
   const html = useMemo(
-    () => (content?.trim() ? renderPlainTitleWithOptionalLatex(content) : ''),
-    [content],
+    () =>
+      content?.trim()
+        ? forceInlineMath
+          ? renderTextWithMathToHtml(content, { forceInline: true, rawFallback: true }) || ''
+          : renderPlainTitleWithOptionalLatex(content)
+        : '',
+    [content, forceInlineMath],
   );
   if (!html) return null;
   return (

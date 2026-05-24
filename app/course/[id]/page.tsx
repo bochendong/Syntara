@@ -3,18 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  BarChart3,
-  BookOpen,
-  Brain,
-  CalendarDays,
-  CircleCheck,
-  Clock3,
-  HardDrive,
-  Loader2,
-  Play,
-  Plus,
-} from 'lucide-react';
+import { AlertCircle, BookOpen, Brain, HardDrive, Loader2, Plus } from 'lucide-react';
 import {
   CourseGalleryCard,
   notebookAssetListGridClassName,
@@ -48,8 +37,10 @@ import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import { getLocalStudyMemoryUserId, loadStudyMemory } from '@/lib/learning/study-memory';
-import { countDefaultCoursePublicMemories } from '@/lib/learning/default-public-memories';
-import { listCourseProblems } from '@/lib/utils/notebook-problem-api';
+import {
+  listCourseProblems,
+  type NotebookProblemClientRecord,
+} from '@/lib/utils/notebook-problem-api';
 import {
   Dialog,
   DialogContent,
@@ -96,6 +87,10 @@ function compareNotebooksByName(a: StageListItem, b: StageListItem): number {
   );
 }
 
+function omitRecordKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(record).filter(([itemKey]) => itemKey !== key));
+}
+
 function countStudyMemoryItems(notebookId: string): number {
   const profile = loadStudyMemory(getLocalStudyMemoryUserId(), notebookId);
   const activePublic = profile.publicMemories.filter((item) => item.status !== 'archived').length;
@@ -104,28 +99,43 @@ function countStudyMemoryItems(notebookId: string): number {
   return activePublic + activePrivate + openWeakPoints;
 }
 
-type CourseWorkspaceTab = 'notebooks' | 'materials';
+type CourseProblemPracticeState = 'mastered' | 'review' | 'wrong' | 'unattempted';
 
-function CreateNotebookGridLink({ href }: { href: string }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'group flex h-full min-h-[10.75rem] min-w-0 items-center justify-center gap-3 rounded-2xl',
-        'border-2 border-dashed border-slate-300/90 bg-white/70 px-5 text-slate-500 shadow-[0_14px_34px_rgba(15,23,42,0.04)]',
-        'transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/70 hover:bg-white hover:text-slate-900 hover:shadow-[0_20px_48px_rgba(15,23,42,0.1)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/25 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
-        'dark:border-white/20 dark:bg-white/[0.055] dark:text-white/55 dark:hover:border-white/45 dark:hover:bg-white/[0.085] dark:hover:text-white dark:focus-visible:ring-white/30',
-      )}
-      aria-label="新建笔记本"
-    >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-300/90 bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 dark:border-white/20 dark:bg-white/10">
-        <Plus className="size-5" strokeWidth={1.9} />
-      </span>
-      <span className="text-sm font-semibold tracking-normal">新建笔记本</span>
-    </Link>
-  );
+function normalizeCourseProblemTopic(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').slice(0, 48);
 }
+
+function getCourseProblemTopics(problem: NotebookProblemClientRecord): string[] {
+  const tags = problem.tags.map(normalizeCourseProblemTopic).filter(Boolean);
+  if (tags.length > 0) return Array.from(new Set(tags)).slice(0, 6);
+  return ['未标注'];
+}
+
+function getCourseProblemPracticeState(
+  problem: NotebookProblemClientRecord,
+): CourseProblemPracticeState {
+  const status = problem.latestAttempt?.status ?? null;
+  if (!status) return 'unattempted';
+  if (status === 'passed') return 'mastered';
+  if (status === 'failed' || status === 'partial' || status === 'error') return 'wrong';
+  return 'review';
+}
+
+function weakTopicBarClass(index: number): string {
+  const classes = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-sky-500', 'bg-violet-500'];
+  return classes[index % classes.length];
+}
+
+function countProblemsByNotebook(problems: NotebookProblemClientRecord[]): Record<string, number> {
+  return problems.reduce<Record<string, number>>((acc, problem) => {
+    if (problem.notebookId) {
+      acc[problem.notebookId] = (acc[problem.notebookId] ?? 0) + 1;
+    }
+    return acc;
+  }, {});
+}
+
+type CourseWorkspaceTab = 'notebooks' | 'materials';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -139,6 +149,7 @@ export default function CourseDetailPage() {
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [memoryCounts, setMemoryCounts] = useState<Record<string, number>>({});
   const [problemCounts, setProblemCounts] = useState<Record<string, number>>({});
+  const [courseProblems, setCourseProblems] = useState<NotebookProblemClientRecord[]>([]);
   const [moveTargets, setMoveTargets] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>('notebooks');
@@ -164,47 +175,122 @@ export default function CourseDetailPage() {
     !course?.listedInCourseStore && coursePublishBlockReason,
   );
   const sortedNotebooks = useMemo(() => [...notebooks].sort(compareNotebooksByName), [notebooks]);
-  const latestUpdatedNotebook = useMemo(
-    () =>
-      sortedNotebooks.reduce<StageListItem | null>(
-        (latest, notebook) =>
-          !latest || notebook.updatedAt > latest.updatedAt ? notebook : latest,
-        null,
-      ),
-    [sortedNotebooks],
+  const activeCourseProblems = useMemo(
+    () => courseProblems.filter((problem) => problem.status !== 'archived'),
+    [courseProblems],
   );
-  const totalSlideCount = useMemo(
-    () => sortedNotebooks.reduce((sum, notebook) => sum + notebook.sceneCount, 0),
-    [sortedNotebooks],
-  );
-  const totalMemoryCount = useMemo(
-    () =>
-      sortedNotebooks.reduce((sum, notebook) => sum + (memoryCounts[notebook.id] ?? 0), 0) +
-      (course ? countDefaultCoursePublicMemories(course) : 0),
-    [course, sortedNotebooks, memoryCounts],
-  );
-  const problemReadyNotebookCount = useMemo(
-    () => sortedNotebooks.filter((notebook) => (problemCounts[notebook.id] ?? 0) > 0).length,
-    [sortedNotebooks, problemCounts],
-  );
-  const weeklyStudyProgress =
-    sortedNotebooks.length > 0
-      ? Math.min(
-          96,
-          Math.round(
-            (Math.min(totalSlideCount, sortedNotebooks.length * 12) /
-              Math.max(1, sortedNotebooks.length * 12)) *
-              70 +
-              (problemReadyNotebookCount / sortedNotebooks.length) * 30,
-          ),
-        )
-      : 0;
-  const estimatedStudyHours =
-    totalSlideCount > 0 ? Math.round(((totalSlideCount * 4) / 60) * 10) / 10 : 0;
-  const recentlyUpdatedNotebooks = useMemo(
-    () => [...sortedNotebooks].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 2),
-    [sortedNotebooks],
-  );
+  const courseProblemStats = useMemo(() => {
+    const stateCounts = activeCourseProblems.reduce(
+      (counts, problem) => {
+        counts[getCourseProblemPracticeState(problem)] += 1;
+        return counts;
+      },
+      {
+        mastered: 0,
+        review: 0,
+        wrong: 0,
+        unattempted: 0,
+      } as Record<CourseProblemPracticeState, number>,
+    );
+    const attempted = activeCourseProblems.length - stateCounts.unattempted;
+    const masteryPercent =
+      activeCourseProblems.length > 0
+        ? Math.round((stateCounts.mastered / activeCourseProblems.length) * 100)
+        : 0;
+    const allTopics = new Set<string>();
+    const masteredTopics = new Set<string>();
+    const notebookNameById = new Map(
+      sortedNotebooks.map((notebook) => [notebook.id, notebook.name]),
+    );
+    const chapterPracticeCounts = new Map<
+      string,
+      { topic: string; count: number; total: number; order: number }
+    >(
+      sortedNotebooks.map((notebook, index) => [
+        notebook.id,
+        { topic: notebook.name, count: 0, total: 0, order: index },
+      ]),
+    );
+    let unassignedOrder = sortedNotebooks.length;
+
+    for (const problem of activeCourseProblems) {
+      const state = getCourseProblemPracticeState(problem);
+      for (const topic of getCourseProblemTopics(problem)) {
+        if (topic !== '未标注') {
+          allTopics.add(topic);
+          if (state === 'mastered') masteredTopics.add(topic);
+        }
+      }
+
+      if (state !== 'unattempted') {
+        const notebookKey = problem.notebookId || `__unassigned__:${problem.notebookName || ''}`;
+        const notebookName =
+          problem.notebookName ||
+          (problem.notebookId ? notebookNameById.get(problem.notebookId) : null) ||
+          '未归属笔记本';
+        const current = chapterPracticeCounts.get(notebookKey) ?? {
+          topic: notebookName,
+          count: 0,
+          total: 0,
+          order: unassignedOrder++,
+        };
+        current.count += 1;
+        chapterPracticeCounts.set(notebookKey, current);
+      }
+
+      const notebookKey = problem.notebookId || `__unassigned__:${problem.notebookName || ''}`;
+      const notebookName =
+        problem.notebookName ||
+        (problem.notebookId ? notebookNameById.get(problem.notebookId) : null) ||
+        '未归属笔记本';
+      const current = chapterPracticeCounts.get(notebookKey) ?? {
+        topic: notebookName,
+        count: 0,
+        total: 0,
+        order: unassignedOrder++,
+      };
+      current.total += 1;
+      chapterPracticeCounts.set(notebookKey, current);
+    }
+
+    const maxChapterPracticeCount = Math.max(
+      1,
+      ...Array.from(chapterPracticeCounts.values()).map((item) => item.count),
+    );
+
+    const leastPracticedChapters = Array.from(chapterPracticeCounts.values())
+      .sort(
+        (a, b) =>
+          a.count - b.count ||
+          b.total - a.total ||
+          a.order - b.order ||
+          a.topic.localeCompare(b.topic),
+      )
+      .slice(0, 5)
+      .map((item) => ({
+        topic: item.topic,
+        count: item.count,
+        total: item.total,
+        percent: Math.min(100, Math.round((item.count / maxChapterPracticeCount) * 100)),
+      }));
+
+    return {
+      total: activeCourseProblems.length,
+      attempted,
+      mastered: stateCounts.mastered,
+      review: stateCounts.review,
+      wrong: stateCounts.wrong,
+      unattempted: stateCounts.unattempted,
+      masteryPercent,
+      coveredNotebookCount: new Set(
+        activeCourseProblems.map((problem) => problem.notebookId).filter(Boolean),
+      ).size,
+      notebookCount: sortedNotebooks.length,
+      masteredTopicCount: masteredTopics.size,
+      topicCount: allTopics.size,
+      weakTopics: leastPracticedChapters,
+    };
+  }, [activeCourseProblems, sortedNotebooks]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -223,6 +309,7 @@ export default function CourseDetailPage() {
         setThumbnails({});
         setMemoryCounts({});
         setProblemCounts({});
+        setCourseProblems([]);
         setLoading(false);
         return;
       }
@@ -239,17 +326,13 @@ export default function CourseDetailPage() {
       const nextMemoryCounts = Object.fromEntries(
         list.map((notebook) => [notebook.id, countStudyMemoryItems(notebook.id)]),
       );
-      const nextProblemCounts = problems.reduce<Record<string, number>>((acc, problem) => {
-        if (problem.notebookId) {
-          acc[problem.notebookId] = (acc[problem.notebookId] ?? 0) + 1;
-        }
-        return acc;
-      }, {});
+      const nextProblemCounts = countProblemsByNotebook(problems);
       if (!alive) return;
       setNotebooks(list);
       setThumbnails(slides);
       setMemoryCounts(nextMemoryCounts);
       setProblemCounts(nextProblemCounts);
+      setCourseProblems(problems);
       setMoveTargets(targets);
       setLoading(false);
     })();
@@ -291,11 +374,17 @@ export default function CourseDetailPage() {
           : '已移动到其他课程',
       );
       const list = await listStagesByCourse(id);
+      const [slides, problems] = await Promise.all([
+        getFirstSlideByStages(list.map((n) => n.id)),
+        listCourseProblems(id).catch(() => []),
+      ]);
       setNotebooks(list);
-      setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+      setThumbnails(slides);
       setMemoryCounts(
         Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
       );
+      setProblemCounts(countProblemsByNotebook(problems));
+      setCourseProblems(problems);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '移动失败');
     }
@@ -304,13 +393,28 @@ export default function CourseDetailPage() {
   const handleDeleteNotebook = async (notebookId: string, notebookName: string) => {
     try {
       await deleteStageData(notebookId);
-      await touchCourseUpdatedAt(id);
+      setNotebooks((current) => current.filter((item) => item.id !== notebookId));
+      setThumbnails((current) => omitRecordKey(current, notebookId));
+      setMemoryCounts((current) => omitRecordKey(current, notebookId));
+      setProblemCounts((current) => omitRecordKey(current, notebookId));
+
+      void touchCourseUpdatedAt(id).catch((error) => {
+        console.warn('[course-page] Failed to touch course after notebook delete:', error);
+      });
+
       const list = await listStagesByCourse(id);
+      const [slides, problems] = await Promise.all([
+        getFirstSlideByStages(list.map((n) => n.id)),
+        listCourseProblems(id).catch(() => []),
+      ]);
+      const nextProblemCounts = countProblemsByNotebook(problems);
       setNotebooks(list);
-      setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
+      setThumbnails(slides);
       setMemoryCounts(
         Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
       );
+      setProblemCounts(nextProblemCounts);
+      setCourseProblems(problems);
       toast.success(`已删除「${notebookName}」`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败');
@@ -622,7 +726,7 @@ export default function CourseDetailPage() {
               </div>
 
               <TabsContent value="notebooks" className="mt-0">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem] xl:grid-cols-[minmax(0,1fr)_15.5rem] 2xl:grid-cols-[minmax(0,1fr)_16.5rem]">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_270px]">
                   <section aria-labelledby="course-notebooks-heading" className="min-w-0">
                     <h2 id="course-notebooks-heading" className="sr-only">
                       笔记本列表
@@ -692,129 +796,185 @@ export default function CourseDetailPage() {
                           </div>
                         </li>
                       )}
-                      <li className="min-w-0">
-                        <CreateNotebookGridLink href={createNotebookHref(id)} />
-                      </li>
                     </ul>
                   </section>
 
                   <aside
-                    aria-label="本周学习"
+                    aria-label="课程学习概览"
                     className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:h-fit"
                   >
-                    <section className="rounded-2xl border border-white/80 bg-white/92 p-2.5 shadow-[0_16px_40px_rgba(15,23,42,0.07)] ring-1 ring-slate-900/[0.025] dark:border-white/10 dark:bg-white/[0.065]">
-                      <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-950 dark:text-white">
-                        <CalendarDays className="size-3.5 text-slate-600 dark:text-slate-300" />
-                        本周学习
+                    <section className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/60">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          掌握概览
+                        </p>
+                        <AlertCircle className="h-3.5 w-3.5 text-slate-400" />
                       </div>
-                      <div className="mt-3 flex min-w-0 flex-col gap-3">
+                      <div className="mt-4 flex items-center gap-4">
                         <div
-                          className="mx-auto grid size-20 shrink-0 place-items-center rounded-full"
+                          className="grid size-[88px] shrink-0 place-items-center rounded-full"
                           style={{
-                            background: `conic-gradient(#2f6df6 ${weeklyStudyProgress * 3.6}deg, #e7edf7 0deg)`,
+                            background: `conic-gradient(#22c55e 0deg ${
+                              (courseProblemStats.mastered /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg, #f59e0b ${
+                              (courseProblemStats.mastered /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg ${
+                              ((courseProblemStats.mastered + courseProblemStats.review) /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg, #ef4444 ${
+                              ((courseProblemStats.mastered + courseProblemStats.review) /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg ${
+                              ((courseProblemStats.mastered +
+                                courseProblemStats.review +
+                                courseProblemStats.wrong) /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg, #e2e8f0 ${
+                              ((courseProblemStats.mastered +
+                                courseProblemStats.review +
+                                courseProblemStats.wrong) /
+                                Math.max(1, courseProblemStats.total)) *
+                              360
+                            }deg 360deg)`,
                           }}
                         >
-                          <div className="grid size-14 place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-950">
-                            <span className="text-lg font-semibold tabular-nums text-slate-950 dark:text-white">
-                              {weeklyStudyProgress}%
+                          <div className="grid size-[62px] place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-950">
+                            <span className="text-xl font-bold leading-none text-slate-950 dark:text-white">
+                              {courseProblemStats.masteryPercent}%
                             </span>
-                            <span className="-mt-1 text-[9px] text-slate-500 dark:text-slate-400">
-                              学习进度
+                            <span className="-mt-2 text-[10px] font-medium text-slate-400">
+                              总体掌握
                             </span>
                           </div>
                         </div>
-                        <dl className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 text-[11px] leading-4">
-                          <div>
-                            <dt className="text-blue-600 dark:text-blue-300">
-                              {estimatedStudyHours.toFixed(estimatedStudyHours % 1 === 0 ? 0 : 1)}h
-                            </dt>
-                            <dd className="text-slate-500 dark:text-slate-400">学习时长</dd>
-                          </div>
-                          <div>
-                            <dt className="text-blue-600 dark:text-blue-300">
-                              {problemReadyNotebookCount} / {sortedNotebooks.length || 0}
-                            </dt>
-                            <dd className="text-slate-500 dark:text-slate-400">题库覆盖</dd>
-                          </div>
-                          <div>
-                            <dt className="text-blue-600 dark:text-blue-300">{totalMemoryCount}</dt>
-                            <dd className="text-slate-500 dark:text-slate-400">新知识点</dd>
-                          </div>
+                        <dl className="min-w-0 flex-1 space-y-2 text-xs">
+                          {[
+                            {
+                              label: '掌握良好',
+                              count: courseProblemStats.mastered,
+                              className: 'bg-emerald-500',
+                            },
+                            {
+                              label: '待复习',
+                              count: courseProblemStats.review,
+                              className: 'bg-amber-500',
+                            },
+                            {
+                              label: '错题',
+                              count: courseProblemStats.wrong,
+                              className: 'bg-rose-500',
+                            },
+                            {
+                              label: '未练习',
+                              count: courseProblemStats.unattempted,
+                              className: 'bg-slate-300',
+                            },
+                          ].map((item) => (
+                            <div
+                              key={item.label}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <dt className="flex min-w-0 items-center gap-2 text-slate-500 dark:text-slate-400">
+                                <span className={cn('size-2 rounded-full', item.className)} />
+                                <span className="truncate">{item.label}</span>
+                              </dt>
+                              <dd className="font-semibold text-slate-800 dark:text-slate-100">
+                                {item.count}
+                              </dd>
+                            </div>
+                          ))}
                         </dl>
                       </div>
-                    </section>
-
-                    <section className="rounded-2xl border border-white/80 bg-white/92 p-2.5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/[0.025] dark:border-white/10 dark:bg-white/[0.065]">
-                      <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-950 dark:text-white">
-                        <Clock3 className="size-3.5 text-slate-600 dark:text-slate-300" />
-                        下次复习
-                      </p>
-                      <p className="mt-3 line-clamp-2 text-[13px] font-semibold leading-5 text-slate-950 dark:text-white">
-                        {latestUpdatedNotebook?.name ?? '先创建一个笔记本'}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {latestUpdatedNotebook ? '预计时间 · 明天 10:00' : '创建后会显示复习安排'}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 h-8 rounded-lg border-blue-200/80 bg-blue-50/70 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/15"
-                        disabled={!latestUpdatedNotebook}
-                        onClick={() => {
-                          if (latestUpdatedNotebook)
-                            router.push(`/review/${latestUpdatedNotebook.id}`);
-                        }}
-                      >
-                        <Play className="mr-1.5 size-3.5" strokeWidth={2} />
-                        开始复习
-                      </Button>
-                    </section>
-
-                    <section className="rounded-2xl border border-white/80 bg-white/92 p-2.5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/[0.025] dark:border-white/10 dark:bg-white/[0.065]">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-950 dark:text-white">
-                          <BarChart3 className="size-3.5 text-slate-600 dark:text-slate-300" />
-                          最近动态
-                        </p>
-                        <span className="text-[11px] text-slate-400">{notebooks.length} 本</span>
+                      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center text-xs dark:border-slate-800">
+                        <div>
+                          <div className="font-semibold text-sky-600 dark:text-sky-300">
+                            {courseProblemStats.attempted}/{courseProblemStats.total || 0}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-400">已练习</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sky-600 dark:text-sky-300">
+                            {courseProblemStats.coveredNotebookCount}/
+                            {Math.max(1, courseProblemStats.notebookCount)}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-400">题库覆盖</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sky-600 dark:text-sky-300">
+                            {courseProblemStats.masteredTopicCount}/
+                            {courseProblemStats.topicCount || 0}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-400">知识点</div>
+                        </div>
                       </div>
-                      <ul className="mt-3 space-y-3">
-                        {recentlyUpdatedNotebooks.length > 0 ? (
-                          recentlyUpdatedNotebooks.map((notebook, index) => (
-                            <li key={notebook.id} className="flex items-start gap-2">
-                              <span
-                                className={cn(
-                                  'mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg',
-                                  index === 0
-                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-200'
-                                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300',
-                                )}
-                              >
-                                {index === 0 ? (
-                                  <CircleCheck className="size-3.5" strokeWidth={2} />
-                                ) : (
-                                  <BookOpen className="size-3.5" strokeWidth={2} />
-                                )}
-                              </span>
-                              <span className="min-w-0 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                <span className="block truncate font-medium text-slate-700 dark:text-slate-200">
-                                  {index === 0 ? '完成了' : '更新了'} {notebook.name}
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/60">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        做题最少章节 TOP5
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-400">按已做题目数量升序统计</p>
+                      <div className="mt-4 space-y-3">
+                        {courseProblemStats.weakTopics.length > 0 ? (
+                          courseProblemStats.weakTopics.map((item, index) => (
+                            <div key={item.topic} className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-2 text-xs">
+                                <span className="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">
+                                  {item.topic}
                                 </span>
-                                <span>{formatDate(notebook.updatedAt)}</span>
-                              </span>
-                            </li>
+                                <span className="shrink-0 font-semibold text-slate-500 dark:text-slate-400">
+                                  已做 {item.count} 题
+                                </span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div
+                                  className={cn('h-full rounded-full', weakTopicBarClass(index))}
+                                  style={{ width: `${item.percent}%` }}
+                                />
+                              </div>
+                            </div>
                           ))
                         ) : (
-                          <li className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            新建笔记本后会显示学习动态。
-                          </li>
+                          <p className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+                            暂无章节刷题数据。
+                          </p>
                         )}
-                      </ul>
-                      <p className="mt-3 text-xs font-semibold text-blue-600 dark:text-blue-300">
-                        最近 {recentlyUpdatedNotebooks.length || 0} 条动态
-                      </p>
+                      </div>
                     </section>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/course/${encodeURIComponent(id)}/problem-bank`)
+                        }
+                        className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                      >
+                        <BookOpen className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
+                        <span>进入题库</span>
+                        <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                          练习 / 导题
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(createNotebookHref(id))}
+                        className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                      >
+                        <Plus className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
+                        <span>新建笔记本</span>
+                        <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                          生成内容
+                        </span>
+                      </button>
+                    </div>
                   </aside>
                 </div>
               </TabsContent>

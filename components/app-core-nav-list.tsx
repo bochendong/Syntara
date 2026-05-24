@@ -92,20 +92,19 @@ type CoreNavSection = {
 /** 聊天右侧栏扁平列表：先放当前课程内入口，再放跨课程入口，其余项按此表随后 */
 const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   'agent-teams': 0,
-  'course-milestone': 1,
-  'course-problem-bank': 2,
-  courses: 3,
-  store: 4,
-  'top-up': 5,
-  'credits-market': 6,
-  gamification: 7,
-  'avatar-store': 8,
-  chat: 9,
-  live2d: 10,
-  profile: 11,
-  settings: 12,
-  'contact-support': 13,
-  'report-issue': 14,
+  'course-problem-bank': 1,
+  courses: 2,
+  store: 3,
+  'top-up': 4,
+  'credits-market': 5,
+  gamification: 6,
+  'avatar-store': 7,
+  chat: 8,
+  live2d: 9,
+  profile: 10,
+  settings: 11,
+  'contact-support': 12,
+  'report-issue': 13,
 };
 
 function sortChatRightRailItems(items: CoreNavItem[]): CoreNavItem[] {
@@ -172,9 +171,6 @@ export function AppCoreNavList({
   const live2dActive = pathname === '/live2d' || pathname?.startsWith('/live2d/');
   const avatarStoreActive =
     pathname === '/store/avatars' || pathname?.startsWith('/store/avatars/');
-  const courseMilestoneActive =
-    Boolean(pathname?.startsWith('/course/')) &&
-    (pathname?.endsWith('/milestone') || pathname?.includes('/milestone/'));
   const courseProblemBankActive =
     Boolean(pathname?.startsWith('/course/')) &&
     (pathname?.endsWith('/problem-bank') || pathname?.includes('/problem-bank/'));
@@ -328,14 +324,6 @@ export function AppCoreNavList({
                     tooltip: '课程主页',
                     icon: UsersRound,
                     active: agentTeamsActive,
-                  },
-                  {
-                    key: 'course-milestone',
-                    href: `/course/${encodeURIComponent(courseId ?? '')}/milestone`,
-                    label: '课程里程碑',
-                    tooltip: '课程里程碑',
-                    icon: Flame,
-                    active: courseMilestoneActive,
                   },
                   {
                     key: 'course-problem-bank',

@@ -169,6 +169,7 @@ function isMockTaskLike(task: Pick<AgentTaskRecord, 'title' | 'detail'>): boolea
 
 export interface ChatRightRailProps {
   collapsed: boolean;
+  hasGlobalHeader?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   mode?: 'chat' | 'notebook-create';
 }
@@ -176,7 +177,12 @@ export interface ChatRightRailProps {
 /**
  * 聊天页右侧玻璃侧栏：Tab「当前」展示会话对象资料；Tab「进行中」展示课程内活跃 Agent 任务。
  */
-export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: ChatRightRailProps) {
+export function ChatRightRail({
+  collapsed,
+  hasGlobalHeader = true,
+  onCollapsedChange,
+  mode = 'chat',
+}: ChatRightRailProps) {
   const searchParams = useSearchParams();
   const isNotebookCreateMode = mode === 'notebook-create';
   const courseId = useCurrentCourseStore((s) => s.id);
@@ -851,7 +857,8 @@ export function ChatRightRail({ collapsed, onCollapsedChange, mode = 'chat' }: C
   return (
     <aside
       className={cn(
-        'pointer-events-none fixed right-4 top-4 z-[1290] h-[calc(100dvh-2rem)]',
+        'pointer-events-none fixed right-4 z-[1290]',
+        hasGlobalHeader ? 'top-[76px] h-[calc(100dvh-92px)]' : 'top-4 h-[calc(100dvh-2rem)]',
         collapsed ? 'w-[88px]' : 'w-[min(270px,calc(100vw-2rem))]',
       )}
       aria-label={isNotebookCreateMode ? '创建笔记本设置侧栏' : '聊天信息侧栏'}
