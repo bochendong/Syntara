@@ -78,6 +78,12 @@ type ProblemWithSecretRow = ProblemRow & {
   } | null;
 };
 
+export type PublishProblemBankResult = {
+  totalCount: number;
+  publishedCount: number;
+  skippedCount: number;
+};
+
 function mapAttemptRow(row: ProblemAttemptRow): NotebookProblemAttemptRecord {
   return notebookProblemAttemptRecordSchema.parse({
     id: row.id,
@@ -126,6 +132,70 @@ function mapProblemRow(
         }
       : null,
   });
+}
+
+function buildPublishDraftFromRow(row: ProblemWithSecretRow): NotebookProblemImportDraft {
+  return notebookProblemImportDraftSchema.parse({
+    draftId: row.id,
+    notebookId: row.notebookId,
+    title: row.title,
+    type: row.type,
+    status: 'published',
+    source: row.source,
+    points: row.points,
+    tags: row.tags ?? [],
+    difficulty: row.difficulty,
+    publicContent: row.publicContentJson,
+    grading: row.gradingJson,
+    secretJudge: row.secret?.secretJudgeJson as NotebookProblemSecretJudge | undefined,
+    sourceMeta: row.sourceMeta ?? {},
+    validationErrors: [],
+  });
+}
+
+async function publishProblemRowsTx(
+  tx: Prisma.TransactionClient,
+  rows: ProblemWithSecretRow[],
+): Promise<PublishProblemBankResult> {
+  const result: PublishProblemBankResult = {
+    totalCount: rows.length,
+    publishedCount: 0,
+    skippedCount: 0,
+  };
+
+  for (const row of rows) {
+    const normalizedDraft = normalizeDraftForPersistence(buildPublishDraftFromRow(row), row.order);
+    if (normalizedDraft.status === 'published') {
+      if (row.status !== 'published') result.publishedCount += 1;
+    } else {
+      result.skippedCount += 1;
+    }
+
+    await tx.notebookProblem.update({
+      where: { id: row.id },
+      data: {
+        status: normalizedDraft.status,
+        publicContentJson: toPrismaJson(normalizedDraft.publicContent),
+        gradingJson: toPrismaJson(normalizedDraft.grading),
+        sourceMeta: toPrismaNullableJson(normalizedDraft.sourceMeta),
+      },
+    });
+
+    if (normalizedDraft.secretJudge) {
+      await tx.notebookProblemSecret.upsert({
+        where: { problemId: row.id },
+        create: {
+          problemId: row.id,
+          secretJudgeJson: toPrismaJson(normalizedDraft.secretJudge),
+        },
+        update: {
+          secretJudgeJson: toPrismaJson(normalizedDraft.secretJudge),
+        },
+      });
+    }
+  }
+
+  return result;
 }
 
 function mapSceneRowToScene(row: {
@@ -405,7 +475,9 @@ async function assignMissingProblemNumbersTx(
     SET "problemNumber" = v."problemNumber"
     FROM (
       VALUES ${Prisma.join(
-        assignments.map((assignment) => Prisma.sql`(${assignment.id}, ${assignment.problemNumber})`),
+        assignments.map(
+          (assignment) => Prisma.sql`(${assignment.id}, ${assignment.problemNumber})`,
+        ),
       )}
     ) AS v("id", "problemNumber")
     WHERE p."id" = v."id"
@@ -569,6 +641,85 @@ export async function listCourseProblemsForUser(
   return problems.map((problem) =>
     mapProblemRow(problem, latestByProblemId.get(problem.id) ?? null),
   );
+}
+
+export async function publishNotebookProblemBankForUser(args: {
+  userId: string;
+  notebookId: string;
+}): Promise<PublishProblemBankResult> {
+  const notebook = await requireNotebookOwnership(args.userId, args.notebookId);
+  await ensureLegacyProblemsBackfilled(args.userId, args.notebookId);
+  await ensureProblemNumbersBackfilledForNotebook(args.userId, args.notebookId);
+
+  const rows = (await prismaDb.notebookProblem.findMany({
+    where: {
+      notebookId: args.notebookId,
+      status: { not: 'archived' },
+    },
+    include: {
+      notebook: {
+        select: {
+          id: true,
+          name: true,
+          courseId: true,
+        },
+      },
+      secret: true,
+    },
+    orderBy: [{ problemNumber: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
+  })) as unknown as ProblemWithSecretRow[];
+
+  return prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await publishProblemRowsTx(tx, rows);
+    await touchOwnersAfterProblemWriteTx({
+      tx,
+      courseId: notebook.courseId,
+      notebookIds: [args.notebookId],
+    });
+    return result;
+  });
+}
+
+export async function publishCourseProblemBankForUser(args: {
+  userId: string;
+  courseId: string;
+}): Promise<PublishProblemBankResult> {
+  await requireCourseOwnership(args.userId, args.courseId);
+  await ensureLegacyProblemsBackfilledForCourse(args.userId, args.courseId);
+  await ensureProblemNumbersBackfilledForCourse(args.userId, args.courseId);
+  const notebooks = await listOwnedCourseNotebooks(args.userId, args.courseId);
+  const notebookIds = notebooks.map((notebook) => notebook.id);
+
+  const rows = (await prismaDb.notebookProblem.findMany({
+    where: {
+      status: { not: 'archived' },
+      OR:
+        notebookIds.length > 0
+          ? [{ courseId: args.courseId }, { notebookId: { in: notebookIds } }]
+          : [{ courseId: args.courseId }],
+    },
+    include: {
+      notebook: {
+        select: {
+          id: true,
+          name: true,
+          courseId: true,
+        },
+      },
+      secret: true,
+    },
+    orderBy: [{ problemNumber: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
+  })) as unknown as ProblemWithSecretRow[];
+
+  return prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await publishProblemRowsTx(tx, rows);
+    await touchOwnersAfterProblemWriteTx({
+      tx,
+      courseId: args.courseId,
+      notebookIds,
+    });
+    return result;
+  });
 }
 
 export async function getNotebookProblemForUser(

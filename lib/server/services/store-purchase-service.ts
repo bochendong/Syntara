@@ -5,8 +5,11 @@ import {
   findNotebookPurchaseWithClonedNotebook,
   findPublicCourseForClone,
   findPublicNotebookForClone,
+  listPublishedCourseProblemsForClone,
+  listPublishedNotebookProblemsForClone,
 } from '@/lib/server/repositories/store-repository';
 import type { RootDbClient } from '@/lib/server/repositories/types';
+import type { Prisma } from '@/lib/server/generated-prisma';
 import { pickRandomCourseAvatarUrl } from '@/lib/constants/course-avatars';
 import { creditsFromPriceCents } from '@/lib/utils/credits';
 
@@ -14,6 +17,45 @@ export type StorePurchaseResult<T> =
   | { status: 'not_found' }
   | { status: 'existing'; item: T }
   | { status: 'created'; item: T };
+
+type PublishedProblemForClone = Awaited<
+  ReturnType<typeof listPublishedCourseProblemsForClone>
+>[number];
+
+async function clonePublishedProblemTx(args: {
+  tx: Prisma.TransactionClient;
+  problem: PublishedProblemForClone;
+  courseId: string | null;
+  notebookId: string | null;
+}) {
+  const clonedProblem = await args.tx.notebookProblem.create({
+    data: {
+      courseId: args.courseId,
+      notebookId: args.notebookId,
+      title: args.problem.title,
+      type: args.problem.type,
+      status: args.problem.status,
+      source: args.problem.source,
+      order: args.problem.order,
+      problemNumber: args.problem.problemNumber,
+      points: args.problem.points,
+      tags: args.problem.tags,
+      difficulty: args.problem.difficulty,
+      publicContentJson: toPrismaJson(args.problem.publicContentJson),
+      gradingJson: toPrismaJson(args.problem.gradingJson),
+      sourceMeta: toPrismaNullableJson(args.problem.sourceMeta),
+    },
+  });
+
+  if (args.problem.secret?.secretJudgeJson) {
+    await args.tx.notebookProblemSecret.create({
+      data: {
+        problemId: clonedProblem.id,
+        secretJudgeJson: toPrismaJson(args.problem.secret.secretJudgeJson),
+      },
+    });
+  }
+}
 
 export async function cloneStoreCourseForUser(
   db: RootDbClient,
@@ -31,6 +73,12 @@ export async function cloneStoreCourseForUser(
   const avatarUrl = source.avatarUrl?.trim() || pickRandomCourseAvatarUrl();
   const courseCostCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
   const creatorSaleCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
+  const sourceNotebookIds = source.notebooks.map((notebook) => notebook.id);
+  const sourceProblems = await listPublishedCourseProblemsForClone(
+    db,
+    source.id,
+    sourceNotebookIds,
+  );
 
   const course = await db.$transaction(async (tx) => {
     await ensureUserCreditsInitialized(tx, userId);
@@ -76,6 +124,7 @@ export async function cloneStoreCourseForUser(
       },
     });
 
+    const clonedNotebookIdBySourceId = new Map<string, string>();
     for (const notebook of source.notebooks) {
       const clonedNotebook = await tx.notebook.create({
         data: {
@@ -106,6 +155,19 @@ export async function cloneStoreCourseForUser(
           })),
         });
       }
+      clonedNotebookIdBySourceId.set(notebook.id, clonedNotebook.id);
+    }
+
+    for (const problem of sourceProblems) {
+      const clonedNotebookId = problem.notebookId
+        ? (clonedNotebookIdBySourceId.get(problem.notebookId) ?? null)
+        : null;
+      await clonePublishedProblemTx({
+        tx,
+        problem,
+        courseId: clonedCourse.id,
+        notebookId: clonedNotebookId,
+      });
     }
 
     await tx.coursePurchase.create({
@@ -138,6 +200,7 @@ export async function cloneStoreNotebookForUser(
 
   const notebookCostCredits = creditsFromPriceCents(source.notebookPriceCents ?? 0);
   const creatorSaleCredits = creditsFromPriceCents(source.notebookPriceCents ?? 0);
+  const sourceProblems = await listPublishedNotebookProblemsForClone(db, source.id);
 
   const notebook = await db.$transaction(async (tx) => {
     await ensureUserCreditsInitialized(tx, userId);
@@ -193,6 +256,15 @@ export async function cloneStoreNotebookForUser(
           actions: toPrismaNullableJson(scene.actions),
           whiteboard: toPrismaNullableJson(scene.whiteboard),
         })),
+      });
+    }
+
+    for (const problem of sourceProblems) {
+      await clonePublishedProblemTx({
+        tx,
+        problem,
+        courseId: null,
+        notebookId: clonedNotebook.id,
       });
     }
 

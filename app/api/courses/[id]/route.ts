@@ -12,6 +12,7 @@ import {
   syncOwnedCourseNotebookStoreState,
   updateOwnedCourse,
 } from '@/lib/server/repositories/course-repository';
+import { publishCourseProblemBankForUser } from '@/features/problems/server/service';
 
 const updateCourseSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -91,6 +92,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     if (payload.data.listedInCourseStore !== undefined) {
       await syncOwnedCourseNotebookStoreState(prisma, userId, id, payload.data.listedInCourseStore);
+    }
+    if (shouldPublishCourse) {
+      await publishCourseProblemBankForUser({ userId, courseId: id });
     }
     return NextResponse.json({ course });
   });

@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   outputFileTracingExcludes: {
-    '/*': ['./assets/**/*', './OpenMAIC-org/**/*'],
+    '/*': ['./assets/**/*', './OpenMAIC-org/**/*', './public/generated-notebooks/**/*'],
   },
   experimental: {
     proxyClientMaxBodySize: '200mb',

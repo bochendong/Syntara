@@ -291,6 +291,13 @@ export default function CourseDetailPage() {
       weakTopics: leastPracticedChapters,
     };
   }, [activeCourseProblems, sortedNotebooks]);
+  const publishTargetProblemCount = useMemo(() => {
+    if (!publishTarget) return 0;
+    if (publishTarget.kind === 'course') return activeCourseProblems.length;
+    return activeCourseProblems.filter(
+      (problem) => problem.notebookId === publishTarget.notebook.id,
+    ).length;
+  }, [activeCourseProblems, publishTarget]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -1080,6 +1087,11 @@ export default function CourseDetailPage() {
                       {publishWithAudio
                         ? '推荐：先补齐语音再发布，买家复制后可以直接使用原始语音。'
                         : '不附带语音也可以立即发布，但商城会提醒用户部分语音仍需自行生成。'}
+                    </p>
+                    <p className="mt-2">
+                      {publishTargetProblemCount > 0
+                        ? `题库会一起发布：${publishTargetProblemCount} 道未归档题目将随课程或笔记本复制给买家；不满足发布条件的编程题会保留为草稿。`
+                        : '当前题库没有可发布题目。'}
                     </p>
                   </div>
 

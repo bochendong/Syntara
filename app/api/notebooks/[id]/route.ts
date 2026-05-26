@@ -12,6 +12,7 @@ import {
   findOwnedNotebookWithScenes,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
+import { publishNotebookProblemBankForUser } from '@/features/problems/server/service';
 
 const updateNotebookSchema = z.object({
   courseId: z.string().trim().min(1).nullable().optional(),
@@ -85,6 +86,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     if (!notebook) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+    }
+    if (shouldPublishNotebook) {
+      await publishNotebookProblemBankForUser({ userId, notebookId: id });
     }
     return NextResponse.json({ notebook });
   });

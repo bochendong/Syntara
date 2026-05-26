@@ -184,3 +184,32 @@ export function findNotebookPurchaseWithClonedNotebook(
     include: { clonedNotebook: true },
   });
 }
+
+export function listPublishedCourseProblemsForClone(
+  db: DbClient,
+  sourceCourseId: string,
+  sourceNotebookIds: string[],
+) {
+  return db.notebookProblem.findMany({
+    where: {
+      status: 'published',
+      OR:
+        sourceNotebookIds.length > 0
+          ? [{ courseId: sourceCourseId }, { notebookId: { in: sourceNotebookIds } }]
+          : [{ courseId: sourceCourseId }],
+    },
+    include: { secret: true },
+    orderBy: [{ problemNumber: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
+  });
+}
+
+export function listPublishedNotebookProblemsForClone(db: DbClient, sourceNotebookId: string) {
+  return db.notebookProblem.findMany({
+    where: {
+      status: 'published',
+      notebookId: sourceNotebookId,
+    },
+    include: { secret: true },
+    orderBy: [{ problemNumber: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
+  });
+}
