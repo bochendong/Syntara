@@ -76,6 +76,67 @@ function createImageCostEstimate(
   };
 }
 
+const ASPECT_RATIO_OUTPUT_SIZES: Record<
+  NonNullable<ImageGenerationOptions['aspectRatio']>,
+  { width: number; height: number }
+> = {
+  '16:9': { width: 1792, height: 1008 },
+  '4:3': { width: 1536, height: 1152 },
+  '1:1': { width: 1024, height: 1024 },
+  '9:16': { width: 1008, height: 1792 },
+};
+
+function parseImageBase64(data: string): string {
+  return data.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+}
+
+function isAspectRatioClose(result: ImageGenerationResult, aspectRatio: string): boolean {
+  const [w, h] = aspectRatio.split(':').map(Number);
+  if (!w || !h || !result.width || !result.height) return true;
+  const expected = w / h;
+  const actual = result.width / result.height;
+  return Math.abs(actual - expected) < 0.01;
+}
+
+async function normalizeOpenAiImageAspectRatio(
+  result: ImageGenerationResult,
+  aspectRatio?: ImageGenerationOptions['aspectRatio'],
+): Promise<ImageGenerationResult> {
+  if (!aspectRatio || isAspectRatioClose(result, aspectRatio)) return result;
+
+  const targetSize = ASPECT_RATIO_OUTPUT_SIZES[aspectRatio];
+  if (!targetSize) return result;
+
+  let sourceBuffer: Buffer | null = null;
+  if (result.base64) {
+    sourceBuffer = Buffer.from(parseImageBase64(result.base64), 'base64');
+  } else if (result.url) {
+    const response = await fetch(result.url);
+    if (response.ok) {
+      sourceBuffer = Buffer.from(await response.arrayBuffer());
+    }
+  }
+
+  if (!sourceBuffer) return result;
+
+  const sharp = (await import('sharp')).default;
+  const normalized = await sharp(sourceBuffer)
+    .resize(targetSize.width, targetSize.height, {
+      fit: 'contain',
+      background: '#ffffff',
+    })
+    .png()
+    .toBuffer();
+
+  return {
+    ...result,
+    url: undefined,
+    base64: normalized.toString('base64'),
+    width: targetSize.width,
+    height: targetSize.height,
+  };
+}
+
 export async function POST(request: NextRequest) {
   return runWithRequestContext(request, '/api/generate/image', async () => {
     try {
@@ -141,7 +202,14 @@ export async function POST(request: NextRequest) {
         await assertUserHasCredits(getRequestContext()?.userId);
       }
 
-      const result = await generateImage({ providerId, apiKey, baseUrl, model: clientModel }, body);
+      const rawResult = await generateImage(
+        { providerId, apiKey, baseUrl, model: clientModel },
+        body,
+      );
+      const result =
+        providerId === 'openai-image'
+          ? await normalizeOpenAiImageAspectRatio(rawResult, body.aspectRatio)
+          : rawResult;
       const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-2';
       const costEstimate = createImageCostEstimate(providerId, resolvedModelId, result);
 

@@ -593,23 +593,23 @@ export default function CourseDetailPage() {
 
   return (
     <div className="min-h-full w-full bg-[#f3f6fb] dark:bg-[#0e1117]">
-      <main className="mx-auto w-full max-w-[80rem] px-3 pb-10 pt-4 md:px-4 lg:px-5 xl:px-6">
+      <main className="mx-auto w-full max-w-[80rem] px-2 pb-8 pt-3 sm:px-3 sm:pb-10 sm:pt-4 md:px-4 lg:px-5 xl:px-6">
         {loading || !course ? (
           <CourseWorkspaceLoadingContent />
         ) : (
           <>
-            <section className="mb-5 rounded-[24px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] dark:border-white/10 dark:bg-white/[0.065] dark:shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex min-w-0 flex-1 items-start gap-4">
+            <section className="mb-4 rounded-2xl border border-white/80 bg-white/90 p-3.5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] dark:border-white/10 dark:bg-white/[0.065] dark:shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-4 md:mb-5 md:rounded-[24px] md:p-5">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
                   <img
                     src={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
                     alt=""
-                    className="size-16 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-[0_12px_28px_rgba(15,23,42,0.12)] dark:border-white/15 dark:bg-slate-900 md:size-[4.25rem]"
+                    className="size-14 shrink-0 rounded-2xl border border-slate-200/80 bg-white object-cover shadow-[0_12px_28px_rgba(15,23,42,0.12)] dark:border-white/15 dark:bg-slate-900 sm:size-16 md:size-[4.25rem]"
                   />
                   <div className="min-w-0 flex-1">
                     <h1
                       id="course-detail-title"
-                      className="max-w-[44rem] text-2xl font-semibold leading-[1.12] tracking-normal text-slate-950 dark:text-white md:text-[1.8rem] xl:text-[1.9rem]"
+                      className="max-w-[44rem] text-xl font-semibold leading-[1.15] tracking-normal text-slate-950 sm:text-2xl dark:text-white md:text-[1.8rem] xl:text-[1.9rem]"
                     >
                       {course.name}
                     </h1>
@@ -637,11 +637,14 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center lg:pt-2">
+                <div
+                  className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:flex xl:items-center xl:pt-2"
+                  data-course-actions
+                >
                   <Button
                     asChild
                     variant="outline"
-                    className="h-9 rounded-xl border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
+                    className="h-auto min-h-9 rounded-xl border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 shadow-sm hover:bg-slate-50 sm:px-3 sm:text-sm dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
                   >
                     <Link href={`/course/${encodeURIComponent(course.id)}/memory`}>
                       <Brain className="mr-1.5 size-4" strokeWidth={1.8} />
@@ -651,7 +654,7 @@ export default function CourseDetailPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 rounded-xl border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
+                    className="h-auto min-h-9 rounded-xl border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 shadow-sm hover:bg-slate-50 sm:px-3 sm:text-sm dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
                     onClick={() => setEditCourseOpen(true)}
                   >
                     编辑课程
@@ -659,7 +662,7 @@ export default function CourseDetailPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 rounded-xl border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
+                    className="h-auto min-h-9 rounded-xl border-slate-200 bg-white px-2.5 py-2 text-xs leading-tight text-slate-800 shadow-sm hover:bg-slate-50 sm:px-3 sm:text-sm dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
                     disabled={coursePublishActionDisabled}
                     onClick={() => void handleTogglePublishCourse()}
                   >
@@ -676,14 +679,14 @@ export default function CourseDetailPage() {
                   </Button>
                   <Button
                     asChild
-                    className="h-9 rounded-xl bg-slate-950 px-4 text-sm text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] hover:bg-slate-800 dark:bg-white dark:text-slate-900"
+                    className="h-auto min-h-9 rounded-xl bg-slate-950 px-2.5 py-2 text-xs text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] hover:bg-slate-800 sm:px-4 sm:text-sm dark:bg-white dark:text-slate-900"
                   >
                     <Link href={createNotebookHref(id)}>新建笔记本</Link>
                   </Button>
                 </div>
               </div>
               {course.description ? (
-                <p className="mt-4 max-w-[78rem] text-[13.5px] leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-3 line-clamp-5 max-w-[78rem] text-[13px] leading-6 text-slate-600 sm:mt-4 sm:line-clamp-4 md:line-clamp-none md:text-[13.5px] dark:text-slate-300">
                   {course.description}
                 </p>
               ) : null}
@@ -707,6 +710,7 @@ export default function CourseDetailPage() {
                 >
                   <TabsTrigger
                     value="notebooks"
+                    onClick={() => setWorkspaceTab('notebooks')}
                     className="h-12 flex-none gap-2 rounded-none px-0 text-base font-semibold data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none data-[state=active]:after:bg-blue-600 data-[state=active]:after:opacity-100 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-blue-300"
                   >
                     <BookOpen className="size-4" strokeWidth={1.8} />
@@ -717,6 +721,7 @@ export default function CourseDetailPage() {
                   </TabsTrigger>
                   <TabsTrigger
                     value="materials"
+                    onClick={() => setWorkspaceTab('materials')}
                     className="h-12 flex-none gap-2 rounded-none px-0 text-base font-semibold data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none data-[state=active]:after:bg-blue-600 data-[state=active]:after:opacity-100 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-blue-300"
                   >
                     <HardDrive className="size-4" strokeWidth={1.8} />
@@ -757,6 +762,11 @@ export default function CourseDetailPage() {
                               memoryCount={memoryCounts[nb.id] ?? 0}
                               onMemoryAction={() => router.push(`/classroom/${nb.id}/memory`)}
                               problemCount={problemCounts[nb.id] ?? 0}
+                              onProblemAction={() =>
+                                router.push(
+                                  `/course/${encodeURIComponent(id)}/problem-bank?notebookId=${encodeURIComponent(nb.id)}`,
+                                )
+                              }
                               actionLabel="打开笔记本"
                               onAction={() => router.push(`/classroom/${nb.id}`)}
                               onEdit={() => setEditingNotebook(nb)}
@@ -801,7 +811,7 @@ export default function CourseDetailPage() {
 
                   <aside
                     aria-label="课程学习概览"
-                    className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:h-fit"
+                    className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:sticky lg:top-4 lg:block lg:h-fit lg:space-y-3"
                   >
                     <section className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/60">
                       <div className="flex items-center gap-1.5">
@@ -949,7 +959,7 @@ export default function CourseDetailPage() {
                       </div>
                     </section>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 md:col-span-2 lg:col-span-1">
                       <button
                         type="button"
                         onClick={() =>
@@ -985,7 +995,7 @@ export default function CourseDetailPage() {
             </Tabs>
             <Dialog open={editCourseOpen} onOpenChange={setEditCourseOpen}>
               <DialogContent
-                className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto p-6 sm:max-w-2xl"
+                className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl gap-0 overflow-y-auto rounded-2xl p-4 sm:max-h-[min(90dvh,720px)] sm:w-full sm:p-6 sm:max-w-2xl"
                 showCloseButton
               >
                 <DialogHeader className="pr-8 text-left">
@@ -1013,7 +1023,7 @@ export default function CourseDetailPage() {
               }}
             >
               <DialogContent
-                className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto p-6 sm:max-w-2xl"
+                className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl gap-0 overflow-y-auto rounded-2xl p-4 sm:max-h-[min(90dvh,720px)] sm:w-full sm:p-6 sm:max-w-2xl"
                 showCloseButton
               >
                 <DialogHeader className="pr-8 text-left">
@@ -1042,7 +1052,7 @@ export default function CourseDetailPage() {
                 }
               }}
             >
-              <DialogContent className="w-full max-w-xl">
+              <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-xl overflow-y-auto rounded-2xl p-4 sm:max-h-[min(90dvh,720px)] sm:w-full sm:p-6">
                 <DialogHeader>
                   <DialogTitle>
                     {publishTarget?.kind === 'course'
@@ -1136,10 +1146,11 @@ export default function CourseDetailPage() {
                     </div>
                   ) : null}
 
-                  <div className="flex justify-end gap-3">
+                  <div className="flex flex-col-reverse gap-2 min-[420px]:flex-row min-[420px]:justify-end min-[420px]:gap-3">
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full min-[420px]:w-auto"
                       onClick={() => setPublishTarget(null)}
                       disabled={publishState !== 'idle'}
                     >
@@ -1147,6 +1158,7 @@ export default function CourseDetailPage() {
                     </Button>
                     <Button
                       type="button"
+                      className="w-full min-[420px]:w-auto"
                       onClick={() => void handleConfirmPublish()}
                       disabled={publishState !== 'idle'}
                     >

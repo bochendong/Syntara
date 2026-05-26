@@ -44,8 +44,29 @@ function tagsForNotebook(nb: StageListItem, courseById: Map<string, CourseRecord
   return ['未分课程'];
 }
 
+function useStoreContextHydrated() {
+  const [authHydrated, setAuthHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  const [courseHydrated, setCourseHydrated] = useState(() =>
+    useCurrentCourseStore.persist.hasHydrated(),
+  );
+
+  useEffect(() => {
+    const unsubscribeAuth = useAuthStore.persist.onFinishHydration(() => setAuthHydrated(true));
+    const unsubscribeCourse = useCurrentCourseStore.persist.onFinishHydration(() =>
+      setCourseHydrated(true),
+    );
+    return () => {
+      unsubscribeAuth();
+      unsubscribeCourse();
+    };
+  }, []);
+
+  return authHydrated && courseHydrated;
+}
+
 export default function StorePage() {
   const router = useRouter();
+  const storeContextHydrated = useStoreContextHydrated();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const currentCourseId = useCurrentCourseStore((s) => s.id);
   const currentCourseName = useCurrentCourseStore((s) => s.name);
@@ -61,7 +82,7 @@ export default function StorePage() {
 
   const loadStoreData = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!isLoggedIn) return;
+      if (!storeContextHydrated || !isLoggedIn) return;
       if (!opts?.silent) setLoading(true);
       try {
         const [allNotebooks, courses] = await Promise.all([listStages(), listCourses()]);
@@ -71,10 +92,11 @@ export default function StorePage() {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [isLoggedIn],
+    [storeContextHydrated, isLoggedIn],
   );
 
   useEffect(() => {
+    if (!storeContextHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -84,16 +106,16 @@ export default function StorePage() {
       return;
     }
     void loadStoreData();
-  }, [isLoggedIn, currentCourseId, router, loadStoreData]);
+  }, [storeContextHydrated, isLoggedIn, currentCourseId, router, loadStoreData]);
 
   useEffect(() => {
-    if (!isLoggedIn || !currentCourseId) return;
+    if (!storeContextHydrated || !isLoggedIn || !currentCourseId) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible') void loadStoreData({ silent: true });
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [isLoggedIn, currentCourseId, loadStoreData]);
+  }, [storeContextHydrated, isLoggedIn, currentCourseId, loadStoreData]);
 
   const sortedNotebooks = useMemo(
     () => [...notebooks].sort((a, b) => b.updatedAt - a.updatedAt),
@@ -190,7 +212,7 @@ export default function StorePage() {
     [inCourseNotebooks, toNotebookStorefrontItem],
   );
 
-  if (!isLoggedIn) return null;
+  if (!storeContextHydrated || !isLoggedIn) return null;
 
   if (!currentCourseId) {
     return (
@@ -202,14 +224,14 @@ export default function StorePage() {
 
   return (
     <div className="store-shell store-grid min-h-full w-full overflow-hidden">
-      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-4 pb-20 pt-8 md:px-8 lg:px-10">
-        <section className="store-hero-panel relative overflow-hidden rounded-[40px] px-6 py-8 md:px-10 md:py-10">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-3 pb-16 pt-4 sm:px-4 sm:pt-6 md:px-8 md:pb-20 lg:px-10 lg:pt-8">
+        <section className="store-hero-panel relative overflow-hidden px-4 py-6 sm:rounded-[40px] sm:px-6 sm:py-8 md:px-10 md:py-10">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="max-w-3xl">
               <p className="text-sm font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
                 Notebook Library
               </p>
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-slate-950 md:text-6xl dark:text-white">
+              <h1 className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl md:text-6xl dark:text-white">
                 为当前课程继续挑选合适的互动笔记本。
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600 md:text-lg dark:text-slate-300">
@@ -219,7 +241,7 @@ export default function StorePage() {
                 </span>
                 。这里展示你账号下全部笔记本，并把“加入课程”和“直接进入”拆成更清晰的内容商店体验。
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -227,24 +249,24 @@ export default function StorePage() {
                     if (!target) return;
                     router.push(`/classroom/${target.id}`);
                   }}
-                  className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold"
+                  className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                 >
                   浏览精选笔记本
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push(`/course/${currentCourseId}`)}
-                  className="store-cta-secondary rounded-full px-5 py-3 text-sm font-semibold"
+                  className="store-cta-secondary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                 >
                   返回当前课程
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1">
-              <div className="store-section-panel rounded-[28px] p-5">
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 xl:gap-4">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">目标课程</p>
-                <p className="mt-2 flex items-center gap-2 text-xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
+                <p className="mt-2 flex items-center gap-2 text-xl font-semibold text-slate-950 dark:text-white">
                   <BookOpenCheck className="size-5" />
                   {currentCourseName || '未命名课程'}
                 </p>
@@ -252,16 +274,16 @@ export default function StorePage() {
                   新加入的笔记本会直接归入这门课程，用于继续组织课堂内容。
                 </p>
               </div>
-              <div className="store-section-panel rounded-[28px] p-5">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">你的内容库</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                <p className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
                   {notebooks.length}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   所有互动笔记本都会在这里整理成可继续复用的内容货架。
                 </p>
               </div>
-              <div className="store-section-panel rounded-[28px] p-5">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">已在课程内</p>
                 <p className="mt-2 flex items-center gap-2 text-base font-semibold text-slate-950 dark:text-white">
                   <Layers3 className="size-4" />
@@ -289,7 +311,7 @@ export default function StorePage() {
         {loading ? (
           <section className="mt-12 border-t border-slate-200/75 pt-6 dark:border-white/10">
             <div className="mb-5 h-9 w-56 animate-pulse rounded-full bg-white/70 dark:bg-white/6" />
-            <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 9 }).map((_, idx) => (
                 <div
                   key={idx}
@@ -323,20 +345,20 @@ export default function StorePage() {
         ) : null}
 
         <section className="mt-14">
-          <div className="store-section-panel flex flex-col gap-6 rounded-[36px] px-6 py-7 md:flex-row md:items-center md:justify-between md:px-8">
+          <div className="store-section-panel flex flex-col gap-6 px-5 py-6 sm:rounded-[36px] md:flex-row md:items-center md:justify-between md:px-8 md:py-7">
             <div>
               <p className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                 <Sparkles className="size-4" />
                 需要新的课程内容来源？
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
                 回到课程商城，继续挑选更多可复制的整门课程。
               </h2>
             </div>
             <button
               type="button"
               onClick={() => router.push('/store/courses')}
-              className="store-cta-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+              className="store-cta-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold md:w-auto"
             >
               打开课程商城
               <ArrowRight className="size-4" />

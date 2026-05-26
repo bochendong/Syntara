@@ -1,0 +1,4845 @@
+{
+  "success": true,
+  "outlines": [
+    {
+      "id": "mat136-de-intro-page-1-hook-rate-not-enough",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "intro",
+      "title": "只知道变化率，够不够知道函数？",
+      "description": "学生先看到三条形状相同但上下平移的曲线，发现它们每个对应 x 位置的斜率规律一样，却不是同一条曲线，从而意识到 dy/dx 只告诉局部变化率，不直接告诉 y 的完整公式。",
+      "keyPoints": [
+        "三条曲线 y=x^2、y=x^2+3、y=x^2-4 有相同导数 2x",
+        "dy/dx 描述的是曲线在某一点附近怎么变，不是函数值本身",
+        "同一个变化率可以对应一族函数，需要常数 C 表示高度差",
+        "要从变化率恢复函数，需要积分；要选出唯一曲线，需要初值",
+        "后面还要学会用图像和 Euler 方法判断趋势与近似误差"
+      ],
+      "teachingObjective": "学生能说出为什么只知道 dy/dx=2x 不能唯一确定 y，并能把这种不唯一性和“加常数 C”联系起来。",
+      "studentThinkingMove": "先看左侧三条抛物线的相同形状与不同高度，再看右侧每条曲线求导都得到 2x，最后回答：如果只给 dy/dx=2x，哪一条才是答案？",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "从 Calculus I 已经熟悉“给 y 求 dy/dx”，现在反过来问：只给 dy/dx 能不能找回 y？",
+        "currentJob": "用三条平移曲线制造认知冲突：相同变化率不等于相同函数。",
+        "nextHandoff": "下一页先把“微分方程到底在问什么”说清楚：答案不是一个数，而是一个函数 y(x)。"
+      },
+      "order": 1,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "观察 y=x^2、y=x^2+3、y=x^2-4。它们的变化率是否相同？如果只知道 dy/dx=2x，能否确定唯一的 y？",
+        "givens": [
+          "y_1=x^2",
+          "y_2=x^2+3",
+          "y_3=x^2-4"
+        ],
+        "asks": [
+          "比较三条曲线的导数",
+          "判断 dy/dx=2x 是否足够确定唯一函数"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "分别对三条函数求导",
+          "观察常数项求导后消失",
+          "把三条曲线归纳成 y=x^2+C",
+          "指出需要额外信息才能确定 C"
+        ],
+        "walkthroughSteps": [
+          "对 y_1=x^2 求导：dy_1/dx=2x",
+          "对 y_2=x^2+3 求导：dy_2/dx=2x",
+          "对 y_3=x^2-4 求导：dy_3/dx=2x",
+          "三条曲线在同一个 x 位置的斜率规律相同，但高度不同",
+          "所以 dy/dx=2x 的答案不是一条曲线，而是一族曲线 y=x^2+C",
+          "若要确定唯一曲线，还需要一个点，例如 y(3)=5"
+        ],
+        "commonPitfalls": [
+          "把 dy/dx 当成 y 的公式，看到 dy/dx=2x 就误写 y=2x",
+          "忘记常数项求导会消失，因此反推时必须补上 C",
+          "以为图像形状相同就代表函数相同，忽略上下平移"
+        ],
+        "finalAnswer": "只知道 dy/dx=2x 不够确定唯一函数；它只能确定函数族 y=x^2+C。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-1-hook-rate-not-enough",
+        "pageNumber": 1,
+        "pageRole": "hook",
+        "title": "只知道变化率，够不够知道函数？",
+        "pageMove": {
+          "fromPrevious": "把已学过的求导方向反过来：以前是 y → dy/dx，现在问 dy/dx → y。",
+          "currentJob": "用三条上下平移的抛物线说明同一个导数可以来自很多函数。",
+          "toNext": "先定义“微分方程”和“解”到底是什么，再开始正式反推函数。",
+          "callbackToSpine": "回应主问题的第一步：微分方程给的是变化规则，不是完整函数。"
+        },
+        "visualBrief": "整页采用浅色网格纸与黑蓝红手写板书风格。左侧大图画坐标轴与三条抛物线：蓝色 y=x^2、绿色 y=x^2+3、橙色 y=x^2-4，三条曲线形状一致但上下错开；在若干相同 x 位置用短切线标出斜率方向一致。右侧写三行求导，突出“+3”和“-4”求导后消失。底部画一条课程路线箭头：变化率 → 积分 → +C → 初值 → 检查/图像/近似。整体像课堂第一块板书，不做装饰封面。",
+        "visibleContent": {
+          "mustShow": [
+            "问题：只知道 dy/dx，能不能知道 y？",
+            "三条曲线：y=x^2，y=x^2+3，y=x^2-4",
+            "同一个斜率规律，不同的高度",
+            "dy/dx 是局部变化率，不是 y 的完整公式",
+            "今天路线：积分恢复函数 → 初值确定 C → FTC/链式法则验算 → 斜率场与 Euler 判断趋势"
+          ],
+          "formulas": [
+            "\\frac{d}{dx}(x^2)=2x",
+            "\\frac{d}{dx}(x^2+3)=2x",
+            "\\frac{d}{dx}(x^2-4)=2x",
+            "\\frac{dy}{dx}=2x \\Rightarrow y=x^2+C"
+          ],
+          "exampleSteps": [
+            "先画 y=x^2 作为基准曲线",
+            "把同样形状向上平移 3 得到 y=x^2+3",
+            "把同样形状向下平移 4 得到 y=x^2-4",
+            "分别求导，三条都得到 2x",
+            "圈出常数 3、-4：它们影响高度，但不影响导数",
+            "写出结论：只给变化率，只能得到函数族"
+          ],
+          "commonPitfalls": [
+            "dy/dx=2x 不是 y=2x",
+            "不要丢掉 +C",
+            "一条微分方程通常先给出很多可能曲线"
+          ],
+          "bottomTakeaway": "变化率告诉我们“怎么走”，但还没告诉我们“从哪条曲线开始走”。下一页：什么叫微分方程的解？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-hook",
+            "label": "顶部问题钩子",
+            "role": "opening",
+            "left": 50,
+            "top": 28,
+            "width": 900,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-graph-three-curves",
+            "label": "左侧三条平移抛物线",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 455,
+            "height": 300,
+            "order": 2
+          },
+          {
+            "id": "focus-derivative-comparison",
+            "label": "右侧求导对比",
+            "role": "formula",
+            "left": 545,
+            "top": 120,
+            "width": 395,
+            "height": 210,
+            "order": 3
+          },
+          {
+            "id": "focus-family-conclusion",
+            "label": "函数族结论",
+            "role": "takeaway",
+            "left": 545,
+            "top": 350,
+            "width": 395,
+            "height": 85,
+            "order": 4
+          },
+          {
+            "id": "focus-course-route",
+            "label": "底部本节路线箭头",
+            "role": "strategy",
+            "left": 70,
+            "top": 455,
+            "width": 860,
+            "height": 78,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "坐标轴和三条曲线必须清楚，曲线标签直接贴近曲线，不要用图例代替。",
+          "右侧公式要像课堂手写推导，重点圈出常数项消失。",
+          "底部路线箭头简洁，不要塞成密集目录。"
+        ],
+        "qaChecklist": [
+          "检查三条曲线分别标成 y=x^2、y=x^2+3、y=x^2-4。",
+          "检查三条导数都准确写为 2x。",
+          "检查页面没有误导成 dy/dx=2x 的唯一解是 y=x^2。"
+        ]
+      }
+    },
+    {
+      "id": "mat136-de-intro-page-2-what-is-de",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "title": "微分方程在问什么？",
+      "description": "学生把微分方程理解为关于未知函数 y(x) 的条件：它规定导数应该等于什么。页面强调解是函数，不是单个数字，并区分一般解、特解和初值条件。",
+      "keyPoints": [
+        "微分方程包含未知函数及其导数，例如 dy/dx=f(x) 或 dy/dx=f(x,y)",
+        "解是一个函数 y(x)，代回后要让等式成立",
+        "dy/dx=f(x) 的斜率只随 x 变；dy/dx=f(x,y) 的斜率同时看位置和高度",
+        "一般解表示一族函数，通常含 C",
+        "初值条件如 y(x_0)=y_0 用来选出唯一特解"
+      ],
+      "teachingObjective": "学生能识别微分方程的未知量是函数 y(x)，能说清一般解、特解、初值条件之间的关系，并能用“代回检查”判断一个候选函数是否是解。",
+      "studentThinkingMove": "先看左侧两种形式 dy/dx=f(x) 与 dy/dx=f(x,y) 的区别，再看中间“解=函数”的代回流程，最后用右下角小检查确认 y=x^2+C 都满足 dy/dx=2x。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页看到 dy/dx=2x 对应很多条曲线，因此需要语言来描述“很多答案”和“唯一答案”。",
+        "currentJob": "建立微分方程、解、一般解、特解、初值条件这几个基本对象。",
+        "nextHandoff": "下一页从最简单的 dy/dx=f(x) 开始，把从导数反推函数的动作写成两边积分的流程。"
+      },
+      "order": 2,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "判断 y=x^2+C 是否为微分方程 dy/dx=2x 的解；如果再给 y(3)=5，怎样理解这个条件的作用？",
+        "givens": [
+          "微分方程：dy/dx=2x",
+          "候选函数族：y=x^2+C",
+          "初值条件：y(3)=5"
+        ],
+        "asks": [
+          "代回检查候选函数族是否满足微分方程",
+          "说明初值条件如何从函数族中选出一条曲线"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先对候选 y=x^2+C 求导",
+          "比较求出的导数和方程右侧",
+          "把初值 x=3, y=5 代入候选函数",
+          "解出 C 后得到特解"
+        ],
+        "walkthroughSteps": [
+          "候选函数：y=x^2+C",
+          "求导：dy/dx=2x+0=2x",
+          "与微分方程右侧 2x 相同，所以 y=x^2+C 是一般解",
+          "加入初值：y(3)=5",
+          "代入：5=3^2+C",
+          "解得：C=-4",
+          "因此对应初值的特解是 y=x^2-4"
+        ],
+        "commonPitfalls": [
+          "把解写成 x=某个数，而不是函数 y(x)",
+          "只验证初值，却没有验证导数是否满足微分方程",
+          "把一般解和特解混在一起，忘记 C 是否已确定"
+        ],
+        "finalAnswer": "y=x^2+C 是 dy/dx=2x 的一般解；若 y(3)=5，则 C=-4，特解为 y=x^2-4。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-2-what-is-de",
+        "pageNumber": 2,
+        "pageRole": "definition",
+        "title": "微分方程在问什么？",
+        "pageMove": {
+          "fromPrevious": "上一页已经看到同一个 dy/dx 会留下一个未知常数 C。",
+          "currentJob": "把“微分方程的解”定义成可代回验证的函数，并给一般解、特解、初值条件命名。",
+          "toNext": "下一页开始处理 dy/dx=f(x)：把 dy 和 dx 分开写，再两边积分。",
+          "callbackToSpine": "这里回答主线中的“为什么只知道变化率不够”：因为微分方程限制的是导数，完整函数还需要积分和额外条件。"
+        },
+        "visualBrief": "整页为课堂定义板书。顶部写标题。左上用两个并排框比较 dy/dx=f(x) 与 dy/dx=f(x,y)：前者斜率只看 x，后者斜率看 x 和 y；可配小坐标点标注“同一个 x”或“同一个 y”的提示。中间大框写“解是函数 y(x)，不是一个数”，并画代回检查箭头：候选 y(x) → 求导 → 比较右侧。右侧竖向词汇栏列出 general solution、particular solution、initial condition 的中文解释。底部放一个小型现场检查，用 y=x^2+C 验证 dy/dx=2x，并用 y(3)=5 选出 C=-4，但不展开成下一页完整例题的版面。",
+        "visibleContent": {
+          "mustShow": [
+            "微分方程：含有未知函数及其导数的方程",
+            "解是函数 y(x)，不是一个单独数字",
+            "一般解：一族函数，通常含 C",
+            "特解：C 已经被条件确定的一条函数",
+            "初值条件：例如 y(x_0)=y_0，告诉曲线经过哪个点"
+          ],
+          "formulas": [
+            "\\frac{dy}{dx}=f(x)",
+            "\\frac{dy}{dx}=f(x,y)",
+            "y(x)\\text{ 是解 }\\Longleftrightarrow y'(x)=f(x,y(x))",
+            "y(x_0)=y_0"
+          ],
+          "exampleSteps": [
+            "候选：y=x^2+C",
+            "求导：y'=2x",
+            "比较：2x=2x，所以满足 dy/dx=2x",
+            "若给 y(3)=5：5=9+C",
+            "解得 C=-4",
+            "特解：y=x^2-4"
+          ],
+          "commonPitfalls": [
+            "微分方程的答案通常是函数，不是数字",
+            "含 C 的是一般解；C 被确定后才是特解",
+            "检查解时要检查导数等式，不只检查一个点"
+          ],
+          "bottomTakeaway": "现在知道“解”是什么了；下一步：怎样从 dy/dx=f(x) 真的反推出 y？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-definition",
+            "label": "顶部定义标题",
+            "role": "opening",
+            "left": 50,
+            "top": 28,
+            "width": 900,
+            "height": 65,
+            "order": 1
+          },
+          {
+            "id": "focus-two-forms",
+            "label": "左侧两种微分方程形式对比",
+            "role": "setup",
+            "left": 55,
+            "top": 115,
+            "width": 400,
+            "height": 185,
+            "order": 2
+          },
+          {
+            "id": "focus-solution-means-function",
+            "label": "中间代回检查流程",
+            "role": "visual",
+            "left": 485,
+            "top": 115,
+            "width": 455,
+            "height": 185,
+            "order": 3
+          },
+          {
+            "id": "focus-vocabulary",
+            "label": "术语栏：一般解、特解、初值",
+            "role": "formula",
+            "left": 55,
+            "top": 325,
+            "width": 385,
+            "height": 150,
+            "order": 4
+          },
+          {
+            "id": "focus-mini-check",
+            "label": "底部小检查：y=x^2+C",
+            "role": "example",
+            "left": 470,
+            "top": 320,
+            "width": 470,
+            "height": 165,
+            "order": 5
+          },
+          {
+            "id": "focus-bottom-bridge",
+            "label": "底部承接到积分",
+            "role": "takeaway",
+            "left": 70,
+            "top": 500,
+            "width": 860,
+            "height": 42,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "公式 y'(x)=f(x,y(x)) 中的 y(x) 要清楚，避免误写成 f(x,y)。",
+          "右下小检查保持简洁，完整求解流程留给后续例题页。",
+          "术语栏可以中英并列：一般解 general solution，特解 particular solution，初值 initial condition。"
+        ],
+        "qaChecklist": [
+          "检查页面明确写出“解是函数 y(x)，不是一个数”。",
+          "检查 dy/dx=f(x) 与 dy/dx=f(x,y) 两种形式没有混淆。",
+          "检查小检查中 C=-4 与特解 y=x^2-4 计算正确。"
+        ]
+      }
+    },
+    {
+      "id": "mat136-de-intro-page-03-integrate-both-sides",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "title": "从 dy/dx 反推 y：两边积分",
+      "description": "学生看到微分方程只给出变化率后，学习把 dy/dx=f(x) 改写成可积分的形式，并理解为什么答案不是一条曲线而是一族曲线。",
+      "keyPoints": [
+        "dy/dx=f(x) 表示每个 x 处的斜率由 f(x) 给出",
+        "把 dy/dx=f(x) 记号上改写为 dy=f(x)dx，是为了准备两边积分",
+        "∫dy=y，但 ∫f(x)dx 会产生一个任意常数 C",
+        "C 代表竖直平移：同一个导数对应很多条曲线",
+        "没有初值时只能得到一般解 y=F(x)+C"
+      ],
+      "teachingObjective": "学生能够从 dy/dx=f(x) 写出 dy=f(x)dx，并通过两边积分得到一般解 y=F(x)+C，同时解释 C 的含义。",
+      "studentThinkingMove": "先盯住 dy/dx=f(x) 中右侧只依赖 x，再把它看成“已知斜率函数”；接着问：哪些函数的导数等于 f(x)？最后用 C 说明还缺少一条定位信息。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "前两页已经提出核心问题：知道变化率还不够确定函数，因为上下平移的曲线可以有同一个导数。",
+        "currentJob": "把“从变化率找函数”转成积分步骤，建立 dy/dx=f(x) 的标准模板。",
+        "nextHandoff": "下一页把模板代入具体方程 dy/dx=2x，并用初值 y(3)=5 算出 C。"
+      },
+      "order": 3,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "若微分方程形如 dy/dx=f(x)，怎样从变化率恢复 y？",
+        "givens": [
+          "dy/dx=f(x)",
+          "右侧只依赖 x",
+          "目标是找所有满足 y'=f(x) 的函数"
+        ],
+        "asks": [
+          "写出两边积分的模板",
+          "说明常数 C 从哪里来",
+          "解释为什么这只是一般解"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把 dy/dx=f(x) 改写成 dy=f(x)dx",
+          "对两边同时积分",
+          "令 F'(x)=f(x)，得到 y=F(x)+C",
+          "用图像解释 C 是竖直方向的不确定性"
+        ],
+        "walkthroughSteps": [
+          "从 dy/dx=f(x) 出发，读作：y 的变化率等于 f(x)。",
+          "记号转换：dy=f(x)dx。",
+          "两边积分：∫dy=∫f(x)dx。",
+          "左边积分得到 y，右边写成 F(x)+C，其中 F'(x)=f(x)。",
+          "所以一般解是 y=F(x)+C。",
+          "不同的 C 给出上下平移的曲线，但它们的导数都仍然是 f(x)。"
+        ],
+        "commonPitfalls": [
+          "漏写 +C，会把一族解误当成唯一解",
+          "把 dy=f(x)dx 当成普通代数随意操作，而不是服务于积分的记号转换",
+          "没有初值时不能随便选 C=0"
+        ],
+        "finalAnswer": "dy/dx=f(x) ⇒ dy=f(x)dx ⇒ ∫dy=∫f(x)dx ⇒ y=F(x)+C，其中 F'(x)=f(x)。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-03-integrate-both-sides",
+        "pageNumber": 3,
+        "pageRole": "formula",
+        "title": "从 dy/dx 反推 y：两边积分",
+        "pageMove": {
+          "fromPrevious": "上一页强调“解”是函数，不是一个数；现在开始真正把变化率反推出函数。",
+          "currentJob": "建立 dy/dx=f(x) 的基础积分模板，并把 C 解释成一族曲线的竖直平移。",
+          "toNext": "下一页用 dy/dx=2x, y(3)=5 完整算出一般解和特解。",
+          "callbackToSpine": "回应主线中的“从 dy/dx 反推 y”和“不定积分带来常数 C”。"
+        },
+        "visualBrief": "整页使用浅色网格纸背景和黑蓝双色手写板书。顶部是问题式标题。左侧用箭头展示 dy/dx=f(x) 到 dy=f(x)dx 再到两边积分的板书流程；中间用醒目的黄色框圈出 y=F(x)+C；右侧画三条形状相同、上下平移的曲线，标注 C=2、C=0、C=-2，强调导数相同但函数不同。底部留一条横向收束区，写“还差一个点来确定 C”，自然接到下一页初值例题。",
+        "visibleContent": {
+          "mustShow": [
+            "问题：知道 y′=f(x)，怎样找回 y？",
+            "记号转换不是答案终点，而是为了两边积分",
+            "C 不是装饰；C 表示整条曲线可以上下平移",
+            "没有初值 ⇒ 得到的是一般解，不是唯一解"
+          ],
+          "formulas": [
+            "dy/dx = f(x)",
+            "dy = f(x) dx",
+            "∫ dy = ∫ f(x) dx",
+            "y = F(x) + C, 其中 F′(x)=f(x)"
+          ],
+          "exampleSteps": [
+            "1. 从微分方程读信息：右侧 f(x) 告诉我们斜率如何随 x 变化。",
+            "2. 改写微分形式：dy = f(x) dx。",
+            "3. 两边同时积分：∫dy = ∫f(x)dx。",
+            "4. 左边得到 y；右边得到一个原函数 F(x)，再加 C。",
+            "5. 写成一般解：y = F(x)+C。",
+            "6. 解释 C：每选一个 C，就选中一条上下平移后的曲线。"
+          ],
+          "commonPitfalls": [
+            "漏掉 +C",
+            "以为 C 一定等于 0",
+            "还没给初值时就写“the solution”"
+          ],
+          "bottomTakeaway": "现在我们有一族解 y=F(x)+C；下一步：给一个点，例如 y(3)=5，把 C 锁定。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-question",
+            "label": "顶部问题与页面入口",
+            "role": "opening",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-symbol-conversion",
+            "label": "左侧记号转换流程",
+            "role": "formula",
+            "left": 55,
+            "top": 115,
+            "width": 300,
+            "height": 230,
+            "order": 2
+          },
+          {
+            "id": "focus-integral-template",
+            "label": "中间两边积分模板",
+            "role": "formula",
+            "left": 370,
+            "top": 120,
+            "width": 300,
+            "height": 220,
+            "order": 3
+          },
+          {
+            "id": "focus-c-family-visual",
+            "label": "右侧 C 的竖直平移图像",
+            "role": "visual",
+            "left": 690,
+            "top": 112,
+            "width": 260,
+            "height": 250,
+            "order": 4
+          },
+          {
+            "id": "focus-pitfall-and-handoff",
+            "label": "底部易错提醒与承接",
+            "role": "takeaway",
+            "left": 65,
+            "top": 390,
+            "width": 870,
+            "height": 125,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "数学公式必须清晰可读，尤其是 dy/dx、dx、∫ 和 +C。",
+          "右侧三条曲线要形状相同、仅上下平移，不要画成不同弯曲程度。",
+          "底部承接语要显眼，但不要像装饰横幅，应像课堂最后一行板书。"
+        ],
+        "qaChecklist": [
+          "是否明确出现 dy/dx=f(x) ⇒ dy=f(x)dx ⇒ ∫dy=∫f(x)dx ⇒ y=F(x)+C？",
+          "是否把 C 解释成竖直平移的一族曲线？",
+          "是否没有把一般解误写成唯一解？"
+        ]
+      }
+    },
+    {
+      "id": "mat136-de-intro-page-04-example-dydx-2x-initial-value",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "title": "例题 1：dy/dx=2x，y(3)=5",
+      "description": "学生跟着完整例题走一遍：先积分得到一般解，再代入初值确定 C，最后把特解写成 y 关于 x 的函数。",
+      "keyPoints": [
+        "dy/dx=2x 可以改写为 dy=2x dx",
+        "两边积分得到 y=x^2+C",
+        "初值 y(3)=5 表示曲线经过点 (3,5)",
+        "代入 5=3^2+C，求得 C=-4",
+        "特解为 y=x^2-4"
+      ],
+      "teachingObjective": "学生能够完成一阶微分方程 dy/dx=2x 配合初值 y(3)=5 的求解流程，并区分一般解与特解。",
+      "studentThinkingMove": "先不要急着代入 y(3)=5；先从变化率积分出一族曲线 y=x^2+C，再把点 (3,5) 放进去筛选唯一一条。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页得到模板 y=F(x)+C，并留下问题：怎样确定 C？",
+        "currentJob": "用具体初值 y(3)=5 把一般解 y=x^2+C 变成唯一特解 y=x^2-4。",
+        "nextHandoff": "下一页同样从导数形式出发，但右侧是 1/P 型，积分后可以判断函数类型为对数函数。"
+      },
+      "order": 4,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "If we have dy/dx = 2x, y(3)=5. Write y in x form.",
+        "givens": [
+          "dy/dx=2x",
+          "y(3)=5",
+          "需要把 y 写成 x 的函数"
+        ],
+        "asks": [
+          "求一般解",
+          "用初值确定 C",
+          "写出满足初值的特解"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把 dy/dx=2x 改写为 dy=2x dx",
+          "两边积分得到 y=x^2+C",
+          "把 x=3, y=5 代入一般解",
+          "解出 C 并写出最终函数"
+        ],
+        "walkthroughSteps": [
+          "从 dy/dx=2x 出发。",
+          "改写：dy=2x dx。",
+          "两边积分：∫dy=∫2x dx。",
+          "得到一般解：y=x^2+C。",
+          "用初值 y(3)=5：5=3^2+C。",
+          "计算 C：5=9+C，所以 C=-4。",
+          "写出特解：y=x^2-4。"
+        ],
+        "commonPitfalls": [
+          "先把 y(3)=5 误代入 dy/dx=2x",
+          "积分 2x 时写成 2x^2 或漏掉 C",
+          "求出 C 后忘记回代到 y=x^2+C"
+        ],
+        "finalAnswer": "y=x^2-4"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-04-example-dydx-2x-initial-value",
+        "pageNumber": 4,
+        "pageRole": "example",
+        "title": "例题 1：dy/dx=2x，y(3)=5",
+        "pageMove": {
+          "fromPrevious": "上一页有模板但 C 未知；这一页用一个具体点把 C 算出来。",
+          "currentJob": "完整展示从微分方程到一般解，再到满足初值的特解。",
+          "toNext": "下一页换成 dV/dP=-10^{-5}/P，练习通过积分判断答案属于对数函数。",
+          "callbackToSpine": "回应主线中的“初值如何确定 C”，同时巩固“从 dy/dx 反推 y”。"
+        },
+        "visualBrief": "整页像课堂板书推导。左上角写题目并用红点标出初值 y(3)=5 即点 (3,5)。左中区域按 Step 1 写 dy=2x dx、∫dy=∫2x dx、y=x^2+C。右中区域按 Step 2 写 5=3^2+C、C=-4。下方用左右并排框展示“一般解：y=x^2+C”和“特解：y=x^2-4”。右下角配一个小坐标图：画几条灰色抛物线表示 y=x^2+C，其中一条蓝色抛物线穿过红点 (3,5)，标注 C=-4。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dy/dx=2x, y(3)=5，求 y(x)",
+            "先积分，后代初值",
+            "一般解是一族：y=x^2+C",
+            "初值 y(3)=5 选出经过 (3,5) 的那一条",
+            "最终答案：y=x^2-4"
+          ],
+          "formulas": [
+            "dy/dx = 2x",
+            "dy = 2x dx",
+            "∫dy = ∫2x dx",
+            "y = x^2 + C"
+          ],
+          "exampleSteps": [
+            "Step 1: dy/dx=2x",
+            "dy = 2x dx",
+            "∫dy = ∫2x dx",
+            "y = x^2 + C",
+            "Step 2: y(3)=5 ⇒ 5 = 3^2 + C",
+            "5 = 9 + C ⇒ C = -4",
+            "因此 y = x^2 - 4"
+          ],
+          "commonPitfalls": [
+            "不要把 y(3)=5 代进 dy/dx=2x；它要代进 y=x^2+C",
+            "∫2x dx = x^2 + C，不是 2x^2+C",
+            "C 求出后必须写回原函数"
+          ],
+          "bottomTakeaway": "流程固定：微分方程 → 积分得一般解 → 初值确定 C → 特解。下一页看见 1/P 时会积分出什么函数类型？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-statement",
+            "label": "题目与初值点",
+            "role": "setup",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 90,
+            "order": 1
+          },
+          {
+            "id": "focus-step1-integrate",
+            "label": "左侧 Step 1 积分求一般解",
+            "role": "example",
+            "left": 55,
+            "top": 130,
+            "width": 385,
+            "height": 205,
+            "order": 2
+          },
+          {
+            "id": "focus-step2-initial-value",
+            "label": "右侧 Step 2 代入初值求 C",
+            "role": "example",
+            "left": 470,
+            "top": 130,
+            "width": 260,
+            "height": 205,
+            "order": 3
+          },
+          {
+            "id": "focus-family-graph",
+            "label": "右下函数族筛选图",
+            "role": "visual",
+            "left": 745,
+            "top": 128,
+            "width": 205,
+            "height": 235,
+            "order": 4
+          },
+          {
+            "id": "focus-general-vs-particular",
+            "label": "底部一般解与特解并排",
+            "role": "takeaway",
+            "left": 65,
+            "top": 365,
+            "width": 870,
+            "height": 145,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "Step 1 与 Step 2 要明显分开，避免学生以为初值先参与微分方程本身。",
+          "小图中红点必须落在蓝色抛物线 y=x^2-4 上，并标注 (3,5)。",
+          "最终答案 y=x^2-4 要用框线圈出。"
+        ],
+        "qaChecklist": [
+          "是否完整展示 dy=2x dx、∫dy=∫2x dx、y=x^2+C？",
+          "是否正确代入 5=3^2+C 并得到 C=-4？",
+          "是否并排区分了一般解 y=x^2+C 与特解 y=x^2-4？"
+        ]
+      }
+    },
+    {
+      "id": "page-5-pressure-volume-log-type",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "title": "例题 2：压力与体积的函数类型",
+      "description": "学生看到一个真实量之间的变化率关系，练习把 dV/dP 反推成 V(P)，并从积分结果判断函数类型。",
+      "keyPoints": [
+        "微分方程给的是 V 对 P 的变化率，不直接给 V(P)",
+        "把 dV/dP 改写成 dV=-(10^{-5}/P)dP 后才能积分",
+        "核心积分是 ∫(1/P)dP=ln|P|",
+        "V(P)=-10^{-5}ln|P|+C，所以函数类型是 logarithmic function",
+        "没有给某个压力下的体积时，C 不能被确定"
+      ],
+      "teachingObjective": "学生能够从含 1/P 的导数关系判断积分后出现对数，并在选择题中排除多项式、幂函数、指数函数。",
+      "studentThinkingMove": "先盯住右侧的 1/P：它不是 P^n 的普通幂次积分模板，也不是 e^P；想到 ∫1/P dP=ln|P|，再判断选项。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页用 dy/dx=2x 和 y(3)=5 完成了一次从导数到函数再到特解的流程。",
+        "currentJob": "把同样的反推思想放进应用题：dV/dP=-10^{-5}/P，重点不是计算复杂，而是识别函数类型。",
+        "nextHandoff": "这一页只得到 V=-10^{-5}ln|P|+C；下一页要问：如果有一条初始数据，C 怎么被锁定成唯一数字？"
+      },
+      "order": 5,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "As a scientist studying a fluid, pressure P and volume V satisfy dV/dP=-10^{-5}/P. What type of function do you expect V(P) to be? A. Power function B. Exponential function C. Polynomial function D. Logarithmic function",
+        "givens": [
+          "P measured in Pascals",
+          "V measured in m^3",
+          "dV/dP=-10^{-5}/P"
+        ],
+        "asks": [
+          "判断 V(P) 的函数类型",
+          "从微分方程反推 V(P) 的一般形式"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把 dV/dP 写成微分形式 dV=-(10^{-5}/P)dP",
+          "两边积分，左边得到 V，右边使用 ∫1/P dP=ln|P|",
+          "观察结果含 ln|P|，匹配 logarithmic function"
+        ],
+        "walkthroughSteps": [
+          "从 dV/dP=-10^{-5}/P 开始，提醒学生自变量现在是 P，不是 x",
+          "两边乘 dP：dV=-(10^{-5}/P)dP",
+          "写成积分：∫dV=∫-(10^{-5}/P)dP",
+          "常数 -10^{-5} 提到积分外：V=-10^{-5}∫(1/P)dP",
+          "使用 ∫(1/P)dP=ln|P|，得到 V=-10^{-5}ln|P|+C",
+          "因此答案含 logarithm，选 D"
+        ],
+        "commonPitfalls": [
+          "把 1/P 当成 P^{-1} 后误用幂函数公式，写出 P^0/0",
+          "忘记绝对值，写成 ln P；若物理中 P>0 可简化，但积分模板是 ln|P|",
+          "看到 10^{-5} 就误以为是指数函数；指数函数指变量在指数上，例如 e^P"
+        ],
+        "finalAnswer": "D. Logarithmic function；V(P)=-10^{-5}ln|P|+C"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-5-pressure-volume-log-type",
+        "pageNumber": 5,
+        "pageRole": "example",
+        "title": "例题 2：dV/dP=-10^{-5}/P 会给出什么类型的 V(P)？",
+        "pageMove": {
+          "fromPrevious": "上一页我们已经会把 y'=2x 积分成 y=x^2+C，并用初值定 C。",
+          "currentJob": "这一页练习看到 1/P 型变化率时，识别积分结果是 ln|P|，从而判断函数类型。",
+          "toNext": "现在我们只得到一整族 V(P)=-10^{-5}ln|P|+C；下一页用初值说明怎样选出唯一一条。",
+          "callbackToSpine": "微分方程只告诉变化规则；积分恢复函数族，但常数 C 仍代表未知的整体高度。"
+        },
+        "visualBrief": "整页使用浅色网格纸与课堂手写板书风格。左侧上半区写应用题和四个选择项，右侧上半区画一条粗红框强调 dV/dP=-10^{-5}/P 中的 1/P。中部横向展开代数步骤：从分离微分到两边积分再到对数。右下角放一个小型函数类型对比框：polynomial/power/exponential/logarithmic，其中 logarithmic 被圈出。底部留出一句承接：没有初始数据，C 还不能确定。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dV/dP=-10^{-5}/P，问 V(P) 是什么类型的函数？",
+            "选项：A Power B Exponential C Polynomial D Logarithmic",
+            "关键识别：右侧含 1/P → 积分出现 ln|P|",
+            "答案：D. Logarithmic function",
+            "没有给具体点时，只能得到 +C 的函数族"
+          ],
+          "formulas": [
+            "\\frac{dV}{dP}=-\\frac{10^{-5}}{P}",
+            "dV=-\\frac{10^{-5}}{P}\\,dP",
+            "\\int dV=\\int -\\frac{10^{-5}}{P}\\,dP",
+            "V(P)=-10^{-5}\\ln|P|+C"
+          ],
+          "exampleSteps": [
+            "Step 1：把导数形式改写为微分形式：dV=-(10^{-5}/P)dP",
+            "Step 2：两边积分：∫dV=∫-(10^{-5}/P)dP",
+            "Step 3：把常数提出：V=-10^{-5}∫(1/P)dP",
+            "Step 4：使用模板 ∫(1/P)dP=ln|P|",
+            "Step 5：得到 V(P)=-10^{-5}ln|P|+C",
+            "Step 6：因为出现 ln，所以选择 D"
+          ],
+          "commonPitfalls": [
+            "不要把 ∫1/P dP 套进 n≠-1 的幂函数公式",
+            "10^{-5} 是常数，不表示指数函数类型",
+            "C 不是可省略的小尾巴；它代表无穷多条可能曲线"
+          ],
+          "bottomTakeaway": "积分告诉我们 V(P) 的形状是对数；要知道是哪一条对数曲线，还需要一个初始数据。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-options",
+            "label": "题目与选项",
+            "role": "setup",
+            "left": 55,
+            "top": 70,
+            "width": 430,
+            "height": 160,
+            "order": 1
+          },
+          {
+            "id": "focus-key-pattern",
+            "label": "识别 1/P 模板",
+            "role": "formula",
+            "left": 525,
+            "top": 75,
+            "width": 395,
+            "height": 125,
+            "order": 2
+          },
+          {
+            "id": "focus-integration-steps",
+            "label": "两边积分步骤",
+            "role": "example",
+            "left": 90,
+            "top": 245,
+            "width": 560,
+            "height": 205,
+            "order": 3
+          },
+          {
+            "id": "focus-answer-type",
+            "label": "函数类型判断",
+            "role": "takeaway",
+            "left": 690,
+            "top": 245,
+            "width": 250,
+            "height": 190,
+            "order": 4
+          },
+          {
+            "id": "focus-next-c",
+            "label": "C 的悬念",
+            "role": "takeaway",
+            "left": 90,
+            "top": 470,
+            "width": 820,
+            "height": 55,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "公式中的 10^{-5} 必须清晰写成负五次方，不要写成 10# 或 10^-s。",
+          "ln|P| 的绝对值竖线要明显；可在旁边小字注明物理上 P>0 时可写 ln P。",
+          "选择项 D 用绿色圈出，A/B/C 用灰色轻划掉，保持课堂板书感。"
+        ],
+        "qaChecklist": [
+          "检查 dV/dP、dV、积分变量 dP 是否一致。",
+          "检查最终答案是否含 +C 且函数类型选 D。",
+          "检查页面底部是否明确承接到初值确定 C。"
+        ]
+      }
+    },
+    {
+      "id": "page-6-initial-condition-selects-one-curve",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "bridge",
+      "title": "初值的作用：从函数族到唯一曲线",
+      "description": "学生把上一页的 +C 看成一整族上下平移的曲线，并理解一个初值点会从这族曲线中选出唯一一条。",
+      "keyPoints": [
+        "积分后的一般解通常写成 y=F(x)+C",
+        "不同的 C 表示同一形状的曲线上下平移",
+        "初值 y(a)=b 等价于曲线必须穿过点 (a,b)",
+        "代入初值：b=F(a)+C，所以 C=b-F(a)",
+        "先积分得一般解，再代初值得特解"
+      ],
+      "teachingObjective": "学生能够用图像和代数两种方式解释初值如何确定积分常数 C，并能写出 C=b-F(a) 的通用关系。",
+      "studentThinkingMove": "先看图上多条平移曲线，再找给定点 (a,b)：哪条曲线穿过这个点，哪条就是特解；随后用代数 b=F(a)+C 验证同一件事。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页得到 V(P)=-10^{-5}ln|P|+C，但没有数据确定 C。",
+        "currentJob": "把 C 的意义可视化：它不是装饰，而是决定曲线垂直位置的参数；初值会选出唯一曲线。",
+        "nextHandoff": "下一页进入更灵活的答案形式：有些解不写成简单初等函数，而是写成带变量上限的定积分，需要用 FTC 检查。"
+      },
+      "order": 6,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "假设积分后得到一般解 y=F(x)+C，并且初值条件是 y(a)=b。如何确定 C？图像上这是什么意思？",
+        "givens": [
+          "一般解 y=F(x)+C",
+          "初值条件 y(a)=b",
+          "点 (a,b) 必须在解曲线上"
+        ],
+        "asks": [
+          "求 C 的表达式",
+          "解释为什么只有一条曲线通过初值点",
+          "总结从微分方程到特解的流程"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把 x=a、y=b 代入 y=F(x)+C",
+          "解出 C=b-F(a)",
+          "用图像说明不同 C 是同形状曲线的不同高度，给定点只会落在其中一条上"
+        ],
+        "walkthroughSteps": [
+          "从一般解 y=F(x)+C 开始，说明 C 可以取任意常数",
+          "画出 C=-2, C=0, C=2 的三条平移曲线",
+          "在图上标出初值点 (a,b)",
+          "强调解曲线必须穿过这个点：b=F(a)+C",
+          "移项得到 C=b-F(a)",
+          "把这个 C 放回 y=F(x)+C，得到唯一特解 y=F(x)+b-F(a)"
+        ],
+        "commonPitfalls": [
+          "把初值 y(a)=b 当成导数值，而不是函数值",
+          "积分时忘记 +C，导致没有可调参数去满足初值",
+          "求出 C 后忘记代回一般解"
+        ],
+        "finalAnswer": "C=b-F(a)，特解为 y=F(x)+b-F(a)"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-6-initial-condition-selects-one-curve",
+        "pageNumber": 6,
+        "pageRole": "strategy",
+        "title": "初值 y(a)=b：在函数族里选出唯一一条",
+        "pageMove": {
+          "fromPrevious": "上一页的流体例题停在 V(P)=-10^{-5}ln|P|+C，因为缺少一个具体数据点。",
+          "currentJob": "用一张图和一行代数说明初值如何确定 C。",
+          "toNext": "下一页会看到答案也可能写成定积分形式；到时候要用 FTC 判断它的导数是不是题目要求的右侧。",
+          "callbackToSpine": "从变化率反推函数时，积分给的是函数族；初值把函数族压缩成唯一解。"
+        },
+        "visualBrief": "整页为网格纸手写板书。左侧占大半页画坐标系，三到四条同形状曲线 y=F(x)+C 上下平移，用不同颜色标 C=-2、C=0、C=2。坐标系中用醒目红点标出 (a,b)，只有中间某条曲线穿过红点，其余曲线以淡色显示。右侧上方写代数推导：y=F(x)+C，y(a)=b，因此 b=F(a)+C，C=b-F(a)。右侧下方写流程框：1 积分得一般解，2 代初值求 C，3 写特解。底部用箭头指向下一页：如果答案是 ∫_a^x f(t)dt 呢？",
+        "visibleContent": {
+          "mustShow": [
+            "一般解：y=F(x)+C 是一族曲线",
+            "图上多条 y=F(x)+C 曲线，标出不同 C",
+            "初值点：(a,b)",
+            "只有一条曲线通过 (a,b)",
+            "流程：积分得一般解 → 代初值求 C → 写特解"
+          ],
+          "formulas": [
+            "y=F(x)+C",
+            "y(a)=b",
+            "b=F(a)+C",
+            "C=b-F(a)"
+          ],
+          "exampleSteps": [
+            "Step 1：积分后先写 y=F(x)+C，而不是立刻选一个 C",
+            "Step 2：初值 y(a)=b 表示点 (a,b) 在曲线上",
+            "Step 3：把 x=a 代入一般解：y(a)=F(a)+C",
+            "Step 4：用 y(a)=b 替换左侧：b=F(a)+C",
+            "Step 5：解得 C=b-F(a)",
+            "Step 6：特解为 y=F(x)+b-F(a)"
+          ],
+          "commonPitfalls": [
+            "初值是函数高度，不是斜率",
+            "不同 C 通常改变上下位置，不改变导数给出的基本形状",
+            "没有初值时不能随便令 C=0"
+          ],
+          "bottomTakeaway": "积分产生一族答案；一个初值点选出唯一答案。下一步：若答案写成定积分，怎样检查它真的满足微分方程？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-family-graph",
+            "label": "函数族图像",
+            "role": "visual",
+            "left": 55,
+            "top": 85,
+            "width": 520,
+            "height": 350,
+            "order": 1
+          },
+          {
+            "id": "focus-initial-point",
+            "label": "初值点",
+            "role": "strategy",
+            "left": 230,
+            "top": 170,
+            "width": 230,
+            "height": 150,
+            "order": 2
+          },
+          {
+            "id": "focus-algebra-c",
+            "label": "代数确定 C",
+            "role": "formula",
+            "left": 620,
+            "top": 90,
+            "width": 310,
+            "height": 170,
+            "order": 3
+          },
+          {
+            "id": "focus-workflow",
+            "label": "三步流程",
+            "role": "takeaway",
+            "left": 620,
+            "top": 290,
+            "width": 320,
+            "height": 145,
+            "order": 4
+          },
+          {
+            "id": "focus-next-ftc",
+            "label": "定积分形式的悬念",
+            "role": "takeaway",
+            "left": 80,
+            "top": 465,
+            "width": 845,
+            "height": 60,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "函数族曲线要明显是同一形状的上下平移，不要画成不同形状。",
+          "红点 (a,b) 必须只落在一条高亮曲线上，其余曲线不要穿过该点。",
+          "右侧代数推导保持四行，不要跳过 b=F(a)+C。"
+        ],
+        "qaChecklist": [
+          "检查是否同时呈现图像解释与代数公式 C=b-F(a)。",
+          "检查底部是否承接到下一页 FTC / 变量上限定积分。",
+          "检查没有把 y(a)=b 误写成 y'(a)=b。"
+        ]
+      }
+    },
+    {
+      "id": "mat136-de-intro-page-07-ftc-variable-limits",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "title": "FTC 检查：含变量上限的积分怎么求导？",
+      "description": "学生把“积分表达式”看成候选函数，并学会不先算积分，而是直接用 FTC 与链式法则求导来检查它是否满足微分方程。",
+      "keyPoints": [
+        "如果 y 是从 a 累积到 x 的积分，那么 y' 直接等于 integrand 在 x 处的值。",
+        "如果上限不是 x，而是 u(x)，求导时必须再乘 u'(x)。",
+        "如果变量在下限，先把积分方向反过来，求导会多一个负号。",
+        "最常用的检查方式是：对候选 y 求导，看是否等于给定的 dy/dx。"
+      ],
+      "teachingObjective": "学生能够对含变量上限或变量下限的积分表达式直接求导，并解释负号和链式法则因子从哪里来。",
+      "studentThinkingMove": "先圈出哪个积分限含 x，再判断它是上限还是下限；如果是复合函数 u(x)，最后补上 u'(x)。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页已经看到初值可以从函数族中选出唯一曲线，但很多时候答案会写成积分形式。",
+        "currentJob": "建立一套检查积分形式答案的规则：不用展开积分，直接求导。",
+        "nextHandoff": "下一页把这些规则用于一道选择题：四个积分表达式里，谁的导数正好匹配微分方程？"
+      },
+      "order": 7,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "proof",
+        "role": "walkthrough",
+        "problemStatement": "怎样对含变量积分限的表达式求导？特别是 d/dx ∫_a^x g(t)dt、d/dx ∫_a^{u(x)} g(t)dt 和 d/dx ∫_{u(x)}^a g(t)dt。",
+        "givens": [
+          "g(t) 是连续函数",
+          "u(x) 是可导函数",
+          "积分变量 t 只是 dummy variable，不是外面的 x"
+        ],
+        "asks": [
+          "写出变量上限的 FTC 规则",
+          "写出复合上限时的链式法则规则",
+          "解释变量下限为什么产生负号"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先把 F(x)=∫_a^x g(t)dt 看成从 a 到 x 的累积量。",
+          "对 F(u(x)) 使用链式法则。",
+          "变量在下限时，先用 ∫_{u(x)}^a = -∫_a^{u(x)} 改写。"
+        ],
+        "walkthroughSteps": [
+          "定义 F(x)=∫_a^x g(t)dt。",
+          "由 FTC Part 1：F'(x)=g(x)。",
+          "若 y=∫_a^{u(x)} g(t)dt，则 y=F(u(x))。",
+          "由链式法则：y'=F'(u(x))u'(x)=g(u(x))u'(x)。",
+          "若 y=∫_{u(x)}^a g(t)dt，先改写为 y=-∫_a^{u(x)} g(t)dt。",
+          "所以 y'=-g(u(x))u'(x)。"
+        ],
+        "commonPitfalls": [
+          "把积分变量 t 和外面的 x 混在一起。",
+          "上限是 x^2、-x、sin x 时忘记乘 u'(x)。",
+          "变量在下限时忘记负号。"
+        ],
+        "finalAnswer": "d/dx ∫_a^x g(t)dt=g(x)；d/dx ∫_a^{u(x)} g(t)dt=g(u(x))u'(x)；d/dx ∫_{u(x)}^a g(t)dt=-g(u(x))u'(x)。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-07-ftc-variable-limits",
+        "pageNumber": 7,
+        "pageRole": "proof",
+        "title": "FTC 检查：变量积分限怎么求导？",
+        "pageMove": {
+          "fromPrevious": "上一页用初值锁定 C；现在要解决：答案如果写成积分，怎么确认它真的满足微分方程？",
+          "currentJob": "把 FTC 和链式法则合成一套“对候选解求导”的检查工具。",
+          "toNext": "下一页马上用这套工具做选择题，不先算积分，只比导数。",
+          "callbackToSpine": "微分方程给变化率；我们不仅要会积分得到候选 y，还要会反向求导验算 y 是否可信。"
+        },
+        "visualBrief": "1000×562.5 横向网格纸课堂板书。顶部左侧写标题，标题下用一句话钩住学生：“候选答案长得像积分，先别急着算。” 页面分成四个大区：左上是 FTC 基础规则，配一条从 a 到 x 的累积条形图；右上是复合上限 u(x) 的链式法则，画成“先到 u，再由 x 推动 u”；左下是变量下限产生负号的推导，重点用红色标出负号；右下做两个一分钟小检查。底部横条收束：下一页用这些规则筛选谁满足 dy/dx。",
+        "visibleContent": {
+          "mustShow": [
+            "检查候选解时：目标是求 y'，不是先把积分算出来。",
+            "第一步：圈出含 x 的积分限。",
+            "第二步：判断变量在上限还是下限。",
+            "第三步：如果积分限是 u(x)，补乘 u'(x)。",
+            "变量下限 = 方向反了，所以出现负号。"
+          ],
+          "formulas": [
+            "d/dx ∫_a^x g(t)dt = g(x)",
+            "d/dx ∫_a^{u(x)} g(t)dt = g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^a g(t)dt = -g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^{v(x)} g(t)dt = g(v(x))v'(x) - g(u(x))u'(x)"
+          ],
+          "exampleSteps": [
+            "设 F(x)=∫_a^x g(t)dt",
+            "FTC：F'(x)=g(x)",
+            "若 y=∫_a^{u(x)}g(t)dt，则 y=F(u(x))",
+            "链式法则：y'=F'(u(x))u'(x)=g(u(x))u'(x)",
+            "若 y=∫_{u(x)}^a g(t)dt=-∫_a^{u(x)}g(t)dt",
+            "所以 y'=-g(u(x))u'(x)"
+          ],
+          "commonPitfalls": [
+            "错：d/dx ∫_1^{x^2} cos(t)dt = cos(x^2)；少了 2x。",
+            "错：d/dx ∫_x^3 e^t dt = e^x；变量在下限，应为 -e^x。",
+            "常数 +C 求导后消失，不影响检查 dy/dx。"
+          ],
+          "bottomTakeaway": "下一页问题：四个积分表达式中，谁的导数刚好等于题目给的 dy/dx？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-hook",
+            "label": "顶部标题与检查思路",
+            "role": "opening",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-ftc-basic",
+            "label": "FTC 变量上限基础规则",
+            "role": "formula",
+            "left": 55,
+            "top": 110,
+            "width": 410,
+            "height": 145,
+            "order": 2
+          },
+          {
+            "id": "focus-chain-rule",
+            "label": "复合上限与链式法则",
+            "role": "proof",
+            "left": 535,
+            "top": 110,
+            "width": 410,
+            "height": 145,
+            "order": 3
+          },
+          {
+            "id": "focus-lower-limit",
+            "label": "变量下限的负号",
+            "role": "pitfall",
+            "left": 55,
+            "top": 280,
+            "width": 410,
+            "height": 165,
+            "order": 4
+          },
+          {
+            "id": "focus-mini-checks",
+            "label": "两个快速求导检查",
+            "role": "example",
+            "left": 535,
+            "top": 280,
+            "width": 410,
+            "height": 165,
+            "order": 5
+          },
+          {
+            "id": "focus-bottom-takeaway",
+            "label": "底部收束与下一页承接",
+            "role": "takeaway",
+            "left": 60,
+            "top": 470,
+            "width": 880,
+            "height": 55,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "公式要清晰可读，积分上下限的位置不能画错；变量 t 与外部变量 x 要明显区分。",
+          "用蓝色框出三条核心公式，用红色只强调变量下限的负号和漏乘 u'(x) 的错误。",
+          "整体像真实课堂板书，不要做成印刷讲义；保留手写箭头、圈注和短句。"
+        ],
+        "qaChecklist": [
+          "检查三条核心公式是否都正确：上限、复合上限、变量下限。",
+          "检查 ∫_{u(x)}^{v(x)} 的通用公式是否是上限项减下限项。",
+          "检查页面底部是否明确承接到下一页选择题。"
+        ]
+      }
+    },
+    {
+      "id": "mat136-de-intro-page-08-ftc-check-mcq",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "title": "例题 3：哪一个积分表达式满足给定微分方程？",
+      "description": "学生用上一页的 FTC 与链式法则逐项筛选候选函数，看到真正的任务是比较 y' 与微分方程右侧，而不是把每个积分都算出来。",
+      "keyPoints": [
+        "对候选 y 求导，若 y'=给定右侧，则它是解。",
+        "外面的常数 1、2、3 求导为 0，不影响是否满足微分方程。",
+        "变量上限带来正向代入，变量下限带来负号。",
+        "上限或下限是 x^2、-x^2 时，必须乘对应导数 2x 或 -2x。"
+      ],
+      "teachingObjective": "学生能够逐项检查含积分表达式的候选解，并准确判断哪个函数满足给定微分方程。",
+      "studentThinkingMove": "先锁定目标导数 -2x e^{x^2}，再对每个选项只做求导检查：符号、指数内容、链式因子三项都要匹配。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页得到变量积分限求导三条规则，现在把规则用于选择候选解。",
+        "currentJob": "不计算积分，直接对四个候选函数求导，筛出满足 dy/dx=-2x e^{x^2} 的表达式。",
+        "nextHandoff": "有些微分方程即使用积分也不容易写出显式解，下一页转向斜率场，用图像读变化。"
+      },
+      "order": 8,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "Consider the differential equation dy/dx = -2x e^{x^2}. Which of the following functions is a solution? A. y=∫_0^{-x^2} e^t dt；B. y=1+∫_0^{-x} e^{t^2}dt；C. y=2+∫_0^{x^2} e^t dt；D. y=3+∫_{x^2}^{0} e^t dt。",
+        "givens": [
+          "dy/dx = -2x e^{x^2}",
+          "候选函数都用积分表示",
+          "可以直接对候选函数求导"
+        ],
+        "asks": [
+          "判断哪一个候选函数的导数等于 -2x e^{x^2}",
+          "说明其他选项错在符号、指数内容还是链式因子"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先把目标导数写在页面中央：target = -2x e^{x^2}。",
+          "对每个选项使用 FTC 与链式法则。",
+          "外层常数求导为 0，可以直接忽略。",
+          "比较每个 y' 与 target，只有完全一样才是解。"
+        ],
+        "walkthroughSteps": [
+          "A: y=∫_0^{-x^2} e^t dt，所以 y'=e^{-x^2}·(-2x)=-2x e^{-x^2}，指数不匹配。",
+          "B: y=1+∫_0^{-x} e^{t^2}dt，所以 y'=0+e^{(-x)^2}·(-1)=-e^{x^2}，少了因子 2x。",
+          "C: y=2+∫_0^{x^2} e^t dt，所以 y'=0+e^{x^2}·2x=2x e^{x^2}，符号不匹配。",
+          "D: y=3+∫_{x^2}^{0} e^t dt，变量在下限，所以 y'=0-e^{x^2}·2x=-2x e^{x^2}。",
+          "D 的导数与题目右侧完全相同，因此 D 是解。"
+        ],
+        "commonPitfalls": [
+          "把题目做成“求积分”，浪费时间且容易算不出来。",
+          "看到 +1、+2、+3 就以为答案不同；其实常数不影响导数。",
+          "变量在下限时忘记负号，导致把 D 误判成 C。"
+        ],
+        "finalAnswer": "D. y=3+∫_{x^2}^{0} e^t dt 是该微分方程的一个解。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-de-intro-page-08-ftc-check-mcq",
+        "pageNumber": 8,
+        "pageRole": "example",
+        "title": "例题 3：谁真的满足 dy/dx？",
+        "pageMove": {
+          "fromPrevious": "上一页已经有 FTC + 链式法则工具箱。",
+          "currentJob": "逐项检查四个积分表达式的导数是否等于 -2x e^{x^2}。",
+          "toNext": "当我们不想或不能写出公式解时，就改用斜率场观察每一点的变化方向。",
+          "callbackToSpine": "本页把“从 dy/dx 反推 y”之后的可信度检查补上：候选 y 必须微分回原来的变化率。"
+        },
+        "visualBrief": "1000×562.5 横向网格纸手写课堂板书。顶部写题目和醒目的 target：y' must be -2x e^{x^2}。左侧大框列四个选项，选项旁用小圆圈标出每个变量积分限。右侧大区域做逐项求导，按 A/B/C/D 四行排列，每行有“使用规则 → 求导结果 → 与 target 比较”的小标签。D 行用绿色框圈出，A/B/C 的错误点用红色短注：指数错、少 2x、符号错。底部用一条箭头承接：不是所有方程都方便解，下一页看 slope field。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dy/dx = -2x e^{x^2}",
+            "检查原则：不先算积分，只对候选 y 求导。",
+            "常数 1、2、3 的导数都是 0，不影响 dy/dx。",
+            "变量在下限：多一个负号。",
+            "结论：D 是解。"
+          ],
+          "formulas": [
+            "target: y' = -2x e^{x^2}",
+            "d/dx ∫_a^{u(x)} g(t)dt = g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^a g(t)dt = -g(u(x))u'(x)",
+            "d/dx (constant) = 0"
+          ],
+          "exampleSteps": [
+            "A: y=∫_0^{-x^2} e^t dt ⇒ y'=e^{-x^2}(-2x)=-2x e^{-x^2}，不是 target。",
+            "B: y=1+∫_0^{-x} e^{t^2}dt ⇒ y'=e^{(-x)^2}(-1)=-e^{x^2}，少了 2x。",
+            "C: y=2+∫_0^{x^2} e^t dt ⇒ y'=e^{x^2}(2x)=2x e^{x^2}，符号错。",
+            "D: y=3+∫_{x^2}^{0} e^t dt ⇒ y'=-e^{x^2}(2x)=-2x e^{x^2}。",
+            "所以 D 的导数与 dy/dx 完全相同。"
+          ],
+          "commonPitfalls": [
+            "不要把 ∫ e^t dt 全部算出来；本题只问是否满足微分方程。",
+            "e^{-x^2} 和 e^{x^2} 不是一回事。",
+            "变量在下限时，负号来自积分方向，不是随便加的。"
+          ],
+          "bottomTakeaway": "如果解不方便写成公式怎么办？下一页：用 slope field 直接读每一点的斜率。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-target",
+            "label": "题目与目标导数",
+            "role": "setup",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 90,
+            "order": 1
+          },
+          {
+            "id": "focus-options",
+            "label": "四个候选积分表达式",
+            "role": "example",
+            "left": 50,
+            "top": 130,
+            "width": 390,
+            "height": 245,
+            "order": 2
+          },
+          {
+            "id": "focus-rules-reminder",
+            "label": "求导规则小工具箱",
+            "role": "formula",
+            "left": 50,
+            "top": 390,
+            "width": 390,
+            "height": 95,
+            "order": 3
+          },
+          {
+            "id": "focus-derivative-checks",
+            "label": "A/B/C/D 逐项求导比较",
+            "role": "proof",
+            "left": 475,
+            "top": 125,
+            "width": 475,
+            "height": 300,
+            "order": 4
+          },
+          {
+            "id": "focus-final-answer",
+            "label": "圈出正确答案与错误类型",
+            "role": "takeaway",
+            "left": 475,
+            "top": 435,
+            "width": 475,
+            "height": 55,
+            "order": 5
+          },
+          {
+            "id": "focus-next-bridge",
+            "label": "转向斜率场的承接",
+            "role": "takeaway",
+            "left": 60,
+            "top": 505,
+            "width": 880,
+            "height": 40,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "D 行必须用绿色框突出；A/B/C 的错误原因用短红字，不要写成长段解释。",
+          "四个选项的积分上下限必须清楚：D 是从 x^2 到 0，变量在下限。",
+          "保持课堂推演感：target 写在中间，逐项用箭头对比，不要排成死板表格。"
+        ],
+        "qaChecklist": [
+          "检查 D 的求导是否写成 -e^{x^2}·2x=-2x e^{x^2}。",
+          "检查 A、B、C 的错误判断分别是指数不匹配、少 2x、符号不匹配。",
+          "检查底部是否明确过渡到 slope field。"
+        ]
+      }
+    },
+    {
+      "id": "mat136-w1-de-intro-page-09-slope-field-definition",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "title": "斜率场：每个点放一小段切线",
+      "description": "学生从上一页的“用求导检查答案”转到图像视角：即使暂时解不出 y，也能把微分方程读成平面上每个点的局部方向。",
+      "keyPoints": [
+        "dy/dx=f(x,y) 不是直接给 y，而是给每个点 (x,y) 一个斜率",
+        "斜率场是在许多网格点上画出对应斜率的小线段",
+        "真正的解曲线经过某点时，必须顺着该点附近小线段的方向走",
+        "零斜率、正斜率、负斜率区域是读图的第一批线索",
+        "看结构特征可以反推微分方程右侧可能依赖 x、y，还是同时依赖二者"
+      ],
+      "teachingObjective": "学生能够把 dy/dx=f(x,y) 翻译成斜率场，并能从图中指出零斜率线、正负斜率区域以及解曲线的局部方向。",
+      "studentThinkingMove": "先不急着求解公式；先问每个点的小线段在告诉我什么斜率，再沿着小线段想象一条光滑曲线如何穿过这些方向。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页用 FTC 和链式法则检查候选函数，说明“答案可信”要靠导数验算。",
+        "currentJob": "把微分方程看成方向规则：它在平面上每个点安排一条小切线。",
+        "nextHandoff": "下一页用这些结构线索，把三条微分方程匹配到三个斜率场。"
+      },
+      "order": 9,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "概念演示：给定微分方程 dy/dx=f(x,y)，怎样在图上读出斜率场，并判断一条解曲线应该怎样穿过？",
+        "givens": [
+          "微分方程的一般形式：dy/dx=f(x,y)",
+          "平面上的点：(x,y)",
+          "每个点的小线段斜率等于 f(x,y)"
+        ],
+        "asks": [
+          "解释斜率场表示什么",
+          "指出零斜率、正斜率、负斜率区域",
+          "说明解曲线和小线段之间的关系"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把右侧 f(x,y) 当作“斜率计算器”",
+          "在若干网格点代入坐标，画出对应斜率的小线段",
+          "用小线段的倾斜方向判断局部上升、下降或水平",
+          "让解曲线始终与附近小线段相切"
+        ],
+        "walkthroughSteps": [
+          "在点 (x,y) 处，计算 m=f(x,y)",
+          "若 m=0，画水平小线段，表示此处瞬时不升不降",
+          "若 m>0，画向右上倾斜的小线段，表示经过此处时 y 随 x 增大而上升",
+          "若 m<0，画向右下倾斜的小线段，表示经过此处时 y 随 x 增大而下降",
+          "从一个初始点出发，解曲线要像“顺着风向”一样贴着这些小线段前进",
+          "读图时先找水平线段形成的零斜率轨迹，再看正负区域如何分布"
+        ],
+        "commonPitfalls": [
+          "把每一小段当成完整解曲线；其实它只是局部切线方向",
+          "认为斜率场已经给出唯一解；没有初值时通常是一族解曲线",
+          "忽略坐标点位置，只凭线段长短或密度猜公式"
+        ],
+        "finalAnswer": "斜率场把 dy/dx=f(x,y) 变成一张方向地图；解曲线必须在每个经过的位置与当地小线段相切。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-w1-de-intro-page-09-slope-field-definition",
+        "pageNumber": 9,
+        "pageRole": "definition",
+        "title": "斜率场：每个点放一小段切线",
+        "pageMove": {
+          "fromPrevious": "刚学会用导数验算一个积分表达式是否满足微分方程。",
+          "currentJob": "现在把微分方程右侧当成方向规则，学习不用显式解也能读图。",
+          "toNext": "下一页用“只依赖 x / 只依赖 y / 同时依赖 x,y”的图像特征做匹配题。",
+          "callbackToSpine": "呼应主线：微分方程给的是变化规则；斜率场让这个变化规则可视化。"
+        },
+        "visualBrief": "整页为浅米色网格纸手写板书风格。顶部左侧写标题，标题下用一句话把 dy/dx=f(x,y) 解释成“给每个点分配斜率”。页面左半部分画坐标平面和稀疏网格点，每个点上有短小线段，突出这是局部方向，不是完整曲线。右半部分分三块：零斜率、正斜率、负斜率，用不同颜色区域或箭头标注。底部画一条从初值点出发的蓝色光滑解曲线，曲线穿过小线段并与它们相切，右下角留下问题：下一页怎样仅凭这些线索匹配公式？",
+        "visibleContent": {
+          "mustShow": [
+            "dy/dx=f(x,y)：给平面上每个点 (x,y) 分配一个斜率",
+            "斜率场 = 在许多点画出对应斜率的小线段",
+            "解曲线经过某点时，必须顺着当地小线段方向",
+            "先找：零斜率线、正斜率区域、负斜率区域",
+            "读图不是求出 y，而是判断局部趋势"
+          ],
+          "formulas": [
+            "\\frac{dy}{dx}=f(x,y)",
+            "m=f(x,y)",
+            "m=0 \\Rightarrow 水平小线段",
+            "m>0 上升，\\quad m<0 下降"
+          ],
+          "exampleSteps": [
+            "1. 选一个网格点 (x,y)",
+            "2. 代入右侧：m=f(x,y)",
+            "3. 在该点画斜率为 m 的短线段",
+            "4. 重复许多点，得到方向地图",
+            "5. 解曲线从初值点出发，沿小线段相切前进"
+          ],
+          "commonPitfalls": [
+            "小线段不是一小段解，只是切线方向",
+            "没有初值时，斜率场里通常有很多条可能的解曲线",
+            "水平小线段表示 dy/dx=0，不一定表示 y=0"
+          ],
+          "bottomTakeaway": "下一页：看同一竖线、同一横线、零斜率线，匹配微分方程。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-rule",
+            "label": "标题与方向规则",
+            "role": "opening",
+            "left": 50,
+            "top": 30,
+            "width": 900,
+            "height": 85,
+            "order": 1
+          },
+          {
+            "id": "focus-main-field",
+            "label": "斜率场主图",
+            "role": "visual",
+            "left": 55,
+            "top": 125,
+            "width": 435,
+            "height": 285,
+            "order": 2
+          },
+          {
+            "id": "focus-sign-reading",
+            "label": "零正负斜率读法",
+            "role": "strategy",
+            "left": 525,
+            "top": 125,
+            "width": 400,
+            "height": 175,
+            "order": 3
+          },
+          {
+            "id": "focus-solution-curve",
+            "label": "解曲线必须相切",
+            "role": "formula",
+            "left": 520,
+            "top": 315,
+            "width": 410,
+            "height": 115,
+            "order": 4
+          },
+          {
+            "id": "focus-takeaway-next",
+            "label": "底部收束与下一页问题",
+            "role": "takeaway",
+            "left": 60,
+            "top": 450,
+            "width": 870,
+            "height": 75,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场的小线段要短而均匀，避免画成流线或箭头场；重点是斜率方向。",
+          "正斜率用暖色、负斜率用冷色、零斜率用绿色水平线段，颜色要服务于读图。",
+          "公式必须清楚写作 dy/dx=f(x,y)，不要误写成 y=f(x,y)。"
+        ],
+        "qaChecklist": [
+          "图上是否明确说明每个点 (x,y) 对应一个斜率 m=f(x,y)？",
+          "是否同时出现零斜率、正斜率、负斜率的读法？",
+          "是否画出一条与小线段相切的解曲线，并说明需要初值才选定？"
+        ]
+      }
+    },
+    {
+      "id": "mat136-w1-de-intro-page-10-match-slope-fields",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "title": "例题 4：三条微分方程匹配三个斜率场",
+      "description": "学生用上一页的读图方法，不靠求解公式，而靠结构特征判断三张斜率场分别来自哪一条微分方程。",
+      "keyPoints": [
+        "A: dy/dx=x(x-1) 只依赖 x，所以同一竖线上的小线段斜率相同",
+        "C: dy/dx=(2-y)(y+1)^2 只依赖 y，所以同一横线上的小线段斜率相同",
+        "B: dy/dx=x(y-2) 同时依赖 x 和 y，零斜率出现在 x=0 或 y=2",
+        "零斜率线常常是匹配斜率场最快的入口",
+        "匹配题先看依赖变量，再看零线，再看正负区域"
+      ],
+      "teachingObjective": "学生能够根据斜率场的竖向一致性、横向一致性和零斜率线，把给定微分方程匹配到正确图像。",
+      "studentThinkingMove": "先扫描每张图：同一竖线是否相同？同一横线是否相同？哪里是水平小线段？再回到公式找只依赖 x、只依赖 y 或同时依赖 x,y 的结构。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页把 dy/dx=f(x,y) 看成每个点的局部方向。",
+        "currentJob": "用方向场的结构特征完成三条微分方程和三张斜率场的匹配。",
+        "nextHandoff": "下一页反过来：给一张斜率场，从选项中判断最可能的公式特征。"
+      },
+      "order": 10,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "Consider the following differential equations. Three of the four slope fields correspond to one of these differential equations. For the three that match, write the corresponding differential equation below each slope field.",
+        "givens": [
+          "A. dy/dx=x(x-1)",
+          "B. dy/dx=x(y-2)",
+          "C. dy/dx=(2-y)(y+1)^2",
+          "四个斜率场中只有三个匹配 A、B、C"
+        ],
+        "asks": [
+          "判断哪三张图分别对应 A、B、C",
+          "说明匹配依据：依赖变量、零斜率线、符号区域"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先看公式右侧依赖 x 还是 y",
+          "找出每条方程的零斜率线",
+          "在斜率场中寻找竖向一致、横向一致或交叉零线结构",
+          "把图像特征与公式特征一一对应"
+        ],
+        "walkthroughSteps": [
+          "A: dy/dx=x(x-1)，右侧只含 x，所以同一竖线 x=常数 上斜率完全相同；零斜率线为 x=0 和 x=1。",
+          "因此 A 应匹配那张呈现“竖条纹”结构，并在 x=0、x=1 附近出现水平线段的斜率场。",
+          "C: dy/dx=(2-y)(y+1)^2，右侧只含 y，所以同一横线 y=常数 上斜率完全相同；零斜率线为 y=2 和 y=-1。",
+          "因此 C 应匹配那张呈现“横条纹”结构，并在 y=2、y=-1 附近出现水平线段的斜率场。",
+          "B: dy/dx=x(y-2)，右侧同时含 x 和 y；零斜率线为 x=0 或 y=2，图上会出现一条竖直零线和一条水平零线。",
+          "因此 B 应匹配那张在 x=0 与 y=2 附近都有水平小线段、且不同竖线和不同横线都会变化的斜率场。",
+          "根据原资料图的排布：左上是 C，右上是 A，右下是 B，剩下一张不匹配。"
+        ],
+        "commonPitfalls": [
+          "看到水平线就只判断 y=常数，而忘记 x=常数 也可能产生整条零斜率线",
+          "把“只依赖 x”误读成同一横线相同；正确是同一竖线相同",
+          "忽略平方项 (y+1)^2 导致 y=-1 也是零斜率线"
+        ],
+        "finalAnswer": "左上：C；右上：A；右下：B；剩余一张不对应给出的三条方程。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "mat136-w1-de-intro-page-10-match-slope-fields",
+        "pageNumber": 10,
+        "pageRole": "example",
+        "title": "例题 4：三条微分方程匹配三个斜率场",
+        "pageMove": {
+          "fromPrevious": "已经知道斜率场是在每个点画 dy/dx 的局部方向。",
+          "currentJob": "用依赖变量和零斜率线匹配公式与图像。",
+          "toNext": "下一页做反向选择：从一张斜率场判断它更像哪一个公式。",
+          "callbackToSpine": "把“变化率规则”转成图像证据，训练在没有显式解时判断趋势。"
+        },
+        "visualBrief": "整页为课堂板书式布局。顶部写题目和三条方程 A、B、C。中部左侧放四个小斜率场缩略图，排成 2×2，每个图下方留空标签框；按照原资料结果在最后用彩色批注标出左上 C、右上 A、右下 B，左下写 unmatched 或“不匹配”。中部右侧写三步匹配策略：看依赖变量、找零斜率线、看正负区域。底部用一行表格整理 A/B/C 的特征：依赖、零线、图像指纹、匹配位置。页面要像老师边看图边圈出线索：在 A 图上圈竖条纹和 x=0,x=1；在 C 图上圈横条纹和 y=2,y=-1；在 B 图上圈 x=0 与 y=2 的十字零线。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：三条微分方程匹配三个斜率场",
+            "A 只依赖 x：同一竖线上的小线段斜率相同",
+            "C 只依赖 y：同一横线上的小线段斜率相同",
+            "B 同时依赖 x,y：看 x=0 或 y=2 附近的零斜率",
+            "答案：左上 C，右上 A，右下 B"
+          ],
+          "formulas": [
+            "A.\\ \\frac{dy}{dx}=x(x-1)",
+            "B.\\ \\frac{dy}{dx}=x(y-2)",
+            "C.\\ \\frac{dy}{dx}=(2-y)(y+1)^2",
+            "\\frac{dy}{dx}=0 \\Rightarrow 水平小线段"
+          ],
+          "exampleSteps": [
+            "1. A: 只含 x，所以沿同一竖线斜率相同；零线 x=0, x=1",
+            "2. C: 只含 y，所以沿同一横线斜率相同；零线 y=2, y=-1",
+            "3. B: 同时含 x,y；零线来自 x(y-2)=0，即 x=0 或 y=2",
+            "4. 找图像指纹：竖条纹 → A，横条纹 → C，十字零线 → B",
+            "5. 写下匹配：左上 C，右上 A，右下 B",
+            "6. 剩下一张图不匹配给出的三条方程"
+          ],
+          "commonPitfalls": [
+            "只依赖 x → 同一竖线相同；只依赖 y → 同一横线相同",
+            "C 中 (y+1)^2=0 给出 y=-1，不能漏掉",
+            "零斜率线是水平小线段的位置，不是曲线一定停住不动"
+          ],
+          "bottomTakeaway": "匹配顺序：依赖变量 → 零斜率线 → 正负区域；下一页反过来从图像选公式。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-formulas",
+            "label": "题目与三条方程",
+            "role": "setup",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 105,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field-panels",
+            "label": "四个斜率场缩略图",
+            "role": "visual",
+            "left": 45,
+            "top": 145,
+            "width": 500,
+            "height": 275,
+            "order": 2
+          },
+          {
+            "id": "focus-matching-strategy",
+            "label": "匹配策略批注",
+            "role": "strategy",
+            "left": 575,
+            "top": 145,
+            "width": 365,
+            "height": 155,
+            "order": 3
+          },
+          {
+            "id": "focus-equation-analysis",
+            "label": "A/B/C 逐条分析",
+            "role": "example",
+            "left": 575,
+            "top": 315,
+            "width": 365,
+            "height": 115,
+            "order": 4
+          },
+          {
+            "id": "focus-answer-table",
+            "label": "答案表格与承接",
+            "role": "takeaway",
+            "left": 55,
+            "top": 445,
+            "width": 875,
+            "height": 82,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "四个斜率场不必复刻原图每条小线段，但必须清楚表现：C 横向一致、A 竖向一致、B 有 x=0 与 y=2 的零斜率结构。",
+          "答案标注要像课堂最后揭示：左上 C、右上 A、右下 B，剩余图写“不匹配”。",
+          "所有公式中的 dy/dx、x(x-1)、x(y-2)、(2-y)(y+1)^2 必须准确。"
+        ],
+        "qaChecklist": [
+          "是否明确写出 A、B、C 三条微分方程并保持符号正确？",
+          "是否说明 A 同竖线相同、C 同横线相同、B 有 x=0 或 y=2 零线？",
+          "最终匹配是否为左上 C、右上 A、右下 B？"
+        ]
+      }
+    },
+    {
+      "id": "page-11-slope-field-identify-x2-minus-y2",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "title": "例题 5：从斜率场识别 dy/dx=x^2-y^2",
+      "description": "学生看到一张没有公式标签的斜率场，不急着猜答案，而是先找零斜率线、正负斜率区域和对称性，再排除不可能的选项。",
+      "keyPoints": [
+        "斜率场中的小线段表示该点处 dy/dx 的数值",
+        "零斜率位置最容易读：小线段接近水平",
+        "x^2-y^2=(x-y)(x+y)，所以零斜率在 x=y 和 x=-y",
+        "x^2-y^2 可正可负；平方型选项通常不会给出负斜率",
+        "匹配斜率场时先看结构，不先代随机点"
+      ],
+      "teachingObjective": "学生能够用零斜率线、符号区域和选项排除法判断斜率场对应的微分方程。",
+      "studentThinkingMove": "先扫图中哪里的小线段水平，再观察对角线两侧斜率符号是否改变，最后对照四个选项是否允许负斜率。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页已经练习了把不同微分方程和斜率场对应起来，知道有些方程只依赖 x，有些只依赖 y，有些同时依赖 x,y。",
+        "currentJob": "在四个候选方程中，通过斜率场的几何特征锁定 C：dy/dx=x^2-y^2。",
+        "nextHandoff": "既然斜率场能告诉我们每一点该往哪里走，下一页就用这些局部切线一步步近似真实解曲线，也就是 Euler 方法。"
+      },
+      "order": 11,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "Which of the following differential equations corresponds to the slope field down below? A. dy/dx=(x-y)^2, B. dy/dx=(x+y)^2, C. dy/dx=x^2-y^2, D. dy/dx=x^2+y^2.",
+        "givens": [
+          "给定一张斜率场",
+          "候选方程 A: dy/dx=(x-y)^2",
+          "候选方程 B: dy/dx=(x+y)^2",
+          "候选方程 C: dy/dx=x^2-y^2",
+          "候选方程 D: dy/dx=x^2+y^2"
+        ],
+        "asks": [
+          "判断哪一个微分方程对应图中的斜率场",
+          "说明为什么其他选项不符合图像"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先找水平小线段，也就是 dy/dx=0 的位置",
+          "把每个选项的零斜率集合写出来",
+          "观察图中是否有正斜率和负斜率两个区域",
+          "用平方项是否永不为负来排除选项"
+        ],
+        "walkthroughSteps": [
+          "图中沿两条对角线附近，小线段接近水平，所以零斜率线应为 x=y 和 x=-y。",
+          "A: (x-y)^2=0 只在 x=y；B: (x+y)^2=0 只在 x=-y；D: x^2+y^2=0 只在原点。",
+          "C: x^2-y^2=0 等价于 (x-y)(x+y)=0，所以 x=y 或 x=-y，吻合两条零斜率线。",
+          "再看符号：C 中当 |x|>|y| 时 x^2-y^2>0，斜率为正；当 |y|>|x| 时 x^2-y^2<0，斜率为负。",
+          "A、B、D 都是平方或平方和，dy/dx 不会为负，无法解释图中明显向下倾斜的小线段。",
+          "因此唯一匹配的是 C。"
+        ],
+        "commonPitfalls": [
+          "只看到一条对角线水平就立刻选 A 或 B，忽略另一条对角线",
+          "把 x^2-y^2 误看成 x^2+y^2，忘记前者可以为负",
+          "只代一个点判断，没检查整张图的零斜率结构"
+        ],
+        "finalAnswer": "C. dy/dx=x^2-y^2"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-11-slope-field-identify-x2-minus-y2",
+        "pageNumber": 11,
+        "pageRole": "example",
+        "title": "例题 5：从斜率场读出 dy/dx = x² − y²",
+        "pageMove": {
+          "fromPrevious": "上一页已经用斜率场匹配了三类方程，这一页把判断标准收紧到一张图和四个相似选项。",
+          "currentJob": "用零斜率线、正负区域和排除法判断答案是 C。",
+          "toNext": "斜率场不仅能帮我们选公式，还能告诉我们从一个初始点沿哪条方向前进；下一页把这个想法变成 Euler 更新公式。",
+          "callbackToSpine": "即使没有显式解，dy/dx 仍然给出每一点的局部运动方向。"
+        },
+        "visualBrief": "整页为横向网格纸手写板书风格。左侧放较大的斜率场坐标图，x、y 轴清楚，两条虚线对角线 x=y 与 x=-y 用淡蓝色标出，并在附近圈出水平小线段。右侧列四个选项。下方用三步诊断板书：1 找零斜率，2 看符号，3 排除非负选项。右下角用醒目框写最终答案 C。页面应像课堂上边看图边圈重点，不是干净排版答案页。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：Which differential equation corresponds to the slope field?",
+            "先看水平小线段：dy/dx=0",
+            "图上两条零斜率线：x=y 与 x=-y",
+            "A、B、D 的右侧都 ≥ 0，不能解释负斜率区域",
+            "答案：C"
+          ],
+          "formulas": [
+            "A. \\frac{dy}{dx}=(x-y)^2",
+            "B. \\frac{dy}{dx}=(x+y)^2",
+            "C. \\frac{dy}{dx}=x^2-y^2=(x-y)(x+y)",
+            "D. \\frac{dy}{dx}=x^2+y^2"
+          ],
+          "exampleSteps": [
+            "观察图：沿 x=y 与 x=-y 附近，小线段几乎水平。",
+            "所以候选方程必须在 x=y 和 x=-y 两条线上都满足 dy/dx=0。",
+            "C: x^2-y^2=0 ⇒ (x-y)(x+y)=0 ⇒ x=y 或 x=-y。",
+            "看符号：|x|>|y| 时 x^2-y^2>0；|y|>|x| 时 x^2-y^2<0。",
+            "A、B、D 不会产生负斜率；与图中向下倾斜区域矛盾。",
+            "因此 slope field 对应 C。"
+          ],
+          "commonPitfalls": [
+            "不要把“有平方”都当成一样：x^2-y^2 不是平方和。",
+            "不要只找一个零点；这里要找零斜率线。",
+            "A、B 只有一条零斜率对角线，图中有两条。"
+          ],
+          "bottomTakeaway": "斜率场的读图顺序：零斜率线 → 正负区域 → 对称性 → 排除选项。下一步：沿着这些小切线走。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-question",
+            "label": "标题与题目",
+            "role": "opening",
+            "left": 42,
+            "top": 28,
+            "width": 908,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field",
+            "label": "斜率场主图与两条零斜率线",
+            "role": "visual",
+            "left": 48,
+            "top": 112,
+            "width": 430,
+            "height": 314,
+            "order": 2
+          },
+          {
+            "id": "focus-options",
+            "label": "四个候选微分方程",
+            "role": "setup",
+            "left": 512,
+            "top": 112,
+            "width": 420,
+            "height": 150,
+            "order": 3
+          },
+          {
+            "id": "focus-diagnostics",
+            "label": "三步读图判断",
+            "role": "strategy",
+            "left": 512,
+            "top": 284,
+            "width": 420,
+            "height": 150,
+            "order": 4
+          },
+          {
+            "id": "focus-elimination-answer",
+            "label": "排除理由与最终答案",
+            "role": "takeaway",
+            "left": 70,
+            "top": 444,
+            "width": 860,
+            "height": 86,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场不需要完全复刻原讲义，但必须明显显示两条对角线附近水平、部分区域正斜率、部分区域负斜率。",
+          "公式中的平方、正负号和分数 dy/dx 必须清楚，避免把 x^2-y^2 画成 x^2+y^2。",
+          "用红色圈出负斜率区域，用蓝色虚线标出 x=±y。"
+        ],
+        "qaChecklist": [
+          "检查图中是否能看出 x=y 与 x=-y 两条零斜率线。",
+          "检查 A、B、C、D 四个选项是否写全且符号正确。",
+          "检查底部最终答案是否为 C。"
+        ]
+      }
+    },
+    {
+      "id": "page-12-euler-method-one-tangent-step",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "title": "Euler 方法：沿当前切线走一步",
+      "description": "学生把斜率场中的小线段理解成局部切线方向：从初始点出发，用当前斜率走一小步，得到下一个近似点。",
+      "keyPoints": [
+        "微分方程 y'=f(x,y) 给出当前点的斜率",
+        "Euler 方法用当前切线代替短距离内的真实曲线",
+        "更新公式是 y_{n+1}=y_n+f(x_n,y_n)Δx",
+        "每一步都只使用当前点的信息，不预知下一点的真实斜率",
+        "步长 Δx 越大，偏离真实曲线的风险通常越大"
+      ],
+      "teachingObjective": "学生能够从斜率场和切线近似推出 Euler 更新公式，并解释公式中当前点、当前斜率和步长的含义。",
+      "studentThinkingMove": "先在斜率场上选定初始点，看该点的小线段方向；再把水平移动量 Δx 和竖直变化量 slope·Δx 连起来，形成下一个近似点。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页已经学会从斜率场读出每一点的局部方向，知道斜率场给的不是完整函数，而是一张方向地图。",
+        "currentJob": "把方向地图转化成数值近似规则：从 (x_n,y_n) 沿当前切线走 Δx。",
+        "nextHandoff": "Euler 方法会偏离真实曲线；下一页判断它高估还是低估，需要看真实解的凹凸性。"
+      },
+      "order": 12,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "给定微分方程 y'=f(x,y) 和初始点 (x_0,y_0)，如何用 Euler 方法从第 n 个近似点 (x_n,y_n) 走到下一个近似点？",
+        "givens": [
+          "当前近似点：(x_n,y_n)",
+          "当前斜率：f(x_n,y_n)",
+          "步长：Δx",
+          "局部思想：短距离内用切线近似真实曲线"
+        ],
+        "asks": [
+          "写出 x_{n+1} 的更新",
+          "写出 y_{n+1} 的更新",
+          "解释为什么这是沿当前切线走一步"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "把当前点处的导数看成切线斜率",
+          "水平向右走 Δx，所以 x 增加 Δx",
+          "竖直变化约等于斜率乘水平变化",
+          "把近似变化加到当前 y 值上"
+        ],
+        "walkthroughSteps": [
+          "在点 (x_n,y_n) 处，微分方程给出斜率 y'=f(x_n,y_n)。",
+          "水平移动一步：x_{n+1}=x_n+Δx。",
+          "用切线近似竖直变化：Δy≈f(x_n,y_n)Δx。",
+          "所以 y_{n+1}=y_n+Δy≈y_n+f(x_n,y_n)Δx。",
+          "得到 Euler 更新：y_{n+1}=y_n+f(x_n,y_n)Δx。",
+          "重复这个过程，就得到一串折线点来近似真实解曲线。"
+        ],
+        "commonPitfalls": [
+          "把 f(x_{n+1},y_{n+1}) 当作当前步的斜率；Euler 基本法用的是当前点斜率",
+          "忘记同时更新 x_{n+1}=x_n+Δx",
+          "以为步长变大只会少算几步，不会影响误差；实际上每一步切线替代曲线的误差会变明显"
+        ],
+        "finalAnswer": "x_{n+1}=x_n+Δx，y_{n+1}=y_n+f(x_n,y_n)Δx。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-12-euler-method-one-tangent-step",
+        "pageNumber": 12,
+        "pageRole": "formula",
+        "title": "Euler 方法：沿当前切线走一步",
+        "pageMove": {
+          "fromPrevious": "上一页斜率场告诉我们每个点的方向；现在把方向变成一步一步的数值近似。",
+          "currentJob": "建立 Euler 更新公式，并在图上标出当前点、当前斜率和步长。",
+          "toNext": "有了近似折线后，下一页要问：这条折线会在真实解的上方还是下方？",
+          "callbackToSpine": "当微分方程难以直接解出 y 时，我们仍能利用 dy/dx 生成可信的近似轨迹。"
+        },
+        "visualBrief": "整页为课堂板书式网格纸。左侧画坐标轴和淡灰斜率场，从一个深色初始点 (x_n,y_n) 出发，沿该点切线画一段橙色小线段到近似点 (x_{n+1},y_{n+1})，水平箭头标 Δx，竖直箭头标 Δy≈f(x_n,y_n)Δx，并用虚线画一条真实曲线表示 Euler 折线只是近似。右侧写公式推导，从 slope=rise/run 到 Δy≈slope·Δx，再到 boxed Euler formula。底部画两个小示意：小步长更贴近曲线，大步长偏离更明显。",
+        "visibleContent": {
+          "mustShow": [
+            "当前点：(x_n, y_n)",
+            "当前斜率：f(x_n,y_n)",
+            "水平步长：Δx",
+            "Euler 的想法：短距离内，用切线代替曲线",
+            "步长越大，偏离真实曲线的风险越大"
+          ],
+          "formulas": [
+            "y'=f(x,y)",
+            "x_{n+1}=x_n+\\Delta x",
+            "\\Delta y\\approx f(x_n,y_n)\\Delta x",
+            "y_{n+1}=y_n+f(x_n,y_n)\\Delta x"
+          ],
+          "exampleSteps": [
+            "从斜率场上选当前点 (x_n,y_n)。",
+            "读出该点斜率：m=f(x_n,y_n)。",
+            "向右走一个步长：x_{n+1}=x_n+\\Delta x。",
+            "沿切线估计竖直变化：\\Delta y\\approx m\\Delta x。",
+            "加到当前高度：y_{n+1}=y_n+f(x_n,y_n)\\Delta x。",
+            "把新点当作下一步的当前点，重复。"
+          ],
+          "commonPitfalls": [
+            "本步斜率用 f(x_n,y_n)，不是 f(x_{n+1},y_{n+1})。",
+            "Euler 点连成的是折线近似，不一定落在真实曲线上。",
+            "Δx 太大时，切线很快不再贴合曲线。"
+          ],
+          "bottomTakeaway": "Euler = 用当前斜率走一小步；误差方向要看真实解的凹凸性。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-idea",
+            "label": "标题与一句话想法",
+            "role": "opening",
+            "left": 42,
+            "top": 28,
+            "width": 908,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-visual-step",
+            "label": "斜率场上的一步切线近似",
+            "role": "visual",
+            "left": 52,
+            "top": 112,
+            "width": 430,
+            "height": 278,
+            "order": 2
+          },
+          {
+            "id": "focus-formula-derivation",
+            "label": "更新公式推导",
+            "role": "formula",
+            "left": 520,
+            "top": 112,
+            "width": 420,
+            "height": 220,
+            "order": 3
+          },
+          {
+            "id": "focus-variable-labels",
+            "label": "变量含义标注",
+            "role": "setup",
+            "left": 520,
+            "top": 350,
+            "width": 420,
+            "height": 84,
+            "order": 4
+          },
+          {
+            "id": "focus-step-size-warning",
+            "label": "步长大小与偏离风险",
+            "role": "pitfall",
+            "left": 70,
+            "top": 444,
+            "width": 860,
+            "height": 82,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "图中必须清楚区分真实曲线虚线与 Euler 折线实线，避免学生误以为 Euler 给出精确解。",
+          "公式框中的 y_{n+1}=y_n+f(x_n,y_n)Δx 要最大、最醒目。",
+          "Δx、f(x_n,y_n)、Δy 三个标签要直接贴在左侧图的箭头或切线旁。"
+        ],
+        "qaChecklist": [
+          "检查公式是否使用当前点 (x_n,y_n) 的斜率。",
+          "检查是否同时显示 x_{n+1}=x_n+Δx。",
+          "检查底部是否明确引到下一页的凹凸性与高估/低估。"
+        ]
+      }
+    },
+    {
+      "id": "page-13-euler-error-concavity",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "bridge",
+      "title": "Euler 高估还是低估：看凹凸性",
+      "description": "学生已经会用 Euler 公式沿切线走一步；本页让学生看到：误差方向不是看某一个小线段本身，而是看真实解曲线相对于切线在上方还是下方。",
+      "keyPoints": [
+        "Euler 每一步用的是当前点的切线近似。",
+        "concave up 时，真实曲线通常在切线上方，所以 Euler 近似偏低。",
+        "concave down 时，真实曲线通常在切线下方，所以 Euler 近似偏高。",
+        "判断对象是解曲线的凹凸性，不只是斜率场里某一点的斜率大小。",
+        "如果沿路径斜率越来越大，常对应凹向上；如果斜率越来越小，常对应凹向下。"
+      ],
+      "teachingObjective": "学生能够用切线与解曲线的位置关系判断 Euler 近似在某个时间点是高估还是低估。",
+      "studentThinkingMove": "学生先看 Euler 是从当前点沿切线走；再比较真实曲线在这段区间内是在切线上方还是下方；最后把相对位置翻译成 underestimate 或 overestimate。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页建立了 Euler 更新公式 y_{n+1}=y_n+f(x_n,y_n)\\Delta x，知道 Euler 是沿当前切线前进一步。",
+        "currentJob": "把“沿切线走”与真实解曲线的凹凸性连接起来，判断 Euler 误差方向。",
+        "nextHandoff": "下一页把这条规则用到金鱼 Allee effect 的斜率场：先判断解曲线凹向上，再判断 Euler 在 t=2 的近似偏低。"
+      },
+      "order": 13,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "Euler 方法从同一个初始点出发，若真实解曲线在区间内 concave up 或 concave down，判断 Euler 近似在下一步后通常是高估还是低估。",
+        "givens": [
+          "Euler 更新：y_{n+1}=y_n+f(x_n,y_n)\\Delta x",
+          "\\Delta x>0",
+          "每一步使用当前点的切线作为局部线性近似"
+        ],
+        "asks": [
+          "concave up 时 Euler 是高估还是低估？",
+          "concave down 时 Euler 是高估还是低估？",
+          "判断时应该看什么对象？"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先画同一点处的切线。",
+          "比较真实解曲线与切线在右侧小区间的位置。",
+          "把曲线在上/下转化为 Euler 值偏低/偏高。",
+          "强调斜率场只帮助读趋势，真正比较的是解曲线。"
+        ],
+        "walkthroughSteps": [
+          "Euler 一步：从 (x_n,y_n) 出发，沿斜率 f(x_n,y_n) 的切线走到 x_{n+1}=x_n+\\Delta x。",
+          "若解曲线 concave up，则导数沿路径变大，曲线向上弯。",
+          "凹向上时，同一点的切线通常在真实曲线下方。",
+          "所以 Euler 走到的点低于真实 y(x_{n+1})，即 underestimate。",
+          "若解曲线 concave down，则导数沿路径变小，曲线向下弯。",
+          "凹向下时，同一点的切线通常在真实曲线上方。",
+          "所以 Euler 走到的点高于真实 y(x_{n+1})，即 overestimate。"
+        ],
+        "commonPitfalls": [
+          "只看初始点斜率是正还是负，不能决定高估或低估。",
+          "只看一个 slope field 小线段，不等于看完整解曲线的凹凸性。",
+          "若步长很大或凹凸性中途改变，简单规则要分段重新判断。"
+        ],
+        "finalAnswer": "concave up 通常 Euler 低估；concave down 通常 Euler 高估。判断对象是沿初值出发的解曲线相对于切线的位置。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-13-euler-error-concavity",
+        "pageNumber": 13,
+        "pageRole": "pitfalls",
+        "title": "Euler 高估还是低估：看凹凸性",
+        "pageMove": {
+          "fromPrevious": "已经知道 Euler 是用当前斜率做一步线性近似。",
+          "currentJob": "解释为什么凹向上会让切线落在曲线下方，凹向下会让切线落在曲线上方。",
+          "toNext": "把这个规则套到金鱼数量模型的斜率场，判断 t=2 的 Euler 近似方向。",
+          "callbackToSpine": "当解不容易写成公式时，我们仍然能用图像性质判断近似是否可信。"
+        },
+        "visualBrief": "整页用浅色网格纸和黑色手写板书风格。页面左右分成两个大图：左边画 concave up 的真实解曲线，从同一初始点画一条切线，切线延伸到下一步时落在曲线下方，并标出“Euler 点”；右边画 concave down 的真实解曲线，同样从初始点画切线，切线在下一步时高于曲线。中间或下方放一条醒目的判断流程：不是看斜率正负，而是看解曲线相对切线的位置。右下角留出桥接提示：下一页金鱼 Allee effect。",
+        "visibleContent": {
+          "mustShow": [
+            "Euler 一步 = 沿当前切线走",
+            "concave up：切线通常在曲线下方 → Euler 低估",
+            "concave down：切线通常在曲线上方 → Euler 高估",
+            "判断对象：沿初值出发的解曲线，不是某一个斜率场小线段",
+            "下一页：用金鱼 Allee effect 的斜率场判断 t=2 的 Euler 近似"
+          ],
+          "formulas": [
+            "y_{n+1}=y_n+f(x_n,y_n)\\Delta x",
+            "x_{n+1}=x_n+\\Delta x",
+            "concave up: y''>0",
+            "concave down: y''<0"
+          ],
+          "exampleSteps": [
+            "从初始点 (x_n,y_n) 画真实解曲线。",
+            "在同一点画切线，斜率为 f(x_n,y_n)。",
+            "Euler 用切线走到 x_{n+1}。",
+            "若真实曲线在切线上方，则 Euler 值偏低。",
+            "若真实曲线在切线下方，则 Euler 值偏高。",
+            "所以凹凸性决定常见误差方向。"
+          ],
+          "commonPitfalls": [
+            "不要说“斜率为正所以高估”。斜率正负只说明上升或下降。",
+            "不要只盯一个小线段；要看沿解曲线方向斜率如何变化。",
+            "若曲线中途换凹凸，必须分段判断。"
+          ],
+          "bottomTakeaway": "Euler 误差方向口诀：曲线在切线上方 → 低估；曲线在切线下方 → 高估。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-rule",
+            "label": "标题与核心规则",
+            "role": "opening",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-concave-up",
+            "label": "左侧凹向上图",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 405,
+            "height": 250,
+            "order": 2
+          },
+          {
+            "id": "focus-concave-down",
+            "label": "右侧凹向下图",
+            "role": "visual",
+            "left": 540,
+            "top": 115,
+            "width": 405,
+            "height": 250,
+            "order": 3
+          },
+          {
+            "id": "focus-decision-strip",
+            "label": "误差判断流程条",
+            "role": "strategy",
+            "left": 80,
+            "top": 390,
+            "width": 840,
+            "height": 85,
+            "order": 4
+          },
+          {
+            "id": "focus-pitfall-next",
+            "label": "易错提醒与下一页承接",
+            "role": "pitfall",
+            "left": 80,
+            "top": 485,
+            "width": 840,
+            "height": 55,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "两幅图都要清楚标出真实曲线、切线、Euler 点、true y。",
+          "左图切线必须在曲线下方；右图切线必须在曲线上方。",
+          "不要把页面做成纯文字摘要，要像课堂上正在用图解释误差方向。"
+        ],
+        "qaChecklist": [
+          "是否明确写出 concave up → Euler 低估，concave down → Euler 高估？",
+          "是否强调判断对象是解曲线而不是单个 slope field 小线段？",
+          "两张图中的切线与曲线相对位置是否正确？"
+        ]
+      }
+    },
+    {
+      "id": "page-14-summary-goldfish-allee",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "summary",
+      "title": "总结：从变化率到函数，再到图像与近似",
+      "description": "学生用金鱼 Allee effect 例题完成最后一次判断：不用解出 N(t)，也能从斜率场和凹凸性判断 Euler 近似偏低；随后把整节课的工作流收束成一条线。",
+      "keyPoints": [
+        "金鱼模型给出的是变化率 N'，不是直接给出 N(t)。",
+        "从斜率场看，经过 N(0)=7 的解曲线在 t=0 到 t=2 附近凹向上。",
+        "凹向上时 Euler 切线步进通常在真实曲线下方，因此 t=2 的 Euler 近似是低估。",
+        "整节课流程：积分恢复一般解，初值确定特解，FTC 与链式法则验算，斜率场读趋势，Euler 做近似并判断误差。",
+        "下一节进入右侧含 y 的方程：哪些可以分离变量并解出公式。"
+      ],
+      "teachingObjective": "学生能够把本节的积分、初值、验算、斜率场和 Euler 误差判断串成一个完整解题流程，并能完成金鱼模型的低估判断。",
+      "studentThinkingMove": "学生先定位初值 N(0)=7，再沿斜率场想象解曲线；看到沿路径斜率变大、曲线凹向上；最后用上一页规则判断 Euler 在 t=2 偏低。",
+      "usesExampleIds": [],
+      "continuity": {
+        "previousHandoff": "上一页得到 Euler 误差方向规则：凹向上低估，凹向下高估。",
+        "currentJob": "把规则应用到金鱼 Allee effect 模型，并总结整节微分方程入门的工作流。",
+        "nextHandoff": "下一节将处理右侧含 y 的更多方程，重点是如何用分离变量真正解出显式或隐式解。"
+      },
+      "order": 14,
+      "language": "zh-CN",
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "problemStatement": "According to the Allee effect, the population N of goldfish is modelled by N'=N(N/6-1)(1-N/20), with N(0)=7. Judging by the slope field, an approximation of N at t=2 by Euler's method with step \\Delta t=0.5 would be: A. an under-estimate.",
+        "givens": [
+          "\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)",
+          "N(0)=7",
+          "\\Delta t=0.5",
+          "目标时间：t=2"
+        ],
+        "asks": [
+          "Euler 方法在 t=2 的近似是高估还是低估？",
+          "对应选项是什么？",
+          "本节完整判断流程是什么？"
+        ],
+        "constraints": [],
+        "solutionPlan": [
+          "先在斜率场上标出初始点 (0,7)。",
+          "沿初始点出发的解曲线观察斜率变化。",
+          "判断解曲线凹向上或凹向下。",
+          "调用上一页 Euler 误差规则。"
+        ],
+        "walkthroughSteps": [
+          "初始点是 (t,N)=(0,7)。",
+          "在 N=7 附近，N'>0，所以解曲线向上走。",
+          "沿斜率场向右观察，解曲线附近的小线段逐渐变陡。",
+          "斜率沿解曲线增加，说明解曲线凹向上。",
+          "Euler 每一步只沿当前切线走，凹向上时切线落在真实曲线下方。",
+          "因此到 t=2 时，Euler 近似值小于真实 N(2)。",
+          "所以答案是 A：an under-estimate。"
+        ],
+        "commonPitfalls": [
+          "不要试图仅凭 N'>0 判断高估或低估；N'>0 只说明数量增加。",
+          "题目要求 judging by the slope field，不需要先解出 N(t)。",
+          "Euler 步长 \\Delta t=0.5 告诉我们走 4 步到 t=2，但误差方向主要由凹凸性判断。"
+        ],
+        "finalAnswer": "Euler 在 t=2 的近似是低估；对应选项 A。"
+      },
+      "imageNotebookCourseSpine": {
+        "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+        "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+        "acts": [
+          {
+            "id": "act-opening",
+            "act": "opening",
+            "title": "变化率不是函数本身",
+            "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+            "pages": [
+              1,
+              2
+            ],
+            "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+          },
+          {
+            "id": "act-development-1",
+            "act": "development",
+            "title": "从导数反推函数：积分与常数 C",
+            "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+            "pages": [
+              3,
+              4,
+              5
+            ],
+            "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+          },
+          {
+            "id": "act-development-2",
+            "act": "development",
+            "title": "初值与验算：把答案从“可能”变成“确定”",
+            "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+            "pages": [
+              6,
+              7,
+              8
+            ],
+            "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+          },
+          {
+            "id": "act-practice-visual",
+            "act": "practice",
+            "title": "斜率场：不用解出公式也能读出行为",
+            "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+            "pages": [
+              9,
+              10,
+              11
+            ],
+            "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+          },
+          {
+            "id": "act-synthesis",
+            "act": "synthesis",
+            "title": "Euler 方法与误差方向",
+            "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+            "pages": [
+              12,
+              13,
+              14
+            ],
+            "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+          }
+        ],
+        "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+      },
+      "imageNotebookBrief": {
+        "outlineId": "page-14-summary-goldfish-allee",
+        "pageNumber": 14,
+        "pageRole": "summary",
+        "title": "总结：从变化率到函数，再到图像与近似",
+        "pageMove": {
+          "fromPrevious": "上一页把 Euler 误差方向和凹凸性连接起来。",
+          "currentJob": "用金鱼 Allee effect 例题收束：斜率场显示解曲线凹向上，所以 Euler 低估。",
+          "toNext": "下一节追问：当 dy/dx 同时含 y 时，哪些方程能通过分离变量真正解出？",
+          "callbackToSpine": "微分方程给变化规则；积分、初值、验算、斜率场和 Euler 共同帮助我们恢复、确认或近似函数。"
+        },
+        "visualBrief": "整页继续使用浅色网格纸板书。上半页左侧画金鱼数量模型的简化斜率场，坐标轴为 t 与 N，标出初始点 (0,7)，画一条向右上且凹向上的真实解曲线，再画 Euler 折线，每 0.5 一步，折线在真实曲线下方。上半页右侧写完整模型和判断三步。下半页做本节总流程图，从“只知道变化率”箭头推进到“积分得到函数族”“初值锁定 C”“FTC/链式法则验算”“斜率场读趋势”“Euler 近似与误差”。底部放下一节钩子：separable differential equations。",
+        "visibleContent": {
+          "mustShow": [
+            "Goldfish Allee effect: 从斜率场判断，不必先解出 N(t)",
+            "初始点：(0,7)，步长 \\Delta t=0.5，到 t=2 共 4 步",
+            "解曲线凹向上 → Euler 折线在真实曲线下方",
+            "结论：t=2 的 Euler 近似是低估，对应 A",
+            "本节工作流：变化率 → 积分 → 初值 → 验算 → 斜率场 → Euler"
+          ],
+          "formulas": [
+            "\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)",
+            "N(0)=7,\\quad \\Delta t=0.5",
+            "N_{n+1}=N_n+f(t_n,N_n)\\Delta t",
+            "t=2=4\\times 0.5"
+          ],
+          "exampleSteps": [
+            "1. 标出初始点 (0,7)。",
+            "2. 沿斜率场看解曲线：向右上走。",
+            "3. 小线段沿路径变得更陡，判断解曲线 concave up。",
+            "4. concave up 时，Euler 切线步进在真实曲线下方。",
+            "5. 所以 Euler approximation at t=2 is an under-estimate。",
+            "6. 选择 A。"
+          ],
+          "commonPitfalls": [
+            "低估不是因为 N'>0，而是因为解曲线凹向上。",
+            "不要把 Euler 折线画到真实曲线上方。",
+            "这题是图像判断题，不要求分离变量求显式解。"
+          ],
+          "bottomTakeaway": "下一节：当右侧含 y 时，如何用分离变量解出更多微分方程？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-goldfish-title-model",
+            "label": "标题与金鱼模型",
+            "role": "setup",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 82,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field-euler",
+            "label": "斜率场与 Euler 折线",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 455,
+            "height": 235,
+            "order": 2
+          },
+          {
+            "id": "focus-goldfish-steps",
+            "label": "金鱼例题判断步骤",
+            "role": "example",
+            "left": 545,
+            "top": 115,
+            "width": 400,
+            "height": 235,
+            "order": 3
+          },
+          {
+            "id": "focus-course-workflow",
+            "label": "本节完整工作流",
+            "role": "takeaway",
+            "left": 60,
+            "top": 370,
+            "width": 880,
+            "height": 105,
+            "order": 4
+          },
+          {
+            "id": "focus-next-hook",
+            "label": "下一节钩子",
+            "role": "takeaway",
+            "left": 80,
+            "top": 492,
+            "width": 840,
+            "height": 48,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场不需要密集到难读，但必须显示沿 (0,7) 出发的路径斜率变大。",
+          "Euler 折线用不同颜色或虚线表示，且整体位于真实凹向上曲线下方。",
+          "总结流程图要像课堂最后整理板书，不要做成装饰海报。"
+        ],
+        "qaChecklist": [
+          "是否准确写出金鱼模型 N'=N(N/6-1)(1-N/20) 与 N(0)=7？",
+          "是否明确结论为 t=2 的 Euler 近似低估，选 A？",
+          "是否包含整节课的流程回顾和下一节分离变量钩子？"
+        ]
+      }
+    }
+  ],
+  "plan": {
+    "courseSpine": {
+      "logline": "从“只知道变化率”出发，学生学会用积分恢复函数、用初值锁定唯一解、用 FTC 与链式法则验算候选解，并用斜率场与 Euler 方法判断近似方向。",
+      "centralQuestion": "如果微分方程只告诉我们 y 如何变化，我们怎样确定 y 本身，并判断一个答案或近似是否可信？",
+      "acts": [
+        {
+          "id": "act-opening",
+          "act": "opening",
+          "title": "变化率不是函数本身",
+          "purpose": "用直观情境说明 dy/dx 只描述局部趋势，必须通过积分与额外信息才能得到具体函数。",
+          "pages": [
+            1,
+            2
+          ],
+          "keyQuestion": "知道每一点的斜率后，为什么还不能马上知道曲线是哪一条？"
+        },
+        {
+          "id": "act-development-1",
+          "act": "development",
+          "title": "从导数反推函数：积分与常数 C",
+          "purpose": "建立分离微分、两边积分、出现常数族的基本流程。",
+          "pages": [
+            3,
+            4,
+            5
+          ],
+          "keyQuestion": "从 dy/dx 反推 y 时，常数 C 从哪里来，又代表什么？"
+        },
+        {
+          "id": "act-development-2",
+          "act": "development",
+          "title": "初值与验算：把答案从“可能”变成“确定”",
+          "purpose": "用初值确定 C，并用 FTC 与链式法则检查含积分表达式是否满足微分方程。",
+          "pages": [
+            6,
+            7,
+            8
+          ],
+          "keyQuestion": "一个看起来像积分的表达式，怎样确认它真的满足给定微分方程？"
+        },
+        {
+          "id": "act-practice-visual",
+          "act": "practice",
+          "title": "斜率场：不用解出公式也能读出行为",
+          "purpose": "训练学生从斜率场识别只依赖 x、只依赖 y、同时依赖 x,y 的微分方程，并判断零斜率与符号区域。",
+          "pages": [
+            9,
+            10,
+            11
+          ],
+          "keyQuestion": "如果没有显式解，图上的小线段能告诉我们什么？"
+        },
+        {
+          "id": "act-synthesis",
+          "act": "synthesis",
+          "title": "Euler 方法与误差方向",
+          "purpose": "把斜率场、切线近似与凹凸性连接起来，判断 Euler 近似高估或低估。",
+          "pages": [
+            12,
+            13,
+            14
+          ],
+          "keyQuestion": "沿着切线一步步走，什么时候会走在真实曲线之上或之下？"
+        }
+      ],
+      "closingCallback": "最后回到 centralQuestion：微分方程给的是变化规则，不是完整函数；积分给出函数族，初值给出唯一解，FTC 与链式法则负责验算，斜率场和 Euler 方法帮助我们在解不出来时仍能判断趋势。下一节钩子是：当 dy/dx 同时依赖 y 时，哪些方程可以分离变量并真正解出公式？"
+    },
+    "pageBriefs": [
+      {
+        "outlineId": "mat136-de-intro-page-1-hook-rate-not-enough",
+        "pageNumber": 1,
+        "pageRole": "hook",
+        "title": "只知道变化率，够不够知道函数？",
+        "pageMove": {
+          "fromPrevious": "把已学过的求导方向反过来：以前是 y → dy/dx，现在问 dy/dx → y。",
+          "currentJob": "用三条上下平移的抛物线说明同一个导数可以来自很多函数。",
+          "toNext": "先定义“微分方程”和“解”到底是什么，再开始正式反推函数。",
+          "callbackToSpine": "回应主问题的第一步：微分方程给的是变化规则，不是完整函数。"
+        },
+        "visualBrief": "整页采用浅色网格纸与黑蓝红手写板书风格。左侧大图画坐标轴与三条抛物线：蓝色 y=x^2、绿色 y=x^2+3、橙色 y=x^2-4，三条曲线形状一致但上下错开；在若干相同 x 位置用短切线标出斜率方向一致。右侧写三行求导，突出“+3”和“-4”求导后消失。底部画一条课程路线箭头：变化率 → 积分 → +C → 初值 → 检查/图像/近似。整体像课堂第一块板书，不做装饰封面。",
+        "visibleContent": {
+          "mustShow": [
+            "问题：只知道 dy/dx，能不能知道 y？",
+            "三条曲线：y=x^2，y=x^2+3，y=x^2-4",
+            "同一个斜率规律，不同的高度",
+            "dy/dx 是局部变化率，不是 y 的完整公式",
+            "今天路线：积分恢复函数 → 初值确定 C → FTC/链式法则验算 → 斜率场与 Euler 判断趋势"
+          ],
+          "formulas": [
+            "\\frac{d}{dx}(x^2)=2x",
+            "\\frac{d}{dx}(x^2+3)=2x",
+            "\\frac{d}{dx}(x^2-4)=2x",
+            "\\frac{dy}{dx}=2x \\Rightarrow y=x^2+C"
+          ],
+          "exampleSteps": [
+            "先画 y=x^2 作为基准曲线",
+            "把同样形状向上平移 3 得到 y=x^2+3",
+            "把同样形状向下平移 4 得到 y=x^2-4",
+            "分别求导，三条都得到 2x",
+            "圈出常数 3、-4：它们影响高度，但不影响导数",
+            "写出结论：只给变化率，只能得到函数族"
+          ],
+          "commonPitfalls": [
+            "dy/dx=2x 不是 y=2x",
+            "不要丢掉 +C",
+            "一条微分方程通常先给出很多可能曲线"
+          ],
+          "bottomTakeaway": "变化率告诉我们“怎么走”，但还没告诉我们“从哪条曲线开始走”。下一页：什么叫微分方程的解？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-hook",
+            "label": "顶部问题钩子",
+            "role": "opening",
+            "left": 50,
+            "top": 28,
+            "width": 900,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-graph-three-curves",
+            "label": "左侧三条平移抛物线",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 455,
+            "height": 300,
+            "order": 2
+          },
+          {
+            "id": "focus-derivative-comparison",
+            "label": "右侧求导对比",
+            "role": "formula",
+            "left": 545,
+            "top": 120,
+            "width": 395,
+            "height": 210,
+            "order": 3
+          },
+          {
+            "id": "focus-family-conclusion",
+            "label": "函数族结论",
+            "role": "takeaway",
+            "left": 545,
+            "top": 350,
+            "width": 395,
+            "height": 85,
+            "order": 4
+          },
+          {
+            "id": "focus-course-route",
+            "label": "底部本节路线箭头",
+            "role": "strategy",
+            "left": 70,
+            "top": 455,
+            "width": 860,
+            "height": 78,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "坐标轴和三条曲线必须清楚，曲线标签直接贴近曲线，不要用图例代替。",
+          "右侧公式要像课堂手写推导，重点圈出常数项消失。",
+          "底部路线箭头简洁，不要塞成密集目录。"
+        ],
+        "qaChecklist": [
+          "检查三条曲线分别标成 y=x^2、y=x^2+3、y=x^2-4。",
+          "检查三条导数都准确写为 2x。",
+          "检查页面没有误导成 dy/dx=2x 的唯一解是 y=x^2。"
+        ]
+      },
+      {
+        "outlineId": "mat136-de-intro-page-2-what-is-de",
+        "pageNumber": 2,
+        "pageRole": "definition",
+        "title": "微分方程在问什么？",
+        "pageMove": {
+          "fromPrevious": "上一页已经看到同一个 dy/dx 会留下一个未知常数 C。",
+          "currentJob": "把“微分方程的解”定义成可代回验证的函数，并给一般解、特解、初值条件命名。",
+          "toNext": "下一页开始处理 dy/dx=f(x)：把 dy 和 dx 分开写，再两边积分。",
+          "callbackToSpine": "这里回答主线中的“为什么只知道变化率不够”：因为微分方程限制的是导数，完整函数还需要积分和额外条件。"
+        },
+        "visualBrief": "整页为课堂定义板书。顶部写标题。左上用两个并排框比较 dy/dx=f(x) 与 dy/dx=f(x,y)：前者斜率只看 x，后者斜率看 x 和 y；可配小坐标点标注“同一个 x”或“同一个 y”的提示。中间大框写“解是函数 y(x)，不是一个数”，并画代回检查箭头：候选 y(x) → 求导 → 比较右侧。右侧竖向词汇栏列出 general solution、particular solution、initial condition 的中文解释。底部放一个小型现场检查，用 y=x^2+C 验证 dy/dx=2x，并用 y(3)=5 选出 C=-4，但不展开成下一页完整例题的版面。",
+        "visibleContent": {
+          "mustShow": [
+            "微分方程：含有未知函数及其导数的方程",
+            "解是函数 y(x)，不是一个单独数字",
+            "一般解：一族函数，通常含 C",
+            "特解：C 已经被条件确定的一条函数",
+            "初值条件：例如 y(x_0)=y_0，告诉曲线经过哪个点"
+          ],
+          "formulas": [
+            "\\frac{dy}{dx}=f(x)",
+            "\\frac{dy}{dx}=f(x,y)",
+            "y(x)\\text{ 是解 }\\Longleftrightarrow y'(x)=f(x,y(x))",
+            "y(x_0)=y_0"
+          ],
+          "exampleSteps": [
+            "候选：y=x^2+C",
+            "求导：y'=2x",
+            "比较：2x=2x，所以满足 dy/dx=2x",
+            "若给 y(3)=5：5=9+C",
+            "解得 C=-4",
+            "特解：y=x^2-4"
+          ],
+          "commonPitfalls": [
+            "微分方程的答案通常是函数，不是数字",
+            "含 C 的是一般解；C 被确定后才是特解",
+            "检查解时要检查导数等式，不只检查一个点"
+          ],
+          "bottomTakeaway": "现在知道“解”是什么了；下一步：怎样从 dy/dx=f(x) 真的反推出 y？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-definition",
+            "label": "顶部定义标题",
+            "role": "opening",
+            "left": 50,
+            "top": 28,
+            "width": 900,
+            "height": 65,
+            "order": 1
+          },
+          {
+            "id": "focus-two-forms",
+            "label": "左侧两种微分方程形式对比",
+            "role": "setup",
+            "left": 55,
+            "top": 115,
+            "width": 400,
+            "height": 185,
+            "order": 2
+          },
+          {
+            "id": "focus-solution-means-function",
+            "label": "中间代回检查流程",
+            "role": "visual",
+            "left": 485,
+            "top": 115,
+            "width": 455,
+            "height": 185,
+            "order": 3
+          },
+          {
+            "id": "focus-vocabulary",
+            "label": "术语栏：一般解、特解、初值",
+            "role": "formula",
+            "left": 55,
+            "top": 325,
+            "width": 385,
+            "height": 150,
+            "order": 4
+          },
+          {
+            "id": "focus-mini-check",
+            "label": "底部小检查：y=x^2+C",
+            "role": "example",
+            "left": 470,
+            "top": 320,
+            "width": 470,
+            "height": 165,
+            "order": 5
+          },
+          {
+            "id": "focus-bottom-bridge",
+            "label": "底部承接到积分",
+            "role": "takeaway",
+            "left": 70,
+            "top": 500,
+            "width": 860,
+            "height": 42,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "公式 y'(x)=f(x,y(x)) 中的 y(x) 要清楚，避免误写成 f(x,y)。",
+          "右下小检查保持简洁，完整求解流程留给后续例题页。",
+          "术语栏可以中英并列：一般解 general solution，特解 particular solution，初值 initial condition。"
+        ],
+        "qaChecklist": [
+          "检查页面明确写出“解是函数 y(x)，不是一个数”。",
+          "检查 dy/dx=f(x) 与 dy/dx=f(x,y) 两种形式没有混淆。",
+          "检查小检查中 C=-4 与特解 y=x^2-4 计算正确。"
+        ]
+      },
+      {
+        "outlineId": "mat136-de-intro-page-03-integrate-both-sides",
+        "pageNumber": 3,
+        "pageRole": "formula",
+        "title": "从 dy/dx 反推 y：两边积分",
+        "pageMove": {
+          "fromPrevious": "上一页强调“解”是函数，不是一个数；现在开始真正把变化率反推出函数。",
+          "currentJob": "建立 dy/dx=f(x) 的基础积分模板，并把 C 解释成一族曲线的竖直平移。",
+          "toNext": "下一页用 dy/dx=2x, y(3)=5 完整算出一般解和特解。",
+          "callbackToSpine": "回应主线中的“从 dy/dx 反推 y”和“不定积分带来常数 C”。"
+        },
+        "visualBrief": "整页使用浅色网格纸背景和黑蓝双色手写板书。顶部是问题式标题。左侧用箭头展示 dy/dx=f(x) 到 dy=f(x)dx 再到两边积分的板书流程；中间用醒目的黄色框圈出 y=F(x)+C；右侧画三条形状相同、上下平移的曲线，标注 C=2、C=0、C=-2，强调导数相同但函数不同。底部留一条横向收束区，写“还差一个点来确定 C”，自然接到下一页初值例题。",
+        "visibleContent": {
+          "mustShow": [
+            "问题：知道 y′=f(x)，怎样找回 y？",
+            "记号转换不是答案终点，而是为了两边积分",
+            "C 不是装饰；C 表示整条曲线可以上下平移",
+            "没有初值 ⇒ 得到的是一般解，不是唯一解"
+          ],
+          "formulas": [
+            "dy/dx = f(x)",
+            "dy = f(x) dx",
+            "∫ dy = ∫ f(x) dx",
+            "y = F(x) + C, 其中 F′(x)=f(x)"
+          ],
+          "exampleSteps": [
+            "1. 从微分方程读信息：右侧 f(x) 告诉我们斜率如何随 x 变化。",
+            "2. 改写微分形式：dy = f(x) dx。",
+            "3. 两边同时积分：∫dy = ∫f(x)dx。",
+            "4. 左边得到 y；右边得到一个原函数 F(x)，再加 C。",
+            "5. 写成一般解：y = F(x)+C。",
+            "6. 解释 C：每选一个 C，就选中一条上下平移后的曲线。"
+          ],
+          "commonPitfalls": [
+            "漏掉 +C",
+            "以为 C 一定等于 0",
+            "还没给初值时就写“the solution”"
+          ],
+          "bottomTakeaway": "现在我们有一族解 y=F(x)+C；下一步：给一个点，例如 y(3)=5，把 C 锁定。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-question",
+            "label": "顶部问题与页面入口",
+            "role": "opening",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-symbol-conversion",
+            "label": "左侧记号转换流程",
+            "role": "formula",
+            "left": 55,
+            "top": 115,
+            "width": 300,
+            "height": 230,
+            "order": 2
+          },
+          {
+            "id": "focus-integral-template",
+            "label": "中间两边积分模板",
+            "role": "formula",
+            "left": 370,
+            "top": 120,
+            "width": 300,
+            "height": 220,
+            "order": 3
+          },
+          {
+            "id": "focus-c-family-visual",
+            "label": "右侧 C 的竖直平移图像",
+            "role": "visual",
+            "left": 690,
+            "top": 112,
+            "width": 260,
+            "height": 250,
+            "order": 4
+          },
+          {
+            "id": "focus-pitfall-and-handoff",
+            "label": "底部易错提醒与承接",
+            "role": "takeaway",
+            "left": 65,
+            "top": 390,
+            "width": 870,
+            "height": 125,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "数学公式必须清晰可读，尤其是 dy/dx、dx、∫ 和 +C。",
+          "右侧三条曲线要形状相同、仅上下平移，不要画成不同弯曲程度。",
+          "底部承接语要显眼，但不要像装饰横幅，应像课堂最后一行板书。"
+        ],
+        "qaChecklist": [
+          "是否明确出现 dy/dx=f(x) ⇒ dy=f(x)dx ⇒ ∫dy=∫f(x)dx ⇒ y=F(x)+C？",
+          "是否把 C 解释成竖直平移的一族曲线？",
+          "是否没有把一般解误写成唯一解？"
+        ]
+      },
+      {
+        "outlineId": "mat136-de-intro-page-04-example-dydx-2x-initial-value",
+        "pageNumber": 4,
+        "pageRole": "example",
+        "title": "例题 1：dy/dx=2x，y(3)=5",
+        "pageMove": {
+          "fromPrevious": "上一页有模板但 C 未知；这一页用一个具体点把 C 算出来。",
+          "currentJob": "完整展示从微分方程到一般解，再到满足初值的特解。",
+          "toNext": "下一页换成 dV/dP=-10^{-5}/P，练习通过积分判断答案属于对数函数。",
+          "callbackToSpine": "回应主线中的“初值如何确定 C”，同时巩固“从 dy/dx 反推 y”。"
+        },
+        "visualBrief": "整页像课堂板书推导。左上角写题目并用红点标出初值 y(3)=5 即点 (3,5)。左中区域按 Step 1 写 dy=2x dx、∫dy=∫2x dx、y=x^2+C。右中区域按 Step 2 写 5=3^2+C、C=-4。下方用左右并排框展示“一般解：y=x^2+C”和“特解：y=x^2-4”。右下角配一个小坐标图：画几条灰色抛物线表示 y=x^2+C，其中一条蓝色抛物线穿过红点 (3,5)，标注 C=-4。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dy/dx=2x, y(3)=5，求 y(x)",
+            "先积分，后代初值",
+            "一般解是一族：y=x^2+C",
+            "初值 y(3)=5 选出经过 (3,5) 的那一条",
+            "最终答案：y=x^2-4"
+          ],
+          "formulas": [
+            "dy/dx = 2x",
+            "dy = 2x dx",
+            "∫dy = ∫2x dx",
+            "y = x^2 + C"
+          ],
+          "exampleSteps": [
+            "Step 1: dy/dx=2x",
+            "dy = 2x dx",
+            "∫dy = ∫2x dx",
+            "y = x^2 + C",
+            "Step 2: y(3)=5 ⇒ 5 = 3^2 + C",
+            "5 = 9 + C ⇒ C = -4",
+            "因此 y = x^2 - 4"
+          ],
+          "commonPitfalls": [
+            "不要把 y(3)=5 代进 dy/dx=2x；它要代进 y=x^2+C",
+            "∫2x dx = x^2 + C，不是 2x^2+C",
+            "C 求出后必须写回原函数"
+          ],
+          "bottomTakeaway": "流程固定：微分方程 → 积分得一般解 → 初值确定 C → 特解。下一页看见 1/P 时会积分出什么函数类型？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-statement",
+            "label": "题目与初值点",
+            "role": "setup",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 90,
+            "order": 1
+          },
+          {
+            "id": "focus-step1-integrate",
+            "label": "左侧 Step 1 积分求一般解",
+            "role": "example",
+            "left": 55,
+            "top": 130,
+            "width": 385,
+            "height": 205,
+            "order": 2
+          },
+          {
+            "id": "focus-step2-initial-value",
+            "label": "右侧 Step 2 代入初值求 C",
+            "role": "example",
+            "left": 470,
+            "top": 130,
+            "width": 260,
+            "height": 205,
+            "order": 3
+          },
+          {
+            "id": "focus-family-graph",
+            "label": "右下函数族筛选图",
+            "role": "visual",
+            "left": 745,
+            "top": 128,
+            "width": 205,
+            "height": 235,
+            "order": 4
+          },
+          {
+            "id": "focus-general-vs-particular",
+            "label": "底部一般解与特解并排",
+            "role": "takeaway",
+            "left": 65,
+            "top": 365,
+            "width": 870,
+            "height": 145,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "Step 1 与 Step 2 要明显分开，避免学生以为初值先参与微分方程本身。",
+          "小图中红点必须落在蓝色抛物线 y=x^2-4 上，并标注 (3,5)。",
+          "最终答案 y=x^2-4 要用框线圈出。"
+        ],
+        "qaChecklist": [
+          "是否完整展示 dy=2x dx、∫dy=∫2x dx、y=x^2+C？",
+          "是否正确代入 5=3^2+C 并得到 C=-4？",
+          "是否并排区分了一般解 y=x^2+C 与特解 y=x^2-4？"
+        ]
+      },
+      {
+        "outlineId": "page-5-pressure-volume-log-type",
+        "pageNumber": 5,
+        "pageRole": "example",
+        "title": "例题 2：dV/dP=-10^{-5}/P 会给出什么类型的 V(P)？",
+        "pageMove": {
+          "fromPrevious": "上一页我们已经会把 y'=2x 积分成 y=x^2+C，并用初值定 C。",
+          "currentJob": "这一页练习看到 1/P 型变化率时，识别积分结果是 ln|P|，从而判断函数类型。",
+          "toNext": "现在我们只得到一整族 V(P)=-10^{-5}ln|P|+C；下一页用初值说明怎样选出唯一一条。",
+          "callbackToSpine": "微分方程只告诉变化规则；积分恢复函数族，但常数 C 仍代表未知的整体高度。"
+        },
+        "visualBrief": "整页使用浅色网格纸与课堂手写板书风格。左侧上半区写应用题和四个选择项，右侧上半区画一条粗红框强调 dV/dP=-10^{-5}/P 中的 1/P。中部横向展开代数步骤：从分离微分到两边积分再到对数。右下角放一个小型函数类型对比框：polynomial/power/exponential/logarithmic，其中 logarithmic 被圈出。底部留出一句承接：没有初始数据，C 还不能确定。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dV/dP=-10^{-5}/P，问 V(P) 是什么类型的函数？",
+            "选项：A Power B Exponential C Polynomial D Logarithmic",
+            "关键识别：右侧含 1/P → 积分出现 ln|P|",
+            "答案：D. Logarithmic function",
+            "没有给具体点时，只能得到 +C 的函数族"
+          ],
+          "formulas": [
+            "\\frac{dV}{dP}=-\\frac{10^{-5}}{P}",
+            "dV=-\\frac{10^{-5}}{P}\\,dP",
+            "\\int dV=\\int -\\frac{10^{-5}}{P}\\,dP",
+            "V(P)=-10^{-5}\\ln|P|+C"
+          ],
+          "exampleSteps": [
+            "Step 1：把导数形式改写为微分形式：dV=-(10^{-5}/P)dP",
+            "Step 2：两边积分：∫dV=∫-(10^{-5}/P)dP",
+            "Step 3：把常数提出：V=-10^{-5}∫(1/P)dP",
+            "Step 4：使用模板 ∫(1/P)dP=ln|P|",
+            "Step 5：得到 V(P)=-10^{-5}ln|P|+C",
+            "Step 6：因为出现 ln，所以选择 D"
+          ],
+          "commonPitfalls": [
+            "不要把 ∫1/P dP 套进 n≠-1 的幂函数公式",
+            "10^{-5} 是常数，不表示指数函数类型",
+            "C 不是可省略的小尾巴；它代表无穷多条可能曲线"
+          ],
+          "bottomTakeaway": "积分告诉我们 V(P) 的形状是对数；要知道是哪一条对数曲线，还需要一个初始数据。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-options",
+            "label": "题目与选项",
+            "role": "setup",
+            "left": 55,
+            "top": 70,
+            "width": 430,
+            "height": 160,
+            "order": 1
+          },
+          {
+            "id": "focus-key-pattern",
+            "label": "识别 1/P 模板",
+            "role": "formula",
+            "left": 525,
+            "top": 75,
+            "width": 395,
+            "height": 125,
+            "order": 2
+          },
+          {
+            "id": "focus-integration-steps",
+            "label": "两边积分步骤",
+            "role": "example",
+            "left": 90,
+            "top": 245,
+            "width": 560,
+            "height": 205,
+            "order": 3
+          },
+          {
+            "id": "focus-answer-type",
+            "label": "函数类型判断",
+            "role": "takeaway",
+            "left": 690,
+            "top": 245,
+            "width": 250,
+            "height": 190,
+            "order": 4
+          },
+          {
+            "id": "focus-next-c",
+            "label": "C 的悬念",
+            "role": "takeaway",
+            "left": 90,
+            "top": 470,
+            "width": 820,
+            "height": 55,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "公式中的 10^{-5} 必须清晰写成负五次方，不要写成 10# 或 10^-s。",
+          "ln|P| 的绝对值竖线要明显；可在旁边小字注明物理上 P>0 时可写 ln P。",
+          "选择项 D 用绿色圈出，A/B/C 用灰色轻划掉，保持课堂板书感。"
+        ],
+        "qaChecklist": [
+          "检查 dV/dP、dV、积分变量 dP 是否一致。",
+          "检查最终答案是否含 +C 且函数类型选 D。",
+          "检查页面底部是否明确承接到初值确定 C。"
+        ]
+      },
+      {
+        "outlineId": "page-6-initial-condition-selects-one-curve",
+        "pageNumber": 6,
+        "pageRole": "strategy",
+        "title": "初值 y(a)=b：在函数族里选出唯一一条",
+        "pageMove": {
+          "fromPrevious": "上一页的流体例题停在 V(P)=-10^{-5}ln|P|+C，因为缺少一个具体数据点。",
+          "currentJob": "用一张图和一行代数说明初值如何确定 C。",
+          "toNext": "下一页会看到答案也可能写成定积分形式；到时候要用 FTC 判断它的导数是不是题目要求的右侧。",
+          "callbackToSpine": "从变化率反推函数时，积分给的是函数族；初值把函数族压缩成唯一解。"
+        },
+        "visualBrief": "整页为网格纸手写板书。左侧占大半页画坐标系，三到四条同形状曲线 y=F(x)+C 上下平移，用不同颜色标 C=-2、C=0、C=2。坐标系中用醒目红点标出 (a,b)，只有中间某条曲线穿过红点，其余曲线以淡色显示。右侧上方写代数推导：y=F(x)+C，y(a)=b，因此 b=F(a)+C，C=b-F(a)。右侧下方写流程框：1 积分得一般解，2 代初值求 C，3 写特解。底部用箭头指向下一页：如果答案是 ∫_a^x f(t)dt 呢？",
+        "visibleContent": {
+          "mustShow": [
+            "一般解：y=F(x)+C 是一族曲线",
+            "图上多条 y=F(x)+C 曲线，标出不同 C",
+            "初值点：(a,b)",
+            "只有一条曲线通过 (a,b)",
+            "流程：积分得一般解 → 代初值求 C → 写特解"
+          ],
+          "formulas": [
+            "y=F(x)+C",
+            "y(a)=b",
+            "b=F(a)+C",
+            "C=b-F(a)"
+          ],
+          "exampleSteps": [
+            "Step 1：积分后先写 y=F(x)+C，而不是立刻选一个 C",
+            "Step 2：初值 y(a)=b 表示点 (a,b) 在曲线上",
+            "Step 3：把 x=a 代入一般解：y(a)=F(a)+C",
+            "Step 4：用 y(a)=b 替换左侧：b=F(a)+C",
+            "Step 5：解得 C=b-F(a)",
+            "Step 6：特解为 y=F(x)+b-F(a)"
+          ],
+          "commonPitfalls": [
+            "初值是函数高度，不是斜率",
+            "不同 C 通常改变上下位置，不改变导数给出的基本形状",
+            "没有初值时不能随便令 C=0"
+          ],
+          "bottomTakeaway": "积分产生一族答案；一个初值点选出唯一答案。下一步：若答案写成定积分，怎样检查它真的满足微分方程？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-family-graph",
+            "label": "函数族图像",
+            "role": "visual",
+            "left": 55,
+            "top": 85,
+            "width": 520,
+            "height": 350,
+            "order": 1
+          },
+          {
+            "id": "focus-initial-point",
+            "label": "初值点",
+            "role": "strategy",
+            "left": 230,
+            "top": 170,
+            "width": 230,
+            "height": 150,
+            "order": 2
+          },
+          {
+            "id": "focus-algebra-c",
+            "label": "代数确定 C",
+            "role": "formula",
+            "left": 620,
+            "top": 90,
+            "width": 310,
+            "height": 170,
+            "order": 3
+          },
+          {
+            "id": "focus-workflow",
+            "label": "三步流程",
+            "role": "takeaway",
+            "left": 620,
+            "top": 290,
+            "width": 320,
+            "height": 145,
+            "order": 4
+          },
+          {
+            "id": "focus-next-ftc",
+            "label": "定积分形式的悬念",
+            "role": "takeaway",
+            "left": 80,
+            "top": 465,
+            "width": 845,
+            "height": 60,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "函数族曲线要明显是同一形状的上下平移，不要画成不同形状。",
+          "红点 (a,b) 必须只落在一条高亮曲线上，其余曲线不要穿过该点。",
+          "右侧代数推导保持四行，不要跳过 b=F(a)+C。"
+        ],
+        "qaChecklist": [
+          "检查是否同时呈现图像解释与代数公式 C=b-F(a)。",
+          "检查底部是否承接到下一页 FTC / 变量上限定积分。",
+          "检查没有把 y(a)=b 误写成 y'(a)=b。"
+        ]
+      },
+      {
+        "outlineId": "mat136-de-intro-page-07-ftc-variable-limits",
+        "pageNumber": 7,
+        "pageRole": "proof",
+        "title": "FTC 检查：变量积分限怎么求导？",
+        "pageMove": {
+          "fromPrevious": "上一页用初值锁定 C；现在要解决：答案如果写成积分，怎么确认它真的满足微分方程？",
+          "currentJob": "把 FTC 和链式法则合成一套“对候选解求导”的检查工具。",
+          "toNext": "下一页马上用这套工具做选择题，不先算积分，只比导数。",
+          "callbackToSpine": "微分方程给变化率；我们不仅要会积分得到候选 y，还要会反向求导验算 y 是否可信。"
+        },
+        "visualBrief": "1000×562.5 横向网格纸课堂板书。顶部左侧写标题，标题下用一句话钩住学生：“候选答案长得像积分，先别急着算。” 页面分成四个大区：左上是 FTC 基础规则，配一条从 a 到 x 的累积条形图；右上是复合上限 u(x) 的链式法则，画成“先到 u，再由 x 推动 u”；左下是变量下限产生负号的推导，重点用红色标出负号；右下做两个一分钟小检查。底部横条收束：下一页用这些规则筛选谁满足 dy/dx。",
+        "visibleContent": {
+          "mustShow": [
+            "检查候选解时：目标是求 y'，不是先把积分算出来。",
+            "第一步：圈出含 x 的积分限。",
+            "第二步：判断变量在上限还是下限。",
+            "第三步：如果积分限是 u(x)，补乘 u'(x)。",
+            "变量下限 = 方向反了，所以出现负号。"
+          ],
+          "formulas": [
+            "d/dx ∫_a^x g(t)dt = g(x)",
+            "d/dx ∫_a^{u(x)} g(t)dt = g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^a g(t)dt = -g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^{v(x)} g(t)dt = g(v(x))v'(x) - g(u(x))u'(x)"
+          ],
+          "exampleSteps": [
+            "设 F(x)=∫_a^x g(t)dt",
+            "FTC：F'(x)=g(x)",
+            "若 y=∫_a^{u(x)}g(t)dt，则 y=F(u(x))",
+            "链式法则：y'=F'(u(x))u'(x)=g(u(x))u'(x)",
+            "若 y=∫_{u(x)}^a g(t)dt=-∫_a^{u(x)}g(t)dt",
+            "所以 y'=-g(u(x))u'(x)"
+          ],
+          "commonPitfalls": [
+            "错：d/dx ∫_1^{x^2} cos(t)dt = cos(x^2)；少了 2x。",
+            "错：d/dx ∫_x^3 e^t dt = e^x；变量在下限，应为 -e^x。",
+            "常数 +C 求导后消失，不影响检查 dy/dx。"
+          ],
+          "bottomTakeaway": "下一页问题：四个积分表达式中，谁的导数刚好等于题目给的 dy/dx？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-hook",
+            "label": "顶部标题与检查思路",
+            "role": "opening",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-ftc-basic",
+            "label": "FTC 变量上限基础规则",
+            "role": "formula",
+            "left": 55,
+            "top": 110,
+            "width": 410,
+            "height": 145,
+            "order": 2
+          },
+          {
+            "id": "focus-chain-rule",
+            "label": "复合上限与链式法则",
+            "role": "proof",
+            "left": 535,
+            "top": 110,
+            "width": 410,
+            "height": 145,
+            "order": 3
+          },
+          {
+            "id": "focus-lower-limit",
+            "label": "变量下限的负号",
+            "role": "pitfall",
+            "left": 55,
+            "top": 280,
+            "width": 410,
+            "height": 165,
+            "order": 4
+          },
+          {
+            "id": "focus-mini-checks",
+            "label": "两个快速求导检查",
+            "role": "example",
+            "left": 535,
+            "top": 280,
+            "width": 410,
+            "height": 165,
+            "order": 5
+          },
+          {
+            "id": "focus-bottom-takeaway",
+            "label": "底部收束与下一页承接",
+            "role": "takeaway",
+            "left": 60,
+            "top": 470,
+            "width": 880,
+            "height": 55,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "公式要清晰可读，积分上下限的位置不能画错；变量 t 与外部变量 x 要明显区分。",
+          "用蓝色框出三条核心公式，用红色只强调变量下限的负号和漏乘 u'(x) 的错误。",
+          "整体像真实课堂板书，不要做成印刷讲义；保留手写箭头、圈注和短句。"
+        ],
+        "qaChecklist": [
+          "检查三条核心公式是否都正确：上限、复合上限、变量下限。",
+          "检查 ∫_{u(x)}^{v(x)} 的通用公式是否是上限项减下限项。",
+          "检查页面底部是否明确承接到下一页选择题。"
+        ]
+      },
+      {
+        "outlineId": "mat136-de-intro-page-08-ftc-check-mcq",
+        "pageNumber": 8,
+        "pageRole": "example",
+        "title": "例题 3：谁真的满足 dy/dx？",
+        "pageMove": {
+          "fromPrevious": "上一页已经有 FTC + 链式法则工具箱。",
+          "currentJob": "逐项检查四个积分表达式的导数是否等于 -2x e^{x^2}。",
+          "toNext": "当我们不想或不能写出公式解时，就改用斜率场观察每一点的变化方向。",
+          "callbackToSpine": "本页把“从 dy/dx 反推 y”之后的可信度检查补上：候选 y 必须微分回原来的变化率。"
+        },
+        "visualBrief": "1000×562.5 横向网格纸手写课堂板书。顶部写题目和醒目的 target：y' must be -2x e^{x^2}。左侧大框列四个选项，选项旁用小圆圈标出每个变量积分限。右侧大区域做逐项求导，按 A/B/C/D 四行排列，每行有“使用规则 → 求导结果 → 与 target 比较”的小标签。D 行用绿色框圈出，A/B/C 的错误点用红色短注：指数错、少 2x、符号错。底部用一条箭头承接：不是所有方程都方便解，下一页看 slope field。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：dy/dx = -2x e^{x^2}",
+            "检查原则：不先算积分，只对候选 y 求导。",
+            "常数 1、2、3 的导数都是 0，不影响 dy/dx。",
+            "变量在下限：多一个负号。",
+            "结论：D 是解。"
+          ],
+          "formulas": [
+            "target: y' = -2x e^{x^2}",
+            "d/dx ∫_a^{u(x)} g(t)dt = g(u(x))u'(x)",
+            "d/dx ∫_{u(x)}^a g(t)dt = -g(u(x))u'(x)",
+            "d/dx (constant) = 0"
+          ],
+          "exampleSteps": [
+            "A: y=∫_0^{-x^2} e^t dt ⇒ y'=e^{-x^2}(-2x)=-2x e^{-x^2}，不是 target。",
+            "B: y=1+∫_0^{-x} e^{t^2}dt ⇒ y'=e^{(-x)^2}(-1)=-e^{x^2}，少了 2x。",
+            "C: y=2+∫_0^{x^2} e^t dt ⇒ y'=e^{x^2}(2x)=2x e^{x^2}，符号错。",
+            "D: y=3+∫_{x^2}^{0} e^t dt ⇒ y'=-e^{x^2}(2x)=-2x e^{x^2}。",
+            "所以 D 的导数与 dy/dx 完全相同。"
+          ],
+          "commonPitfalls": [
+            "不要把 ∫ e^t dt 全部算出来；本题只问是否满足微分方程。",
+            "e^{-x^2} 和 e^{x^2} 不是一回事。",
+            "变量在下限时，负号来自积分方向，不是随便加的。"
+          ],
+          "bottomTakeaway": "如果解不方便写成公式怎么办？下一页：用 slope field 直接读每一点的斜率。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-target",
+            "label": "题目与目标导数",
+            "role": "setup",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 90,
+            "order": 1
+          },
+          {
+            "id": "focus-options",
+            "label": "四个候选积分表达式",
+            "role": "example",
+            "left": 50,
+            "top": 130,
+            "width": 390,
+            "height": 245,
+            "order": 2
+          },
+          {
+            "id": "focus-rules-reminder",
+            "label": "求导规则小工具箱",
+            "role": "formula",
+            "left": 50,
+            "top": 390,
+            "width": 390,
+            "height": 95,
+            "order": 3
+          },
+          {
+            "id": "focus-derivative-checks",
+            "label": "A/B/C/D 逐项求导比较",
+            "role": "proof",
+            "left": 475,
+            "top": 125,
+            "width": 475,
+            "height": 300,
+            "order": 4
+          },
+          {
+            "id": "focus-final-answer",
+            "label": "圈出正确答案与错误类型",
+            "role": "takeaway",
+            "left": 475,
+            "top": 435,
+            "width": 475,
+            "height": 55,
+            "order": 5
+          },
+          {
+            "id": "focus-next-bridge",
+            "label": "转向斜率场的承接",
+            "role": "takeaway",
+            "left": 60,
+            "top": 505,
+            "width": 880,
+            "height": 40,
+            "order": 6
+          }
+        ],
+        "generationNotes": [
+          "D 行必须用绿色框突出；A/B/C 的错误原因用短红字，不要写成长段解释。",
+          "四个选项的积分上下限必须清楚：D 是从 x^2 到 0，变量在下限。",
+          "保持课堂推演感：target 写在中间，逐项用箭头对比，不要排成死板表格。"
+        ],
+        "qaChecklist": [
+          "检查 D 的求导是否写成 -e^{x^2}·2x=-2x e^{x^2}。",
+          "检查 A、B、C 的错误判断分别是指数不匹配、少 2x、符号不匹配。",
+          "检查底部是否明确过渡到 slope field。"
+        ]
+      },
+      {
+        "outlineId": "mat136-w1-de-intro-page-09-slope-field-definition",
+        "pageNumber": 9,
+        "pageRole": "definition",
+        "title": "斜率场：每个点放一小段切线",
+        "pageMove": {
+          "fromPrevious": "刚学会用导数验算一个积分表达式是否满足微分方程。",
+          "currentJob": "现在把微分方程右侧当成方向规则，学习不用显式解也能读图。",
+          "toNext": "下一页用“只依赖 x / 只依赖 y / 同时依赖 x,y”的图像特征做匹配题。",
+          "callbackToSpine": "呼应主线：微分方程给的是变化规则；斜率场让这个变化规则可视化。"
+        },
+        "visualBrief": "整页为浅米色网格纸手写板书风格。顶部左侧写标题，标题下用一句话把 dy/dx=f(x,y) 解释成“给每个点分配斜率”。页面左半部分画坐标平面和稀疏网格点，每个点上有短小线段，突出这是局部方向，不是完整曲线。右半部分分三块：零斜率、正斜率、负斜率，用不同颜色区域或箭头标注。底部画一条从初值点出发的蓝色光滑解曲线，曲线穿过小线段并与它们相切，右下角留下问题：下一页怎样仅凭这些线索匹配公式？",
+        "visibleContent": {
+          "mustShow": [
+            "dy/dx=f(x,y)：给平面上每个点 (x,y) 分配一个斜率",
+            "斜率场 = 在许多点画出对应斜率的小线段",
+            "解曲线经过某点时，必须顺着当地小线段方向",
+            "先找：零斜率线、正斜率区域、负斜率区域",
+            "读图不是求出 y，而是判断局部趋势"
+          ],
+          "formulas": [
+            "\\frac{dy}{dx}=f(x,y)",
+            "m=f(x,y)",
+            "m=0 \\Rightarrow 水平小线段",
+            "m>0 上升，\\quad m<0 下降"
+          ],
+          "exampleSteps": [
+            "1. 选一个网格点 (x,y)",
+            "2. 代入右侧：m=f(x,y)",
+            "3. 在该点画斜率为 m 的短线段",
+            "4. 重复许多点，得到方向地图",
+            "5. 解曲线从初值点出发，沿小线段相切前进"
+          ],
+          "commonPitfalls": [
+            "小线段不是一小段解，只是切线方向",
+            "没有初值时，斜率场里通常有很多条可能的解曲线",
+            "水平小线段表示 dy/dx=0，不一定表示 y=0"
+          ],
+          "bottomTakeaway": "下一页：看同一竖线、同一横线、零斜率线，匹配微分方程。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-rule",
+            "label": "标题与方向规则",
+            "role": "opening",
+            "left": 50,
+            "top": 30,
+            "width": 900,
+            "height": 85,
+            "order": 1
+          },
+          {
+            "id": "focus-main-field",
+            "label": "斜率场主图",
+            "role": "visual",
+            "left": 55,
+            "top": 125,
+            "width": 435,
+            "height": 285,
+            "order": 2
+          },
+          {
+            "id": "focus-sign-reading",
+            "label": "零正负斜率读法",
+            "role": "strategy",
+            "left": 525,
+            "top": 125,
+            "width": 400,
+            "height": 175,
+            "order": 3
+          },
+          {
+            "id": "focus-solution-curve",
+            "label": "解曲线必须相切",
+            "role": "formula",
+            "left": 520,
+            "top": 315,
+            "width": 410,
+            "height": 115,
+            "order": 4
+          },
+          {
+            "id": "focus-takeaway-next",
+            "label": "底部收束与下一页问题",
+            "role": "takeaway",
+            "left": 60,
+            "top": 450,
+            "width": 870,
+            "height": 75,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场的小线段要短而均匀，避免画成流线或箭头场；重点是斜率方向。",
+          "正斜率用暖色、负斜率用冷色、零斜率用绿色水平线段，颜色要服务于读图。",
+          "公式必须清楚写作 dy/dx=f(x,y)，不要误写成 y=f(x,y)。"
+        ],
+        "qaChecklist": [
+          "图上是否明确说明每个点 (x,y) 对应一个斜率 m=f(x,y)？",
+          "是否同时出现零斜率、正斜率、负斜率的读法？",
+          "是否画出一条与小线段相切的解曲线，并说明需要初值才选定？"
+        ]
+      },
+      {
+        "outlineId": "mat136-w1-de-intro-page-10-match-slope-fields",
+        "pageNumber": 10,
+        "pageRole": "example",
+        "title": "例题 4：三条微分方程匹配三个斜率场",
+        "pageMove": {
+          "fromPrevious": "已经知道斜率场是在每个点画 dy/dx 的局部方向。",
+          "currentJob": "用依赖变量和零斜率线匹配公式与图像。",
+          "toNext": "下一页做反向选择：从一张斜率场判断它更像哪一个公式。",
+          "callbackToSpine": "把“变化率规则”转成图像证据，训练在没有显式解时判断趋势。"
+        },
+        "visualBrief": "整页为课堂板书式布局。顶部写题目和三条方程 A、B、C。中部左侧放四个小斜率场缩略图，排成 2×2，每个图下方留空标签框；按照原资料结果在最后用彩色批注标出左上 C、右上 A、右下 B，左下写 unmatched 或“不匹配”。中部右侧写三步匹配策略：看依赖变量、找零斜率线、看正负区域。底部用一行表格整理 A/B/C 的特征：依赖、零线、图像指纹、匹配位置。页面要像老师边看图边圈出线索：在 A 图上圈竖条纹和 x=0,x=1；在 C 图上圈横条纹和 y=2,y=-1；在 B 图上圈 x=0 与 y=2 的十字零线。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：三条微分方程匹配三个斜率场",
+            "A 只依赖 x：同一竖线上的小线段斜率相同",
+            "C 只依赖 y：同一横线上的小线段斜率相同",
+            "B 同时依赖 x,y：看 x=0 或 y=2 附近的零斜率",
+            "答案：左上 C，右上 A，右下 B"
+          ],
+          "formulas": [
+            "A.\\ \\frac{dy}{dx}=x(x-1)",
+            "B.\\ \\frac{dy}{dx}=x(y-2)",
+            "C.\\ \\frac{dy}{dx}=(2-y)(y+1)^2",
+            "\\frac{dy}{dx}=0 \\Rightarrow 水平小线段"
+          ],
+          "exampleSteps": [
+            "1. A: 只含 x，所以沿同一竖线斜率相同；零线 x=0, x=1",
+            "2. C: 只含 y，所以沿同一横线斜率相同；零线 y=2, y=-1",
+            "3. B: 同时含 x,y；零线来自 x(y-2)=0，即 x=0 或 y=2",
+            "4. 找图像指纹：竖条纹 → A，横条纹 → C，十字零线 → B",
+            "5. 写下匹配：左上 C，右上 A，右下 B",
+            "6. 剩下一张图不匹配给出的三条方程"
+          ],
+          "commonPitfalls": [
+            "只依赖 x → 同一竖线相同；只依赖 y → 同一横线相同",
+            "C 中 (y+1)^2=0 给出 y=-1，不能漏掉",
+            "零斜率线是水平小线段的位置，不是曲线一定停住不动"
+          ],
+          "bottomTakeaway": "匹配顺序：依赖变量 → 零斜率线 → 正负区域；下一页反过来从图像选公式。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-problem-formulas",
+            "label": "题目与三条方程",
+            "role": "setup",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 105,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field-panels",
+            "label": "四个斜率场缩略图",
+            "role": "visual",
+            "left": 45,
+            "top": 145,
+            "width": 500,
+            "height": 275,
+            "order": 2
+          },
+          {
+            "id": "focus-matching-strategy",
+            "label": "匹配策略批注",
+            "role": "strategy",
+            "left": 575,
+            "top": 145,
+            "width": 365,
+            "height": 155,
+            "order": 3
+          },
+          {
+            "id": "focus-equation-analysis",
+            "label": "A/B/C 逐条分析",
+            "role": "example",
+            "left": 575,
+            "top": 315,
+            "width": 365,
+            "height": 115,
+            "order": 4
+          },
+          {
+            "id": "focus-answer-table",
+            "label": "答案表格与承接",
+            "role": "takeaway",
+            "left": 55,
+            "top": 445,
+            "width": 875,
+            "height": 82,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "四个斜率场不必复刻原图每条小线段，但必须清楚表现：C 横向一致、A 竖向一致、B 有 x=0 与 y=2 的零斜率结构。",
+          "答案标注要像课堂最后揭示：左上 C、右上 A、右下 B，剩余图写“不匹配”。",
+          "所有公式中的 dy/dx、x(x-1)、x(y-2)、(2-y)(y+1)^2 必须准确。"
+        ],
+        "qaChecklist": [
+          "是否明确写出 A、B、C 三条微分方程并保持符号正确？",
+          "是否说明 A 同竖线相同、C 同横线相同、B 有 x=0 或 y=2 零线？",
+          "最终匹配是否为左上 C、右上 A、右下 B？"
+        ]
+      },
+      {
+        "outlineId": "page-11-slope-field-identify-x2-minus-y2",
+        "pageNumber": 11,
+        "pageRole": "example",
+        "title": "例题 5：从斜率场读出 dy/dx = x² − y²",
+        "pageMove": {
+          "fromPrevious": "上一页已经用斜率场匹配了三类方程，这一页把判断标准收紧到一张图和四个相似选项。",
+          "currentJob": "用零斜率线、正负区域和排除法判断答案是 C。",
+          "toNext": "斜率场不仅能帮我们选公式，还能告诉我们从一个初始点沿哪条方向前进；下一页把这个想法变成 Euler 更新公式。",
+          "callbackToSpine": "即使没有显式解，dy/dx 仍然给出每一点的局部运动方向。"
+        },
+        "visualBrief": "整页为横向网格纸手写板书风格。左侧放较大的斜率场坐标图，x、y 轴清楚，两条虚线对角线 x=y 与 x=-y 用淡蓝色标出，并在附近圈出水平小线段。右侧列四个选项。下方用三步诊断板书：1 找零斜率，2 看符号，3 排除非负选项。右下角用醒目框写最终答案 C。页面应像课堂上边看图边圈重点，不是干净排版答案页。",
+        "visibleContent": {
+          "mustShow": [
+            "题目：Which differential equation corresponds to the slope field?",
+            "先看水平小线段：dy/dx=0",
+            "图上两条零斜率线：x=y 与 x=-y",
+            "A、B、D 的右侧都 ≥ 0，不能解释负斜率区域",
+            "答案：C"
+          ],
+          "formulas": [
+            "A. \\frac{dy}{dx}=(x-y)^2",
+            "B. \\frac{dy}{dx}=(x+y)^2",
+            "C. \\frac{dy}{dx}=x^2-y^2=(x-y)(x+y)",
+            "D. \\frac{dy}{dx}=x^2+y^2"
+          ],
+          "exampleSteps": [
+            "观察图：沿 x=y 与 x=-y 附近，小线段几乎水平。",
+            "所以候选方程必须在 x=y 和 x=-y 两条线上都满足 dy/dx=0。",
+            "C: x^2-y^2=0 ⇒ (x-y)(x+y)=0 ⇒ x=y 或 x=-y。",
+            "看符号：|x|>|y| 时 x^2-y^2>0；|y|>|x| 时 x^2-y^2<0。",
+            "A、B、D 不会产生负斜率；与图中向下倾斜区域矛盾。",
+            "因此 slope field 对应 C。"
+          ],
+          "commonPitfalls": [
+            "不要把“有平方”都当成一样：x^2-y^2 不是平方和。",
+            "不要只找一个零点；这里要找零斜率线。",
+            "A、B 只有一条零斜率对角线，图中有两条。"
+          ],
+          "bottomTakeaway": "斜率场的读图顺序：零斜率线 → 正负区域 → 对称性 → 排除选项。下一步：沿着这些小切线走。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-question",
+            "label": "标题与题目",
+            "role": "opening",
+            "left": 42,
+            "top": 28,
+            "width": 908,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field",
+            "label": "斜率场主图与两条零斜率线",
+            "role": "visual",
+            "left": 48,
+            "top": 112,
+            "width": 430,
+            "height": 314,
+            "order": 2
+          },
+          {
+            "id": "focus-options",
+            "label": "四个候选微分方程",
+            "role": "setup",
+            "left": 512,
+            "top": 112,
+            "width": 420,
+            "height": 150,
+            "order": 3
+          },
+          {
+            "id": "focus-diagnostics",
+            "label": "三步读图判断",
+            "role": "strategy",
+            "left": 512,
+            "top": 284,
+            "width": 420,
+            "height": 150,
+            "order": 4
+          },
+          {
+            "id": "focus-elimination-answer",
+            "label": "排除理由与最终答案",
+            "role": "takeaway",
+            "left": 70,
+            "top": 444,
+            "width": 860,
+            "height": 86,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场不需要完全复刻原讲义，但必须明显显示两条对角线附近水平、部分区域正斜率、部分区域负斜率。",
+          "公式中的平方、正负号和分数 dy/dx 必须清楚，避免把 x^2-y^2 画成 x^2+y^2。",
+          "用红色圈出负斜率区域，用蓝色虚线标出 x=±y。"
+        ],
+        "qaChecklist": [
+          "检查图中是否能看出 x=y 与 x=-y 两条零斜率线。",
+          "检查 A、B、C、D 四个选项是否写全且符号正确。",
+          "检查底部最终答案是否为 C。"
+        ]
+      },
+      {
+        "outlineId": "page-12-euler-method-one-tangent-step",
+        "pageNumber": 12,
+        "pageRole": "formula",
+        "title": "Euler 方法：沿当前切线走一步",
+        "pageMove": {
+          "fromPrevious": "上一页斜率场告诉我们每个点的方向；现在把方向变成一步一步的数值近似。",
+          "currentJob": "建立 Euler 更新公式，并在图上标出当前点、当前斜率和步长。",
+          "toNext": "有了近似折线后，下一页要问：这条折线会在真实解的上方还是下方？",
+          "callbackToSpine": "当微分方程难以直接解出 y 时，我们仍能利用 dy/dx 生成可信的近似轨迹。"
+        },
+        "visualBrief": "整页为课堂板书式网格纸。左侧画坐标轴和淡灰斜率场，从一个深色初始点 (x_n,y_n) 出发，沿该点切线画一段橙色小线段到近似点 (x_{n+1},y_{n+1})，水平箭头标 Δx，竖直箭头标 Δy≈f(x_n,y_n)Δx，并用虚线画一条真实曲线表示 Euler 折线只是近似。右侧写公式推导，从 slope=rise/run 到 Δy≈slope·Δx，再到 boxed Euler formula。底部画两个小示意：小步长更贴近曲线，大步长偏离更明显。",
+        "visibleContent": {
+          "mustShow": [
+            "当前点：(x_n, y_n)",
+            "当前斜率：f(x_n,y_n)",
+            "水平步长：Δx",
+            "Euler 的想法：短距离内，用切线代替曲线",
+            "步长越大，偏离真实曲线的风险越大"
+          ],
+          "formulas": [
+            "y'=f(x,y)",
+            "x_{n+1}=x_n+\\Delta x",
+            "\\Delta y\\approx f(x_n,y_n)\\Delta x",
+            "y_{n+1}=y_n+f(x_n,y_n)\\Delta x"
+          ],
+          "exampleSteps": [
+            "从斜率场上选当前点 (x_n,y_n)。",
+            "读出该点斜率：m=f(x_n,y_n)。",
+            "向右走一个步长：x_{n+1}=x_n+\\Delta x。",
+            "沿切线估计竖直变化：\\Delta y\\approx m\\Delta x。",
+            "加到当前高度：y_{n+1}=y_n+f(x_n,y_n)\\Delta x。",
+            "把新点当作下一步的当前点，重复。"
+          ],
+          "commonPitfalls": [
+            "本步斜率用 f(x_n,y_n)，不是 f(x_{n+1},y_{n+1})。",
+            "Euler 点连成的是折线近似，不一定落在真实曲线上。",
+            "Δx 太大时，切线很快不再贴合曲线。"
+          ],
+          "bottomTakeaway": "Euler = 用当前斜率走一小步；误差方向要看真实解的凹凸性。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-idea",
+            "label": "标题与一句话想法",
+            "role": "opening",
+            "left": 42,
+            "top": 28,
+            "width": 908,
+            "height": 70,
+            "order": 1
+          },
+          {
+            "id": "focus-visual-step",
+            "label": "斜率场上的一步切线近似",
+            "role": "visual",
+            "left": 52,
+            "top": 112,
+            "width": 430,
+            "height": 278,
+            "order": 2
+          },
+          {
+            "id": "focus-formula-derivation",
+            "label": "更新公式推导",
+            "role": "formula",
+            "left": 520,
+            "top": 112,
+            "width": 420,
+            "height": 220,
+            "order": 3
+          },
+          {
+            "id": "focus-variable-labels",
+            "label": "变量含义标注",
+            "role": "setup",
+            "left": 520,
+            "top": 350,
+            "width": 420,
+            "height": 84,
+            "order": 4
+          },
+          {
+            "id": "focus-step-size-warning",
+            "label": "步长大小与偏离风险",
+            "role": "pitfall",
+            "left": 70,
+            "top": 444,
+            "width": 860,
+            "height": 82,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "图中必须清楚区分真实曲线虚线与 Euler 折线实线，避免学生误以为 Euler 给出精确解。",
+          "公式框中的 y_{n+1}=y_n+f(x_n,y_n)Δx 要最大、最醒目。",
+          "Δx、f(x_n,y_n)、Δy 三个标签要直接贴在左侧图的箭头或切线旁。"
+        ],
+        "qaChecklist": [
+          "检查公式是否使用当前点 (x_n,y_n) 的斜率。",
+          "检查是否同时显示 x_{n+1}=x_n+Δx。",
+          "检查底部是否明确引到下一页的凹凸性与高估/低估。"
+        ]
+      },
+      {
+        "outlineId": "page-13-euler-error-concavity",
+        "pageNumber": 13,
+        "pageRole": "pitfalls",
+        "title": "Euler 高估还是低估：看凹凸性",
+        "pageMove": {
+          "fromPrevious": "已经知道 Euler 是用当前斜率做一步线性近似。",
+          "currentJob": "解释为什么凹向上会让切线落在曲线下方，凹向下会让切线落在曲线上方。",
+          "toNext": "把这个规则套到金鱼数量模型的斜率场，判断 t=2 的 Euler 近似方向。",
+          "callbackToSpine": "当解不容易写成公式时，我们仍然能用图像性质判断近似是否可信。"
+        },
+        "visualBrief": "整页用浅色网格纸和黑色手写板书风格。页面左右分成两个大图：左边画 concave up 的真实解曲线，从同一初始点画一条切线，切线延伸到下一步时落在曲线下方，并标出“Euler 点”；右边画 concave down 的真实解曲线，同样从初始点画切线，切线在下一步时高于曲线。中间或下方放一条醒目的判断流程：不是看斜率正负，而是看解曲线相对切线的位置。右下角留出桥接提示：下一页金鱼 Allee effect。",
+        "visibleContent": {
+          "mustShow": [
+            "Euler 一步 = 沿当前切线走",
+            "concave up：切线通常在曲线下方 → Euler 低估",
+            "concave down：切线通常在曲线上方 → Euler 高估",
+            "判断对象：沿初值出发的解曲线，不是某一个斜率场小线段",
+            "下一页：用金鱼 Allee effect 的斜率场判断 t=2 的 Euler 近似"
+          ],
+          "formulas": [
+            "y_{n+1}=y_n+f(x_n,y_n)\\Delta x",
+            "x_{n+1}=x_n+\\Delta x",
+            "concave up: y''>0",
+            "concave down: y''<0"
+          ],
+          "exampleSteps": [
+            "从初始点 (x_n,y_n) 画真实解曲线。",
+            "在同一点画切线，斜率为 f(x_n,y_n)。",
+            "Euler 用切线走到 x_{n+1}。",
+            "若真实曲线在切线上方，则 Euler 值偏低。",
+            "若真实曲线在切线下方，则 Euler 值偏高。",
+            "所以凹凸性决定常见误差方向。"
+          ],
+          "commonPitfalls": [
+            "不要说“斜率为正所以高估”。斜率正负只说明上升或下降。",
+            "不要只盯一个小线段；要看沿解曲线方向斜率如何变化。",
+            "若曲线中途换凹凸，必须分段判断。"
+          ],
+          "bottomTakeaway": "Euler 误差方向口诀：曲线在切线上方 → 低估；曲线在切线下方 → 高估。"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-title-rule",
+            "label": "标题与核心规则",
+            "role": "opening",
+            "left": 45,
+            "top": 28,
+            "width": 910,
+            "height": 72,
+            "order": 1
+          },
+          {
+            "id": "focus-concave-up",
+            "label": "左侧凹向上图",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 405,
+            "height": 250,
+            "order": 2
+          },
+          {
+            "id": "focus-concave-down",
+            "label": "右侧凹向下图",
+            "role": "visual",
+            "left": 540,
+            "top": 115,
+            "width": 405,
+            "height": 250,
+            "order": 3
+          },
+          {
+            "id": "focus-decision-strip",
+            "label": "误差判断流程条",
+            "role": "strategy",
+            "left": 80,
+            "top": 390,
+            "width": 840,
+            "height": 85,
+            "order": 4
+          },
+          {
+            "id": "focus-pitfall-next",
+            "label": "易错提醒与下一页承接",
+            "role": "pitfall",
+            "left": 80,
+            "top": 485,
+            "width": 840,
+            "height": 55,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "两幅图都要清楚标出真实曲线、切线、Euler 点、true y。",
+          "左图切线必须在曲线下方；右图切线必须在曲线上方。",
+          "不要把页面做成纯文字摘要，要像课堂上正在用图解释误差方向。"
+        ],
+        "qaChecklist": [
+          "是否明确写出 concave up → Euler 低估，concave down → Euler 高估？",
+          "是否强调判断对象是解曲线而不是单个 slope field 小线段？",
+          "两张图中的切线与曲线相对位置是否正确？"
+        ]
+      },
+      {
+        "outlineId": "page-14-summary-goldfish-allee",
+        "pageNumber": 14,
+        "pageRole": "summary",
+        "title": "总结：从变化率到函数，再到图像与近似",
+        "pageMove": {
+          "fromPrevious": "上一页把 Euler 误差方向和凹凸性连接起来。",
+          "currentJob": "用金鱼 Allee effect 例题收束：斜率场显示解曲线凹向上，所以 Euler 低估。",
+          "toNext": "下一节追问：当 dy/dx 同时含 y 时，哪些方程能通过分离变量真正解出？",
+          "callbackToSpine": "微分方程给变化规则；积分、初值、验算、斜率场和 Euler 共同帮助我们恢复、确认或近似函数。"
+        },
+        "visualBrief": "整页继续使用浅色网格纸板书。上半页左侧画金鱼数量模型的简化斜率场，坐标轴为 t 与 N，标出初始点 (0,7)，画一条向右上且凹向上的真实解曲线，再画 Euler 折线，每 0.5 一步，折线在真实曲线下方。上半页右侧写完整模型和判断三步。下半页做本节总流程图，从“只知道变化率”箭头推进到“积分得到函数族”“初值锁定 C”“FTC/链式法则验算”“斜率场读趋势”“Euler 近似与误差”。底部放下一节钩子：separable differential equations。",
+        "visibleContent": {
+          "mustShow": [
+            "Goldfish Allee effect: 从斜率场判断，不必先解出 N(t)",
+            "初始点：(0,7)，步长 \\Delta t=0.5，到 t=2 共 4 步",
+            "解曲线凹向上 → Euler 折线在真实曲线下方",
+            "结论：t=2 的 Euler 近似是低估，对应 A",
+            "本节工作流：变化率 → 积分 → 初值 → 验算 → 斜率场 → Euler"
+          ],
+          "formulas": [
+            "\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)",
+            "N(0)=7,\\quad \\Delta t=0.5",
+            "N_{n+1}=N_n+f(t_n,N_n)\\Delta t",
+            "t=2=4\\times 0.5"
+          ],
+          "exampleSteps": [
+            "1. 标出初始点 (0,7)。",
+            "2. 沿斜率场看解曲线：向右上走。",
+            "3. 小线段沿路径变得更陡，判断解曲线 concave up。",
+            "4. concave up 时，Euler 切线步进在真实曲线下方。",
+            "5. 所以 Euler approximation at t=2 is an under-estimate。",
+            "6. 选择 A。"
+          ],
+          "commonPitfalls": [
+            "低估不是因为 N'>0，而是因为解曲线凹向上。",
+            "不要把 Euler 折线画到真实曲线上方。",
+            "这题是图像判断题，不要求分离变量求显式解。"
+          ],
+          "bottomTakeaway": "下一节：当右侧含 y 时，如何用分离变量解出更多微分方程？"
+        },
+        "focusRegions": [
+          {
+            "id": "focus-goldfish-title-model",
+            "label": "标题与金鱼模型",
+            "role": "setup",
+            "left": 45,
+            "top": 25,
+            "width": 910,
+            "height": 82,
+            "order": 1
+          },
+          {
+            "id": "focus-slope-field-euler",
+            "label": "斜率场与 Euler 折线",
+            "role": "visual",
+            "left": 55,
+            "top": 115,
+            "width": 455,
+            "height": 235,
+            "order": 2
+          },
+          {
+            "id": "focus-goldfish-steps",
+            "label": "金鱼例题判断步骤",
+            "role": "example",
+            "left": 545,
+            "top": 115,
+            "width": 400,
+            "height": 235,
+            "order": 3
+          },
+          {
+            "id": "focus-course-workflow",
+            "label": "本节完整工作流",
+            "role": "takeaway",
+            "left": 60,
+            "top": 370,
+            "width": 880,
+            "height": 105,
+            "order": 4
+          },
+          {
+            "id": "focus-next-hook",
+            "label": "下一节钩子",
+            "role": "takeaway",
+            "left": 80,
+            "top": 492,
+            "width": 840,
+            "height": 48,
+            "order": 5
+          }
+        ],
+        "generationNotes": [
+          "斜率场不需要密集到难读，但必须显示沿 (0,7) 出发的路径斜率变大。",
+          "Euler 折线用不同颜色或虚线表示，且整体位于真实凹向上曲线下方。",
+          "总结流程图要像课堂最后整理板书，不要做成装饰海报。"
+        ],
+        "qaChecklist": [
+          "是否准确写出金鱼模型 N'=N(N/6-1)(1-N/20) 与 N(0)=7？",
+          "是否明确结论为 t=2 的 Euler 近似低估，选 A？",
+          "是否包含整节课的流程回顾和下一节分离变量钩子？"
+        ]
+      }
+    ]
+  },
+  "model": "openai:gpt-5.5",
+  "plannerMode": "batched",
+  "planBatchCount": 7,
+  "planQuality": {
+    "passed": true,
+    "minPageCount": 12,
+    "findings": [],
+    "blockedPhrases": [],
+    "retryCount": 0
+  },
+  "planQualityAttempts": [
+    {
+      "passed": true,
+      "minPageCount": 12,
+      "findings": [],
+      "blockedPhrases": [],
+      "retryCount": 0
+    },
+    {
+      "passed": true,
+      "minPageCount": 12,
+      "findings": [],
+      "blockedPhrases": [],
+      "retryCount": 0
+    }
+  ]
+}

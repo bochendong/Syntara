@@ -3,7 +3,9 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import {
+  getFullPageImageUrlFromScene,
   runNotebookGenerationTask,
+  type NotebookGeneratedPageThumbnail,
   type NotebookGenerationProgress,
   type NotebookGenerationTaskInput,
   type NotebookGenerationTaskResult,
@@ -37,6 +39,8 @@ export type NotebookGenerationQueueTask = {
   createdAt: number;
   updatedAt: number;
   progress?: NotebookGenerationProgress;
+  plannedPages?: Array<{ id: string; title: string; focus: string }>;
+  generatedPageThumbnails?: Record<number, string>;
   notebookId?: string;
   notebookName?: string;
   error?: string;
@@ -79,6 +83,55 @@ function pendingSourceBytes(tasks: NotebookGenerationQueueTask[]) {
 
 function taskSort(a: NotebookGenerationQueueTask, b: NotebookGenerationQueueTask) {
   return a.createdAt - b.createdAt;
+}
+
+function buildQueuedPlannedPages(
+  input: QueueableNotebookInput,
+): NotebookGenerationQueueTask['plannedPages'] {
+  return input.confirmedImageNotebookOutlines?.map((outline, index) => {
+    const focus = [
+      outline.teachingObjective,
+      outline.studentThinkingMove,
+      outline.description,
+      ...(outline.keyPoints || []).slice(0, 2),
+    ]
+      .filter((item): item is string => Boolean(item?.trim()))
+      .join(' ');
+    return {
+      id: outline.id || `${index + 1}`,
+      title: outline.title || `第 ${index + 1} 页`,
+      focus: focus || '等待当前页面规划内容。',
+    };
+  });
+}
+
+function mergeGeneratedPageThumbnails(
+  current: NotebookGenerationQueueTask['generatedPageThumbnails'],
+  updates?: NotebookGeneratedPageThumbnail[],
+): NotebookGenerationQueueTask['generatedPageThumbnails'] | undefined {
+  if (!updates?.length) return current;
+  const next: Record<number, string> = { ...(current || {}) };
+  for (const update of updates) {
+    if (update.pageNumber > 0 && update.imageUrl.trim()) {
+      next[update.pageNumber] = update.imageUrl;
+    }
+  }
+  return Object.keys(next).length ? next : undefined;
+}
+
+function collectGeneratedPageThumbnails(
+  result: NotebookGenerationTaskResult,
+): NotebookGenerationQueueTask['generatedPageThumbnails'] | undefined {
+  const updates = result.scenes
+    .map((scene, index) => {
+      const imageUrl = getFullPageImageUrlFromScene(scene);
+      if (!imageUrl) return null;
+      const pageNumber =
+        Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
+      return { pageNumber, imageUrl };
+    })
+    .filter((entry): entry is NotebookGeneratedPageThumbnail => Boolean(entry));
+  return mergeGeneratedPageThumbnails(undefined, updates);
 }
 
 function getTask(taskId: string): NotebookGenerationQueueTask | undefined {
@@ -144,8 +197,17 @@ async function runNextTask() {
           'notebookName' in progress && typeof progress.notebookName === 'string'
             ? progress.notebookName
             : undefined;
+        const currentTask = getTask(nextTask.id);
+        const generatedPageThumbnails =
+          progress.stage === 'scene'
+            ? mergeGeneratedPageThumbnails(
+                currentTask?.generatedPageThumbnails,
+                progress.generatedPageThumbnails,
+              )
+            : currentTask?.generatedPageThumbnails;
         patchTask(nextTask.id, {
           progress,
+          ...(generatedPageThumbnails ? { generatedPageThumbnails } : {}),
           ...(notebookId ? { notebookId } : {}),
           ...(notebookName ? { notebookName } : {}),
         });
@@ -164,11 +226,21 @@ async function runNextTask() {
       status: 'completed',
       notebookId: result.stage.id,
       notebookName: result.stage.name,
+      generatedPageThumbnails:
+        mergeGeneratedPageThumbnails(
+          latestAfterRun?.generatedPageThumbnails,
+          Object.entries(collectGeneratedPageThumbnails(result) || {}).map(
+            ([pageNumber, imageUrl]) => ({
+              pageNumber: Number(pageNumber),
+              imageUrl,
+            }),
+          ),
+        ) || latestAfterRun?.generatedPageThumbnails,
       progress: {
         stage: 'completed',
         detail:
           runtime.input.generateSlides === false
-            ? '已加入仓库（未生成 PPT 课件）'
+            ? '已加入仓库（未生成图片 notebook）'
             : result.failedScenes && result.failedScenes.length > 0
               ? `已完成，成功生成 ${result.scenes.length} 页，跳过 ${result.failedScenes.length} 页失败页面`
               : `已完成，共生成 ${result.scenes.length} 页`,
@@ -223,6 +295,7 @@ export const useNotebookGenerationQueueStore = create<NotebookGenerationQueueSta
         fileName: file?.name,
         fileSize: file?.size,
         generateSlides: input.generateSlides ?? true,
+        plannedPages: buildQueuedPlannedPages(input),
         createdAt: now,
         updatedAt: now,
       };

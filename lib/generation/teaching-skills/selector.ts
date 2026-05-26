@@ -51,6 +51,8 @@ function matchAllUnique(text: string, pattern: RegExp, limit: number): string[] 
 export function extractSourceFacts(sourceText: string, language: 'zh-CN' | 'en-US'): SourceFact[] {
   const facts: SourceFact[] = [];
   const text = sourceText.slice(0, 32_000);
+  const mathLike = hasStrongMathSignal(text);
+  const codeLike = hasStrongCodeSignal(text);
 
   for (const snippet of matchAllUnique(
     text,
@@ -99,9 +101,8 @@ export function extractSourceFacts(sourceText: string, language: 'zh-CN' | 'en-U
   const namedObject = text.match(/\b[A-Z][A-Za-z_][A-Za-z0-9_]{2,}\b/)?.[0];
   if (
     namedObject &&
-    !/^(Python|Java|TypeScript|JavaScript|HTML|CSS|JSON|PDF|OOP|API|HTTP|CSC|CS)$/i.test(
-      namedObject,
-    ) &&
+    (!mathLike || codeLike) &&
+    !isLikelyCourseMetadataToken(namedObject) &&
     !facts.some((fact) => fact.text.toLowerCase().includes(namedObject.toLowerCase()))
   ) {
     addFact(facts, {
@@ -118,7 +119,10 @@ export function extractSourceFacts(sourceText: string, language: 'zh-CN' | 'en-U
     addFact(facts, {
       kind: 'problem',
       label: language === 'zh-CN' ? '本节课问题' : 'lesson problem',
-      text: text.slice(0, 180) || (language === 'zh-CN' ? '当前课程主题' : 'current lesson topic'),
+      text:
+        language === 'zh-CN'
+          ? '根据资料中的第一个实质知识点、公式、例题或方法组织教学。'
+          : 'Organize the lesson around the first substantive knowledge point, formula, example, or method in the source material.',
     });
   }
 
@@ -179,18 +183,31 @@ function preferredDisciplineSkill(hint?: SubjectTeachingPackId | string): string
 }
 
 function hasStrongMathSignal(text: string): boolean {
-  return /(数学|证明|定理|命题|引理|推论|定义域|陪域|值域|像|原像|单射|满射|双射|集合|∀|∃|∈|⊆|⇒|⇔|proof|prove|theorem|proposition|lemma|domain|codomain|range|preimage|injective|surjective|bijective)/i.test(
+  return /(数学|证明|定理|命题|引理|推论|定义域|陪域|值域|像|原像|单射|满射|双射|集合|微分|微分方程|导数|积分|斜率场|欧拉|初值|通解|特解|凹凸性|∀|∃|∈|⊆|⇒|⇔|proof|prove|theorem|proposition|lemma|domain|codomain|range|preimage|injective|surjective|bijective|differential equation|dy\/dx|derivative|integral|slope field|euler|initial value|particular solution|general solution|concavity|logarithmic|exponential)/i.test(
+    text,
+  );
+}
+
+function hasMathCourseSignal(text: string): boolean {
+  return /\bMAT\s*\d{2,4}[A-Z]?\b|calculus|mathematical sciences|微积分|微分方程|斜率场|导数|积分|dy\/dx|differential equation|slope field|initial value|antiderivative/i.test(
     text,
   );
 }
 
 function hasStrongCodeSignal(text: string): boolean {
-  return /(编程|程序|代码|python|java|javascript|typescript|class|def |self|oop|链表|二叉树|bst|dfs|bfs|栈|队列|字典|哈希|算法|数据结构|complexity|invariant|console\.log|return\b|for\s*\(|while\s*\()/i.test(
+  return /(编程|程序|代码|python|java|javascript|typescript|oop|链表|二叉树|bst|dfs|bfs|栈|队列|字典|哈希|算法|数据结构|complexity|invariant|console\.log|self\.|\bdef\s+[A-Za-z_][A-Za-z0-9_]*\s*\(|\bclass\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*[:({]|\s+extends\s)|return\s+[^.!?。！？]{1,80};|\bfor\s*\(|\bwhile\s*\()/i.test(
     text,
   );
 }
 
+function isLikelyCourseMetadataToken(value: string): boolean {
+  return /^(Python|Java|TypeScript|JavaScript|HTML|CSS|JSON|PDF|PPTX|Markdown|OOP|API|HTTP|CSC|CS|MAT|UTSG|UTM|UTSC|UofT|WEEK|Speed|Education|Calculus)$/i.test(
+    value,
+  );
+}
+
 const CODE_ONLY_SKILL_IDS = new Set([
+  'topic.oop.object-model',
   'topic.syntax.execution-trace',
   'topic.ds.structures',
   'topic.alg.graph-frontier',
@@ -217,6 +234,7 @@ export function selectTeachingSkills(context: TeachingSkillContext): SelectedTea
   ]).toLowerCase();
   const selected = new Map<string, TeachingSkillSelectionReason>();
   const mathLike = hasStrongMathSignal(text);
+  const mathCourseLike = hasMathCourseSignal(text);
   const codeLike = hasStrongCodeSignal(text);
 
   addSkill(selected, 'pedagogy.example-first', 'baseline teaching style');
@@ -238,10 +256,14 @@ export function selectTeachingSkills(context: TeachingSkillContext): SelectedTea
       (item) =>
         !(
           item.skill.id === 'discipline.cs' &&
-          mathLike &&
-          !codeLike &&
+          (mathCourseLike || (mathLike && !codeLike)) &&
           hinted !== 'discipline.cs'
-        ) && !(mathLike && !codeLike && CODE_ONLY_SKILL_IDS.has(item.skill.id)),
+        ) &&
+        !(
+          (mathCourseLike || (mathLike && !codeLike)) &&
+          hinted !== 'discipline.cs' &&
+          CODE_ONLY_SKILL_IDS.has(item.skill.id)
+        ),
     )
     .sort((a, b) => b.score - a.score || b.skill.priority - a.skill.priority);
 
@@ -249,10 +271,10 @@ export function selectTeachingSkills(context: TeachingSkillContext): SelectedTea
     addSkill(selected, item.skill.id, `matched ${item.score} trigger(s) in course material`);
   }
 
-  if (mathLike && !codeLike && hinted !== 'discipline.cs') {
+  if ((mathCourseLike || (mathLike && !codeLike)) && hinted !== 'discipline.cs') {
     selected.delete('discipline.cs');
     for (const skillId of CODE_ONLY_SKILL_IDS) selected.delete(skillId);
-    addSkill(selected, 'discipline.math', 'math/proof signals without programming signals');
+    addSkill(selected, 'discipline.math', 'math course signals override programming-like noise');
   }
 
   if (![...selected.keys()].some((id) => id.startsWith('discipline.'))) {

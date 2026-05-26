@@ -36,9 +36,20 @@ Please generate scene outlines based on the following course requirements.
 
 {{purposePolicy}}
 
+### Knowledge-Only Source Rule
+
+The outline AI must treat the uploaded material as teaching content plus source metadata. Your task is only the teaching content.
+
+- Use only substantive knowledge points: definitions, formulas, theorems, examples, problem statements, solution steps, diagrams, graphs, and method patterns.
+- Ignore provenance and container metadata as lesson content: course number/code, campus/school/university, week number, date, instructor/author/tutor, cover title, header/footer, page number, logo/watermark, disclaimer, copyright, sales note, and file-name artifacts.
+- Do not create scene titles, descriptions, keyPoints, quiz questions, or worked examples about those metadata fields.
+- After the system cover, the first generated scene must start from the first substantive knowledge point or example in the material, not from course identity, campus, week/date, author, or source provenance.
+
 ## Course Container Context
 
 {{courseContext}}
+
+Use course container context only to calibrate level, tone, and prerequisite scope. It is not a content source and must not become a scene topic.
 
 ---
 
@@ -46,9 +57,9 @@ Please generate scene outlines based on the following course requirements.
 
 ## Output Requirements
 
-Please automatically infer the following from user requirements:
+Please automatically infer the following from the user requirement and substantive knowledge content:
 
-- Course topic and core content
+- Knowledge topic and core content
 - Target audience and difficulty level
 - Course duration (default 15-30 minutes if not specified)
 - Teaching style (formal/casual/interactive/academic)
@@ -60,12 +71,20 @@ Then output a JSON array containing all scene outlines. Each scene must include:
 {
   "id": "scene_1",
   "type": "slide" or "quiz" or "interactive",
-  "title": "Scene Title",
-  "description": "Teaching purpose description",
-  "keyPoints": ["Point 1", "Point 2", "Point 3"],
+  "title": "学生看到的页面标题：问题、任务或具体板书标题",
+  "description": "学生视角的课堂动作：先看什么，发现什么张力，下一步怎么来",
+  "keyPoints": ["学生可直接读的板书问题/已知/步骤/检查点", "不要写教案总结"],
   "order": 1
 }
 ```
+
+### Student-Facing Field Rules
+
+- `title`, `description`, `keyPoints`, `teachingObjective`, and `studentThinkingMove` will directly control page image prompts and narration prompts. Write them as if they may appear on the board.
+- Do not write private lesson-plan prose such as "让学生看到", "让学生理解", "本页用于", "本页旨在", "教学目标", "本页主线", "讲解重点", "可迁移动作", "建立主线".
+- Prefer classroom wording: "我们已知什么？", "先判断什么？", "下一步怎么来？", "这个条件能用在哪里？", "检查：有没有把结论当前提？"
+- For an intro/hook page, include one concrete problem or tension and one next question. Do not turn it into a full roadmap, agenda, or after-class handout summary.
+- For examples/proofs, `keyPoints` must be actual givens, goals, equations, definition expansions, and justified next steps, not labels such as "讲清方法" or "强调常见错误".
 
 ### Coverage Expectation
 
@@ -77,7 +96,9 @@ By default:
 
 ### Structural Guardrails
 
-- Follow a clear teaching spine: intro / roadmap -> concept block -> lightweight quiz/self-check -> next concept block -> lightweight quiz/self-check -> final summary.
+- Follow a clear teaching spine: overview/hook that asks why this problem matters -> concept or definition boundary -> formula/proof/example move -> lightweight self-check -> next concept block -> final summary.
+- For notebooks with 8+ scenes, scene 1 must be a student-facing overview/hook. It is not a title cover and not a teacher agenda: use one concrete source problem or tension, name the few live moves students will use, and end with the next question.
+- Do not start scene 1 with a full worked solution unless the entire notebook has fewer than 5 scenes.
 - For CS / programming / OOP / data-structure notebooks, override the generic intro/roadmap spine: after the system cover, start with one short context intro that explains the concrete object/input/task from the source facts in learner language, then move to a concrete failure or trace page. Do not spend the first teaching pages on abstract goals, term lists, or roadmap prose.
 - The final summary must be the last scene. Do not place examples, new concepts, quizzes, or continuation teaching after a summary/recap scene.
 - Do not create repeated title/theme pages. If two scenes would have the same title or teaching job, merge them into one stronger outline.
@@ -137,6 +158,7 @@ By default:
 12. **Course container context has higher priority than generic defaults**:
    - If course tags exist, align examples and terminology with those tags when relevant.
    - If course purpose/university/courseCode is provided, keep the scope and prerequisite level aligned with that context.
+   - Do not turn courseCode, university, campus, week/date, teacher/author, or other metadata into scene content.
    - Do not conflict with the user requirement; treat course context as guardrails and personalization hints.
 
 {{mediaGenerationPolicy}}

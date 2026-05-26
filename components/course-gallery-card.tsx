@@ -41,7 +41,7 @@ import {
 
 /** 课程画廊用弹性列；课程内笔记本在桌面页保持双列，贴近课堂工作区设计稿。 */
 export const courseGalleryListGridClassName =
-  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] gap-5 p-0';
+  'm-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-[repeat(auto-fill,minmax(min(100%,_18rem),1fr))] lg:grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] lg:gap-5';
 
 export const notebookAssetListGridClassName =
   'm-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 2xl:gap-4';
@@ -117,31 +117,32 @@ interface CourseGalleryCardProps {
   memoryCount?: number;
   onMemoryAction?: () => void;
   problemCount?: number;
+  onProblemAction?: () => void;
 }
 
 const variantConfig = {
   'store-course': {
     article:
-      'store-merch-card group min-h-[33rem] rounded-[32px] border-white/70 bg-white/78 dark:border-white/12 dark:bg-[rgba(20,24,31,0.85)]',
-    media: 'h-[254px]',
+      'store-merch-card group min-h-[27.5rem] rounded-[24px] border-white/70 bg-white/78 sm:min-h-[33rem] sm:rounded-[32px] dark:border-white/12 dark:bg-[rgba(20,24,31,0.85)]',
+    media: 'h-[176px] min-[420px]:h-[198px] sm:h-[254px]',
     mediaOverlay:
       'from-slate-950/0 via-slate-950/12 to-slate-950/52 dark:from-slate-950/8 dark:via-slate-950/18 dark:to-slate-950/62',
-    title: 'text-[1.55rem] font-semibold tracking-[-0.03em]',
-    desc: 'line-clamp-4 min-h-[6.8rem] text-[14px] leading-7 text-slate-600 dark:text-slate-300',
-    body: 'px-6 pb-6 pt-5',
+    title: 'text-[1.25rem] font-semibold tracking-[-0.03em] sm:text-[1.55rem]',
+    desc: 'line-clamp-3 min-h-[4.75rem] text-[13px] leading-6 text-slate-600 sm:line-clamp-4 sm:min-h-[6.8rem] sm:text-[14px] sm:leading-7 dark:text-slate-300',
+    body: 'px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-5',
     metaTone: 'text-slate-500 dark:text-slate-400',
     pillTone:
       'border-slate-200/80 bg-white/82 text-slate-600 dark:border-white/12 dark:bg-white/6 dark:text-slate-300',
   },
   'owned-course': {
     article:
-      'store-merch-card group min-h-[30rem] rounded-[30px] border-slate-200/80 bg-[linear-gradient(180deg,rgba(252,253,255,0.95),rgba(244,247,252,0.92))] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(22,26,35,0.92),rgba(16,20,28,0.94))]',
-    media: 'h-[220px]',
+      'store-merch-card group min-h-[25.5rem] rounded-[24px] border-slate-200/80 bg-[linear-gradient(180deg,rgba(252,253,255,0.95),rgba(244,247,252,0.92))] sm:min-h-[30rem] sm:rounded-[30px] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(22,26,35,0.92),rgba(16,20,28,0.94))]',
+    media: 'h-[168px] min-[420px]:h-[190px] sm:h-[220px]',
     mediaOverlay:
       'from-slate-950/0 via-slate-950/8 to-slate-950/42 dark:from-slate-950/10 dark:via-slate-950/16 dark:to-slate-950/55',
-    title: 'text-[1.35rem] font-semibold tracking-[-0.025em]',
-    desc: 'line-clamp-4 min-h-[6.2rem] text-[13.5px] leading-7 text-slate-600 dark:text-slate-300',
-    body: 'px-5 pb-5 pt-4',
+    title: 'text-[1.18rem] font-semibold tracking-[-0.025em] sm:text-[1.35rem]',
+    desc: 'line-clamp-3 min-h-[4.5rem] text-[13px] leading-6 text-slate-600 sm:line-clamp-4 sm:min-h-[6.2rem] sm:text-[13.5px] sm:leading-7 dark:text-slate-300',
+    body: 'px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-4',
     metaTone: 'text-slate-500 dark:text-slate-400',
     pillTone:
       'border-slate-200/85 bg-white/88 text-slate-600 dark:border-white/12 dark:bg-white/6 dark:text-slate-300',
@@ -198,6 +199,7 @@ export function CourseGalleryCard({
   memoryCount,
   onMemoryAction,
   problemCount,
+  onProblemAction,
 }: CourseGalleryCardProps) {
   const cfg = variantConfig[variant];
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -494,15 +496,35 @@ export function CourseGalleryCard({
                       课件
                     </span>
                   </span>
-                  <span className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-center">
-                    <span className="flex items-center gap-1 font-semibold text-violet-700 dark:text-violet-300">
-                      <FileQuestion className="size-3" strokeWidth={1.8} />
-                      {formattedProblemCount}
+                  {onProblemAction ? (
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-center transition-colors hover:bg-violet-50/80 dark:hover:bg-violet-500/10"
+                      title="查看题库"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onProblemAction();
+                      }}
+                    >
+                      <span className="flex items-center gap-1 font-semibold text-violet-700 dark:text-violet-300">
+                        <FileQuestion className="size-3" strokeWidth={1.8} />
+                        {formattedProblemCount}
+                      </span>
+                      <span className="text-[8px] leading-none text-slate-500 dark:text-slate-400">
+                        题库
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-center">
+                      <span className="flex items-center gap-1 font-semibold text-violet-700 dark:text-violet-300">
+                        <FileQuestion className="size-3" strokeWidth={1.8} />
+                        {formattedProblemCount}
+                      </span>
+                      <span className="text-[8px] leading-none text-slate-500 dark:text-slate-400">
+                        题库
+                      </span>
                     </span>
-                    <span className="text-[8px] leading-none text-slate-500 dark:text-slate-400">
-                      题库
-                    </span>
-                  </span>
+                  )}
                 </div>
                 {speechStatusLabel?.trim() ? (
                   <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
@@ -612,7 +634,7 @@ export function CourseGalleryCard({
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent dark:from-black/35" />
 
-        <div className="absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3">
+        <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3 sm:inset-x-4 sm:top-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {badge ? (
               <span className="store-chip max-w-[11rem] truncate text-[11px] font-medium">
@@ -679,7 +701,7 @@ export function CourseGalleryCard({
           </div>
         </div>
 
-        <div className="absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-3">
+        <div className="absolute inset-x-4 bottom-4 z-10 flex items-end justify-between gap-3 sm:inset-x-5 sm:bottom-5">
           <div className="min-w-0">
             {showUniversityKicker ? (
               <p className="min-w-0 truncate text-[12px] font-medium text-white/80">
@@ -715,7 +737,7 @@ export function CourseGalleryCard({
         <div className="mb-4 flex items-center gap-3">
           <div
             className={cn(
-              'flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white/92 shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:border-white/12 dark:bg-white/8',
+              'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/70 bg-white/92 shadow-[0_12px_30px_rgba(15,23,42,0.08)] sm:size-12 sm:rounded-2xl dark:border-white/12 dark:bg-white/8',
               coverAvatarUrl?.trim() && 'ring-1 ring-slate-200/80 dark:ring-white/12',
             )}
           >
@@ -830,7 +852,7 @@ export function CourseGalleryCard({
         </p>
 
         {tags && tags.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
             {tags.slice(0, 4).map((tag, index) => (
               <span
                 key={`${tag}-${index}`}
@@ -845,7 +867,7 @@ export function CourseGalleryCard({
           </div>
         ) : null}
 
-        <div className="mt-auto flex gap-2 pt-6">
+        <div className="mt-auto flex flex-col gap-2 pt-5 min-[420px]:flex-row sm:pt-6">
           <button
             type="button"
             onClick={(e) => {
@@ -853,7 +875,7 @@ export function CourseGalleryCard({
               onAction();
             }}
             className={cn(
-              'store-cta-primary rounded-full px-5 py-3 text-sm font-semibold',
+              'store-cta-primary rounded-full px-4 py-2.5 text-sm font-semibold sm:px-5 sm:py-3',
               (onSecondaryAction && secondaryActionLabel) ||
                 (onTertiaryAction && tertiaryActionLabel)
                 ? 'flex-1'
@@ -872,7 +894,7 @@ export function CourseGalleryCard({
                 onSecondaryAction();
               }}
               className={cn(
-                'store-cta-secondary shrink-0 rounded-full px-4 py-3 text-sm font-semibold',
+                'store-cta-secondary w-full shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold min-[420px]:w-auto sm:py-3',
                 secondaryActionDisabled && 'cursor-not-allowed opacity-55',
               )}
             >
@@ -889,7 +911,7 @@ export function CourseGalleryCard({
                 onTertiaryAction();
               }}
               className={cn(
-                'store-cta-secondary shrink-0 rounded-full px-4 py-3 text-sm font-semibold',
+                'store-cta-secondary w-full shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold min-[420px]:w-auto sm:py-3',
                 tertiaryActionDisabled && 'cursor-not-allowed opacity-55',
               )}
             >

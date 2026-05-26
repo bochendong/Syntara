@@ -227,7 +227,13 @@ function sharedMemoryFromStored(memory: NotebookMemoryItem): SharedMemoryView {
     title: memory.title,
     text: memory.text,
     sourceLabel:
-      memory.source === 'manual' ? '手动记忆' : memory.source === 'quiz' ? '题库记忆' : '聊天记忆',
+      memory.source === 'notebook_generation'
+        ? '生成记忆'
+        : memory.source === 'manual'
+          ? '手动记忆'
+          : memory.source === 'quiz'
+            ? '题库记忆'
+            : '聊天记忆',
     sourceReferences: memory.sourceReferences || [],
     kindLabel: memoryKindLabel(memory),
     confidence: memory.confidence,
@@ -517,7 +523,13 @@ function PrivateMemoryCard({
           ) : null}
           <div className="mt-3 flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-              {memory.source === 'manual' ? '手动' : memory.source === 'quiz' ? '题库' : '对话'}
+              {memory.source === 'notebook_generation'
+                ? '生成'
+                : memory.source === 'manual'
+                  ? '手动'
+                  : memory.source === 'quiz'
+                    ? '题库'
+                    : '对话'}
             </span>
             {formatTime(memory.updatedAt) ? (
               <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">

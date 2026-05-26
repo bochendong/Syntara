@@ -29,6 +29,16 @@ export interface RequestLLMContext {
 const requestContextStorage = new AsyncLocalStorage<RequestLLMContext>();
 const log = createLogger('RequestContext');
 
+function shouldSkipCreditChargeForTestRequest(req: NextRequest): boolean {
+  const testRequested = req.headers.get('x-generation-test-no-charge') === 'true';
+  if (!testRequested) return false;
+
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SYNTARA_ALLOW_NO_CHARGE_TEST_GENERATION === 'true'
+  );
+}
+
 export function withRequestContext<T>(
   context: RequestLLMContext,
   callback: () => T | Promise<T>,
@@ -87,6 +97,7 @@ export async function runWithRequestContext<T>(
     req.headers.get('x-notebook-generation-session-id')?.trim() || undefined;
   const notebookGenerationTaskId =
     req.headers.get('x-notebook-generation-task-id')?.trim() || undefined;
+  const requestSkipCreditCharge = shouldSkipCreditChargeForTestRequest(req);
 
   if (route.startsWith('/api/generate/') || !user?.id) {
     log.info('Resolved request user', {
@@ -96,6 +107,7 @@ export async function runWithRequestContext<T>(
       userEmail: user?.email ?? null,
       notebookGenerationSessionId: notebookGenerationSessionId ?? null,
       notebookGenerationTaskId: notebookGenerationTaskId ?? null,
+      skipCreditCharge: requestSkipCreditCharge,
     });
   }
 
@@ -107,6 +119,7 @@ export async function runWithRequestContext<T>(
       userName: user?.name,
       notebookGenerationSessionId,
       notebookGenerationTaskId,
+      skipCreditCharge: requestSkipCreditCharge || undefined,
       ...extraContext,
     },
     callback,

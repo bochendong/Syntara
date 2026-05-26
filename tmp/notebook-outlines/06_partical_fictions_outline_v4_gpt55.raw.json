@@ -1,0 +1,3940 @@
+{
+  "success": true,
+  "outlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "intro",
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "problem_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "只知道 $\\dfrac{dy}{dx}$ 时，我们还缺什么？",
+      "description": "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+      "keyPoints": [
+        "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+        "同一个导数可能对应：$y=x^2$、$y=x^2+1$、$y=x^2-4$",
+        "变化率告诉我们“曲线怎么走”，不直接告诉我们“曲线放在哪里”",
+        "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+        "解题前先问：题目给的是变化率、函数值，还是两者都有？"
+      ],
+      "teachingObjective": "能够说出为什么仅有微分方程通常只能确定一族函数，而不是唯一函数。",
+      "estimatedDuration": 120,
+      "order": 1,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_wEeoINko",
+        "order": 1,
+        "title": "只知道 $\\dfrac{dy}{dx}$ 时，我们还缺什么？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "graph_trace",
+          "invariant"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "graph_trace",
+        "invariant"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "从 $\\dfrac{dy}{dx}$ 到 $y$：为什么要积分？",
+      "description": "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。",
+      "keyPoints": [
+        "如果 $\\dfrac{dy}{dx}=f(x)$，那么 $y$ 应该满足 $y'=f(x)$",
+        "反向动作：$y=\\int f(x)\\,dx$",
+        "微分写法帮助记账：$dy=f(x)\\,dx$，再写 $\\int dy=\\int f(x)\\,dx$",
+        "左边 $\\int dy=y$；右边是 $f(x)$ 的一个原函数",
+        "解题前先问：右边只含 $x$ 吗？如果只含 $x$，可以直接对 $x$ 积分。"
+      ],
+      "teachingObjective": "能够把一阶微分方程 $\\dfrac{dy}{dx}=f(x)$ 转化为求原函数的问题。",
+      "estimatedDuration": 120,
+      "order": 2,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_lHLf9any",
+        "order": 2,
+        "title": "从 $\\dfrac{dy}{dx}$ 到 $y$：为什么要积分？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_3",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "text_image_split",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "通解里的 $C$：同一个导数为什么对应一族函数？",
+      "description": "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+      "keyPoints": [
+        "$\\dfrac{d}{dx}(x^2)=2x$，$\\dfrac{d}{dx}(x^2+5)=2x$，$\\dfrac{d}{dx}(x^2-4)=2x$",
+        "常数的导数是 $0$，所以积分反推时会丢失一个常数信息",
+        "通解写法：$y=\\int f(x)\\,dx+C$",
+        "$C$ 不是装饰；它记录曲线整体上移或下移的位置",
+        "检查前先问：我的答案有没有把所有可能的上下平移都包含进去？"
+      ],
+      "teachingObjective": "能够解释不定积分中常数 $C$ 的来源，并把它与解的一族函数联系起来。",
+      "estimatedDuration": 120,
+      "order": 3,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_kL1oXTf7",
+        "order": 3,
+        "title": "通解里的 $C$：同一个导数为什么对应一族函数？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "graph_trace",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "graph_trace",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_4",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "初值 $y(3)=5$ 怎么选出唯一函数？",
+      "description": "先看通解 $y=x^2+C$ 旁边的点 $(3,5)$：这一点只会落在其中一条曲线上。下一步把“经过这个点”写成代入方程，解出 $C$。",
+      "keyPoints": [
+        "通解：$y=x^2+C$",
+        "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$",
+        "代入：$5=3^2+C$",
+        "解出：$C=-4$",
+        "解题前先问：初值给的是哪个 $x$ 的函数值？它应该代入 $y$，不是代入 $\\dfrac{dy}{dx}$。"
+      ],
+      "teachingObjective": "能够用一个初值从通解中确定唯一的特解。",
+      "estimatedDuration": 120,
+      "order": 4,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_NoiirDQf",
+        "order": 4,
+        "title": "初值 $y(3)=5$ 怎么选出唯一函数？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "完整例题：由 $\\dfrac{dy}{dx}=2x,\\ y(3)=5$ 写出 $y$",
+      "description": "先看题目里的两类信息：变化率规则和一个具体点。下一步按“积分得到通解—代入初值—再求导检查”的顺序写完整答案。",
+      "keyPoints": [
+        "题目：$\\dfrac{dy}{dx}=2x,\\quad y(3)=5$，求 $y$ 关于 $x$ 的表达式",
+        "分离微分记账：$dy=2x\\,dx$",
+        "积分：$\\int dy=\\int 2x\\,dx$，所以 $y=x^2+C$",
+        "代入初值：$5=3^2+C$，所以 $C=-4$",
+        "最终答案与检查：$y=x^2-4$，且 $\\dfrac{d}{dx}(x^2-4)=2x$、$y(3)=5$"
+      ],
+      "teachingObjective": "能够完整书写一阶初值问题的求解与检查过程。",
+      "estimatedDuration": 180,
+      "order": 5,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_1",
+        "problemStatement": "If $\\dfrac{dy}{dx}=2x$ and $y(3)=5$, write $y$ as a function of $x$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=2x$",
+          "$y(3)=5$"
+        ],
+        "asks": [
+          "求满足微分方程和初值的函数 $y(x)$"
+        ],
+        "solutionPlan": [
+          "把 $\\dfrac{dy}{dx}=2x$ 改写为 $dy=2x\\,dx$",
+          "两边积分得到含 $C$ 的通解",
+          "用 $y(3)=5$ 解出 $C$",
+          "用求导和代入初值检查答案"
+        ],
+        "walkthroughSteps": [
+          "$dy=2x\\,dx$",
+          "$\\int dy=\\int 2x\\,dx$",
+          "$y=x^2+C$",
+          "$5=3^2+C=9+C$，所以 $C=-4$",
+          "$y=x^2-4$",
+          "检查：$y'=2x$，且 $y(3)=9-4=5$"
+        ],
+        "commonPitfalls": [
+          "积分后漏写 $+C$",
+          "把 $y(3)=5$ 误代入导数 $\\dfrac{dy}{dx}$",
+          "只算出 $C$，没有回写最终函数"
+        ],
+        "finalAnswer": "$y=x^2-4$"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_RAa-n7Mn",
+        "order": 5,
+        "title": "完整例题：由 $\\dfrac{dy}{dx}=2x,\\ y(3)=5$ 写出 $y$",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "invariant"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "memory",
+        "invariant"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "FTC 检查：变上限积分怎么求导？",
+      "description": "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+      "keyPoints": [
+        "基本公式：如果 $Y(x)=\\int_a^x f(t)\\,dt$，那么 $Y'(x)=f(x)$",
+        "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+        "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+        "前面的常数 $A$ 求导后为 $0$，但会影响初值",
+        "检查前先问：变量 $x$ 出现在积分上限、下限、被积函数，还是只是常数项？"
+      ],
+      "teachingObjective": "能够用微积分基本定理和链式法则检查积分表达式的导数。",
+      "estimatedDuration": 150,
+      "order": 6,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_aDQ2g9KM",
+        "order": 6,
+        "title": "FTC 检查：变上限积分怎么求导？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "steps_sidebar",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+      "description": "先看四个候选函数，不急着积分，而是逐个求导。下一步把每个表达式的上限、被积函数、常数项圈出来，看导数能不能精确变成题目右边。",
+      "keyPoints": [
+        "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+        "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+        "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+        "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+        "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+      ],
+      "teachingObjective": "能够通过求导而不是凭外形判断积分表达式是否满足微分方程。",
+      "estimatedDuration": 180,
+      "order": 7,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_2",
+        "problemStatement": "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+          "四个候选函数都以积分表达式给出"
+        ],
+        "asks": [
+          "判断哪个候选函数的导数等于 $-2xe^{-x^2}$"
+        ],
+        "solutionPlan": [
+          "对每个候选函数求导",
+          "使用 FTC：$\\dfrac{d}{dx}\\int_0^{g(x)} f(t)\\,dt=f(g(x))g'(x)$",
+          "把求出的导数与 $-2xe^{-x^2}$ 逐项比较"
+        ],
+        "walkthroughSteps": [
+          "A：$y'= -2x e^{-x^2}$，完全匹配",
+          "B：$y'=e^{-x^2}$，缺少系数 $-2x$",
+          "C：$y'=e^{-(-x)^2}(-1)=-e^{-x^2}$，缺少系数 $2x$",
+          "D：$y'=e^{-x^2}(2x)=2xe^{-x^2}$，符号错误",
+          "所以只有 A 满足微分方程"
+        ],
+        "commonPitfalls": [
+          "看到 $e^{-x^2}$ 就忽略外面的 $-2x$",
+          "忘记复合上限需要乘以上限导数",
+          "把常数 $1$ 当成会影响导数的项"
+        ],
+        "finalAnswer": "A"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_ALf9rSyL",
+        "order": 7,
+        "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc",
+        "example_consider",
+        "example_which"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc",
+          "example_consider",
+          "example_which"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 2：复合上限别漏链式法则",
+      "description": "先看目标导数 $-3x^2e^{-x^3}$，它同时要求指数里的 $x^3$ 和外面的 $-3x^2$ 出现。下一步把候选式按“上限导数”“代入后的被积函数”“符号”三列比较。",
+      "keyPoints": [
+        "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$",
+        "A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$",
+        "B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$",
+        "C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$",
+        "D. $k(x)=4+\\int_0^{-x^3} e^t\\,dt$"
+      ],
+      "teachingObjective": "能够处理含 $x^3$、$-x^3$ 或变量下限的积分表达式判断题。",
+      "estimatedDuration": 180,
+      "order": 8,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_3",
+        "problemStatement": "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=4+\\int_0^{-x^3} e^t\\,dt$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=-3x^2e^{-x^3}$",
+          "候选函数都含有常数项与积分项"
+        ],
+        "asks": [
+          "找出导数等于目标右边的函数"
+        ],
+        "solutionPlan": [
+          "分别识别每个积分的上限或下限",
+          "用 FTC 与链式法则求导",
+          "检查指数、系数、符号是否同时匹配"
+        ],
+        "walkthroughSteps": [
+          "A：$f'(x)=e^{-x^3}\\cdot 3x^2=3x^2e^{-x^3}$，符号错误",
+          "B：$g'(x)=-e^{-x^3}\\cdot 3x^2=-3x^2e^{-x^3}$，完全匹配",
+          "C：$h'(x)=e^{-x^3}$，缺少 $-3x^2$",
+          "D：$k'(x)=e^{-x^3}\\cdot(-3x^2)=-3x^2e^{-x^3}$，也匹配；若题目要求唯一答案，需要检查原题是否附带初值或常数条件",
+          "在只要求满足微分方程时，B 与 D 都满足；若选择题给出唯一答案，必须用题目附加条件排除其中一个"
+        ],
+        "commonPitfalls": [
+          "把“满足微分方程”误认为“满足同一个初值”",
+          "只比较指数，漏掉上限导数",
+          "没有注意变量在下限时会多一个负号"
+        ],
+        "finalAnswer": "只按微分方程判断，B 与 D 都满足；若原选择题声称唯一答案，应回到题面检查是否还有初值或常数限制。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan__4KeLXwR",
+        "order": 8,
+        "title": "积分表达式选择题 2：复合上限别漏链式法则",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "table",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "table",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc",
+        "example_consider",
+        "example_which"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc",
+          "example_consider",
+          "example_which"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "函数类型例题：$\\dfrac{dV}{dP}=-\\dfrac{k}{P}$ 会产生什么函数？",
+      "description": "先看变化率右边的形状 $-\\dfrac{k}{P}$，这里的关键不是数值常数，而是 $\\dfrac{1}{P}$。下一步对 $P$ 积分，判断 $V(P)$ 的函数类型。",
+      "keyPoints": [
+        "题目：若 $\\dfrac{dV}{dP}=-\\dfrac{k}{P}$，其中 $k>0$ 为常数，判断 $V(P)$ 的函数类型",
+        "改写：$dV=-\\dfrac{k}{P}\\,dP$",
+        "积分：$\\int dV=\\int -\\dfrac{k}{P}\\,dP$",
+        "得到：$V=-k\\ln|P|+C$",
+        "结论：$V(P)$ 是对数函数形式，不是多项式、指数函数或幂函数"
+      ],
+      "teachingObjective": "能够从微分方程右边的 $\\dfrac{1}{P}$ 识别积分后出现的对数形式。",
+      "estimatedDuration": 150,
+      "order": 9,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_4",
+        "problemStatement": "A fluid model gives $\\dfrac{dV}{dP}=-\\dfrac{k}{P}$, where $k>0$ is a constant. What type of function should $V(P)$ be?",
+        "givens": [
+          "$\\dfrac{dV}{dP}=-\\dfrac{k}{P}$",
+          "$k>0$ 是常数"
+        ],
+        "asks": [
+          "判断 $V(P)$ 的函数类型"
+        ],
+        "solutionPlan": [
+          "把导数方程改写成 $dV$ 与 $dP$ 的关系",
+          "对 $P$ 积分",
+          "根据积分结果判断函数类型"
+        ],
+        "walkthroughSteps": [
+          "$dV=-\\dfrac{k}{P}\\,dP$",
+          "$\\int dV=\\int -\\dfrac{k}{P}\\,dP$",
+          "$V=-k\\ln|P|+C$",
+          "因为出现 $\\ln|P|$，所以 $V(P)$ 是对数函数形式"
+        ],
+        "commonPitfalls": [
+          "把 $\\dfrac{1}{P}$ 积成幂函数 $P^{-1}$ 的普通幂公式而忽略特殊情况",
+          "漏写绝对值 $\\ln|P|$",
+          "把常数 $k$ 当成变量一起积分"
+        ],
+        "finalAnswer": "$V(P)=-k\\ln|P|+C$，函数类型为对数函数。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_JY4v3Zk5",
+        "order": 9,
+        "title": "函数类型例题：$\\dfrac{dV}{dP}=-\\dfrac{k}{P}$ 会产生什么函数？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "memory",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "写证明前，先把定义改写成可以逐项检查的条件。"
+      }
+    },
+    {
+      "id": "scene_11",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场匹配：先看它依赖 $x$、依赖 $y$，还是两者都依赖",
+      "description": "先看三条方程右边的变量结构，再看斜率场中相同竖线或相同横线上的线段是否一致。下一步用零斜率线和符号变化把每个图锁定到方程。",
+      "keyPoints": [
+        "A. $\\dfrac{dy}{dx}=x(x-1)$：只依赖 $x$，同一竖线上的斜率相同；$x=0,1$ 处水平",
+        "B. $\\dfrac{dy}{dx}=x(y-2)$：同时依赖 $x,y$；$x=0$ 和 $y=2$ 处水平",
+        "C. $\\dfrac{dy}{dx}=(2-y)(y+1)^2$：只依赖 $y$，同一横线上的斜率相同；$y=2,-1$ 处水平",
+        "匹配顺序：先找“条纹方向”，再找水平线，最后检查正负区域",
+        "看图前先问：沿着同一竖线移动时斜率变不变？沿着同一横线移动时斜率变不变？"
+      ],
+      "teachingObjective": "能够用变量依赖、零斜率线和符号区域匹配斜率场与微分方程。",
+      "estimatedDuration": 180,
+      "order": 10,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_5",
+        "problemStatement": "Match the slope fields with the equations: A. $\\dfrac{dy}{dx}=x(x-1)$; B. $\\dfrac{dy}{dx}=x(y-2)$; C. $\\dfrac{dy}{dx}=(2-y)(y+1)^2$.",
+        "givens": [
+          "三个微分方程的右边分别只含 $x$、同时含 $x,y$、只含 $y$",
+          "斜率场中可观察短线段方向、水平线位置和正负斜率区域"
+        ],
+        "asks": [
+          "把每个斜率场与对应微分方程匹配"
+        ],
+        "solutionPlan": [
+          "判断斜率是否只随 $x$ 变、只随 $y$ 变，或随两者变",
+          "找出导数为 $0$ 的线",
+          "用正负区域确认匹配"
+        ],
+        "walkthroughSteps": [
+          "A：$x(x-1)=0$ 给出 $x=0,1$ 两条竖直零斜率线；同一竖线斜率相同",
+          "B：$x(y-2)=0$ 给出 $x=0$ 与 $y=2$ 两条零斜率线；斜率随横竖方向都会改变",
+          "C：$(2-y)(y+1)^2=0$ 给出 $y=2,-1$ 两条水平零斜率线；同一横线斜率相同",
+          "若图上呈水平条纹，优先匹配只依赖 $y$ 的 C；若呈竖直条纹，优先匹配只依赖 $x$ 的 A；若两方向都变，匹配 B"
+        ],
+        "commonPitfalls": [
+          "把零斜率线看成解曲线本身，而不是判断线段水平的位置",
+          "只看一个点的斜率就下结论",
+          "忽略平方因子 $(y+1)^2$ 不改变符号但会让 $y=-1$ 处斜率为零"
+        ],
+        "finalAnswer": "用条纹方向与零斜率线完成匹配：只依赖 $x$ 的场对应 A，只依赖 $y$ 的场对应 C，同时依赖 $x,y$ 的场对应 B。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_BTLKBTKr",
+        "order": 10,
+        "title": "斜率场匹配：先看它依赖 $x$、依赖 $y$，还是两者都依赖",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "nextHandoff": "写证明前，先把定义改写成可以逐项检查的条件。"
+      }
+    },
+    {
+      "id": "scene_12",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场选择题：为什么是 $x^2-y^2$？",
+      "description": "先看图中的关键证据：哪些区域斜率为正、哪些区域为负、哪些线附近斜率接近 $0$。下一步把这些证据逐一对照四个候选方程。",
+      "keyPoints": [
+        "候选：A. $\\dfrac{dy}{dx}=(x-y)^2$；B. $\\dfrac{dy}{dx}=(x+y)^2$；C. $\\dfrac{dy}{dx}=x^2-y^2$；D. $\\dfrac{dy}{dx}=x^2+y^2$",
+        "平方和或平方整体：A、B、D 的斜率通常不为负",
+        "$x^2-y^2=0$ 在 $y=x$ 与 $y=-x$ 上出现水平线段",
+        "当 $|x|>|y|$ 时，$x^2-y^2>0$；当 $|y|>|x|$ 时，$x^2-y^2<0$",
+        "图像若同时出现正斜率区和负斜率区，并沿两条对角线接近水平，选择 C"
+      ],
+      "teachingObjective": "能够用正负斜率区域和零斜率线排除不可能的斜率场方程。",
+      "estimatedDuration": 180,
+      "order": 11,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_6",
+        "problemStatement": "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$.",
+        "givens": [
+          "斜率场中既有向上倾斜线段，也有向下倾斜线段",
+          "图中沿两条对角线附近出现水平线段"
+        ],
+        "asks": [
+          "判断哪一个方程能产生这样的斜率场"
+        ],
+        "solutionPlan": [
+          "先检查候选方程是否允许负斜率",
+          "再找导数为 $0$ 的位置",
+          "最后用正负区域确认"
+        ],
+        "walkthroughSteps": [
+          "A：$(x-y)^2\\ge 0$，几乎不会给出负斜率区域，排除",
+          "B：$(x+y)^2\\ge 0$，几乎不会给出负斜率区域，排除",
+          "D：$x^2+y^2\\ge 0$，除原点外为正，排除",
+          "C：$x^2-y^2$ 可正可负，且在 $y=\\pm x$ 上为 $0$",
+          "所以图像对应 C"
+        ],
+        "commonPitfalls": [
+          "只看零斜率线，不检查是否存在负斜率",
+          "把 $(x-y)^2$ 与 $x^2-y^2$ 混淆",
+          "忘记平方表达式整体非负"
+        ],
+        "finalAnswer": "C. $\\dfrac{dy}{dx}=x^2-y^2$"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_6V8o5t0J",
+        "order": 11,
+        "title": "斜率场选择题：为什么是 $x^2-y^2$？",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_which"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_which"
+        ],
+        "previousHandoff": "写证明前，先把定义改写成可以逐项检查的条件。",
+        "currentJob": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "nextHandoff": "写证明前，先把定义改写成可以逐项检查的条件。"
+      }
+    },
+    {
+      "id": "scene_13",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "timeline",
+        "layoutTemplate": "process_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "Euler 方法：从当前点沿切线走一步",
+      "description": "先看一个点 $(x_n,y_n)$ 和它所在位置的短线段斜率 $F(x_n,y_n)$。下一步把“沿切线走一步”写成更新公式，并用一个两步小例子看到近似值如何产生。",
+      "keyPoints": [
+        "微分方程：$y'=F(x,y)$，当前点：$(x_n,y_n)$，步长：$h$",
+        "Euler 更新：$x_{n+1}=x_n+h$",
+        "Euler 更新：$y_{n+1}=y_n+hF(x_n,y_n)$",
+        "例：$y'=x+y$，$y(0)=1$，$h=0.5$；第一步 $y_1=1+0.5(0+1)=1.5$",
+        "第二步：$x_1=0.5$，$y_2=1.5+0.5(0.5+1.5)=2.5$"
+      ],
+      "teachingObjective": "能够用 Euler 方法从初值出发逐步近似解曲线。",
+      "estimatedDuration": 180,
+      "order": 12,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_7",
+        "problemStatement": "Use Euler's method for $y'=x+y$, $y(0)=1$, step size $h=0.5$, to approximate $y(1)$.",
+        "givens": [
+          "$y'=x+y$",
+          "$y(0)=1$",
+          "$h=0.5$"
+        ],
+        "asks": [
+          "用两步 Euler 方法近似 $y(1)$"
+        ],
+        "solutionPlan": [
+          "从 $(x_0,y_0)=(0,1)$ 出发",
+          "每一步计算当前斜率 $F(x_n,y_n)$",
+          "使用 $y_{n+1}=y_n+hF(x_n,y_n)$"
+        ],
+        "walkthroughSteps": [
+          "第 0 步：$(x_0,y_0)=(0,1)$，斜率 $F(0,1)=1$",
+          "$x_1=0.5$，$y_1=1+0.5\\cdot1=1.5$",
+          "第 1 步：$(x_1,y_1)=(0.5,1.5)$，斜率 $F(0.5,1.5)=2$",
+          "$x_2=1$，$y_2=1.5+0.5\\cdot2=2.5$",
+          "所以 Euler 近似给出 $y(1)\\approx2.5$"
+        ],
+        "commonPitfalls": [
+          "一直使用初始斜率，不更新斜率",
+          "更新了 $y$ 却忘记更新 $x$",
+          "把步长 $h$ 漏乘到斜率上"
+        ],
+        "finalAnswer": "$y(1)\\approx2.5$"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_4XEUf5aQ",
+        "order": 12,
+        "title": "Euler 方法：从当前点沿切线走一步",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "写证明前，先把定义改写成可以逐项检查的条件。",
+        "currentJob": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_14",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "Euler 高估还是低估：看凹向，而不是只看斜率正负",
+      "description": "先看从初值出发的解曲线和一段段切线：切线折线在真曲线的上方还是下方，取决于曲线凹向。下一步用金鱼数量模型的斜率场判断 Euler 估计方向。",
+      "keyPoints": [
+        "模型：$\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$，初值 $N(0)=7$",
+        "题目：用步长 $\\Delta t=0.5$ 的 Euler 方法估计 $t=2$ 时的数量，是高估还是低估？",
+        "从斜率场看，初值附近的解曲线呈 concave up",
+        "concave up 时，切线通常在曲线下方；Euler 用切线前进，容易低估",
+        "结论：under-estimate，因为解曲线看起来 concave up"
+      ],
+      "teachingObjective": "能够用解曲线的凹向判断 Euler 方法的高估或低估方向。",
+      "estimatedDuration": 180,
+      "order": 13,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_8",
+        "problemStatement": "A goldfish population is modeled by $\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$ with $N(0)=7$. Judging by the slope field, using Euler's method with $\\Delta t=0.5$ to approximate $N(2)$ would be an under-estimate or over-estimate?",
+        "givens": [
+          "$\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$",
+          "$N(0)=7$",
+          "$\\Delta t=0.5$",
+          "斜率场显示初值附近解曲线呈 concave up"
+        ],
+        "asks": [
+          "判断 Euler 近似 $N(2)$ 是 under-estimate 还是 over-estimate，并说明原因"
+        ],
+        "solutionPlan": [
+          "从初值点沿斜率场想象解曲线",
+          "判断解曲线的凹向",
+          "比较 Euler 切线折线与真曲线的位置"
+        ],
+        "walkthroughSteps": [
+          "从 $N(0)=7$ 出发，斜率场中的解曲线向上弯，呈 concave up",
+          "concave up 的曲线上，切线通常落在曲线下方",
+          "Euler 方法每一步沿当前切线走，因此折线会低于真解",
+          "所以 Euler 估计 $N(2)$ 为 under-estimate"
+        ],
+        "commonPitfalls": [
+          "看到 population 增长就直接认为高估",
+          "只看斜率正负，不看凹向",
+          "把一步切线的方向与多步折线的误差方向混为一谈"
+        ],
+        "finalAnswer": "Under-estimate，因为初值附近解曲线看起来 concave up，Euler 切线折线落在真曲线下方。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_Hf82hy1y",
+        "order": 13,
+        "title": "Euler 高估还是低估：看凹向，而不是只看斜率正负",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "stack"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "memory",
+        "stack"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "写证明前，先把定义改写成可以逐项检查的条件。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "总结要留下可执行的证明 checklist，而不是术语表。"
+      }
+    },
+    {
+      "id": "scene_15",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "summary",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "下次做题前的检查清单：微分方程从哪里下手？",
+      "description": "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？",
+      "keyPoints": [
+        "若 $\\dfrac{dy}{dx}=f(x)$：写 $dy=f(x)\\,dx$，积分得到 $y=\\int f(x)\\,dx+C$",
+        "若有初值 $y(a)=b$：把 $x=a$ 代入通解，令 $y=b$，解出 $C$",
+        "若给积分表达式：先求 $y'$，用 $\\dfrac{d}{dx}\\int_a^{g(x)} f(t)\\,dt=f(g(x))g'(x)$ 检查",
+        "若读斜率场：先看变量依赖，再找零斜率线，再看正负区域"
+      ],
+      "teachingObjective": "能够按题型选择合适的第一步，并用导数、初值或图像证据检查答案。",
+      "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+      "estimatedDuration": 150,
+      "order": 14,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_IGD1UIy_",
+      "teachingPagePlan": {
+        "id": "pageplan_leRs2jyt",
+        "order": 14,
+        "title": "下次做题前的检查清单：微分方程从哪里下手？",
+        "role": "synthesis",
+        "pagePatternId": "mathematics.synthesis",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "example"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "openingMove": "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。",
+        "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+        "transferRule": "总结要留下可执行的证明 checklist，而不是术语表。"
+      },
+      "teachingRole": "synthesis",
+      "requiredComponentKinds": [
+        "example"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.synthesis",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+            "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+            "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_6",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+            "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+            "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？"
+          ]
+        },
+        {
+          "id": "example_consider",
+          "label": "Consider",
+          "aliases": [
+            "Consider",
+            "Consider()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=..."
+          ]
+        },
+        {
+          "id": "example_which",
+          "label": "Which",
+          "aliases": [
+            "Which",
+            "Which()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+            "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+            "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+            "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+            "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D...",
+            "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=...",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$."
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "下次遇到类似命题，我先问哪三个问题？"
+      }
+    }
+  ],
+  "incrementalOutlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "intro",
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "problem_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "只知道 $\\dfrac{dy}{dx}$ 时，我们还缺什么？",
+      "description": "先看同一条变化率规则旁边画出的几条平移曲线：它们斜率一样，却不经过同一个点。图像制造的疑问是：从变化率回到函数时，为什么答案不是唯一的，下一步先追问“缺的那一个信息在哪里”。",
+      "keyPoints": [
+        "已知：$\\dfrac{dy}{dx}=2x$，但暂时不知道 $y$ 本身",
+        "同一个导数可能对应：$y=x^2$、$y=x^2+1$、$y=x^2-4$",
+        "变化率告诉我们“曲线怎么走”，不直接告诉我们“曲线放在哪里”",
+        "今天先问：从 $\\dfrac{dy}{dx}$ 反推 $y$ 时，哪一步会产生一个可调的常数？",
+        "解题前先问：题目给的是变化率、函数值，还是两者都有？"
+      ],
+      "teachingObjective": "能够说出为什么仅有微分方程通常只能确定一族函数，而不是唯一函数。",
+      "studentThinkingMove": "看到 $\\dfrac{dy}{dx}$ 先判断：这是在描述斜率规则，还是已经给出了函数本身？",
+      "estimatedDuration": 120,
+      "order": 1,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "从 $\\dfrac{dy}{dx}$ 到 $y$：为什么要积分？",
+      "description": "先看板书上的等式 $\\dfrac{dy}{dx}=f(x)$，把它读成“$y$ 的导数等于 $f(x)$”。下一步把反向操作写清楚：要找 $y$，就找一个导数为 $f(x)$ 的原函数。",
+      "keyPoints": [
+        "如果 $\\dfrac{dy}{dx}=f(x)$，那么 $y$ 应该满足 $y'=f(x)$",
+        "反向动作：$y=\\int f(x)\\,dx$",
+        "微分写法帮助记账：$dy=f(x)\\,dx$，再写 $\\int dy=\\int f(x)\\,dx$",
+        "左边 $\\int dy=y$；右边是 $f(x)$ 的一个原函数",
+        "解题前先问：右边只含 $x$ 吗？如果只含 $x$，可以直接对 $x$ 积分。"
+      ],
+      "teachingObjective": "能够把一阶微分方程 $\\dfrac{dy}{dx}=f(x)$ 转化为求原函数的问题。",
+      "studentThinkingMove": "把“求函数”改写成“找谁的导数等于右边”。",
+      "estimatedDuration": 120,
+      "order": 2,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_3",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "text_image_split",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "通解里的 $C$：同一个导数为什么对应一族函数？",
+      "description": "先看三条曲线 $y=x^2+C$ 的示意图：上下平移不改变每个 $x$ 处的斜率。下一步把这个图像现象翻译成公式：积分必须保留 $+C$。",
+      "keyPoints": [
+        "$\\dfrac{d}{dx}(x^2)=2x$，$\\dfrac{d}{dx}(x^2+5)=2x$，$\\dfrac{d}{dx}(x^2-4)=2x$",
+        "常数的导数是 $0$，所以积分反推时会丢失一个常数信息",
+        "通解写法：$y=\\int f(x)\\,dx+C$",
+        "$C$ 不是装饰；它记录曲线整体上移或下移的位置",
+        "检查前先问：我的答案有没有把所有可能的上下平移都包含进去？"
+      ],
+      "teachingObjective": "能够解释不定积分中常数 $C$ 的来源，并把它与解的一族函数联系起来。",
+      "studentThinkingMove": "看到不定积分就主动补 $+C$，并说明它代表曲线位置而不是斜率变化。",
+      "estimatedDuration": 120,
+      "order": 3,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_4",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "初值 $y(3)=5$ 怎么选出唯一函数？",
+      "description": "先看通解 $y=x^2+C$ 旁边的点 $(3,5)$：这一点只会落在其中一条曲线上。下一步把“经过这个点”写成代入方程，解出 $C$。",
+      "keyPoints": [
+        "通解：$y=x^2+C$",
+        "初值：$y(3)=5$ 表示曲线必须经过点 $(3,5)$",
+        "代入：$5=3^2+C$",
+        "解出：$C=-4$",
+        "解题前先问：初值给的是哪个 $x$ 的函数值？它应该代入 $y$，不是代入 $\\dfrac{dy}{dx}$。"
+      ],
+      "teachingObjective": "能够用一个初值从通解中确定唯一的特解。",
+      "studentThinkingMove": "把 $y(a)=b$ 立刻翻译成“把 $x=a$ 代入通解，令结果等于 $b$”。",
+      "estimatedDuration": 120,
+      "order": 4,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "完整例题：由 $\\dfrac{dy}{dx}=2x,\\ y(3)=5$ 写出 $y$",
+      "description": "先看题目里的两类信息：变化率规则和一个具体点。下一步按“积分得到通解—代入初值—再求导检查”的顺序写完整答案。",
+      "keyPoints": [
+        "题目：$\\dfrac{dy}{dx}=2x,\\quad y(3)=5$，求 $y$ 关于 $x$ 的表达式",
+        "分离微分记账：$dy=2x\\,dx$",
+        "积分：$\\int dy=\\int 2x\\,dx$，所以 $y=x^2+C$",
+        "代入初值：$5=3^2+C$，所以 $C=-4$",
+        "最终答案与检查：$y=x^2-4$，且 $\\dfrac{d}{dx}(x^2-4)=2x$、$y(3)=5$"
+      ],
+      "teachingObjective": "能够完整书写一阶初值问题的求解与检查过程。",
+      "studentThinkingMove": "每做完一道初值题都做双检查：导数是否回到原方程，初值是否被满足。",
+      "estimatedDuration": 180,
+      "order": 5,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_1",
+        "problemStatement": "If $\\dfrac{dy}{dx}=2x$ and $y(3)=5$, write $y$ as a function of $x$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=2x$",
+          "$y(3)=5$"
+        ],
+        "asks": [
+          "求满足微分方程和初值的函数 $y(x)$"
+        ],
+        "solutionPlan": [
+          "把 $\\dfrac{dy}{dx}=2x$ 改写为 $dy=2x\\,dx$",
+          "两边积分得到含 $C$ 的通解",
+          "用 $y(3)=5$ 解出 $C$",
+          "用求导和代入初值检查答案"
+        ],
+        "walkthroughSteps": [
+          "$dy=2x\\,dx$",
+          "$\\int dy=\\int 2x\\,dx$",
+          "$y=x^2+C$",
+          "$5=3^2+C=9+C$，所以 $C=-4$",
+          "$y=x^2-4$",
+          "检查：$y'=2x$，且 $y(3)=9-4=5$"
+        ],
+        "commonPitfalls": [
+          "积分后漏写 $+C$",
+          "把 $y(3)=5$ 误代入导数 $\\dfrac{dy}{dx}$",
+          "只算出 $C$，没有回写最终函数"
+        ],
+        "finalAnswer": "$y=x^2-4$"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "FTC 检查：变上限积分怎么求导？",
+      "description": "先看表达式 $Y(x)=A+\\int_a^{g(x)} f(t)\\,dt$，注意积分号里有一个随 $x$ 变化的上限。下一步用 FTC 和链式法则把它变回导数，作为判断“是否满足微分方程”的工具。",
+      "keyPoints": [
+        "基本公式：如果 $Y(x)=\\int_a^x f(t)\\,dt$，那么 $Y'(x)=f(x)$",
+        "复合上限：如果 $Y(x)=\\int_a^{g(x)} f(t)\\,dt$，那么 $Y'(x)=f(g(x))g'(x)$",
+        "下限含变量：$\\dfrac{d}{dx}\\int_{g(x)}^a f(t)\\,dt=-f(g(x))g'(x)$",
+        "前面的常数 $A$ 求导后为 $0$，但会影响初值",
+        "检查前先问：变量 $x$ 出现在积分上限、下限、被积函数，还是只是常数项？"
+      ],
+      "teachingObjective": "能够用微积分基本定理和链式法则检查积分表达式的导数。",
+      "studentThinkingMove": "先圈出会动的上限或下限，再套 $f(g(x))g'(x)$，不要只看表达式外形。",
+      "estimatedDuration": 150,
+      "order": 6,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "steps_sidebar",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+      "description": "先看四个候选函数，不急着积分，而是逐个求导。下一步把每个表达式的上限、被积函数、常数项圈出来，看导数能不能精确变成题目右边。",
+      "keyPoints": [
+        "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+        "A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$",
+        "B. $y=1+\\int_0^x e^{-t^2}\\,dt$",
+        "C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$",
+        "D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$",
+        "检查结果：A 的导数是 $-2xe^{-x^2}$；B、C、D 的系数或符号不匹配"
+      ],
+      "teachingObjective": "能够通过求导而不是凭外形判断积分表达式是否满足微分方程。",
+      "studentThinkingMove": "选择题先不猜，先写 $y'$；导数完全等于右边才算满足。",
+      "estimatedDuration": 180,
+      "order": 7,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_2",
+        "problemStatement": "Consider the differential equation $\\dfrac{dy}{dx}=-2xe^{-x^2}$. Which of the following functions is a solution? A. $y=1+\\int_0^x -2t e^{-t^2}\\,dt$; B. $y=1+\\int_0^x e^{-t^2}\\,dt$; C. $y=1+\\int_0^{-x} e^{-t^2}\\,dt$; D. $y=1+\\int_0^{x^2} e^{-t}\\,dt$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=-2xe^{-x^2}$",
+          "四个候选函数都以积分表达式给出"
+        ],
+        "asks": [
+          "判断哪个候选函数的导数等于 $-2xe^{-x^2}$"
+        ],
+        "solutionPlan": [
+          "对每个候选函数求导",
+          "使用 FTC：$\\dfrac{d}{dx}\\int_0^{g(x)} f(t)\\,dt=f(g(x))g'(x)$",
+          "把求出的导数与 $-2xe^{-x^2}$ 逐项比较"
+        ],
+        "walkthroughSteps": [
+          "A：$y'= -2x e^{-x^2}$，完全匹配",
+          "B：$y'=e^{-x^2}$，缺少系数 $-2x$",
+          "C：$y'=e^{-(-x)^2}(-1)=-e^{-x^2}$，缺少系数 $2x$",
+          "D：$y'=e^{-x^2}(2x)=2xe^{-x^2}$，符号错误",
+          "所以只有 A 满足微分方程"
+        ],
+        "commonPitfalls": [
+          "看到 $e^{-x^2}$ 就忽略外面的 $-2x$",
+          "忘记复合上限需要乘以上限导数",
+          "把常数 $1$ 当成会影响导数的项"
+        ],
+        "finalAnswer": "A"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 2：复合上限别漏链式法则",
+      "description": "先看目标导数 $-3x^2e^{-x^3}$，它同时要求指数里的 $x^3$ 和外面的 $-3x^2$ 出现。下一步把候选式按“上限导数”“代入后的被积函数”“符号”三列比较。",
+      "keyPoints": [
+        "题目：判断哪个函数满足 $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$",
+        "A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$",
+        "B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$",
+        "C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$",
+        "D. $k(x)=4+\\int_0^{-x^3} e^t\\,dt$",
+        "B：$g'(x)=-e^{-x^3}\\cdot 3x^2=-3x^2e^{-x^3}$，匹配"
+      ],
+      "teachingObjective": "能够处理含 $x^3$、$-x^3$ 或变量下限的积分表达式判断题。",
+      "studentThinkingMove": "看到复合上限，先算上限导数；符号来自上限方向和链式法则两处。",
+      "estimatedDuration": 180,
+      "order": 8,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_3",
+        "problemStatement": "Consider the differential equation $\\dfrac{dy}{dx}=-3x^2e^{-x^3}$. Which function is a solution? A. $f(x)=1+\\int_0^{x^3} e^{-t}\\,dt$; B. $g(x)=2+\\int_{x^3}^{0} e^{-t}\\,dt$; C. $h(x)=3+\\int_0^x e^{-t^3}\\,dt$; D. $k(x)=4+\\int_0^{-x^3} e^t\\,dt$.",
+        "givens": [
+          "$\\dfrac{dy}{dx}=-3x^2e^{-x^3}$",
+          "候选函数都含有常数项与积分项"
+        ],
+        "asks": [
+          "找出导数等于目标右边的函数"
+        ],
+        "solutionPlan": [
+          "分别识别每个积分的上限或下限",
+          "用 FTC 与链式法则求导",
+          "检查指数、系数、符号是否同时匹配"
+        ],
+        "walkthroughSteps": [
+          "A：$f'(x)=e^{-x^3}\\cdot 3x^2=3x^2e^{-x^3}$，符号错误",
+          "B：$g'(x)=-e^{-x^3}\\cdot 3x^2=-3x^2e^{-x^3}$，完全匹配",
+          "C：$h'(x)=e^{-x^3}$，缺少 $-3x^2$",
+          "D：$k'(x)=e^{-x^3}\\cdot(-3x^2)=-3x^2e^{-x^3}$，也匹配；若题目要求唯一答案，需要检查原题是否附带初值或常数条件",
+          "在只要求满足微分方程时，B 与 D 都满足；若选择题给出唯一答案，必须用题目附加条件排除其中一个"
+        ],
+        "commonPitfalls": [
+          "把“满足微分方程”误认为“满足同一个初值”",
+          "只比较指数，漏掉上限导数",
+          "没有注意变量在下限时会多一个负号"
+        ],
+        "finalAnswer": "只按微分方程判断，B 与 D 都满足；若原选择题声称唯一答案，应回到题面检查是否还有初值或常数限制。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "函数类型例题：$\\dfrac{dV}{dP}=-\\dfrac{k}{P}$ 会产生什么函数？",
+      "description": "先看变化率右边的形状 $-\\dfrac{k}{P}$，这里的关键不是数值常数，而是 $\\dfrac{1}{P}$。下一步对 $P$ 积分，判断 $V(P)$ 的函数类型。",
+      "keyPoints": [
+        "题目：若 $\\dfrac{dV}{dP}=-\\dfrac{k}{P}$，其中 $k>0$ 为常数，判断 $V(P)$ 的函数类型",
+        "改写：$dV=-\\dfrac{k}{P}\\,dP$",
+        "积分：$\\int dV=\\int -\\dfrac{k}{P}\\,dP$",
+        "得到：$V=-k\\ln|P|+C$",
+        "结论：$V(P)$ 是对数函数形式，不是多项式、指数函数或幂函数"
+      ],
+      "teachingObjective": "能够从微分方程右边的 $\\dfrac{1}{P}$ 识别积分后出现的对数形式。",
+      "studentThinkingMove": "遇到 $\\dfrac{1}{变量}$ 先想到 $\\ln|变量|$，再处理常数倍和负号。",
+      "estimatedDuration": 150,
+      "order": 9,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_4",
+        "problemStatement": "A fluid model gives $\\dfrac{dV}{dP}=-\\dfrac{k}{P}$, where $k>0$ is a constant. What type of function should $V(P)$ be?",
+        "givens": [
+          "$\\dfrac{dV}{dP}=-\\dfrac{k}{P}$",
+          "$k>0$ 是常数"
+        ],
+        "asks": [
+          "判断 $V(P)$ 的函数类型"
+        ],
+        "solutionPlan": [
+          "把导数方程改写成 $dV$ 与 $dP$ 的关系",
+          "对 $P$ 积分",
+          "根据积分结果判断函数类型"
+        ],
+        "walkthroughSteps": [
+          "$dV=-\\dfrac{k}{P}\\,dP$",
+          "$\\int dV=\\int -\\dfrac{k}{P}\\,dP$",
+          "$V=-k\\ln|P|+C$",
+          "因为出现 $\\ln|P|$，所以 $V(P)$ 是对数函数形式"
+        ],
+        "commonPitfalls": [
+          "把 $\\dfrac{1}{P}$ 积成幂函数 $P^{-1}$ 的普通幂公式而忽略特殊情况",
+          "漏写绝对值 $\\ln|P|$",
+          "把常数 $k$ 当成变量一起积分"
+        ],
+        "finalAnswer": "$V(P)=-k\\ln|P|+C$，函数类型为对数函数。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_10",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "斜率场入口：每个小线段在告诉我们什么？",
+      "description": "先看坐标平面上许多短线段：每个点没有给出完整曲线，只给出“如果解曲线经过这里，它当下的斜率”。下一步尝试沿着线段方向连出一条可能的解曲线。",
+      "keyPoints": [
+        "微分方程 $\\dfrac{dy}{dx}=F(x,y)$ 给每个点 $(x,y)$ 分配一个斜率",
+        "斜率场中的短线段：位置是 $(x,y)$，倾斜程度是 $F(x,y)$",
+        "如果初值是 $y(a)=b$，解曲线必须从点 $(a,b)$ 出发并贴着附近线段方向走",
+        "水平线段表示 $\\dfrac{dy}{dx}=0$；向上倾斜表示导数为正；向下倾斜表示导数为负",
+        "读图前先问：我在看某一个点的斜率，还是在看一整条解曲线的走势？"
+      ],
+      "teachingObjective": "能够解释斜率场中短线段与微分方程右边 $F(x,y)$ 的关系。",
+      "studentThinkingMove": "先在图上选一个点，读出该点线段方向，再想象解曲线怎样穿过它。",
+      "estimatedDuration": 150,
+      "order": 10,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_11",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场匹配：先看它依赖 $x$、依赖 $y$，还是两者都依赖",
+      "description": "先看三条方程右边的变量结构，再看斜率场中相同竖线或相同横线上的线段是否一致。下一步用零斜率线和符号变化把每个图锁定到方程。",
+      "keyPoints": [
+        "A. $\\dfrac{dy}{dx}=x(x-1)$：只依赖 $x$，同一竖线上的斜率相同；$x=0,1$ 处水平",
+        "B. $\\dfrac{dy}{dx}=x(y-2)$：同时依赖 $x,y$；$x=0$ 和 $y=2$ 处水平",
+        "C. $\\dfrac{dy}{dx}=(2-y)(y+1)^2$：只依赖 $y$，同一横线上的斜率相同；$y=2,-1$ 处水平",
+        "匹配顺序：先找“条纹方向”，再找水平线，最后检查正负区域",
+        "看图前先问：沿着同一竖线移动时斜率变不变？沿着同一横线移动时斜率变不变？"
+      ],
+      "teachingObjective": "能够用变量依赖、零斜率线和符号区域匹配斜率场与微分方程。",
+      "studentThinkingMove": "匹配斜率场不要先猜形状，先找不变方向和斜率为零的位置。",
+      "estimatedDuration": 180,
+      "order": 11,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_5",
+        "problemStatement": "Match the slope fields with the equations: A. $\\dfrac{dy}{dx}=x(x-1)$; B. $\\dfrac{dy}{dx}=x(y-2)$; C. $\\dfrac{dy}{dx}=(2-y)(y+1)^2$.",
+        "givens": [
+          "三个微分方程的右边分别只含 $x$、同时含 $x,y$、只含 $y$",
+          "斜率场中可观察短线段方向、水平线位置和正负斜率区域"
+        ],
+        "asks": [
+          "把每个斜率场与对应微分方程匹配"
+        ],
+        "solutionPlan": [
+          "判断斜率是否只随 $x$ 变、只随 $y$ 变，或随两者变",
+          "找出导数为 $0$ 的线",
+          "用正负区域确认匹配"
+        ],
+        "walkthroughSteps": [
+          "A：$x(x-1)=0$ 给出 $x=0,1$ 两条竖直零斜率线；同一竖线斜率相同",
+          "B：$x(y-2)=0$ 给出 $x=0$ 与 $y=2$ 两条零斜率线；斜率随横竖方向都会改变",
+          "C：$(2-y)(y+1)^2=0$ 给出 $y=2,-1$ 两条水平零斜率线；同一横线斜率相同",
+          "若图上呈水平条纹，优先匹配只依赖 $y$ 的 C；若呈竖直条纹，优先匹配只依赖 $x$ 的 A；若两方向都变，匹配 B"
+        ],
+        "commonPitfalls": [
+          "把零斜率线看成解曲线本身，而不是判断线段水平的位置",
+          "只看一个点的斜率就下结论",
+          "忽略平方因子 $(y+1)^2$ 不改变符号但会让 $y=-1$ 处斜率为零"
+        ],
+        "finalAnswer": "用条纹方向与零斜率线完成匹配：只依赖 $x$ 的场对应 A，只依赖 $y$ 的场对应 C，同时依赖 $x,y$ 的场对应 B。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_12",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场选择题：为什么是 $x^2-y^2$？",
+      "description": "先看图中的关键证据：哪些区域斜率为正、哪些区域为负、哪些线附近斜率接近 $0$。下一步把这些证据逐一对照四个候选方程。",
+      "keyPoints": [
+        "候选：A. $\\dfrac{dy}{dx}=(x-y)^2$；B. $\\dfrac{dy}{dx}=(x+y)^2$；C. $\\dfrac{dy}{dx}=x^2-y^2$；D. $\\dfrac{dy}{dx}=x^2+y^2$",
+        "平方和或平方整体：A、B、D 的斜率通常不为负",
+        "$x^2-y^2=0$ 在 $y=x$ 与 $y=-x$ 上出现水平线段",
+        "当 $|x|>|y|$ 时，$x^2-y^2>0$；当 $|y|>|x|$ 时，$x^2-y^2<0$",
+        "图像若同时出现正斜率区和负斜率区，并沿两条对角线接近水平，选择 C"
+      ],
+      "teachingObjective": "能够用正负斜率区域和零斜率线排除不可能的斜率场方程。",
+      "studentThinkingMove": "先用“有没有负斜率”排除，再用“哪里为零”确认。",
+      "estimatedDuration": 180,
+      "order": 12,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_6",
+        "problemStatement": "Which differential equation corresponds to the shown slope field? A. $\\dfrac{dy}{dx}=(x-y)^2$; B. $\\dfrac{dy}{dx}=(x+y)^2$; C. $\\dfrac{dy}{dx}=x^2-y^2$; D. $\\dfrac{dy}{dx}=x^2+y^2$.",
+        "givens": [
+          "斜率场中既有向上倾斜线段，也有向下倾斜线段",
+          "图中沿两条对角线附近出现水平线段"
+        ],
+        "asks": [
+          "判断哪一个方程能产生这样的斜率场"
+        ],
+        "solutionPlan": [
+          "先检查候选方程是否允许负斜率",
+          "再找导数为 $0$ 的位置",
+          "最后用正负区域确认"
+        ],
+        "walkthroughSteps": [
+          "A：$(x-y)^2\\ge 0$，几乎不会给出负斜率区域，排除",
+          "B：$(x+y)^2\\ge 0$，几乎不会给出负斜率区域，排除",
+          "D：$x^2+y^2\\ge 0$，除原点外为正，排除",
+          "C：$x^2-y^2$ 可正可负，且在 $y=\\pm x$ 上为 $0$",
+          "所以图像对应 C"
+        ],
+        "commonPitfalls": [
+          "只看零斜率线，不检查是否存在负斜率",
+          "把 $(x-y)^2$ 与 $x^2-y^2$ 混淆",
+          "忘记平方表达式整体非负"
+        ],
+        "finalAnswer": "C. $\\dfrac{dy}{dx}=x^2-y^2$"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_13",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "timeline",
+        "layoutTemplate": "process_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "Euler 方法：从当前点沿切线走一步",
+      "description": "先看一个点 $(x_n,y_n)$ 和它所在位置的短线段斜率 $F(x_n,y_n)$。下一步把“沿切线走一步”写成更新公式，并用一个两步小例子看到近似值如何产生。",
+      "keyPoints": [
+        "微分方程：$y'=F(x,y)$，当前点：$(x_n,y_n)$，步长：$h$",
+        "Euler 更新：$x_{n+1}=x_n+h$",
+        "Euler 更新：$y_{n+1}=y_n+hF(x_n,y_n)$",
+        "例：$y'=x+y$，$y(0)=1$，$h=0.5$；第一步 $y_1=1+0.5(0+1)=1.5$",
+        "第二步：$x_1=0.5$，$y_2=1.5+0.5(0.5+1.5)=2.5$"
+      ],
+      "teachingObjective": "能够用 Euler 方法从初值出发逐步近似解曲线。",
+      "studentThinkingMove": "每一步只用当前点的斜率；走完一步后必须更新 $x$ 和 $y$，再算下一次斜率。",
+      "estimatedDuration": 180,
+      "order": 13,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_7",
+        "problemStatement": "Use Euler's method for $y'=x+y$, $y(0)=1$, step size $h=0.5$, to approximate $y(1)$.",
+        "givens": [
+          "$y'=x+y$",
+          "$y(0)=1$",
+          "$h=0.5$"
+        ],
+        "asks": [
+          "用两步 Euler 方法近似 $y(1)$"
+        ],
+        "solutionPlan": [
+          "从 $(x_0,y_0)=(0,1)$ 出发",
+          "每一步计算当前斜率 $F(x_n,y_n)$",
+          "使用 $y_{n+1}=y_n+hF(x_n,y_n)$"
+        ],
+        "walkthroughSteps": [
+          "第 0 步：$(x_0,y_0)=(0,1)$，斜率 $F(0,1)=1$",
+          "$x_1=0.5$，$y_1=1+0.5\\cdot1=1.5$",
+          "第 1 步：$(x_1,y_1)=(0.5,1.5)$，斜率 $F(0.5,1.5)=2$",
+          "$x_2=1$，$y_2=1.5+0.5\\cdot2=2.5$",
+          "所以 Euler 近似给出 $y(1)\\approx2.5$"
+        ],
+        "commonPitfalls": [
+          "一直使用初始斜率，不更新斜率",
+          "更新了 $y$ 却忘记更新 $x$",
+          "把步长 $h$ 漏乘到斜率上"
+        ],
+        "finalAnswer": "$y(1)\\approx2.5$"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_14",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "Euler 高估还是低估：看凹向，而不是只看斜率正负",
+      "description": "先看从初值出发的解曲线和一段段切线：切线折线在真曲线的上方还是下方，取决于曲线凹向。下一步用金鱼数量模型的斜率场判断 Euler 估计方向。",
+      "keyPoints": [
+        "模型：$\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$，初值 $N(0)=7$",
+        "题目：用步长 $\\Delta t=0.5$ 的 Euler 方法估计 $t=2$ 时的数量，是高估还是低估？",
+        "从斜率场看，初值附近的解曲线呈 concave up",
+        "concave up 时，切线通常在曲线下方；Euler 用切线前进，容易低估",
+        "结论：under-estimate，因为解曲线看起来 concave up"
+      ],
+      "teachingObjective": "能够用解曲线的凹向判断 Euler 方法的高估或低估方向。",
+      "studentThinkingMove": "先判断凹向，再比较切线折线和真曲线的位置；不要只凭增长或下降判断高低估。",
+      "estimatedDuration": 180,
+      "order": 14,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_8",
+        "problemStatement": "A goldfish population is modeled by $\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$ with $N(0)=7$. Judging by the slope field, using Euler's method with $\\Delta t=0.5$ to approximate $N(2)$ would be an under-estimate or over-estimate?",
+        "givens": [
+          "$\\dfrac{dN}{dt}=N\\left(\\dfrac{N}{6}-1\\right)\\left(1-\\dfrac{N}{20}\\right)$",
+          "$N(0)=7$",
+          "$\\Delta t=0.5$",
+          "斜率场显示初值附近解曲线呈 concave up"
+        ],
+        "asks": [
+          "判断 Euler 近似 $N(2)$ 是 under-estimate 还是 over-estimate，并说明原因"
+        ],
+        "solutionPlan": [
+          "从初值点沿斜率场想象解曲线",
+          "判断解曲线的凹向",
+          "比较 Euler 切线折线与真曲线的位置"
+        ],
+        "walkthroughSteps": [
+          "从 $N(0)=7$ 出发，斜率场中的解曲线向上弯，呈 concave up",
+          "concave up 的曲线上，切线通常落在曲线下方",
+          "Euler 方法每一步沿当前切线走，因此折线会低于真解",
+          "所以 Euler 估计 $N(2)$ 为 under-estimate"
+        ],
+        "commonPitfalls": [
+          "看到 population 增长就直接认为高估",
+          "只看斜率正负，不看凹向",
+          "把一步切线的方向与多步折线的误差方向混为一谈"
+        ],
+        "finalAnswer": "Under-estimate，因为初值附近解曲线看起来 concave up，Euler 切线折线落在真曲线下方。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_15",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "summary",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "summary_board",
+        "disciplineStyle": "math",
+        "teachingFlow": "comparison_review",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "下次做题前的检查清单：微分方程从哪里下手？",
+      "description": "先把今天所有题型压缩成一张可执行清单：积分、初值、FTC 检查、斜率场、Euler 误差。最后留下下一节的钩子：当右边同时含 $x$ 和 $y$ 时，能不能不靠斜率场而直接求出精确解？",
+      "keyPoints": [
+        "若 $\\dfrac{dy}{dx}=f(x)$：写 $dy=f(x)\\,dx$，积分得到 $y=\\int f(x)\\,dx+C$",
+        "若有初值 $y(a)=b$：把 $x=a$ 代入通解，令 $y=b$，解出 $C$",
+        "若给积分表达式：先求 $y'$，用 $\\dfrac{d}{dx}\\int_a^{g(x)} f(t)\\,dt=f(g(x))g'(x)$ 检查",
+        "若读斜率场：先看变量依赖，再找零斜率线，再看正负区域",
+        "若判断 Euler 高估/低估：先看凹向；concave up 常见低估，concave down 常见高估"
+      ],
+      "teachingObjective": "能够按题型选择合适的第一步，并用导数、初值或图像证据检查答案。",
+      "studentThinkingMove": "拿到题先分类：求函数、验函数、读斜率场，还是判断数值近似误差？",
+      "estimatedDuration": 150,
+      "order": 15,
+      "language": "zh-CN"
+    }
+  ],
+  "retries": [],
+  "eventCount": 16,
+  "upstreamRoute": "/api/generate/scene-outlines-stream",
+  "promptPreview": "请基于上传资料，为 MAT136 Calculus II 生成一套中文版 image-first notebook 的可审查大纲。\n这次只生成大纲，不生成每页图片。\n\n课程主题：微分方程入门。主线必须是：为什么只知道变化率不够 -> 从 dy/dx 反推 y -> 不定积分带来常数 C -> 初值如何确定 C -> 如何用 FTC / 链式法则检查积分表达式是否满足微分方程 -> 如何读 slope field -> Euler method 为什么会高估或低估。\n\n结构要求：\n1. 至少 12 页。\n2. 第 1 页是 overview/hook，不是讲解页，不要解题；只提出学生会遇到的核心困惑。\n3. 第 2-4 页讲“从 dy/dx 到 y”的公式、常数 C、初值。\n4. 中间必须有多个完整例题，尤其是 dy/dx = 2x, y(3)=5，以及“给出积分表达式，判断它是否满足微分方程”的题。\n5. 后半段讲 slope field 和 Euler method 的估计方向。\n6. 最后一页总结要留下可执行 checklist，并给下一节课钩子。\n\n每页必须输出：学生这一页先看什么、为什么要这样做、老师推进的下一步、例题或图像如何服务本页。\n\n严禁：\n- 不要把课号、校区、导师、免责声明、页眉页脚、MAT136 课程身份当作页面要点。\n- 不要重复通用模板句，例如“MAT136 是本节课材料里的具体对象”“这一行为什么成立”这种空话。\n- 不要照抄 PDF 文本提取错误，例如 derek、!、#、& 这类乱码。公式读不准时，用文字描述“资料中的积分上限选择题”即可。\n- 不要写成讲义目录；要像老师实际带学生思考。\n\n输出语言：中文。保留英文资料中的数学题意，但不要保留英文讲义腔。",
+  "language": "zh-CN",
+  "sourceTextChars": 7113,
+  "outlinePreferences": {
+    "length": "standard",
+    "includeQuizScenes": false,
+    "workedExampleLevel": "heavy"
+  },
+  "outlineQuality": {
+    "passed": true,
+    "minSceneCount": 12,
+    "findings": [],
+    "blockedPhrases": [],
+    "retryCount": 0
+  },
+  "outlineQualityAttempts": [
+    {
+      "passed": true,
+      "minSceneCount": 12,
+      "findings": [],
+      "blockedPhrases": [],
+      "retryCount": 0
+    }
+  ]
+}

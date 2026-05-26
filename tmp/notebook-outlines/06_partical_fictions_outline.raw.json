@@ -1,0 +1,1874 @@
+{
+  "success": true,
+  "outlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "title": "为什么要从导数反推函数？",
+      "description": "从函数的导数 dy/dx 开始，提出一个具体问题：如果只知道导数，我们究竟能知道什么？这引发了对微分方程的探索。",
+      "keyPoints": [
+        "已知条件：函数的导数 dy/dx",
+        "问题：我们能否从 dy/dx 反推出 y？",
+        "思考：为什么仅有导数不够？",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+        "数学课开场先定位对象、条件和要判断的问题。"
+      ],
+      "order": 1,
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "image_title_overlay",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "concept",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_-Zc7_8l8",
+        "order": 1,
+        "title": "为什么要从导数反推函数？",
+        "role": "concrete_hook",
+        "pagePatternId": "mathematics.concrete_hook",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "definition_board",
+        "openingMove": "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+        "studentThinkingMove": "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+        "transferRule": "数学课开场先定位对象、条件和要判断的问题。"
+      },
+      "teachingRole": "concrete_hook",
+      "studentThinkingMove": "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+      "requiredComponentKinds": [],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.concrete_hook",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "currentJob": "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "title": "微分方程的基本概念",
+      "description": "讨论微分方程的定义和基本形式，帮助学生理解何为微分方程。",
+      "keyPoints": [
+        "微分方程定义：包含未知函数及其导数的方程",
+        "举例说明：dy/dx = f(x,y) 是微分方程的一种形式",
+        "理解微分方程与函数间的关系",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 2,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "math",
+      "archetype": "definition",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_ZK_rwR6e",
+        "order": 2,
+        "title": "微分方程的基本概念",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "数学课开场先定位对象、条件和要判断的问题。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_3",
+      "type": "slide",
+      "title": "初值问题",
+      "description": "解释如何通过初始条件确定常数，从而解微分方程。",
+      "keyPoints": [
+        "初值问题示例：dy/dx = 2x, y(3) = 5",
+        "解决步骤：求取不定积分，同时代入初始条件确定常数",
+        "讨论：为何初始化解是重要的",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 3,
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "image_title_overlay",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "math",
+      "archetype": "concept",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_GbMPvGeX",
+        "order": 3,
+        "title": "初值问题",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_4",
+      "type": "slide",
+      "title": "例题：求解微分方程",
+      "description": "通过具体例子帮助学生理解如何从微分方程解出函数。",
+      "keyPoints": [
+        "问题：给定微分方程 dy/dx = 2x，要求 y 表达式",
+        "步骤演示：derek dy = 2x dx，积分得 y = x^2 + C",
+        "确定 C 值：代入 y(3) = 5 进行计算",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 4,
+      "layoutIntent": {
+        "layoutFamily": "problem_walkthrough",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "math",
+      "archetype": "example",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_NihOqOsK",
+        "order": 4,
+        "title": "例题：求解微分方程",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "trace",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "trace",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "title": "识别微分方程的积分表达式",
+      "description": "教授学生如何判断给定的积分表达式是否满足某个微分方程。",
+      "keyPoints": [
+        "问题示例：确定某个表达式是否为微分方程的解",
+        "解法步骤：将积分形式的结果代入原方程检验",
+        "提示：注意解决过程中的导数和函数关系",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 5,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "math",
+      "archetype": "example",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_M8ErPkDX",
+        "order": 5,
+        "title": "识别微分方程的积分表达式",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "title": "斜率场的概念",
+      "description": "引入斜率场的概念，展示它与微分方程之间的联系。",
+      "keyPoints": [
+        "定义斜率场：在平面上绘制每个点的导数值所形成的图形",
+        "如何从微分方程构造斜率场",
+        "讨论斜率场在理解解的行为方面的应用",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 6,
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "visual_three_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "math",
+      "archetype": "definition",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_0KgWJFL0",
+        "order": 6,
+        "title": "斜率场的概念",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "trace",
+          "graph_trace"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "trace",
+        "graph_trace"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "title": "实例：绘制斜率场",
+      "description": "通过示例，展示如何绘制斜率场并利用它分析方程的解。",
+      "keyPoints": [
+        "选择特定的微分方程以绘制斜率场",
+        "课程实践：在图中标出每一点的切线斜率",
+        "讨论斜率场展示的解的趨勢",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 7,
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "general",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "general",
+      "archetype": "concept",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_FZ0HclVu",
+        "order": 7,
+        "title": "实例：绘制斜率场",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "graph_trace"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "memory",
+        "graph_trace"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "title": "Euler方法概述",
+      "description": "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+      "keyPoints": [
+        "Euler方法的基本概念：用切线斜率来近似解的变化",
+        "算法：以离散形式近似求解微分方程",
+        "优势和局限性：步长的影响",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 8,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "definition_board",
+        "disciplineStyle": "general",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "general",
+      "archetype": "concept",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_D5C10jir",
+        "order": 8,
+        "title": "Euler方法概述",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "memory",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_euler"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      }
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "title": "例题：应用Euler方法",
+      "description": "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+      "keyPoints": [
+        "设定初值和微分方程：dy/dx = f(x,y)",
+        "应用迭代步骤进行计算",
+        "讨论误差和近似值的意义",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "例题要留下“为什么能走这一步”，不是只留下答案。"
+      ],
+      "order": 9,
+      "layoutIntent": {
+        "layoutFamily": "problem_walkthrough",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "general",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "contentProfile": "general",
+      "archetype": "example",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_6JvhzI0g",
+        "order": 9,
+        "title": "例题：应用Euler方法",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "trace",
+          "memory"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+      "requiredComponentKinds": [
+        "trace",
+        "memory"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_euler"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "nextHandoff": "总结要留下可执行的证明 checklist，而不是术语表。"
+      }
+    },
+    {
+      "id": "scene_10",
+      "type": "slide",
+      "title": "总结与回顾",
+      "description": "回顾课堂上学习的内容，巩固重要概念和方法。",
+      "keyPoints": [
+        "微分方程、初值问题和Euler方法的重要性",
+        "如何将这些知识应用于实际问题",
+        "鼓励探索更多的微分方程类型",
+        "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "下次遇到类似命题，我先问哪三个问题？",
+        "总结要留下可执行的证明 checklist，而不是术语表。"
+      ],
+      "order": 10,
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "disciplineStyle": "general",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "general",
+      "archetype": "summary",
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_J07AwR7X",
+      "teachingPagePlan": {
+        "id": "pageplan_uzi-jKA5",
+        "order": 10,
+        "title": "总结与回顾",
+        "role": "synthesis",
+        "pagePatternId": "mathematics.synthesis",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "example"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "openingMove": "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。",
+        "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+        "transferRule": "总结要留下可执行的证明 checklist，而不是术语表。"
+      },
+      "teachingRole": "synthesis",
+      "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+      "requiredComponentKinds": [
+        "example"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.synthesis",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+            "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_8",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ],
+          "malformedData": [],
+          "rules": [
+            "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+            "Euler方法的基本概念：用切线斜率来近似解的变化",
+            "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+            "微分方程、初值问题和Euler方法的重要性"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_euler"
+        ],
+        "previousHandoff": "例题要留下“为什么能走这一步”，不是只留下答案。",
+        "currentJob": "下次遇到类似命题，我先问哪三个问题？"
+      }
+    }
+  ],
+  "incrementalOutlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "title": "为什么要从导数反推函数？",
+      "description": "从函数的导数 dy/dx 开始，提出一个具体问题：如果只知道导数，我们究竟能知道什么？这引发了对微分方程的探索。",
+      "keyPoints": [
+        "已知条件：函数的导数 dy/dx",
+        "问题：我们能否从 dy/dx 反推出 y？",
+        "思考：为什么仅有导数不够？"
+      ],
+      "order": 1,
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "image_title_overlay",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "concept",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "title": "微分方程的基本概念",
+      "description": "讨论微分方程的定义和基本形式，帮助学生理解何为微分方程。",
+      "keyPoints": [
+        "微分方程定义：包含未知函数及其导数的方程",
+        "举例说明：dy/dx = f(x,y) 是微分方程的一种形式",
+        "理解微分方程与函数间的关系"
+      ],
+      "order": 2,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "definition",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_3",
+      "type": "slide",
+      "title": "初值问题",
+      "description": "解释如何通过初始条件确定常数，从而解微分方程。",
+      "keyPoints": [
+        "初值问题示例：dy/dx = 2x, y(3) = 5",
+        "解决步骤：求取不定积分，同时代入初始条件确定常数",
+        "讨论：为何初始化解是重要的"
+      ],
+      "order": 3,
+      "layoutIntent": {
+        "layoutFamily": "cover",
+        "layoutTemplate": "image_title_overlay",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "concept",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_4",
+      "type": "slide",
+      "title": "例题：求解微分方程",
+      "description": "通过具体例子帮助学生理解如何从微分方程解出函数。",
+      "keyPoints": [
+        "问题：给定微分方程 dy/dx = 2x，要求 y 表达式",
+        "步骤演示：derek dy = 2x dx，积分得 y = x^2 + C",
+        "确定 C 值：代入 y(3) = 5 进行计算"
+      ],
+      "order": 4,
+      "layoutIntent": {
+        "layoutFamily": "problem_walkthrough",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "example",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "title": "识别微分方程的积分表达式",
+      "description": "教授学生如何判断给定的积分表达式是否满足某个微分方程。",
+      "keyPoints": [
+        "问题示例：确定某个表达式是否为微分方程的解",
+        "解法步骤：将积分形式的结果代入原方程检验",
+        "提示：注意解决过程中的导数和函数关系"
+      ],
+      "order": 5,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "example",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "title": "斜率场的概念",
+      "description": "引入斜率场的概念，展示它与微分方程之间的联系。",
+      "keyPoints": [
+        "定义斜率场：在平面上绘制每个点的导数值所形成的图形",
+        "如何从微分方程构造斜率场",
+        "讨论斜率场在理解解的行为方面的应用"
+      ],
+      "order": 6,
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "visual_three_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "math",
+      "archetype": "definition",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "title": "实例：绘制斜率场",
+      "description": "通过示例，展示如何绘制斜率场并利用它分析方程的解。",
+      "keyPoints": [
+        "选择特定的微分方程以绘制斜率场",
+        "课程实践：在图中标出每一点的切线斜率",
+        "讨论斜率场展示的解的趨勢"
+      ],
+      "order": 7,
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "two_column_explain",
+        "disciplineStyle": "general",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "general",
+      "archetype": "concept",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "title": "Euler方法概述",
+      "description": "引导学生了解Euler方法及其应用于微分方程的数值求解。",
+      "keyPoints": [
+        "Euler方法的基本概念：用切线斜率来近似解的变化",
+        "算法：以离散形式近似求解微分方程",
+        "优势和局限性：步长的影响"
+      ],
+      "order": 8,
+      "layoutIntent": {
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "definition_board",
+        "disciplineStyle": "general",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "general",
+      "archetype": "concept",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "title": "例题：应用Euler方法",
+      "description": "通过一个完整的示例，演示如何使用Euler方法进行数值求解。",
+      "keyPoints": [
+        "设定初值和微分方程：dy/dx = f(x,y)",
+        "应用迭代步骤进行计算",
+        "讨论误差和近似值的意义"
+      ],
+      "order": 9,
+      "layoutIntent": {
+        "layoutFamily": "problem_walkthrough",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "general",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "general",
+      "archetype": "example",
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_10",
+      "type": "slide",
+      "title": "总结与回顾",
+      "description": "回顾课堂上学习的内容，巩固重要概念和方法。",
+      "keyPoints": [
+        "微分方程、初值问题和Euler方法的重要性",
+        "如何将这些知识应用于实际问题",
+        "鼓励探索更多的微分方程类型"
+      ],
+      "order": 10,
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "disciplineStyle": "general",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "contentProfile": "general",
+      "archetype": "summary",
+      "language": "zh-CN"
+    }
+  ],
+  "retries": [],
+  "eventCount": 11,
+  "upstreamRoute": "/api/generate/scene-outlines-stream",
+  "promptPreview": "请基于上传资料，为 MAT136 Calculus II 生成一套中文版 image-first notebook 的可审查大纲。\n这次只生成大纲，不生成每页图片。\n主题围绕资料中的微分方程入门：从导数/变化率回到函数、用初值确定常数、识别 integral expression 是否满足微分方程、读 slope field、Euler method 的估计方向。\n大纲要像老师给学生讲课的推进，不要像讲义目录：第一页必须是学生视角 overview/hook，先提出为什么要从 dy/dx 反推 y，以及为什么只知道导数还不够；第二页之后再进入公式、例题、斜率场和 Euler 方法。\n每一页都要写清楚学生这一页要想什么、老师这一页推进什么、最好用什么例题或图像。\n不要把课号、校区、导师、免责声明、页眉页脚当作正文内容。\n保留英文资料中的数学题意，但输出中文大纲。\n需要 10 页以上，例题要多，且前后逻辑连贯。",
+  "language": "zh-CN",
+  "sourceTextChars": 7113,
+  "outlinePreferences": {
+    "length": "standard",
+    "includeQuizScenes": false,
+    "workedExampleLevel": "heavy"
+  }
+}

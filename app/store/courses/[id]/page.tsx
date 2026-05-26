@@ -282,7 +282,7 @@ export default function StoreCourseDetailPage() {
 
   return (
     <div className="store-shell store-grid min-h-full w-full overflow-hidden">
-      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-4 pb-20 pt-8 md:px-8 lg:px-10">
+      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-3 pb-16 pt-4 sm:px-4 sm:pt-6 md:px-8 md:pb-20 lg:px-10 lg:pt-8">
         <Button variant="ghost" size="sm" className="-ml-2 mb-4 rounded-full px-4" asChild>
           <Link href="/store/courses">
             <ArrowLeft className="size-4" />
@@ -290,8 +290,8 @@ export default function StoreCourseDetailPage() {
           </Link>
         </Button>
 
-        <section className="store-hero-panel overflow-hidden rounded-[40px] px-6 py-8 md:px-10 md:py-10">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.72fr)] lg:items-start">
+        <section className="store-hero-panel overflow-hidden px-4 py-6 sm:rounded-[40px] sm:px-6 sm:py-8 md:px-10 md:py-10">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.72fr)] xl:items-start">
             <div className="max-w-3xl">
               <div className="flex flex-wrap gap-2">
                 <span className="store-chip text-xs">{purposeLabel(course.purpose)}</span>
@@ -302,7 +302,7 @@ export default function StoreCourseDetailPage() {
                   <span className="store-chip text-xs">{course.courseCode.trim()}</span>
                 ) : null}
               </div>
-              <h1 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950 md:text-6xl dark:text-white">
+              <h1 className="mt-5 text-3xl font-semibold text-slate-950 sm:text-4xl md:text-6xl dark:text-white">
                 {course.name}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg dark:text-slate-300">
@@ -324,7 +324,7 @@ export default function StoreCourseDetailPage() {
             </div>
 
             <aside className="store-sticky-buy">
-              <div className="store-section-panel rounded-[32px] p-6">
+              <div className="store-section-panel p-5 sm:rounded-[32px] sm:p-6">
                 <div className="flex items-center gap-4">
                   <img
                     src={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
@@ -333,7 +333,7 @@ export default function StoreCourseDetailPage() {
                   />
                   <div>
                     <p className="text-sm text-slate-500 dark:text-slate-400">课程价格</p>
-                    <p className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                    <p className="mt-1 text-3xl font-semibold text-slate-950 dark:text-white">
                       {priceLabel}
                     </p>
                   </div>
@@ -368,23 +368,26 @@ export default function StoreCourseDetailPage() {
           </div>
         </section>
 
-        <section className="mt-14">
+        <section className="mt-10 sm:mt-14">
           <div className="mb-6">
             <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
               Why It&apos;s Worth It
             </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950 sm:text-3xl dark:text-white">
               课程亮点
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             {highlights.map((highlight) => (
-              <div key={highlight.title} className="store-section-panel rounded-[30px] p-6">
+              <div
+                key={highlight.title}
+                className="store-section-panel p-5 sm:rounded-[30px] sm:p-6"
+              >
                 <p className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                   <WandSparkles className="size-4" />
                   亮点
                 </p>
-                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
+                <h3 className="mt-3 text-xl font-semibold text-slate-950 sm:text-2xl dark:text-white">
                   {highlight.title}
                 </h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
@@ -395,14 +398,14 @@ export default function StoreCourseDetailPage() {
           </div>
         </section>
 
-        <section className="mt-14 grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
-          <div className="store-section-panel rounded-[34px] p-6 md:p-8">
+        <section className="mt-10 grid gap-5 sm:mt-14 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+          <div className="store-section-panel p-5 sm:rounded-[34px] md:p-8">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
                   Course Contents
                 </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950 sm:text-3xl dark:text-white">
                   课程内容总览
                 </h2>
               </div>
@@ -422,15 +425,15 @@ export default function StoreCourseDetailPage() {
                     className="rounded-[28px] border border-white/75 bg-white/70 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-white/5"
                   >
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div className="flex gap-4">
+                      <div className="flex min-w-0 flex-col gap-3 min-[420px]:flex-row min-[420px]:gap-4">
                         <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white dark:bg-white dark:text-slate-950">
                           <BookOpen className="size-5" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-medium tracking-[0.16em] text-slate-400 uppercase dark:text-slate-500">
                             {`Notebook ${String(index + 1).padStart(2, '0')}`}
                           </p>
-                          <h3 className="mt-1 text-xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white">
+                          <h3 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
                             {notebook.name}
                           </h3>
                           <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
@@ -457,14 +460,19 @@ export default function StoreCourseDetailPage() {
 
                       {notebook.listedInNotebookStore && !course.purchased ? (
                         notebookAlreadyOwned ? (
-                          <Button size="sm" variant="outline" className="rounded-full" disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full rounded-full md:w-auto"
+                            disabled
+                          >
                             已拥有
                           </Button>
                         ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="rounded-full"
+                            className="w-full rounded-full md:w-auto"
                             disabled={buyingNotebookId === notebook.id}
                             onClick={() => setPendingNotebookPurchase(notebook)}
                           >
@@ -480,11 +488,11 @@ export default function StoreCourseDetailPage() {
           </div>
 
           <div className="space-y-5">
-            <div className="store-section-panel rounded-[34px] p-6">
+            <div className="store-section-panel p-5 sm:rounded-[34px] sm:p-6">
               <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
                 Snapshot
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
                 这门课程适合什么场景？
               </h2>
               <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
@@ -503,11 +511,11 @@ export default function StoreCourseDetailPage() {
               </div>
             </div>
 
-            <div className="store-section-panel rounded-[34px] p-6">
+            <div className="store-section-panel p-5 sm:rounded-[34px] sm:p-6">
               <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
                 Reviews
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-slate-950 dark:text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
                 学习者评价
               </h2>
 
@@ -535,7 +543,7 @@ export default function StoreCourseDetailPage() {
                   />
                   <button
                     type="button"
-                    className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold"
+                    className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                     disabled={submitting}
                     onClick={() => void handleReview()}
                   >
@@ -559,7 +567,7 @@ export default function StoreCourseDetailPage() {
                       key={review.id}
                       className="rounded-[26px] border border-white/70 bg-white/72 p-4 dark:border-white/10 dark:bg-white/5"
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col gap-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3">
                         <p className="font-medium text-slate-950 dark:text-white">
                           {review.reviewerName}
                         </p>
@@ -582,17 +590,17 @@ export default function StoreCourseDetailPage() {
         </section>
 
         <section className="mt-14">
-          <div className="store-section-panel flex flex-col gap-6 rounded-[36px] px-6 py-7 md:flex-row md:items-center md:justify-between md:px-8">
+          <div className="store-section-panel flex flex-col gap-6 px-5 py-6 sm:rounded-[36px] md:flex-row md:items-center md:justify-between md:px-8 md:py-7">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Next step</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">
                 想继续挑选别的课程？返回商城继续逛专题货架。
               </h2>
             </div>
             <button
               type="button"
               onClick={() => router.push('/store/courses')}
-              className="store-cta-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+              className="store-cta-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold md:w-auto"
             >
               返回课程商城
               <ArrowRight className="size-4" />

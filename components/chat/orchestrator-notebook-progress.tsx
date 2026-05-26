@@ -8,7 +8,10 @@ import { cn } from '@/lib/utils';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
 import { StepVisualizer } from '@/app/generation-preview/components/visualizers';
 import { ALL_STEPS } from '@/app/generation-preview/types';
-import { COURSE_ORCHESTRATOR_NAME, resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
+import {
+  COURSE_ORCHESTRATOR_NAME,
+  resolveCourseOrchestratorAvatar,
+} from '@/lib/constants/course-chat';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 
 function OrchestratorProgressAvatar() {
@@ -16,7 +19,10 @@ function OrchestratorProgressAvatar() {
   const courseAvatarUrl = useCurrentCourseStore((s) => s.avatarUrl);
   const src = resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl).trim();
   const isImage =
-    src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
+    src.startsWith('/') ||
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('data:');
   if (isImage) {
     return (
       <img
@@ -54,6 +60,8 @@ function progressToVisualizerStepId(p: NotebookGenerationProgress): string {
       return 'agent-generation';
     case 'outline':
       return 'outline';
+    case 'image-prep':
+      return 'slide-content';
     case 'scene':
       return 'slide-content';
     case 'saving':
@@ -84,10 +92,15 @@ export function OrchestratorNotebookProgressPanel({
   onCancel?: () => void;
   cancelPending?: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const stepId = progressToVisualizerStepId(progress);
   const stepMeta = ALL_STEPS.find((s) => s.id === stepId);
-  const title = stepMeta ? t(stepMeta.title) : progress.detail;
+  const title =
+    progress.stage === 'image-prep'
+      ? t('generation.preparingImageGeneration')
+      : stepMeta
+        ? t(stepMeta.title)
+        : progress.detail;
   const webSearchSources =
     progress.stage === 'research' && progress.sources?.length
       ? progress.sources.map((s) => ({ title: s.title, url: s.url }))
@@ -109,11 +122,7 @@ export function OrchestratorNotebookProgressPanel({
                 transition={{ duration: 0.38 }}
                 className="flex w-full items-center justify-center"
               >
-                <StepVisualizer
-                  stepId={stepId}
-                  outlines={[]}
-                  webSearchSources={webSearchSources}
-                />
+                <StepVisualizer stepId={stepId} outlines={[]} webSearchSources={webSearchSources} />
               </motion.div>
             </AnimatePresence>
           </div>
@@ -123,6 +132,11 @@ export function OrchestratorNotebookProgressPanel({
             {progress.stage === 'scene' ? (
               <p className="mt-2 text-[11px] tabular-nums text-muted-foreground">
                 页面 {progress.completed + 1} / {progress.total}
+              </p>
+            ) : progress.stage === 'image-prep' && progress.total ? (
+              <p className="mt-2 text-[11px] tabular-nums text-muted-foreground">
+                {locale === 'en-US' ? 'Confirmed' : '已确认'} {progress.completed ?? progress.total}{' '}
+                / {progress.total} {locale === 'en-US' ? 'pages' : '页'}
               </p>
             ) : null}
             {notebookLinkId ? (
@@ -167,7 +181,10 @@ export function OrchestratorRemoteTaskBanner({
       <OrchestratorProgressAvatar />
       <div className="w-full max-w-[min(100%,640px)] rounded-xl border border-slate-900/[0.08] bg-white/85 px-3 py-3 shadow-sm dark:border-white/[0.1] dark:bg-black/35">
         <div className="flex items-start gap-2.5">
-          <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+          <Loader2
+            className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground"
+            aria-hidden
+          />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-foreground">笔记本生成进行中</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{detail}</p>

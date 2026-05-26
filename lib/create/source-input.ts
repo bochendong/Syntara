@@ -1,7 +1,7 @@
 'use client';
 
-import { MAX_PDF_CONTENT_CHARS, MAX_VISION_IMAGES } from '@/lib/constants/generation';
-import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
+import { MAX_PDF_CONTENT_CHARS } from '@/lib/constants/generation';
+import { parsePdfForGeneration, type PdfImageCaptureMode } from '@/lib/pdf/parse-for-generation';
 import type { PdfSourceSelection } from '@/lib/pdf/page-selection';
 import { useSettingsStore } from '@/lib/store/settings';
 import type { ImageMapping, PdfImage } from '@/lib/types/generation';
@@ -53,6 +53,10 @@ export async function parsePdfLikeGenerationPreview(args: {
   signal?: AbortSignal;
   language?: 'zh-CN' | 'en-US';
   sourcePageSelection?: PdfSourceSelection;
+  imageLimit?: number | null;
+  imageCaptureMode?: PdfImageCaptureMode;
+  forceBrowserParse?: boolean;
+  includeVisualRegionImages?: boolean;
 }): Promise<{
   pdfText: string;
   pdfImages: PdfImage[];
@@ -74,6 +78,10 @@ export async function parsePdfLikeGenerationPreview(args: {
         }
       : undefined,
     selection: args.sourcePageSelection,
+    imageLimit: args.imageLimit,
+    imageCaptureMode: args.imageCaptureMode,
+    forceBrowserParse: args.forceBrowserParse,
+    includeVisualRegionImages: args.includeVisualRegionImages,
   });
 }
 
@@ -162,9 +170,6 @@ export async function parsePptxLikeGenerationPreview(args: {
   const truncationWarnings: string[] = [];
   if ((parseResult.data.text as string).length > MAX_PDF_CONTENT_CHARS) {
     truncationWarnings.push(`正文已截断至前 ${MAX_PDF_CONTENT_CHARS} 字符`);
-  }
-  if (images.length > MAX_VISION_IMAGES) {
-    truncationWarnings.push(`图片数量已截断：保留 ${MAX_VISION_IMAGES} / ${images.length} 张`);
   }
 
   return { pdfText, pdfImages, imageStorageIds, imageMapping, truncationWarnings };

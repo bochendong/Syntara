@@ -24,6 +24,10 @@ import type {
   TeachingPagePlan,
   TeachingRole,
 } from '@/lib/generation/teaching-plan/types';
+import type {
+  ImageNotebookCourseSpine,
+  ImageNotebookPageBrief,
+} from '@/lib/generation/image-notebook-quality';
 
 export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'bridge' | 'summary';
 
@@ -174,6 +178,13 @@ export interface SceneOutline {
   teachingPlanId?: string;
   teachingPagePlan?: TeachingPagePlan;
   teachingRole?: TeachingRole;
+  imageNotebookBrief?: ImageNotebookPageBrief;
+  imageNotebookCourseSpine?: ImageNotebookCourseSpine;
+  /**
+   * Image-first notebooks can provide an authoritative drawing prompt per page.
+   * This keeps the image model grounded in exact visible content from the source file.
+   */
+  imageNotebookPrompt?: string;
   studentThinkingMove?: string;
   requiredComponentKinds?: TeachingComponentKind[];
   forbiddenPatterns?: string[];

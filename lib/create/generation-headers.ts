@@ -13,6 +13,8 @@ import type { NotebookStageModelOverrides } from '@/lib/store/orchestrator-noteb
 import { useSettingsStore } from '@/lib/store/settings';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 
+export const GENERATION_TEST_NO_CHARGE_HEADER = 'x-generation-test-no-charge';
+
 export function getApiHeaders(overrides?: {
   imageGenerationEnabled?: boolean;
   modelIdOverride?: string | null;
@@ -20,6 +22,7 @@ export function getApiHeaders(overrides?: {
   notebookModelMode?: NotebookGenerationModelMode;
   notebookGenerationSessionId?: string | null;
   notebookGenerationTaskId?: string | null;
+  testNoCharge?: boolean;
 }): HeadersInit {
   const modelConfig = getCurrentModelConfig();
   const settings = useSettingsStore.getState();
@@ -82,6 +85,9 @@ export function getApiHeaders(overrides?: {
   if (notebookGenerationTaskId) {
     headers['x-notebook-generation-task-id'] = notebookGenerationTaskId;
   }
+  if (overrides?.testNoCharge) {
+    headers[GENERATION_TEST_NO_CHARGE_HEADER] = 'true';
+  }
 
   return headers;
 }
@@ -89,6 +95,7 @@ export function getApiHeaders(overrides?: {
 export function getNotebookGenerationTrackingHeaders(tracking?: {
   notebookGenerationSessionId?: string | null;
   notebookGenerationTaskId?: string | null;
+  testNoCharge?: boolean;
 }): Record<string, string> {
   const headers: Record<string, string> = {};
   const notebookGenerationSessionId = tracking?.notebookGenerationSessionId?.trim();
@@ -99,6 +106,9 @@ export function getNotebookGenerationTrackingHeaders(tracking?: {
   }
   if (notebookGenerationTaskId) {
     headers['x-notebook-generation-task-id'] = notebookGenerationTaskId;
+  }
+  if (tracking?.testNoCharge) {
+    headers[GENERATION_TEST_NO_CHARGE_HEADER] = 'true';
   }
 
   return headers;

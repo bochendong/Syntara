@@ -41,7 +41,9 @@ type CreditsBalanceResponse = {
 };
 
 function formatBalanceLabel(value: number, accountType: 'PURCHASE' | 'CASH') {
-  return accountType === 'PURCHASE' ? formatPurchaseCreditsLabel(value) : formatCashCreditsLabel(value);
+  return accountType === 'PURCHASE'
+    ? formatPurchaseCreditsLabel(value)
+    : formatCashCreditsLabel(value);
 }
 
 export function PurchaseConfirmDialog({
@@ -68,7 +70,9 @@ export function PurchaseConfirmDialog({
     void backendJson<CreditsBalanceResponse>('/api/profile/credits?pageSize=1')
       .then((response) => {
         if (cancelled) return;
-        setCreditsBalance(accountType === 'PURCHASE' ? response.balances.purchase : response.balance);
+        setCreditsBalance(
+          accountType === 'PURCHASE' ? response.balances.purchase : response.balance,
+        );
         setBalanceError(null);
       })
       .catch((error) => {
@@ -80,7 +84,7 @@ export function PurchaseConfirmDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [accountType, open]);
 
   const loadingBalance = open && creditsBalance == null && balanceError == null;
   const nextBalance = useMemo(() => {
@@ -94,13 +98,13 @@ export function PurchaseConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-[min(100vw-2rem,32rem)] rounded-[28px] border-white/60 bg-[rgba(255,255,255,0.92)] p-0 shadow-[0_30px_90px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(18,22,31,0.94)]">
-        <div className="p-6 md:p-7">
+      <AlertDialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[32rem] overflow-y-auto rounded-[24px] border-white/60 bg-[rgba(255,255,255,0.92)] p-0 shadow-[0_30px_90px_rgba(15,23,42,0.18)] backdrop-blur-2xl sm:rounded-[28px] dark:border-white/10 dark:bg-[rgba(18,22,31,0.94)]">
+        <div className="p-5 sm:p-6 md:p-7">
           <AlertDialogHeader className="items-start text-left">
             <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-sky-300/50 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/12 dark:text-sky-200">
               <Coins className="size-5" strokeWidth={1.8} />
             </div>
-            <AlertDialogTitle className="text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
+            <AlertDialogTitle className="text-[1.35rem] font-semibold text-slate-950 dark:text-white">
               购买确认
             </AlertDialogTitle>
             <AlertDialogDescription className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
@@ -187,12 +191,12 @@ export function PurchaseConfirmDialog({
         </div>
 
         <AlertDialogFooter className="border-t border-slate-200/70 px-6 py-4 dark:border-white/10 md:px-7">
-          <AlertDialogCancel type="button" className="rounded-full">
+          <AlertDialogCancel type="button" className="w-full rounded-full sm:w-auto">
             取消
           </AlertDialogCancel>
           <Button
             type="button"
-            className="rounded-full"
+            className="w-full rounded-full sm:w-auto"
             disabled={busy || loadingBalance || insufficient}
             onClick={async () => {
               const result = await onConfirm();

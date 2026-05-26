@@ -50,7 +50,7 @@ function StoreActionButton({
       }}
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex h-9 shrink-0 items-center justify-center rounded-full px-4 text-[13px] font-semibold transition-colors',
+        'inline-flex h-9 min-w-0 shrink-0 items-center justify-center rounded-full px-4 text-[13px] font-semibold transition-colors',
         emphasis === 'blue'
           ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 dark:bg-sky-400/12 dark:text-sky-200 dark:hover:bg-sky-400/18'
           : 'bg-slate-100 text-sky-600 hover:bg-slate-200/80 dark:bg-white/8 dark:text-sky-200 dark:hover:bg-white/12',
@@ -74,7 +74,9 @@ function StoreArtwork({
     <div
       className={cn(
         'relative shrink-0 overflow-hidden border border-slate-200/80 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/8 dark:shadow-[0_12px_30px_rgba(0,0,0,0.2)]',
-        size === 'feature' ? 'size-28 rounded-[28px] md:size-36' : 'size-16 rounded-[16px]',
+        size === 'feature'
+          ? 'size-20 rounded-[22px] sm:size-28 sm:rounded-[28px] md:size-36'
+          : 'size-14 rounded-[16px] sm:size-16',
       )}
     >
       {item.artworkUrl ? (
@@ -104,13 +106,16 @@ export function StoreFeatureCard({
         className,
       )}
     >
-      <div className="flex min-h-[13rem] items-center gap-5 p-5 sm:p-6">
+      <div className="flex min-h-0 flex-col items-start gap-5 p-4 sm:min-h-[13rem] sm:flex-row sm:items-center sm:p-6">
+        <button type="button" onClick={open} className="shrink-0 sm:order-2">
+          <StoreArtwork item={item} size="feature" />
+        </button>
         <div className="flex min-w-0 flex-1 flex-col self-stretch">
           <button type="button" onClick={open} className="min-w-0 text-left">
             <p className="text-sm font-semibold text-slate-500 uppercase dark:text-slate-400">
               {item.eyebrow ?? item.badge ?? '精选'}
             </p>
-            <h3 className="mt-2 line-clamp-2 text-2xl font-semibold text-slate-950 dark:text-white">
+            <h3 className="mt-2 line-clamp-2 text-xl font-semibold text-slate-950 sm:text-2xl dark:text-white">
               {item.title}
             </h3>
             {item.description ? (
@@ -134,13 +139,14 @@ export function StoreFeatureCard({
             </div>
           ) : null}
 
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
+          <div className="mt-auto flex w-full flex-col gap-2 pt-5 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center">
             {item.openLabel ? (
               <StoreActionButton
                 label={item.openLabel}
                 onClick={open}
                 emphasis="blue"
                 ariaLabel={`${item.openLabel}：${item.title}`}
+                className="w-full min-[420px]:w-auto"
               />
             ) : null}
             <StoreActionButton
@@ -148,6 +154,7 @@ export function StoreFeatureCard({
               onClick={item.onPrimaryAction}
               disabled={item.primaryActionDisabled}
               ariaLabel={`${item.primaryActionLabel}：${item.title}`}
+              className="w-full min-[420px]:w-auto"
             />
             {item.secondaryActionLabel && item.onSecondaryAction ? (
               <StoreActionButton
@@ -155,14 +162,11 @@ export function StoreFeatureCard({
                 onClick={item.onSecondaryAction}
                 disabled={item.secondaryActionDisabled}
                 ariaLabel={`${item.secondaryActionLabel}：${item.title}`}
+                className="w-full min-[420px]:w-auto"
               />
             ) : null}
           </div>
         </div>
-
-        <button type="button" onClick={open} className="hidden shrink-0 sm:block">
-          <StoreArtwork item={item} size="feature" />
-        </button>
       </div>
     </article>
   );
@@ -178,7 +182,7 @@ export function StoreFeatureStrip({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn('grid gap-5 lg:grid-cols-2', className)}>
+    <div className={cn('grid gap-5 xl:grid-cols-2', className)}>
       {items.map((item) => (
         <StoreFeatureCard key={item.id} item={item} />
       ))}
@@ -191,7 +195,7 @@ function StoreListItem({ item }: { item: StorefrontItem }) {
   const metadata = item.metadata?.filter(Boolean).slice(0, 3).join(' · ');
 
   return (
-    <article className="flex min-h-[6.25rem] min-w-0 items-center gap-3 border-t border-slate-200/75 py-3.5 dark:border-white/10">
+    <article className="flex min-h-[6.25rem] min-w-0 flex-col gap-3 border-t border-slate-200/75 py-3.5 sm:flex-row sm:items-center dark:border-white/10">
       <button
         type="button"
         onClick={open}
@@ -218,12 +222,13 @@ function StoreListItem({ item }: { item: StorefrontItem }) {
         </span>
       </button>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+      <div className="flex w-full shrink-0 flex-col gap-2 min-[420px]:flex-row sm:w-auto sm:items-center">
         <StoreActionButton
           label={item.primaryActionLabel}
           onClick={item.onPrimaryAction}
           disabled={item.primaryActionDisabled}
           ariaLabel={`${item.primaryActionLabel}：${item.title}`}
+          className="w-full min-[420px]:w-auto"
         />
         {item.secondaryActionLabel && item.onSecondaryAction ? (
           <StoreActionButton
@@ -231,7 +236,7 @@ function StoreListItem({ item }: { item: StorefrontItem }) {
             onClick={item.onSecondaryAction}
             disabled={item.secondaryActionDisabled}
             ariaLabel={`${item.secondaryActionLabel}：${item.title}`}
-            className="hidden sm:inline-flex"
+            className="w-full min-[420px]:w-auto"
           />
         ) : null}
       </div>
@@ -262,14 +267,16 @@ export function StoreListSection({
 }) {
   return (
     <section className={cn('border-t border-slate-200/75 pt-6 dark:border-white/10', className)}>
-      <div className="mb-5 flex items-end justify-between gap-4">
+      <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div className="min-w-0">
           {eyebrow ? (
             <p className="mb-1 text-sm font-semibold text-slate-500 uppercase dark:text-slate-400">
               {eyebrow}
             </p>
           ) : null}
-          <h2 className="text-3xl font-semibold text-slate-950 dark:text-white">{title}</h2>
+          <h2 className="text-2xl font-semibold text-slate-950 sm:text-3xl dark:text-white">
+            {title}
+          </h2>
           {subtitle ? (
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
               {subtitle}
@@ -300,7 +307,7 @@ export function StoreListSection({
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
             <StoreListItem key={item.id} item={item} />
           ))}

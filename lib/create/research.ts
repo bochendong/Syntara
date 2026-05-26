@@ -16,6 +16,7 @@ export async function maybeRunWebSearch(args: {
   tracking?: {
     notebookGenerationSessionId?: string | null;
     notebookGenerationTaskId?: string | null;
+    testNoCharge?: boolean;
   };
   usageContext?: {
     courseId?: string;

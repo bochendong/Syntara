@@ -399,7 +399,7 @@ function buildPageCopy(args: {
         },
         worked_example: {
           openingMove: `现在用 ${anchor} 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。`,
-          studentThinkingMove: '下一步是由哪个定义、假设或已证结论推出的？',
+          studentThinkingMove: '这一行为什么成立：用了哪个已知、定义，还是前一行结果？',
           transferRule: '例题要留下“为什么能走这一步”，不是只留下答案。',
         },
         state_trace: {
@@ -685,7 +685,6 @@ export function buildTeachingPlan(
     requirements.requirement,
     sourceMaterial.pdfText?.slice(0, 12_000),
     sourceMaterial.researchContext?.slice(0, 4_000),
-    sourceMaterial.courseContextText,
     sourceMaterial.outlines
       ?.map((outline) =>
         [outline.title, outline.description, outline.keyPoints?.join(' ')].join(' '),

@@ -222,11 +222,11 @@ function GachaRevealDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <DialogContent
-        className="w-[min(100vw-1.5rem,72rem)] overflow-hidden border-white/45 bg-[rgba(8,12,24,0.82)] p-0 text-white shadow-[0_40px_160px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-white/10"
+        className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[72rem] overflow-y-auto border-white/45 bg-[rgba(8,12,24,0.82)] p-0 text-white shadow-[0_40px_160px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-white/10"
         showOverlay
         showCloseButton={phase === 'reveal'}
       >
-        <div className="relative min-h-[42rem] overflow-hidden">
+        <div className="relative min-h-[min(42rem,calc(100dvh-1rem))] overflow-hidden">
           <div
             className={cn(
               'absolute inset-0 bg-gradient-to-br opacity-90',
@@ -273,7 +273,7 @@ function GachaRevealDialog({
             ) : null}
           </AnimatePresence>
 
-          <div className="relative z-10 flex min-h-[42rem] flex-col items-center justify-center px-6 py-8">
+          <div className="relative z-10 flex min-h-[min(42rem,calc(100dvh-1rem))] flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8">
             <DialogHeader className="items-center text-center">
               <span
                 className={cn(
@@ -284,7 +284,7 @@ function GachaRevealDialog({
                 <WandSparkles className="size-3.5" />
                 {bannerMeta.title}
               </span>
-              <DialogTitle className="text-[2rem] font-semibold tracking-[-0.04em] text-white">
+              <DialogTitle className="text-2xl font-semibold text-white sm:text-[2rem]">
                 {phase === 'charging'
                   ? '正在连接星轨补给站'
                   : phase === 'impact'
@@ -317,7 +317,7 @@ function GachaRevealDialog({
                   }}
                 />
                 <motion.div
-                  className="relative flex aspect-square w-[18rem] items-center justify-center rounded-[3rem] border border-white/25 bg-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+                  className="relative flex aspect-square w-[14rem] items-center justify-center rounded-[2.25rem] border border-white/25 bg-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] sm:w-[18rem] sm:rounded-[3rem]"
                   animate={{
                     rotate: phase === 'impact' ? [0, -8, 10, 0] : [0, 5, -5, 0],
                     scale: phase === 'impact' ? [1, 1.06, 0.96, 1] : [0.96, 1.04, 0.98],
@@ -381,7 +381,7 @@ function GachaRevealDialog({
                           <p className="text-xs font-medium uppercase tracking-[0.24em] text-white/70">
                             Featured Reward
                           </p>
-                          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">
+                          <h3 className="mt-2 text-2xl font-semibold text-white">
                             {featuredReward.name}
                           </h3>
                           <p className="mt-2 text-sm leading-6 text-white/80">
@@ -487,7 +487,7 @@ function AvatarWishBanner({
 
   return (
     <>
-      <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[2.25rem] border border-fuchsia-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(15,23,42,0.4)] dark:border-fuchsia-300/15">
+      <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[1.6rem] border border-fuchsia-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(15,23,42,0.4)] sm:rounded-[2.25rem] dark:border-fuchsia-300/15">
         <img
           src="/pool_poster/avator.jpeg"
           alt=""
@@ -505,7 +505,7 @@ function AvatarWishBanner({
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.32em] text-fuchsia-200/85">
                 Avatar Starlight Supply
               </p>
-              <h3 className="mt-2 text-4xl font-semibold tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] md:text-6xl">
+              <h3 className="mt-2 text-3xl font-semibold text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] sm:text-4xl md:text-6xl">
                 {meta.title}
               </h3>
               <p className="mt-4 max-w-md text-sm leading-6 text-fuchsia-50/80 md:text-base">
@@ -519,7 +519,7 @@ function AvatarWishBanner({
                   <p className="text-xs font-medium uppercase tracking-[0.24em] text-fuchsia-200">
                     头像收集
                   </p>
-                  <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+                  <p className="mt-2 text-3xl font-semibold">
                     {ownedCount}
                     <span className="ml-1 text-base font-medium text-white/50">/ {totalCount}</span>
                   </p>
@@ -561,7 +561,7 @@ function AvatarWishBanner({
                 <button
                   type="button"
                   onClick={() => setAvatarCatalogOpen(true)}
-                  className="flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-white/30 bg-white/5 text-[0.7rem] font-bold leading-none tracking-tight text-white/55 transition hover:border-white/45 hover:bg-white/10 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/50 md:size-14 md:text-xs"
+                  className="flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-white/30 bg-white/5 text-[0.7rem] font-bold leading-none text-white/55 transition hover:border-white/45 hover:bg-white/10 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/50 md:size-14 md:text-xs"
                   title="查看全部头像"
                   aria-label="打开图鉴，查看全部头像"
                 >
@@ -625,7 +625,7 @@ function AvatarWishBanner({
       </div>
 
       <Dialog open={avatarCatalogOpen} onOpenChange={setAvatarCatalogOpen}>
-        <DialogContent className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden border-slate-200/80 p-0 sm:max-w-lg dark:border-white/10">
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 overflow-hidden border-slate-200/80 p-0 sm:max-h-[85dvh] sm:max-w-lg dark:border-white/10">
           <DialogHeader className="shrink-0 space-y-1 border-b border-slate-200/70 px-6 py-4 text-left dark:border-white/10">
             <DialogTitle className="text-base">星辉头像图鉴</DialogTitle>
             <DialogDescription className="text-left text-xs text-slate-600 dark:text-slate-400">
@@ -710,7 +710,7 @@ function InstructorWishBanner({
   const progress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[2.25rem] border border-sky-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(14,30,64,0.28)] dark:border-sky-300/15">
+    <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[1.6rem] border border-sky-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(14,30,64,0.28)] sm:rounded-[2.25rem] dark:border-sky-300/15">
       <img
         src="/pool_poster/live2d.png"
         alt=""
@@ -728,7 +728,7 @@ function InstructorWishBanner({
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.32em] text-sky-200/85">
               Character Event Warp
             </p>
-            <h3 className="mt-2 text-4xl font-semibold tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] md:text-6xl">
+            <h3 className="mt-2 text-3xl font-semibold text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.35)] sm:text-4xl md:text-6xl">
               {meta.title}
             </h3>
             <p className="mt-4 max-w-md text-sm leading-6 text-sky-50/75 md:text-base">
@@ -742,7 +742,7 @@ function InstructorWishBanner({
                 <p className="text-xs font-medium uppercase tracking-[0.24em] text-sky-200">
                   讲师收集
                 </p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+                <p className="mt-2 text-3xl font-semibold">
                   {unlockedCount}
                   <span className="ml-1 text-base font-medium text-white/50">/ {totalCount}</span>
                 </p>
@@ -904,13 +904,13 @@ export function AvatarCollectionStoreCard() {
   return (
     <>
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
-        <Card className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden border-muted/40 bg-white/85 p-0 backdrop-blur-xl dark:bg-slate-900/80">
+        <Card className="flex min-h-full w-full min-w-0 flex-1 flex-col overflow-hidden border-muted/40 bg-white/85 p-0 backdrop-blur-xl dark:bg-slate-900/80">
           {!summary ? null : !summary.databaseEnabled ? (
             <div className="px-5 py-6 text-sm text-muted-foreground md:px-6">
               当前环境还没有数据库同步，补给站暂时不可用。
             </div>
           ) : (
-            <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col px-5 py-5 md:px-6">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col px-0 py-0 sm:px-3 sm:py-3 md:px-6 md:py-5">
               {gachaPoolTab === 'avatar' ? (
                 <AvatarWishBanner
                   ownedCount={ownedAvatarCount}
@@ -940,7 +940,7 @@ export function AvatarCollectionStoreCard() {
       </div>
 
       <Dialog open={dropRulesOpen} onOpenChange={setDropRulesOpen}>
-        <DialogContent className="max-w-md border-slate-200/80 sm:max-w-md dark:border-white/10">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-y-auto border-slate-200/80 sm:max-w-md dark:border-white/10">
           <DialogHeader>
             <DialogTitle className="inline-flex items-center gap-2 text-base">
               <Star className="size-4 text-amber-500" />
@@ -961,8 +961,8 @@ export function AvatarCollectionStoreCard() {
         open={Boolean(pendingDraw)}
         onOpenChange={(open) => !open && setPendingDraw(null)}
       >
-        <AlertDialogContent className="max-w-[min(100vw-2rem,30rem)] rounded-[24px] border-white/60 bg-[rgba(255,255,255,0.94)] p-0 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(18,22,31,0.95)]">
-          <div className="p-6">
+        <AlertDialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[30rem] overflow-y-auto rounded-[24px] border-white/60 bg-[rgba(255,255,255,0.94)] p-0 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(18,22,31,0.95)]">
+          <div className="p-5 sm:p-6">
             <AlertDialogHeader className="items-start text-left">
               <div className="mb-4 flex size-11 items-center justify-center rounded-2xl border border-fuchsia-300/50 bg-fuchsia-500/10 text-fuchsia-700 dark:border-fuchsia-400/20 dark:bg-fuchsia-400/12 dark:text-fuchsia-200">
                 <Ticket className="size-5" strokeWidth={1.8} />
@@ -1009,12 +1009,16 @@ export function AvatarCollectionStoreCard() {
           </div>
 
           <AlertDialogFooter className="border-t border-slate-200/70 px-6 py-4 dark:border-white/10">
-            <AlertDialogCancel type="button" className="rounded-full" disabled={drawing}>
+            <AlertDialogCancel
+              type="button"
+              className="w-full rounded-full sm:w-auto"
+              disabled={drawing}
+            >
               取消
             </AlertDialogCancel>
             <Button
               type="button"
-              className="rounded-full"
+              className="w-full rounded-full sm:w-auto"
               disabled={drawing || !pendingDraw}
               onClick={async () => {
                 if (!pendingDraw) return;

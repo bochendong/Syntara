@@ -58,29 +58,35 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      await assertUserHasCredits(getRequestContext()?.userId);
+      const skipCreditCharge = getRequestContext()?.skipCreditCharge === true;
+
+      if (!skipCreditCharge) {
+        await assertUserHasCredits(getRequestContext()?.userId);
+      }
 
       const result = await searchWithTavily({ query: query.trim(), apiKey });
       const context = formatSearchResultsAsContext(result);
 
-      await chargeCreditsForWebSearch({
-        userId: getRequestContext()?.userId,
-        route: '/api/web-search',
-        query: query.trim(),
-        notebookGenerationSessionId: getRequestContext()?.notebookGenerationSessionId,
-        notebookGenerationTaskId: getRequestContext()?.notebookGenerationTaskId,
-        notebookId: usageContext?.notebookId,
-        notebookName: usageContext?.notebookName,
-        courseId: usageContext?.courseId,
-        courseName: usageContext?.courseName,
-        sceneId: usageContext?.sceneId,
-        sceneTitle: usageContext?.sceneTitle,
-        sceneOrder: usageContext?.sceneOrder,
-        sceneType: usageContext?.sceneType,
-        operationCode: usageContext?.operationCode || 'web_search',
-        chargeReason: usageContext?.chargeReason || '联网搜索',
-        serviceLabel: usageContext?.serviceLabel || 'Tavily Web Search',
-      });
+      if (!skipCreditCharge) {
+        await chargeCreditsForWebSearch({
+          userId: getRequestContext()?.userId,
+          route: '/api/web-search',
+          query: query.trim(),
+          notebookGenerationSessionId: getRequestContext()?.notebookGenerationSessionId,
+          notebookGenerationTaskId: getRequestContext()?.notebookGenerationTaskId,
+          notebookId: usageContext?.notebookId,
+          notebookName: usageContext?.notebookName,
+          courseId: usageContext?.courseId,
+          courseName: usageContext?.courseName,
+          sceneId: usageContext?.sceneId,
+          sceneTitle: usageContext?.sceneTitle,
+          sceneOrder: usageContext?.sceneOrder,
+          sceneType: usageContext?.sceneType,
+          operationCode: usageContext?.operationCode || 'web_search',
+          chargeReason: usageContext?.chargeReason || '联网搜索',
+          serviceLabel: usageContext?.serviceLabel || 'Tavily Web Search',
+        });
+      }
 
       return apiSuccess({
         answer: result.answer,
@@ -88,6 +94,7 @@ export async function POST(req: NextRequest) {
         context,
         query: result.query,
         responseTime: result.responseTime,
+        skippedCreditCharge: skipCreditCharge,
       });
     } catch (err) {
       log.error('[WebSearch] Error:', err);

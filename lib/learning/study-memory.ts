@@ -28,7 +28,7 @@ export interface NotebookMemoryItem {
   scope: StudyMemoryScope;
   kind?: StudyMemoryKind;
   status?: StudyMemoryStatus;
-  source: 'chat' | 'quiz' | 'manual';
+  source: 'chat' | 'quiz' | 'manual' | 'notebook_generation';
   stageId: string;
   title: string;
   text: string;

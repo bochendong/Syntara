@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, NotebookPen } from 'lucide-react';
+import { Loader2, NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CreateNotebookComposer } from '@/components/create/create-notebook-composer';
+import { CreateNotebookWorkspace } from '@/components/create/create-notebook-workspace';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import { cn } from '@/lib/utils';
-import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 
 export default function CourseCreateNotebookPage() {
   const params = useParams();
@@ -66,51 +65,22 @@ export default function CourseCreateNotebookPage() {
     );
   }
 
-  const courseAvatarUrl = resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl);
-
   return (
     <div
       className={cn(
-        'apple-mesh-bg box-border flex min-h-full w-full flex-col overflow-hidden',
-        'px-4 py-4 md:px-7 md:py-6',
+        'box-border flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f8fafc] dark:bg-slate-950',
+        'px-3 py-3 md:px-5 md:py-4',
       )}
+      style={{
+        backgroundImage:
+          'radial-gradient(circle at 20% 10%, rgba(59, 130, 246, 0.03), transparent 30%), linear-gradient(rgba(15, 23, 42, 0.008) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 0.007) 1px, transparent 1px)',
+        backgroundSize: 'auto, 36px 36px, 36px 36px',
+      }}
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3">
-          <Button asChild variant="ghost" className="h-9 rounded-xl px-3 text-muted-foreground">
-            <Link href={`/course/${encodeURIComponent(course.id)}`}>
-              <ArrowLeft className="mr-1.5 size-4" strokeWidth={1.8} />
-              课程主页
-            </Link>
-          </Button>
-          <div className="truncate text-right text-xs text-muted-foreground">{course.name}</div>
-        </header>
-
-        <main className="flex min-h-0 flex-1 flex-col justify-center py-6 md:py-8">
-          <div className="mx-auto w-full max-w-[820px]">
-            <div className="mb-6 flex items-center gap-4">
-              {courseAvatarUrl ? (
-                <img
-                  src={courseAvatarUrl}
-                  alt=""
-                  className="size-16 shrink-0 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                />
-              ) : (
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-muted-foreground shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:ring-white/10">
-                  <NotebookPen className="size-7" strokeWidth={1.7} />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  创建笔记本
-                </p>
-                <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                  {course.name}
-                </h1>
-              </div>
-            </div>
-
-            <CreateNotebookComposer courseId={course.id} />
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1520px] flex-1 flex-col">
+        <main className="flex h-full min-h-0 flex-1 flex-col">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-[1460px] flex-1 flex-col">
+            <CreateNotebookWorkspace courseId={course.id} />
           </div>
         </main>
       </div>

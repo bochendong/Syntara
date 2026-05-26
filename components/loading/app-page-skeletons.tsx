@@ -3,7 +3,7 @@ import { BookOpen, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const courseGridClassName =
-  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] gap-5 p-0';
+  'm-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-[repeat(auto-fill,minmax(min(100%,_18rem),1fr))] lg:grid-cols-[repeat(auto-fill,minmax(min(100%,_20rem),1fr))] lg:gap-5';
 
 const notebookGridClassName = 'm-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 2xl:gap-4';
 
@@ -45,9 +45,9 @@ function LoadingStatus({ children, className }: { children: ReactNode; className
 
 function CourseCardLoading() {
   return (
-    <LoadingPanel className="flex min-h-[20rem] flex-col overflow-hidden rounded-[26px] p-0">
-      <div className="h-28 bg-gradient-to-br from-blue-50 via-white to-violet-50 dark:from-blue-500/10 dark:via-white/[0.035] dark:to-violet-500/10" />
-      <div className="flex flex-1 flex-col gap-4 p-5">
+    <LoadingPanel className="flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] p-0 sm:min-h-[20rem] sm:rounded-[26px]">
+      <div className="h-24 bg-gradient-to-br from-blue-50 via-white to-violet-50 sm:h-28 dark:from-blue-500/10 dark:via-white/[0.035] dark:to-violet-500/10" />
+      <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1 space-y-3">
             <LoadingBlock className="h-4 w-24" />
@@ -93,8 +93,8 @@ export function MyCoursesCourseGridLoading() {
 export function MyCoursesLoadingSkeleton() {
   return (
     <div className="relative min-h-full w-full overflow-hidden apple-mesh-bg">
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
-        <LoadingPanel className="mb-8 rounded-[28px] p-8">
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-3 pb-8 pt-4 sm:px-4 sm:pb-10 sm:pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-8">
+        <LoadingPanel className="mb-5 rounded-2xl p-5 sm:mb-6 sm:rounded-[24px] sm:p-6 lg:mb-8 lg:rounded-[28px] lg:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1 space-y-4">
               <LoadingBlock className="h-10 w-44 rounded-xl" />
@@ -162,12 +162,12 @@ function NotebookCardLoading({ tone = 'blue' }: { tone?: 'blue' | 'green' | 'vio
 export function CourseWorkspaceLoadingContent() {
   return (
     <div className="space-y-5" aria-busy="true" aria-label="正在加载课程工作区">
-      <LoadingPanel className="rounded-[24px] p-4 md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-            <LoadingBlock className="size-16 shrink-0 rounded-2xl md:size-[4.25rem]" />
+      <LoadingPanel className="rounded-2xl p-3.5 sm:p-4 md:rounded-[24px] md:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+            <LoadingBlock className="size-14 shrink-0 rounded-2xl sm:size-16 md:size-[4.25rem]" />
             <div className="min-w-0 flex-1 space-y-4">
-              <LoadingBlock className="h-9 w-full max-w-[28rem] rounded-xl" />
+              <LoadingBlock className="h-7 w-full max-w-[28rem] rounded-xl sm:h-9" />
               <div className="flex flex-wrap gap-2">
                 <LoadingBlock className="h-7 w-14 rounded-lg" />
                 <LoadingBlock className="h-7 w-20 rounded-lg" />
@@ -177,10 +177,11 @@ export function CourseWorkspaceLoadingContent() {
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <LoadingBlock className="h-9 w-20 rounded-xl" />
-            <LoadingBlock className="h-9 w-20 rounded-xl" />
-            <LoadingBlock className="h-9 w-24 rounded-xl" />
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:flex">
+            <LoadingBlock className="h-9 rounded-xl" />
+            <LoadingBlock className="h-9 rounded-xl" />
+            <LoadingBlock className="h-9 rounded-xl" />
+            <LoadingBlock className="h-9 rounded-xl" />
           </div>
         </div>
         <div className="mt-5 space-y-2">
@@ -216,7 +217,7 @@ export function CourseWorkspaceLoadingContent() {
               </li>
             </ul>
           </section>
-          <aside className="min-w-0 space-y-3">
+          <aside className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:block lg:space-y-3">
             <LoadingPanel className="rounded-2xl p-3">
               <LoadingBlock className="h-4 w-20 rounded-md" />
               <div className="mt-4 grid place-items-center">

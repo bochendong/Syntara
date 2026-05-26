@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Languages,
   LogOut,
+  Menu,
   Map as MapIcon,
   MessageSquareText,
   Play,
@@ -25,6 +26,12 @@ import { SyntaraMark } from '@/components/brand/syntara-mark';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { createNotebookHref, courseOrchestratorChatHref } from '@/lib/constants/course-chat';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useAuthStore } from '@/lib/store/auth';
@@ -334,7 +341,7 @@ function GeneratedSceneImage({
   priority?: boolean;
 }) {
   return (
-    <figure className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(24,24,27,0.12)]">
+    <figure className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_42px_rgba(24,24,27,0.1)] sm:rounded-[28px] sm:shadow-[0_28px_80px_rgba(24,24,27,0.12)]">
       <img
         src={src}
         alt={alt}
@@ -355,7 +362,7 @@ function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; l
 
   return (
     <figure
-      className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(24,24,27,0.12)]"
+      className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_42px_rgba(24,24,27,0.1)] sm:rounded-[28px] sm:shadow-[0_28px_80px_rgba(24,24,27,0.12)]"
       aria-label={label}
     >
       <div className="relative aspect-[16/9] w-full">
@@ -370,7 +377,7 @@ function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; l
         ) : null}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-3 py-2 shadow-sm backdrop-blur">
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-200 bg-white/85 px-2.5 py-1.5 shadow-sm backdrop-blur sm:bottom-4 sm:gap-2 sm:px-3 sm:py-2">
         {slides.map((slide, index) => (
           <button
             key={slide.src}
@@ -391,17 +398,17 @@ function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; l
 function WorkflowBand({ items }: { items: HomeCopy['workflow'] }) {
   return (
     <section className="border-y border-zinc-200 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-0 px-4 py-0 sm:px-6 lg:grid-cols-3 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-0 px-4 py-0 sm:px-6 md:grid-cols-3 lg:px-8">
         {items.map((item) => (
           <article
             key={item.label}
-            className="border-zinc-200 py-8 lg:border-r lg:px-8 last:lg:border-r-0"
+            className="border-zinc-200 py-6 md:border-r md:px-5 md:py-7 last:md:border-r-0 lg:px-8 lg:py-8"
           >
             <div className="mb-4 flex items-center gap-3">
               <span className="font-mono text-sm text-zinc-400">{item.label}</span>
               <span className="h-px flex-1 bg-zinc-200" />
             </div>
-            <h2 className="text-2xl font-semibold text-zinc-950">{item.title}</h2>
+            <h2 className="text-xl font-semibold text-zinc-950 sm:text-2xl">{item.title}</h2>
             <p className="mt-3 max-w-md text-sm leading-6 text-zinc-600">{item.body}</p>
           </article>
         ))}
@@ -430,25 +437,29 @@ function CapabilitySection({
   reverse?: boolean;
 }) {
   return (
-    <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-20">
-      <div className={reverse ? 'lg:order-2' : undefined}>
-        <div className="mb-5 inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700">
+    <section className="mx-auto grid max-w-7xl items-center gap-6 px-4 py-10 sm:gap-8 sm:px-6 sm:py-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:py-14 lg:grid-cols-2 lg:gap-10 lg:px-8 lg:py-20">
+      <div className={reverse ? 'md:order-2' : undefined}>
+        <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 sm:mb-5">
           <Icon className="size-4 text-[#2f6fed]" />
           {label}
         </div>
-        <h2 className="max-w-xl text-4xl font-semibold text-zinc-950 sm:text-5xl">{title}</h2>
-        <p className="mt-5 max-w-xl text-base leading-8 text-zinc-600">{body}</p>
+        <h2 className="max-w-xl text-3xl font-semibold text-zinc-950 sm:text-4xl lg:text-5xl">
+          {title}
+        </h2>
+        <p className="mt-4 max-w-xl text-base leading-7 text-zinc-600 sm:mt-5 sm:leading-8">
+          {body}
+        </p>
         <Button
           type="button"
           size="lg"
-          className="mt-7 rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800"
+          className="mt-6 rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800 sm:mt-7"
           onClick={onAction}
         >
           {action}
           <ArrowRight className="size-4" />
         </Button>
       </div>
-      <div className={reverse ? 'lg:order-1' : undefined}>{children}</div>
+      <div className={reverse ? 'md:order-1' : undefined}>{children}</div>
     </section>
   );
 }
@@ -490,20 +501,20 @@ function MentorCompanionVisual({
   }, [shouldMountLive2D]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+    <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_220px]">
       <GeneratedSceneImage src={imageSrc} alt={imageAlt} />
 
       <aside
         ref={live2dStageRef}
         aria-label={live2dLabel}
-        className="relative min-h-[300px] overflow-hidden rounded-[28px] border border-violet-200/50 bg-[radial-gradient(circle_at_50%_10%,rgba(167,139,250,0.38),transparent_48%),linear-gradient(180deg,#18111f_0%,#0b1020_100%)] shadow-[0_28px_80px_rgba(24,24,27,0.18)]"
+        className="relative min-h-[220px] overflow-hidden rounded-2xl border border-violet-200/50 bg-[radial-gradient(circle_at_50%_10%,rgba(167,139,250,0.38),transparent_48%),linear-gradient(180deg,#18111f_0%,#0b1020_100%)] shadow-[0_16px_42px_rgba(24,24,27,0.14)] sm:min-h-[260px] sm:rounded-[28px] lg:min-h-[300px] lg:shadow-[0_28px_80px_rgba(24,24,27,0.18)]"
       >
-        <div className="absolute inset-x-4 top-4 z-20 rounded-2xl border border-white/14 bg-white/10 px-4 py-3 text-white shadow-lg backdrop-blur">
+        <div className="absolute inset-x-3 top-3 z-20 rounded-2xl border border-white/14 bg-white/10 px-3 py-2.5 text-white shadow-lg backdrop-blur sm:inset-x-4 sm:top-4 sm:px-4 sm:py-3">
           <p className="text-xs font-semibold text-violet-100/80">Live2D mentor</p>
           <p className="mt-1 text-sm font-semibold">{live2dTitle}</p>
         </div>
         <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:36px_36px]" />
-        <div className="absolute inset-x-0 bottom-0 top-20 z-10">
+        <div className="absolute inset-x-0 bottom-0 top-16 z-10 sm:top-20">
           {shouldMountLive2D ? (
             <TalkingAvatarOverlay
               layout="card"
@@ -517,7 +528,7 @@ function MentorCompanionVisual({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center px-5 text-center text-violet-50/75">
-              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-5 shadow-lg backdrop-blur">
+              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-4 shadow-lg backdrop-blur sm:py-5">
                 <Sparkles className="mx-auto mb-3 size-6 text-violet-200" />
                 <p className="text-sm font-semibold">{live2dTitle}</p>
                 <p className="mt-2 text-xs leading-5 text-violet-50/65">{live2dBody}</p>
@@ -525,7 +536,7 @@ function MentorCompanionVisual({
             </div>
           )}
         </div>
-        <div className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-white/12 bg-black/28 px-4 py-3 text-xs leading-5 text-violet-50/82 backdrop-blur">
+        <div className="absolute inset-x-3 bottom-3 z-20 rounded-2xl border border-white/12 bg-black/28 px-3 py-2.5 text-xs leading-5 text-violet-50/82 backdrop-blur sm:inset-x-4 sm:bottom-4 sm:px-4 sm:py-3">
           {live2dBody}
         </div>
       </aside>
@@ -637,13 +648,22 @@ export default function HomePage() {
     router.push('/');
   }, [authMode, logout, router]);
 
+  const navItems: Array<{ label: string; action: () => void; icon: LucideIcon }> = [
+    { label: copy.nav.classroom, action: goToClassroom, icon: Presentation },
+    { label: copy.nav.chat, action: goToChat, icon: MessageSquareText },
+    { label: copy.nav.problemBank, action: goToProblemBank, icon: ClipboardList },
+    { label: copy.nav.review, action: goToReviewPlan, icon: MapIcon },
+    { label: copy.nav.mentor, action: goToMentor, icon: Sparkles },
+    { label: copy.nav.store, action: goToStore, icon: ShoppingBag },
+  ];
+
   return (
     <main className="min-h-dvh bg-[#f3f4f1] text-zinc-950">
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-[#f3f4f1]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="flex min-w-0 items-center gap-3"
+            className="flex min-w-0 shrink items-center gap-2 sm:gap-3"
             onClick={() => router.push('/')}
           >
             <SyntaraMark className="rounded-lg" />
@@ -653,19 +673,12 @@ export default function HomePage() {
             </div>
           </button>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Homepage">
-            {[
-              { label: copy.nav.classroom, action: goToClassroom },
-              { label: copy.nav.chat, action: goToChat },
-              { label: copy.nav.problemBank, action: goToProblemBank },
-              { label: copy.nav.review, action: goToReviewPlan },
-              { label: copy.nav.mentor, action: goToMentor },
-              { label: copy.nav.store, action: goToStore },
-            ].map((item) => (
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Homepage">
+            {navItems.map((item) => (
               <button
                 key={item.label}
                 type="button"
-                className="rounded-md px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white hover:text-zinc-950"
+                className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white hover:text-zinc-950"
                 onClick={item.action}
               >
                 {item.label}
@@ -673,7 +686,38 @@ export default function HomePage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  className="rounded-lg border-zinc-200 bg-white lg:hidden"
+                  aria-label={isZh ? '打开导航菜单' : 'Open navigation menu'}
+                >
+                  <Menu className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-xl border-zinc-200 bg-white p-1.5 shadow-xl"
+              >
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={item.label}
+                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700"
+                      onSelect={() => item.action()}
+                    >
+                      <Icon className="size-4 text-[#2f6fed]" />
+                      {item.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               type="button"
               variant="outline"
@@ -687,11 +731,13 @@ export default function HomePage() {
             <Button
               type="button"
               size="sm"
-              className="rounded-lg bg-zinc-950 text-white hover:bg-zinc-800"
+              className="rounded-lg bg-zinc-950 px-2 text-white hover:bg-zinc-800 min-[380px]:px-2.5"
+              aria-label={copy.headerCta}
               onClick={goToCoursesOrLogin}
             >
-              {copy.headerCta}
-              <ChevronRight className="size-4" />
+              <BookOpen className="size-4 min-[380px]:hidden" />
+              <span className="hidden min-[380px]:inline">{copy.headerCta}</span>
+              <ChevronRight className="hidden size-4 min-[380px]:block" />
             </Button>
             {isLoggedIn ? (
               <Button
@@ -711,21 +757,26 @@ export default function HomePage() {
 
       <section className="relative overflow-hidden border-b border-zinc-200 bg-[linear-gradient(180deg,#f3f4f1_0%,#ffffff_100%)]">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(24,24,27,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,24,27,0.05)_1px,transparent_1px)] bg-[size:48px_48px]" />
-        <div className="relative mx-auto grid min-h-[70dvh] max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[0.42fr_0.58fr] lg:px-8">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 py-7 sm:gap-7 sm:px-6 sm:py-10 md:grid-cols-[0.46fr_0.54fr] lg:min-h-[70dvh] lg:grid-cols-[0.42fr_0.58fr] lg:gap-10 lg:px-8">
           <div className="max-w-xl">
-            <Badge variant="outline" className="mb-5 border-zinc-300 bg-white text-zinc-700">
+            <Badge
+              variant="outline"
+              className="mb-4 border-zinc-300 bg-white text-zinc-700 sm:mb-5"
+            >
               <Sparkles className="size-3.5 text-[#f5b044]" />
               {copy.hero.eyebrow}
             </Badge>
-            <h1 className="text-5xl font-semibold text-zinc-950 sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-semibold text-zinc-950 sm:text-5xl lg:text-6xl xl:text-7xl">
               {copy.hero.title}
             </h1>
-            <p className="mt-6 text-lg leading-8 text-zinc-600">{copy.hero.body}</p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <p className="mt-5 text-base leading-7 text-zinc-600 sm:text-lg sm:leading-8 lg:mt-6">
+              {copy.hero.body}
+            </p>
+            <div className="mt-7 flex flex-col gap-3 min-[360px]:flex-row min-[360px]:flex-wrap min-[360px]:items-center lg:mt-8">
               <Button
                 type="button"
                 size="lg"
-                className="rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800"
+                className="w-full rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800 min-[360px]:w-auto"
                 onClick={goToCreate}
               >
                 <WandSparkles className="size-4" />
@@ -735,16 +786,16 @@ export default function HomePage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="rounded-lg border-zinc-300 bg-white px-4"
+                className="w-full rounded-lg border-zinc-300 bg-white px-4 min-[360px]:w-auto"
                 onClick={goToClassroom}
               >
                 <Play className="size-4" />
                 {copy.hero.secondary}
               </Button>
             </div>
-            <div className="mt-7 flex max-w-md items-center gap-3 border-l-2 border-[#2f6fed] bg-white px-4 py-3 text-sm text-zinc-600">
+            <div className="mt-6 flex max-w-md items-center gap-3 border-l-2 border-[#2f6fed] bg-white px-4 py-3 text-sm text-zinc-600 lg:mt-7">
               <CheckCircle2 className="size-4 shrink-0 text-[#10b981]" />
-              <span>{copy.hero.status}</span>
+              <span className="min-w-0">{copy.hero.status}</span>
             </div>
           </div>
 
@@ -832,16 +883,16 @@ export default function HomePage() {
       </CapabilitySection>
 
       <section className="border-t border-zinc-200 bg-zinc-950 text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_auto] lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-7 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-[1fr_auto] lg:gap-8 lg:px-8 lg:py-14">
           <div>
-            <h2 className="max-w-3xl text-4xl font-semibold">{copy.closing.title}</h2>
+            <h2 className="max-w-3xl text-3xl font-semibold sm:text-4xl">{copy.closing.title}</h2>
             <p className="mt-4 max-w-2xl text-base leading-8 text-zinc-400">{copy.closing.body}</p>
           </div>
           <div className="flex items-center">
             <Button
               type="button"
               size="lg"
-              className="rounded-lg bg-white px-4 text-zinc-950 hover:bg-zinc-200"
+              className="w-full rounded-lg bg-white px-4 text-zinc-950 hover:bg-zinc-200 sm:w-auto"
               onClick={goToCreate}
             >
               <BookOpen className="size-4" />

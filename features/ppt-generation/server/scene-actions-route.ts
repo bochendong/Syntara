@@ -150,6 +150,50 @@ function buildLectureActionDiagnostics(args: {
   };
 }
 
+function sanitizeSpeechForTts(text: string): string {
+  return text
+    .replace(/([A-Za-z0-9]+)_\{([^}]+)\}/g, '$1 下标 $2')
+    .replace(/([A-Za-z0-9]+)_([A-Za-z0-9]+)/g, '$1 下标 $2')
+    .replace(/([A-Za-z0-9]+)\^\{([^}]+)\}/g, '$1 的 $2 次方')
+    .replace(/([A-Za-z0-9]+)\^2/g, '$1 的平方')
+    .replace(/([A-Za-z0-9]+)\^3/g, '$1 的三次方')
+    .replace(/([A-Za-z0-9]+)\^([A-Za-z0-9]+)/g, '$1 的 $2 次方')
+    .replace(/√\s*([A-Za-z0-9]+)/g, '根号 $1')
+    .replace(/∫/g, '积分')
+    .replace(/π/g, '派')
+    .replace(/θ/g, 'theta')
+    .replace(/Δ/g, 'delta')
+    .replace(/\bdx\b/g, 'd x')
+    .replace(/\bdu\b/g, 'd u')
+    .replace(/\bdy\b/g, 'd y')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sanitizeSpeechActions(actions: Action[]): Action[] {
+  return actions.map((action) =>
+    action.type === 'speech' ? { ...action, text: sanitizeSpeechForTts(action.text) } : action,
+  );
+}
+
+function applyImageNotebookFocusDefaults(
+  actions: Action[],
+  actionContext?: SceneActionContextPayload,
+): Action[] {
+  const plannedFocusIds = new Set(
+    (actionContext?.focusPlan || []).map((target) => target.targetId).filter(Boolean),
+  );
+  if (plannedFocusIds.size === 0) return actions;
+
+  return actions.map((action) => {
+    if (action.type !== 'spotlight' || !plannedFocusIds.has(action.elementId)) return action;
+    return {
+      ...action,
+      dimOpacity: 0.76,
+    };
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -329,6 +373,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    actions = applyImageNotebookFocusDefaults(sanitizeSpeechActions(actions), actionContext);
     log.info(`Generated ${actions.length} actions for: "${normalizedOutline.title}"`);
 
     // ── Build complete scene ──

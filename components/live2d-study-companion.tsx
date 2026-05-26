@@ -9,10 +9,12 @@ import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { cn } from '@/lib/utils';
 
-const STORAGE_KEY = 'syntara-live2d-study-companion-position-v1';
+const STORAGE_KEY = 'syntara-live2d-study-companion-position-v2';
 const EDGE_PADDING = 12;
 const DESKTOP_SIZE = { width: 190, height: 270 };
-const MOBILE_SIZE = { width: 148, height: 220 };
+const MOBILE_SIZE = { width: 112, height: 168 };
+
+type CompanionMode = 'desktop' | 'mobile';
 
 type CompanionPosition = {
   x: number;
@@ -36,6 +38,7 @@ export function Live2DStudyCompanion() {
   const [size, setSize] = useState<CompanionSize>(DESKTOP_SIZE);
   const [position, setPosition] = useState<CompanionPosition | null>(null);
   const latestPositionRef = useRef<CompanionPosition | null>(null);
+  const latestModeRef = useRef<CompanionMode | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
@@ -63,10 +66,17 @@ export function Live2DStudyCompanion() {
 
   useLayoutEffect(() => {
     const syncPosition = () => {
+      const nextMode = resolveCompanionMode();
       const nextSize = resolveCompanionSize();
+      const modeChanged = latestModeRef.current !== nextMode;
+      const storedPosition = nextMode === 'desktop' ? readStoredPosition() : null;
+
+      latestModeRef.current = nextMode;
       setSize(nextSize);
       moveTo(
-        latestPositionRef.current ?? readStoredPosition() ?? getDefaultPosition(nextSize),
+        modeChanged
+          ? (storedPosition ?? getDefaultPosition(nextSize))
+          : (latestPositionRef.current ?? storedPosition ?? getDefaultPosition(nextSize)),
         nextSize,
       );
     };
@@ -114,7 +124,9 @@ export function Live2DStudyCompanion() {
     } catch {
       // Pointer capture may already be released by the browser.
     }
-    persistPosition(latestPositionRef.current);
+    if (resolveCompanionMode() === 'desktop') {
+      persistPosition(latestPositionRef.current);
+    }
   };
 
   const handleMessageButtonClick = () => {
@@ -142,6 +154,7 @@ export function Live2DStudyCompanion() {
 
   return (
     <div
+      data-study-companion-root
       className={cn(
         'pointer-events-auto fixed z-[1450] select-none bg-transparent touch-none',
         dragging ? 'cursor-grabbing' : 'cursor-grab',
@@ -209,7 +222,12 @@ export function Live2DStudyCompanion() {
 
 function resolveCompanionSize(): CompanionSize {
   if (typeof window === 'undefined') return DESKTOP_SIZE;
-  return window.innerWidth < 640 ? MOBILE_SIZE : DESKTOP_SIZE;
+  return resolveCompanionMode() === 'mobile' ? MOBILE_SIZE : DESKTOP_SIZE;
+}
+
+function resolveCompanionMode(): CompanionMode {
+  if (typeof window === 'undefined') return 'desktop';
+  return window.innerWidth < 1024 ? 'mobile' : 'desktop';
 }
 
 function getDefaultPosition(size: CompanionSize): CompanionPosition {

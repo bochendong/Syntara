@@ -133,6 +133,33 @@ function statusLabel(status: NotebookProblemClientRecord['status'], locale: 'zh-
   return locale === 'zh-CN' ? zh[status] : en[status];
 }
 
+function attemptStatusLabel(status: NotebookProblemAttemptStatus, locale: 'zh-CN' | 'en-US') {
+  const zh = {
+    pending: '待评估',
+    passed: '正确',
+    failed: '错误',
+    partial: '部分正确',
+    error: '评估失败',
+  } as const;
+  const en = {
+    pending: 'Pending',
+    passed: 'Correct',
+    failed: 'Incorrect',
+    partial: 'Partial',
+    error: 'Error',
+  } as const;
+  return locale === 'zh-CN' ? zh[status] : en[status];
+}
+
+function formatAttemptTime(timestamp: number, locale: 'zh-CN' | 'en-US') {
+  return new Intl.DateTimeFormat(locale === 'zh-CN' ? 'zh-CN' : 'en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp));
+}
+
 function difficultyLabel(
   difficulty: NotebookProblemClientRecord['difficulty'],
   locale: 'zh-CN' | 'en-US',
@@ -286,7 +313,8 @@ function problemSolutionSections(
 
 type TextAnswerMode = 'text' | 'photo';
 type ProblemInfoTab = 'description' | 'formula' | 'edit';
-type AnswerPanelTab = 'answer' | 'preview' | 'solution';
+type AnswerPanelTab = 'answer' | 'preview' | 'solution' | 'history';
+type ChoiceProblemContent = Extract<NotebookProblemPublicContent, { type: 'choice' }>;
 
 type PhotoAnswerDraft = {
   id: string;
@@ -374,6 +402,75 @@ function answerFeedbackTone(status: NotebookProblemAttemptStatus) {
     return 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100';
   }
   return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100';
+}
+
+function formatAnswerScore(score: number, points: number) {
+  return `${Number.isInteger(score) ? score : score.toFixed(1)}/${points}`;
+}
+
+function answerFeedbackSummaryLabel(
+  feedback: InlineAnswerFeedback,
+  points: number,
+  locale: 'zh-CN' | 'en-US',
+) {
+  if (feedback.saving) return locale === 'zh-CN' ? '正在提交' : 'Submitting';
+  const score =
+    typeof feedback.score === 'number'
+      ? feedback.score
+      : feedback.status === 'passed'
+        ? points
+        : feedback.status === 'failed' || feedback.status === 'partial'
+          ? 0
+          : null;
+  const scoreText = typeof score === 'number' ? formatAnswerScore(score, points) : null;
+  if (feedback.status === 'passed') {
+    return locale === 'zh-CN'
+      ? `作答正确 · 满分 ${formatAnswerScore(points, points)}`
+      : `Answer correct · Full score ${formatAnswerScore(points, points)}`;
+  }
+  if (feedback.status === 'failed') {
+    return locale === 'zh-CN'
+      ? `作答失败${scoreText ? ` · 得分 ${scoreText}` : ''}`
+      : `Answer failed${scoreText ? ` · Score ${scoreText}` : ''}`;
+  }
+  if (feedback.status === 'partial') {
+    return locale === 'zh-CN'
+      ? `部分正确${scoreText ? ` · 得分 ${scoreText}` : ''}`
+      : `Partially correct${scoreText ? ` · Score ${scoreText}` : ''}`;
+  }
+  if (feedback.status === 'error') return locale === 'zh-CN' ? '提交失败' : 'Submit failed';
+  return locale === 'zh-CN' ? '等待评估' : 'Pending review';
+}
+
+function AnswerFeedbackSummaryBadge({
+  feedback,
+  points,
+  locale,
+  className,
+}: {
+  feedback: InlineAnswerFeedback;
+  points: number;
+  locale: 'zh-CN' | 'en-US';
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border px-3 text-xs font-semibold',
+        answerFeedbackTone(feedback.status),
+        className,
+      )}
+    >
+      {feedback.saving ? (
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+      ) : feedback.status === 'passed' ? (
+        <CheckCircle2 className="h-4 w-4 shrink-0" />
+      ) : (
+        <AlertCircle className="h-4 w-4 shrink-0" />
+      )}
+      <span className="truncate">{answerFeedbackSummaryLabel(feedback, points, locale)}</span>
+    </div>
+  );
 }
 
 function latestAttemptFromRecord(attempt: NotebookProblemAttemptRecord) {
@@ -707,16 +804,6 @@ function problemMetaChips(
 ): Array<{ key: string; label: string; Icon: LucideIcon; className: string }> {
   const typeVisual = problemTypeVisual(problem.type);
   return [
-    {
-      key: 'notebook',
-      label:
-        locale === 'zh-CN'
-          ? problem.notebookName || '未归类题目'
-          : problem.notebookName || 'Unassigned',
-      Icon: BookOpen,
-      className:
-        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200',
-    },
     {
       key: 'type',
       label: typeLabel(problem.type, locale),
@@ -1183,6 +1270,262 @@ function AnswerPreviewPanel({ value, placeholder }: { value: string; placeholder
   );
 }
 
+function ChoiceAnswerPreviewPanel({
+  content,
+  selectedOptionIds,
+  feedback,
+  locale,
+}: {
+  content: ChoiceProblemContent;
+  selectedOptionIds: string[];
+  feedback: InlineAnswerFeedback | null;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  const selected = new Set(selectedOptionIds);
+  const correctOptionIds = feedback?.correctOptionIds ?? [];
+  const hasFeedback = Boolean(feedback);
+
+  return (
+    <div className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-700 dark:bg-slate-950/40">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-3 py-2 dark:border-slate-800">
+        <div>
+          <p className="text-sm font-semibold text-slate-950 dark:text-white">
+            {locale === 'zh-CN' ? '选项预览' : 'Choice preview'}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {content.selectionMode === 'multiple'
+              ? locale === 'zh-CN'
+                ? '多选题'
+                : 'Multiple choice'
+              : locale === 'zh-CN'
+                ? '单选题'
+                : 'Single choice'}
+          </p>
+        </div>
+        <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+          {selectedOptionIds.length > 0
+            ? selectedOptionIds.join(', ')
+            : locale === 'zh-CN'
+              ? '未选择'
+              : 'No selection'}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="space-y-2">
+          {content.options.map((option) => {
+            const isSelected = selected.has(option.id);
+            const isCorrect = correctOptionIds.includes(option.id);
+            const isWrongSelected = hasFeedback && isSelected && !isCorrect;
+
+            return (
+              <div
+                key={option.id}
+                className={cn(
+                  'flex items-start gap-3 rounded-md border px-3 py-3 text-[15px] transition dark:border-slate-700',
+                  hasFeedback && isCorrect
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-50'
+                    : isWrongSelected
+                      ? 'border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-50'
+                      : isSelected
+                        ? 'border-sky-300 bg-sky-50 text-slate-950 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-white'
+                        : 'border-slate-200 bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-200',
+                )}
+              >
+                <span
+                  className={cn(
+                    'mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full border text-xs font-semibold',
+                    isSelected
+                      ? 'border-sky-500 bg-sky-500 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
+                  )}
+                >
+                  {option.id}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <ProblemRichText
+                    content={option.label}
+                    className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
+                  />
+                </div>
+                {hasFeedback && isCorrect ? (
+                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                ) : isWrongSelected ? (
+                  <X className="mt-1 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttemptAnswerPreview({
+  attempt,
+  locale,
+}: {
+  attempt: NotebookProblemAttemptRecord;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  const answer = attempt.answer;
+  const textHtml = useMemo(
+    () => (answer.text?.trim() ? answerPreviewHtml(answer.text) : ''),
+    [answer.text],
+  );
+
+  if (answer.selectedOptionIds?.length) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {answer.selectedOptionIds.map((optionId) => (
+          <span
+            key={`${attempt.id}-${optionId}`}
+            className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20"
+          >
+            {optionId}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  if (answer.blanks && Object.keys(answer.blanks).length > 0) {
+    return (
+      <div className="grid gap-2">
+        {Object.entries(answer.blanks).map(([blankId, value]) => (
+          <div
+            key={`${attempt.id}-${blankId}`}
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+          >
+            <span className="mr-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {blankId}
+            </span>
+            <span className="text-slate-800 dark:text-slate-100">{value || '-'}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (answer.code?.trim()) {
+    return (
+      <pre className="max-h-48 overflow-auto rounded-md bg-slate-950 p-3 text-xs leading-6 text-slate-50">
+        {answer.code}
+      </pre>
+    );
+  }
+
+  if (answer.images?.length) {
+    return (
+      <div className="grid gap-2 sm:grid-cols-2">
+        {answer.images.map((image) => (
+          <figure
+            key={image.id}
+            className="overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+          >
+            <img src={image.dataUrl} alt={image.name} className="max-h-40 w-full object-contain" />
+            <figcaption className="border-t border-slate-200 px-2 py-1.5 text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+              {image.name}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    );
+  }
+
+  if (textHtml) {
+    return (
+      <div
+        className="prose prose-slate max-w-none text-sm leading-7 dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-0 [&_.katex-display]:my-3"
+        dangerouslySetInnerHTML={{ __html: textHtml }}
+      />
+    );
+  }
+
+  return (
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      {locale === 'zh-CN' ? '本次提交没有可显示的答案。' : 'No answer content to show.'}
+    </p>
+  );
+}
+
+function AttemptHistoryPanel({
+  attempts,
+  loading,
+  points,
+  locale,
+}: {
+  attempts: NotebookProblemAttemptRecord[];
+  loading: boolean;
+  points: number;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  if (loading) {
+    return (
+      <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        {locale === 'zh-CN' ? '正在加载提交历史…' : 'Loading submission history...'}
+      </div>
+    );
+  }
+
+  if (attempts.length === 0) {
+    return (
+      <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+        {locale === 'zh-CN' ? '还没有提交记录。' : 'No submissions yet.'}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {attempts.map((attempt, index) => (
+        <article
+          key={attempt.id}
+          className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700">
+                #{attempts.length - index}
+              </span>
+              <span
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-xs font-semibold ring-1',
+                  answerFeedbackTone(attempt.status),
+                )}
+              >
+                {attemptStatusLabel(attempt.status, locale)}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {formatAttemptTime(attempt.createdAt, locale)}
+              </span>
+            </div>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              {typeof attempt.score === 'number'
+                ? `${attempt.score}/${points}`
+                : locale === 'zh-CN'
+                  ? '未评分'
+                  : 'No score'}
+            </span>
+          </div>
+          <div className="space-y-3 p-3">
+            <AttemptAnswerPreview attempt={attempt} locale={locale} />
+            {attempt.result?.feedback ? (
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200">
+                <p className="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {locale === 'zh-CN' ? '反馈' : 'Feedback'}
+                </p>
+                <ProblemRichText content={attempt.result.feedback} />
+              </div>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function ProblemDraftPreviewPanel({
   draft,
   locale,
@@ -1512,6 +1855,12 @@ export function CourseProblemBankView({
   const [answerFeedbackByProblemId, setAnswerFeedbackByProblemId] = useState<
     Record<string, InlineAnswerFeedback>
   >({});
+  const [attemptsByProblemId, setAttemptsByProblemId] = useState<
+    Record<string, NotebookProblemAttemptRecord[]>
+  >({});
+  const [attemptHistoryLoadingProblemId, setAttemptHistoryLoadingProblemId] = useState<
+    string | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [problemPage, setProblemPage] = useState(1);
@@ -1904,10 +2253,57 @@ export function CourseProblemBankView({
   const selectedProblemHasTranslation = hasProblemTranslation(selectedProblem);
   const selectedProblemRef = useRef<NotebookProblemClientRecord | null>(null);
   const selectedProblemNotebookId = selectedProblem?.notebookId ?? null;
+  const selectedProblemNotebookLabel = useMemo(() => {
+    if (!selectedProblem) return '';
+    if (!selectedProblem.notebookId) {
+      return (
+        selectedProblem.notebookName ||
+        (locale === 'zh-CN' ? '未归属笔记本' : 'Unassigned notebook')
+      );
+    }
+    return (
+      notebooks.find((notebook) => notebook.id === selectedProblem.notebookId)?.name ||
+      selectedProblem.notebookName ||
+      (locale === 'zh-CN' ? '未知笔记本' : 'Unknown notebook')
+    );
+  }, [locale, notebooks, selectedProblem]);
   const selectedProblemLatestAttemptId = selectedProblem?.latestAttempt?.id ?? null;
   useEffect(() => {
     selectedProblemRef.current = selectedProblem;
   }, [selectedProblem]);
+  const notebookProblemGroups = useMemo(() => {
+    const notebookNameById = new Map(notebooks.map((notebook) => [notebook.id, notebook.name]));
+    const groupsByNotebook = new Map<string, NotebookProblemClientRecord[]>();
+
+    for (const problem of problems) {
+      if (problem.status === 'archived' || !problem.notebookId) continue;
+      const group = groupsByNotebook.get(problem.notebookId) ?? [];
+      group.push(problem);
+      groupsByNotebook.set(problem.notebookId, group);
+    }
+
+    for (const group of groupsByNotebook.values()) {
+      group.sort(compareProblemSequence);
+    }
+
+    const orderedNotebookIds = [
+      ...notebooks
+        .map((notebook) => notebook.id)
+        .filter((notebookId) => groupsByNotebook.has(notebookId)),
+      ...Array.from(groupsByNotebook.keys()).filter(
+        (notebookId) => !notebookNameById.has(notebookId),
+      ),
+    ];
+
+    return orderedNotebookIds.map((notebookId) => ({
+      id: notebookId,
+      name:
+        notebookNameById.get(notebookId) ||
+        groupsByNotebook.get(notebookId)?.[0]?.notebookName ||
+        (locale === 'zh-CN' ? '未知笔记本' : 'Unknown notebook'),
+      problems: groupsByNotebook.get(notebookId) ?? [],
+    }));
+  }, [locale, notebooks, problems]);
   const sameNotebookProblems = useMemo(() => {
     if (!selectedProblem?.notebookId) return [];
     return problems
@@ -1931,6 +2327,33 @@ export function CourseProblemBankView({
     );
     return currentIndex > 0 ? sameNotebookProblems[currentIndex - 1] : null;
   }, [sameNotebookProblems, selectedProblem]);
+  const nextChapterProblem = useMemo(() => {
+    if (!selectedProblem?.notebookId || nextNotebookProblem) return null;
+    const currentNotebookIndex = notebookProblemGroups.findIndex(
+      (group) => group.id === selectedProblem.notebookId,
+    );
+    if (currentNotebookIndex < 0) return null;
+    for (const group of notebookProblemGroups.slice(currentNotebookIndex + 1)) {
+      if (group.problems.length > 0) return group.problems[0];
+    }
+    return null;
+  }, [nextNotebookProblem, notebookProblemGroups, selectedProblem?.notebookId]);
+  const previousChapterProblem = useMemo(() => {
+    if (!selectedProblem?.notebookId || previousNotebookProblem) return null;
+    const currentNotebookIndex = notebookProblemGroups.findIndex(
+      (group) => group.id === selectedProblem.notebookId,
+    );
+    if (currentNotebookIndex <= 0) return null;
+    for (let index = currentNotebookIndex - 1; index >= 0; index -= 1) {
+      const group = notebookProblemGroups[index];
+      if (group.problems.length > 0) return group.problems[group.problems.length - 1];
+    }
+    return null;
+  }, [notebookProblemGroups, previousNotebookProblem, selectedProblem?.notebookId]);
+  const previousPracticeTarget = previousNotebookProblem ?? previousChapterProblem;
+  const nextPracticeTarget = nextNotebookProblem ?? nextChapterProblem;
+  const previousPracticeIsChapterJump = !previousNotebookProblem && Boolean(previousChapterProblem);
+  const nextPracticeIsChapterJump = !nextNotebookProblem && Boolean(nextChapterProblem);
   const currentNotebookProblemPosition = useMemo(() => {
     if (!selectedProblem || sameNotebookProblems.length === 0) return 0;
     const currentIndex = sameNotebookProblems.findIndex(
@@ -1953,6 +2376,13 @@ export function CourseProblemBankView({
   const selectedAnswerFeedback = selectedProblem
     ? (answerFeedbackByProblemId[selectedProblem.id] ?? null)
     : null;
+  const selectedProblemPoints = selectedProblem?.points ?? 0;
+  const selectedProblemAttempts = selectedProblem
+    ? (attemptsByProblemId[selectedProblem.id] ?? [])
+    : [];
+  const selectedProblemAttemptsLoading = selectedProblem
+    ? attemptHistoryLoadingProblemId === selectedProblem.id
+    : false;
   const selectedAnswerMode: TextAnswerMode = selectedProblem
     ? (answerModes[selectedProblem.id] ?? 'text')
     : 'text';
@@ -2017,9 +2447,14 @@ export function CourseProblemBankView({
     }
 
     let cancelled = false;
+    setAttemptHistoryLoadingProblemId(selectedProblemId);
     void listNotebookProblemAttempts(selectedProblemNotebookId, selectedProblemId)
       .then((attempts) => {
         if (cancelled) return;
+        setAttemptsByProblemId((prev) => ({
+          ...prev,
+          [selectedProblemId]: attempts,
+        }));
         const latestAttempt = attempts[0];
         if (!latestAttempt) return;
         const answer = latestAttempt.answer;
@@ -2071,6 +2506,19 @@ export function CourseProblemBankView({
       })
       .catch((error) => {
         console.warn('Failed to restore latest problem attempt', error);
+        if (!cancelled) {
+          setAttemptsByProblemId((prev) => ({
+            ...prev,
+            [selectedProblemId]: [],
+          }));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAttemptHistoryLoadingProblemId((current) =>
+            current === selectedProblemId ? null : current,
+          );
+        }
       });
 
     return () => {
@@ -2578,6 +3026,13 @@ export function CourseProblemBankView({
             : problem,
         ),
       );
+      setAttemptsByProblemId((prev) => ({
+        ...prev,
+        [selectedProblem.id]: [
+          attempt,
+          ...(prev[selectedProblem.id] ?? []).filter((item) => item.id !== attempt.id),
+        ],
+      }));
       setAnswerFeedbackByProblemId((prev) => ({
         ...prev,
         [selectedProblem.id]: {
@@ -2634,19 +3089,19 @@ export function CourseProblemBankView({
     <div
       className={cn(
         'flex h-full min-h-0 w-full',
-        isPracticeMode ? 'gap-2 bg-[#f5f5f5] p-2 dark:bg-slate-950' : 'gap-3 p-3',
+        isPracticeMode ? 'gap-2 bg-[#f5f5f5] p-2 dark:bg-slate-950' : 'gap-2 p-2 sm:gap-3 sm:p-3',
       )}
     >
       {!isPracticeMode ? (
         <>
           <div className="order-1 flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/92 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/55">
-            <div className="border-b border-slate-200 px-4 py-2 dark:border-slate-800">
-              <div className="flex min-w-0 items-center gap-3">
+            <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800 sm:px-4 sm:py-2">
+              <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:gap-3">
                 <span className="min-w-0 truncate text-sm font-semibold text-sky-600 dark:text-sky-300">
                   {courseName || (locale === 'zh-CN' ? '课程空间' : 'Course workspace')}
                 </span>
 
-                <label className="relative ml-auto w-[320px] max-w-[40%] shrink-0">
+                <label className="relative w-full md:ml-auto md:w-[320px] md:max-w-[45%] md:shrink-0">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     value={searchQuery}
@@ -2660,7 +3115,7 @@ export function CourseProblemBankView({
                   />
                 </label>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex w-full shrink-0 items-center justify-between gap-2 md:w-auto md:justify-start">
                   {courseHasTranslations ? (
                     <ProblemLanguageToggle
                       value={problemLanguage}
@@ -2690,7 +3145,7 @@ export function CourseProblemBankView({
                     <DropdownMenuContent
                       align="end"
                       sideOffset={8}
-                      className="w-[620px] max-w-[calc(100vw-3rem)] p-3"
+                      className="w-[620px] max-w-[calc(100vw-1.5rem)] p-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -2771,6 +3226,30 @@ export function CourseProblemBankView({
                   </DropdownMenu>
                 </div>
               </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 xl:hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportMode('pdf');
+                    setImportOpen(true);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                >
+                  <FileUp className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
+                  {locale === 'zh-CN' ? '导入题目' : 'Import'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportMode('web');
+                    setImportOpen(true);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                >
+                  <Sparkles className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
+                  {locale === 'zh-CN' ? '智能生成' : 'Generate'}
+                </button>
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
@@ -2784,187 +3263,345 @@ export function CourseProblemBankView({
                   {locale === 'zh-CN' ? '当前筛选下没有题目。' : 'No problems match this filter.'}
                 </div>
               ) : (
-                <div className="min-w-[820px]">
-                  <div
-                    className={cn(
-                      PROBLEM_BANK_LIST_GRID_CLASS,
-                      'border-b border-slate-200 bg-slate-50/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400',
-                    )}
-                  >
-                    <span>{locale === 'zh-CN' ? '题号' : 'No.'}</span>
-                    <span>{locale === 'zh-CN' ? '状态' : 'State'}</span>
-                    <span>{locale === 'zh-CN' ? '题目' : 'Problem'}</span>
-                    <span>{locale === 'zh-CN' ? '来源' : 'Source'}</span>
-                    <span>{locale === 'zh-CN' ? '题型' : 'Type'}</span>
-                    <span>{locale === 'zh-CN' ? '难度' : 'Level'}</span>
-                    <span>{locale === 'zh-CN' ? '最近得分' : 'Score'}</span>
-                    <span>{locale === 'zh-CN' ? '操作' : 'Action'}</span>
-                  </div>
-                  {paginatedProblems.map((problem) => {
-                    const selected = selectedProblemId === problem.id;
-                    const typeVisual = problemTypeVisual(problem.type);
-                    const ProblemTypeIcon = typeVisual.Icon;
-                    const localizedContent = getLocalizedProblemContent(
-                      problem.publicContent,
-                      problemLanguage,
-                    );
-                    const localizedTitle = getLocalizedProblemTitle(problem, problemLanguage);
-                    return (
-                      <div
-                        key={problem.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() =>
-                          router.push(
-                            `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                          )
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
+                <>
+                  <div className="space-y-2 p-3 lg:hidden">
+                    {paginatedProblems.map((problem) => {
+                      const selected = selectedProblemId === problem.id;
+                      const typeVisual = problemTypeVisual(problem.type);
+                      const ProblemTypeIcon = typeVisual.Icon;
+                      const localizedContent = getLocalizedProblemContent(
+                        problem.publicContent,
+                        problemLanguage,
+                      );
+                      const localizedTitle = getLocalizedProblemTitle(problem, problemLanguage);
+                      return (
+                        <div
+                          key={problem.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() =>
                             router.push(
                               `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                            );
+                            )
                           }
-                        }}
-                        className={cn(
-                          PROBLEM_BANK_LIST_GRID_CLASS,
-                          'items-center border-b border-slate-100 px-4 py-3 text-sm transition dark:border-slate-800/80',
-                          selected
-                            ? 'bg-sky-50/80 dark:bg-sky-500/10'
-                            : 'bg-white hover:bg-slate-50/80 dark:bg-slate-950/25 dark:hover:bg-slate-900/50',
-                        )}
-                      >
-                        <div>
-                          <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                            {formatProblemNumber(problem)}
-                          </span>
-                        </div>
-                        <div>
-                          <span
-                            className={cn(
-                              'inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold',
-                              practiceStateClassName(problem),
-                            )}
-                          >
-                            {practiceStateLabel(problem, locale)}
-                          </span>
-                        </div>
-                        <div className="min-w-0 pr-4">
-                          <ProblemTitleText
-                            content={localizedTitle}
-                            className="line-clamp-1 font-semibold text-slate-950 dark:text-white"
-                          />
-                          <p className="mt-1 min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
-                            <ProblemTitleText
-                              content={renderProblemContentStem(localizedContent)}
-                              className="font-normal"
-                              forceInlineMath
-                            />
-                          </p>
-                        </div>
-                        <div className="min-w-0 pr-2 text-xs text-slate-500 dark:text-slate-400">
-                          <span className="line-clamp-2">
-                            {problem.notebookName || (locale === 'zh-CN' ? '未归类' : 'Unassigned')}
-                          </span>
-                        </div>
-                        <div className="min-w-0 pr-2">
-                          <span
-                            className={cn(
-                              'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold',
-                              typeVisual.className,
-                            )}
-                          >
-                            <ProblemTypeIcon className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{typeLabel(problem.type, locale)}</span>
-                          </span>
-                        </div>
-                        <div title={difficultyLabel(problem.difficulty, locale)}>
-                          <div className="flex items-center gap-1">
-                            {difficultyDots(problem).map((active, index) => (
-                              <span
-                                key={index}
-                                className={cn(
-                                  'size-1.5 rounded-full',
-                                  difficultyDotClassName(problem.difficulty, active),
-                                )}
-                              />
-                            ))}
-                          </div>
-                          <div
-                            className={cn(
-                              'mt-0.5 text-[10px] font-semibold',
-                              difficultyTextClassName(problem.difficulty),
-                            )}
-                          >
-                            {difficultyLabel(problem.difficulty, locale)}
-                          </div>
-                        </div>
-                        <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                          {latestScoreLabel(problem, locale)}
-                        </div>
-                        <div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className={cn('h-8 px-2.5 text-xs', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
-                            onClick={(event) => {
-                              event.stopPropagation();
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
                               router.push(
                                 `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
                               );
-                            }}
-                          >
-                            {locale === 'zh-CN' ? '练习' : 'Practice'}
-                          </Button>
+                            }
+                          }}
+                          className={cn(
+                            'rounded-xl border p-3 text-sm shadow-sm transition',
+                            selected
+                              ? 'border-sky-200 bg-sky-50/90 dark:border-sky-500/30 dark:bg-sky-500/10'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/60',
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                  {formatProblemNumber(problem)}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                    practiceStateClassName(problem),
+                                  )}
+                                >
+                                  {practiceStateLabel(problem, locale)}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                    typeVisual.className,
+                                  )}
+                                >
+                                  <ProblemTypeIcon className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">
+                                    {typeLabel(problem.type, locale)}
+                                  </span>
+                                </span>
+                              </div>
+                              <ProblemTitleText
+                                content={localizedTitle}
+                                className="mt-2 line-clamp-2 font-semibold leading-5 text-slate-950 dark:text-white"
+                              />
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                <ProblemTitleText
+                                  content={renderProblemContentStem(localizedContent)}
+                                  className="font-normal"
+                                  forceInlineMath
+                                />
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className={cn(
+                                'h-8 shrink-0 px-2.5 text-xs',
+                                PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                              )}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                router.push(
+                                  `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
+                                );
+                              }}
+                            >
+                              {locale === 'zh-CN' ? '练习' : 'Practice'}
+                            </Button>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-medium text-slate-400">
+                                {locale === 'zh-CN' ? '来源' : 'Source'}
+                              </div>
+                              <div className="truncate font-medium text-slate-700 dark:text-slate-200">
+                                {problem.notebookName ||
+                                  (locale === 'zh-CN' ? '未归类' : 'Unassigned')}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-medium text-slate-400">
+                                {locale === 'zh-CN' ? '难度 / 得分' : 'Level / Score'}
+                              </div>
+                              <div className="font-medium text-slate-700 dark:text-slate-200">
+                                {difficultyLabel(problem.difficulty, locale)} ·{' '}
+                                {latestScoreLabel(problem, locale)}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-400">
-                    <span>
-                      {locale === 'zh-CN'
-                        ? `显示 ${pageStartIndex + 1}-${pageEndIndex} / ${filteredProblems.length} 道`
-                        : `Showing ${pageStartIndex + 1}-${pageEndIndex} of ${filteredProblems.length}`}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1 px-2 text-xs"
-                        disabled={currentProblemPage <= 1}
-                        onClick={() => setProblemPage((current) => Math.max(1, current - 1))}
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                        {locale === 'zh-CN' ? '上一页' : 'Prev'}
-                      </Button>
-                      <span className="min-w-[5rem] text-center font-medium text-slate-600 dark:text-slate-300">
+                      );
+                    })}
+                    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                      <span>
                         {locale === 'zh-CN'
-                          ? `${currentProblemPage} / ${problemPageCount} 页`
-                          : `Page ${currentProblemPage} / ${problemPageCount}`}
+                          ? `显示 ${pageStartIndex + 1}-${pageEndIndex} / ${filteredProblems.length} 道`
+                          : `Showing ${pageStartIndex + 1}-${pageEndIndex} of ${filteredProblems.length}`}
                       </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1 px-2 text-xs"
-                        disabled={currentProblemPage >= problemPageCount}
-                        onClick={() =>
-                          setProblemPage((current) => Math.min(problemPageCount, current + 1))
-                        }
-                      >
-                        {locale === 'zh-CN' ? '下一页' : 'Next'}
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-between gap-2 min-[420px]:justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 px-2 text-xs"
+                          disabled={currentProblemPage <= 1}
+                          onClick={() => setProblemPage((current) => Math.max(1, current - 1))}
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                          {locale === 'zh-CN' ? '上一页' : 'Prev'}
+                        </Button>
+                        <span className="min-w-[4rem] text-center font-medium text-slate-600 dark:text-slate-300">
+                          {currentProblemPage} / {problemPageCount}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 px-2 text-xs"
+                          disabled={currentProblemPage >= problemPageCount}
+                          onClick={() =>
+                            setProblemPage((current) => Math.min(problemPageCount, current + 1))
+                          }
+                        >
+                          {locale === 'zh-CN' ? '下一页' : 'Next'}
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  <div className="hidden min-w-[820px] lg:block">
+                    <div
+                      className={cn(
+                        PROBLEM_BANK_LIST_GRID_CLASS,
+                        'border-b border-slate-200 bg-slate-50/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400',
+                      )}
+                    >
+                      <span>{locale === 'zh-CN' ? '题号' : 'No.'}</span>
+                      <span>{locale === 'zh-CN' ? '状态' : 'State'}</span>
+                      <span>{locale === 'zh-CN' ? '题目' : 'Problem'}</span>
+                      <span>{locale === 'zh-CN' ? '来源' : 'Source'}</span>
+                      <span>{locale === 'zh-CN' ? '题型' : 'Type'}</span>
+                      <span>{locale === 'zh-CN' ? '难度' : 'Level'}</span>
+                      <span>{locale === 'zh-CN' ? '最近得分' : 'Score'}</span>
+                      <span>{locale === 'zh-CN' ? '操作' : 'Action'}</span>
+                    </div>
+                    {paginatedProblems.map((problem) => {
+                      const selected = selectedProblemId === problem.id;
+                      const typeVisual = problemTypeVisual(problem.type);
+                      const ProblemTypeIcon = typeVisual.Icon;
+                      const localizedContent = getLocalizedProblemContent(
+                        problem.publicContent,
+                        problemLanguage,
+                      );
+                      const localizedTitle = getLocalizedProblemTitle(problem, problemLanguage);
+                      return (
+                        <div
+                          key={problem.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() =>
+                            router.push(
+                              `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
+                            )
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              router.push(
+                                `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
+                              );
+                            }
+                          }}
+                          className={cn(
+                            PROBLEM_BANK_LIST_GRID_CLASS,
+                            'items-center border-b border-slate-100 px-4 py-3 text-sm transition dark:border-slate-800/80',
+                            selected
+                              ? 'bg-sky-50/80 dark:bg-sky-500/10'
+                              : 'bg-white hover:bg-slate-50/80 dark:bg-slate-950/25 dark:hover:bg-slate-900/50',
+                          )}
+                        >
+                          <div>
+                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                              {formatProblemNumber(problem)}
+                            </span>
+                          </div>
+                          <div>
+                            <span
+                              className={cn(
+                                'inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                practiceStateClassName(problem),
+                              )}
+                            >
+                              {practiceStateLabel(problem, locale)}
+                            </span>
+                          </div>
+                          <div className="min-w-0 pr-4">
+                            <ProblemTitleText
+                              content={localizedTitle}
+                              className="line-clamp-1 font-semibold text-slate-950 dark:text-white"
+                            />
+                            <p className="mt-1 min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
+                              <ProblemTitleText
+                                content={renderProblemContentStem(localizedContent)}
+                                className="font-normal"
+                                forceInlineMath
+                              />
+                            </p>
+                          </div>
+                          <div className="min-w-0 pr-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="line-clamp-2">
+                              {problem.notebookName ||
+                                (locale === 'zh-CN' ? '未归类' : 'Unassigned')}
+                            </span>
+                          </div>
+                          <div className="min-w-0 pr-2">
+                            <span
+                              className={cn(
+                                'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                typeVisual.className,
+                              )}
+                            >
+                              <ProblemTypeIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{typeLabel(problem.type, locale)}</span>
+                            </span>
+                          </div>
+                          <div title={difficultyLabel(problem.difficulty, locale)}>
+                            <div className="flex items-center gap-1">
+                              {difficultyDots(problem).map((active, index) => (
+                                <span
+                                  key={index}
+                                  className={cn(
+                                    'size-1.5 rounded-full',
+                                    difficultyDotClassName(problem.difficulty, active),
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            <div
+                              className={cn(
+                                'mt-0.5 text-[10px] font-semibold',
+                                difficultyTextClassName(problem.difficulty),
+                              )}
+                            >
+                              {difficultyLabel(problem.difficulty, locale)}
+                            </div>
+                          </div>
+                          <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                            {latestScoreLabel(problem, locale)}
+                          </div>
+                          <div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className={cn(
+                                'h-8 px-2.5 text-xs',
+                                PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                              )}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                router.push(
+                                  `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
+                                );
+                              }}
+                            >
+                              {locale === 'zh-CN' ? '练习' : 'Practice'}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-400">
+                      <span>
+                        {locale === 'zh-CN'
+                          ? `显示 ${pageStartIndex + 1}-${pageEndIndex} / ${filteredProblems.length} 道`
+                          : `Showing ${pageStartIndex + 1}-${pageEndIndex} of ${filteredProblems.length}`}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 px-2 text-xs"
+                          disabled={currentProblemPage <= 1}
+                          onClick={() => setProblemPage((current) => Math.max(1, current - 1))}
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                          {locale === 'zh-CN' ? '上一页' : 'Prev'}
+                        </Button>
+                        <span className="min-w-[5rem] text-center font-medium text-slate-600 dark:text-slate-300">
+                          {locale === 'zh-CN'
+                            ? `${currentProblemPage} / ${problemPageCount} 页`
+                            : `Page ${currentProblemPage} / ${problemPageCount}`}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 px-2 text-xs"
+                          disabled={currentProblemPage >= problemPageCount}
+                          onClick={() =>
+                            setProblemPage((current) => Math.min(problemPageCount, current + 1))
+                          }
+                        >
+                          {locale === 'zh-CN' ? '下一页' : 'Next'}
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          <aside className="order-2 hidden h-full w-[270px] shrink-0 flex-col gap-3 overflow-hidden lg:flex">
+          <aside className="order-2 hidden h-full w-[270px] shrink-0 flex-col gap-3 overflow-hidden xl:flex">
             <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] dark:border-slate-800 dark:bg-slate-950/60">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -3151,8 +3788,8 @@ export function CourseProblemBankView({
             </div>
           ) : (
             <>
-              <div className="mb-2 flex h-11 shrink-0 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 shadow-sm shadow-slate-950/[0.03] dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex min-w-0 items-center gap-2">
+              <div className="mb-2 flex min-h-11 shrink-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm shadow-slate-950/[0.03] sm:flex-row sm:items-center sm:justify-between sm:px-3 dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
                   <Button
                     type="button"
                     variant="ghost"
@@ -3170,12 +3807,15 @@ export function CourseProblemBankView({
                         ? '未归类'
                         : 'Unassigned'}
                   </span>
-                  <h1
-                    className="min-w-0 flex-1 truncate text-base font-semibold leading-none text-slate-950 dark:text-white"
-                    title={selectedProblemTitle}
-                  >
-                    <ProblemTitleText content={selectedProblemTitle} className="truncate" />
-                  </h1>
+                  {selectedProblemNotebookLabel ? (
+                    <span
+                      className="flex min-w-0 max-w-full items-center gap-1.5 rounded bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-100 sm:max-w-[min(18rem,42vw)] dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20"
+                      title={selectedProblemNotebookLabel}
+                    >
+                      <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{selectedProblemNotebookLabel}</span>
+                    </span>
+                  ) : null}
                   <span
                     className={cn(
                       'hidden shrink-0 rounded px-2 py-1 text-[11px] font-semibold md:inline-flex',
@@ -3186,47 +3826,59 @@ export function CourseProblemBankView({
                   </span>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5 sm:justify-end">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
-                    disabled={!previousNotebookProblem}
+                    disabled={!previousPracticeTarget}
                     onClick={() => {
-                      if (!previousNotebookProblem) return;
-                      navigateToPracticeProblem(previousNotebookProblem);
+                      if (!previousPracticeTarget) return;
+                      navigateToPracticeProblem(previousPracticeTarget);
                     }}
                     title={
-                      previousNotebookProblem
-                        ? previousNotebookProblem.title
+                      previousPracticeTarget
+                        ? previousPracticeTarget.title
                         : locale === 'zh-CN'
-                          ? '当前笔记本没有上一题'
-                          : 'No previous problem in this notebook'
+                          ? '没有上一题'
+                          : 'No previous problem'
                     }
                   >
                     <ChevronLeft className="mr-1 h-4 w-4" />
-                    {locale === 'zh-CN' ? '上一题' : 'Prev'}
+                    {previousPracticeIsChapterJump
+                      ? locale === 'zh-CN'
+                        ? '上一章'
+                        : 'Prev chapter'
+                      : locale === 'zh-CN'
+                        ? '上一题'
+                        : 'Prev'}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
-                    disabled={!nextNotebookProblem}
+                    disabled={!nextPracticeTarget}
                     onClick={() => {
-                      if (!nextNotebookProblem) return;
-                      navigateToPracticeProblem(nextNotebookProblem);
+                      if (!nextPracticeTarget) return;
+                      navigateToPracticeProblem(nextPracticeTarget);
                     }}
                     title={
-                      nextNotebookProblem
-                        ? nextNotebookProblem.title
+                      nextPracticeTarget
+                        ? nextPracticeTarget.title
                         : locale === 'zh-CN'
-                          ? '当前笔记本没有下一题'
-                          : 'No next problem in this notebook'
+                          ? '没有下一题'
+                          : 'No next problem'
                     }
                   >
-                    {locale === 'zh-CN' ? '下一题' : 'Next'}
+                    {nextPracticeIsChapterJump
+                      ? locale === 'zh-CN'
+                        ? '下一章'
+                        : 'Next chapter'
+                      : locale === 'zh-CN'
+                        ? '下一题'
+                        : 'Next'}
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                   <DropdownMenu>
@@ -3270,9 +3922,9 @@ export function CourseProblemBankView({
                 </div>
               </div>
 
-              <div className="grid min-h-0 flex-1 gap-2 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(24rem,1fr)]">
-                <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                  <div className="flex h-11 shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-slate-800">
+              <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(24rem,1fr)] lg:overflow-hidden">
+                <section className="flex min-h-[min(34rem,72dvh)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:min-h-0 dark:border-slate-800 dark:bg-slate-950">
+                  <div className="flex min-h-11 shrink-0 items-center gap-3 overflow-x-auto border-b border-slate-200 px-3 sm:gap-4 sm:px-4 dark:border-slate-800">
                     <button
                       type="button"
                       onClick={() => handleProblemInfoTabChange('description')}
@@ -3320,10 +3972,16 @@ export function CourseProblemBankView({
                     ) : null}
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 text-[15px] leading-8 text-slate-800 dark:text-slate-200">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 text-[15px] leading-8 text-slate-800 sm:px-5 sm:py-5 dark:text-slate-200">
                     {problemInfoTab === 'description' ? (
                       <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
                         <div>
+                          <h1
+                            className="mb-4 border-b border-slate-200 pb-3 text-base font-semibold leading-7 text-slate-950 dark:border-slate-800 dark:text-white"
+                            title={selectedProblemTitle}
+                          >
+                            <ProblemTitleText content={selectedProblemTitle} />
+                          </h1>
                           {selectedProblemContent &&
                           renderProblemContentStem(selectedProblemContent) ? (
                             <ProblemRichText
@@ -3366,8 +4024,8 @@ export function CourseProblemBankView({
                   </div>
                 </section>
 
-                <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                  <div className="flex h-11 shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-slate-800">
+                <section className="flex min-h-[min(34rem,72dvh)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:min-h-0 dark:border-slate-800 dark:bg-slate-950">
+                  <div className="flex min-h-11 shrink-0 items-center gap-3 overflow-x-auto border-b border-slate-200 px-3 sm:gap-4 sm:px-4 dark:border-slate-800">
                     <button
                       type="button"
                       onClick={() => setAnswerPanelTab('answer')}
@@ -3410,12 +4068,24 @@ export function CourseProblemBankView({
                     >
                       {locale === 'zh-CN' ? '题解' : 'Solution'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setAnswerPanelTab('history')}
+                      className={cn(
+                        'relative h-full text-sm font-semibold transition',
+                        answerPanelTab === 'history'
+                          ? 'text-slate-950 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-emerald-500 dark:text-white'
+                          : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100',
+                      )}
+                    >
+                      {locale === 'zh-CN' ? '提交历史' : 'History'}
+                    </button>
                     {answerPanelTab === 'answer' ? (
                       <Button
                         onClick={handleSubmitInlineAnswer}
                         disabled={submittingAnswer}
                         className={cn(
-                          'ml-auto h-8 rounded-md px-3 text-xs font-semibold',
+                          'ml-auto h-8 shrink-0 rounded-md px-3 text-xs font-semibold',
                           PROBLEM_BANK_EMERALD_ACTION_BUTTON_CLASS,
                         )}
                       >
@@ -3429,7 +4099,7 @@ export function CourseProblemBankView({
                     ) : null}
                   </div>
 
-                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4">
                     {answerPanelTab === 'answer' ? (
                       <div className="flex min-h-full flex-col">
                         {selectedProblem.type === 'choice' &&
@@ -3567,13 +4237,13 @@ export function CourseProblemBankView({
                             showToolbar={false}
                             showToolbarPanels={!showSidebarAnswerTools}
                             locale={locale}
-                            className="flex min-h-[360px] flex-1 flex-col"
+                            className="flex min-h-[300px] flex-1 flex-col sm:min-h-[360px]"
                             textareaClassName="flex-1"
                             placeholder={answerComposerPlaceholder(locale)}
                           />
                         )}
                         {supportsPhotoAnswer(selectedProblem) ? (
-                          <div className="mt-3 flex w-fit gap-2">
+                          <div className="mt-3 flex w-full flex-wrap items-center gap-2">
                             <Button
                               type="button"
                               size="sm"
@@ -3614,35 +4284,23 @@ export function CourseProblemBankView({
                               <ImagePlus className="h-4 w-4" />
                               {locale === 'zh-CN' ? '照片上传' : 'Photos'}
                             </Button>
+                            {selectedAnswerFeedback ? (
+                              <AnswerFeedbackSummaryBadge
+                                feedback={selectedAnswerFeedback}
+                                points={selectedProblemPoints}
+                                locale={locale}
+                                className="ml-auto max-w-[min(21rem,100%)]"
+                              />
+                            ) : null}
                           </div>
                         ) : null}
-                        {selectedAnswerFeedback ? (
-                          <div
-                            className={cn(
-                              'mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm leading-6',
-                              answerFeedbackTone(selectedAnswerFeedback.status),
-                            )}
-                          >
-                            {selectedAnswerFeedback.status === 'passed' ? (
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                            ) : (
-                              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="font-medium">{selectedAnswerFeedback.feedback}</p>
-                              {selectedAnswerFeedback.saving ? (
-                                <p className="text-xs opacity-80">
-                                  {locale === 'zh-CN' ? '正在保存作答记录…' : 'Saving attempt…'}
-                                </p>
-                              ) : typeof selectedAnswerFeedback.score === 'number' ? (
-                                <p className="text-xs opacity-80">
-                                  {locale === 'zh-CN'
-                                    ? `本次得分 ${selectedAnswerFeedback.score}/${selectedProblem.points}`
-                                    : `Score ${selectedAnswerFeedback.score}/${selectedProblem.points}`}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
+                        {selectedAnswerFeedback && !supportsPhotoAnswer(selectedProblem) ? (
+                          <AnswerFeedbackSummaryBadge
+                            feedback={selectedAnswerFeedback}
+                            points={selectedProblemPoints}
+                            locale={locale}
+                            className="mt-3"
+                          />
                         ) : null}
                       </div>
                     ) : answerPanelTab === 'preview' && problemInfoTab === 'edit' ? (
@@ -3661,23 +4319,17 @@ export function CourseProblemBankView({
                     ) : answerPanelTab === 'preview' ? (
                       <div className="flex min-h-full flex-col">
                         {selectedProblem.type === 'choice' &&
-                        selectedProblem.publicContent.type === 'choice' ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 text-sm leading-7 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-                            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              {locale === 'zh-CN' ? '已选答案' : 'Selected answer'}
-                            </p>
-                            {(choiceAnswers[selectedProblem.id] ?? []).length > 0 ? (
-                              <p className="text-base font-semibold text-slate-950 dark:text-white">
-                                {(choiceAnswers[selectedProblem.id] ?? []).join(', ')}
-                              </p>
-                            ) : (
-                              <p className="text-slate-500 dark:text-slate-400">
-                                {locale === 'zh-CN'
-                                  ? '还没有选择答案。'
-                                  : 'No option selected yet.'}
-                              </p>
-                            )}
-                          </div>
+                        selectedProblemContent?.type === 'choice' ? (
+                          <ChoiceAnswerPreviewPanel
+                            content={selectedProblemContent}
+                            selectedOptionIds={
+                              choiceAnswers[selectedProblem.id] ??
+                              selectedAnswerFeedback?.selectedOptionIds ??
+                              []
+                            }
+                            feedback={selectedAnswerFeedback}
+                            locale={locale}
+                          />
                         ) : selectedProblem.type === 'fill_blank' &&
                           selectedProblem.publicContent.type === 'fill_blank' ? (
                           <div className="space-y-2">
@@ -3735,6 +4387,13 @@ export function CourseProblemBankView({
                           />
                         )}
                       </div>
+                    ) : answerPanelTab === 'history' ? (
+                      <AttemptHistoryPanel
+                        attempts={selectedProblemAttempts}
+                        loading={selectedProblemAttemptsLoading}
+                        points={selectedProblem.points}
+                        locale={locale}
+                      />
                     ) : selectedProblemSolutionSections.length > 0 ? (
                       <div className="space-y-4">
                         {selectedProblemSolutionSections.map((section) => (
@@ -3760,7 +4419,7 @@ export function CourseProblemBankView({
               </div>
 
               <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-y-auto rounded-2xl p-4 sm:w-full sm:p-6">
                   <DialogHeader>
                     <DialogTitle>
                       {locale === 'zh-CN' ? '移动题目归属' : 'Move problem'}
@@ -3790,7 +4449,10 @@ export function CourseProblemBankView({
                       <Button
                         onClick={handleSaveAssignment}
                         disabled={savingAssignment}
-                        className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                        className={cn(
+                          'w-full min-[420px]:w-auto',
+                          PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                        )}
                       >
                         {savingAssignment ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -3823,7 +4485,7 @@ export function CourseProblemBankView({
       ) : null}
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl overflow-y-auto rounded-2xl p-4 sm:max-h-[85vh] sm:w-full sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {locale === 'zh-CN' ? '导入题目到课程题库' : 'Import into course problem bank'}
@@ -3835,15 +4497,16 @@ export function CourseProblemBankView({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant={importMode === 'text' ? 'default' : 'outline'}
-              className={
+              className={cn(
+                'h-auto min-h-9',
                 importMode === 'text'
                   ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
-                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
-              }
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS,
+              )}
               onClick={() => setImportMode('text')}
             >
               {locale === 'zh-CN' ? '文本' : 'Text'}
@@ -3851,11 +4514,12 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'pdf' ? 'default' : 'outline'}
-              className={
+              className={cn(
+                'h-auto min-h-9',
                 importMode === 'pdf'
                   ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
-                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
-              }
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS,
+              )}
               onClick={() => setImportMode('pdf')}
             >
               PDF
@@ -3863,11 +4527,12 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'web' ? 'default' : 'outline'}
-              className={
+              className={cn(
+                'h-auto min-h-9',
                 importMode === 'web'
                   ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
-                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
-              }
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS,
+              )}
               onClick={() => setImportMode('web')}
             >
               <Globe2 className="mr-2 h-4 w-4" />
@@ -3876,11 +4541,12 @@ export function CourseProblemBankView({
             <Button
               type="button"
               variant={importMode === 'manual' ? 'default' : 'outline'}
-              className={
+              className={cn(
+                'h-auto min-h-9',
                 importMode === 'manual'
                   ? PROBLEM_BANK_PRIMARY_BUTTON_CLASS
-                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS
-              }
+                  : PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS,
+              )}
               onClick={() => setImportMode('manual')}
             >
               {locale === 'zh-CN' ? '手动添加题目' : 'Manual draft'}
@@ -3943,7 +4609,7 @@ export function CourseProblemBankView({
             <Button
               onClick={handlePreviewImport}
               disabled={previewLoading || commitLoading}
-              className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+              className={cn('w-full min-[420px]:w-auto', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
             >
               {previewLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -4015,7 +4681,7 @@ export function CourseProblemBankView({
                     key={draft.draftId}
                     className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <input
@@ -4042,7 +4708,10 @@ export function CourseProblemBankView({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS}
+                        className={cn(
+                          'w-full min-[420px]:w-auto',
+                          PROBLEM_BANK_OUTLINE_BLUE_BUTTON_CLASS,
+                        )}
                         onClick={() => {
                           setEditingDraftId(draft.draftId);
                           setDraftEditorText(JSON.stringify(draft, null, 2));
@@ -4133,7 +4802,10 @@ export function CourseProblemBankView({
                       <Button
                         type="button"
                         onClick={handleSaveDraftEditor}
-                        className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                        className={cn(
+                          'w-full min-[420px]:w-auto',
+                          PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                        )}
                       >
                         <Save className="mr-2 h-4 w-4" />
                         {locale === 'zh-CN' ? '保存草稿' : 'Save draft'}
@@ -4150,7 +4822,7 @@ export function CourseProblemBankView({
               <Button
                 onClick={handleCommitImport}
                 disabled={commitLoading}
-                className={PROBLEM_BANK_PRIMARY_BUTTON_CLASS}
+                className={cn('w-full min-[420px]:w-auto', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
               >
                 {commitLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

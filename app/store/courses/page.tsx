@@ -64,8 +64,20 @@ function speechStatusLabel(
   return '需自行生成语音';
 }
 
+function useAuthStoreHydrated() {
+  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+
+  useEffect(() => {
+    const unsubscribe = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    return unsubscribe;
+  }, []);
+
+  return hydrated;
+}
+
 export default function CourseStorePage() {
   const router = useRouter();
+  const authHydrated = useAuthStoreHydrated();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const userId = useAuthStore((s) => s.userId);
   const creatorDisplay = useAuthStore(() => '你');
@@ -79,7 +91,7 @@ export default function CourseStorePage() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const load = useCallback(async () => {
-    if (!isLoggedIn) return;
+    if (!authHydrated || !isLoggedIn) return;
     try {
       const [courses, communityRows] = await Promise.all([
         listCourses(),
@@ -96,15 +108,16 @@ export default function CourseStorePage() {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [authHydrated, isLoggedIn]);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
     }
     void load();
-  }, [isLoggedIn, router, load]);
+  }, [authHydrated, isLoggedIn, router, load]);
 
   const handleCloneCommunityCourse = async (item: CommunityCourseListItem): Promise<boolean> => {
     setAddingId(`c:${item.id}`);
@@ -279,19 +292,19 @@ export default function CourseStorePage() {
     [filteredMine, toOwnedStorefrontItem],
   );
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   return (
     <div className="store-shell store-grid min-h-full w-full overflow-hidden">
-      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-4 pb-20 pt-8 md:px-8 lg:px-10">
-        <section className="store-hero-panel relative overflow-hidden rounded-[40px] px-6 py-8 md:px-10 md:py-10">
-          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[34rem] bg-[radial-gradient(circle_at_center,rgba(11,132,255,0.14),transparent_62%)] lg:block" />
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)] lg:items-end">
+      <main className="relative z-10 mx-auto w-full max-w-[92rem] px-3 pb-16 pt-4 sm:px-4 sm:pt-6 md:px-8 md:pb-20 lg:px-10 lg:pt-8">
+        <section className="store-hero-panel relative overflow-hidden px-4 py-6 sm:rounded-[40px] sm:px-6 sm:py-8 md:px-10 md:py-10">
+          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[34rem] bg-[radial-gradient(circle_at_center,rgba(11,132,255,0.14),transparent_62%)] xl:block" />
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)] xl:items-end">
             <div className="max-w-3xl">
               <p className="text-sm font-medium tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
                 Syntara 课程商城
               </p>
-              <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.045em] text-slate-950 md:text-6xl dark:text-white">
+              <h1 className="mt-4 max-w-4xl text-3xl font-semibold text-slate-950 sm:text-4xl md:text-6xl dark:text-white">
                 选一门课，从零散资料变成可开课、可自学的一套内容。
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600 md:text-lg dark:text-slate-300">
@@ -299,7 +312,7 @@ export default function CourseStorePage() {
                 整套课程会进入你的空间，便于继续编辑、补充与发布。
               </p>
               <div className="mt-6 max-w-2xl">
-                <div className="store-section-panel flex items-center gap-3 rounded-[24px] px-4 py-3">
+                <div className="store-section-panel flex min-w-0 items-center gap-3 px-4 py-3 sm:rounded-[24px]">
                   <Search className="size-4 shrink-0 text-slate-400 dark:text-slate-500" />
                   <Input
                     value={searchQuery}
@@ -335,7 +348,7 @@ export default function CourseStorePage() {
                   </span>
                 </div>
               </div>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -343,40 +356,40 @@ export default function CourseStorePage() {
                       router.push(`/store/courses/${featuredCourse.id}`);
                     }
                   }}
-                  className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold"
+                  className="store-cta-primary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                 >
                   查看精选课程
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push('/my-courses')}
-                  className="store-cta-secondary rounded-full px-5 py-3 text-sm font-semibold"
+                  className="store-cta-secondary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                 >
                   前往我的课程
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1">
-              <div className="store-section-panel rounded-[28px] p-5">
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 xl:gap-4">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">社区课程</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                <p className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
                   {searchActive ? filteredCommunity.length : community.length}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   已发布上架、可供浏览与购买的课程数量；列表会随创作者更新与评分变化。
                 </p>
               </div>
-              <div className="store-section-panel rounded-[28px] p-5">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">我的课程</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
+                <p className="mt-2 text-3xl font-semibold text-slate-950 dark:text-white">
                   {searchActive ? filteredMine.length : mine.length}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   自建或已购入的课程总数；在此统一管理笔记本与课程内容。
                 </p>
               </div>
-              <div className="store-section-panel rounded-[28px] p-5">
+              <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
                 <p className="text-sm text-slate-500 dark:text-slate-400">怎么逛</p>
                 <p className="mt-2 flex items-center gap-2 text-base font-semibold text-slate-950 dark:text-white">
                   <Compass className="size-4" />
@@ -415,7 +428,7 @@ export default function CourseStorePage() {
         {loading ? (
           <section className="mt-12 border-t border-slate-200/75 pt-6 dark:border-white/10">
             <div className="mb-5 h-9 w-48 animate-pulse rounded-full bg-white/70 dark:bg-white/6" />
-            <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 9 }).map((_, idx) => (
                 <div
                   key={idx}

@@ -124,7 +124,9 @@ export function CourseMaterialsPanel({
   };
 
   return (
-    <section className={cn('apple-glass rounded-[28px] p-5 md:p-6', className)}>
+    <section
+      className={cn('rounded-2xl p-4 apple-glass sm:p-5 md:rounded-[28px] md:p-6', className)}
+    >
       <input
         ref={fileInputRef}
         type="file"
@@ -145,7 +147,7 @@ export function CourseMaterialsPanel({
         <Button
           type="button"
           variant="outline"
-          className="h-10 shrink-0 rounded-xl border-slate-200 bg-white/80 dark:border-white/20 dark:bg-white/5"
+          className="h-10 w-full shrink-0 rounded-xl border-slate-200 bg-white/80 md:w-auto dark:border-white/20 dark:bg-white/5"
           disabled={busy || remainingBytes <= 0}
           onClick={() => fileInputRef.current?.click()}
         >

@@ -38,7 +38,7 @@ export function normalizeSlideGenerationRoute(value: unknown): SlideGenerationRo
 export function normalizeNotebookSlideGenerationRoute(value: unknown): SlideGenerationRoute {
   if (typeof value === 'string' && SLIDE_GENERATION_ROUTE_SET.has(value)) {
     const route = value as SlideGenerationRoute;
-    return route === 'openmaic-legacy' ? DEFAULT_SLIDE_GENERATION_ROUTE : route;
+    return route === 'openmaic-legacy' ? DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE : route;
   }
-  return DEFAULT_SLIDE_GENERATION_ROUTE;
+  return DEFAULT_NOTEBOOK_SLIDE_GENERATION_ROUTE;
 }

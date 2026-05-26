@@ -30,10 +30,6 @@ import { useAuthStore } from '@/lib/store/auth';
 import { writeGenerationContext } from '@/lib/utils/generation-context-storage';
 import { markCourseOwnedByUser } from '@/lib/utils/course-ownership';
 import { backendFetch } from '@/lib/utils/backend-api';
-import {
-  confirmComputeCreditsForGeneration,
-  estimateNotebookGenerationComputeCredits,
-} from '@/lib/utils/generation-credit-preflight';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import {
   buildBudgetedGenerationMedia,
@@ -238,6 +234,7 @@ function GenerationPreviewContent() {
       // Media generation toggles
       'x-image-generation-enabled': String(settings.imageGenerationEnabled ?? false),
       'x-video-generation-enabled': String(settings.videoGenerationEnabled ?? false),
+      'x-generation-test-no-charge': 'true',
     };
   };
 
@@ -267,19 +264,6 @@ function GenerationPreviewContent() {
     setCurrentStepIndex(0);
 
     try {
-      const preflightSettings = useSettingsStore.getState();
-      await confirmComputeCreditsForGeneration({
-        requiredCredits: estimateNotebookGenerationComputeCredits({
-          outlineLength: 'standard',
-          workedExampleLevel: 'moderate',
-          includeQuizScenes: true,
-          webSearch: currentSession.requirements.webSearch,
-          imageGenerationEnabled: preflightSettings.imageGenerationEnabled,
-          sourceFileSize: 0,
-        }),
-        actionLabel: '生成笔记本',
-      });
-
       // Compute active steps for this session (recomputed after session mutations)
       let activeSteps = getActiveSteps(currentSession);
 
@@ -451,7 +435,7 @@ function GenerationPreviewContent() {
           wsSettings.webSearchProvidersConfig?.[wsSettings.webSearchProviderId]?.apiKey;
         const res = await backendFetch('/api/web-search', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             query: currentSession.requirements.requirement,
             apiKey: wsApiKey || undefined,

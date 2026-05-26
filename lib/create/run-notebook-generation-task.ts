@@ -25,10 +25,6 @@ import type {
 } from '@/lib/store/orchestrator-notebook-generation';
 import type { PdfSourceSelection } from '@/lib/pdf/page-selection';
 import { backendFetch } from '@/lib/utils/backend-api';
-import {
-  confirmComputeCreditsForGeneration,
-  estimateNotebookGenerationComputeCredits,
-} from '@/lib/utils/generation-credit-preflight';
 import { writePersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 import { getApiHeaders } from './generation-headers';
 import {
@@ -62,6 +58,7 @@ import {
   normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
+import type { ImageNotebookBriefPlan } from '@/lib/generation/image-notebook-quality';
 import {
   recordNotebookPublicMemory,
   type NotebookMemorySourceReference,
@@ -70,19 +67,88 @@ import {
   createLinkedAbortController,
   errorMessage,
   generateSceneActionsFromContent,
-  generateSceneContentBundle,
+  type GeneratedSceneContentBundle,
   type SceneContentJobResult,
 } from './scene-content-jobs';
 import { generateNotebookMetadata } from './notebook-metadata';
 import { maybeRunWebSearch, type WebSearchSource } from './research';
 
-type OutlineStreamEvent =
-  | { type: 'outline'; data: SceneOutline }
-  | { type: 'retry' }
-  | { type: 'done'; outlines?: SceneOutline[] }
-  | { type: 'error'; error: string };
+type NotebookOutlinesApiResponse = {
+  success?: boolean;
+  outlines?: SceneOutline[];
+  error?: string;
+};
 
-const MAX_PARALLEL_SCENE_CONTENT = 2;
+type ImageNotebookPlanQualityReport = {
+  passed: boolean;
+  minPageCount?: number;
+  findings?: string[];
+  blockedPhrases?: string[];
+  retryCount?: number;
+};
+
+type ImageNotebookPageIndexPreview = {
+  pageNumber: number;
+  pageRole: string;
+  title: string;
+  archetype?: string;
+  currentJob?: string;
+  keyPoints?: string[];
+};
+
+type ImageNotebookPlanStreamEvent =
+  | { type: 'status'; detail: string }
+  | {
+      type: 'draft';
+      phase?: 'blueprint' | 'batch';
+      detail?: string;
+      text?: string;
+      batchIndex?: number;
+      pageNumbers?: number[];
+      attempt?: number;
+    }
+  | {
+      type: 'blueprint';
+      courseSpine?: ImageNotebookBriefPlan['courseSpine'];
+      pageIndex?: ImageNotebookPageIndexPreview[];
+      quality?: ImageNotebookPlanQualityReport;
+      attempt?: number;
+    }
+  | {
+      type: 'batch-start';
+      batchIndex?: number;
+      batchCount?: number;
+      pageNumbers?: number[];
+      startPage?: number;
+      endPage?: number;
+      attempt?: number;
+    }
+  | {
+      type: 'pages';
+      batchIndex?: number;
+      batchCount?: number;
+      pageNumbers?: number[];
+      startPage?: number;
+      endPage?: number;
+      outlines?: SceneOutline[];
+      pageBriefs?: ImageNotebookBriefPlan['pageBriefs'];
+    }
+  | { type: 'quality'; quality?: ImageNotebookPlanQualityReport }
+  | {
+      type: 'done';
+      outlines?: SceneOutline[];
+      plan?: ImageNotebookBriefPlan;
+      plannerMode?: string;
+      planBatchCount?: number;
+      planQuality?: ImageNotebookPlanQualityReport;
+      planQualityAttempts?: ImageNotebookPlanQualityReport[];
+      model?: string;
+    }
+  | { type: 'error'; error?: string };
+
+const MAX_PARALLEL_STANDARD_SCENE_CONTENT = 2;
+const MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES = 5;
+const NOTEBOOK_GENERATION_TEST_NO_CHARGE = true;
 
 export type NotebookGenerationProgress =
   | { stage: 'preparing'; detail: string }
@@ -92,9 +158,21 @@ export type NotebookGenerationProgress =
   | { stage: 'notebook-ready'; detail: string; notebookId: string }
   | { stage: 'agents'; detail: string }
   | { stage: 'outline'; detail: string; completed?: number }
-  | { stage: 'scene'; detail: string; completed: number; total: number }
+  | { stage: 'image-prep'; detail: string; completed?: number; total?: number }
+  | {
+      stage: 'scene';
+      detail: string;
+      completed: number;
+      total: number;
+      generatedPageThumbnails?: NotebookGeneratedPageThumbnail[];
+    }
   | { stage: 'saving'; detail: string }
   | { stage: 'completed'; detail: string; notebookId: string; notebookName: string };
+
+export type NotebookGeneratedPageThumbnail = {
+  pageNumber: number;
+  imageUrl: string;
+};
 
 export type NotebookGenerationTaskInput = {
   courseId?: string;
@@ -108,7 +186,7 @@ export type NotebookGenerationTaskInput = {
   notebookModelMode?: NotebookGenerationModelMode;
   language?: 'zh-CN' | 'en-US';
   webSearch?: boolean;
-  /** 默认 true；关闭时只创建仓库笔记本，不生成 agents / 大纲 / PPT 页面 */
+  /** 默认 true；关闭时只创建仓库笔记本，不生成 agents / 页面规划 / 图片页面 */
   generateSlides?: boolean;
   /** 页面内容生成路线：当前 Syntara 语义页或旧版 OpenMAIC Canvas */
   slideGenerationRoute?: SlideGenerationRoute | null;
@@ -120,9 +198,14 @@ export type NotebookGenerationTaskInput = {
   sourceFile?: File | null;
   pdfFile?: File | null;
   sourcePageSelection?: PdfSourceSelection;
+  /** 创建页输入流保留下来的源图片 id；传空数组表示不使用任何源图片 */
+  sourceImageIds?: string[];
+  /** 创建页已经审查通过的整本图片 notebook 页面规划；传入后并行生图阶段不会重新规划。 */
+  confirmedImageNotebookOutlines?: SceneOutline[];
+  confirmedImageNotebookPlan?: ImageNotebookBriefPlan | null;
   /** 覆盖设置里的「AI 配图」开关；不传则沿用全局设置 */
   imageGenerationEnabledOverride?: boolean;
-  /** 传入后由大纲 API 注入额外策略（总控侧栏「生成选项」） */
+  /** 传入后由页面规划 API 注入额外策略（总控侧栏「生成选项」） */
   outlinePreferences?: {
     length: OrchestratorOutlineLength;
     includeQuizScenes: boolean;
@@ -138,6 +221,48 @@ export type NotebookGenerationTaskResult = {
   researchSources: WebSearchSource[];
   failedScenes?: PageGenerationFailureRecord[];
 };
+
+export function getFullPageImageUrlFromScene(scene: Scene | undefined): string {
+  if (scene?.content?.type !== 'slide') return '';
+  const elements = scene.content.canvas?.elements;
+  if (!Array.isArray(elements)) return '';
+  const fullPageImage = elements.find(
+    (element) => element.name === 'full_page_bitmap' && element.type === 'image',
+  );
+  return fullPageImage?.type === 'image' && typeof fullPageImage.src === 'string'
+    ? fullPageImage.src
+    : '';
+}
+
+function generatedPageThumbnailsFromScenes(scenes: Scene[]): NotebookGeneratedPageThumbnail[] {
+  return scenes
+    .map((scene, index) => {
+      const imageUrl = getFullPageImageUrlFromScene(scene);
+      if (!imageUrl) return null;
+      const pageNumber =
+        Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
+      return { pageNumber, imageUrl };
+    })
+    .filter((entry): entry is NotebookGeneratedPageThumbnail => Boolean(entry));
+}
+
+function filterSourceImagesBySelection(args: {
+  pdfImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  selectedImageIds?: string[];
+}): { pdfImages?: PdfImage[]; imageMapping?: ImageMapping } {
+  if (!args.selectedImageIds) {
+    return { pdfImages: args.pdfImages, imageMapping: args.imageMapping };
+  }
+
+  const selected = new Set(args.selectedImageIds);
+  const pdfImages = (args.pdfImages || []).filter((image) => selected.has(image.id));
+  const imageMapping = Object.fromEntries(
+    Object.entries(args.imageMapping || {}).filter(([imageId]) => selected.has(imageId)),
+  );
+
+  return { pdfImages, imageMapping };
+}
 
 function getPresetAgents(): AgentInfo[] {
   const settings = useSettingsStore.getState();
@@ -297,9 +422,9 @@ function persistNotebookPublicMemory(args: {
       stageId: args.stage.id,
       title: '涉及知识点与讲解重点',
       text: buildNotebookPublicMemoryText(args),
-      reason: '笔记本生成时根据最终大纲自动写入，供问答和复习路线读取。',
+      reason: '笔记本生成时根据最终页面规划自动写入，供问答和复习路线读取。',
       kind: 'manual',
-      source: 'manual',
+      source: 'notebook_generation',
       sourceReferences: buildNotebookPublicMemorySourceReferences(args),
       confidence: 0.9,
     });
@@ -307,6 +432,402 @@ function persistNotebookPublicMemory(args: {
     console.warn('[NotebookGeneration] Failed to persist public memory', {
       stageId: args.stage.id,
       error: errorMessage(memoryError, '公共记忆写入失败'),
+    });
+  }
+}
+
+function attachImageNotebookBriefPlan(
+  outlines: SceneOutline[],
+  plan: ImageNotebookBriefPlan,
+): SceneOutline[] {
+  const briefsByOutlineId = new Map(plan.pageBriefs.map((brief) => [brief.outlineId, brief]));
+  return outlines.map((outline) => ({
+    ...outline,
+    imageNotebookCourseSpine: plan.courseSpine,
+    imageNotebookBrief: briefsByOutlineId.get(outline.id) || outline.imageNotebookBrief,
+  }));
+}
+
+async function generateImageNotebookBriefPlan(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+  language: 'zh-CN' | 'en-US';
+  courseContext?: CoursePersonalizationContext;
+  sourceSummary?: string;
+  researchContext?: string;
+  signal?: AbortSignal;
+  getHeaders?: () => HeadersInit;
+}): Promise<ImageNotebookBriefPlan> {
+  const response = await backendFetch('/api/generate/image-notebook-briefs', {
+    method: 'POST',
+    headers: (args.getHeaders ?? (() => getApiHeaders()))(),
+    body: JSON.stringify({
+      stage: {
+        id: args.stage.id,
+        name: args.stage.name,
+        description: args.stage.description,
+        language: args.language,
+        courseId: args.stage.courseId,
+        courseName: args.courseContext?.name,
+      },
+      outlines: args.outlines,
+      courseContext: args.courseContext,
+      language: args.language,
+      sourceSummary: args.sourceSummary,
+      researchContext: args.researchContext,
+    }),
+    signal: args.signal,
+  });
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, '图片 notebook 页面教学 brief 生成失败');
+    throw new Error(message || '图片 notebook 页面教学 brief 生成失败');
+  }
+  const data = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    plan?: ImageNotebookBriefPlan;
+    error?: string;
+  };
+  if (!data.success || !data.plan) {
+    throw new Error(data.error || '图片 notebook 页面教学 brief 生成失败：响应为空');
+  }
+  return data.plan;
+}
+
+async function readImageNotebookPlanStream(
+  response: Response,
+  onEvent: (event: ImageNotebookPlanStreamEvent) => void,
+): Promise<void> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('无法读取图片笔记本页面规划流');
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const consumeLine = (line: string) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(':')) return;
+    if (!trimmed.startsWith('data: ')) return;
+    const event = JSON.parse(trimmed.slice(6)) as ImageNotebookPlanStreamEvent;
+    onEvent(event);
+    if (event.type === 'error') {
+      throw new Error(event.error || '图片笔记本整本页面规划生成失败');
+    }
+  };
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) consumeLine(line);
+      }
+      if (done) break;
+    }
+    if (buffer.trim()) consumeLine(buffer);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function mergeStreamedImagePlanOutlines(
+  current: SceneOutline[],
+  incoming?: SceneOutline[],
+): SceneOutline[] {
+  if (!incoming?.length) return current;
+  const next = [...current];
+  for (const outline of incoming) {
+    const index = Math.max(0, (outline.order || next.length + 1) - 1);
+    next[index] = outline;
+  }
+  return next.filter(Boolean);
+}
+
+async function generateImageNotebookFullPlan(args: {
+  requirement: string;
+  language: 'zh-CN' | 'en-US';
+  stage: Stage;
+  courseContext?: CoursePersonalizationContext;
+  coursePurpose?: 'research' | 'university' | 'daily';
+  researchContext?: string;
+  signal?: AbortSignal;
+  pdfText?: string;
+  pdfImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  outlinePreferences?: {
+    length: OrchestratorOutlineLength;
+    includeQuizScenes: boolean;
+    workedExampleLevel?: OrchestratorWorkedExampleLevel;
+  } | null;
+  getHeaders?: () => HeadersInit;
+  onProgress?: (progress: NotebookGenerationProgress) => void;
+}): Promise<{ outlines: SceneOutline[]; plan: ImageNotebookBriefPlan }> {
+  const basePayload = {
+    requirements: {
+      requirement: args.requirement,
+      language: args.language,
+    },
+    pdfText: args.pdfText,
+    researchContext: args.researchContext,
+    coursePurpose: args.coursePurpose,
+    courseContext: args.courseContext,
+    outlinePreferences: args.outlinePreferences ?? null,
+    notebookContext: {
+      id: args.stage.id,
+      name: args.stage.name,
+      courseId: args.stage.courseId,
+      courseName: args.courseContext?.name,
+    },
+  };
+  const budgetedMedia = buildBudgetedGenerationMedia({
+    basePayload,
+    pdfImages: args.pdfImages,
+    imageMapping: args.imageMapping,
+    maxRequestBytes: SAFE_GENERATION_REQUEST_BYTES,
+  });
+  const requestPayload = {
+    ...basePayload,
+    ...(budgetedMedia.pdfImages ? { pdfImages: budgetedMedia.pdfImages } : {}),
+    ...(budgetedMedia.imageMapping ? { imageMapping: budgetedMedia.imageMapping } : {}),
+  };
+  const abortController = createLinkedAbortController(args.signal);
+  const timeoutId = window.setTimeout(() => abortController.abort(), 420_000);
+  const headers = new Headers((args.getHeaders ?? (() => getApiHeaders()))());
+  headers.set('Accept', 'text/event-stream');
+  const response = await backendFetch('/api/generate/image-notebook-plan-stream', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(requestPayload),
+    signal: abortController.signal,
+  }).finally(() => window.clearTimeout(timeoutId));
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, '图片笔记本整本页面规划生成失败');
+    throw new Error(message || '图片笔记本整本页面规划生成失败');
+  }
+
+  let streamedOutlines: SceneOutline[] = [];
+  let finalOutlines: SceneOutline[] = [];
+  let finalPlan: ImageNotebookBriefPlan | undefined;
+  let finalQuality: ImageNotebookPlanQualityReport | undefined;
+
+  await readImageNotebookPlanStream(response, (event) => {
+    if (abortController.signal.aborted) return;
+
+    if (event.type === 'status') {
+      args.onProgress?.({ stage: 'outline', detail: event.detail, completed: 0 });
+      return;
+    }
+
+    if (event.type === 'draft') {
+      if (event.detail) {
+        args.onProgress?.({
+          stage: 'outline',
+          detail: event.detail,
+          completed: streamedOutlines.length,
+        });
+      }
+      return;
+    }
+
+    if (event.type === 'blueprint') {
+      finalQuality = event.quality || finalQuality;
+      const pageCount = event.pageIndex?.length || 0;
+      args.onProgress?.({
+        stage: 'outline',
+        detail:
+          pageCount > 0
+            ? `页面规划完成：${pageCount} 页，正在按每批 4 页并行生成画图 prompt…`
+            : '页面规划已生成，正在按每批 4 页并行生成画图 prompt…',
+        completed: 0,
+      });
+      return;
+    }
+
+    if (event.type === 'batch-start') {
+      const label =
+        event.startPage && event.endPage
+          ? `第 ${event.startPage}-${event.endPage} 页`
+          : `第 ${(event.batchIndex ?? 0) + 1} 批`;
+      args.onProgress?.({
+        stage: 'outline',
+        detail:
+          event.attempt && event.attempt > 0
+            ? `正在按反馈重试${label}画图 prompt…`
+            : `正在生成${label}画图 prompt…`,
+        completed: streamedOutlines.length,
+      });
+      return;
+    }
+
+    if (event.type === 'pages') {
+      streamedOutlines = mergeStreamedImagePlanOutlines(streamedOutlines, event.outlines);
+      const label =
+        event.startPage && event.endPage ? `第 ${event.startPage}-${event.endPage} 页` : '一批页面';
+      args.onProgress?.({
+        stage: 'outline',
+        detail: `${label}画图 prompt 完成`,
+        completed: streamedOutlines.length,
+      });
+      return;
+    }
+
+    if (event.type === 'quality') {
+      finalQuality = event.quality || finalQuality;
+      args.onProgress?.({
+        stage: 'outline',
+        detail: event.quality?.passed ? '整本页面规划质量门通过' : '整本页面规划质量门需要检查',
+        completed: streamedOutlines.length,
+      });
+      return;
+    }
+
+    if (event.type === 'done') {
+      finalOutlines = event.outlines?.length ? event.outlines : streamedOutlines;
+      finalPlan = event.plan;
+      finalQuality = event.planQuality || finalQuality;
+      args.onProgress?.({
+        stage: 'outline',
+        detail: `页面规划和画图 prompt 完成：${finalOutlines.length} 页，准备按最多 ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} 页并行生成图片…`,
+        completed: finalOutlines.length,
+      });
+    }
+  });
+
+  const resolvedOutlines = finalOutlines.length ? finalOutlines : streamedOutlines;
+  if (!resolvedOutlines.length || !finalPlan) {
+    throw new Error('图片笔记本整本页面规划生成失败：响应为空');
+  }
+  if (finalQuality && !finalQuality.passed) {
+    const findings = finalQuality.findings?.join('；') || '质量门未通过';
+    throw new Error(`图片笔记本整本页面规划未通过质量检查：${findings}`);
+  }
+  return {
+    outlines: applyOutlineLanguage(resolvedOutlines, args.language),
+    plan: finalPlan,
+  };
+}
+
+async function generateNotebookPageContentBundle(args: {
+  outline: SceneOutline;
+  allOutlines: SceneOutline[];
+  stage: Stage;
+  agents: AgentInfo[];
+  courseContext?: CoursePersonalizationContext;
+  signal?: AbortSignal;
+  pdfImages?: PdfImage[];
+  imageMapping?: ImageMapping;
+  slideGenerationRoute?: SlideGenerationRoute | null;
+  getHeaders?: () => HeadersInit;
+}): Promise<GeneratedSceneContentBundle> {
+  const response = await backendFetch('/api/generate/notebook-page-content', {
+    method: 'POST',
+    headers: (args.getHeaders ?? (() => getApiHeaders()))(),
+    body: JSON.stringify({
+      outline: args.outline,
+      allOutlines: args.allOutlines,
+      stage: args.stage,
+      agents: args.agents,
+      courseContext: args.courseContext,
+      pdfImages: args.pdfImages,
+      imageMapping: args.imageMapping,
+      slideGenerationRoute: args.slideGenerationRoute,
+      includeActions: false,
+    }),
+    signal: args.signal,
+  });
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, '页面内容生成失败');
+    throw new Error(message || '页面内容生成失败');
+  }
+  const data = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    contentBundle?: GeneratedSceneContentBundle;
+    error?: string;
+  };
+  if (!data.success || !data.contentBundle) {
+    throw new Error(data.error || '页面内容生成失败：响应为空');
+  }
+  return data.contentBundle;
+}
+
+function buildFinalImageNotebookPublicMemoryText(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+  scenes: Scene[];
+  language: 'zh-CN' | 'en-US';
+}): string {
+  const teachingOutlines = getTeachingOutlinesForPublicMemory(args.outlines);
+  const spine = teachingOutlines.find(
+    (outline) => outline.imageNotebookCourseSpine,
+  )?.imageNotebookCourseSpine;
+  const sceneByOrder = new Map(args.scenes.map((scene) => [scene.order, scene]));
+  const sceneByTitle = new Map(args.scenes.map((scene) => [scene.title, scene]));
+  const pageRows = teachingOutlines.slice(0, 24).map((outline, index) => {
+    const brief = outline.imageNotebookBrief;
+    const pageNumber = outline.order > 0 ? outline.order : index + 1;
+    const scene = sceneByOrder.get(outline.order) || sceneByTitle.get(outline.title);
+    const speechCount = scene?.actions?.filter((action) => action.type === 'speech').length || 0;
+    const focusCount =
+      scene?.actions?.filter((action) => action.type === 'spotlight' || action.type === 'laser')
+        .length || 0;
+    return `| ${pageNumber} | ${compactPublicMemoryLine(outline.title, 42)} | ${compactPublicMemoryLine(brief?.pageRole || outline.archetype || 'page', 18)} | ${compactPublicMemoryLine(brief?.pageMove.currentJob || outline.teachingObjective || outline.description, 90)} | ${speechCount}/${focusCount} |`;
+  });
+  const examples = uniquePublicMemoryLines(
+    teachingOutlines.flatMap((outline) => [
+      outline.imageNotebookBrief?.visibleContent.exampleSteps.join(' -> '),
+      outline.workedExampleConfig?.problemStatement,
+      ...(outline.workedExampleConfig?.walkthroughSteps || []),
+    ]),
+    10,
+  );
+  const pitfalls = uniquePublicMemoryLines(
+    teachingOutlines.flatMap((outline) => [
+      ...(outline.imageNotebookBrief?.visibleContent.commonPitfalls || []),
+      ...(outline.workedExampleConfig?.commonPitfalls || []),
+    ]),
+    10,
+  );
+  const sections = [
+    '## 最终图片笔记本主线',
+    `- ${compactPublicMemoryLine(spine?.logline || args.stage.description || args.stage.name, 260)}`,
+    `- 主问题：${compactPublicMemoryLine(spine?.centralQuestion || args.stage.name, 220)}`,
+    `- 收束：${compactPublicMemoryLine(spine?.closingCallback || '回到本节主线，整理可执行检查表。', 220)}`,
+    '',
+    '## 页面索引',
+    '| 页码 | 页面 | 角色 | 教学动作 | speech/focus |',
+    '| --- | --- | --- | --- | --- |',
+    ...pageRows,
+  ];
+  if (examples.length > 0) {
+    sections.push('', '## 核心例题/证明动作', ...examples.map((line) => `- ${line}`));
+  }
+  if (pitfalls.length > 0) {
+    sections.push('', '## 易错点', ...pitfalls.map((line) => `- ${line}`));
+  }
+  return sections.join('\n').slice(0, 12000);
+}
+
+function persistFinalImageNotebookPublicMemory(args: {
+  stage: Stage;
+  outlines: SceneOutline[];
+  scenes: Scene[];
+  language: 'zh-CN' | 'en-US';
+}): void {
+  try {
+    recordNotebookPublicMemory({
+      stageId: args.stage.id,
+      title: '最终图片笔记本教学主线',
+      text: buildFinalImageNotebookPublicMemoryText(args),
+      reason: '整本图片 notebook 页面、遮罩和讲解稿通过生成流程后自动写入。',
+      kind: 'manual',
+      source: 'notebook_generation',
+      sourceReferences: buildNotebookPublicMemorySourceReferences(args),
+      confidence: 0.95,
+    });
+  } catch (memoryError) {
+    console.warn('[NotebookGeneration] Failed to persist final image notebook memory', {
+      stageId: args.stage.id,
+      error: errorMessage(memoryError, '最终公共记忆写入失败'),
     });
   }
 }
@@ -426,7 +947,7 @@ async function generateOutlines(args: {
 
   const headers = (args.getHeaders ?? (() => getApiHeaders()))();
   const sendOutlineRequest = (payload: Record<string, unknown>) =>
-    backendFetch('/api/generate/scene-outlines-stream', {
+    backendFetch('/api/generate/notebook-outlines', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -456,53 +977,20 @@ async function generateOutlines(args: {
       response.status === 413
         ? buildPayloadTooLargeMessage(args.language, 'outline')
         : args.language === 'en-US'
-          ? 'Outline generation failed'
-          : '大纲生成失败';
+          ? 'Page planning failed'
+          : '页面规划生成失败';
     const message = await readApiErrorMessage(response, fallback);
     throw new Error(message || fallback);
   }
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('无法读取大纲流');
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-  const outlines: SceneOutline[] = [];
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (value) {
-      buffer += decoder.decode(value, { stream: !done });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const evt = JSON.parse(line.slice(6)) as OutlineStreamEvent;
-        if (evt.type === 'outline') {
-          outlines.push({
-            ...evt.data,
-            language: args.language,
-          });
-          args.onOutline?.(outlines.length);
-        } else if (evt.type === 'retry') {
-          outlines.length = 0;
-          args.onOutline?.(0);
-        } else if (evt.type === 'done') {
-          return applyOutlineLanguage(
-            evt.outlines?.length ? evt.outlines : outlines,
-            args.language,
-          );
-        } else if (evt.type === 'error') {
-          throw new Error(evt.error || '大纲生成失败');
-        }
-      }
-    }
-
-    if (done) {
-      return applyOutlineLanguage(outlines, args.language);
-    }
+  const data = (await response.json().catch(() => ({}))) as NotebookOutlinesApiResponse;
+  if (!data.success || !data.outlines?.length) {
+    throw new Error(
+      data.error || (args.language === 'en-US' ? 'No page plan generated' : '没有生成可用页面规划'),
+    );
   }
+  args.onOutline?.(data.outlines.length);
+  return applyOutlineLanguage(data.outlines, args.language);
 }
 
 async function repairOutlinesIfNeeded(args: {
@@ -572,8 +1060,8 @@ async function repairOutlinesIfNeeded(args: {
       stage: 'outline',
       detail:
         args.language === 'zh-CN'
-          ? `正在补充大纲：还差 ${coverage.missingSceneCount} 页，缺少 ${coverage.missingWorkedExampleSequences} 组完整例题…`
-          : `Repairing outline: ${coverage.missingSceneCount} more scenes and ${coverage.missingWorkedExampleSequences} more worked-example sequences needed…`,
+          ? `正在补充页面规划：还差 ${coverage.missingSceneCount} 页，缺少 ${coverage.missingWorkedExampleSequences} 组完整例题…`
+          : `Repairing page plan: ${coverage.missingSceneCount} more scenes and ${coverage.missingWorkedExampleSequences} more worked-example sequences needed…`,
     });
 
     const repairRequirement = buildOutlineRepairRequirement({
@@ -598,8 +1086,8 @@ async function repairOutlinesIfNeeded(args: {
           stage: 'outline',
           detail:
             args.language === 'zh-CN'
-              ? `正在补充缺失页面（已新增 ${count} 个大纲节点）…`
-              : `Generating supplemental outline pages (${count} added so far)…`,
+              ? `正在补充缺失页面（已新增 ${count} 个规划节点）…`
+              : `Generating supplemental page-plan nodes (${count} added so far)…`,
           completed: currentOutlines.length + count,
         });
       },
@@ -658,16 +1146,6 @@ export async function runNotebookGenerationTask(
         : (settings.imageGenerationEnabled ?? false),
     videoEnabled: settings.videoGenerationEnabled ?? false,
   };
-  const estimatedCredits = estimateNotebookGenerationComputeCredits({
-    generateSlides,
-    outlineLength: input.outlinePreferences?.length ?? 'standard',
-    workedExampleLevel: input.outlinePreferences?.workedExampleLevel ?? 'moderate',
-    includeQuizScenes: input.outlinePreferences?.includeQuizScenes ?? true,
-    webSearch,
-    imageGenerationEnabled: effectiveMediaFlags.imageEnabled,
-    fullPageImageGeneration: generateSlides && slideGenerationRoute === 'image-ppt',
-    sourceFileSize: sourceFile?.size ?? 0,
-  });
   const notebookGenerationSessionId = nanoid(12);
   const getHeaders = () =>
     getApiHeaders({
@@ -680,14 +1158,11 @@ export async function runNotebookGenerationTask(
       notebookModelMode: input.notebookModelMode ?? 'recommended',
       notebookGenerationSessionId,
       notebookGenerationTaskId: input.generationTaskId,
+      testNoCharge: NOTEBOOK_GENERATION_TEST_NO_CHARGE,
     });
   input.onProgress?.({ stage: 'preparing', detail: '正在初始化创建任务…' });
 
   try {
-    await confirmComputeCreditsForGeneration({
-      requiredCredits: estimatedCredits,
-      actionLabel: generateSlides ? '生成笔记本' : '加入笔记本仓库',
-    });
     await ensureLegacyCourseBucket();
     const resolvedCourseId = input.courseId?.trim() || LEGACY_COURSE_ID;
     const currentCourse = await getCourse(resolvedCourseId);
@@ -715,6 +1190,8 @@ export async function runNotebookGenerationTask(
           signal: input.signal,
           language,
           sourcePageSelection: input.sourcePageSelection,
+          imageLimit: input.sourceImageIds !== undefined ? null : undefined,
+          includeVisualRegionImages: true,
         });
         pdfText = parsed.pdfText;
         pdfImages = parsed.pdfImages;
@@ -758,6 +1235,23 @@ export async function runNotebookGenerationTask(
       }
     }
 
+    if (sourceFile && input.sourceImageIds !== undefined) {
+      const filteredSourceImages = filterSourceImagesBySelection({
+        pdfImages,
+        imageMapping,
+        selectedImageIds: input.sourceImageIds,
+      });
+      pdfImages = filteredSourceImages.pdfImages;
+      imageMapping = filteredSourceImages.imageMapping;
+      input.onProgress?.({
+        stage: 'pdf-analysis',
+        detail:
+          input.sourceImageIds.length > 0
+            ? `已按输入设置保留 ${input.sourceImageIds.length} 张源图片。`
+            : '已按输入设置移除源图片。',
+      });
+    }
+
     let researchContext: string | undefined;
     let researchSources: WebSearchSource[] = [];
     if (webSearch) {
@@ -769,6 +1263,7 @@ export async function runNotebookGenerationTask(
         tracking: {
           notebookGenerationSessionId,
           notebookGenerationTaskId: input.generationTaskId,
+          testNoCharge: NOTEBOOK_GENERATION_TEST_NO_CHARGE,
         },
         usageContext: {
           courseId: currentCourse?.id,
@@ -833,7 +1328,7 @@ export async function runNotebookGenerationTask(
       input.onProgress?.({ stage: 'saving', detail: '正在保存笔记本到仓库…' });
       input.onProgress?.({
         stage: 'completed',
-        detail: `已加入仓库：${stage.name}（未生成 PPT 课件）`,
+        detail: `已加入仓库：${stage.name}（未生成图片 notebook）`,
         notebookId: stage.id,
         notebookName: stage.name,
       });
@@ -855,83 +1350,195 @@ export async function runNotebookGenerationTask(
       getHeaders,
     });
 
-    input.onProgress?.({ stage: 'outline', detail: '正在生成课程大纲…', completed: 0 });
-    const rawOutlines = await generateOutlines({
-      requirement,
-      language,
-      researchContext,
-      agents,
-      notebookContext: {
-        id: stage.id,
-        name: stage.name,
-        courseId: stage.courseId,
-        courseName: currentCourse?.name,
-      },
-      coursePurpose: currentCourse?.purpose,
-      courseContext,
-      signal: input.signal,
-      onOutline: (count) => {
+    let outlines: SceneOutline[] = [];
+    if (slideGenerationRoute === 'image-ppt') {
+      const confirmedImageNotebookOutlines = input.confirmedImageNotebookOutlines?.length
+        ? input.confirmedImageNotebookOutlines
+        : [];
+      if (confirmedImageNotebookOutlines.length) {
+        const confirmedOutlines = filterOutlineMediaGenerations(
+          applyOutlineLanguage(confirmedImageNotebookOutlines, language),
+          effectiveMediaFlags,
+        );
+        outlines = input.confirmedImageNotebookPlan
+          ? attachImageNotebookBriefPlan(confirmedOutlines, input.confirmedImageNotebookPlan)
+          : confirmedOutlines;
+        input.onProgress?.({
+          stage: 'image-prep',
+          detail:
+            language === 'zh-CN'
+              ? input.confirmedImageNotebookPlan
+                ? `使用已确认的 ${outlines.length} 页页面规划，直接进入最多 ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} 页并行图片生成…`
+                : `使用已确认的 ${outlines.length} 页页面顺序，补齐图片 brief 后进入最多 ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} 页并行生成…`
+              : `Using ${outlines.length} confirmed planned pages; starting image generation with up to ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} pages in parallel…`,
+          completed: outlines.length,
+          total: outlines.length,
+        });
+      }
+    }
+
+    if (slideGenerationRoute === 'image-ppt' && outlines.length === 0) {
+      input.onProgress?.({
+        stage: 'outline',
+        detail:
+          language === 'zh-CN'
+            ? '正在用整本页面规划生成图片 notebook 主线、逐页内容、遮罩区域…'
+            : 'Generating the full image notebook page plan…',
+        completed: 0,
+      });
+      try {
+        const fullPlan = await generateImageNotebookFullPlan({
+          requirement,
+          language,
+          stage,
+          courseContext,
+          coursePurpose: currentCourse?.purpose,
+          researchContext,
+          signal: input.signal,
+          pdfText,
+          pdfImages,
+          imageMapping,
+          outlinePreferences: input.outlinePreferences ?? null,
+          getHeaders,
+          onProgress: input.onProgress,
+        });
+        outlines = attachImageNotebookBriefPlan(
+          filterOutlineMediaGenerations(fullPlan.outlines, effectiveMediaFlags),
+          fullPlan.plan,
+        );
+        input.onProgress?.({
+          stage: 'image-prep',
+          detail:
+            language === 'zh-CN'
+              ? `已生成 ${outlines.length} 页整本页面规划，准备按最多 ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} 页并行生图…`
+              : `Generated ${outlines.length} planned image notebook pages; preparing up to ${MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES} pages in parallel…`,
+          completed: outlines.length,
+          total: outlines.length,
+        });
+      } catch (plannerError) {
+        console.warn('[NotebookGeneration] Full image notebook planner failed; falling back', {
+          stageId: stage.id,
+          error: errorMessage(plannerError, '整本页面规划失败'),
+        });
         input.onProgress?.({
           stage: 'outline',
-          detail: count > 0 ? `已生成 ${count} 个大纲节点…` : '正在重新整理课程结构…',
-          completed: count,
+          detail:
+            language === 'zh-CN'
+              ? '整本页面规划未通过，回退到分步页面规划 + 页面 brief 链路…'
+              : 'Full page planner failed; falling back to staged page planning + brief generation…',
+          completed: 0,
         });
-      },
-      pdfText,
-      pdfImages,
-      imageMapping,
-      outlinePreferences: input.outlinePreferences ?? null,
-      getHeaders,
-    });
+      }
+    }
 
-    const filteredOutlines = applyOutlinePreferenceHardConstraints(
-      filterOutlineMediaGenerations(rawOutlines, effectiveMediaFlags),
-      {
+    if (outlines.length === 0) {
+      input.onProgress?.({ stage: 'outline', detail: '正在生成页面规划…', completed: 0 });
+      const rawOutlines = await generateOutlines({
+        requirement,
+        language,
+        researchContext,
+        agents,
+        notebookContext: {
+          id: stage.id,
+          name: stage.name,
+          courseId: stage.courseId,
+          courseName: currentCourse?.name,
+        },
         coursePurpose: currentCourse?.purpose,
+        courseContext,
+        signal: input.signal,
+        onOutline: (count) => {
+          input.onProgress?.({
+            stage: 'outline',
+            detail: count > 0 ? `已生成 ${count} 个页面规划节点…` : '正在重新整理课程结构…',
+            completed: count,
+          });
+        },
+        pdfText,
+        pdfImages,
+        imageMapping,
         outlinePreferences: input.outlinePreferences ?? null,
-      },
-    );
+        getHeaders,
+      });
 
-    input.onProgress?.({
-      stage: 'outline',
-      detail:
-        language === 'zh-CN'
-          ? '正在检查大纲页数与例题覆盖，并按需补充缺失页面…'
-          : 'Validating outline length and worked-example coverage before scene generation…',
-      completed: filteredOutlines.length,
-    });
+      const filteredOutlines = applyOutlinePreferenceHardConstraints(
+        filterOutlineMediaGenerations(rawOutlines, effectiveMediaFlags),
+        {
+          coursePurpose: currentCourse?.purpose,
+          outlinePreferences: input.outlinePreferences ?? null,
+        },
+      );
 
-    let outlines = await repairOutlinesIfNeeded({
-      outlines: filteredOutlines,
-      originalRequirement: requirement,
-      language,
-      researchContext,
-      agents,
-      notebookContext: {
-        id: stage.id,
-        name: stage.name,
-        courseId: stage.courseId,
-        courseName: currentCourse?.name,
-      },
-      coursePurpose: currentCourse?.purpose,
-      courseContext,
-      signal: input.signal,
-      onProgress: input.onProgress,
-      pdfText,
-      pdfImages,
-      imageMapping,
-      outlinePreferences: input.outlinePreferences ?? null,
-      effectiveMediaFlags,
-      getHeaders,
-    });
+      input.onProgress?.({
+        stage: 'outline',
+        detail:
+          language === 'zh-CN'
+            ? '正在检查页面规划页数与例题覆盖，并按需补充缺失页面…'
+            : 'Validating page-plan length and worked-example coverage before scene generation…',
+        completed: filteredOutlines.length,
+      });
+
+      outlines = await repairOutlinesIfNeeded({
+        outlines: filteredOutlines,
+        originalRequirement: requirement,
+        language,
+        researchContext,
+        agents,
+        notebookContext: {
+          id: stage.id,
+          name: stage.name,
+          courseId: stage.courseId,
+          courseName: currentCourse?.name,
+        },
+        coursePurpose: currentCourse?.purpose,
+        courseContext,
+        signal: input.signal,
+        onProgress: input.onProgress,
+        pdfText,
+        pdfImages,
+        imageMapping,
+        outlinePreferences: input.outlinePreferences ?? null,
+        effectiveMediaFlags,
+        getHeaders,
+      });
+    }
+
     outlines = normalizeOutlineStructure(
       ensureTitleCoverOutline(outlines, {
         title: stage.name,
         language,
+        insertMissing: slideGenerationRoute === 'image-ppt' ? false : undefined,
       }),
     ).map(normalizeComputerScienceSceneOutline);
 
-    if (!outlines.length) throw new Error('未生成任何课程大纲');
+    if (!outlines.length) throw new Error('未生成任何页面规划');
+    if (slideGenerationRoute === 'image-ppt') {
+      const missingBriefs = outlines.some((outline) => !outline.imageNotebookBrief);
+      if (missingBriefs) {
+        input.onProgress?.({
+          stage: 'image-prep',
+          detail:
+            language === 'zh-CN'
+              ? '正在补齐图片 notebook 页面 brief（主线、每页视觉计划、遮罩区域）…'
+              : 'Completing teacher briefs for image-first notebook pages…',
+          completed: outlines.length,
+          total: outlines.length,
+        });
+        const briefPlan = await generateImageNotebookBriefPlan({
+          stage,
+          outlines,
+          language,
+          courseContext,
+          sourceSummary: [requirement, pdfText].filter(Boolean).join('\n\n').slice(0, 12000),
+          researchContext,
+          signal: input.signal,
+          getHeaders,
+        });
+        outlines = attachImageNotebookBriefPlan(outlines, briefPlan).map(
+          normalizeComputerScienceSceneOutline,
+        );
+      }
+    }
     writePersistedStageOutlines(stage.id, outlines);
     persistNotebookPublicMemory({ stage, outlines, language });
 
@@ -945,6 +1552,10 @@ export async function runNotebookGenerationTask(
 
     let sceneContentGeneration = 0;
     let sceneContentCursor = 0;
+    const maxParallelSceneContent =
+      slideGenerationRoute === 'image-ppt'
+        ? MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES
+        : MAX_PARALLEL_STANDARD_SCENE_CONTENT;
     const sceneContentJobs = new Map<
       string,
       {
@@ -959,7 +1570,7 @@ export async function runNotebookGenerationTask(
       const generation = sceneContentGeneration;
       const allOutlinesSnapshot = outlines;
       const abortController = createLinkedAbortController(input.signal);
-      const promise = generateSceneContentBundle({
+      const promise = generateNotebookPageContentBundle({
         outline,
         allOutlines: allOutlinesSnapshot,
         stage,
@@ -988,7 +1599,7 @@ export async function runNotebookGenerationTask(
 
     const fillSceneContentQueue = () => {
       while (
-        sceneContentJobs.size < MAX_PARALLEL_SCENE_CONTENT &&
+        sceneContentJobs.size < maxParallelSceneContent &&
         sceneContentCursor < outlines.length
       ) {
         const outline = outlines[sceneContentCursor];
@@ -1008,12 +1619,17 @@ export async function runNotebookGenerationTask(
 
     for (let i = 0; i < outlines.length; i += 1) {
       const outline = outlines[i];
+      const activeImageGenerationEnd = Math.min(outlines.length, i + maxParallelSceneContent);
       input.onProgress?.({
         stage: 'scene',
         detail:
           language === 'zh-CN'
-            ? `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}（并行准备后续页面内容）`
-            : `Generating page ${i + 1}/${outlines.length}: ${outline.title} (preparing later page content in parallel)`,
+            ? slideGenerationRoute === 'image-ppt'
+              ? `正在生成第 ${i + 1}-${activeImageGenerationEnd}/${outlines.length} 页图片（最多 ${maxParallelSceneContent} 页同时生图，按页序保存第 ${i + 1} 页）`
+              : `正在生成第 ${i + 1}/${outlines.length} 页：${outline.title}（并行准备后续页面内容）`
+            : slideGenerationRoute === 'image-ppt'
+              ? `Generating image pages ${i + 1}-${activeImageGenerationEnd}/${outlines.length} (up to ${maxParallelSceneContent} in parallel, saving page ${i + 1} in order)`
+              : `Generating page ${i + 1}/${outlines.length}: ${outline.title} (preparing later page content in parallel)`,
         completed: i,
         total: outlines.length,
       });
@@ -1068,6 +1684,19 @@ export async function runNotebookGenerationTask(
           currentSceneId: scenes[0]?.id || null,
           chats: [],
         });
+        const generatedPageThumbnails = generatedPageThumbnailsFromScenes(result.scenes);
+        if (generatedPageThumbnails.length > 0) {
+          input.onProgress?.({
+            stage: 'scene',
+            detail:
+              language === 'zh-CN'
+                ? `已保存第 ${i + 1}/${outlines.length} 页图片，继续按顺序生成后续页面…`
+                : `Saved image page ${i + 1}/${outlines.length}; continuing in order...`,
+            completed: Math.min(outlines.length, i + 1),
+            total: outlines.length,
+            generatedPageThumbnails,
+          });
+        }
       } catch (error) {
         const message =
           error instanceof Error
@@ -1128,6 +1757,9 @@ export async function runNotebookGenerationTask(
       chats: [],
     });
     writePersistedStageOutlines(stage.id, outlines);
+    if (slideGenerationRoute === 'image-ppt' && failedScenes.length === 0) {
+      persistFinalImageNotebookPublicMemory({ stage, outlines, scenes, language });
+    }
 
     input.onProgress?.({
       stage: 'completed',

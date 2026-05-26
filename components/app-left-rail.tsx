@@ -74,6 +74,7 @@ function leftRailScrollClass(lightSurface: boolean) {
 export interface AppLeftRailProps {
   collapsed: boolean;
   hasGlobalHeader?: boolean;
+  hideBelowLg?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
@@ -98,6 +99,7 @@ function formatRailCreditAmount(value: number): string {
 export function AppLeftRail({
   collapsed,
   hasGlobalHeader = true,
+  hideBelowLg = false,
   onCollapsedChange,
 }: AppLeftRailProps) {
   const pathname = usePathname();
@@ -307,6 +309,7 @@ export function AppLeftRail({
       <aside
         className={cn(
           'pointer-events-none fixed left-4 z-[1300] overflow-hidden rounded-[20px]',
+          hideBelowLg && 'hidden lg:block',
           hasGlobalHeader ? 'top-[76px] h-[calc(100dvh-92px)]' : 'top-4 h-[calc(100dvh-2rem)]',
           collapsed ? 'w-[78px]' : 'w-[min(256px,calc(100vw-2rem))]',
         )}

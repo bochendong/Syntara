@@ -117,6 +117,8 @@ const FORBIDDEN_STUDENT_FACING_PATTERNS = [
   /\[(?:Table|Chart|Formula|Quote)\]/i,
   /\\(?:texttt|len|_\_)|exttt\{|\\endrows|\\endslide|<\/?beginrow/i,
   /本页用于|引出|建立本课主线|进一步指出|本页明确|强调|学习者将|教学目标|课程目标|核心问题|讲解目标/i,
+  /本节课材料里的具体对象|先解释它代表什么|这一步为什么成立|这一行为什么成立/i,
+  /例题要留下|总结要留下|写证明前|数学课开场先定位/i,
   /通过对比.+说明|通过.+说明/i,
   /this page is used to|introduce the motivation|establish the main line|learners will|learning objective/i,
 ];
@@ -161,9 +163,10 @@ function mergeKeyPoints(outline: SceneOutline, pagePlan: TeachingPagePlan): stri
     .filter((point) => !sameMeaning(point, pagePlan.transferRule))
     .map(sanitizeStudentFacingPoint);
 
-  const planPoints = [pagePlan.concreteAnchor, pagePlan.studentThinkingMove, pagePlan.transferRule]
-    .filter(Boolean)
-    .map(sanitizeStudentFacingPoint);
+  const planPoints =
+    original.length >= 3
+      ? []
+      : [pagePlan.concreteAnchor].filter(Boolean).map(sanitizeStudentFacingPoint);
   const merged = [...original, ...planPoints].filter((point, index, arr) => {
     const normalized = point.replace(/\s+/g, '').toLowerCase();
     return (

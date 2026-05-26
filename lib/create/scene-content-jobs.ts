@@ -31,16 +31,42 @@ import type { Scene, SceneGenerationDiagnostics, Stage } from '@/lib/types/stage
 import type { ImageGenerationResult } from '@/lib/media/types';
 import type { PPTElement, SlideBackground, SlideTheme } from '@/lib/types/slides';
 import type { SourceImageAsset } from '@/features/ppt-generation/server/html-ppt-slide/types';
+import {
+  formatImageNotebookBriefForPrompt,
+  hasCriticalImageNotebookQaFailure,
+  type ImageNotebookFocusRegion,
+  type ImageNotebookPageBrief,
+  type ImageNotebookQaResult,
+} from '@/lib/generation/image-notebook-quality';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { buildPayloadTooLargeMessage, readApiErrorMessage } from './api-errors';
 import { getApiHeaders } from './generation-headers';
 import { isCountedTeachingOutline } from './outline-preferences';
+
+const NOTEBOOK_IMAGE2_PROVIDER_ID = 'openai-image';
+const NOTEBOOK_IMAGE2_MODEL_ID = 'gpt-image-2';
+
+const IMAGE_FIRST_NOTEBOOK_STYLE_SPEC = [
+  'Visual style baseline:',
+  '- Make this look like a live classroom board moment for students, not a teacher handout, lesson plan, or frontend template.',
+  '- Use warm off-white grid paper / notebook paper as the full-slide background.',
+  '- Use thick navy handwritten Chinese title lettering, with teal, blue, and orange marker accents.',
+  '- Use hand-drawn rounded boxes, arrows, underlines, check marks, small stars or lightbulb doodles only when useful.',
+  '- The page should feel like the teacher is actively guiding the class through one thinking move captured as a single bitmap image.',
+  '- Keep a consistent MAT 136 / Syntara notebook feel: friendly, careful, readable, sparse, and projector-safe.',
+  '- Use student-facing phrasing such as "我们先看", "你会先判断什么", "下一步怎么来"; avoid teacher-planning phrasing.',
+  '- Never write visible meta labels like "让学生看到", "教学目标", "本页主线", "可迁移动作", "Teacher move", "Page role", or "QA checklist".',
+  '- Avoid flat vector UI cards, generic corporate slide templates, stock-photo layouts, glossy gradients, browser chrome, app UI, and placeholder blocks.',
+  '- Do not make an HTML/CSS-looking dashboard; do not put UI panels inside other panels.',
+  '- Keep all formulas, code, and labels large enough to read at thumbnail size. Prefer 2-3 clear teaching regions over dense handout notes.',
+].join('\n');
 
 export type GeneratedSceneContentBundle = {
   contents: unknown[];
   effectiveOutlines: SceneOutline[];
   allOutlinesForActions: SceneOutline[];
   generationDiagnostics?: SceneGenerationDiagnostics;
+  imageNotebookQaByOutlineId?: Record<string, ImageNotebookQaResult>;
   contentDiagnosticsByOutlineId?: Record<string, SceneGenerationDiagnostics>;
   actionContextsByOutlineId?: Record<
     string,
@@ -477,14 +503,22 @@ function headersInitToRecord(headers: HeadersInit): Record<string, string> {
 
 function buildImageGenerationHeaders(baseHeaders: HeadersInit): Record<string, string> {
   const settings = useSettingsStore.getState();
-  const providerId = settings.imageProviderId || 'openai-image';
+  const openAiConfig = settings.imageProvidersConfig?.[NOTEBOOK_IMAGE2_PROVIDER_ID];
+  const currentProviderId = settings.imageProviderId || NOTEBOOK_IMAGE2_PROVIDER_ID;
+  const useNotebookImage2 =
+    currentProviderId === NOTEBOOK_IMAGE2_PROVIDER_ID ||
+    Boolean(openAiConfig?.isServerConfigured || openAiConfig?.apiKey?.trim());
+  const providerId = useNotebookImage2 ? NOTEBOOK_IMAGE2_PROVIDER_ID : currentProviderId;
   const providerConfig = settings.imageProvidersConfig?.[providerId];
   const trackingHeaders = headersInitToRecord(baseHeaders);
 
   return {
     'Content-Type': 'application/json',
     'x-image-provider': providerId,
-    'x-image-model': settings.imageModelId || '',
+    'x-image-model':
+      providerId === NOTEBOOK_IMAGE2_PROVIDER_ID
+        ? NOTEBOOK_IMAGE2_MODEL_ID
+        : settings.imageModelId || '',
     'x-api-key': providerConfig?.apiKey || '',
     'x-base-url': providerConfig?.baseUrl || '',
     ...(trackingHeaders['x-notebook-generation-session-id']
@@ -497,6 +531,11 @@ function buildImageGenerationHeaders(baseHeaders: HeadersInit): Record<string, s
           'x-notebook-generation-task-id': trackingHeaders['x-notebook-generation-task-id'],
         }
       : {}),
+    ...(trackingHeaders['x-generation-test-no-charge']
+      ? {
+          'x-generation-test-no-charge': trackingHeaders['x-generation-test-no-charge'],
+        }
+      : {}),
   };
 }
 
@@ -507,6 +546,50 @@ function imageResultToUrl(result: ImageGenerationResult | undefined): string {
   return result.base64.startsWith('data:')
     ? result.base64
     : `data:image/png;base64,${result.base64}`;
+}
+
+function qaFindingsText(qa: ImageNotebookQaResult): string {
+  const findings = [...qa.findings, ...qa.mathFindings, ...qa.visualFindings];
+  return findings
+    .map((finding) => `${finding.severity}/${finding.category}: ${finding.message}`)
+    .join('\n');
+}
+
+async function runImageNotebookQa(args: {
+  imageResult: ImageGenerationResult;
+  imageUrl: string;
+  pageBrief?: ImageNotebookPageBrief;
+  outline: SceneOutline;
+  allOutlines: SceneOutline[];
+  headers: HeadersInit;
+  signal?: AbortSignal;
+}): Promise<ImageNotebookQaResult> {
+  const response = await backendFetch('/api/generate/image-notebook-qa', {
+    method: 'POST',
+    headers: args.headers,
+    body: JSON.stringify({
+      imageResult: args.imageResult,
+      imageUrl: args.imageUrl,
+      pageBrief: args.pageBrief,
+      outline: args.outline,
+      allOutlines: args.allOutlines,
+      language: args.outline.language || 'zh-CN',
+    }),
+    signal: args.signal,
+  });
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, '图片页 QA 失败');
+    throw new Error(message || '图片页 QA 失败');
+  }
+  const data = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    qa?: ImageNotebookQaResult;
+    error?: string;
+  };
+  if (!data.success || !data.qa) {
+    throw new Error(data.error || '图片页 QA 失败：响应里没有 QA 结果');
+  }
+  return data.qa;
 }
 
 function compactLine(value: string | undefined, maxLength = 240): string {
@@ -579,7 +662,26 @@ function generatedFocusShape(args: {
   };
 }
 
+function focusRegionToShape(region: ImageNotebookFocusRegion): PPTElement {
+  return generatedFocusShape({
+    id: region.id,
+    label: region.label,
+    left: region.left,
+    top: region.top,
+    width: region.width,
+    height: region.height,
+  });
+}
+
 function generatedImageFocusElements(outline: SceneOutline, stage?: Stage): PPTElement[] {
+  if (outline.imageNotebookBrief?.focusRegions?.length) {
+    return outline.imageNotebookBrief.focusRegions
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .slice(0, 6)
+      .map(focusRegionToShape);
+  }
+
   const page = String(outline.order || 1).padStart(2, '0');
   const prefix = `${outline.id || 'scene'}-s${page}-lecture-focus-generated`;
   const title = generatedFocusShape({
@@ -774,20 +876,25 @@ function buildFocusPlanFromContent(content: unknown): SceneActionFocusPlanItem[]
 
 function buildNarrationPolicy(outline: SceneOutline, stage?: Stage): SceneActionNarrationPolicy {
   const isCover = isTitleCoverOutline(outline);
+  const isImageNotebookTeachingPage = Boolean(outline.imageNotebookBrief && !isCover);
   const minSpeechSegments = isCover
     ? 3
-    : isCodeLikeOutline(outline, stage) || isMathLikeOutline(outline, stage)
+    : isImageNotebookTeachingPage ||
+        isCodeLikeOutline(outline, stage) ||
+        isMathLikeOutline(outline, stage)
       ? 8
       : 6;
   return {
     minSpeechSegments,
     preferredSpeechSegments: isCover
       ? '封面只建立主题、主问题和进入下一页的期待。'
-      : isCodeLikeOutline(outline, stage)
-        ? '代码页要按设计动作慢讲，通常 8-12 段；每段只讲一个签名、例子、模板、分支、递归或返回值判断。'
-        : isMathLikeOutline(outline, stage)
-          ? '数学页要按题目/定义、关键表达式、每一步依据、最后检查慢讲，通常 8-12 段。'
-          : '正文页通常 6-9 段；每段只推进一个观察、例子、比较或收束动作。',
+      : isImageNotebookTeachingPage
+        ? '整页图片课件要像老师带着看板书：先聚焦区域，再讲观察、原因、停顿、迁移和下一页过渡；正文页通常 8-16 段。'
+        : isCodeLikeOutline(outline, stage)
+          ? '代码页要按设计动作慢讲，通常 8-12 段；每段只讲一个签名、例子、模板、分支、递归或返回值判断。'
+          : isMathLikeOutline(outline, stage)
+            ? '数学页要按题目/定义、关键表达式、每一步依据、最后检查慢讲，通常 8-12 段。'
+            : '正文页通常 6-9 段；每段只推进一个观察、例子、比较或收束动作。',
     maxConsecutiveSpeechWithoutFocus: 3,
     requireFocusBeforeSpeech: true,
     requireSpeechAfterFocus: true,
@@ -875,10 +982,26 @@ function buildSceneActionContextSeed(args: {
   lessonPlan?: HtmlLessonPlanContract;
   slidePlan?: HtmlSlidePlanContract;
 }): SceneActionContextSeed {
+  const imageBrief = args.outline.imageNotebookBrief;
+  const imageCourseSpine = args.outline.imageNotebookCourseSpine;
   return {
-    courseSpine: args.lessonPlan?.courseSpine || defaultCourseSpine(args),
-    continuity: continuityForActionContext(args),
-    focusPlan: args.content ? buildFocusPlanFromContent(args.content) : undefined,
+    courseSpine: imageCourseSpine || args.lessonPlan?.courseSpine || defaultCourseSpine(args),
+    continuity: imageBrief
+      ? {
+          fromPrevious: imageBrief.pageMove.fromPrevious,
+          pageMove: imageBrief.pageMove.currentJob,
+          toNext: imageBrief.pageMove.toNext,
+          callbackToSpine: imageBrief.pageMove.callbackToSpine || imageCourseSpine?.centralQuestion,
+        }
+      : continuityForActionContext(args),
+    focusPlan: args.content
+      ? buildFocusPlanFromContent(args.content)
+      : imageBrief?.focusRegions.map((region) => ({
+          targetId: region.id,
+          label: region.label,
+          role: region.role,
+          order: region.order,
+        })),
     narrationPolicy: buildNarrationPolicy(args.outline, args.stage),
   };
 }
@@ -936,6 +1059,7 @@ function buildNotebookImagePrompt(args: {
     .map((item) => `${item.order}. ${item.title}`)
     .join('\n');
   const workedExample = formatWorkedExampleForImagePrompt(outline);
+  const imageBrief = outline.imageNotebookBrief;
   const quiz = outline.quizConfig
     ? [
         `Quiz page: ${outline.quizConfig.questionCount} question(s)`,
@@ -946,8 +1070,11 @@ function buildNotebookImagePrompt(args: {
 
   return [
     'Create one polished 16:9 classroom PPT slide as a single bitmap image.',
-    'The image is the final notebook page, not a decorative illustration.',
-    'The slide must contain the visible teaching content directly in the image.',
+    'The image is one live teaching moment in the notebook, not a decorative illustration and not a teacher handout.',
+    'The slide must contain only student-facing board content directly in the image.',
+    'Match the style of the approved image-generated notebook examples: warm grid paper, hand-drawn live classroom board, marker accents, and large readable math/content.',
+    '',
+    IMAGE_FIRST_NOTEBOOK_STYLE_SPEC,
     '',
     `Notebook: ${stage.name}`,
     stage.description ? `Notebook goal: ${compactLine(stage.description, 320)}` : '',
@@ -960,6 +1087,10 @@ function buildNotebookImagePrompt(args: {
       : '',
     outline.studentThinkingMove
       ? `Student thinking move: ${compactLine(outline.studentThinkingMove, 260)}`
+      : '',
+    'Planning-context labels above are NOT visible slide headings. Do not copy labels like Page purpose, Teaching objective, Student thinking move, Required visible content, or Student-facing live page brief onto the image.',
+    imageBrief
+      ? `\nStudent-facing live page brief:\n${formatImageNotebookBriefForPrompt(imageBrief)}`
       : '',
     '',
     'Required visible content:',
@@ -974,11 +1105,20 @@ function buildNotebookImagePrompt(args: {
     formatImageSourceHints(args.assignedSourceImages),
     '',
     'Design requirements:',
-    '- Use a clean teaching-slide layout with a strong title, one main explanation area, and one visual/diagram/problem area.',
+    '- Use a strong handwritten-style title, one live question/setup area, and one visual/diagram/problem/worked-example area. A small bottom "next thought" strip is allowed.',
+    '- The board should feel like the teacher is saying "look here first, now try this next", not like a complete after-class summary sheet.',
+    '- Avoid overview grids, checklist-heavy layouts, and many boxed mini-sections. Do not draw more than 3 main parent regions unless the page is explicitly a summary.',
+    '- Visible headings should be student-facing: "我们已知什么？", "先判断什么？", "下一步怎么来？", "试一试".',
+    '- Do not write teacher-planning labels or sentences on the slide: "让学生看到", "让学生理解", "教学目标", "本页主线", "可迁移动作", "讲解重点", "Page role", "Teacher move", "QA checklist".',
+    '- This must look like a generated classroom board image, not SVG, not HTML, not a screenshot, and not a programmatic layout exported to PNG.',
     '- Text must be large, readable, and sparse enough for a projected slide; do not create paragraphs of tiny text.',
     '- Prefer board-like diagrams, arrows, tables, code traces, formulas, or worked-example structure when they fit the topic.',
+    '- For math pages, show the problem, the next student decision, the main formula/derivation, and a quick check as separate hand-drawn regions.',
+    '- For hook/overview pages, do not solve everything. Show a concrete question, why the old method is not enough, and the next question students should ask.',
+    '- For CS pages, show the data/idea, code or trace, and result/state as separate hand-drawn regions.',
     '- Preserve mathematical notation, code identifiers, and domain vocabulary accurately.',
-    '- Do not include browser chrome, UI mockup frames, watermarks, stock-photo clutter, or placeholder text.',
+    '- For proof/math pages, never invent or alter formulas; copy every required formula and proof step exactly from the teacher page brief.',
+    '- Do not include browser chrome, UI mockup frames, watermarks, stock-photo clutter, plain corporate cards, or placeholder text.',
     '- Do not mention that this was generated by AI.',
   ]
     .filter(Boolean)
@@ -1095,6 +1235,7 @@ export async function generateSceneContentBundle(args: {
   pdfImages?: PdfImage[];
   imageMapping?: ImageMapping;
   slideGenerationRoute?: SlideGenerationRoute | null;
+  imageNotebookMaxAttempts?: number;
   getHeaders?: () => HeadersInit;
 }): Promise<GeneratedSceneContentBundle> {
   const normalizedOutline = normalizeComputerScienceSceneOutline(args.outline);
@@ -1133,52 +1274,108 @@ export async function generateSceneContentBundle(args: {
       pdfImages: budgetedMedia.pdfImages,
       imageMapping: budgetedMedia.imageMapping || args.imageMapping,
     });
-    const imagePrompt = buildNotebookImagePrompt({
+    const baseImagePrompt = buildNotebookImagePrompt({
       outline: normalizedOutline,
       allOutlines: normalizedAllOutlines,
       stage: args.stage,
       assignedSourceImages,
     });
-    const imageResp = await backendFetch('/api/generate/image', {
-      method: 'POST',
-      headers: buildImageGenerationHeaders(headers),
-      body: JSON.stringify({
-        prompt: imagePrompt,
-        aspectRatio: '16:9',
-        notebookContext: {
-          id: args.stage.id,
-          name: args.stage.name,
-          courseId: args.stage.courseId,
-          sceneId: normalizedOutline.id,
-          sceneTitle: normalizedOutline.title,
-          sceneOrder: normalizedOutline.order,
-          sceneType: normalizedOutline.type,
-        },
-      }),
-      signal: args.signal,
-    });
+    const imageHeaders = buildImageGenerationHeaders(headers);
+    let imagePrompt = baseImagePrompt;
+    let imageUrl = '';
+    let imageResult: ImageGenerationResult | undefined;
+    let qaResult: ImageNotebookQaResult | undefined;
+    let pageBrief = normalizedOutline.imageNotebookBrief;
+    const maxAttempts = Math.max(1, Math.min(3, args.imageNotebookMaxAttempts ?? 3));
 
-    if (!imageResp.ok) {
-      const responseLanguage: 'zh-CN' | 'en-US' =
-        args.stage.language === 'en-US' ? 'en-US' : 'zh-CN';
-      const fallback =
-        responseLanguage === 'en-US' ? 'PPT image page generation failed' : 'PPT 图片页生成失败';
-      const message = await readApiErrorMessage(imageResp, fallback);
-      throw new Error(message || fallback);
-    }
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const imageResp = await backendFetch('/api/generate/image', {
+        method: 'POST',
+        headers: imageHeaders,
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          aspectRatio: '16:9',
+          notebookContext: {
+            id: args.stage.id,
+            name: args.stage.name,
+            courseId: args.stage.courseId,
+            sceneId: normalizedOutline.id,
+            sceneTitle: normalizedOutline.title,
+            sceneOrder: normalizedOutline.order,
+            sceneType: normalizedOutline.type,
+          },
+        }),
+        signal: args.signal,
+      });
 
-    const imageData = (await imageResp.json().catch(() => ({}))) as {
-      success?: boolean;
-      result?: ImageGenerationResult;
-      error?: string;
-    };
-    const imageUrl = imageResultToUrl(imageData.result);
-    if (!imageData.success || !imageUrl) {
-      throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
+      if (!imageResp.ok) {
+        const responseLanguage: 'zh-CN' | 'en-US' =
+          args.stage.language === 'en-US' ? 'en-US' : 'zh-CN';
+        const fallback =
+          responseLanguage === 'en-US' ? 'PPT image page generation failed' : 'PPT 图片页生成失败';
+        const message = await readApiErrorMessage(imageResp, fallback);
+        throw new Error(message || fallback);
+      }
+
+      const imageData = (await imageResp.json().catch(() => ({}))) as {
+        success?: boolean;
+        result?: ImageGenerationResult;
+        error?: string;
+      };
+      imageResult = imageData.result;
+      imageUrl = imageResultToUrl(imageResult);
+      if (!imageData.success || !imageResult || !imageUrl) {
+        throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
+      }
+
+      qaResult = await runImageNotebookQa({
+        imageResult,
+        imageUrl,
+        pageBrief,
+        outline: normalizedOutline,
+        allOutlines: normalizedAllOutlines,
+        headers,
+        signal: args.signal,
+      });
+
+      if (qaResult.revisedFocusRegions?.length && pageBrief) {
+        pageBrief = {
+          ...pageBrief,
+          focusRegions: qaResult.revisedFocusRegions,
+        };
+      }
+      if (qaResult.passed) break;
+
+      const findings = qaFindingsText(qaResult);
+      if (attempt >= maxAttempts || hasCriticalImageNotebookQaFailure(qaResult)) {
+        throw new Error(
+          [
+            '图片页 QA 未通过，未写入 notebook。',
+            findings,
+            qaResult.regeneratePromptAddendum
+              ? `重画建议：${qaResult.regeneratePromptAddendum}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        );
+      }
+
+      imagePrompt = [
+        baseImagePrompt,
+        '',
+        `Regenerate attempt ${attempt + 1}: fix these QA failures exactly.`,
+        findings,
+        qaResult.regeneratePromptAddendum || '',
+        'Do not change correct formulas or titles while fixing the failures.',
+      ]
+        .filter(Boolean)
+        .join('\n');
     }
 
     const effectiveOutline: SceneOutline = {
       ...normalizedOutline,
+      imageNotebookBrief: pageBrief,
       type: 'slide',
     };
     const diagnostics: SceneGenerationDiagnostics = {
@@ -1202,6 +1399,11 @@ export async function generateSceneContentBundle(args: {
       effectiveOutlines: [effectiveOutline],
       allOutlinesForActions,
       generationDiagnostics: diagnostics,
+      imageNotebookQaByOutlineId: qaResult
+        ? {
+            [effectiveOutline.id]: qaResult,
+          }
+        : undefined,
       contentDiagnosticsByOutlineId: {
         [effectiveOutline.id]: {
           ...diagnostics,

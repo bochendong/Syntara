@@ -26,10 +26,13 @@ function taskDetail(task: NotebookGenerationQueueTask, index: number): string {
     if (progress?.stage === 'scene') {
       return `${progress.detail} · ${Math.min(progress.completed + 1, progress.total)}/${progress.total}`;
     }
+    if (progress?.stage === 'image-prep' && progress.total) {
+      return `${progress.detail} · ${progress.completed ?? progress.total}/${progress.total}`;
+    }
     return progress?.detail || '正在生成…';
   }
   if (task.status === 'completed') {
-    return task.generateSlides ? '已完成' : '已加入仓库（未生成 PPT）';
+    return task.generateSlides ? '已完成' : '已加入仓库（未生成图片 notebook）';
   }
   if (task.status === 'cancelled') return '已取消';
   return task.error || '生成失败';

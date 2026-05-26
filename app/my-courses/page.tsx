@@ -135,7 +135,7 @@ export default function MyCoursesPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="min-h-full w-full apple-mesh-bg relative overflow-hidden">
+    <div className="relative min-h-full w-full overflow-hidden apple-mesh-bg">
       {/* Animated background orbs */}
       <div className="pointer-events-none absolute inset-0">
         <motion.div
@@ -171,15 +171,15 @@ export default function MyCoursesPage() {
         <div className="apple-wallpaper-noise absolute inset-0" />
       </div>
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-12 pt-8 md:px-8">
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-3 pb-8 pt-4 sm:px-4 sm:pb-10 sm:pt-6 md:px-6 lg:px-8 lg:pb-12 lg:pt-8">
         {/* Hero section with glass card */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="mb-8 apple-glass rounded-[28px] p-8"
+          className="mb-5 rounded-2xl p-5 apple-glass sm:mb-6 sm:rounded-[24px] sm:p-6 lg:mb-8 lg:rounded-[28px] lg:p-8"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-5 min-[560px]:flex-row min-[560px]:items-start min-[560px]:justify-between">
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -188,11 +188,11 @@ export default function MyCoursesPage() {
             >
               <h1
                 id="my-courses-title"
-                className="text-4xl font-bold tracking-tight text-[#1d1d1f] dark:text-white"
+                className="text-3xl font-bold tracking-tight text-[#1d1d1f] sm:text-4xl dark:text-white"
               >
                 我的课程
               </h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-[#86868b] dark:text-[#a1a1a6]">
+              <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[#86868b] sm:text-[15px] dark:text-[#a1a1a6]">
                 每门课都是独立的学习空间：在课里生成的讲义与练习会整理成笔记本，随时打开都能从上次进度继续。
               </p>
             </motion.div>
@@ -204,7 +204,7 @@ export default function MyCoursesPage() {
               <button
                 type="button"
                 onClick={openCreateDialog}
-                className="apple-btn apple-btn-primary flex h-11 shrink-0 items-center gap-2 rounded-xl px-5 text-sm sm:mt-0.5"
+                className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm apple-btn apple-btn-primary min-[420px]:w-auto min-[560px]:mt-0.5"
               >
                 <Plus className="size-4" strokeWidth={2} />
                 新建课程
@@ -221,7 +221,7 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="apple-glass rounded-[28px] p-12 text-center"
+            className="rounded-2xl p-6 text-center apple-glass sm:rounded-[28px] sm:p-12"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -233,11 +233,11 @@ export default function MyCoursesPage() {
             </motion.div>
             <p className="text-lg font-medium text-[#1d1d1f] dark:text-white">你还没有课程</p>
             <p className="mt-1 text-sm text-[#86868b]">创建你的第一个课程，开始 AI 互动学习之旅</p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 min-[420px]:flex-row min-[420px]:items-center">
               <button
                 type="button"
                 onClick={openCreateDialog}
-                className="apple-btn apple-btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
+                className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm apple-btn apple-btn-primary"
               >
                 <Plus className="size-4" />
                 新建课程
@@ -245,7 +245,7 @@ export default function MyCoursesPage() {
               <button
                 type="button"
                 onClick={() => router.push('/store/courses')}
-                className="apple-btn apple-btn-secondary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm"
+                className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm apple-btn apple-btn-secondary"
               >
                 <Store className="size-4" />
                 去商城看看
@@ -278,6 +278,7 @@ export default function MyCoursesPage() {
                       }}
                     >
                       <CourseGalleryCard
+                        variant="owned-course"
                         course={cardItem}
                         tags={course.tags.length > 0 ? course.tags : undefined}
                         badge={purposeLabel(course.purpose)}
@@ -327,7 +328,7 @@ export default function MyCoursesPage() {
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 bg-background p-6 shadow-xl sm:max-w-2xl"
+          className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl gap-0 overflow-y-auto rounded-2xl border-0 bg-background p-4 shadow-xl sm:max-h-[min(90dvh,720px)] sm:w-full sm:rounded-[20px] sm:p-6 sm:max-w-2xl"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">
@@ -355,7 +356,7 @@ export default function MyCoursesPage() {
         }}
       >
         <DialogContent
-          className="max-h-[min(90dvh,720px)] w-full max-w-2xl gap-0 overflow-y-auto rounded-[20px] border-0 bg-background p-6 shadow-xl sm:max-w-2xl"
+          className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl gap-0 overflow-y-auto rounded-2xl border-0 bg-background p-4 shadow-xl sm:max-h-[min(90dvh,720px)] sm:w-full sm:rounded-[20px] sm:p-6 sm:max-w-2xl"
           showCloseButton
         >
           <DialogHeader className="pr-8 text-left">

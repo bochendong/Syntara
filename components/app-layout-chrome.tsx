@@ -30,11 +30,18 @@ const LEFT_RAIL_EXPANDED_WIDTH = 256;
 const RIGHT_RAIL_EXPANDED_WIDTH = 270;
 const RAIL_COLLAPSED_WIDTH = 78;
 const GLOBAL_HEADER_OFFSET_PX = 76;
+const COMPACT_RAIL_BREAKPOINT_PX = 1024;
+const COMPACT_PAGE_INSET_PX = 16;
 
 function railOuterPaddingPx(collapsed: boolean, expandedWidth: number): number {
   const maxW = typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 32) : expandedWidth;
   const w = collapsed ? RAIL_COLLAPSED_WIDTH : Math.min(expandedWidth, maxW);
   return 16 + w + SIDEBAR_GAP;
+}
+
+function shouldUseCompactRailLayout(hasRightRail: boolean): boolean {
+  if (typeof window === 'undefined' || hasRightRail) return false;
+  return window.innerWidth < COMPACT_RAIL_BREAKPOINT_PX;
 }
 
 function getInitialSidebarCollapsed(): boolean {
@@ -66,7 +73,15 @@ function isTestSurface(pathname: string | null): boolean {
 }
 
 function shouldHideStudyCompanion(pathname: string | null): boolean {
-  return pathname === '/' || pathname === '/my-courses';
+  return (
+    pathname === '/' ||
+    pathname === '/my-courses' ||
+    (pathname != null && /^\/store(?:\/|$)/.test(pathname)) ||
+    pathname === '/credits-market' ||
+    (pathname != null && /^\/course\/[^/]+\/?$/.test(pathname)) ||
+    (pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname)) ||
+    (pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname))
+  );
 }
 
 function MainShellNoRail({
@@ -110,6 +125,8 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isCourseProblemBank =
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isCourseMemory = pathname != null && /^\/course\/[^/]+\/memory(?:\/|$)/.test(pathname);
+  const isNotebookCreatePage =
+    pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
   const isReviewImmersive =
     pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
   const hideStudyCompanion = shouldHideStudyCompanion(pathname);
@@ -134,11 +151,9 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     }
   };
 
-  /** 独立聊天页与课程内创建页共享右侧信息/设置栏。 */
+  /** 独立聊天页使用右侧信息栏；创建笔记本页的设置已并入主工作台。 */
   const isChatPage = pathname === '/chat';
-  const isNotebookCreatePage =
-    pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
-  const hasRightRail = isChatPage || isNotebookCreatePage;
+  const hasRightRail = isChatPage;
   const hasGlobalHeader = !isMyCourses && !isChatPage;
   const withStudyCompanion = (content: ReactNode) => {
     if (hideStudyCompanion) return <>{content}</>;
@@ -159,6 +174,14 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
 
   if (isReviewImmersive || isTestPage) {
     return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
+  }
+
+  if (isNotebookCreatePage) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
   }
 
   if (isCourseHome) {
@@ -200,13 +223,18 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   return withStudyCompanion(
     <>
       {hasGlobalHeader ? (
-        <div className="fixed left-4 right-4 top-4 z-[1400]">
+        <div className="fixed left-3 right-3 top-3 z-[1400] sm:left-4 sm:right-4 sm:top-4">
+          <AppGlobalHeader />
+        </div>
+      ) : !hasRightRail ? (
+        <div className="fixed left-3 right-3 top-3 z-[1400] lg:hidden">
           <AppGlobalHeader />
         </div>
       ) : null}
       <AppLeftRail
         collapsed={sidebarCollapsed}
         hasGlobalHeader={hasGlobalHeader}
+        hideBelowLg={!hasRightRail}
         onCollapsedChange={persistSidebarCollapsed}
       />
       <SidebarInset
@@ -224,7 +252,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
             collapsed={chatRightCollapsed}
             hasGlobalHeader={hasGlobalHeader}
             onCollapsedChange={persistChatRightCollapsed}
-            mode={isNotebookCreatePage ? 'notebook-create' : 'chat'}
+            mode="chat"
           />
         </Suspense>
       ) : null}
@@ -247,40 +275,65 @@ function SidebarInset({
   lockContentScroll?: boolean;
   children: ReactNode;
 }) {
-  const [padLeft, setPadLeft] = useState(() => railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH));
-  const [padRight, setPadRight] = useState(() =>
-    hasRightRail ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
+  const [compactLayout, setCompactLayout] = useState(() =>
+    shouldUseCompactRailLayout(hasRightRail),
   );
+  const [padLeft, setPadLeft] = useState(() =>
+    shouldUseCompactRailLayout(hasRightRail)
+      ? COMPACT_PAGE_INSET_PX
+      : railOuterPaddingPx(false, LEFT_RAIL_EXPANDED_WIDTH),
+  );
+  const [padRight, setPadRight] = useState(() => {
+    if (shouldUseCompactRailLayout(hasRightRail)) return COMPACT_PAGE_INSET_PX;
+    return hasRightRail ? railOuterPaddingPx(false, RIGHT_RAIL_EXPANDED_WIDTH) : 16;
+  });
 
   useLayoutEffect(() => {
     const sync = () => {
-      setPadLeft(railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH));
+      const compact = shouldUseCompactRailLayout(hasRightRail);
+      setCompactLayout(compact);
+      setPadLeft(
+        compact
+          ? COMPACT_PAGE_INSET_PX
+          : railOuterPaddingPx(leftCollapsed, LEFT_RAIL_EXPANDED_WIDTH),
+      );
       setPadRight(
-        hasRightRail ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH) : 16,
+        compact
+          ? COMPACT_PAGE_INSET_PX
+          : hasRightRail
+            ? railOuterPaddingPx(rightCollapsed, RIGHT_RAIL_EXPANDED_WIDTH)
+            : 16,
       );
     };
     sync();
+    const frame = window.requestAnimationFrame(sync);
+    const timer = window.setTimeout(sync, 120);
     window.addEventListener('resize', sync);
-    return () => window.removeEventListener('resize', sync);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      window.removeEventListener('resize', sync);
+    };
   }, [leftCollapsed, rightCollapsed, hasRightRail]);
 
   return (
     <div
       className={cn(
         'box-border pb-0 transition-[padding-left,padding-right] duration-300 ease-in-out',
+        !hasRightRail && 'app-sidebar-inset-compactable',
         lockContentScroll ? 'h-dvh overflow-hidden' : 'min-h-dvh',
       )}
       style={{
         paddingLeft: padLeft,
         paddingRight: padRight,
-        paddingTop: hasGlobalHeader ? GLOBAL_HEADER_OFFSET_PX : 16,
+        paddingTop: hasGlobalHeader || compactLayout ? GLOBAL_HEADER_OFFSET_PX : 16,
       }}
     >
       {/* 与侧栏一致：有全局 header 时从 header 下方开始；无 header 时回到普通页面 inset。 */}
       <div
-        className="flex w-full min-w-0 flex-col gap-3 overflow-hidden"
+        className="app-sidebar-inset-content flex w-full min-w-0 flex-col gap-3 overflow-hidden"
         style={{
-          height: `calc(100dvh - ${hasGlobalHeader ? GLOBAL_HEADER_OFFSET_PX : 32}px)`,
+          height: `calc(100dvh - ${hasGlobalHeader || compactLayout ? GLOBAL_HEADER_OFFSET_PX : 32}px)`,
         }}
       >
         <div

@@ -1,0 +1,3223 @@
+{
+  "success": true,
+  "outlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "intro",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "visual_three_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "只知道 $\\frac{dy}{dx}$，我们到底还缺什么？",
+      "description": "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+      "keyPoints": [
+        "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+        "同一个变化率可能对应很多条上下平移的曲线。",
+        "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+        "今天的核心困惑：变化率给的是“方向”，初值给的是“位置”。"
+      ],
+      "teachingObjective": "能说清楚微分方程题里“变化率信息”和“位置信息”分别在做什么。",
+      "studentThinkingMove": "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+      "estimatedDuration": 90,
+      "order": 1,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_Ha-1cpO6",
+        "order": 1,
+        "title": "只知道 $\\frac{dy}{dx}$，我们到底还缺什么？",
+        "role": "concrete_hook",
+        "pagePatternId": "mathematics.concrete_hook",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "layoutFamily": "concept_cards",
+        "layoutTemplate": "definition_board",
+        "openingMove": "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+        "studentThinkingMove": "这个表达式里对象是谁，条件是什么，目标结论是什么？",
+        "transferRule": "数学课开场先定位对象、条件和要判断的问题。"
+      },
+      "teachingRole": "concrete_hook",
+      "requiredComponentKinds": [],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.concrete_hook",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "currentJob": "这个表达式里对象是谁，条件是什么，目标结论是什么？"
+      }
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "从 $\\frac{dy}{dx}=f(x)$ 到 $y$：为什么要积分？",
+      "description": "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。",
+      "keyPoints": [
+        "起点：$\\frac{dy}{dx}=f(x)$",
+        "等价书写：$dy=f(x)\\,dx$",
+        "两边积分：$\\int dy=\\int f(x)\\,dx$",
+        "得到：$y=\\int f(x)\\,dx$，右边表示 $f(x)$ 的一个反导数。"
+      ],
+      "teachingObjective": "能把一阶形如 $\\frac{dy}{dx}=f(x)$ 的微分方程改写成反导数问题。",
+      "estimatedDuration": 110,
+      "order": 2,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_Xz2XltH6",
+        "order": 2,
+        "title": "从 $\\frac{dy}{dx}=f(x)$ 到 $y$：为什么要积分？",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ]
+      }
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "完整例题：$\\frac{dy}{dx}=2x,\\ y(3)=5$",
+      "description": "先看完整题目和目标：不是只算积分，还要用初值定 $C$，最后检查导数和点都对。下一步按“分离微分—积分—代初值—检查”写成一条不断线的解题过程。",
+      "keyPoints": [
+        "题目：已知 $\\frac{dy}{dx}=2x$ 且 $y(3)=5$，求 $y$ 关于 $x$ 的表达式。",
+        "写成微分形式：$dy=2x\\,dx$",
+        "积分：$\\int dy=\\int 2x\\,dx$，所以 $y=x^2+C$",
+        "代初值：$5=3^2+C$，所以 $C=-4$",
+        "答案与检查：$y=x^2-4$；$y'=2x$ 且 $y(3)=5$。"
+      ],
+      "teachingObjective": "能完整书写一阶直接积分型微分方程的求解和检查。",
+      "estimatedDuration": 180,
+      "order": 3,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_1",
+        "problemStatement": "已知 $\\frac{dy}{dx}=2x$，且 $y(3)=5$。求 $y$ 关于 $x$ 的表达式。",
+        "givens": [
+          "$\\frac{dy}{dx}=2x$",
+          "$y(3)=5$"
+        ],
+        "asks": [
+          "求满足微分方程和初值的函数 $y(x)$。"
+        ],
+        "solutionPlan": [
+          "把 $\\frac{dy}{dx}=2x$ 改写为 $dy=2x\\,dx$。",
+          "两边积分得到含 $C$ 的通解。",
+          "用 $y(3)=5$ 解出 $C$。",
+          "用求导和代点检查答案。"
+        ],
+        "walkthroughSteps": [
+          "$dy=2x\\,dx$",
+          "$\\int dy=\\int 2x\\,dx$",
+          "$y=x^2+C$",
+          "$5=3^2+C=9+C$",
+          "$C=-4$",
+          "$y=x^2-4$",
+          "检查：$\\frac{d}{dx}(x^2-4)=2x$，且 $3^2-4=5$。"
+        ],
+        "commonPitfalls": [
+          "积分后漏写 $C$。",
+          "把 $y(3)=5$ 误写成 $y\\cdot 3=5$。",
+          "只检查初值，不检查导数。"
+        ],
+        "finalAnswer": "$y=x^2-4$"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_t-uBgtXQ",
+        "order": 3,
+        "title": "完整例题：$\\frac{dy}{dx}=2x,\\ y(3)=5$",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ]
+      }
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "变化率像 $\\frac{1}{P}$ 时，函数类型是什么？",
+      "description": "先看压力和体积的变化率：$\\frac{dV}{dP}$ 与 $\\frac{1}{P}$ 成比例，这不像多项式的导数。下一步只判断反导数类型：$\\int \\frac{1}{P}\\,dP$ 指向对数函数。",
+      "keyPoints": [
+        "题目：$\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$，判断 $V(P)$ 的函数类型。",
+        "微分形式：$dV=-\\frac{10^{-5}}{P}\\,dP$",
+        "积分：$V=-10^{-5}\\ln|P|+C$",
+        "函数类型：logarithmic function，对数函数。",
+        "检查方向：$\\frac{d}{dP}\\ln|P|=\\frac{1}{P}$，常数倍保留。"
+      ],
+      "teachingObjective": "能从变化率的形状判断原函数类型，特别识别 $\\frac{1}{x}$ 的反导数。",
+      "estimatedDuration": 150,
+      "order": 4,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_2",
+        "problemStatement": "某流体的体积 $V$ 与压力 $P$ 满足 $\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$。判断 $V(P)$ 最可能是哪一类函数：power、exponential、polynomial、logarithmic。",
+        "givens": [
+          "$\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$",
+          "$P$ 是自变量，$V$ 是因变量。"
+        ],
+        "asks": [
+          "判断 $V(P)$ 的函数类型。"
+        ],
+        "solutionPlan": [
+          "把变化率看成关于 $P$ 的函数。",
+          "对 $P$ 积分。",
+          "用反导数结果判断函数类型。"
+        ],
+        "walkthroughSteps": [
+          "$dV=-\\frac{10^{-5}}{P}\\,dP$",
+          "$\\int dV=\\int -\\frac{10^{-5}}{P}\\,dP$",
+          "$V=-10^{-5}\\ln|P|+C$",
+          "所以 $V(P)$ 是对数函数。"
+        ],
+        "commonPitfalls": [
+          "把 $\\frac{1}{P}$ 误认为指数函数。",
+          "忘记 $\\ln|P|$ 中的绝对值。",
+          "只看负号而忽略函数类型由反导数决定。"
+        ],
+        "finalAnswer": "logarithmic function，对数函数。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_iu_DzHeB",
+        "order": 4,
+        "title": "变化率像 $\\frac{1}{P}$ 时，函数类型是什么？",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ]
+      }
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": true
+      },
+      "title": "FTC 检查：变上限积分怎样求导？",
+      "description": "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+      "keyPoints": [
+        "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+        "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+        "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+        "常数项如 $1,2,3$ 求导后变成 $0$。",
+        "检查顺序：先看上限或下限，再代入被积函数，最后乘链式法则因子。"
+      ],
+      "teachingObjective": "能用微积分基本定理和链式法则判断积分表达式的导数。",
+      "estimatedDuration": 140,
+      "order": 5,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_XkzsKKm8",
+        "order": 5,
+        "title": "FTC 检查：变上限积分怎样求导？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc"
+        ]
+      }
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+      "description": "先看四个候选函数：它们外形都像“常数加积分”，真正差别在积分上下限和链式法则符号。下一步逐个只算导数，不展开积分值。",
+      "keyPoints": [
+        "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。",
+        "A. $y=1+\\int_0^{-x^2}e^{-t}\\,dt$，导数为 $-2xe^{x^2}$。",
+        "B. $y=1+\\int_0^{x^2}e^{-t}\\,dt$，导数为 $2xe^{-x^2}$。",
+        "C. $y=2+\\int_{x^2}^{0}e^{-t}\\,dt$，导数为 $-2xe^{-x^2}$。",
+        "D. $y=3+\\int_0^x e^{-t^2}\\,dt$，导数为 $e^{-x^2}$。"
+      ],
+      "teachingObjective": "能通过求导而不是猜外形来判断积分表达式是否满足微分方程。",
+      "estimatedDuration": 180,
+      "order": 6,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_3",
+        "problemStatement": "考虑微分方程 $\\frac{dy}{dx}=-2xe^{-x^2}$。下列哪个函数是它的一个解？A. $y=1+\\int_0^{-x^2}e^{-t}\\,dt$；B. $y=1+\\int_0^{x^2}e^{-t}\\,dt$；C. $y=2+\\int_{x^2}^{0}e^{-t}\\,dt$；D. $y=3+\\int_0^x e^{-t^2}\\,dt$。",
+        "givens": [
+          "$\\frac{dy}{dx}=-2xe^{-x^2}$",
+          "四个候选函数都以积分形式给出。"
+        ],
+        "asks": [
+          "判断哪个候选函数的导数等于 $-2xe^{-x^2}$。"
+        ],
+        "solutionPlan": [
+          "对每个候选函数求导。",
+          "常数项求导为 $0$。",
+          "变上限或变下限积分使用 FTC 和链式法则。",
+          "与 $-2xe^{-x^2}$ 对照。"
+        ],
+        "walkthroughSteps": [
+          "A：$\\frac{d}{dx}\\int_0^{-x^2}e^{-t}\\,dt=e^{x^2}(-2x)=-2xe^{x^2}$，不匹配。",
+          "B：$\\frac{d}{dx}\\int_0^{x^2}e^{-t}\\,dt=e^{-x^2}(2x)=2xe^{-x^2}$，符号不匹配。",
+          "C：$\\frac{d}{dx}\\int_{x^2}^{0}e^{-t}\\,dt=-e^{-x^2}(2x)=-2xe^{-x^2}$，匹配。",
+          "D：$\\frac{d}{dx}\\int_0^x e^{-t^2}\\,dt=e^{-x^2}$，缺少 $-2x$。"
+        ],
+        "commonPitfalls": [
+          "只看到 $x^2$ 就忽略上下限方向。",
+          "忘记乘上 $2x$。",
+          "把常数 $1,2,3$ 当成会影响微分方程的项。"
+        ],
+        "finalAnswer": "C"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_JadFViKQ",
+        "order": 6,
+        "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc"
+        ]
+      }
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 2：复合上限不能只看外形",
+      "description": "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+      "keyPoints": [
+        "目标：$\\frac{dy}{dx}=-3x^2e^{-x^3}$",
+        "A. $y=1+\\int_0^{x^3}e^{-t}\\,dt$，导数为 $3x^2e^{-x^3}$。",
+        "B. $y=2+\\int_{x^3}^{0}e^{-t}\\,dt$，导数为 $-3x^2e^{-x^3}$。",
+        "C. $y=3+\\int_0^x e^{-t^3}\\,dt$，导数为 $e^{-x^3}$。",
+        "D. $y=4+\\int_{-x^3}^{0}e^{-t}\\,dt$，导数为 $3x^2e^{x^3}$。"
+      ],
+      "teachingObjective": "能处理复合上限积分，避免把 $e^{-x^3}$ 和链式法则因子分开漏掉。",
+      "estimatedDuration": 180,
+      "order": 7,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_4",
+        "problemStatement": "考虑微分方程 $\\frac{dy}{dx}=-3x^2e^{-x^3}$。下列哪个函数是它的一个解？A. $y=1+\\int_0^{x^3}e^{-t}\\,dt$；B. $y=2+\\int_{x^3}^{0}e^{-t}\\,dt$；C. $y=3+\\int_0^x e^{-t^3}\\,dt$；D. $y=4+\\int_{-x^3}^{0}e^{-t}\\,dt$。",
+        "givens": [
+          "$\\frac{dy}{dx}=-3x^2e^{-x^3}$",
+          "候选函数包含不同的复合上限或下限。"
+        ],
+        "asks": [
+          "找出导数等于 $-3x^2e^{-x^3}$ 的函数。"
+        ],
+        "solutionPlan": [
+          "用 FTC 处理积分端点。",
+          "用链式法则处理 $x^3$ 或 $-x^3$。",
+          "把每个导数与目标导数逐项比较。"
+        ],
+        "walkthroughSteps": [
+          "A：$\\frac{d}{dx}\\int_0^{x^3}e^{-t}\\,dt=e^{-x^3}(3x^2)=3x^2e^{-x^3}$，符号不对。",
+          "B：$\\frac{d}{dx}\\int_{x^3}^{0}e^{-t}\\,dt=-e^{-x^3}(3x^2)=-3x^2e^{-x^3}$，匹配。",
+          "C：$\\frac{d}{dx}\\int_0^x e^{-t^3}\\,dt=e^{-x^3}$，缺少 $-3x^2$。",
+          "D：$\\frac{d}{dx}\\int_{-x^3}^{0}e^{-t}\\,dt=-e^{x^3}(-3x^2)=3x^2e^{x^3}$，指数和符号都不匹配。"
+        ],
+        "commonPitfalls": [
+          "把 $\\int_0^x e^{-t^3}\\,dt$ 误看成会自动产生 $-3x^2$。",
+          "只看指数 $-x^3$，不看积分端点方向。",
+          "忘记下限含 $x$ 时前面多一个负号。"
+        ],
+        "finalAnswer": "B"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_kFkvmAzL",
+        "order": 7,
+        "title": "积分表达式选择题 2：复合上限不能只看外形",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "table",
+          "derivation"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "table",
+        "derivation"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc"
+        ]
+      }
+    },
+    {
+      "id": "scene_11",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场匹配方程：只看 $x$、只看 $y$，还是同时看？",
+      "description": "先看三个微分方程的右边：有的只随 $x$ 变，有的在某些水平线上斜率为 $0$，有的同时受 $x$ 和 $y$ 影响。下一步用“零斜率在哪里”和“同一列/同一行是否相同”去匹配斜率场。",
+      "keyPoints": [
+        "A. $\\frac{dy}{dx}=x(x-1)$：只依赖 $x$，同一竖列斜率相同；$x=0,1$ 处水平。",
+        "B. $\\frac{dy}{dx}=x(y-2)$：同时依赖 $x,y$；$x=0$ 或 $y=2$ 处水平。",
+        "C. $\\frac{dy}{dx}=(2-y)(y+1)^2$：只依赖 $y$，同一横行斜率相同；$y=2,-1$ 处水平。",
+        "[图像] 三个斜率场面板旁标出“同列相同”“同行相同”“零斜率线”。",
+        "匹配先找水平线段，再判断斜率随横向还是纵向变化。"
+      ],
+      "teachingObjective": "能用依赖变量和零斜率线匹配简单微分方程与斜率场。",
+      "estimatedDuration": 190,
+      "order": 8,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_5",
+        "problemStatement": "给出三个微分方程：A. $\\frac{dy}{dx}=x(x-1)$；B. $\\frac{dy}{dx}=x(y-2)$；C. $\\frac{dy}{dx}=(2-y)(y+1)^2$。把它们与对应斜率场匹配。",
+        "givens": [
+          "A 只含 $x$。",
+          "B 同时含 $x$ 和 $y$。",
+          "C 只含 $y$。"
+        ],
+        "asks": [
+          "根据斜率场的重复模式和水平线段位置，判断每个图对应哪一个方程。"
+        ],
+        "solutionPlan": [
+          "先找斜率为 $0$ 的点或直线。",
+          "再看同一竖列是否斜率相同，判断是否只依赖 $x$。",
+          "再看同一横行是否斜率相同，判断是否只依赖 $y$。",
+          "剩下同时变化的图对应同时含 $x,y$ 的方程。"
+        ],
+        "walkthroughSteps": [
+          "A：$x(x-1)=0$ 给出 $x=0$ 和 $x=1$ 两条竖直零斜率线；同一竖列斜率相同。",
+          "B：$x(y-2)=0$ 给出 $x=0$ 和 $y=2$ 两条零斜率线；横向纵向都会变。",
+          "C：$(2-y)(y+1)^2=0$ 给出 $y=2$ 和 $y=-1$ 两条水平零斜率线；同一横行斜率相同。",
+          "用这些特征给每个斜率场贴标签。"
+        ],
+        "commonPitfalls": [
+          "只看某一个点的斜率，忽略整行或整列的重复模式。",
+          "把 $x=0$ 的竖线和 $y=0$ 的横线混淆。",
+          "看到平方就误以为没有零斜率线。"
+        ],
+        "finalAnswer": "A 对应同列斜率相同且 $x=0,1$ 水平的图；B 对应 $x=0$ 与 $y=2$ 都水平且横纵都变化的图；C 对应同行斜率相同且 $y=2,-1$ 水平的图。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_o8JYyrun",
+        "order": 8,
+        "title": "斜率场匹配方程：只看 $x$、只看 $y$，还是同时看？",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "nextHandoff": "数学对比先定同一组维度，否则只是并排罗列。"
+      }
+    },
+    {
+      "id": "scene_12",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场选择题：为什么 $x^2-y^2$ 会留下两条边界？",
+      "description": "先看斜率场里两条斜线附近的水平短线段：这提示斜率在 $y=x$ 和 $y=-x$ 上可能为 $0$。下一步把四个候选方程的零斜率条件写出来，找出能产生这两条边界的选项。",
+      "keyPoints": [
+        "候选：$\\frac{dy}{dx}=(x-y)^2$、$\\frac{dy}{dx}=(x+y)^2$、$\\frac{dy}{dx}=x^2-y^2$、$\\frac{dy}{dx}=x^2+y^2$",
+        "$(x-y)^2=0$ 只给 $y=x$。",
+        "$(x+y)^2=0$ 只给 $y=-x$。",
+        "$x^2-y^2=(x-y)(x+y)$，给 $y=x$ 和 $y=-x$。",
+        "$x^2+y^2=0$ 只在原点为 $0$，不会形成两条零斜率线。"
+      ],
+      "teachingObjective": "能通过零斜率曲线识别斜率场对应的微分方程。",
+      "studentThinkingMove": "我比较的是定义入口、条件方向，还是证明目标？",
+      "estimatedDuration": 170,
+      "order": 9,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_6",
+        "problemStatement": "一个斜率场在两条对角线 $y=x$ 和 $y=-x$ 附近出现水平短线段。判断它对应哪个微分方程：A. $\\frac{dy}{dx}=(x-y)^2$；B. $\\frac{dy}{dx}=(x+y)^2$；C. $\\frac{dy}{dx}=x^2-y^2$；D. $\\frac{dy}{dx}=x^2+y^2$。",
+        "givens": [
+          "图像显示两条对角零斜率边界。",
+          "零斜率意味着右边表达式等于 $0$。"
+        ],
+        "asks": [
+          "选择能产生两条对角零斜率线的微分方程。"
+        ],
+        "solutionPlan": [
+          "把每个候选右边设为 $0$。",
+          "比较得到的零斜率集合是否是两条对角线。",
+          "排除只有一条线或只有一个点的选项。"
+        ],
+        "walkthroughSteps": [
+          "A：$(x-y)^2=0 \\Rightarrow y=x$，只有一条对角线。",
+          "B：$(x+y)^2=0 \\Rightarrow y=-x$，只有一条对角线。",
+          "C：$x^2-y^2=0 \\Rightarrow (x-y)(x+y)=0 \\Rightarrow y=x$ 或 $y=-x$，正好两条。",
+          "D：$x^2+y^2=0$ 只在 $(0,0)$ 成立，不能形成两条线。"
+        ],
+        "commonPitfalls": [
+          "把平方项都看成类似形状，忽略零点集合不同。",
+          "只看正负号，不先求零斜率位置。",
+          "忘记 $x^2-y^2$ 可以因式分解。"
+        ],
+        "finalAnswer": "C. $\\frac{dy}{dx}=x^2-y^2$"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_rGjQsEyy",
+        "order": 9,
+        "title": "斜率场选择题：为什么 $x^2-y^2$ 会留下两条边界？",
+        "role": "comparison",
+        "pagePatternId": "mathematics.comparison",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "example",
+          "case"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "comparison_review",
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "openingMove": "把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 拆成同一组维度比较：对象、定义展开、要找什么、证明动作。",
+        "studentThinkingMove": "我比较的是定义入口、条件方向，还是证明目标？",
+        "transferRule": "数学对比先定同一组维度，否则只是并排罗列。"
+      },
+      "teachingRole": "comparison",
+      "requiredComponentKinds": [
+        "example",
+        "case"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.comparison",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136"
+        ],
+        "currentJob": "我比较的是定义入口、条件方向，还是证明目标？"
+      }
+    },
+    {
+      "id": "scene_13",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "timeline",
+        "layoutTemplate": "process_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "Euler 方法：从当前点沿切线走一步",
+      "description": "先看一个已知点 $(x_n,y_n)$ 和该点斜率 $f(x_n,y_n)$：如果步长很小，短时间内可以把曲线近似看成切线。下一步写出一步更新公式，把“斜率 × 步长”变成新的 $y$ 值。",
+      "keyPoints": [
+        "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+        "已知当前点：$(x_n,y_n)$",
+        "步长：$h$",
+        "Euler 更新：$x_{n+1}=x_n+h$",
+        "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$"
+      ],
+      "teachingObjective": "能解释 Euler 方法的一步近似来自当前点切线。",
+      "estimatedDuration": 140,
+      "order": 10,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_UTeE37K_",
+        "order": 10,
+        "title": "Euler 方法：从当前点沿切线走一步",
+        "role": "definition_boundary",
+        "pagePatternId": "mathematics.definition_boundary",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "derivation",
+          "proof"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "proof_walkthrough",
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "openingMove": "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+        "studentThinkingMove": "定义里对象范围、存在条件、唯一性或包含关系分别在哪里？",
+        "transferRule": "写证明前，先把定义改写成可以逐项检查的条件。"
+      },
+      "teachingRole": "definition_boundary",
+      "requiredComponentKinds": [
+        "derivation",
+        "proof"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.definition_boundary",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_euler"
+        ],
+        "previousHandoff": "数学对比先定同一组维度，否则只是并排罗列。"
+      }
+    },
+    {
+      "id": "scene_14",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "Euler 高估还是低估：看 concavity 怎么判？",
+      "description": "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。",
+      "keyPoints": [
+        "模型：$\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$，$N(0)=7$",
+        "问题：用 Euler 方法、步长 $\\Delta t=0.5$ 估计 $t=2$ 时，结果偏高还是偏低？",
+        "[图像] 从初值点出发画真实曲线和 Euler 折线；真实曲线在该段呈 concave up。",
+        "concave up 时，切线通常在曲线下方。",
+        "结论：Euler 估计偏低，under-estimate。"
+      ],
+      "teachingObjective": "能用凹凸性判断 Euler 方法在图像上的估计方向。",
+      "estimatedDuration": 190,
+      "order": 11,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_7",
+        "problemStatement": "金鱼数量 $N$ 满足 $\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$，初值 $N(0)=7$。根据斜率场判断：用 Euler 方法、步长 $\\Delta t=0.5$ 估计 $t=2$ 时，结果是 under-estimate 还是 over-estimate？",
+        "givens": [
+          "$\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$",
+          "$N(0)=7$",
+          "$\\Delta t=0.5$",
+          "斜率场显示该段解曲线呈 concave up。"
+        ],
+        "asks": [
+          "判断 Euler 估计相对真实 $N(2)$ 是偏低还是偏高。"
+        ],
+        "solutionPlan": [
+          "从初值点沿斜率场想象真实解曲线。",
+          "判断该段曲线的凹凸性。",
+          "比较切线折线与真实曲线的位置。",
+          "给出 under-estimate 或 over-estimate。"
+        ],
+        "walkthroughSteps": [
+          "在 $N(0)=7$ 附近沿斜率场向右走，解曲线向上弯，判断为 concave up。",
+          "Euler 方法每一步都沿当前点切线走。",
+          "对于 concave up 曲线，切线段通常位于真实曲线下方。",
+          "所以 Euler 折线在该段低于真实解曲线。",
+          "因此 $t=2$ 的 Euler 估计是 under-estimate。"
+        ],
+        "commonPitfalls": [
+          "只看斜率是正还是负，却不判断凹凸性。",
+          "把 concave up 误判成估计偏高。",
+          "忘记 Euler 用的是当前点斜率，而不是整段平均斜率。"
+        ],
+        "finalAnswer": "under-estimate，因为解曲线在该段看起来 concave up。"
+      },
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_6KtiC78A",
+        "order": 11,
+        "title": "Euler 高估还是低估：看 concavity 怎么判？",
+        "role": "worked_example",
+        "pagePatternId": "mathematics.worked_example",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "memory",
+          "graph_trace"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "layoutFamily": "derivation",
+        "layoutTemplate": "problem_walkthrough",
+        "openingMove": "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。",
+        "studentThinkingMove": "这一行为什么成立：用了哪个已知、定义，还是前一行结果？",
+        "transferRule": "例题要留下“为什么能走这一步”，不是只留下答案。"
+      },
+      "teachingRole": "worked_example",
+      "requiredComponentKinds": [
+        "memory",
+        "graph_trace"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.worked_example",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_euler"
+        ],
+        "nextHandoff": "总结要留下可执行的证明 checklist，而不是术语表。"
+      }
+    },
+    {
+      "id": "scene_15",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "summary",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "下次打开微分方程题，先做这 6 个检查",
+      "description": "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+      "keyPoints": [
+        "1. 先读题：给的是 $\\frac{dy}{dx}$、初值、积分表达式、斜率场，还是 Euler 估计？",
+        "2. 若 $\\frac{dy}{dx}=f(x)$：写 $dy=f(x)\\,dx$，积分后保留 $C$。",
+        "3. 若给初值 $y(a)=b$：把 $x=a$、$y=b$ 代入通解，求 $C$。",
+        "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+      ],
+      "teachingObjective": "能把本节的求解、检查和图像判断整理成可执行的做题顺序。",
+      "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+      "estimatedDuration": 140,
+      "order": 12,
+      "language": "zh-CN",
+      "teachingPlanId": "teaching_plan_EbIJEQR9",
+      "teachingPagePlan": {
+        "id": "pageplan_yfbzNAAP",
+        "order": 12,
+        "title": "下次打开微分方程题，先做这 6 个检查",
+        "role": "synthesis",
+        "pagePatternId": "mathematics.synthesis",
+        "selectedSkillIds": [
+          "discipline.math",
+          "discipline.humanities-social",
+          "pedagogy.example-first",
+          "pedagogy.problem-solving"
+        ],
+        "skillReasons": [
+          "discipline.math: matched 2 trigger(s) in course material",
+          "discipline.humanities-social: matched 2 trigger(s) in course material",
+          "pedagogy.example-first: baseline teaching style",
+          "pedagogy.problem-solving: baseline transfer/checklist style"
+        ],
+        "sourceFactIds": [
+          "fact_1"
+        ],
+        "concreteAnchor": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+        "requiredComponentKinds": [
+          "example"
+        ],
+        "forbiddenPatterns": [
+          "本页用于",
+          "学习者将",
+          "[Formula]",
+          "[Table]",
+          "\\texttt"
+        ],
+        "contentProfile": "math",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "layoutFamily": "summary",
+        "layoutTemplate": "two_by_one_summary",
+        "openingMove": "最后把这节课收回到 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。：留下的是一套判断和证明的顺序。",
+        "studentThinkingMove": "下次遇到类似命题，我先问哪三个问题？",
+        "transferRule": "总结要留下可执行的证明 checklist，而不是术语表。"
+      },
+      "teachingRole": "synthesis",
+      "requiredComponentKinds": [
+        "example"
+      ],
+      "forbiddenPatterns": [
+        "本页用于",
+        "学习者将",
+        "[Formula]",
+        "[Table]",
+        "\\texttt"
+      ],
+      "selectedSkillIds": [
+        "discipline.math",
+        "discipline.humanities-social",
+        "pedagogy.example-first",
+        "pedagogy.problem-solving"
+      ],
+      "skillReasons": [
+        "discipline.math: matched 2 trigger(s) in course material",
+        "discipline.humanities-social: matched 2 trigger(s) in course material",
+        "pedagogy.example-first: baseline teaching style",
+        "pedagogy.problem-solving: baseline transfer/checklist style"
+      ],
+      "sourceFactIds": [
+        "fact_1"
+      ],
+      "pagePatternId": "mathematics.synthesis",
+      "sharedExamples": [
+        {
+          "id": "example_mat136",
+          "label": "MAT136",
+          "aliases": [
+            "MAT136",
+            "MAT136()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_1",
+          "lessonRole": "数学课开场先定位对象、条件和要判断的问题。",
+          "canonicalData": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+            "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+            "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+            "先从一个具体数学对象开始：MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。。别急着背术语，先问它要我们判断什么。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "现在用 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 走一遍证明，不跳步：先写已知和目标，再说明每一步凭什么成立。"
+          ]
+        },
+        {
+          "id": "example_ftc",
+          "label": "FTC",
+          "aliases": [
+            "FTC",
+            "FTC()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_7",
+          "lessonRole": "例题要留下“为什么能走这一步”，不是只留下答案。",
+          "canonicalData": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+            "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+            "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+            "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+            "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+            "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+            "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。"
+          ]
+        },
+        {
+          "id": "example_euler",
+          "label": "Euler",
+          "aliases": [
+            "Euler",
+            "Euler()"
+          ],
+          "description": "MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。",
+          "introducedInOutlineId": "scene_13",
+          "lessonRole": "写证明前，先把定义改写成可以逐项检查的条件。",
+          "canonicalData": [
+            "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ],
+          "malformedData": [],
+          "rules": [
+            "Euler 更新：$x_{n+1}=x_n+h$",
+            "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$",
+            "能解释 Euler 方法的一步近似来自当前点切线。",
+            "先把 MAT136 是本节课材料里的具体对象；先解释它代表什么，再讲表示方法。 展开成定义条件，再看哪些条件必须保留。",
+            "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。"
+          ]
+        }
+      ],
+      "usesExampleIds": [
+        "example_mat136",
+        "example_ftc",
+        "example_euler"
+      ],
+      "continuity": {
+        "usesExampleIds": [
+          "example_mat136",
+          "example_ftc",
+          "example_euler"
+        ],
+        "currentJob": "下次遇到类似命题，我先问哪三个问题？"
+      }
+    }
+  ],
+  "incrementalOutlines": [
+    {
+      "id": "scene_1",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "intro",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "visual_three_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "standalone",
+        "density": "light",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "只知道 $\\frac{dy}{dx}$，我们到底还缺什么？",
+      "description": "先看一个没有答案的情境：$\\frac{dy}{dx}=2x$ 只告诉我们每个 $x$ 处的变化速度，却没有直接告诉我们曲线在哪里。接着只追问三件事：怎样从变化率回到函数、为什么会多出 $C$、一条初值怎样把曲线钉住。",
+      "keyPoints": [
+        "已知：$\\frac{dy}{dx}=2x$；未知：$y=$ ?",
+        "同一个变化率可能对应很多条上下平移的曲线。",
+        "如果再给 $y(3)=5$，曲线必须经过点 $(3,5)$。",
+        "今天的核心困惑：变化率给的是“方向”，初值给的是“位置”。"
+      ],
+      "teachingObjective": "能说清楚微分方程题里“变化率信息”和“位置信息”分别在做什么。",
+      "studentThinkingMove": "看到 $\\frac{dy}{dx}$ 时，先问：它只给了斜率，还是也给了曲线经过的点？",
+      "estimatedDuration": 90,
+      "order": 1,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_2",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "formula_focus",
+        "layoutTemplate": "formula_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "从 $\\frac{dy}{dx}=f(x)$ 到 $y$：为什么要积分？",
+      "description": "先看等式左边：$\\frac{dy}{dx}$ 是 $y$ 对 $x$ 的导数，所以回到 $y$ 就是在找反导数。下一步把 $dx$ 写出来，再用积分把“导数信息”还原成“函数信息”。",
+      "keyPoints": [
+        "起点：$\\frac{dy}{dx}=f(x)$",
+        "等价书写：$dy=f(x)\\,dx$",
+        "两边积分：$\\int dy=\\int f(x)\\,dx$",
+        "得到：$y=\\int f(x)\\,dx$，右边表示 $f(x)$ 的一个反导数。"
+      ],
+      "teachingObjective": "能把一阶形如 $\\frac{dy}{dx}=f(x)$ 的微分方程改写成反导数问题。",
+      "studentThinkingMove": "动笔前先问：右边只含 $x$ 吗？如果只含 $x$，就可以直接对 $x$ 积分。",
+      "estimatedDuration": 110,
+      "order": 2,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_3",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "为什么同一个导数对应一族函数？",
+      "description": "先看三条曲线 $y=x^2-4$、$y=x^2$、$y=x^2+3$：它们高度不同，但每一点的导数都来自 $2x$。下一步把这件事写成 $y=x^2+C$，把 $C$ 看成尚未确定的垂直位置。",
+      "keyPoints": [
+        "$\\frac{d}{dx}(x^2-4)=2x$",
+        "$\\frac{d}{dx}(x^2)=2x$",
+        "$\\frac{d}{dx}(x^2+3)=2x$",
+        "通解：$y=x^2+C$",
+        "$C$ 不改变斜率，只改变整条曲线的上下位置。"
+      ],
+      "teachingObjective": "能解释不定积分为什么必须带常数 $C$。",
+      "studentThinkingMove": "积分后先保留 $C$，不要急着给数值；除非题目给了初值或经过点。",
+      "estimatedDuration": 120,
+      "order": 3,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_4",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "problem_focus",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "初值 $y(3)=5$ 怎样选出唯一函数？",
+      "description": "先看通解 $y=x^2+C$ 和点 $(3,5)$：现在不是重新积分，而是把这个点代入整族函数。下一步把 $x=3$、$y=5$ 放进同一个式子，找出唯一的 $C$。",
+      "keyPoints": [
+        "通解：$y=x^2+C$",
+        "初值：$y(3)=5$，也就是曲线经过 $(3,5)$",
+        "代入：$5=3^2+C$",
+        "解出：$C=-4$",
+        "唯一解：$y=x^2-4$"
+      ],
+      "teachingObjective": "能用初值从通解中选出一个特解。",
+      "studentThinkingMove": "遇到 $y(a)=b$，先把它翻译成“当 $x=a$ 时，$y=b$”。",
+      "estimatedDuration": 110,
+      "order": 4,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_5",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "完整例题：$\\frac{dy}{dx}=2x,\\ y(3)=5$",
+      "description": "先看完整题目和目标：不是只算积分，还要用初值定 $C$，最后检查导数和点都对。下一步按“分离微分—积分—代初值—检查”写成一条不断线的解题过程。",
+      "keyPoints": [
+        "题目：已知 $\\frac{dy}{dx}=2x$ 且 $y(3)=5$，求 $y$ 关于 $x$ 的表达式。",
+        "写成微分形式：$dy=2x\\,dx$",
+        "积分：$\\int dy=\\int 2x\\,dx$，所以 $y=x^2+C$",
+        "代初值：$5=3^2+C$，所以 $C=-4$",
+        "答案与检查：$y=x^2-4$；$y'=2x$ 且 $y(3)=5$。"
+      ],
+      "teachingObjective": "能完整书写一阶直接积分型微分方程的求解和检查。",
+      "studentThinkingMove": "写完答案后立刻做两项检查：导数是否回到原方程，初值是否真的满足。",
+      "estimatedDuration": 180,
+      "order": 5,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_1",
+        "problemStatement": "已知 $\\frac{dy}{dx}=2x$，且 $y(3)=5$。求 $y$ 关于 $x$ 的表达式。",
+        "givens": [
+          "$\\frac{dy}{dx}=2x$",
+          "$y(3)=5$"
+        ],
+        "asks": [
+          "求满足微分方程和初值的函数 $y(x)$。"
+        ],
+        "solutionPlan": [
+          "把 $\\frac{dy}{dx}=2x$ 改写为 $dy=2x\\,dx$。",
+          "两边积分得到含 $C$ 的通解。",
+          "用 $y(3)=5$ 解出 $C$。",
+          "用求导和代点检查答案。"
+        ],
+        "walkthroughSteps": [
+          "$dy=2x\\,dx$",
+          "$\\int dy=\\int 2x\\,dx$",
+          "$y=x^2+C$",
+          "$5=3^2+C=9+C$",
+          "$C=-4$",
+          "$y=x^2-4$",
+          "检查：$\\frac{d}{dx}(x^2-4)=2x$，且 $3^2-4=5$。"
+        ],
+        "commonPitfalls": [
+          "积分后漏写 $C$。",
+          "把 $y(3)=5$ 误写成 $y\\cdot 3=5$。",
+          "只检查初值，不检查导数。"
+        ],
+        "finalAnswer": "$y=x^2-4$"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_6",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "变化率像 $\\frac{1}{P}$ 时，函数类型是什么？",
+      "description": "先看压力和体积的变化率：$\\frac{dV}{dP}$ 与 $\\frac{1}{P}$ 成比例，这不像多项式的导数。下一步只判断反导数类型：$\\int \\frac{1}{P}\\,dP$ 指向对数函数。",
+      "keyPoints": [
+        "题目：$\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$，判断 $V(P)$ 的函数类型。",
+        "微分形式：$dV=-\\frac{10^{-5}}{P}\\,dP$",
+        "积分：$V=-10^{-5}\\ln|P|+C$",
+        "函数类型：logarithmic function，对数函数。",
+        "检查方向：$\\frac{d}{dP}\\ln|P|=\\frac{1}{P}$，常数倍保留。"
+      ],
+      "teachingObjective": "能从变化率的形状判断原函数类型，特别识别 $\\frac{1}{x}$ 的反导数。",
+      "studentThinkingMove": "看到 $\\frac{1}{\\text{变量}}$，先联想到 $\\ln|\\text{变量}|$，再处理前面的常数和符号。",
+      "estimatedDuration": 150,
+      "order": 6,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_2",
+        "problemStatement": "某流体的体积 $V$ 与压力 $P$ 满足 $\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$。判断 $V(P)$ 最可能是哪一类函数：power、exponential、polynomial、logarithmic。",
+        "givens": [
+          "$\\frac{dV}{dP}=-\\frac{10^{-5}}{P}$",
+          "$P$ 是自变量，$V$ 是因变量。"
+        ],
+        "asks": [
+          "判断 $V(P)$ 的函数类型。"
+        ],
+        "solutionPlan": [
+          "把变化率看成关于 $P$ 的函数。",
+          "对 $P$ 积分。",
+          "用反导数结果判断函数类型。"
+        ],
+        "walkthroughSteps": [
+          "$dV=-\\frac{10^{-5}}{P}\\,dP$",
+          "$\\int dV=\\int -\\frac{10^{-5}}{P}\\,dP$",
+          "$V=-10^{-5}\\ln|P|+C$",
+          "所以 $V(P)$ 是对数函数。"
+        ],
+        "commonPitfalls": [
+          "把 $\\frac{1}{P}$ 误认为指数函数。",
+          "忘记 $\\ln|P|$ 中的绝对值。",
+          "只看负号而忽略函数类型由反导数决定。"
+        ],
+        "finalAnswer": "logarithmic function，对数函数。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_7",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "definition",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "definition_to_example",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "FTC 检查：变上限积分怎样求导？",
+      "description": "先看表达式 $y=1+\\int_0^{x^2} e^{-t}\\,dt$：它已经是一个函数，但函数藏在积分上限里。下一步用 FTC 和链式法则把导数算出来，再与微分方程右边对照。",
+      "keyPoints": [
+        "FTC：$\\frac{d}{dx}\\left(\\int_a^x f(t)\\,dt\\right)=f(x)$",
+        "复合上限：$\\frac{d}{dx}\\left(\\int_a^{g(x)} f(t)\\,dt\\right)=f(g(x))g'(x)$",
+        "下限含 $x$：$\\frac{d}{dx}\\left(\\int_{g(x)}^a f(t)\\,dt\\right)=-f(g(x))g'(x)$",
+        "常数项如 $1,2,3$ 求导后变成 $0$。",
+        "检查顺序：先看上限或下限，再代入被积函数，最后乘链式法则因子。"
+      ],
+      "teachingObjective": "能用微积分基本定理和链式法则判断积分表达式的导数。",
+      "studentThinkingMove": "看到 $\\int^{g(x)} f(t)\\,dt$，先圈出 $g(x)$，再写 $f(g(x))g'(x)$。",
+      "estimatedDuration": 140,
+      "order": 7,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_8",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 1：谁的导数是 $-2xe^{-x^2}$？",
+      "description": "先看四个候选函数：它们外形都像“常数加积分”，真正差别在积分上下限和链式法则符号。下一步逐个只算导数，不展开积分值。",
+      "keyPoints": [
+        "目标：判断哪个函数满足 $\\frac{dy}{dx}=-2xe^{-x^2}$。",
+        "A. $y=1+\\int_0^{-x^2}e^{-t}\\,dt$，导数为 $-2xe^{x^2}$。",
+        "B. $y=1+\\int_0^{x^2}e^{-t}\\,dt$，导数为 $2xe^{-x^2}$。",
+        "C. $y=2+\\int_{x^2}^{0}e^{-t}\\,dt$，导数为 $-2xe^{-x^2}$。",
+        "D. $y=3+\\int_0^x e^{-t^2}\\,dt$，导数为 $e^{-x^2}$。"
+      ],
+      "teachingObjective": "能通过求导而不是猜外形来判断积分表达式是否满足微分方程。",
+      "studentThinkingMove": "选择题先不算积分值；只问每个选项的导数是否等于微分方程右边。",
+      "estimatedDuration": 180,
+      "order": 8,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_3",
+        "problemStatement": "考虑微分方程 $\\frac{dy}{dx}=-2xe^{-x^2}$。下列哪个函数是它的一个解？A. $y=1+\\int_0^{-x^2}e^{-t}\\,dt$；B. $y=1+\\int_0^{x^2}e^{-t}\\,dt$；C. $y=2+\\int_{x^2}^{0}e^{-t}\\,dt$；D. $y=3+\\int_0^x e^{-t^2}\\,dt$。",
+        "givens": [
+          "$\\frac{dy}{dx}=-2xe^{-x^2}$",
+          "四个候选函数都以积分形式给出。"
+        ],
+        "asks": [
+          "判断哪个候选函数的导数等于 $-2xe^{-x^2}$。"
+        ],
+        "solutionPlan": [
+          "对每个候选函数求导。",
+          "常数项求导为 $0$。",
+          "变上限或变下限积分使用 FTC 和链式法则。",
+          "与 $-2xe^{-x^2}$ 对照。"
+        ],
+        "walkthroughSteps": [
+          "A：$\\frac{d}{dx}\\int_0^{-x^2}e^{-t}\\,dt=e^{x^2}(-2x)=-2xe^{x^2}$，不匹配。",
+          "B：$\\frac{d}{dx}\\int_0^{x^2}e^{-t}\\,dt=e^{-x^2}(2x)=2xe^{-x^2}$，符号不匹配。",
+          "C：$\\frac{d}{dx}\\int_{x^2}^{0}e^{-t}\\,dt=-e^{-x^2}(2x)=-2xe^{-x^2}$，匹配。",
+          "D：$\\frac{d}{dx}\\int_0^x e^{-t^2}\\,dt=e^{-x^2}$，缺少 $-2x$。"
+        ],
+        "commonPitfalls": [
+          "只看到 $x^2$ 就忽略上下限方向。",
+          "忘记乘上 $2x$。",
+          "把常数 $1,2,3$ 当成会影响微分方程的项。"
+        ],
+        "finalAnswer": "C"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_9",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "derivation",
+        "layoutTemplate": "derivation_ladder",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "none",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "积分表达式选择题 2：复合上限不能只看外形",
+      "description": "先看目标导数 $-3x^2e^{-x^3}$：这里的 $3x^2$ 必须来自 $x^3$ 的链式法则。下一步比较候选项的上限、下限和符号，找出既有 $e^{-x^3}$ 又有 $-3x^2$ 的表达式。",
+      "keyPoints": [
+        "目标：$\\frac{dy}{dx}=-3x^2e^{-x^3}$",
+        "A. $y=1+\\int_0^{x^3}e^{-t}\\,dt$，导数为 $3x^2e^{-x^3}$。",
+        "B. $y=2+\\int_{x^3}^{0}e^{-t}\\,dt$，导数为 $-3x^2e^{-x^3}$。",
+        "C. $y=3+\\int_0^x e^{-t^3}\\,dt$，导数为 $e^{-x^3}$。",
+        "D. $y=4+\\int_{-x^3}^{0}e^{-t}\\,dt$，导数为 $3x^2e^{x^3}$。"
+      ],
+      "teachingObjective": "能处理复合上限积分，避免把 $e^{-x^3}$ 和链式法则因子分开漏掉。",
+      "studentThinkingMove": "对照目标导数时同时查三件事：指数里是什么、外面乘了什么、符号从哪里来。",
+      "estimatedDuration": 180,
+      "order": 9,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_4",
+        "problemStatement": "考虑微分方程 $\\frac{dy}{dx}=-3x^2e^{-x^3}$。下列哪个函数是它的一个解？A. $y=1+\\int_0^{x^3}e^{-t}\\,dt$；B. $y=2+\\int_{x^3}^{0}e^{-t}\\,dt$；C. $y=3+\\int_0^x e^{-t^3}\\,dt$；D. $y=4+\\int_{-x^3}^{0}e^{-t}\\,dt$。",
+        "givens": [
+          "$\\frac{dy}{dx}=-3x^2e^{-x^3}$",
+          "候选函数包含不同的复合上限或下限。"
+        ],
+        "asks": [
+          "找出导数等于 $-3x^2e^{-x^3}$ 的函数。"
+        ],
+        "solutionPlan": [
+          "用 FTC 处理积分端点。",
+          "用链式法则处理 $x^3$ 或 $-x^3$。",
+          "把每个导数与目标导数逐项比较。"
+        ],
+        "walkthroughSteps": [
+          "A：$\\frac{d}{dx}\\int_0^{x^3}e^{-t}\\,dt=e^{-x^3}(3x^2)=3x^2e^{-x^3}$，符号不对。",
+          "B：$\\frac{d}{dx}\\int_{x^3}^{0}e^{-t}\\,dt=-e^{-x^3}(3x^2)=-3x^2e^{-x^3}$，匹配。",
+          "C：$\\frac{d}{dx}\\int_0^x e^{-t^3}\\,dt=e^{-x^3}$，缺少 $-3x^2$。",
+          "D：$\\frac{d}{dx}\\int_{-x^3}^{0}e^{-t}\\,dt=-e^{x^3}(-3x^2)=3x^2e^{x^3}$，指数和符号都不匹配。"
+        ],
+        "commonPitfalls": [
+          "把 $\\int_0^x e^{-t^3}\\,dt$ 误看成会自动产生 $-3x^2$。",
+          "只看指数 $-x^3$，不看积分端点方向。",
+          "忘记下限含 $x$ 时前面多一个负号。"
+        ],
+        "finalAnswer": "B"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_10",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "斜率场入口：每个小线段告诉我们什么？",
+      "description": "先看坐标平面上的一组短线段：每个点没有给出函数值公式，只给出如果曲线经过这里，它应该朝哪个方向走。下一步把短线段读成 $\\frac{dy}{dx}$ 的局部信息，再沿着方向想象一条可能的解曲线。",
+      "keyPoints": [
+        "[图像] 坐标平面上放置许多短线段；每个短线段代表该点的斜率。",
+        "斜率为正：线段向右上倾斜；斜率为负：线段向右下倾斜。",
+        "斜率为 $0$：线段水平；斜率很大：线段接近竖直。",
+        "一条解曲线经过这些点时，应尽量贴着附近短线段的方向前进。",
+        "斜率场不直接给 $y(x)$，但给出解曲线的局部走向。"
+      ],
+      "teachingObjective": "能把斜率场中的短线段读成微分方程的局部斜率信息。",
+      "studentThinkingMove": "看斜率场时先找水平线段和符号变化区域，再猜解曲线的走向。",
+      "estimatedDuration": 130,
+      "order": 10,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_11",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "comparison",
+        "layoutTemplate": "comparison_matrix",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场匹配方程：只看 $x$、只看 $y$，还是同时看？",
+      "description": "先看三个微分方程的右边：有的只随 $x$ 变，有的在某些水平线上斜率为 $0$，有的同时受 $x$ 和 $y$ 影响。下一步用“零斜率在哪里”和“同一列/同一行是否相同”去匹配斜率场。",
+      "keyPoints": [
+        "A. $\\frac{dy}{dx}=x(x-1)$：只依赖 $x$，同一竖列斜率相同；$x=0,1$ 处水平。",
+        "B. $\\frac{dy}{dx}=x(y-2)$：同时依赖 $x,y$；$x=0$ 或 $y=2$ 处水平。",
+        "C. $\\frac{dy}{dx}=(2-y)(y+1)^2$：只依赖 $y$，同一横行斜率相同；$y=2,-1$ 处水平。",
+        "[图像] 三个斜率场面板旁标出“同列相同”“同行相同”“零斜率线”。",
+        "匹配先找水平线段，再判断斜率随横向还是纵向变化。"
+      ],
+      "teachingObjective": "能用依赖变量和零斜率线匹配简单微分方程与斜率场。",
+      "studentThinkingMove": "匹配图像前先问：右边只含 $x$、只含 $y$，还是同时含 $x$ 和 $y$？",
+      "estimatedDuration": 190,
+      "order": 11,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_5",
+        "problemStatement": "给出三个微分方程：A. $\\frac{dy}{dx}=x(x-1)$；B. $\\frac{dy}{dx}=x(y-2)$；C. $\\frac{dy}{dx}=(2-y)(y+1)^2$。把它们与对应斜率场匹配。",
+        "givens": [
+          "A 只含 $x$。",
+          "B 同时含 $x$ 和 $y$。",
+          "C 只含 $y$。"
+        ],
+        "asks": [
+          "根据斜率场的重复模式和水平线段位置，判断每个图对应哪一个方程。"
+        ],
+        "solutionPlan": [
+          "先找斜率为 $0$ 的点或直线。",
+          "再看同一竖列是否斜率相同，判断是否只依赖 $x$。",
+          "再看同一横行是否斜率相同，判断是否只依赖 $y$。",
+          "剩下同时变化的图对应同时含 $x,y$ 的方程。"
+        ],
+        "walkthroughSteps": [
+          "A：$x(x-1)=0$ 给出 $x=0$ 和 $x=1$ 两条竖直零斜率线；同一竖列斜率相同。",
+          "B：$x(y-2)=0$ 给出 $x=0$ 和 $y=2$ 两条零斜率线；横向纵向都会变。",
+          "C：$(2-y)(y+1)^2=0$ 给出 $y=2$ 和 $y=-1$ 两条水平零斜率线；同一横行斜率相同。",
+          "用这些特征给每个斜率场贴标签。"
+        ],
+        "commonPitfalls": [
+          "只看某一个点的斜率，忽略整行或整列的重复模式。",
+          "把 $x=0$ 的竖线和 $y=0$ 的横线混淆。",
+          "看到平方就误以为没有零斜率线。"
+        ],
+        "finalAnswer": "A 对应同列斜率相同且 $x=0,1$ 水平的图；B 对应 $x=0$ 与 $y=2$ 都水平且横纵都变化的图；C 对应同行斜率相同且 $y=2,-1$ 水平的图。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_12",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "visual_split",
+        "layoutTemplate": "graph_explain",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "斜率场选择题：为什么 $x^2-y^2$ 会留下两条边界？",
+      "description": "先看斜率场里两条斜线附近的水平短线段：这提示斜率在 $y=x$ 和 $y=-x$ 上可能为 $0$。下一步把四个候选方程的零斜率条件写出来，找出能产生这两条边界的选项。",
+      "keyPoints": [
+        "候选：$\\frac{dy}{dx}=(x-y)^2$、$\\frac{dy}{dx}=(x+y)^2$、$\\frac{dy}{dx}=x^2-y^2$、$\\frac{dy}{dx}=x^2+y^2$",
+        "$(x-y)^2=0$ 只给 $y=x$。",
+        "$(x+y)^2=0$ 只给 $y=-x$。",
+        "$x^2-y^2=(x-y)(x+y)$，给 $y=x$ 和 $y=-x$。",
+        "$x^2+y^2=0$ 只在原点为 $0$，不会形成两条零斜率线。"
+      ],
+      "teachingObjective": "能通过零斜率曲线识别斜率场对应的微分方程。",
+      "studentThinkingMove": "看到斜率场中的水平边界，先把候选方程右边设为 $0$。",
+      "estimatedDuration": 170,
+      "order": 12,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_6",
+        "problemStatement": "一个斜率场在两条对角线 $y=x$ 和 $y=-x$ 附近出现水平短线段。判断它对应哪个微分方程：A. $\\frac{dy}{dx}=(x-y)^2$；B. $\\frac{dy}{dx}=(x+y)^2$；C. $\\frac{dy}{dx}=x^2-y^2$；D. $\\frac{dy}{dx}=x^2+y^2$。",
+        "givens": [
+          "图像显示两条对角零斜率边界。",
+          "零斜率意味着右边表达式等于 $0$。"
+        ],
+        "asks": [
+          "选择能产生两条对角零斜率线的微分方程。"
+        ],
+        "solutionPlan": [
+          "把每个候选右边设为 $0$。",
+          "比较得到的零斜率集合是否是两条对角线。",
+          "排除只有一条线或只有一个点的选项。"
+        ],
+        "walkthroughSteps": [
+          "A：$(x-y)^2=0 \\Rightarrow y=x$，只有一条对角线。",
+          "B：$(x+y)^2=0 \\Rightarrow y=-x$，只有一条对角线。",
+          "C：$x^2-y^2=0 \\Rightarrow (x-y)(x+y)=0 \\Rightarrow y=x$ 或 $y=-x$，正好两条。",
+          "D：$x^2+y^2=0$ 只在 $(0,0)$ 成立，不能形成两条线。"
+        ],
+        "commonPitfalls": [
+          "把平方项都看成类似形状，忽略零点集合不同。",
+          "只看正负号，不先求零斜率位置。",
+          "忘记 $x^2-y^2$ 可以因式分解。"
+        ],
+        "finalAnswer": "C. $\\frac{dy}{dx}=x^2-y^2$"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_13",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "concept",
+      "layoutIntent": {
+        "layoutFamily": "timeline",
+        "layoutTemplate": "process_steps",
+        "disciplineStyle": "math",
+        "teachingFlow": "concept_explain",
+        "density": "standard",
+        "visualRole": "diagram",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "Euler 方法：从当前点沿切线走一步",
+      "description": "先看一个已知点 $(x_n,y_n)$ 和该点斜率 $f(x_n,y_n)$：如果步长很小，短时间内可以把曲线近似看成切线。下一步写出一步更新公式，把“斜率 × 步长”变成新的 $y$ 值。",
+      "keyPoints": [
+        "微分方程：$\\frac{dy}{dx}=f(x,y)$",
+        "已知当前点：$(x_n,y_n)$",
+        "步长：$h$",
+        "Euler 更新：$x_{n+1}=x_n+h$",
+        "Euler 更新：$y_{n+1}=y_n+h\\,f(x_n,y_n)$"
+      ],
+      "teachingObjective": "能解释 Euler 方法的一步近似来自当前点切线。",
+      "studentThinkingMove": "每走一步前先算当前位置的斜率，不要用下一点的斜率。",
+      "estimatedDuration": 140,
+      "order": 13,
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_14",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "example",
+      "layoutIntent": {
+        "layoutFamily": "problem_solution",
+        "layoutTemplate": "problem_walkthrough",
+        "disciplineStyle": "math",
+        "teachingFlow": "problem_walkthrough",
+        "density": "dense",
+        "visualRole": "diagram",
+        "overflowPolicy": "preserve_then_paginate",
+        "preserveFullProblemStatement": true
+      },
+      "title": "Euler 高估还是低估：看 concavity 怎么判？",
+      "description": "先看金鱼数量模型的斜率场：从 $N(0)=7$ 出发，解曲线在到 $t=2$ 的路段看起来向上弯。下一步把 Euler 折线和 concave up 曲线放在一起比较，判断切线步进会落在真实曲线下方还是上方。",
+      "keyPoints": [
+        "模型：$\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$，$N(0)=7$",
+        "问题：用 Euler 方法、步长 $\\Delta t=0.5$ 估计 $t=2$ 时，结果偏高还是偏低？",
+        "[图像] 从初值点出发画真实曲线和 Euler 折线；真实曲线在该段呈 concave up。",
+        "concave up 时，切线通常在曲线下方。",
+        "结论：Euler 估计偏低，under-estimate。"
+      ],
+      "teachingObjective": "能用凹凸性判断 Euler 方法在图像上的估计方向。",
+      "studentThinkingMove": "判断高估低估前先问：真实解曲线在这一段是 concave up 还是 concave down？",
+      "estimatedDuration": 190,
+      "order": 14,
+      "workedExampleConfig": {
+        "kind": "math",
+        "role": "walkthrough",
+        "exampleId": "example_7",
+        "problemStatement": "金鱼数量 $N$ 满足 $\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$，初值 $N(0)=7$。根据斜率场判断：用 Euler 方法、步长 $\\Delta t=0.5$ 估计 $t=2$ 时，结果是 under-estimate 还是 over-estimate？",
+        "givens": [
+          "$\\frac{dN}{dt}=N\\left(\\frac{N}{6}-1\\right)\\left(1-\\frac{N}{20}\\right)$",
+          "$N(0)=7$",
+          "$\\Delta t=0.5$",
+          "斜率场显示该段解曲线呈 concave up。"
+        ],
+        "asks": [
+          "判断 Euler 估计相对真实 $N(2)$ 是偏低还是偏高。"
+        ],
+        "solutionPlan": [
+          "从初值点沿斜率场想象真实解曲线。",
+          "判断该段曲线的凹凸性。",
+          "比较切线折线与真实曲线的位置。",
+          "给出 under-estimate 或 over-estimate。"
+        ],
+        "walkthroughSteps": [
+          "在 $N(0)=7$ 附近沿斜率场向右走，解曲线向上弯，判断为 concave up。",
+          "Euler 方法每一步都沿当前点切线走。",
+          "对于 concave up 曲线，切线段通常位于真实曲线下方。",
+          "所以 Euler 折线在该段低于真实解曲线。",
+          "因此 $t=2$ 的 Euler 估计是 under-estimate。"
+        ],
+        "commonPitfalls": [
+          "只看斜率是正还是负，却不判断凹凸性。",
+          "把 concave up 误判成估计偏高。",
+          "忘记 Euler 用的是当前点斜率，而不是整段平均斜率。"
+        ],
+        "finalAnswer": "under-estimate，因为解曲线在该段看起来 concave up。"
+      },
+      "language": "zh-CN"
+    },
+    {
+      "id": "scene_15",
+      "type": "slide",
+      "contentProfile": "math",
+      "archetype": "summary",
+      "layoutIntent": {
+        "layoutFamily": "summary",
+        "layoutTemplate": "summary_board",
+        "disciplineStyle": "math",
+        "teachingFlow": "comparison_review",
+        "density": "standard",
+        "visualRole": "none",
+        "overflowPolicy": "compress_first",
+        "preserveFullProblemStatement": false
+      },
+      "title": "下次打开微分方程题，先做这 6 个检查",
+      "description": "先把今天的题型压成一张操作清单：直接积分、初值、FTC 检查、斜率场、Euler 误差都能放进去。最后留下一个新问题：如果右边同时含 $x$ 和 $y$，什么时候还能把变量分开来解？",
+      "keyPoints": [
+        "1. 先读题：给的是 $\\frac{dy}{dx}$、初值、积分表达式、斜率场，还是 Euler 估计？",
+        "2. 若 $\\frac{dy}{dx}=f(x)$：写 $dy=f(x)\\,dx$，积分后保留 $C$。",
+        "3. 若给初值 $y(a)=b$：把 $x=a$、$y=b$ 代入通解，求 $C$。",
+        "4. 若给积分表达式：用 FTC；变上限乘 $g'(x)$，变下限多一个负号。",
+        "5. 若看斜率场：先找零斜率线，再判断右边依赖 $x$、$y$ 或二者。",
+        "6. 若问 Euler 偏高偏低：先判断 concavity；concave up 常给 under-estimate，concave down 常给 over-estimate。"
+      ],
+      "teachingObjective": "能把本节的求解、检查和图像判断整理成可执行的做题顺序。",
+      "studentThinkingMove": "拿到题先分类，再选择工具；不要一上来就盲目积分或盲目代选项。",
+      "estimatedDuration": 140,
+      "order": 15,
+      "language": "zh-CN"
+    }
+  ],
+  "retries": [],
+  "eventCount": 16,
+  "upstreamRoute": "/api/generate/scene-outlines-stream",
+  "promptPreview": "请基于上传资料，为 MAT136 Calculus II 生成一套中文版 image-first notebook 的可审查大纲。\n这次只生成大纲，不生成每页图片。\n\n课程主题：微分方程入门。主线必须是：为什么只知道变化率不够 -> 从 dy/dx 反推 y -> 不定积分带来常数 C -> 初值如何确定 C -> 如何用 FTC / 链式法则检查积分表达式是否满足微分方程 -> 如何读 slope field -> Euler method 为什么会高估或低估。\n\n结构要求：\n1. 至少 12 页。\n2. 第 1 页是 overview/hook，不是讲解页，不要解题；只提出学生会遇到的核心困惑。\n3. 第 2-4 页讲“从 dy/dx 到 y”的公式、常数 C、初值。\n4. 中间必须有多个完整例题，尤其是 dy/dx = 2x, y(3)=5，以及“给出积分表达式，判断它是否满足微分方程”的题。\n5. 后半段讲 slope field 和 Euler method 的估计方向。\n6. 最后一页总结要留下可执行 checklist，并给下一节课钩子。\n\n每页必须输出：学生这一页先看什么、为什么要这样做、老师推进的下一步、例题或图像如何服务本页。\n\n严禁：\n- 不要把课号、校区、导师、免责声明、页眉页脚、MAT136 课程身份当作页面要点。\n- 不要重复通用模板句，例如“MAT136 是本节课材料里的具体对象”“这一行为什么成立”这种空话。\n- 不要照抄 PDF 文本提取错误，例如 derek、!、#、& 这类乱码。公式读不准时，用文字描述“资料中的积分上限选择题”即可。\n- 不要写成讲义目录；要像老师实际带学生思考。\n\n输出语言：中文。保留英文资料中的数学题意，但不要保留英文讲义腔。",
+  "language": "zh-CN",
+  "sourceTextChars": 7113,
+  "outlinePreferences": {
+    "length": "standard",
+    "includeQuizScenes": false,
+    "workedExampleLevel": "heavy"
+  },
+  "outlineQuality": {
+    "passed": false,
+    "minSceneCount": 12,
+    "findings": [
+      "出现禁用模板句：总结要留下可执行的证明 checklist。"
+    ],
+    "blockedPhrases": [
+      "总结要留下可执行的证明 checklist"
+    ],
+    "retryCount": 2
+  },
+  "outlineQualityAttempts": [
+    {
+      "passed": false,
+      "minSceneCount": 12,
+      "findings": [
+        "出现禁用模板句：总结要留下可执行的证明 checklist。"
+      ],
+      "blockedPhrases": [
+        "总结要留下可执行的证明 checklist"
+      ],
+      "retryCount": 0
+    },
+    {
+      "passed": false,
+      "minSceneCount": 12,
+      "findings": [
+        "出现禁用模板句：总结要留下可执行的证明 checklist。"
+      ],
+      "blockedPhrases": [
+        "总结要留下可执行的证明 checklist"
+      ],
+      "retryCount": 1
+    },
+    {
+      "passed": false,
+      "minSceneCount": 12,
+      "findings": [
+        "出现禁用模板句：总结要留下可执行的证明 checklist。"
+      ],
+      "blockedPhrases": [
+        "总结要留下可执行的证明 checklist"
+      ],
+      "retryCount": 2
+    }
+  ]
+}
