@@ -10,6 +10,7 @@ import {
 } from '@/components/store/storefront-sections';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { listStages, moveStageToCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { listCourses } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
@@ -45,21 +46,8 @@ function tagsForNotebook(nb: StageListItem, courseById: Map<string, CourseRecord
 }
 
 function useStoreContextHydrated() {
-  const [authHydrated, setAuthHydrated] = useState(() => useAuthStore.persist.hasHydrated());
-  const [courseHydrated, setCourseHydrated] = useState(() =>
-    useCurrentCourseStore.persist.hasHydrated(),
-  );
-
-  useEffect(() => {
-    const unsubscribeAuth = useAuthStore.persist.onFinishHydration(() => setAuthHydrated(true));
-    const unsubscribeCourse = useCurrentCourseStore.persist.onFinishHydration(() =>
-      setCourseHydrated(true),
-    );
-    return () => {
-      unsubscribeAuth();
-      unsubscribeCourse();
-    };
-  }, []);
+  const authHydrated = usePersistHydrated(useAuthStore);
+  const courseHydrated = usePersistHydrated(useCurrentCourseStore);
 
   return authHydrated && courseHydrated;
 }

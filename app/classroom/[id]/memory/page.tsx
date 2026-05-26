@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { NotebookMemoryPageClient } from '@/features/memory/components/notebook-memory-page-client';
 
 type NotebookMemoryPageProps = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function NotebookMemoryPage({ params }: NotebookMemoryPageProps) {

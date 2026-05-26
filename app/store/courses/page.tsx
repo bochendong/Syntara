@@ -17,6 +17,7 @@ import {
   type StorefrontItem,
 } from '@/components/store/storefront-sections';
 import { Input } from '@/components/ui/input';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import {
   cloneCourseFromStore,
@@ -64,20 +65,9 @@ function speechStatusLabel(
   return '需自行生成语音';
 }
 
-function useAuthStoreHydrated() {
-  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
-
-  useEffect(() => {
-    const unsubscribe = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
-    return unsubscribe;
-  }, []);
-
-  return hydrated;
-}
-
 export default function CourseStorePage() {
   const router = useRouter();
-  const authHydrated = useAuthStoreHydrated();
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const userId = useAuthStore((s) => s.userId);
   const creatorDisplay = useAuthStore(() => '你');
