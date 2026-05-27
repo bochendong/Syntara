@@ -11,6 +11,7 @@ import {
   resolveProblemImportTestModels,
   shouldSkipCreditChargeForProblemImportTest,
 } from '@/lib/server/problem-import-test-pipeline';
+import { TESTFILE_ROOT } from '@/lib/server/project-paths';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -20,7 +21,7 @@ export const revalidate = 0;
 const GRAPH_TEST_FILE = 'testfile/GraphTest/2023-test2-mat133.pdf';
 
 async function readGraphTestPdf() {
-  const filePath = path.join(process.cwd(), GRAPH_TEST_FILE);
+  const filePath = path.join(TESTFILE_ROOT, 'GraphTest', '2023-test2-mat133.pdf');
   const [buffer, fileStat] = await Promise.all([readFile(filePath), stat(filePath)]);
   return {
     buffer,

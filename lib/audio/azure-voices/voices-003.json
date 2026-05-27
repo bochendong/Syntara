@@ -1,0 +1,350 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bg-BG, KalinaNeural)",
+      "DisplayName": "Kalina",
+      "LocalName": "Калина",
+      "ShortName": "bg-BG-KalinaNeural",
+      "Gender": "Female",
+      "Locale": "bg-BG",
+      "LocaleName": "Bulgarian (Bulgaria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "125"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bg-BG, BorislavNeural)",
+      "DisplayName": "Borislav",
+      "LocalName": "Борислав",
+      "ShortName": "bg-BG-BorislavNeural",
+      "Gender": "Male",
+      "Locale": "bg-BG",
+      "LocaleName": "Bulgarian (Bulgaria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "Gaming"],
+        "VoicePersonalities": ["Light-Hearted", "Whimsical", "Friendly"]
+      },
+      "WordsPerMinute": "132"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bn-BD, NabanitaNeural)",
+      "DisplayName": "Nabanita",
+      "LocalName": "নবনীতা",
+      "ShortName": "bn-BD-NabanitaNeural",
+      "Gender": "Female",
+      "Locale": "bn-BD",
+      "LocaleName": "Bangla (Bangladesh)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "123"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bn-BD, PradeepNeural)",
+      "DisplayName": "Pradeep",
+      "LocalName": "প্রদ্বীপ",
+      "ShortName": "bn-BD-PradeepNeural",
+      "Gender": "Male",
+      "Locale": "bn-BD",
+      "LocaleName": "Bangla (Bangladesh)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "125"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bn-IN, TanishaaNeural)",
+      "DisplayName": "Tanishaa",
+      "LocalName": "তানিশা",
+      "ShortName": "bn-IN-TanishaaNeural",
+      "Gender": "Female",
+      "Locale": "bn-IN",
+      "LocaleName": "Bengali (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "123"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bn-IN, BashkarNeural)",
+      "DisplayName": "Bashkar",
+      "LocalName": "ভাস্কর",
+      "ShortName": "bn-IN-BashkarNeural",
+      "Gender": "Male",
+      "Locale": "bn-IN",
+      "LocaleName": "Bengali (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "131"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bs-BA, VesnaNeural)",
+      "DisplayName": "Vesna",
+      "LocalName": "Vesna",
+      "ShortName": "bs-BA-VesnaNeural",
+      "Gender": "Female",
+      "Locale": "bs-BA",
+      "LocaleName": "Bosnian (Bosnia and Herzegovina)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "135"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (bs-BA, GoranNeural)",
+      "DisplayName": "Goran",
+      "LocalName": "Goran",
+      "ShortName": "bs-BA-GoranNeural",
+      "Gender": "Male",
+      "Locale": "bs-BA",
+      "LocaleName": "Bosnian (Bosnia and Herzegovina)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "135"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ca-ES, JoanaNeural)",
+      "DisplayName": "Joana",
+      "LocalName": "Joana",
+      "ShortName": "ca-ES-JoanaNeural",
+      "Gender": "Female",
+      "Locale": "ca-ES",
+      "LocaleName": "Catalan",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "147"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ca-ES, EnricNeural)",
+      "DisplayName": "Enric",
+      "LocalName": "Enric",
+      "ShortName": "ca-ES-EnricNeural",
+      "Gender": "Male",
+      "Locale": "ca-ES",
+      "LocaleName": "Catalan",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "143"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ca-ES, AlbaNeural)",
+      "DisplayName": "Alba",
+      "LocalName": "Alba",
+      "ShortName": "ca-ES-AlbaNeural",
+      "Gender": "Female",
+      "Locale": "ca-ES",
+      "LocaleName": "Catalan",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (cs-CZ, VlastaNeural)",
+      "DisplayName": "Vlasta",
+      "LocalName": "Vlasta",
+      "ShortName": "cs-CZ-VlastaNeural",
+      "Gender": "Female",
+      "Locale": "cs-CZ",
+      "LocaleName": "Czech (Czechia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "118"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (cs-CZ, AntoninNeural)",
+      "DisplayName": "Antonin",
+      "LocalName": "Antonín",
+      "ShortName": "cs-CZ-AntoninNeural",
+      "Gender": "Male",
+      "Locale": "cs-CZ",
+      "LocaleName": "Czech (Czechia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "143"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (cy-GB, NiaNeural)",
+      "DisplayName": "Nia",
+      "LocalName": "Nia",
+      "ShortName": "cy-GB-NiaNeural",
+      "Gender": "Female",
+      "Locale": "cy-GB",
+      "LocaleName": "Welsh (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "136"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (cy-GB, AledNeural)",
+      "DisplayName": "Aled",
+      "LocalName": "Aled",
+      "ShortName": "cy-GB-AledNeural",
+      "Gender": "Male",
+      "Locale": "cy-GB",
+      "LocaleName": "Welsh (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "148"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (da-DK, ChristelNeural)",
+      "DisplayName": "Christel",
+      "LocalName": "Christel",
+      "ShortName": "da-DK-ChristelNeural",
+      "Gender": "Female",
+      "Locale": "da-DK",
+      "LocaleName": "Danish (Denmark)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (da-DK, JeppeNeural)",
+      "DisplayName": "Jeppe",
+      "LocalName": "Jeppe",
+      "ShortName": "da-DK-JeppeNeural",
+      "Gender": "Male",
+      "Locale": "da-DK",
+      "LocaleName": "Danish (Denmark)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "147"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (de-AT, IngridNeural)",
+      "DisplayName": "Ingrid",
+      "LocalName": "Ingrid",
+      "ShortName": "de-AT-IngridNeural",
+      "Gender": "Female",
+      "Locale": "de-AT",
+      "LocaleName": "German (Austria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "128"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (de-AT, JonasNeural)",
+      "DisplayName": "Jonas",
+      "LocalName": "Jonas",
+      "ShortName": "de-AT-JonasNeural",
+      "Gender": "Male",
+      "Locale": "de-AT",
+      "LocaleName": "German (Austria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "Gaming"],
+        "VoicePersonalities": ["Light-Hearted", "Whimsical", "Friendly"]
+      },
+      "WordsPerMinute": "130"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (de-CH, LeniNeural)",
+      "DisplayName": "Leni",
+      "LocalName": "Leni",
+      "ShortName": "de-CH-LeniNeural",
+      "Gender": "Female",
+      "Locale": "de-CH",
+      "LocaleName": "German (Switzerland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "121"
+    }
+  ]
+}

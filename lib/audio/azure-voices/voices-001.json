@@ -1,0 +1,354 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (af-ZA, AdriNeural)",
+      "DisplayName": "Adri",
+      "LocalName": "Adri",
+      "ShortName": "af-ZA-AdriNeural",
+      "Gender": "Female",
+      "Locale": "af-ZA",
+      "LocaleName": "Afrikaans (South Africa)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Assistant", "Narration"],
+        "VoicePersonalities": ["Well-Rounded", "Animated", "Bright"]
+      },
+      "WordsPerMinute": "147"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (af-ZA, WillemNeural)",
+      "DisplayName": "Willem",
+      "LocalName": "Willem",
+      "ShortName": "af-ZA-WillemNeural",
+      "Gender": "Male",
+      "Locale": "af-ZA",
+      "LocaleName": "Afrikaans (South Africa)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (am-ET, MekdesNeural)",
+      "DisplayName": "Mekdes",
+      "LocalName": "መቅደስ",
+      "ShortName": "am-ET-MekdesNeural",
+      "Gender": "Female",
+      "Locale": "am-ET",
+      "LocaleName": "Amharic (Ethiopia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "117"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (am-ET, AmehaNeural)",
+      "DisplayName": "Ameha",
+      "LocalName": "አምሀ",
+      "ShortName": "am-ET-AmehaNeural",
+      "Gender": "Male",
+      "Locale": "am-ET",
+      "LocaleName": "Amharic (Ethiopia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "112"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-AE, FatimaNeural)",
+      "DisplayName": "Fatima",
+      "LocalName": "فاطمة",
+      "ShortName": "ar-AE-FatimaNeural",
+      "Gender": "Female",
+      "Locale": "ar-AE",
+      "LocaleName": "Arabic (United Arab Emirates)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "110"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-AE, HamdanNeural)",
+      "DisplayName": "Hamdan",
+      "LocalName": "حمدان",
+      "ShortName": "ar-AE-HamdanNeural",
+      "Gender": "Male",
+      "Locale": "ar-AE",
+      "LocaleName": "Arabic (United Arab Emirates)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "115"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-BH, LailaNeural)",
+      "DisplayName": "Laila",
+      "LocalName": "ليلى",
+      "ShortName": "ar-BH-LailaNeural",
+      "Gender": "Female",
+      "Locale": "ar-BH",
+      "LocaleName": "Arabic (Bahrain)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "108"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-BH, AliNeural)",
+      "DisplayName": "Ali",
+      "LocalName": "علي",
+      "ShortName": "ar-BH-AliNeural",
+      "Gender": "Male",
+      "Locale": "ar-BH",
+      "LocaleName": "Arabic (Bahrain)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "121"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-DZ, AminaNeural)",
+      "DisplayName": "Amina",
+      "LocalName": "أمينة",
+      "ShortName": "ar-DZ-AminaNeural",
+      "Gender": "Female",
+      "Locale": "ar-DZ",
+      "LocaleName": "Arabic (Algeria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "110"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-DZ, IsmaelNeural)",
+      "DisplayName": "Ismael",
+      "LocalName": "إسماعيل",
+      "ShortName": "ar-DZ-IsmaelNeural",
+      "Gender": "Male",
+      "Locale": "ar-DZ",
+      "LocaleName": "Arabic (Algeria)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "115"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-EG, SalmaNeural)",
+      "DisplayName": "Salma",
+      "LocalName": "سلمى",
+      "ShortName": "ar-EG-SalmaNeural",
+      "Gender": "Female",
+      "Locale": "ar-EG",
+      "LocaleName": "Arabic (Egypt)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "103"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-EG, ShakirNeural)",
+      "DisplayName": "Shakir",
+      "LocalName": "شاكر",
+      "ShortName": "ar-EG-ShakirNeural",
+      "Gender": "Male",
+      "Locale": "ar-EG",
+      "LocaleName": "Arabic (Egypt)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "115"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-IQ, RanaNeural)",
+      "DisplayName": "Rana",
+      "LocalName": "رنا",
+      "ShortName": "ar-IQ-RanaNeural",
+      "Gender": "Female",
+      "Locale": "ar-IQ",
+      "LocaleName": "Arabic (Iraq)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "98"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-IQ, BasselNeural)",
+      "DisplayName": "Bassel",
+      "LocalName": "باسل",
+      "ShortName": "ar-IQ-BasselNeural",
+      "Gender": "Male",
+      "Locale": "ar-IQ",
+      "LocaleName": "Arabic (Iraq)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "113"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-JO, SanaNeural)",
+      "DisplayName": "Sana",
+      "LocalName": "سناء",
+      "ShortName": "ar-JO-SanaNeural",
+      "Gender": "Female",
+      "Locale": "ar-JO",
+      "LocaleName": "Arabic (Jordan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "98"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-JO, TaimNeural)",
+      "DisplayName": "Taim",
+      "LocalName": "تيم",
+      "ShortName": "ar-JO-TaimNeural",
+      "Gender": "Male",
+      "Locale": "ar-JO",
+      "LocaleName": "Arabic (Jordan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "113"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-KW, NouraNeural)",
+      "DisplayName": "Noura",
+      "LocalName": "نورا",
+      "ShortName": "ar-KW-NouraNeural",
+      "Gender": "Female",
+      "Locale": "ar-KW",
+      "LocaleName": "Arabic (Kuwait)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "121"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-KW, FahedNeural)",
+      "DisplayName": "Fahed",
+      "LocalName": "فهد",
+      "ShortName": "ar-KW-FahedNeural",
+      "Gender": "Male",
+      "Locale": "ar-KW",
+      "LocaleName": "Arabic (Kuwait)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "128"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-LB, LaylaNeural)",
+      "DisplayName": "Layla",
+      "LocalName": "ليلى",
+      "ShortName": "ar-LB-LaylaNeural",
+      "Gender": "Female",
+      "Locale": "ar-LB",
+      "LocaleName": "Arabic (Lebanon)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "99"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ar-LB, RamiNeural)",
+      "DisplayName": "Rami",
+      "LocalName": "رامي",
+      "ShortName": "ar-LB-RamiNeural",
+      "Gender": "Male",
+      "Locale": "ar-LB",
+      "LocaleName": "Arabic (Lebanon)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "101"
+    }
+  ]
+}

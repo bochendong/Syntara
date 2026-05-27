@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
-import dynamic from 'next/dynamic';
 import type { UIMessage } from 'ai';
 import { useSearchParams } from 'next/navigation';
 import { useStageStore } from '@/lib/store';
@@ -72,81 +71,22 @@ import {
 } from '@/components/stage/stage-toolbar-controls';
 import { StageConfirmationDialogs } from '@/components/stage/stage-confirmation-dialogs';
 import { useSlideRepair } from '@/components/stage/use-slide-repair';
+import {
+  CLASSROOM_LIVE2D_PRESENTER_ENABLED,
+  LIVE2D_PRESENTER_AVATAR_BY_ID,
+  SIDEBAR_VOICE_REPLY_PREFERRED_VOICE,
+  SIDEBAR_VOICE_REPLY_PROVIDER_ORDER,
+} from '@/components/stage/stage-presenter-config';
+import { isSemanticScrollScene } from '@/components/stage/stage-scene-helpers';
+import {
+  ClassroomSemanticSlideEditor,
+  ClassroomSlideCanvasEditor,
+  ProblemBankView,
+  RawDataPanel,
+  SlideNarrationEditor,
+} from '@/components/stage/stage-lazy-panels';
 
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
-const CLASSROOM_LIVE2D_PRESENTER_ENABLED = false;
-const LIVE2D_PRESENTER_AVATAR_BY_ID = {
-  haru: '/liv2d_poster/haru-avator.png',
-  hiyori: '/liv2d_poster/hiyori-avator.png',
-  mark: '/liv2d_poster/mark-avator.png',
-  mao: '/liv2d_poster/mao-avator.png',
-  rice: '/liv2d_poster/rice-avator.png',
-} as const;
-
-const SIDEBAR_VOICE_REPLY_PROVIDER_ORDER = [
-  'qwen-tts',
-  'azure-tts',
-  'glm-tts',
-  'openai-tts',
-  'elevenlabs-tts',
-] as const satisfies readonly TTSProviderId[];
-
-const SIDEBAR_VOICE_REPLY_PREFERRED_VOICE: Partial<Record<TTSProviderId, string>> = {
-  'qwen-tts': 'Stella',
-  'azure-tts': 'zh-CN-XiaoyiNeural',
-  'glm-tts': 'tongtong',
-  'openai-tts': 'nova',
-  'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
-};
-
-function StagePanelLoading() {
-  return (
-    <div className="flex h-full min-h-0 items-center justify-center bg-white/70 text-xs font-medium text-slate-500 dark:bg-slate-950/60 dark:text-slate-300">
-      正在准备面板…
-    </div>
-  );
-}
-
-const ProblemBankView = dynamic(
-  () => import('@/components/problem-bank/problem-bank-view').then((mod) => mod.ProblemBankView),
-  { ssr: false, loading: StagePanelLoading },
-);
-
-const SlideNarrationEditor = dynamic(
-  () => import('@/components/stage/slide-narration-editor').then((mod) => mod.SlideNarrationEditor),
-  { ssr: false, loading: StagePanelLoading },
-);
-
-const ClassroomSlideCanvasEditor = dynamic(
-  () =>
-    import('@/components/stage/classroom-slide-canvas-editor').then(
-      (mod) => mod.ClassroomSlideCanvasEditor,
-    ),
-  { ssr: false, loading: StagePanelLoading },
-);
-
-const ClassroomSemanticSlideEditor = dynamic(
-  () =>
-    import('@/components/stage/classroom-semantic-slide-editor').then(
-      (mod) => mod.ClassroomSemanticSlideEditor,
-    ),
-  { ssr: false, loading: StagePanelLoading },
-);
-
-const RawDataPanel = dynamic(
-  () => import('@/components/stage/raw-data-panel').then((mod) => mod.RawDataPanel),
-  { ssr: false, loading: StagePanelLoading },
-);
-
-function isSemanticScrollScene(scene: Scene | null): boolean {
-  return Boolean(
-    scene?.type === 'slide' &&
-    scene.content.type === 'slide' &&
-    scene.content.semanticDocument &&
-    scene.content.semanticRenderMode !== 'manual' &&
-    scene.content.webRenderMode !== 'slide',
-  );
-}
 
 /**
  * Stage Component

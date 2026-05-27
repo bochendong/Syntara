@@ -1,0 +1,499 @@
+[
+  {
+    "sourcePdf": "02SetsAndPropositions (1).pdf",
+    "slug": "sets-and-propositional-logic",
+    "title": "集合与命题逻辑",
+    "description": "MAT102 中文 notebook：集合、集合描述法、集合运算、笛卡尔积、命题、谓词和基本真值表。",
+    "slides": [
+      [
+        "封面：集合是数学里的容器",
+        "介绍集合是无序、元素明确、元素互异的对象收集。让学生知道集合是后续证明课里反复使用的基本语言。"
+      ],
+      [
+        "引入：什么才算“属于”？",
+        "用花色、动物、重复数字等例子讨论 membership 是否明确。强调 well-defined 和 distinct 是集合定义的核心。"
+      ],
+      [
+        "集合描述法",
+        "说明大集合或无限集合不能逐个列出，所以用性质描述。把 {x : property} 和自然语言互相翻译。"
+      ],
+      [
+        "常见数集",
+        "复习 N、Z、Q、R、Z+ 和非负整数。提醒 0 是否属于自然数存在约定差异，需要写清楚。"
+      ],
+      [
+        "集合运算：并、交、差",
+        "用 Venn 图直观定义 union、intersection、set difference，并用小有限集合做计算。"
+      ],
+      ["补集与全集", "解释补集依赖全集 U。同一个集合在 R、Z 或其他全集下，补集可能完全不同。"],
+      ["笛卡尔积", "介绍 ordered pair 和 A x B。强调顺序重要，所以 A x B 通常不同于 B x A。"],
+      [
+        "子集与集合相等",
+        "定义 S subset T，并说明集合相等要证明两个方向的包含。把子集证明写成“任取一个元素”。"
+      ],
+      [
+        "命题 vs 谓词",
+        "区分有确定真值的 statement 和含变量的 predicate。说明固定变量后，谓词才变成命题。"
+      ],
+      [
+        "AND、OR、NOT 真值表",
+        "建立合取、析取、否定的真值表。特别强调数学里的 OR 是 inclusive OR。"
+      ],
+      [
+        "常见错误：重复、顺序、模糊说法",
+        "纠正把重复元素算多次、把有序对当集合、过早把谓词当命题等错误。"
+      ],
+      [
+        "总结与下节钩子：走向量词",
+        "总结集合记号、集合运算、子集证明和基础逻辑。预告下节用 forall 和 exists 把谓词变成完整数学断言。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "03LogicCont.pdf",
+    "slug": "logic-quantifiers-implications",
+    "title": "量词、蕴含与否定",
+    "description": "MAT102 中文 notebook：全称量词、存在量词、多重量词、蕴含、逆否命题和数学语句的否定。",
+    "slides": [
+      [
+        "封面：逻辑继续",
+        "把本节定位为从简单命题进入完整数学语句。预览量词、蕴含、逆命题、逆否命题和否定。"
+      ],
+      [
+        "引入：“所有人”还是“某个人”？",
+        "用 everyday claims 展示隐藏量词。让学生看到一句话的真值常常由量词位置决定。"
+      ],
+      [
+        "全称量词与存在量词",
+        "定义 forall 和 exists，并解释它们如何把 predicate 变成 proposition。对比证明所有情况和找一个例子。"
+      ],
+      [
+        "怎样证明带量词的语句",
+        "存在命题给 witness，全称命题任取 arbitrary element 再证明。把证明动作和量词类型配对。"
+      ],
+      [
+        "多重量词：顺序很重要",
+        "比较 forall x exists y 和 exists y forall x。强调后出现的选择是否可以依赖前面的变量。"
+      ],
+      [
+        "把符号翻译成白话",
+        "练习把符号语句改写成不含变量名的自然语言。用课堂、生日或多项式例子显示量词结构。"
+      ],
+      [
+        "否定量词",
+        "展示 not forall 变成 exists not，not exists 变成 forall not。把 counterexample 和全称命题的否定联系起来。"
+      ],
+      ["蕴含与 vacuous truth", "用真值表定义 P => Q，并解释当前提为假时蕴含为什么为真。"],
+      [
+        "逆命题 vs 逆否命题",
+        "定义 converse 和 contrapositive。强调原命题等价于逆否命题，但不等价于逆命题。"
+      ],
+      [
+        "用逆否命题证明",
+        "讲解“若 n^2 为偶数，则 n 为偶数”。通过证明 n 为奇数推出 n^2 为奇数来完成原命题。"
+      ],
+      ["否定蕴含与反例", "说明 not(P => Q) 等于 P and not Q。反例就是让假设成立、结论失败的对象。"],
+      [
+        "语言陷阱与下节钩子",
+        "总结 inclusive OR、NOT 的位置、英文 if-then 与数学蕴含的差异。预告反证法和关系。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "04Relations.pdf",
+    "slug": "relations-equivalence-orders",
+    "title": "关系、等价与序",
+    "description": "MAT102 中文 notebook：从关系命题与量词否定过渡到反证法，再进入二元关系、关系性质、等价类、偏序、极大极小元素和上下界。",
+    "slides": [
+      [
+        "封面：关系是数学里的比较方式",
+        "介绍 relation 是比较对象的工具。先说明上一节量词和否定会变成证明策略：遇到关系性质时，常用反例和反证处理“不是这样”的情况。"
+      ],
+      [
+        "引入：关系命题为什么需要证明策略？",
+        "从等号、小于号和整除出发，让学生把 relation 看成从 Cartesian product 中挑出的 pair。强调判断 aRb、全称性质或反例时，需要先会处理否定。"
+      ],
+      [
+        "桥梁：从否定命题到反证法",
+        "把上一节 not forall、exists not 接到证明动作：当直接证明困难时，先假设目标为假，再推出与定义或已知事实冲突。"
+      ],
+      [
+        "反证法的基本结构",
+        "正式整理反证法四步：反设目标为假，结合定义和已知条件推理，推出矛盾，再回到原命题成立。"
+      ],
+      [
+        "反证法热身：先练一招再回到关系",
+        "用 sqrt(2) 无理、没有最小正实数等例子演示反证法。强调这不是换主题，而是为了后面证明关系性质和排除错误关系。"
+      ],
+      [
+        "回到关系：二元关系是乘积的子集",
+        "定义 A 到 B 的 relation 是 A x B 的子集。用有限 pair 说明 aRb 的含义，并把反例/反证作为之后检查关系性质的工具。"
+      ],
+      [
+        "关系性质检查表",
+        "定义 reflexive、irreflexive、symmetric、anti-symmetric、transitive、total、left-total、functional，并把每条变成可检查问题。"
+      ],
+      [
+        "用例子测试关系性质",
+        "通过具体关系演示如何证明某性质成立，或用 counterexample 否定某性质。"
+      ],
+      [
+        "等价关系",
+        "定义 equivalence relation 是 reflexive、symmetric、transitive。解释它表示“在某种意义下相同”。"
+      ],
+      [
+        "等价类与划分",
+        "定义 [a] = {x : x ~ a}。说明等价类如何把对象分组，并用 mod 或角度例子可视化。"
+      ],
+      [
+        "序关系与偏序集",
+        "定义弱序、强序、偏序和全序。用 subset inclusion 展示不是所有元素都可比较。"
+      ],
+      [
+        "极大、极小、最大、最小",
+        "区分 maximal 和 maximum、minimal 和 minimum。用整除关系展示可能有多个极大元素。"
+      ],
+      [
+        "上下界、上确界、下确界",
+        "定义 upper/lower bound、supremum、infimum。总结 relation 如何组织数学结构，并引向后续证明主题。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "05FunctionsI.pdf",
+    "slug": "functions-i",
+    "title": "函数 I：像、原像与映射行为",
+    "description": "MAT102 中文 notebook：函数的正式定义、像、原像、单射、满射、双射和常见符号误区。",
+    "slides": [
+      [
+        "封面：函数是数学机器",
+        "介绍函数不是只是一条公式，而是把一个集合的信息运输到另一个集合的结构。"
+      ],
+      [
+        "总览：一个函数由什么数据决定？",
+        "强调 domain、codomain、规则或关系、graph 是函数的核心数据。"
+      ],
+      ["引入：每个输入恰好一个输出", "用箭头图解释 left-total 和 functional，让函数定义变得直观。"],
+      ["问题框架：codomain 不是 range", "说明输出允许落在哪里，和实际落到哪里，是两个不同概念。"],
+      ["集合的像", "讲 f(U) 是 U 中输入产生的所有输出，用区间例子解释。"],
+      ["集合的原像", "讲 f^{-1}(V) 是所有落入 V 的输入，强调这里不需要 inverse function 存在。"],
+      [
+        "例题：平方函数作用在区间上",
+        "说明为什么 f([-1,2]) = [0,4] 需要两个方向的包含，而不是只看端点。"
+      ],
+      ["例题：投影与圆柱", "用 p: R^3 -> R^2 可视化 preimage 如何变成高维图形。"],
+      ["单射：最多一支箭头射入", "定义 one-to-one，并把代数证明和箭头图联系起来。"],
+      ["满射：至少一支箭头射入", "定义 onto，并说明失败与 codomain 的选择有关。"],
+      [
+        "常见错误：domain、codomain、f^{-1}",
+        "区分公式相同但函数不同、codomain 和 range、preimage notation 和 inverse function。"
+      ],
+      [
+        "总结与下节钩子：双射就是恰好一个",
+        "把单射和满射合成双射，为 inverse 和 cardinality 做铺垫。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "06FunctionsII.pdf",
+    "slug": "functions-ii-cardinality",
+    "title": "函数 II：逆函数、双射与无限大小",
+    "description": "MAT102 中文 notebook：逆函数、双射、基数、可数性、Cantor-Schroder-Bernstein 和 Cantor 对角线法。",
+    "slides": [
+      [
+        "封面：用函数测量集合大小",
+        "把单射、满射、双射定位为比较集合大小的工具，尤其用于无限集合。"
+      ],
+      [
+        "总览：从逆函数到基数",
+        "预览 inverse、bijection、countability、diagonalization 和 Cantor theorem。"
+      ],
+      [
+        "引入：inverse 到底在 undo 什么？",
+        "从加法逆元和乘法逆元出发，引出 identity 和 undo 操作。"
+      ],
+      ["函数复合与恒等映射", "用 f o g = id 和 g o f = id 建立 inverse function 的定义。"],
+      [
+        "问题框架：逆函数为什么会失败？",
+        "说明非满射会漏掉输出，非单射会合并输入，两者都会阻碍真正的 inverse。"
+      ],
+      ["核心桥梁：可逆 iff 双射", "讲 bijection 正是有双边 inverse 的函数。"],
+      [
+        "基数：定义 |S| <= |T|",
+        "用 injection 作为 no larger than 的正式含义，并用有限集合做 sanity check。"
+      ],
+      ["无限集合可以和真子集一样大", "用 N 和偶自然数展示无限集合违背有限直觉。"],
+      ["Cantor-Schroder-Bernstein 定理", "把定理解释为：互相有 injection，就能得到相同基数。"],
+      [
+        "可数集合：N、Z、Q",
+        "解释 countable 和 countably infinite，并概览整数、有理数为什么可以排成列表。"
+      ],
+      [
+        "常见错误：看起来更大不等于更大",
+        "提醒无限集合里 subset 不一定严格更小，dense 的有理数仍然可数。"
+      ],
+      ["总结与下节钩子：对角线法", "总结 R 不可数，Cantor theorem 说明 power set 总是更大。"]
+    ]
+  },
+  {
+    "sourcePdf": "07NumberTheoryI.pdf",
+    "slug": "number-theory-i-euclidean-algorithm",
+    "title": "数论 I：整除、最大公因数与欧几里得算法",
+    "description": "MAT102 中文 notebook：整除、良序原理、带余除法、gcd、欧几里得算法和 Bezout 恒等式。",
+    "slides": [
+      ["封面：逻辑进入数论", "介绍数论是证明技巧变得具体、可计算的地方。"],
+      [
+        "总览：从整除到 Bezout",
+        "预览 divisibility、well-ordering、division algorithm、gcd、Euclidean algorithm 和 Bezout identity。"
+      ],
+      ["引入：为什么余数重要？", "从熟悉的带余除法引出算法背后的结构。"],
+      ["整除语言：b | a", "用 a = bk 定义 divisibility，并练习把符号命题翻译成整数方程。"],
+      [
+        "问题框架：怎样证明整除规则？",
+        "展示 transitivity 和 linear combination 如何通过代入直接推出。"
+      ],
+      ["良序原理", "说明 least positive element 是数论存在性证明的重要引擎。"],
+      ["带余除法", "讲存在唯一的 a = qb + r，其中 0 <= r < b。"],
+      ["例题：证明 3 | n^3 - n", "用 mod 3 分情况证明，并提示也可以用因式分解更简洁地看。"],
+      ["最大公因数", "定义 gcd(a,b)、互素，以及含 0 和 prime 的特殊情况。"],
+      ["欧几里得算法实战", "用连续取余高效计算 gcd(616,427)=7。"],
+      ["Bezout 恒等式与回代", "讲如何反向使用欧几里得算法，找到整数 m,n 使 am + bn = gcd(a,b)。"],
+      [
+        "常见错误与下节钩子",
+        "提醒符号错误、混淆 quotient/remainder 条件、没完成 back-substitution；预告模逆和更深数论。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "08NumberTheoryII.pdf",
+    "slug": "number-theory-ii-primes",
+    "title": "线性丢番图方程与素数",
+    "description": "MAT102 中文 notebook：互素整除、线性丢番图方程、整数通解、素数、算术基本定理和欧几里得无限素数证明。",
+    "slides": [
+      [
+        "封面：从 gcd 走向素数",
+        "把本节设为欧几里得算法到素因数分解之间的桥梁。预览整数方程和素数如何控制整除。"
+      ],
+      [
+        "引入：什么时候有整数解？",
+        "从 504x + 1155y = 42 出发，问为什么有理数解容易，但整数解特殊。"
+      ],
+      [
+        "关键工具：互素整除",
+        "介绍若 a | bc 且 gcd(a,b)=1，则 a | c。这是后面 prime argument 的 cancellation principle。"
+      ],
+      [
+        "问题框架：线性丢番图方程",
+        "定义 ax + by = d，核心问题不是有无有理数解，而是什么时候有整数解。"
+      ],
+      [
+        "存在性定理：gcd 检查",
+        "给出 ax + by = c 有整数解 iff gcd(a,b) | c，并连接 Bezout identity。"
+      ],
+      [
+        "例题：找一个解",
+        "用 504x + 1155y = 42 展示 gcd、divisibility check、反向回代、scale 的完整流程。"
+      ],
+      [
+        "所有解，不只是一个解",
+        "从一个 particular solution 推出 general solution，并解释参数如何沿着整数解格点滑动。"
+      ],
+      [
+        "限制条件例题：非负解",
+        "用 x = -32 + 55n、y = 14 - 24n 的不等式检查是否有 non-negative solutions。"
+      ],
+      ["重新定义素数", "比较“不能再分解”的直觉定义和 p | ab => p | a or p | b 的整除定义。"],
+      ["素数推论与无理性", "用 p | n iff p | n^2 和 sqrt(p) 无理展示素数作为证明引擎。"],
+      [
+        "算术基本定理",
+        "陈述素因数分解的存在唯一性。说明证明思路：well-ordering 给存在，prime divisibility 给唯一。"
+      ],
+      [
+        "总结与下节钩子：无限多个素数",
+        "用 Euclid proof 收束无限素数，并预告 modular arithmetic 与 prime moduli。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "09NumberTheoryIII.pdf",
+    "slug": "number-theory-iii-modular-arithmetic",
+    "title": "模运算与费马小定理",
+    "description": "MAT102 中文 notebook：模同余、模运算、消去律、素数模、Fermat little theorem 和 Zp 中的逆元。",
+    "slides": [
+      [
+        "封面：像时钟一样做算术",
+        "介绍 modular arithmetic 是会循环的算术，并把 equivalence relation 变成可计算的 number system。"
+      ],
+      ["引入：为什么只看最后一位？", "用 4^441 的最后一位作为问题，动机是把大数降到 mod 10。"],
+      [
+        "回顾：等价关系",
+        "简要复习 reflexive、symmetric、transitive，为 congruence modulo n 做铺垫。"
+      ],
+      [
+        "定义：模 n 同余",
+        "定义 a congruent b mod n 当且仅当 n | (b-a)，并用 1 congruent 29 mod 4 固定记号。"
+      ],
+      [
+        "为什么同余是等价关系",
+        "逐步证明 reflexive、symmetric、transitive。强调同余按相同余数给整数分组。"
+      ],
+      [
+        "加法和乘法良定义",
+        "说明若 a congruent r、b congruent s，则和与积仍保持同余。这允许我们用余数做算术。"
+      ],
+      ["Z_n 的世界", "定义 [0] 到 [n-1] 和 Z_n，用 Z4 表格展示有限系统里的加法乘法。"],
+      ["例题：大幂的最后一位", "讲 4^441 的最后一位策略：分阶段降幂、观察循环，而不是硬算。"],
+      ["常见错误：不能随便消去", "对比 coprime 条件下的合法消去和 mod 4 中的失败例子。"],
+      [
+        "素数模：消去律更好用",
+        "解释在 Zp 中，p 为素数时每个非零类都与 p 互素，因此行为更像普通算术。"
+      ],
+      [
+        "费马小定理",
+        "陈述并证明 p 为素数且 p 不整除 a 时，a^(p-1) congruent 1 mod p。用非零剩余类重排解释。"
+      ],
+      [
+        "总结与下节钩子：Zp 中的逆元",
+        "总结 Zp 的每个非零元素都有乘法逆元，并预告更抽象的代数结构。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "10InductionI-1.pdf",
+    "slug": "induction-i",
+    "title": "数学归纳法、强归纳与递归",
+    "description": "MAT102 中文 notebook：普通归纳、归纳例题、求和记号、强归纳、递归定义和结构归纳。",
+    "slides": [
+      [
+        "封面：像多米诺骨牌一样证明",
+        "介绍 induction 用有限工作证明无限多个命题。用 domino metaphor 解释 base case 和 induction step。"
+      ],
+      [
+        "引入：一个证明如何覆盖所有 n？",
+        "用 2n + 2 <= 4n 这样的命题提出问题：检查例子不是证明，但链式推出可以。"
+      ],
+      [
+        "归纳法原理",
+        "陈述证明 P(1) 和 P(k) => P(k+1)。强调 base case、induction hypothesis、target statement。"
+      ],
+      [
+        "例题：不等式归纳证明",
+        "用归纳法证明 2n + 2 <= 4n，展示如何在不等式链中使用 induction hypothesis。"
+      ],
+      ["例题：整除命题归纳证明", "证明 5 | (6^k - 1)。说明整除证明常把假设写成 6^k - 1 = 5d。"],
+      ["几何例子：L 形铺砖", "用缺一格的 2^n x 2^n 棋盘展示归纳法也可以是构造性的几何策略。"],
+      ["Sigma 记号像 for-loop", "介绍 summation notation 的上下限、index、summand，并连接到循环。"],
+      [
+        "用归纳证明求和公式",
+        "证明类似 sum 1/[n(n+1)] = k/(k+1) 的 telescoping formula，展示旧和加新项。"
+      ],
+      [
+        "归纳证明常见错误",
+        "提醒漏 base case、假设结论、变量混乱、没有明确写 induction hypothesis。"
+      ],
+      ["不止从 1 开始的归纳", "说明归纳可以从其他起点开始，也可以用不同步长。归纳结构要匹配命题。"],
+      [
+        "强归纳与多个 base cases",
+        "用 3-cent 和 5-cent postage 例子介绍 strong induction，解释为什么有时需要多个 base cases。"
+      ],
+      [
+        "递归、结构归纳与下节钩子",
+        "定义 basis elements 和 constructors 的递归构造，并连接 structural induction。预告递归对象。"
+      ]
+    ]
+  },
+  {
+    "sourcePdf": "11GroupTheory-2.pdf",
+    "slug": "group-theory-foundations",
+    "title": "群论：从对称到循环群",
+    "description": "MAT102 中文 notebook：群公理、例子与反例、交换群与非交换群、二面体群、子群判别法和循环群。",
+    "slides": [
+      ["封面：什么是群？", "介绍 group 是描述结构与对称性的代数系统，出现在数学、科学和计算中。"],
+      [
+        "引入：不同世界里的相同动作",
+        "用旋转、模运算和常见数系展示看似不同的对象可能遵守同一套规则。"
+      ],
+      [
+        "问题框架：群必须满足什么？",
+        "给出 associativity、identity、inverses 三个群公理，并强调 closure 已包含在 binary operation 中。"
+      ],
+      [
+        "第一个例子：Z_n 的加法",
+        "证明 Z_n 在加法下满足群公理，用 [0]_n 和 additive inverse 固定直觉。"
+      ],
+      [
+        "反例：公理在哪里坏掉？",
+        "比较正整数加法、含 0 的有理数乘法等例子，看缺少 inverse 或 identity 的地方。"
+      ],
+      [
+        "Abelian 与 non-Abelian",
+        "把 commutativity 作为额外性质介绍，对比数系群和 composition order matters 的 symmetric group。"
+      ],
+      [
+        "对称例子：二面体群 D3",
+        "用三角形对称 e、r、r^2、s、sr、sr^2 解释 rotation/reflection，并展示 sr != rs。"
+      ],
+      [
+        "群公理推出的基本事实",
+        "整理 identity/inverse 唯一性、cancellation、(ab)^-1 = b^-1 a^-1 等结论。"
+      ],
+      ["群的阶与元素的阶", "区分 group order 和 element order，用 Z8*、D3、Z 等例子说明。"],
+      [
+        "子群：群里面的群",
+        "定义 subgroup，并强调 operation 必须相同。用 Z <= Q <= R 和模运算例子区分 subset 和 subgroup。"
+      ],
+      ["子群判别法实战", "讲高效判别法 ab^-1 in H，并应用到 {h in G : hgh^-1 = g} 这类集合。"],
+      ["循环群与下节钩子", "展示一个元素如何生成整个群或子群，并引出“同构：同一个结构的不同名字”。"]
+    ]
+  },
+  {
+    "sourcePdf": "12GroupTheoryII.pdf",
+    "slug": "group-morphisms-isomorphisms",
+    "title": "同态与同构：换名字后的同一个群",
+    "description": "MAT102 中文 notebook：群同态、模类上的良定义映射、核、像、单射判别、同构、不变量和循环群分类。",
+    "slides": [
+      [
+        "封面：同态与结构",
+        "把本节围绕 preserving group operation 的函数展开，并说明这些函数揭示哪些群结构相同。"
+      ],
+      ["引入：三张表，一个群", "比较 Z2、{[1]6,[5]6} 和 <[2]4>，展示只改元素名字但结构不变。"],
+      ["问题框架：普通函数不够", "解释群之间的映射不仅要送元素，还必须尊重两边的 operation。"],
+      [
+        "同态：保留运算",
+        "定义 group homomorphism phi(xy)=phi(x)phi(y)，强调 domain 和 codomain 的 operation 可以不同。"
+      ],
+      [
+        "模类映射必须良定义",
+        "用 phi: Z6 -> Z12, phi([x]6)=[2x]12 说明 equivalence classes 上的映射要先检查 well-defined。"
+      ],
+      [
+        "常见错误：公式好看但映射失败",
+        "对比 [x]6 -> [3x]12 或 [x]6 -> [x]12，区分 not well-defined 和 well-defined but not homomorphic。"
+      ],
+      [
+        "核与像：什么被压缩，什么出现",
+        "定义 ker(phi) 和 im(phi)，用 Z12 -> Z6 例子说明 kernel 记录被送到 identity 的元素。"
+      ],
+      [
+        "同态的基本性质",
+        "总结 identity map to identity、inverse map to inverse、finite orders may shrink、kernel/image are subgroups。"
+      ],
+      [
+        "通过 kernel 判断单射",
+        "讲 powerful test：homomorphism 是 injective iff kernel 只有 identity。"
+      ],
+      [
+        "同构：完美翻译",
+        "定义 isomorphism 是 bijective homomorphism，并连接到 same group in disguise。"
+      ],
+      [
+        "例子与不变量",
+        "展示 Z2、U、<[2]4> 同构，并用 order、cyclic、abelian、element order 等不变量做证据。"
+      ],
+      [
+        "总结：循环群分类",
+        "以 every infinite cyclic group is isomorphic to Z、finite cyclic group of order n is isomorphic to Zn 收束。"
+      ]
+    ]
+  }
+]

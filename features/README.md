@@ -13,3 +13,4 @@ This directory is the product-domain boundary for Syntara. New code should enter
 
 During migration, each feature can re-export old modules as a facade. The important rule is that new or touched feature work should import from `features/<domain>` first, then old `lib/*` paths can be retired gradually.
 
+QA implementations should follow the same domain boundary. Keep public route shells under `app/(qa)` and place large QA clients, panels, fixtures, and helpers under the owning feature's `qa` directory.

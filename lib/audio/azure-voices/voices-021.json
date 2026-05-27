@@ -1,0 +1,350 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, SeoHyeonNeural)",
+      "DisplayName": "SeoHyeon",
+      "LocalName": "서현",
+      "ShortName": "ko-KR-SeoHyeonNeural",
+      "Gender": "Female",
+      "Locale": "ko-KR",
+      "LocaleName": "Korean (Korea)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Audiobook", "Narration"],
+        "VoicePersonalities": ["Curious", "Cheerful"]
+      },
+      "WordsPerMinute": "258"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, SoonBokNeural)",
+      "DisplayName": "SoonBok",
+      "LocalName": "순복",
+      "ShortName": "ko-KR-SoonBokNeural",
+      "Gender": "Female",
+      "Locale": "ko-KR",
+      "LocaleName": "Korean (Korea)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Assistant", "Narration"],
+        "VoicePersonalities": ["Animated", "Bright"]
+      },
+      "WordsPerMinute": "271"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, YuJinNeural)",
+      "DisplayName": "YuJin",
+      "LocalName": "유진",
+      "ShortName": "ko-KR-YuJinNeural",
+      "Gender": "Female",
+      "Locale": "ko-KR",
+      "LocaleName": "Korean (Korea)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "288"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lo-LA, KeomanyNeural)",
+      "DisplayName": "Keomany",
+      "LocalName": "ແກ້ວມະນີ",
+      "ShortName": "lo-LA-KeomanyNeural",
+      "Gender": "Female",
+      "Locale": "lo-LA",
+      "LocaleName": "Lao (Laos)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "33"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lo-LA, ChanthavongNeural)",
+      "DisplayName": "Chanthavong",
+      "LocalName": "ຈັນທະວົງ",
+      "ShortName": "lo-LA-ChanthavongNeural",
+      "Gender": "Male",
+      "Locale": "lo-LA",
+      "LocaleName": "Lao (Laos)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "35"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lt-LT, OnaNeural)",
+      "DisplayName": "Ona",
+      "LocalName": "Ona",
+      "ShortName": "lt-LT-OnaNeural",
+      "Gender": "Female",
+      "Locale": "lt-LT",
+      "LocaleName": "Lithuanian (Lithuania)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "107"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lt-LT, LeonasNeural)",
+      "DisplayName": "Leonas",
+      "LocalName": "Leonas",
+      "ShortName": "lt-LT-LeonasNeural",
+      "Gender": "Male",
+      "Locale": "lt-LT",
+      "LocaleName": "Lithuanian (Lithuania)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "111"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lv-LV, EveritaNeural)",
+      "DisplayName": "Everita",
+      "LocalName": "Everita",
+      "ShortName": "lv-LV-EveritaNeural",
+      "Gender": "Female",
+      "Locale": "lv-LV",
+      "LocaleName": "Latvian (Latvia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "106"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (lv-LV, NilsNeural)",
+      "DisplayName": "Nils",
+      "LocalName": "Nils",
+      "ShortName": "lv-LV-NilsNeural",
+      "Gender": "Male",
+      "Locale": "lv-LV",
+      "LocaleName": "Latvian (Latvia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "120"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mk-MK, MarijaNeural)",
+      "DisplayName": "Marija",
+      "LocalName": "Марија",
+      "ShortName": "mk-MK-MarijaNeural",
+      "Gender": "Female",
+      "Locale": "mk-MK",
+      "LocaleName": "Macedonian (North Macedonia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "127"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mk-MK, AleksandarNeural)",
+      "DisplayName": "Aleksandar",
+      "LocalName": "Александар",
+      "ShortName": "mk-MK-AleksandarNeural",
+      "Gender": "Male",
+      "Locale": "mk-MK",
+      "LocaleName": "Macedonian (North Macedonia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "127"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ml-IN, SobhanaNeural)",
+      "DisplayName": "Sobhana",
+      "LocalName": "ശോഭന",
+      "ShortName": "ml-IN-SobhanaNeural",
+      "Gender": "Female",
+      "Locale": "ml-IN",
+      "LocaleName": "Malayalam (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "87"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ml-IN, MidhunNeural)",
+      "DisplayName": "Midhun",
+      "LocalName": "മിഥുൻ",
+      "ShortName": "ml-IN-MidhunNeural",
+      "Gender": "Male",
+      "Locale": "ml-IN",
+      "LocaleName": "Malayalam (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "93"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mn-MN, YesuiNeural)",
+      "DisplayName": "Yesui",
+      "LocalName": "Есүй",
+      "ShortName": "mn-MN-YesuiNeural",
+      "Gender": "Female",
+      "Locale": "mn-MN",
+      "LocaleName": "Mongolian (Mongolia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "142"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mn-MN, BataaNeural)",
+      "DisplayName": "Bataa",
+      "LocalName": "Батаа",
+      "ShortName": "mn-MN-BataaNeural",
+      "Gender": "Male",
+      "Locale": "mn-MN",
+      "LocaleName": "Mongolian (Mongolia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "142"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mr-IN, AarohiNeural)",
+      "DisplayName": "Aarohi",
+      "LocalName": "आरोही",
+      "ShortName": "mr-IN-AarohiNeural",
+      "Gender": "Female",
+      "Locale": "mr-IN",
+      "LocaleName": "Marathi (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "99"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mr-IN, ManoharNeural)",
+      "DisplayName": "Manohar",
+      "LocalName": "मनोहर",
+      "ShortName": "mr-IN-ManoharNeural",
+      "Gender": "Male",
+      "Locale": "mr-IN",
+      "LocaleName": "Marathi (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "100"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ms-MY, YasminNeural)",
+      "DisplayName": "Yasmin",
+      "LocalName": "Yasmin",
+      "ShortName": "ms-MY-YasminNeural",
+      "Gender": "Female",
+      "Locale": "ms-MY",
+      "LocaleName": "Malay (Malaysia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "112"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ms-MY, OsmanNeural)",
+      "DisplayName": "Osman",
+      "LocalName": "Osman",
+      "ShortName": "ms-MY-OsmanNeural",
+      "Gender": "Male",
+      "Locale": "ms-MY",
+      "LocaleName": "Malay (Malaysia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "Gaming"],
+        "VoicePersonalities": ["Whimsical", "Friendly"]
+      },
+      "WordsPerMinute": "118"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mt-MT, GraceNeural)",
+      "DisplayName": "Grace",
+      "LocalName": "Grace",
+      "ShortName": "mt-MT-GraceNeural",
+      "Gender": "Female",
+      "Locale": "mt-MT",
+      "LocaleName": "Maltese (Malta)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "136"
+    }
+  ]
+}

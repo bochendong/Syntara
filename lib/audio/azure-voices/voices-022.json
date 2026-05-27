@@ -1,0 +1,350 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (mt-MT, JosephNeural)",
+      "DisplayName": "Joseph",
+      "LocalName": "Joseph",
+      "ShortName": "mt-MT-JosephNeural",
+      "Gender": "Male",
+      "Locale": "mt-MT",
+      "LocaleName": "Maltese (Malta)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "130"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (my-MM, NilarNeural)",
+      "DisplayName": "Nilar",
+      "LocalName": "နီလာ",
+      "ShortName": "my-MM-NilarNeural",
+      "Gender": "Female",
+      "Locale": "my-MM",
+      "LocaleName": "Burmese (Myanmar)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "63"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (my-MM, ThihaNeural)",
+      "DisplayName": "Thiha",
+      "LocalName": "သီဟ",
+      "ShortName": "my-MM-ThihaNeural",
+      "Gender": "Male",
+      "Locale": "my-MM",
+      "LocaleName": "Burmese (Myanmar)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "71"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nb-NO, PernilleNeural)",
+      "DisplayName": "Pernille",
+      "LocalName": "Pernille",
+      "ShortName": "nb-NO-PernilleNeural",
+      "Gender": "Female",
+      "Locale": "nb-NO",
+      "LocaleName": "Norwegian Bokmål (Norway)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "160"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nb-NO, FinnNeural)",
+      "DisplayName": "Finn",
+      "LocalName": "Finn",
+      "ShortName": "nb-NO-FinnNeural",
+      "Gender": "Male",
+      "Locale": "nb-NO",
+      "LocaleName": "Norwegian Bokmål (Norway)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "145"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nb-NO, IselinNeural)",
+      "DisplayName": "Iselin",
+      "LocalName": "Iselin",
+      "ShortName": "nb-NO-IselinNeural",
+      "Gender": "Female",
+      "Locale": "nb-NO",
+      "LocaleName": "Norwegian Bokmål (Norway)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Bright", "Clear"]
+      },
+      "WordsPerMinute": "154"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ne-NP, HemkalaNeural)",
+      "DisplayName": "Hemkala",
+      "LocalName": "हेमकला",
+      "ShortName": "ne-NP-HemkalaNeural",
+      "Gender": "Female",
+      "Locale": "ne-NP",
+      "LocaleName": "Nepali (Nepal)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "119"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ne-NP, SagarNeural)",
+      "DisplayName": "Sagar",
+      "LocalName": "सागर",
+      "ShortName": "ne-NP-SagarNeural",
+      "Gender": "Male",
+      "Locale": "ne-NP",
+      "LocaleName": "Nepali (Nepal)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "119"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nl-BE, DenaNeural)",
+      "DisplayName": "Dena",
+      "LocalName": "Dena",
+      "ShortName": "nl-BE-DenaNeural",
+      "Gender": "Female",
+      "Locale": "nl-BE",
+      "LocaleName": "Dutch (Belgium)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "134"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nl-BE, ArnaudNeural)",
+      "DisplayName": "Arnaud",
+      "LocalName": "Arnaud",
+      "ShortName": "nl-BE-ArnaudNeural",
+      "Gender": "Male",
+      "Locale": "nl-BE",
+      "LocaleName": "Dutch (Belgium)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "143"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nl-NL, FennaNeural)",
+      "DisplayName": "Fenna",
+      "LocalName": "Fenna",
+      "ShortName": "nl-NL-FennaNeural",
+      "Gender": "Female",
+      "Locale": "nl-NL",
+      "LocaleName": "Dutch (Netherlands)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "Narration"],
+        "VoicePersonalities": ["Bright", "Confident"]
+      },
+      "WordsPerMinute": "140"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nl-NL, MaartenNeural)",
+      "DisplayName": "Maarten",
+      "LocalName": "Maarten",
+      "ShortName": "nl-NL-MaartenNeural",
+      "Gender": "Male",
+      "Locale": "nl-NL",
+      "LocaleName": "Dutch (Netherlands)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Narration", "Chat"],
+        "VoicePersonalities": ["Formal", "Upbeat"]
+      },
+      "WordsPerMinute": "151"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (nl-NL, ColetteNeural)",
+      "DisplayName": "Colette",
+      "LocalName": "Colette",
+      "ShortName": "nl-NL-ColetteNeural",
+      "Gender": "Female",
+      "Locale": "nl-NL",
+      "LocaleName": "Dutch (Netherlands)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Bright", "Clear"]
+      },
+      "WordsPerMinute": "132"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (or-IN, SubhasiniNeural)",
+      "DisplayName": "Subhasini",
+      "LocalName": "ସୁଭାସିନୀ",
+      "ShortName": "or-IN-SubhasiniNeural",
+      "Gender": "Female",
+      "Locale": "or-IN",
+      "LocaleName": "Odia (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (or-IN, SukantNeural)",
+      "DisplayName": "Sukant",
+      "LocalName": "ସୁକାନ୍ତ",
+      "ShortName": "or-IN-SukantNeural",
+      "Gender": "Male",
+      "Locale": "or-IN",
+      "LocaleName": "Odia (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (pa-IN, OjasNeural)",
+      "DisplayName": "Ojas",
+      "LocalName": "ਓਜਸ",
+      "ShortName": "pa-IN-OjasNeural",
+      "Gender": "Male",
+      "Locale": "pa-IN",
+      "LocaleName": "Punjabi (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (pa-IN, VaaniNeural)",
+      "DisplayName": "Vaani",
+      "LocalName": "ਵਾਨੀ",
+      "ShortName": "pa-IN-VaaniNeural",
+      "Gender": "Female",
+      "Locale": "pa-IN",
+      "LocaleName": "Punjabi (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (pl-PL, AgnieszkaNeural)",
+      "DisplayName": "Agnieszka",
+      "LocalName": "Agnieszka",
+      "ShortName": "pl-PL-AgnieszkaNeural",
+      "Gender": "Female",
+      "Locale": "pl-PL",
+      "LocaleName": "Polish (Poland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "112"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (pl-PL, MarekNeural)",
+      "DisplayName": "Marek",
+      "LocalName": "Marek",
+      "ShortName": "pl-PL-MarekNeural",
+      "Gender": "Male",
+      "Locale": "pl-PL",
+      "LocaleName": "Polish (Poland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "128"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (pl-PL, ZofiaNeural)",
+      "DisplayName": "Zofia",
+      "LocalName": "Zofia",
+      "ShortName": "pl-PL-ZofiaNeural",
+      "Gender": "Female",
+      "Locale": "pl-PL",
+      "LocaleName": "Polish (Poland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Bright", "Clear"]
+      },
+      "WordsPerMinute": "127"
+    }
+  ]
+}

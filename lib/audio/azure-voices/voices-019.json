@@ -1,0 +1,358 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, CataldoNeural)",
+      "DisplayName": "Cataldo",
+      "LocalName": "Cataldo",
+      "ShortName": "it-IT-CataldoNeural",
+      "Gender": "Male",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "149"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, FabiolaNeural)",
+      "DisplayName": "Fabiola",
+      "LocalName": "Fabiola",
+      "ShortName": "it-IT-FabiolaNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "143"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, FiammaNeural)",
+      "DisplayName": "Fiamma",
+      "LocalName": "Fiamma",
+      "ShortName": "it-IT-FiammaNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "141"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, GianniNeural)",
+      "DisplayName": "Gianni",
+      "LocalName": "Gianni",
+      "ShortName": "it-IT-GianniNeural",
+      "Gender": "Male",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "139"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, GiuseppeNeural)",
+      "DisplayName": "Giuseppe",
+      "LocalName": "Giuseppe",
+      "ShortName": "it-IT-GiuseppeNeural",
+      "Gender": "Male",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Chat", "Audiobooks"],
+        "VoicePersonalities": ["Bright", "Warm"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, ImeldaNeural)",
+      "DisplayName": "Imelda",
+      "LocalName": "Imelda",
+      "ShortName": "it-IT-ImeldaNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "140"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, IrmaNeural)",
+      "DisplayName": "Irma",
+      "LocalName": "Irma",
+      "ShortName": "it-IT-IrmaNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "142"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, LisandroNeural)",
+      "DisplayName": "Lisandro",
+      "LocalName": "Lisandro",
+      "ShortName": "it-IT-LisandroNeural",
+      "Gender": "Male",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "137"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, PalmiraNeural)",
+      "DisplayName": "Palmira",
+      "LocalName": "Palmira",
+      "ShortName": "it-IT-PalmiraNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Assistant", "Narration"],
+        "VoicePersonalities": ["Animated", "Bright"]
+      },
+      "WordsPerMinute": "139"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, PierinaNeural)",
+      "DisplayName": "Pierina",
+      "LocalName": "Pierina",
+      "ShortName": "it-IT-PierinaNeural",
+      "Gender": "Female",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Audiobook", "Narration"],
+        "VoicePersonalities": ["Curious", "Cheerful"]
+      },
+      "WordsPerMinute": "134"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, RinaldoNeural)",
+      "DisplayName": "Rinaldo",
+      "LocalName": "Rinaldo",
+      "ShortName": "it-IT-RinaldoNeural",
+      "Gender": "Male",
+      "Locale": "it-IT",
+      "LocaleName": "Italian (Italy)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "137"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (iu-Cans-CA, SiqiniqNeural)",
+      "DisplayName": "Siqiniq",
+      "LocalName": "ᓯᕿᓂᖅ",
+      "ShortName": "iu-Cans-CA-SiqiniqNeural",
+      "Gender": "Female",
+      "Locale": "iu-Cans-CA",
+      "LocaleName": "Inuktitut (Syllabics, Canada)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "160"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (iu-Cans-CA, TaqqiqNeural)",
+      "DisplayName": "Taqqiq",
+      "LocalName": "ᑕᖅᑭᖅ",
+      "ShortName": "iu-Cans-CA-TaqqiqNeural",
+      "Gender": "Male",
+      "Locale": "iu-Cans-CA",
+      "LocaleName": "Inuktitut (Syllabics, Canada)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "160"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (iu-Latn-CA, SiqiniqNeural)",
+      "DisplayName": "Siqiniq",
+      "LocalName": "ᓯᕿᓂᖅ",
+      "ShortName": "iu-Latn-CA-SiqiniqNeural",
+      "Gender": "Female",
+      "Locale": "iu-Latn-CA",
+      "LocaleName": "Inuktitut (Latin, Canada)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "160"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (iu-Latn-CA, TaqqiqNeural)",
+      "DisplayName": "Taqqiq",
+      "LocalName": "ᑕᖅᑭᖅ",
+      "ShortName": "iu-Latn-CA-TaqqiqNeural",
+      "Gender": "Male",
+      "Locale": "iu-Latn-CA",
+      "LocaleName": "Inuktitut (Latin, Canada)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "160"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, NanamiNeural)",
+      "DisplayName": "Nanami",
+      "LocalName": "七海",
+      "ShortName": "ja-JP-NanamiNeural",
+      "Gender": "Female",
+      "Locale": "ja-JP",
+      "LocaleName": "Japanese (Japan)",
+      "StyleList": ["chat", "customerservice", "cheerful"],
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Narration", "News"],
+        "VoicePersonalities": ["Bright", "Cheerful"]
+      },
+      "WordsPerMinute": "305"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, KeitaNeural)",
+      "DisplayName": "Keita",
+      "LocalName": "圭太",
+      "ShortName": "ja-JP-KeitaNeural",
+      "Gender": "Male",
+      "Locale": "ja-JP",
+      "LocaleName": "Japanese (Japan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Chat", "Narration"],
+        "VoicePersonalities": ["Casual", "Engaging"]
+      },
+      "WordsPerMinute": "337"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, AoiNeural)",
+      "DisplayName": "Aoi",
+      "LocalName": "碧衣",
+      "ShortName": "ja-JP-AoiNeural",
+      "Gender": "Female",
+      "Locale": "ja-JP",
+      "LocaleName": "Japanese (Japan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Audiobook", "Narration"],
+        "VoicePersonalities": ["Curious", "Cheerful"]
+      },
+      "WordsPerMinute": "270"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, DaichiNeural)",
+      "DisplayName": "Daichi",
+      "LocalName": "大智",
+      "ShortName": "ja-JP-DaichiNeural",
+      "Gender": "Male",
+      "Locale": "ja-JP",
+      "LocaleName": "Japanese (Japan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "312"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, MayuNeural)",
+      "DisplayName": "Mayu",
+      "LocalName": "真夕",
+      "ShortName": "ja-JP-MayuNeural",
+      "Gender": "Female",
+      "Locale": "ja-JP",
+      "LocaleName": "Japanese (Japan)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Assistant", "Narration"],
+        "VoicePersonalities": ["Animated", "Bright"]
+      },
+      "WordsPerMinute": "302"
+    }
+  ]
+}

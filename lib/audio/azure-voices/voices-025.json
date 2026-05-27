@@ -1,0 +1,346 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sr-RS, SophieNeural)",
+      "DisplayName": "Sophie",
+      "LocalName": "Софија",
+      "ShortName": "sr-RS-SophieNeural",
+      "Gender": "Female",
+      "Locale": "sr-RS",
+      "LocaleName": "Serbian (Cyrillic, Serbia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "132"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sr-RS, NicholasNeural)",
+      "DisplayName": "Nicholas",
+      "LocalName": "Никола",
+      "ShortName": "sr-RS-NicholasNeural",
+      "Gender": "Male",
+      "Locale": "sr-RS",
+      "LocaleName": "Serbian (Cyrillic, Serbia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "128"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (su-ID, TutiNeural)",
+      "DisplayName": "Tuti",
+      "LocalName": "Tuti",
+      "ShortName": "su-ID-TutiNeural",
+      "Gender": "Female",
+      "Locale": "su-ID",
+      "LocaleName": "Sundanese (Indonesia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "111"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (su-ID, JajangNeural)",
+      "DisplayName": "Jajang",
+      "LocalName": "Jajang",
+      "ShortName": "su-ID-JajangNeural",
+      "Gender": "Male",
+      "Locale": "su-ID",
+      "LocaleName": "Sundanese (Indonesia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "115"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sv-SE, SofieNeural)",
+      "DisplayName": "Sofie",
+      "LocalName": "Sofie",
+      "ShortName": "sv-SE-SofieNeural",
+      "Gender": "Female",
+      "Locale": "sv-SE",
+      "LocaleName": "Swedish (Sweden)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "138"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sv-SE, MattiasNeural)",
+      "DisplayName": "Mattias",
+      "LocalName": "Mattias",
+      "ShortName": "sv-SE-MattiasNeural",
+      "Gender": "Male",
+      "Locale": "sv-SE",
+      "LocaleName": "Swedish (Sweden)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "135"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sv-SE, HilleviNeural)",
+      "DisplayName": "Hillevi",
+      "LocalName": "Hillevi",
+      "ShortName": "sv-SE-HilleviNeural",
+      "Gender": "Female",
+      "Locale": "sv-SE",
+      "LocaleName": "Swedish (Sweden)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "147"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sw-KE, ZuriNeural)",
+      "DisplayName": "Zuri",
+      "LocalName": "Zuri",
+      "ShortName": "sw-KE-ZuriNeural",
+      "Gender": "Female",
+      "Locale": "sw-KE",
+      "LocaleName": "Swahili (Kenya)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "113"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sw-KE, RafikiNeural)",
+      "DisplayName": "Rafiki",
+      "LocalName": "Rafiki",
+      "ShortName": "sw-KE-RafikiNeural",
+      "Gender": "Male",
+      "Locale": "sw-KE",
+      "LocaleName": "Swahili (Kenya)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "121"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sw-TZ, RehemaNeural)",
+      "DisplayName": "Rehema",
+      "LocalName": "Rehema",
+      "ShortName": "sw-TZ-RehemaNeural",
+      "Gender": "Female",
+      "Locale": "sw-TZ",
+      "LocaleName": "Swahili (Tanzania)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "108"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (sw-TZ, DaudiNeural)",
+      "DisplayName": "Daudi",
+      "LocalName": "Daudi",
+      "ShortName": "sw-TZ-DaudiNeural",
+      "Gender": "Male",
+      "Locale": "sw-TZ",
+      "LocaleName": "Swahili (Tanzania)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "114"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-IN, PallaviNeural)",
+      "DisplayName": "Pallavi",
+      "LocalName": "பல்லவி",
+      "ShortName": "ta-IN-PallaviNeural",
+      "Gender": "Female",
+      "Locale": "ta-IN",
+      "LocaleName": "Tamil (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "79"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-IN, ValluvarNeural)",
+      "DisplayName": "Valluvar",
+      "LocalName": "வள்ளுவர்",
+      "ShortName": "ta-IN-ValluvarNeural",
+      "Gender": "Male",
+      "Locale": "ta-IN",
+      "LocaleName": "Tamil (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "98"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-LK, SaranyaNeural)",
+      "DisplayName": "Saranya",
+      "LocalName": "சரண்யா",
+      "ShortName": "ta-LK-SaranyaNeural",
+      "Gender": "Female",
+      "Locale": "ta-LK",
+      "LocaleName": "Tamil (Sri Lanka)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "75"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-LK, KumarNeural)",
+      "DisplayName": "Kumar",
+      "LocalName": "குமார்",
+      "ShortName": "ta-LK-KumarNeural",
+      "Gender": "Male",
+      "Locale": "ta-LK",
+      "LocaleName": "Tamil (Sri Lanka)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "93"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-MY, KaniNeural)",
+      "DisplayName": "Kani",
+      "LocalName": "கனி",
+      "ShortName": "ta-MY-KaniNeural",
+      "Gender": "Female",
+      "Locale": "ta-MY",
+      "LocaleName": "Tamil (Malaysia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "83"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-MY, SuryaNeural)",
+      "DisplayName": "Surya",
+      "LocalName": "சூர்யா",
+      "ShortName": "ta-MY-SuryaNeural",
+      "Gender": "Male",
+      "Locale": "ta-MY",
+      "LocaleName": "Tamil (Malaysia)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "93"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-SG, VenbaNeural)",
+      "DisplayName": "Venba",
+      "LocalName": "வெண்பா",
+      "ShortName": "ta-SG-VenbaNeural",
+      "Gender": "Female",
+      "Locale": "ta-SG",
+      "LocaleName": "Tamil (Singapore)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "83"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (ta-SG, AnbuNeural)",
+      "DisplayName": "Anbu",
+      "LocalName": "அன்பு",
+      "ShortName": "ta-SG-AnbuNeural",
+      "Gender": "Male",
+      "Locale": "ta-SG",
+      "LocaleName": "Tamil (Singapore)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "103"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (te-IN, ShrutiNeural)",
+      "DisplayName": "Shruti",
+      "LocalName": "శ్రుతి",
+      "ShortName": "te-IN-ShrutiNeural",
+      "Gender": "Female",
+      "Locale": "te-IN",
+      "LocaleName": "Telugu (India)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "79"
+    }
+  ]
+}

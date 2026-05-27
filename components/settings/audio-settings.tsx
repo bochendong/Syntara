@@ -24,7 +24,7 @@ import {
 import type { TTSProviderId, ASRProviderId } from '@/lib/audio/types';
 import { Volume2, Mic, MicOff, Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import azureVoicesData from '@/lib/audio/azure.json';
+import azureVoicesData from '@/lib/audio/azure-voices';
 import { createLogger } from '@/lib/logger';
 import {
   ensureVoicesLoaded,

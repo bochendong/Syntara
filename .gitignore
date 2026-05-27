@@ -74,12 +74,17 @@ next-env.d.ts
 /data
 /logs
 /OpenMAIC-org
+/outputs
+/queue
+/tmp
+/public/generated-notebooks
 
 # docs
 /docs/*
 !/docs/course-settings-generation-effects.md
 !/docs/lecture-narration-guidelines.md
 !/docs/notebook-generation-sidebar-options.md
+!/docs/repository-structure.md
 
 # OS / 杂项
 Thumbs.db

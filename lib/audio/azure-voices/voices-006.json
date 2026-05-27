@@ -1,0 +1,378 @@
+{
+  "voices": [
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, RyanNeural)",
+      "DisplayName": "Ryan",
+      "LocalName": "Ryan",
+      "ShortName": "en-GB-RyanNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "StyleList": ["cheerful", "chat"],
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Assistant", "News"],
+        "VoicePersonalities": ["Bright", "Engaging"]
+      },
+      "WordsPerMinute": "161"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, LibbyNeural)",
+      "DisplayName": "Libby",
+      "LocalName": "Libby",
+      "ShortName": "en-GB-LibbyNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "E-learning"],
+        "VoicePersonalities": ["Crisp", "Bright", "Clear"]
+      },
+      "WordsPerMinute": "138"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, AbbiNeural)",
+      "DisplayName": "Abbi",
+      "LocalName": "Abbi",
+      "ShortName": "en-GB-AbbiNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "145"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, AlfieNeural)",
+      "DisplayName": "Alfie",
+      "LocalName": "Alfie",
+      "ShortName": "en-GB-AlfieNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "157"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, BellaNeural)",
+      "DisplayName": "Bella",
+      "LocalName": "Bella",
+      "ShortName": "en-GB-BellaNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "146"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, ElliotNeural)",
+      "DisplayName": "Elliot",
+      "LocalName": "Elliot",
+      "ShortName": "en-GB-ElliotNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "150"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, EthanNeural)",
+      "DisplayName": "Ethan",
+      "LocalName": "Ethan",
+      "ShortName": "en-GB-EthanNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, HollieNeural)",
+      "DisplayName": "Hollie",
+      "LocalName": "Hollie",
+      "ShortName": "en-GB-HollieNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "144"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, MaisieNeural)",
+      "DisplayName": "Maisie",
+      "LocalName": "Maisie",
+      "ShortName": "en-GB-MaisieNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["Audiobook", "Narration"],
+        "VoicePersonalities": ["Crisp", "Cheerful", "Bright"]
+      },
+      "WordsPerMinute": "141"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, NoahNeural)",
+      "DisplayName": "Noah",
+      "LocalName": "Noah",
+      "ShortName": "en-GB-NoahNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, OliverNeural)",
+      "DisplayName": "Oliver",
+      "LocalName": "Oliver",
+      "ShortName": "en-GB-OliverNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "155"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, OliviaNeural)",
+      "DisplayName": "Olivia",
+      "LocalName": "Olivia",
+      "ShortName": "en-GB-OliviaNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "143"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, ThomasNeural)",
+      "DisplayName": "Thomas",
+      "LocalName": "Thomas",
+      "ShortName": "en-GB-ThomasNeural",
+      "Gender": "Male",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "154"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, MiaNeural)",
+      "DisplayName": "Mia",
+      "LocalName": "Mia",
+      "ShortName": "en-GB-MiaNeural",
+      "Gender": "Female",
+      "Locale": "en-GB",
+      "LocaleName": "English (United Kingdom)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "Deprecated",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-HK, YanNeural)",
+      "DisplayName": "Yan",
+      "LocalName": "Yan",
+      "ShortName": "en-HK-YanNeural",
+      "Gender": "Female",
+      "Locale": "en-HK",
+      "LocaleName": "English (Hong Kong SAR)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "144"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-HK, SamNeural)",
+      "DisplayName": "Sam",
+      "LocalName": "Sam",
+      "ShortName": "en-HK-SamNeural",
+      "Gender": "Male",
+      "Locale": "en-HK",
+      "LocaleName": "English (Hong Kong SAR)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "140"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-IE, EmilyNeural)",
+      "DisplayName": "Emily",
+      "LocalName": "Emily",
+      "ShortName": "en-IE-EmilyNeural",
+      "Gender": "Female",
+      "Locale": "en-IE",
+      "LocaleName": "English (Ireland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      },
+      "WordsPerMinute": "135"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-IE, ConnorNeural)",
+      "DisplayName": "Connor",
+      "LocalName": "Connor",
+      "ShortName": "en-IE-ConnorNeural",
+      "Gender": "Male",
+      "Locale": "en-IE",
+      "LocaleName": "English (Ireland)",
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"],
+        "TailoredScenarios": ["News", "Gaming"],
+        "VoicePersonalities": ["Light-Hearted", "Whimsical", "Friendly"]
+      },
+      "WordsPerMinute": "146"
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-IN, AartiIndicNeural)",
+      "DisplayName": "Aarti Indic",
+      "LocalName": "Aarti Indic",
+      "ShortName": "en-IN-AartiIndicNeural",
+      "Gender": "Female",
+      "Locale": "en-IN",
+      "LocaleName": "English (India)",
+      "SecondaryLocaleList": [
+        "en-IN",
+        "hi-IN",
+        "ta-IN",
+        "te-IN",
+        "gu-IN",
+        "mr-IN",
+        "as-IN",
+        "pa-IN",
+        "or-IN",
+        "ml-IN",
+        "kn-IN",
+        "bn-IN"
+      ],
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Monolingual"],
+        "Source": ["Azure"]
+      }
+    },
+    {
+      "Name": "Microsoft Server Speech Text to Speech Voice (en-IN, ArjunIndicNeural)",
+      "DisplayName": "Arjun Indic",
+      "LocalName": "Arjun Indic",
+      "ShortName": "en-IN-ArjunIndicNeural",
+      "Gender": "Male",
+      "Locale": "en-IN",
+      "LocaleName": "English (India)",
+      "SecondaryLocaleList": [
+        "en-IN",
+        "hi-IN",
+        "ta-IN",
+        "te-IN",
+        "gu-IN",
+        "mr-IN",
+        "as-IN",
+        "pa-IN",
+        "or-IN",
+        "ml-IN",
+        "kn-IN",
+        "bn-IN"
+      ],
+      "SampleRateHertz": "48000",
+      "VoiceType": "Neural",
+      "Status": "GA",
+      "VoiceTag": {
+        "ModelSeries": ["Multilingual"],
+        "Source": ["Azure"]
+      }
+    }
+  ]
+}

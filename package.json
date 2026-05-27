@@ -17,13 +17,13 @@
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:push": "dotenv -e .env.local -- prisma db push",
-    "credits:backfill-500": "dotenv -e .env.local -- node scripts/backfill-credits-to-500.mjs",
-    "backend:up": "bash scripts/start-backend.sh",
-    "backend:dev": "bash scripts/start-backend.sh --dev",
-    "frontend:dev": "bash scripts/start-frontend.sh",
-    "frontend:dev:clean": "bash scripts/start-frontend.sh --clean",
-    "test:image-gen": "dotenv -e .env.local -- node scripts/test-openai-image.mjs",
-    "test:tts-gen": "dotenv -e .env.local -- node scripts/test-openai-tts.mjs"
+    "credits:backfill-500": "dotenv -e .env.local -- node scripts/maintenance/backfill-credits-to-500.mjs",
+    "backend:up": "bash scripts/maintenance/start-backend.sh",
+    "backend:dev": "bash scripts/maintenance/start-backend.sh --dev",
+    "frontend:dev": "bash scripts/maintenance/start-frontend.sh",
+    "frontend:dev:clean": "bash scripts/maintenance/start-frontend.sh --clean",
+    "test:image-gen": "dotenv -e .env.local -- node scripts/smoke/test-openai-image.mjs",
+    "test:tts-gen": "dotenv -e .env.local -- node scripts/smoke/test-openai-tts.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.23",

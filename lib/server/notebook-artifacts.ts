@@ -1,10 +1,9 @@
 import { rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@/lib/logger';
+import { PUBLIC_GENERATED_NOTEBOOKS_ROOT } from '@/lib/server/project-paths';
 
 const log = createLogger('NotebookArtifacts');
-
-const GENERATED_NOTEBOOKS_ROOT = path.resolve(process.cwd(), 'public', 'generated-notebooks');
 
 type CleanupGeneratedNotebookArtifactsResult =
   | { deleted: true }
@@ -19,8 +18,8 @@ function isSafeGeneratedNotebookId(notebookId: string): boolean {
 
 function generatedNotebookPath(notebookId: string): string | null {
   if (!isSafeGeneratedNotebookId(notebookId)) return null;
-  const target = path.resolve(GENERATED_NOTEBOOKS_ROOT, notebookId);
-  const rootWithSeparator = `${GENERATED_NOTEBOOKS_ROOT}${path.sep}`;
+  const target = path.resolve(PUBLIC_GENERATED_NOTEBOOKS_ROOT, notebookId);
+  const rootWithSeparator = `${PUBLIC_GENERATED_NOTEBOOKS_ROOT}${path.sep}`;
   if (!target.startsWith(rootWithSeparator) || path.basename(target) !== notebookId) {
     return null;
   }

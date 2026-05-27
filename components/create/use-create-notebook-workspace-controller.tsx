@@ -1,0 +1,1543 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { BotOff } from 'lucide-react';
+import { useI18n } from '@/lib/hooks/use-i18n';
+import { buildStudyCompanionNotification } from '@/lib/learning/study-memory';
+import { createLogger } from '@/lib/logger';
+import { toast } from '@/lib/notifications/client-toast';
+import { useMediaGenerationStore } from '@/lib/store/media-generation';
+import { useOrchestratorNotebookGenStore } from '@/lib/store/orchestrator-notebook-generation';
+import { useNotebookGenerationQueueStore } from '@/lib/store/notebook-generation-queue';
+import { useNotificationStore } from '@/lib/store/notifications';
+import { useSettingsStore } from '@/lib/store/settings';
+import { useUserProfileStore } from '@/lib/store/user-profile';
+import type { SceneOutline } from '@/lib/types/generation';
+import {
+  PDF_PAGE_SELECTION_MAX_BYTES,
+  getPdfSourceFileSignature,
+  type PdfSourceSelection,
+} from '@/lib/pdf/page-selection';
+import { getApiHeaders } from '@/lib/create/generation-headers';
+import { readApiErrorMessage } from '@/lib/create/api-errors';
+import { backendFetch } from '@/lib/utils/backend-api';
+import {
+  buildBudgetedGenerationMedia,
+  SAFE_GENERATION_REQUEST_BYTES,
+} from '@/lib/generation/request-payload-budget';
+import type { ImageNotebookBriefPlan } from '@/lib/generation/image-notebook-quality';
+import {
+  MOCK_COURSE_SPINE,
+  PLANNING_MOCK_STATE_LABELS,
+  PLANNING_PHASE_ORDER,
+  buildMockPlanningPagesForPhase,
+  buildMockPlanningRows,
+  buildPlanningPhaseMockText,
+  buildRuntimeImageGenerationRows,
+  buildStyleSamplePrompt,
+  fileKindLabel,
+  filterSelectedSourceMedia,
+  formatFileSize,
+  getWorkspaceProgressIndex,
+  getWorkspaceProgressLabel,
+  isPdfSourceFile,
+  mergePagePlanningPreviews,
+  outlineLengthLabel,
+  outlineLengthStrategyText,
+  outlineRowsToSceneOutlines,
+  pagePlanningPreviewsFromBlueprint,
+  pagePlanningPreviewsFromOutlines,
+  pickMockPlanningPage,
+  readImageNotebookPlanStream,
+  sceneOutlinesToRows,
+  takeImageGenerationRowsWithFallback,
+  workedExampleLevelLabel,
+  type ImageGenerationMockPageCount,
+  type ImageNotebookPlanQualityReport,
+  type OutlineGenerationStatus,
+  type OutlineRow,
+  type PagePlanningPreview,
+  type PlanningMockPhaseState,
+  type PlanningMockPhaseStates,
+  type PlanningMockStreams,
+  type PlanningPhase,
+  type PreparedSourceInput,
+  type WorkspaceProgressStep,
+  type WorkspaceStep,
+} from './create-notebook-workspace-model';
+import {
+  buildCourseSpineWriterText,
+  buildPlanningWriterText,
+} from './create-notebook-workspace-panels';
+import { useCreateNotebookSourceInput } from './use-create-notebook-source-input';
+import { useCreateNotebookStyleSample } from './use-create-notebook-style-sample';
+import { useCreateNotebookStyleState } from './use-create-notebook-style-state';
+
+const log = createLogger('CreateNotebookWorkspace');
+
+type CreateNotebookWorkspaceControllerArgs = {
+  courseId: string;
+};
+
+export function useCreateNotebookWorkspaceController({
+  courseId,
+}: CreateNotebookWorkspaceControllerArgs) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const stylePromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const outlineAbortRef = useRef<AbortController | null>(null);
+  const planningRevealTimeoutRef = useRef<number | null>(null);
+  const planningMockStreamTimersRef = useRef<number[]>([]);
+  const [activeStep, setActiveStep] = useState<WorkspaceStep>('input');
+  const [outlineRows, setOutlineRows] = useState<OutlineRow[]>([]);
+  const [selectedOutlineId, setSelectedOutlineId] = useState('');
+  const [outlineGenerationStatus, setOutlineGenerationStatus] =
+    useState<OutlineGenerationStatus>('idle');
+  const [outlineGenerationMessage, setOutlineGenerationMessage] =
+    useState('输入后会直接生成一版规划与画图 prompt。');
+  const [planningCourseSpine, setPlanningCourseSpine] = useState<
+    ImageNotebookBriefPlan['courseSpine'] | null
+  >(null);
+  const [planningPages, setPlanningPages] = useState<PagePlanningPreview[]>([]);
+  const [confirmedImageNotebookPlan, setConfirmedImageNotebookPlan] = useState<{
+    outlines: SceneOutline[];
+    plan: ImageNotebookBriefPlan;
+  } | null>(null);
+  const [planningLiveDraft, setPlanningLiveDraft] = useState<{
+    phase: 'blueprint' | 'batch';
+    detail: string;
+    text: string;
+  } | null>(null);
+  const [, setPlanningStreamEvents] = useState<string[]>([]);
+  const [_planningQuality, setPlanningQuality] = useState<ImageNotebookPlanQualityReport | null>(
+    null,
+  );
+  const [planningPhase, setPlanningPhase] = useState<PlanningPhase>('course-spine');
+  const [planningMockStreams, setPlanningMockStreams] = useState<PlanningMockStreams>({});
+  const [planningMockPhaseStates, setPlanningMockPhaseStates] = useState<PlanningMockPhaseStates>(
+    {},
+  );
+  const [planningRealPhaseStates, setPlanningRealPhaseStates] = useState<PlanningMockPhaseStates>(
+    {},
+  );
+  const [planningMockStreamingPhases, setPlanningMockStreamingPhases] = useState<PlanningPhase[]>(
+    [],
+  );
+  const [imageGenerationMockPageCount, setImageGenerationMockPageCount] =
+    useState<ImageGenerationMockPageCount | null>(null);
+  const [activeGenerationTaskId, setActiveGenerationTaskId] = useState<string | null>(null);
+  const [currentPlanningPageNumbers, setCurrentPlanningPageNumbers] = useState<number[]>([]);
+  const [revealingPlanningPageNumbers, setRevealingPlanningPageNumbers] = useState<number[]>([]);
+  const [planningRevealRevision, setPlanningRevealRevision] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [pageSelectionDialogOpen, setPageSelectionDialogOpen] = useState(false);
+
+  const currentModelId = useSettingsStore((s) => s.modelId);
+  const generationTasks = useNotebookGenerationQueueStore((s) => s.tasks);
+  const enqueueNotebookGeneration = useNotebookGenerationQueueStore((s) => s.enqueue);
+  const enqueueCompanionBanner = useNotificationStore((s) => s.enqueueBanner);
+  const notebookModelMode = useOrchestratorNotebookGenStore((s) => s.notebookModelMode);
+  const modelIdOverride = useOrchestratorNotebookGenStore((s) => s.modelIdOverride);
+  const notebookStageModelOverrides = useOrchestratorNotebookGenStore(
+    (s) => s.notebookStageModelOverrides,
+  );
+  const language = useOrchestratorNotebookGenStore((s) => s.language);
+  const setLanguage = useOrchestratorNotebookGenStore((s) => s.setLanguage);
+  const setGenerateSlides = useOrchestratorNotebookGenStore((s) => s.setGenerateSlides);
+  const outlineLength = useOrchestratorNotebookGenStore((s) => s.outlineLength);
+  const setOutlineLength = useOrchestratorNotebookGenStore((s) => s.setOutlineLength);
+  const workedExampleLevel = useOrchestratorNotebookGenStore((s) => s.workedExampleLevel);
+  const setWorkedExampleLevel = useOrchestratorNotebookGenStore((s) => s.setWorkedExampleLevel);
+  const includeQuizScenes = useOrchestratorNotebookGenStore((s) => s.includeQuizScenes);
+  const setIncludeQuizScenes = useOrchestratorNotebookGenStore((s) => s.setIncludeQuizScenes);
+  const setUseAiImages = useOrchestratorNotebookGenStore((s) => s.setUseAiImages);
+  const invalidateSourcePlan = useCallback(() => {
+    setConfirmedImageNotebookPlan(null);
+  }, []);
+  const {
+    form,
+    materials,
+    sourceDragActive,
+    sourcePageSelection,
+    sourcePreview,
+    sourceExtract,
+    selectedSourceImageIds,
+    setSourcePageSelection,
+    updateRequirement,
+    handleFileSelect,
+    handleSourceInputDragEnter,
+    handleSourceInputDragOver,
+    handleSourceInputDragLeave,
+    handleSourceInputDrop,
+    clearSourceFile,
+    prepareSourceInputForPlanning,
+    setSourceImageSelection,
+    setAllSourceImagesSelected,
+    setMaterialKeep,
+    resetSourceInput,
+  } = useCreateNotebookSourceInput({
+    activeStep,
+    busy,
+    language,
+    fileTooLargeMessage: t('upload.fileTooLarge'),
+    onError: setError,
+    onSourceChanged: invalidateSourcePlan,
+  });
+
+  const clearPlanningMockStreamTimers = useCallback(() => {
+    planningMockStreamTimersRef.current.forEach((timerId) => window.clearInterval(timerId));
+    planningMockStreamTimersRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    useMediaGenerationStore.getState().revokeObjectUrls();
+    useMediaGenerationStore.setState({ tasks: {} });
+  }, []);
+
+  useEffect(() => {
+    setGenerateSlides(true);
+    setUseAiImages(true);
+  }, [setGenerateSlides, setUseAiImages]);
+
+  useEffect(() => {
+    return () => {
+      outlineAbortRef.current?.abort();
+      clearPlanningMockStreamTimers();
+      if (planningRevealTimeoutRef.current != null) {
+        window.clearTimeout(planningRevealTimeoutRef.current);
+      }
+    };
+  }, [clearPlanningMockStreamTimers]);
+
+  const outlineIsLoading = outlineGenerationStatus === 'loading';
+  const selectedOutline = outlineRows.find((row) => row.id === selectedOutlineId) ?? outlineRows[0];
+  const selectedOutlineIndex = Math.max(
+    0,
+    outlineRows.findIndex((row) => row.id === selectedOutline?.id),
+  );
+  const planningByPageNumber = new Map(planningPages.map((page) => [page.pageNumber, page]));
+  const planningListPages =
+    outlineRows.length > 0
+      ? outlineRows.map((row, index) => {
+          const pageNumber = index + 1;
+          const planned = planningByPageNumber.get(pageNumber);
+          return {
+            ...(planned || {
+              id: row.id,
+              pageNumber,
+              title: row.title,
+              currentJob: row.focus || '等待页面规划写入…',
+              mustShow: [],
+              formulas: [],
+              exampleSteps: [],
+              commonPitfalls: [],
+              focusRegions: [],
+              focusCount: 0,
+              status: outlineIsLoading ? 'indexed' : 'planned',
+            }),
+            id: row.id,
+            title: row.title || planned?.title || `第 ${pageNumber} 页`,
+            currentJob: planned?.currentJob || row.focus || '等待页面规划写入…',
+          } as PagePlanningPreview;
+        })
+      : planningPages;
+  const selectedPlanningPage =
+    planningByPageNumber.get(selectedOutlineIndex + 1) ||
+    (selectedOutline
+      ? ({
+          id: selectedOutline.id,
+          pageNumber: selectedOutlineIndex + 1,
+          title: selectedOutline.title,
+          currentJob: selectedOutline.focus || '等待页面规划写入…',
+          mustShow: [],
+          formulas: [],
+          exampleSteps: [],
+          commonPitfalls: [],
+          focusRegions: [],
+          focusCount: 0,
+          status: outlineIsLoading ? 'indexed' : 'planned',
+        } as PagePlanningPreview)
+      : undefined);
+  const currentPlanningPageSet = new Set(currentPlanningPageNumbers);
+  const revealingPlanningPageSet = new Set(revealingPlanningPageNumbers);
+  const selectedPlanningIsWriting =
+    Boolean(selectedPlanningPage) &&
+    ((outlineIsLoading && currentPlanningPageSet.has(selectedPlanningPage?.pageNumber || -1)) ||
+      revealingPlanningPageSet.has(selectedPlanningPage?.pageNumber || -1));
+  const selectedPlanningMockValue = planningMockStreams[planningPhase];
+  const selectedPlanningMockHasState = Object.prototype.hasOwnProperty.call(
+    planningMockStreams,
+    planningPhase,
+  );
+  const selectedPlanningMockPhaseState = planningMockPhaseStates[planningPhase];
+  const selectedPlanningRealPhaseState = planningRealPhaseStates[planningPhase];
+  const selectedPlanningEffectivePhaseState =
+    selectedPlanningMockPhaseState ?? selectedPlanningRealPhaseState;
+  const selectedPlanningMockText =
+    typeof selectedPlanningMockValue === 'string' ? selectedPlanningMockValue : undefined;
+  const selectedPlanningMockIsConfirmingInput =
+    selectedPlanningMockHasState &&
+    (selectedPlanningMockValue === null || selectedPlanningMockPhaseState === 'input');
+  const selectedPlanningMockIsLoadingState = Boolean(
+    selectedPlanningMockPhaseState &&
+    selectedPlanningMockPhaseState !== 'input' &&
+    selectedPlanningMockPhaseState !== 'done',
+  );
+  const selectedPlanningMockIsStreaming = planningMockStreamingPhases.includes(planningPhase);
+  const hasPlanningMockStreams = Object.keys(planningMockStreams).length > 0;
+  const selectedPlanningRealIsLoadingState = Boolean(
+    !hasPlanningMockStreams &&
+    outlineIsLoading &&
+    selectedPlanningRealPhaseState &&
+    selectedPlanningRealPhaseState !== 'input' &&
+    selectedPlanningRealPhaseState !== 'done',
+  );
+  const planningLiveDraftText = planningLiveDraft
+    ? `${planningLiveDraft.detail}\n\n${planningLiveDraft.text}`
+    : undefined;
+  const selectedPlanningStepText = hasPlanningMockStreams
+    ? selectedPlanningMockText
+    : planningLiveDraftText
+      ? planningLiveDraftText
+      : planningPhase === 'course-spine'
+        ? planningCourseSpine
+          ? buildCourseSpineWriterText(planningCourseSpine)
+          : undefined
+        : selectedPlanningPage
+          ? buildPlanningWriterText(selectedPlanningPage)
+          : undefined;
+  const hasSelectedPlanningStepText = selectedPlanningStepText !== undefined;
+  const selectedPlanningStepIsWriting = hasPlanningMockStreams
+    ? selectedPlanningMockIsStreaming
+    : planningLiveDraftText
+      ? outlineIsLoading
+      : planningPhase === 'course-spine'
+        ? outlineIsLoading && !planningCourseSpine
+        : selectedPlanningIsWriting;
+  const planningMockCompletedPhases = PLANNING_PHASE_ORDER.filter(
+    (phase) =>
+      typeof planningMockStreams[phase] === 'string' &&
+      !planningMockStreamingPhases.includes(phase),
+  );
+  const realPlanningCompletedPhases = hasPlanningMockStreams
+    ? []
+    : PLANNING_PHASE_ORDER.filter((phase) => {
+        if (phase === 'course-spine') return Boolean(planningCourseSpine || planningPages.length);
+        if (phase === 'page-brief') {
+          return planningPages.some((page) => page.status === 'planned');
+        }
+        return false;
+      });
+  const completedPlanningPhases = hasPlanningMockStreams
+    ? planningMockCompletedPhases
+    : realPlanningCompletedPhases;
+  const realPlanningStreamingPhases = !hasPlanningMockStreams
+    ? PLANNING_PHASE_ORDER.filter((phase) => {
+        const state = planningRealPhaseStates[phase];
+        return outlineIsLoading && Boolean(state && state !== 'input' && state !== 'done');
+      })
+    : [];
+  const displayedPlanningStreamingPhases = hasPlanningMockStreams
+    ? planningMockStreamingPhases
+    : realPlanningStreamingPhases;
+  const selectedPlanningStructuredOutput =
+    Boolean(selectedPlanningStepText?.trim()) &&
+    !selectedPlanningStepIsWriting &&
+    completedPlanningPhases.includes(planningPhase);
+  const selectedPlanningStructuredLoading = hasPlanningMockStreams
+    ? selectedPlanningMockIsLoadingState && !selectedPlanningMockIsConfirmingInput
+    : selectedPlanningRealIsLoadingState;
+  const selectedPlanningStructuredLoadingState = selectedPlanningStructuredLoading
+    ? selectedPlanningMockPhaseState || selectedPlanningRealPhaseState
+    : undefined;
+  const showPlanningInputOnly = selectedPlanningMockIsConfirmingInput;
+  const showPlanningOutputPanel = Boolean(
+    !showPlanningInputOnly &&
+    (hasSelectedPlanningStepText ||
+      selectedPlanningStepIsWriting ||
+      selectedPlanningStructuredOutput ||
+      selectedPlanningStructuredLoading),
+  );
+  const hidePlanningInputPanel =
+    showPlanningOutputPanel &&
+    (selectedPlanningStructuredOutput || selectedPlanningStructuredLoading);
+  const structuredPlanningCourseSpine = hasPlanningMockStreams
+    ? MOCK_COURSE_SPINE
+    : planningCourseSpine;
+  const keptMaterials = materials.filter((item) => item.keep);
+  const selectedSourceImageIdSet = new Set(selectedSourceImageIds);
+  const selectedSourceImages = sourcePreview.imagePreviews.filter((image) =>
+    selectedSourceImageIdSet.has(image.id),
+  );
+  const hasSelectableSourceImages = sourcePreview.imagePreviews.length > 0;
+  const missingSourceImagePreviewCount = Math.max(
+    0,
+    sourcePreview.imageCount -
+      sourcePreview.imagePreviews.length -
+      sourcePreview.imageDuplicateCount,
+  );
+  const hasInput = Boolean(form.requirement.trim() || form.sourceFile);
+  const activeStepIndex = getWorkspaceProgressIndex(activeStep, planningPhase);
+  const activeStepLabel = getWorkspaceProgressLabel(activeStep, planningPhase);
+  const outlineNeedsInitialGeneration =
+    activeStep === 'outline' &&
+    planningPhase === 'course-spine' &&
+    !outlineIsLoading &&
+    !hasPlanningMockStreams &&
+    !planningCourseSpine &&
+    planningPages.length === 0 &&
+    outlineRows.length === 0;
+  const outlineNextDisabled =
+    activeStep === 'outline'
+      ? outlineNeedsInitialGeneration
+        ? false
+        : outlineGenerationStatus !== 'ready' || outlineRows.length === 0
+      : false;
+  const outlinePlanKey = outlineRows
+    .map((row, index) => `${index + 1}:${row.id}:${row.title}:${row.focus}`)
+    .join('||');
+
+  const {
+    styleSampleAbortRef,
+    selectedStyleId,
+    selectedStyle,
+    customStylePrompt,
+    setCustomStylePrompt,
+    selectedPaletteId,
+    setSelectedPaletteId,
+    selectedPalette,
+    drawingStylePrompt,
+    hasCustomDrawingStyle,
+    currentStyleSampleKey,
+    styleSampleStatus,
+    setStyleSampleStatus,
+    styleSample,
+    setStyleSample,
+    styleSampleError,
+    setStyleSampleError,
+    styleSampleIsCurrent,
+    styleSampleIsStale,
+    styleSampleQualityPassed,
+    selectDrawingStyle,
+    abortStyleSampleRequest,
+    resetStyleSample,
+    resetStyleState,
+  } = useCreateNotebookStyleState({
+    outlinePlanKey,
+    selectedOutline,
+    drawingLanguage: language,
+    onStyleChanged: invalidateSourcePlan,
+    onCustomStyleSelected: () =>
+      window.setTimeout(() => stylePromptTextareaRef.current?.focus(), 0),
+  });
+
+  useEffect(() => {
+    return abortStyleSampleRequest;
+  }, [abortStyleSampleRequest]);
+
+  const startPlanningReveal = (pageNumbers: number[]) => {
+    const normalized = Array.from(
+      new Set(pageNumbers.filter((pageNumber) => Number.isFinite(pageNumber) && pageNumber > 0)),
+    );
+    if (planningRevealTimeoutRef.current != null) {
+      window.clearTimeout(planningRevealTimeoutRef.current);
+      planningRevealTimeoutRef.current = null;
+    }
+    if (normalized.length === 0) {
+      setRevealingPlanningPageNumbers([]);
+      return;
+    }
+    setRevealingPlanningPageNumbers(normalized);
+    setPlanningRevealRevision((revision) => revision + 1);
+    planningRevealTimeoutRef.current = window.setTimeout(() => {
+      setRevealingPlanningPageNumbers([]);
+      planningRevealTimeoutRef.current = null;
+    }, 9000);
+  };
+
+  const selectPlanningPhase = (phase: PlanningPhase) => {
+    setError(null);
+    setActiveStep('outline');
+    setPlanningPhase(phase);
+
+    if (!hasPlanningMockStreams) {
+      setCurrentPlanningPageNumbers([]);
+      return;
+    }
+
+    const mockPages = buildMockPlanningPagesForPhase(phase);
+    const page = pickMockPlanningPage(phase, mockPages);
+    setOutlineGenerationStatus('ready');
+    setOutlineGenerationMessage(
+      `Mock：正在查看 ${getWorkspaceProgressLabel('outline', phase)} 的并行 stream。`,
+    );
+    setOutlineRows(buildMockPlanningRows());
+    setPlanningPages(mockPages);
+    setSelectedOutlineId(page.id);
+    setCurrentPlanningPageNumbers([]);
+    setPlanningRevealRevision((revision) => revision + 1);
+    startPlanningReveal([page.pageNumber]);
+  };
+
+  const selectProgressStep = (step: WorkspaceProgressStep) => {
+    setError(null);
+    if (step.id === 'input') {
+      setActiveStep('input');
+      return;
+    }
+    if (step.planningPhase || step.planningPhases?.length) {
+      selectPlanningPhase(
+        step.planningPhase || planningPhase || step.planningPhases?.[0] || 'course-spine',
+      );
+      return;
+    }
+    if (step.id === 'result') {
+      const hasExistingGenerationTask = activeGenerationTaskId
+        ? generationTasks.some(
+            (task) =>
+              task.id === activeGenerationTaskId &&
+              task.status !== 'failed' &&
+              task.status !== 'cancelled',
+          )
+        : generationTasks.some(
+            (task) =>
+              task.courseId === courseId &&
+              task.generateSlides &&
+              (task.status === 'queued' || task.status === 'running'),
+          );
+      if (
+        !hasExistingGenerationTask &&
+        outlineGenerationStatus === 'ready' &&
+        outlineRows.length > 0
+      ) {
+        void handleGenerate();
+        return;
+      }
+      setActiveStep('result');
+    }
+  };
+
+  const clearPlanningMockOverride = () => {
+    clearPlanningMockStreamTimers();
+    setPlanningMockStreams({});
+    setPlanningMockPhaseStates({});
+    setPlanningMockStreamingPhases([]);
+  };
+
+  const setPlanningMockPhaseState = (phase: PlanningPhase, state: PlanningMockPhaseState) => {
+    clearPlanningMockStreamTimers();
+
+    const mockPages = buildMockPlanningPagesForPhase(phase);
+    const page = pickMockPlanningPage(phase, mockPages);
+    const isLoadingState = state !== 'input' && state !== 'done';
+    const mockText =
+      state === 'input' ? null : state === 'done' ? buildPlanningPhaseMockText(phase, page) : '';
+
+    setError(null);
+    setActiveStep('outline');
+    setPlanningPhase(phase);
+    setOutlineGenerationStatus('ready');
+    setOutlineGenerationMessage(
+      `Mock：${getWorkspaceProgressLabel('outline', phase)} · ${PLANNING_MOCK_STATE_LABELS[state]}。`,
+    );
+    setOutlineRows(buildMockPlanningRows());
+    setPlanningPages(mockPages);
+    setSelectedOutlineId(page.id);
+    setCurrentPlanningPageNumbers([]);
+    setRevealingPlanningPageNumbers([]);
+    setPlanningMockStreams({ [phase]: mockText });
+    setPlanningMockPhaseStates({ [phase]: state });
+    setPlanningMockStreamingPhases(isLoadingState ? [phase] : []);
+    setPlanningRevealRevision((revision) => revision + 1);
+  };
+
+  const startParallelPlanningMockStreams = (initialPhase: PlanningPhase = planningPhase) => {
+    clearPlanningMockStreamTimers();
+
+    const initialMockPages = buildMockPlanningPagesForPhase(initialPhase);
+    const initialPage = pickMockPlanningPage(initialPhase, initialMockPages);
+    const initialStreams = Object.fromEntries(
+      PLANNING_PHASE_ORDER.map((phase) => [phase, '']),
+    ) as PlanningMockStreams;
+    setError(null);
+    setActiveStep('outline');
+    setPlanningPhase(initialPhase);
+    setOutlineGenerationStatus('ready');
+    setOutlineGenerationMessage('Mock：页面规划和画图 prompt 正在同一条链路里写入。');
+    setOutlineRows(buildMockPlanningRows());
+    setPlanningPages(initialMockPages);
+    setSelectedOutlineId(initialPage.id);
+    setCurrentPlanningPageNumbers([]);
+    setPlanningMockStreams(initialStreams);
+    setPlanningMockPhaseStates({});
+    setPlanningMockStreamingPhases([...PLANNING_PHASE_ORDER]);
+    setPlanningRevealRevision((revision) => revision + 1);
+    startPlanningReveal([initialPage.pageNumber]);
+
+    PLANNING_PHASE_ORDER.forEach((phase, phaseIndex) => {
+      const mockPages = buildMockPlanningPagesForPhase(phase);
+      const page = pickMockPlanningPage(phase, mockPages);
+      const fullText = buildPlanningPhaseMockText(phase, page);
+      let length = 0;
+      const chunkSize = phase === 'course-spine' ? 12 : 16;
+      const intervalMs = 38 + phaseIndex * 8;
+      const timerId = window.setInterval(() => {
+        length = Math.min(fullText.length, length + chunkSize);
+        setPlanningMockStreams((current) => ({
+          ...current,
+          [phase]: fullText.slice(0, length),
+        }));
+        if (length >= fullText.length) {
+          window.clearInterval(timerId);
+          planningMockStreamTimersRef.current = planningMockStreamTimersRef.current.filter(
+            (id) => id !== timerId,
+          );
+          setPlanningMockStreamingPhases((current) =>
+            current.filter((streamingPhase) => streamingPhase !== phase),
+          );
+        }
+      }, intervalMs);
+      planningMockStreamTimersRef.current.push(timerId);
+    });
+  };
+
+  const generateStyleSample = useCreateNotebookStyleSample({
+    courseId,
+    currentStyleSampleKey,
+    drawingStylePrompt,
+    form,
+    hasCustomDrawingStyle,
+    hasSelectableSourceImages,
+    includeQuizScenes,
+    language,
+    modelIdOverride,
+    notebookModelMode,
+    notebookStageModelOverrides,
+    outlineRows,
+    selectedOutline,
+    selectedOutlineIndex,
+    selectedPalette,
+    selectedSourceImages,
+    selectedSourceImageIds,
+    selectedStyle,
+    selectedStyleId,
+    sourceExtract,
+    styleSampleAbortRef,
+    setError,
+    setStyleSample,
+    setStyleSampleError,
+    setStyleSampleStatus,
+    workedExampleLevel,
+  });
+
+  useEffect(() => {
+    if (activeStep !== 'style') return;
+    if (!selectedOutline) return;
+    if (styleSampleStatus !== 'idle') return;
+    if (styleSample?.imageUrl) return;
+    void generateStyleSample();
+  }, [activeStep, generateStyleSample, selectedOutline, styleSample?.imageUrl, styleSampleStatus]);
+
+  const openSettings = () => {
+    router.push('/settings');
+  };
+
+  const showSetupToast = (icon: ReactNode, title: string, desc: string) => {
+    toast.custom(
+      (id) => (
+        <div
+          className="flex w-[356px] cursor-pointer items-start gap-3 rounded-xl border border-amber-200/60 bg-white p-4 shadow-lg shadow-amber-500/10 dark:border-amber-800/40 dark:bg-slate-900"
+          onClick={() => {
+            toast.dismiss(id);
+            openSettings();
+          }}
+        >
+          <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 ring-1 ring-amber-200/50 dark:bg-amber-900/40 dark:ring-amber-800/30">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-tight text-amber-900 dark:text-amber-200">
+              {title}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-700/80 dark:text-amber-400/70">
+              {desc}
+            </p>
+          </div>
+        </div>
+      ),
+      { duration: 4000 },
+    );
+  };
+
+  const buildConfirmedRequirement = () => {
+    const requirement = form.requirement.trim();
+    const lines = [
+      requirement || (form.sourceFile ? '请根据上传资料创建一套完整的图片 notebook。' : ''),
+      '',
+      '用户已确认以下生成方案：',
+      `- 输出形式：整页图片 notebook，每页先由图像模型生成 16:9 课堂板书位图，再进入课堂播放。`,
+      `- 绘画风格：${selectedStyle.label}。`,
+      `- 绘画风格 prompt：${drawingStylePrompt}`,
+      '- 画面基准：16:9 满画布、无白边/外框/居中卡片；保持课堂可读性，标题和公式/代码足够大；画面美术优先服从上面的绘画风格。',
+      `- 色彩方向：${selectedPalette.label}。`,
+      `- 篇幅档位：${outlineLengthLabel(outlineLength)}。`,
+      `- 篇幅策略：${outlineLengthStrategyText(outlineLength)}`,
+      `- 例题数量：${workedExampleLevelLabel(workedExampleLevel)}。`,
+      `- 是否包含测验页：${includeQuizScenes ? '包含' : '不包含'}。`,
+      styleSample?.qa
+        ? `- 单页质量检查：QA ${styleSample.qa.passed ? '通过' : '未通过'}，speech ${
+            styleSample.speechCount ?? 0
+          } 段，focus ${styleSample.focusCount ?? 0} 个。`
+        : '- 单页质量检查：尚未记录。',
+      '',
+      '本轮输入来源：',
+      ...keptMaterials.map((item, index) => `${index + 1}. ${item.title}：${item.detail}`),
+      ...(hasSelectableSourceImages
+        ? [
+            `图片保留：${selectedSourceImages.length}/${sourcePreview.imagePreviews.length} 张缩略图会进入生成依据。`,
+            selectedSourceImages.length > 0
+              ? `保留图片：${selectedSourceImages.map((image) => image.title).join('、')}`
+              : '保留图片：无。',
+          ]
+        : []),
+      '',
+      '用户确认的页面规划顺序：',
+      ...outlineRows.map((row, index) => `${index + 1}. ${row.title}：${row.focus}`),
+    ];
+    return lines.filter(Boolean).join('\n');
+  };
+
+  const buildOutlineGenerationRequirement = (sourceInput?: PreparedSourceInput) => {
+    const requirement = form.requirement.trim();
+    const preview = sourceInput?.preview ?? sourcePreview;
+    const selectedIds = sourceInput?.selectedImageIds ?? selectedSourceImageIds;
+    const selectedImageIdSet = new Set(selectedIds);
+    const previewImages = preview.imagePreviews || [];
+    const selectedImages = previewImages.filter((image) => selectedImageIdSet.has(image.id));
+    const hasPreviewImages = previewImages.length > 0;
+    const sourceItems = preview.items.slice(0, 5);
+    const keptPdfPages =
+      form.sourceFile && sourcePageSelection?.type === 'pdf'
+        ? sourcePageSelection.pages
+            .filter((page) => page.keep)
+            .map((page) => page.pageNumber)
+            .sort((a, b) => a - b)
+        : [];
+    const sourceFlowLines = form.sourceFile
+      ? [
+          `文件：${form.sourceFile.name}（${fileKindLabel(form.sourceFile)}，${formatFileSize(form.sourceFile.size)}）`,
+          keptPdfPages.length ? `选中页码：${keptPdfPages.join(', ')}` : '',
+          sourceItems.length
+            ? '已解析内容：'
+            : preview.status === 'loading'
+              ? '已解析内容：正在读取文件流。'
+              : '已解析内容：暂未得到可展示片段，继续使用文件文本流进入规划。',
+          ...sourceItems.map(
+            (item, index) => `${index + 1}. ${item.title}（${item.kind}）：${item.detail}`,
+          ),
+          hasPreviewImages
+            ? `图片/图形区域：保留 ${selectedImages.length}/${previewImages.length} 张，供后续画图 prompt 和图片生成参考。`
+            : '',
+          preview.warnings.length ? `读取提示：${preview.warnings.slice(0, 2).join('；')}` : '',
+          preview.status === 'error' ? `读取错误：${preview.message}` : '',
+        ].filter(Boolean)
+      : ['无上传文件，仅基于用户主题/问题生成。'];
+    const lines = [
+      '用户输入：',
+      requirement ||
+        (form.sourceFile ? '未填写额外文字需求；根据上传参考资料生成。' : '未填写明确主题。'),
+      '',
+      '来源流：',
+      ...sourceFlowLines,
+      '',
+      '页面规划任务：',
+      '根据当前输入直接生成一版可编辑页面规划，不需要单独确认素材；文件内容和文字需求都作为输入流进入规划。',
+      '只决定整课主线、页面数量、每页涉及的知识点和教学动作；不要在这里写完整绘画 prompt。',
+      '输出目标是整页图片 notebook，但本阶段只做页面规划。',
+      `篇幅档位：${outlineLengthLabel(outlineLength)}。`,
+      `篇幅策略：${outlineLengthStrategyText(outlineLength)}`,
+      `例题数量：${workedExampleLevelLabel(workedExampleLevel)}。`,
+      `测验页：${includeQuizScenes ? '可以包含轻量测验页' : '不要单独生成测验页'}。`,
+      '',
+      '教学约束：',
+      '页面规划 AI 的任务只跟知识点和教学推进有关：不要把课号、校区、week/日期、作者/导师、页眉页脚、免责声明、logo/水印当作页面内容。',
+      '第 1 页必须是学生视角的 overview / hook：用第一个真实知识点、公式、例题或方法提出“我们为什么要解决这个问题”，但不要从课程身份或来源信息开始，也不要写成教师路线图。',
+      '第 2 页进入第一个实质讲解动作：定义边界、公式使用、例题走读、代码走读或证明走读。',
+      '每页只安排一个清楚教学动作，避免把完整课堂压进单页。',
+      '最后一页做总结、迁移练习或下一节课钩子。',
+      '',
+      '后续交接：',
+      '页面规划会继续传给画图 prompt 线程；下一步再补全每页定义、公式、代码、题目原文、例题步骤和视觉要求。',
+      `绘画风格只作为后续方向记录：${selectedStyle.label}。`,
+    ];
+    return lines.join('\n');
+  };
+
+  const generateOutlineForReview = async () => {
+    if (!currentModelId) {
+      showSetupToast(
+        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
+        t('settings.modelNotConfigured'),
+        t('settings.setupNeeded'),
+      );
+      openSettings();
+      return;
+    }
+
+    if (!hasInput) {
+      setError('请先输入想听的主题/问题，或上传一份参考资料。');
+      setActiveStep('input');
+      return;
+    }
+
+    setError(null);
+    setActiveStep('outline');
+    setOutlineGenerationStatus('loading');
+    setOutlineGenerationMessage(
+      form.sourceFile ? '正在读取参考资料并生成规划与 prompt…' : '正在根据主题生成规划与 prompt…',
+    );
+    setOutlineRows([]);
+    setSelectedOutlineId('');
+    setPlanningCourseSpine(null);
+    setPlanningPages([]);
+    setConfirmedImageNotebookPlan(null);
+    setPlanningLiveDraft(null);
+    setPlanningStreamEvents([]);
+    setPlanningQuality(null);
+    setPlanningPhase('course-spine');
+    clearPlanningMockStreamTimers();
+    setPlanningMockStreams({});
+    setPlanningMockPhaseStates({});
+    setPlanningMockStreamingPhases([]);
+    setPlanningRealPhaseStates({ 'course-spine': 'connecting' });
+    setCurrentPlanningPageNumbers([]);
+    setRevealingPlanningPageNumbers([]);
+    setPlanningRevealRevision(0);
+    if (planningRevealTimeoutRef.current != null) {
+      window.clearTimeout(planningRevealTimeoutRef.current);
+      planningRevealTimeoutRef.current = null;
+    }
+    resetStyleSample();
+
+    outlineAbortRef.current?.abort();
+    const abortController = new AbortController();
+    outlineAbortRef.current = abortController;
+
+    try {
+      const preparedSource = await prepareSourceInputForPlanning(abortController.signal);
+      if (abortController.signal.aborted) return;
+      const userProfile = useUserProfileStore.getState();
+      const selectedMedia = filterSelectedSourceMedia({
+        pdfImages: preparedSource.extract.pdfImages,
+        imageMapping: preparedSource.extract.imageMapping,
+        selectedImageIds:
+          preparedSource.preview.imagePreviews.length > 0
+            ? preparedSource.selectedImageIds
+            : undefined,
+      });
+      const basePayload = {
+        requirements: {
+          requirement: buildOutlineGenerationRequirement(preparedSource),
+          language,
+          userNickname: userProfile.nickname || undefined,
+          userBio: userProfile.bio || undefined,
+          webSearch: false,
+        },
+        pdfText: preparedSource.extract.text,
+        agents: [],
+        coursePurpose: 'university',
+        notebookContext: {
+          courseId,
+        },
+        outlinePreferences: {
+          length: outlineLength,
+          includeQuizScenes,
+          workedExampleLevel,
+        },
+      };
+      const budgetedMedia = buildBudgetedGenerationMedia({
+        basePayload,
+        pdfImages: selectedMedia.pdfImages,
+        imageMapping: selectedMedia.imageMapping,
+        preferredImageIds: selectedSourceImageIds,
+        maxRequestBytes: SAFE_GENERATION_REQUEST_BYTES,
+      });
+      const payload = {
+        ...basePayload,
+        ...(budgetedMedia.pdfImages ? { pdfImages: budgetedMedia.pdfImages } : {}),
+        ...(budgetedMedia.imageMapping ? { imageMapping: budgetedMedia.imageMapping } : {}),
+      };
+
+      const headers = new Headers(
+        getApiHeaders({
+          imageGenerationEnabled: true,
+          modelIdOverride,
+          notebookStageModelOverrides,
+          notebookModelMode,
+          testNoCharge: true,
+        }),
+      );
+      headers.set('Accept', 'text/event-stream');
+
+      setOutlineGenerationMessage('正在生成整课主线和页面索引…');
+      setPlanningStreamEvents(['启动整本页面规划流']);
+      const response = await backendFetch('/api/generate/image-notebook-plan-stream', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const message = await readApiErrorMessage(response, '页面规划生成失败');
+        throw new Error(message);
+      }
+
+      let streamedOutlines: SceneOutline[] = [];
+      let expectedPlanningPageCount = 0;
+      const mergeStreamedOutlines = (incoming: SceneOutline[]) => {
+        const next = [...streamedOutlines];
+        for (const outline of incoming) {
+          const index = Math.max(0, (outline.order || next.length + 1) - 1);
+          next[index] = outline;
+        }
+        streamedOutlines = next.filter(Boolean);
+        return streamedOutlines;
+      };
+      const appendStreamEvent = (message: string) => {
+        setPlanningStreamEvents((events) => [message, ...events].slice(0, 8));
+      };
+
+      await readImageNotebookPlanStream(response, (event) => {
+        if (abortController.signal.aborted) return;
+        if (event.type === 'status') {
+          setOutlineGenerationMessage(event.detail);
+          if (!planningCourseSpine && !planningPages.length) {
+            setPlanningRealPhaseStates((current) => ({
+              ...current,
+              'course-spine': 'spine-loading',
+            }));
+          }
+          appendStreamEvent(event.detail);
+          return;
+        }
+        if (event.type === 'draft') {
+          const detail =
+            event.detail ||
+            (event.phase === 'batch' ? '正在接收画图 prompt 草稿…' : '正在接收页面规划草稿…');
+          setPlanningLiveDraft({
+            phase: event.phase,
+            detail,
+            text: event.text || '',
+          });
+          setOutlineGenerationMessage(detail);
+          setPlanningPhase(event.phase === 'batch' ? 'page-brief' : 'course-spine');
+          setPlanningRealPhaseStates((current) => ({
+            ...current,
+            [event.phase === 'batch' ? 'page-brief' : 'course-spine']:
+              event.phase === 'batch' ? 'index-loading' : 'spine-loading',
+          }));
+          appendStreamEvent(detail);
+          return;
+        }
+        if (event.type === 'blueprint') {
+          setPlanningLiveDraft(null);
+          if (event.courseSpine) setPlanningCourseSpine(event.courseSpine);
+          if (event.quality) setPlanningQuality(event.quality);
+          const previews = pagePlanningPreviewsFromBlueprint(event.pageIndex);
+          expectedPlanningPageCount = previews.length;
+          setPlanningPages(previews);
+          setPlanningRealPhaseStates((current) => ({
+            ...current,
+            'course-spine': 'done',
+            'page-brief': previews.length > 0 ? 'connecting' : current['page-brief'],
+          }));
+          const rows = (event.pageIndex || []).map((page, index) => ({
+            id: `outline-${page.pageNumber || index + 1}`,
+            title: page.title?.trim() || `第 ${index + 1} 页`,
+            focus:
+              page.currentJob?.trim() ||
+              page.keyPoints?.filter(Boolean).slice(0, 4).join('；') ||
+              '等待详细页面规划…',
+          }));
+          if (rows.length > 0) {
+            setOutlineRows(rows);
+            setSelectedOutlineId((current) => current || rows[0]?.id || '');
+            setOutlineGenerationMessage(
+              `已生成 ${rows.length} 页页面规划，正在每批 4 页并行生成画图 prompt…`,
+            );
+            appendStreamEvent(`页面规划完成：${rows.length} 页`);
+          }
+          return;
+        }
+        if (event.type === 'batch-start') {
+          setPlanningLiveDraft(null);
+          setPlanningPhase('page-brief');
+          const pageNumbers =
+            event.pageNumbers?.filter((pageNumber) => Number.isFinite(pageNumber)) ||
+            (event.startPage && event.endPage
+              ? Array.from(
+                  { length: Math.max(0, event.endPage - event.startPage + 1) },
+                  (_, index) => event.startPage! + index,
+                )
+              : []);
+          setCurrentPlanningPageNumbers(pageNumbers);
+          setPlanningRealPhaseStates((current) => ({
+            ...current,
+            'course-spine': 'done',
+            'page-brief': 'index-loading',
+          }));
+          const label =
+            event.startPage && event.endPage
+              ? `第 ${event.startPage}-${event.endPage} 页`
+              : `第 ${(event.batchIndex ?? 0) + 1} 批`;
+          const detail =
+            event.attempt && event.attempt > 0
+              ? `正在重试${label}画图 prompt…`
+              : `正在生成${label}画图 prompt…`;
+          setOutlineGenerationMessage(detail);
+          appendStreamEvent(detail);
+          return;
+        }
+        if (event.type === 'pages') {
+          setPlanningLiveDraft(null);
+          const incomingPageNumbers = Array.from(
+            new Set(
+              (
+                event.pageNumbers ||
+                event.outlines
+                  ?.map((outline, index) => outline.order || (event.startPage || 1) + index)
+                  .filter(Boolean) ||
+                []
+              ).filter((pageNumber) => Number.isFinite(pageNumber)),
+            ),
+          );
+          const batchLabel =
+            event.startPage && event.endPage
+              ? `第 ${event.startPage}-${event.endPage} 页`
+              : undefined;
+          const merged = mergeStreamedOutlines(event.outlines || []);
+          const completedPageCount = merged.length;
+          const incomingRows = sceneOutlinesToRows(event.outlines || []);
+          setOutlineRows((current) => {
+            const next = current.length ? [...current] : sceneOutlinesToRows(merged);
+            incomingRows.forEach((row, index) => {
+              const order = Math.max(
+                0,
+                (event.outlines?.[index]?.order || (event.startPage || 1) + index) - 1,
+              );
+              next[order] = row;
+            });
+            return next.filter(Boolean);
+          });
+          setSelectedOutlineId((current) => {
+            if (current && incomingRows.some((row) => row.id === current)) return current;
+            return current || incomingRows[0]?.id || '';
+          });
+          setPlanningPages((pages) =>
+            mergePagePlanningPreviews(
+              pages,
+              pagePlanningPreviewsFromOutlines(event.outlines, event.pageBriefs, batchLabel),
+            ),
+          );
+          setPlanningRealPhaseStates((current) => ({
+            ...current,
+            'course-spine': 'done',
+            'page-brief':
+              expectedPlanningPageCount > 0 && completedPageCount >= expectedPlanningPageCount
+                ? 'done'
+                : completedPageCount > 0
+                  ? 'index-first-page'
+                  : 'index-loading',
+          }));
+          startPlanningReveal(incomingPageNumbers);
+          const detail = `${batchLabel || '一批页面'}画图 prompt 完成`;
+          setOutlineGenerationMessage(detail);
+          appendStreamEvent(detail);
+          return;
+        }
+        if (event.type === 'quality') {
+          setPlanningLiveDraft(null);
+          if (event.quality) setPlanningQuality(event.quality);
+          setPlanningRealPhaseStates((current) => ({
+            ...current,
+            'course-spine': current['course-spine'] || 'done',
+            'page-brief': 'done',
+          }));
+          appendStreamEvent(
+            event.quality?.passed
+              ? '页面规划和画图 prompt 检查通过'
+              : '页面规划和画图 prompt 需要检查',
+          );
+          return;
+        }
+        if (event.type === 'done') {
+          setPlanningLiveDraft(null);
+          streamedOutlines = event.outlines?.length ? event.outlines : streamedOutlines;
+          if (event.plan?.courseSpine) setPlanningCourseSpine(event.plan.courseSpine);
+          if (event.planQuality) setPlanningQuality(event.planQuality);
+          setPlanningRealPhaseStates({
+            'course-spine': 'done',
+            'page-brief': 'done',
+          });
+          if (event.plan && streamedOutlines.length) {
+            setConfirmedImageNotebookPlan({
+              outlines: streamedOutlines,
+              plan: event.plan,
+            });
+          }
+          setCurrentPlanningPageNumbers([]);
+          setRevealingPlanningPageNumbers([]);
+          if (planningRevealTimeoutRef.current != null) {
+            window.clearTimeout(planningRevealTimeoutRef.current);
+            planningRevealTimeoutRef.current = null;
+          }
+          setPlanningPages(
+            pagePlanningPreviewsFromOutlines(streamedOutlines, event.plan?.pageBriefs, '最终规划'),
+          );
+          appendStreamEvent(
+            `页面规划和画图 prompt 完成：${event.outlines?.length || streamedOutlines.length} 页`,
+          );
+        }
+      });
+
+      if (!streamedOutlines.length) {
+        throw new Error('没有生成可用页面规划');
+      }
+      const rows = sceneOutlinesToRows(streamedOutlines);
+      if (rows.length === 0) {
+        throw new Error('没有生成可用页面规划');
+      }
+      setOutlineRows(rows);
+      setSelectedOutlineId(rows[0]?.id || '');
+      setOutlineGenerationStatus('ready');
+      setCurrentPlanningPageNumbers([]);
+      setRevealingPlanningPageNumbers([]);
+      setPlanningLiveDraft(null);
+      setPlanningRealPhaseStates({
+        'course-spine': 'done',
+        'page-brief': 'done',
+      });
+      setOutlineGenerationMessage(
+        `已生成 ${rows.length} 页页面规划和画图 prompt，可以并行生成图片。`,
+      );
+    } catch (err) {
+      if (abortController.signal.aborted) return;
+      log.error('Outline review generation failed:', err);
+      const message = err instanceof Error ? err.message : '页面规划生成失败';
+      setOutlineGenerationStatus('error');
+      setCurrentPlanningPageNumbers([]);
+      setPlanningLiveDraft(null);
+      setPlanningRealPhaseStates({});
+      setOutlineGenerationMessage(message);
+      setError(message);
+    } finally {
+      if (outlineAbortRef.current === abortController) {
+        outlineAbortRef.current = null;
+      }
+    }
+  };
+
+  const handleGenerate = async (forcedSelection?: PdfSourceSelection) => {
+    if (!currentModelId) {
+      showSetupToast(
+        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
+        t('settings.modelNotConfigured'),
+        t('settings.setupNeeded'),
+      );
+      openSettings();
+      return;
+    }
+
+    if (!hasInput) {
+      setError('请先输入想听的主题/问题，或上传一份参考资料。');
+      setActiveStep('input');
+      return;
+    }
+
+    const cid = courseId.trim();
+    if (!cid) {
+      setError('请先从「我的课程」进入某一门课程，再创建笔记本。');
+      return;
+    }
+
+    const effectiveSelection = (() => {
+      const sourceFile = form.sourceFile;
+      if (!sourceFile || !isPdfSourceFile(sourceFile)) return undefined;
+      const signature = getPdfSourceFileSignature(sourceFile);
+      const candidate = forcedSelection ?? sourcePageSelection ?? undefined;
+      return candidate?.fileSignature === signature ? candidate : undefined;
+    })();
+
+    if (
+      form.sourceFile &&
+      isPdfSourceFile(form.sourceFile) &&
+      form.sourceFile.size > PDF_PAGE_SELECTION_MAX_BYTES &&
+      !effectiveSelection
+    ) {
+      setPageSelectionDialogOpen(true);
+      return;
+    }
+
+    setError(null);
+    setBusy(true);
+    setActiveStep('result');
+
+    try {
+      const userProfile = useUserProfileStore.getState();
+      const generationTask = enqueueNotebookGeneration(
+        {
+          courseId: cid,
+          requirement: buildConfirmedRequirement(),
+          notebookModelMode,
+          modelIdOverride,
+          notebookStageModelOverrides,
+          language,
+          webSearch: false,
+          generateSlides: true,
+          slideGenerationRoute: 'image-ppt',
+          sourceFile: form.sourceFile,
+          sourcePageSelection: effectiveSelection,
+          sourceImageIds: hasSelectableSourceImages ? selectedSourceImageIds : undefined,
+          confirmedImageNotebookOutlines:
+            confirmedImageNotebookPlan?.outlines ||
+            (outlineGenerationStatus === 'ready' && outlineRows.length > 0
+              ? outlineRowsToSceneOutlines(outlineRows, language)
+              : undefined),
+          confirmedImageNotebookPlan: confirmedImageNotebookPlan?.plan,
+          userNickname: userProfile.nickname || undefined,
+          userBio: userProfile.bio || undefined,
+          imageGenerationEnabledOverride: true,
+          outlinePreferences: {
+            length: outlineLength,
+            includeQuizScenes,
+            workedExampleLevel,
+          },
+        },
+        {
+          onProgress: (_task, progress) => {
+            if (progress.stage === 'notebook-ready') {
+              window.dispatchEvent(
+                new CustomEvent('synatra-notebook-list-updated', {
+                  detail: { courseId: cid, notebookId: progress.notebookId },
+                }),
+              );
+            }
+          },
+          onCompleted: (_task, result) => {
+            window.dispatchEvent(
+              new CustomEvent('synatra-notebook-list-updated', {
+                detail: { courseId: cid, notebookId: result.stage.id },
+              }),
+            );
+            enqueueCompanionBanner(
+              buildStudyCompanionNotification({
+                id: `notebook-ready:${result.stage.id}`,
+                sourceKind: 'notebook_ready',
+                title: '笔记本生成好了',
+                body:
+                  result.scenes.length > 0
+                    ? `笔记本「${result.stage.name}」已创建完成，共 ${result.scenes.length} 页。`
+                    : `笔记本「${result.stage.name}」已加入仓库。`,
+                amountLabel: '生成好了',
+                sourceLabel: '笔记本生成',
+                details: [
+                  { key: 'notebook', label: '笔记本', value: result.stage.name },
+                  { key: 'pages', label: '页面数', value: String(result.scenes.length) },
+                ],
+              }),
+            );
+          },
+          onFailed: (_task, message) => {
+            toast.error(`笔记本生成失败：${message}`);
+          },
+          onCancelled: () => {
+            toast.info('已取消笔记本生成任务');
+          },
+        },
+      );
+      setActiveGenerationTaskId(generationTask.id);
+      toast.success('已加入生成队列');
+    } catch (err) {
+      log.error('Error preparing generation:', err);
+      setError(err instanceof Error ? err.message : t('upload.generateFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goNext = () => {
+    if (activeStep === 'input') {
+      if (!hasInput) {
+        setError('请先输入想听的主题/问题，或上传一份参考资料。');
+        return;
+      }
+      void generateOutlineForReview();
+    } else if (activeStep === 'materials') {
+      void generateOutlineForReview();
+    } else if (activeStep === 'outline') {
+      if (outlineNeedsInitialGeneration) {
+        void generateOutlineForReview();
+        return;
+      }
+      if (outlineGenerationStatus === 'loading') {
+        setError('页面规划和画图 prompt 还在生成中，完成后再并行生成图片。');
+        return;
+      }
+      if (outlineGenerationStatus !== 'ready' || outlineRows.length === 0) {
+        setError('请先生成并确认页面规划。');
+        return;
+      }
+      void handleGenerate();
+    } else if (activeStep === 'style') {
+      if (!styleSampleQualityPassed) {
+        setError('请先在当前生成方案下跑通单页质量检查。');
+        return;
+      }
+      void handleGenerate();
+    }
+  };
+
+  const goBack = () => {
+    if (activeStep === 'materials') setActiveStep('input');
+    if (activeStep === 'outline') {
+      setActiveStep('input');
+    }
+    if (activeStep === 'style') {
+      setPlanningPhase('page-brief');
+      setActiveStep('outline');
+    }
+    if (activeStep === 'result') setActiveStep('outline');
+  };
+
+  const addOutlineRow = () => {
+    const id = `custom-${Date.now()}`;
+    setConfirmedImageNotebookPlan(null);
+    setOutlineRows((rows) => [
+      ...rows,
+      { id, title: '新增页面', focus: '补充一个需要单独讲清楚的知识点。' },
+    ]);
+    setSelectedOutlineId(id);
+  };
+
+  const confirmedGenerationPromptPreview = outlineRows.length ? buildConfirmedRequirement() : '';
+  const planningInputPageLines = planningListPages.length
+    ? planningListPages.map((page) =>
+        [
+          `${String(page.pageNumber).padStart(2, '0')}. ${page.title}`,
+          `   role: ${page.pageRole || 'pending'}`,
+          `   currentJob: ${page.currentJob}`,
+        ].join('\n'),
+      )
+    : outlineRows.map((row, index) =>
+        [`${String(index + 1).padStart(2, '0')}. ${row.title}`, `   focus: ${row.focus}`].join(
+          '\n',
+        ),
+      );
+  const planningPromptBatchNumbers =
+    currentPlanningPageNumbers.length > 0
+      ? currentPlanningPageNumbers
+      : planningListPages.length > 0
+        ? planningListPages.map((page) => page.pageNumber).slice(0, 4)
+        : outlineRows.map((_row, index) => index + 1).slice(0, 4);
+  const planningInputPreview =
+    planningPhase === 'course-spine'
+      ? buildOutlineGenerationRequirement()
+      : [
+          '画图 prompt 生成输入',
+          '',
+          '并行策略：每个 thread 负责 4 页，根据页面规划生成完整画图 prompt。',
+          planningPromptBatchNumbers.length
+            ? `当前批次页码：${planningPromptBatchNumbers.join(', ')}`
+            : '当前批次页码：等待页面规划。',
+          '',
+          `绘画风格：${selectedStyle.label}`,
+          `绘画风格 prompt：${drawingStylePrompt}`,
+          `篇幅档位：${outlineLengthLabel(outlineLength)}`,
+          '',
+          '页面规划输入：',
+          ...(planningInputPageLines.length ? planningInputPageLines : ['等待页面规划输出…']),
+          '',
+          '画图 prompt 必须写清：定义全文、公式全文、代码全文、题目原文、例题步骤和必须避免的误区。',
+        ].join('\n');
+  const activeGenerationTask =
+    (activeGenerationTaskId
+      ? generationTasks.find((task) => task.id === activeGenerationTaskId)
+      : undefined) ||
+    [...generationTasks]
+      .reverse()
+      .find(
+        (task) =>
+          task.courseId === courseId &&
+          task.generateSlides &&
+          ['queued', 'running'].includes(task.status),
+      ) ||
+    null;
+  const runtimeImageGenerationRows = buildRuntimeImageGenerationRows(activeGenerationTask);
+  const plannedImageGenerationRows =
+    outlineRows.length > 0 ? outlineRows : runtimeImageGenerationRows;
+  const imageGenerationGridRows = imageGenerationMockPageCount
+    ? takeImageGenerationRowsWithFallback(plannedImageGenerationRows, imageGenerationMockPageCount)
+    : plannedImageGenerationRows;
+  const canStartImageGenerationFromResult =
+    !activeGenerationTask &&
+    outlineGenerationStatus === 'ready' &&
+    outlineRows.length > 0 &&
+    imageGenerationMockPageCount === null;
+  const currentPilotImagePromptPreview = selectedOutline
+    ? buildStyleSamplePrompt({
+        outline: selectedOutline,
+        outlineIndex: selectedOutlineIndex,
+        totalOutlines: Math.max(outlineRows.length, 1),
+        sourceFileName: form.sourceFile?.name,
+        requirement: form.requirement,
+        language,
+        style: selectedStyle,
+        customStylePrompt: drawingStylePrompt,
+        palette: selectedPalette,
+        sourceImages: selectedSourceImages,
+        includeQuizScenes,
+        workedExampleLevel,
+      })
+    : '';
+  const visiblePilotImagePrompt = styleSample?.prompt || currentPilotImagePromptPreview;
+  const copyPrompt = async (value: string, label: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label}已复制`);
+    } catch (err) {
+      log.error('Copy prompt failed:', err);
+      toast.error(`${label}复制失败`);
+    }
+  };
+  const drawingStylePromptCharacterCount = customStylePrompt.trim().length;
+
+  return {
+    activeGenerationTask,
+    activeStep,
+    activeStepIndex,
+    activeStepLabel,
+    addOutlineRow,
+    busy,
+    canStartImageGenerationFromResult,
+    clearPlanningMockOverride,
+    clearSourceFile,
+    completedPlanningPhases,
+    confirmedGenerationPromptPreview,
+    copyPrompt,
+    customStylePrompt,
+    displayedPlanningStreamingPhases,
+    drawingStylePromptCharacterCount,
+    error,
+    fileInputRef,
+    form,
+    generateOutlineForReview,
+    generateStyleSample,
+    goBack,
+    goNext,
+    handleFileSelect,
+    handleGenerate,
+    handleSourceInputDragEnter,
+    handleSourceInputDragLeave,
+    handleSourceInputDragOver,
+    handleSourceInputDrop,
+    hasCustomDrawingStyle,
+    hasInput,
+    hasPlanningMockStreams,
+    hasSelectableSourceImages,
+    hasSelectedPlanningStepText,
+    hidePlanningInputPanel,
+    imageGenerationGridRows,
+    imageGenerationMockPageCount,
+    includeQuizScenes,
+    keptMaterials,
+    language,
+    materials,
+    missingSourceImagePreviewCount,
+    outlineGenerationMessage,
+    outlineGenerationStatus,
+    outlineIsLoading,
+    outlineLength,
+    outlineNeedsInitialGeneration,
+    outlineNextDisabled,
+    outlineRows,
+    pageSelectionDialogOpen,
+    planningInputPreview,
+    planningListPages,
+    planningPhase,
+    planningRevealRevision,
+    resetSourceInput,
+    resetStyleState,
+    selectDrawingStyle,
+    selectedOutline,
+    selectedPalette,
+    selectedPaletteId,
+    selectedPlanningEffectivePhaseState,
+    selectedPlanningIsWriting,
+    selectedPlanningMockPhaseState,
+    selectedPlanningPage,
+    selectedPlanningRealPhaseState,
+    selectedPlanningStepIsWriting,
+    selectedPlanningStepText,
+    selectedPlanningStructuredLoadingState,
+    selectedPlanningStructuredOutput,
+    selectedSourceImageIdSet,
+    selectedSourceImages,
+    selectedStyle,
+    selectedStyleId,
+    selectProgressStep,
+    setActiveStep,
+    setAllSourceImagesSelected,
+    setConfirmedImageNotebookPlan,
+    setCurrentPlanningPageNumbers,
+    setCustomStylePrompt,
+    setImageGenerationMockPageCount,
+    setIncludeQuizScenes,
+    setLanguage,
+    setMaterialKeep,
+    setOutlineGenerationMessage,
+    setOutlineGenerationStatus,
+    setOutlineLength,
+    setOutlineRows,
+    setPageSelectionDialogOpen,
+    setPlanningCourseSpine,
+    setPlanningLiveDraft,
+    setPlanningMockPhaseState,
+    setPlanningMockPhaseStates,
+    setPlanningMockStreamingPhases,
+    setPlanningMockStreams,
+    setPlanningPages,
+    setPlanningQuality,
+    setPlanningRealPhaseStates,
+    setPlanningStreamEvents,
+    setSelectedOutlineId,
+    setSelectedPaletteId,
+    setSourceImageSelection,
+    setSourcePageSelection,
+    setWorkedExampleLevel,
+    showPlanningInputOnly,
+    showPlanningOutputPanel,
+    sourceDragActive,
+    sourcePreview,
+    startParallelPlanningMockStreams,
+    structuredPlanningCourseSpine,
+    stylePromptTextareaRef,
+    styleSample,
+    styleSampleError,
+    styleSampleIsCurrent,
+    styleSampleIsStale,
+    styleSampleQualityPassed,
+    styleSampleStatus,
+    updateRequirement,
+    visiblePilotImagePrompt,
+    workedExampleLevel,
+  };
+}
+
+export type CreateNotebookWorkspaceController = ReturnType<
+  typeof useCreateNotebookWorkspaceController
+>;

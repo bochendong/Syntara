@@ -12,6 +12,7 @@ import {
   type SlideBackgroundStyleId,
 } from '@/lib/constants/slide-backgrounds';
 import type { SceneLayoutIntent, SceneOutline, SharedExampleMemory } from '@/lib/types/generation';
+import { TESTFILE_ROOT } from '@/lib/server/project-paths';
 import { buildSpecializedFunctionsMathOutline } from './functions-math-outline';
 import { layoutFamilyForTemplate } from './layout-family';
 import {
@@ -28,7 +29,6 @@ export const revalidate = 0;
 
 const MAX_SOURCE_PAGES_PER_FIXTURE = 80;
 const SUBJECT_NOTEBOOK_DIR = '科目测试';
-const TESTFILE_ROOT = path.join(process.cwd(), 'testfile');
 
 type FixtureFileId = string;
 

@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import type { Dirent } from 'node:fs';
 import path from 'node:path';
 import { readFile, readdir, stat } from 'node:fs/promises';
-
-export const PROBLEM_IMPORT_TESTFILE_ROOT = path.join(process.cwd(), 'testfile', 'questionBank');
+import { PROBLEM_IMPORT_TESTFILE_ROOT } from '@/lib/server/project-paths';
+export { PROBLEM_IMPORT_TESTFILE_ROOT } from '@/lib/server/project-paths';
 
 export type ProblemImportFixtureKind = 'choice' | 'long-form' | 'code' | 'material';
 export type ProblemImportFixtureFileType = 'pdf' | 'pptx' | 'md' | 'txt';
