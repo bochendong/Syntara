@@ -541,11 +541,12 @@ function buildImageGenerationHeaders(baseHeaders: HeadersInit): Record<string, s
 
 function imageResultToUrl(result: ImageGenerationResult | undefined): string {
   if (!result) return '';
-  if (result.url) return result.url;
-  if (!result.base64) return '';
-  return result.base64.startsWith('data:')
-    ? result.base64
-    : `data:image/png;base64,${result.base64}`;
+  if (result.base64) {
+    return result.base64.startsWith('data:')
+      ? result.base64
+      : `data:image/png;base64,${result.base64}`;
+  }
+  return result.url || '';
 }
 
 function qaFindingsText(qa: ImageNotebookQaResult): string {

@@ -137,6 +137,25 @@ async function normalizeOpenAiImageAspectRatio(
   };
 }
 
+async function materializeImageResultInline(
+  result: ImageGenerationResult,
+): Promise<ImageGenerationResult> {
+  if (result.base64 || !result.url) return result;
+  try {
+    const response = await fetch(result.url);
+    if (!response.ok) return result;
+    const contentType = response.headers.get('content-type') || 'image/png';
+    if (!contentType.startsWith('image/')) return result;
+    const base64 = Buffer.from(await response.arrayBuffer()).toString('base64');
+    return {
+      ...result,
+      base64: `data:${contentType};base64,${base64}`,
+    };
+  } catch {
+    return result;
+  }
+}
+
 export async function POST(request: NextRequest) {
   return runWithRequestContext(request, '/api/generate/image', async () => {
     try {
@@ -206,10 +225,11 @@ export async function POST(request: NextRequest) {
         { providerId, apiKey, baseUrl, model: clientModel },
         body,
       );
-      const result =
+      const normalizedResult =
         providerId === 'openai-image'
           ? await normalizeOpenAiImageAspectRatio(rawResult, body.aspectRatio)
           : rawResult;
+      const result = await materializeImageResultInline(normalizedResult);
       const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-2';
       const costEstimate = createImageCostEstimate(providerId, resolvedModelId, result);
 

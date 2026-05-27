@@ -20,6 +20,7 @@ import type { StageListItem } from '@/lib/utils/stage-storage';
 import type { PPTImageElement, Slide } from '@/lib/types/slides';
 import { pickStableGalleryCoverUrl } from '@/lib/constants/gallery-covers';
 import { cn } from '@/lib/utils';
+import { isLocalGeneratedNotebookImageSrc } from '@/lib/notebook-content/generated-image-src';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,14 @@ function pickSlidePreviewImageUrl(slide: Slide | undefined): string | null {
     .filter(isSlideImageElement)
     .sort((a, b) => b.width * b.height - a.width * a.height)[0];
   return image?.src.trim() || null;
+}
+
+function hasLocalOnlySlideImage(slide: Slide | undefined): boolean {
+  return Boolean(
+    slide?.elements.some(
+      (element) => element.type === 'image' && isLocalGeneratedNotebookImageSrc(element.src),
+    ),
+  );
 }
 
 const notebookSpineClassNames = [
@@ -224,8 +233,14 @@ export function CourseGalleryCard({
     (course.name.length > 120 ? `${course.name.slice(0, 120)}…` : course.name);
   const showRatingOnCover = Boolean(ratingLabel?.trim()) || useRatingOnCover;
   const galleryCoverUrl = pickStableGalleryCoverUrl(course.id);
-  const preferredCoverUrl = isImageUrl(coverAvatarUrl) ? coverAvatarUrl.trim() : galleryCoverUrl;
+  const safeCoverAvatarUrl =
+    isImageUrl(coverAvatarUrl) && !isLocalGeneratedNotebookImageSrc(coverAvatarUrl)
+      ? coverAvatarUrl.trim()
+      : null;
+  const preferredCoverUrl = safeCoverAvatarUrl ?? galleryCoverUrl;
   const slidePreviewImageUrl = pickSlidePreviewImageUrl(slide);
+  const slideUsesLocalOnlyImage = hasLocalOnlySlideImage(slide);
+  const shouldRenderSlideThumbnail = Boolean(slide && thumbWidth > 0 && !slideUsesLocalOnlyImage);
 
   useEffect(() => {
     setCoverImgSrc(null);
@@ -276,7 +291,9 @@ export function CourseGalleryCard({
     const formattedProblemCount =
       typeof problemCount === 'number' && problemCount > 0 ? problemCount : 0;
     const shouldUseSlidePreviewImage = Boolean(
-      slidePreviewImageUrl && failedSlidePreviewUrl !== slidePreviewImageUrl,
+      slidePreviewImageUrl &&
+      !slideUsesLocalOnlyImage &&
+      failedSlidePreviewUrl !== slidePreviewImageUrl,
     );
     const hasMoveActions = Boolean(moveToCourseTargets?.length && onMoveToCourse);
     const hasPublishAction = Boolean(onSecondaryAction && secondaryActionLabel);
@@ -321,7 +338,7 @@ export function CourseGalleryCard({
                   className="absolute inset-0 size-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.03]"
                   onError={() => setFailedSlidePreviewUrl(slidePreviewImageUrl)}
                 />
-              ) : slide && thumbWidth > 0 ? (
+              ) : shouldRenderSlideThumbnail && slide ? (
                 <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-white">
                   <ThumbnailSlide
                     slide={slide}
@@ -612,7 +629,7 @@ export function CourseGalleryCard({
     >
       <div ref={thumbRef} className={cn('relative w-full shrink-0 overflow-hidden', cfg.media)}>
         <div className="absolute inset-0">
-          {slide && thumbWidth > 0 ? (
+          {shouldRenderSlideThumbnail && slide ? (
             <ThumbnailSlide
               slide={slide}
               size={thumbWidth}
@@ -738,12 +755,12 @@ export function CourseGalleryCard({
           <div
             className={cn(
               'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/70 bg-white/92 shadow-[0_12px_30px_rgba(15,23,42,0.08)] sm:size-12 sm:rounded-2xl dark:border-white/12 dark:bg-white/8',
-              coverAvatarUrl?.trim() && 'ring-1 ring-slate-200/80 dark:ring-white/12',
+              safeCoverAvatarUrl && 'ring-1 ring-slate-200/80 dark:ring-white/12',
             )}
           >
-            {coverAvatarUrl?.trim() ? (
+            {safeCoverAvatarUrl ? (
               <img
-                src={coverAvatarUrl.trim()}
+                src={safeCoverAvatarUrl}
                 alt=""
                 className="size-full object-cover object-center"
               />

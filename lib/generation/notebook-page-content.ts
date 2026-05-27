@@ -77,11 +77,12 @@ export function sourceImagesFromMedia(args: {
 
 export function imageResultToUrl(result: ImageGenerationResult | undefined): string {
   if (!result) return '';
-  if (result.url) return result.url;
-  if (!result.base64) return '';
-  return result.base64.startsWith('data:')
-    ? result.base64
-    : `data:image/png;base64,${result.base64}`;
+  if (result.base64) {
+    return result.base64.startsWith('data:')
+      ? result.base64
+      : `data:image/png;base64,${result.base64}`;
+  }
+  return result.url || '';
 }
 
 export function qaFindingsText(qa: ImageNotebookQaResult): string {

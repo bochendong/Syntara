@@ -4,6 +4,7 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { inlineLocalGeneratedNotebookImages } from '@/lib/server/notebook-scene-image-assets';
 import {
   findOwnedNotebookId,
   listNotebookScenes,
@@ -69,22 +70,26 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       );
     }
 
-    const scenes = await replaceOwnedNotebookScenes(
-      prisma,
-      userId,
-      id,
-      payload.data.scenes.map((s) => ({
-        id: s.id,
-        title: s.title,
-        type: s.type,
-        order: s.order,
-        content: toPrismaJson(
-          attachGenerationDiagnosticsToContent(s.content, s.generationDiagnostics),
-        ),
-        actions: toPrismaNullableJson(s.actions),
-        whiteboard: toPrismaNullableJson(s.whiteboards),
-      })),
+    const sceneData = await Promise.all(
+      payload.data.scenes.map(async (s) => {
+        const contentWithDiagnostics = attachGenerationDiagnosticsToContent(
+          s.content,
+          s.generationDiagnostics,
+        );
+        const { content } = await inlineLocalGeneratedNotebookImages(contentWithDiagnostics);
+        return {
+          id: s.id,
+          title: s.title,
+          type: s.type,
+          order: s.order,
+          content: toPrismaJson(content),
+          actions: toPrismaNullableJson(s.actions),
+          whiteboard: toPrismaNullableJson(s.whiteboards),
+        };
+      }),
     );
+
+    const scenes = await replaceOwnedNotebookScenes(prisma, userId, id, sceneData);
     if (!scenes) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }

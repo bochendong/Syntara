@@ -2,6 +2,7 @@
 
 import type { PPTImageElement } from '@/lib/types/slides';
 import type { CSSProperties } from 'react';
+import { useState } from 'react';
 import { useElementShadow } from '../hooks/useElementShadow';
 import { useElementFlip } from '../hooks/useElementFlip';
 import { useClipImage } from './useClipImage';
@@ -81,11 +82,13 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
       : isPlaceholder
         ? ''
         : elementInfo.src;
+  const [failedResolvedSrc, setFailedResolvedSrc] = useState<string | null>(null);
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
   const showSkeleton =
     isPlaceholder && !showDisabled && !!task && task.status !== 'done' && task.status !== 'failed';
   const showError = isPlaceholder && task?.status === 'failed';
   const showIdle = isPlaceholder && !showDisabled && !showSkeleton && !showError && !resolvedSrc;
+  const showMissingImage = Boolean(resolvedSrc && failedResolvedSrc === resolvedSrc);
   const isFullSlideImage =
     elementInfo.name === 'full_page_bitmap' ||
     (elementInfo.width >= 990 && elementInfo.height >= 550) ||
@@ -190,6 +193,10 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                   <PromptPreview prompt={prompt} />
                 </div>
               </div>
+            ) : showMissingImage ? (
+              <div className="flex h-full w-full items-center justify-center bg-slate-100/80 text-slate-400 dark:bg-slate-900/70 dark:text-slate-500">
+                <ImageOff className="h-5 w-5" strokeWidth={1.5} />
+              </div>
             ) : resolvedSrc ? (
               <>
                 <img
@@ -204,6 +211,7 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     filter,
                   }}
                   alt=""
+                  onError={() => setFailedResolvedSrc(resolvedSrc)}
                   onDragStart={(e) => e.preventDefault()}
                 />
                 {elementInfo.colorMask && (
