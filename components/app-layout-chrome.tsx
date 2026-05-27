@@ -19,8 +19,11 @@ const ChatRightRail = dynamic(
   () => import('@/components/chat-right-rail').then((mod) => mod.ChatRightRail),
   { ssr: false },
 );
-const Live2DStudyCompanion = dynamic(
-  () => import('@/components/live2d-study-companion').then((mod) => mod.Live2DStudyCompanion),
+const Live2DStudyCompanionLauncher = dynamic(
+  () =>
+    import('@/components/live2d-study-companion-launcher').then(
+      (mod) => mod.Live2DStudyCompanionLauncher,
+    ),
   { ssr: false },
 );
 
@@ -75,12 +78,17 @@ function isTestSurface(pathname: string | null): boolean {
 function shouldHideStudyCompanion(pathname: string | null): boolean {
   return (
     pathname === '/' ||
+    (pathname != null && /^\/login(?:\/|$)/.test(pathname)) ||
+    (pathname != null && /^\/register(?:\/|$)/.test(pathname)) ||
     pathname === '/my-courses' ||
     (pathname != null && /^\/store(?:\/|$)/.test(pathname)) ||
     pathname === '/credits-market' ||
+    pathname === '/top-up' ||
     (pathname != null && /^\/course\/[^/]+\/?$/.test(pathname)) ||
     (pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname)) ||
-    (pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname))
+    (pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname)) ||
+    (pathname != null && /^\/course\/[^/]+\/memory(?:\/|$)/.test(pathname)) ||
+    (pathname != null && /^\/course\/[^/]+\/milestone(?:\/|$)/.test(pathname))
   );
 }
 
@@ -162,7 +170,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
       <>
         {content}
         <Suspense fallback={null}>
-          <Live2DStudyCompanion />
+          <Live2DStudyCompanionLauncher />
         </Suspense>
       </>
     );

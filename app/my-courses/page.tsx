@@ -10,6 +10,7 @@ import {
 } from '@/components/course-gallery-card';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { MyCoursesCourseGridLoading } from '@/components/loading/app-page-skeletons';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
 import { listStagesByCourse } from '@/lib/utils/stage-storage';
@@ -38,6 +39,7 @@ function purposeLabel(p: CourseRecord['purpose']): string {
 
 export default function MyCoursesPage() {
   const router = useRouter();
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const userId = useAuthStore((s) => s.userId);
   const creatorDisplay = useAuthStore((s) => {
@@ -69,6 +71,7 @@ export default function MyCoursesPage() {
   }, [userId]);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -83,7 +86,7 @@ export default function MyCoursesPage() {
     return () => {
       alive = false;
     };
-  }, [isLoggedIn, router, loadMyCourses]);
+  }, [authHydrated, isLoggedIn, router, loadMyCourses]);
 
   const openCreateDialog = () => {
     setFormKey((k) => k + 1);
@@ -132,7 +135,7 @@ export default function MyCoursesPage() {
     }
   };
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   return (
     <div className="relative min-h-full w-full overflow-hidden apple-mesh-bg">

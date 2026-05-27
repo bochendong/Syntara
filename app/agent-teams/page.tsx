@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight } from 'lucide-react';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { listStages, type StageListItem } from '@/lib/utils/stage-storage';
 import { listCourses } from '@/lib/utils/course-storage';
@@ -17,6 +18,7 @@ function formatUpdated(ts: number) {
 
 export default function AgentTeamsPage() {
   const router = useRouter();
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [courseRecords, setCourseRecords] = useState<CourseRecord[]>([]);
@@ -28,6 +30,7 @@ export default function AgentTeamsPage() {
   );
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -44,9 +47,9 @@ export default function AgentTeamsPage() {
     return () => {
       alive = false;
     };
-  }, [isLoggedIn, router]);
+  }, [authHydrated, isLoggedIn, router]);
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   return (
     <div className="min-h-full w-full apple-mesh-bg">
@@ -63,10 +66,7 @@ export default function AgentTeamsPage() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-2xl bg-white/60 dark:bg-white/5"
-              />
+              <div key={i} className="h-16 animate-pulse rounded-2xl bg-white/60 dark:bg-white/5" />
             ))}
           </div>
         ) : notebooks.length === 0 ? (

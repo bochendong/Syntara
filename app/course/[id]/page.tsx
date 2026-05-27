@@ -14,6 +14,7 @@ import { EditNotebookForm } from '@/components/courses/edit-notebook-form';
 import { CourseWorkspaceLoadingContent } from '@/components/loading/app-page-skeletons';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -141,6 +142,7 @@ export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const creatorDisplay = useAuthStore(() => '你');
 
@@ -300,6 +302,7 @@ export default function CourseDetailPage() {
   }, [activeCourseProblems, publishTarget]);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -346,7 +349,7 @@ export default function CourseDetailPage() {
     return () => {
       alive = false;
     };
-  }, [id, isLoggedIn, router]);
+  }, [authHydrated, id, isLoggedIn, router]);
 
   useEffect(() => {
     if (loading || !id) return;
@@ -362,7 +365,7 @@ export default function CourseDetailPage() {
     });
   }, [id, loading, course]);
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   const handleMoveNotebook = async (notebookId: string, targetCourseId: string) => {
     const notebook = notebooks.find((item) => item.id === notebookId);

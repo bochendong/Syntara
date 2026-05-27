@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { GamificationSummaryCard } from '@/components/gamification/gamification-summary-card';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
@@ -15,6 +16,7 @@ export default function CourseMilestonePage() {
   const params = useParams();
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
@@ -22,6 +24,7 @@ export default function CourseMilestonePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -47,7 +50,7 @@ export default function CourseMilestonePage() {
     return () => {
       alive = false;
     };
-  }, [id, isLoggedIn, router]);
+  }, [authHydrated, id, isLoggedIn, router]);
 
   useEffect(() => {
     if (loading || !id) return;
@@ -63,7 +66,7 @@ export default function CourseMilestonePage() {
     });
   }, [course, id, loading]);
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   if (!loading && course === null) {
     return (

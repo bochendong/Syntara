@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
@@ -23,7 +24,6 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { SyntaraMark } from '@/components/brand/syntara-mark';
-import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,12 @@ import { createNotebookHref, courseOrchestratorChatHref } from '@/lib/constants/
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+
+const TalkingAvatarOverlay = dynamic(
+  () =>
+    import('@/components/canvas/talking-avatar-overlay').then((mod) => mod.TalkingAvatarOverlay),
+  { ssr: false, loading: () => null },
+);
 
 const HOME_IMAGES = {
   realClassroom: '/home/syntara-real-classroom-hero.png',

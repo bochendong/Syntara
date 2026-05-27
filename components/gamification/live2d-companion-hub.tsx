@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Bell, CalendarCheck2, Lock, Mic2 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 import { Card } from '@/components/ui/card';
@@ -398,9 +399,12 @@ export function Live2DCompanionHub() {
                                 : 'border-white/12 bg-white/8 hover:bg-white/14',
                             )}
                           >
-                            <img
+                            <Image
                               src={character.posterSrc}
                               alt={character.name}
+                              width={56}
+                              height={56}
+                              sizes="56px"
                               className="size-full rounded-full object-cover object-top"
                               draggable={false}
                             />

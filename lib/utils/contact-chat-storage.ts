@@ -3,6 +3,8 @@ import { backendJson } from '@/lib/utils/backend-api';
 import type { CourseChatGroupMeta } from '@/lib/types/chat';
 
 const MAX_CONTACT_MESSAGES = 300;
+const MAX_LOCAL_CONTACT_SNAPSHOT_BYTES = 512 * 1024;
+const MIN_LOCAL_CONTACT_MESSAGES = 25;
 const LOCAL_CONTACT_MESSAGES_PREFIX = 'syntara-contact-chat:';
 const MOCK_COURSE_CHAT_ID = 'syntara-mock-course-chat';
 export const COURSE_CHAT_GROUP_TARGET_PREFIX = 'course-group:';
@@ -32,6 +34,10 @@ type LocalMessageSnapshot<T> = {
   updatedAt: number | null;
   meta?: unknown;
 };
+
+function byteLength(value: string): number {
+  return new TextEncoder().encode(value).length;
+}
 
 function normalizeKeyPart(value: string | null | undefined): string {
   const trimmed = value?.trim();
@@ -86,15 +92,39 @@ function writeLocalMessages<T>(args: {
   meta?: unknown;
 }): void {
   if (typeof window === 'undefined') return;
+  const storageKey = localStorageKey(args);
+  const updatedAt = new Date().toISOString();
+  let messages = args.messages.slice(-MAX_CONTACT_MESSAGES);
+  let includeMeta = args.meta !== undefined;
+
   try {
-    localStorage.setItem(
-      localStorageKey(args),
-      JSON.stringify({
-        updatedAt: new Date().toISOString(),
-        messages: args.messages.slice(-MAX_CONTACT_MESSAGES),
-        ...(args.meta === undefined ? {} : { meta: args.meta }),
-      }),
-    );
+    while (messages.length > MIN_LOCAL_CONTACT_MESSAGES) {
+      const serialized = JSON.stringify({
+        updatedAt,
+        messages,
+        ...(includeMeta ? { meta: args.meta } : {}),
+      });
+      if (byteLength(serialized) <= MAX_LOCAL_CONTACT_SNAPSHOT_BYTES) {
+        localStorage.setItem(storageKey, serialized);
+        return;
+      }
+      messages = messages.slice(Math.ceil(messages.length / 2));
+    }
+
+    for (const metaEnabled of [includeMeta, false]) {
+      const serialized = JSON.stringify({
+        updatedAt,
+        messages,
+        ...(metaEnabled ? { meta: args.meta } : {}),
+      });
+      if (byteLength(serialized) <= MAX_LOCAL_CONTACT_SNAPSHOT_BYTES) {
+        localStorage.setItem(storageKey, serialized);
+        return;
+      }
+      includeMeta = false;
+    }
+
+    localStorage.removeItem(storageKey);
   } catch {
     /* localStorage may be unavailable; backend persistence remains best-effort */
   }

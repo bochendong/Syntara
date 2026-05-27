@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { Check, Gem, Shield, Sparkles, Star, Ticket, WandSparkles } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
@@ -39,8 +40,8 @@ function isSupportedLive2DCharacterId(id: string): boolean {
   return id === 'haru' || id === 'hiyori' || id === 'mark' || id === 'mao' || id === 'rice';
 }
 
-function resolveLive2DAvatar(characterId: string): string {
-  return `/liv2d_poster/${characterId.toLowerCase()}-avator.png`;
+function resolveLive2DAvatar(characterId: string, previewSrc?: string | null): string {
+  return previewSrc ?? `/live2d/previews/${characterId.toLowerCase()}.jpg`;
 }
 
 type BannerTone = {
@@ -488,9 +489,12 @@ function AvatarWishBanner({
   return (
     <>
       <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[1.6rem] border border-fuchsia-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(15,23,42,0.4)] sm:rounded-[2.25rem] dark:border-fuchsia-300/15">
-        <img
+        <Image
           src="/pool_poster/avator.jpeg"
           alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 72vw"
           className="absolute inset-0 size-full object-cover"
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_82%_10%,rgba(56,189,248,0.1),transparent_24%),radial-gradient(circle_at_78%_80%,rgba(192,38,211,0.14),transparent_36%),linear-gradient(128deg,rgba(15,23,42,0.55)_0%,rgba(30,27,75,0.5)_40%,rgba(55,20,80,0.38)_70%,rgba(15,23,42,0.6)_100%)]" />
@@ -711,9 +715,12 @@ function InstructorWishBanner({
 
   return (
     <div className="relative flex min-h-[34rem] flex-1 flex-col overflow-hidden rounded-[1.6rem] border border-sky-200/70 bg-slate-950 text-white shadow-[0_30px_110px_rgba(14,30,64,0.28)] sm:rounded-[2.25rem] dark:border-sky-300/15">
-      <img
+      <Image
         src="/pool_poster/live2d.png"
         alt=""
+        fill
+        priority
+        sizes="(max-width: 1024px) 100vw, 72vw"
         className="absolute inset-0 size-full object-cover"
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,11,28,0.92)_0%,rgba(4,11,28,0.68)_34%,rgba(4,11,28,0.16)_63%,rgba(4,11,28,0.62)_100%)]" />
@@ -769,13 +776,13 @@ function InstructorWishBanner({
                   )}
                 >
                   {character.previewSrc ? (
-                    <img
-                      src={resolveLive2DAvatar(character.id)}
+                    <Image
+                      src={resolveLive2DAvatar(character.id, character.previewSrc)}
                       alt={character.name ?? character.id}
+                      width={56}
+                      height={56}
+                      sizes="56px"
                       className="size-full rounded-full object-cover object-top transition duration-300 group-hover:scale-105"
-                      onError={(event) => {
-                        event.currentTarget.src = character.previewSrc ?? '';
-                      }}
                     />
                   ) : (
                     <div className="flex size-full items-center justify-center text-xs text-white/50">

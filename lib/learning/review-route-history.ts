@@ -4,6 +4,8 @@ import type { ReviewRoute } from '@/lib/learning/review-route-types';
 
 const REVIEW_ROUTE_HISTORY_PREFIX = 'synatra-review-route-history-v1';
 const MAX_REVIEW_ROUTE_HISTORY = 20;
+const MIN_REVIEW_ROUTE_HISTORY = 3;
+const MAX_REVIEW_ROUTE_HISTORY_BYTES = 512 * 1024;
 
 export interface ReviewRouteHistoryItem {
   id: string;
@@ -22,6 +24,10 @@ export interface ReviewRouteHistoryItem {
 
 function historyKey(userId: string, notebookId: string): string {
   return `${REVIEW_ROUTE_HISTORY_PREFIX}:${notebookId}:${userId}`;
+}
+
+function byteLength(value: string): number {
+  return new TextEncoder().encode(value).length;
 }
 
 function normalizeHistoryItem(input: ReviewRouteHistoryItem): ReviewRouteHistoryItem {
@@ -61,11 +67,17 @@ function saveReviewRouteHistory(
   items: ReviewRouteHistoryItem[],
 ): void {
   if (typeof window === 'undefined' || !userId || !notebookId) return;
+  let nextItems = items.slice(0, MAX_REVIEW_ROUTE_HISTORY);
   try {
-    localStorage.setItem(
-      historyKey(userId, notebookId),
-      JSON.stringify(items.slice(0, MAX_REVIEW_ROUTE_HISTORY)),
-    );
+    while (nextItems.length > MIN_REVIEW_ROUTE_HISTORY) {
+      const serialized = JSON.stringify(nextItems);
+      if (byteLength(serialized) <= MAX_REVIEW_ROUTE_HISTORY_BYTES) {
+        localStorage.setItem(historyKey(userId, notebookId), serialized);
+        return;
+      }
+      nextItems = nextItems.slice(0, Math.max(MIN_REVIEW_ROUTE_HISTORY, nextItems.length - 1));
+    }
+    localStorage.setItem(historyKey(userId, notebookId), JSON.stringify(nextItems));
   } catch {
     // Review history should never block route generation.
   }

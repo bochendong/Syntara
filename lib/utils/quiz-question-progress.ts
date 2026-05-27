@@ -6,6 +6,7 @@ import type { QuizCodeReport } from '@/lib/types/stage';
  */
 
 const STORAGE_PREFIX = 'synatra-quiz-q-v1';
+const MAX_PROGRESS_RECORDS = 500;
 
 export type QuizQuestionProgressStatus = 'correct' | 'incorrect';
 
@@ -51,7 +52,13 @@ function readFile(stageId: string, userId: string): ProgressFile {
 function writeFile(stageId: string, userId: string, data: ProgressFile) {
   if (typeof window === 'undefined' || !stageId || !userId) return;
   try {
-    localStorage.setItem(fileKey(stageId, userId), JSON.stringify(data));
+    const entries = Object.entries(data).sort(
+      (a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0),
+    );
+    localStorage.setItem(
+      fileKey(stageId, userId),
+      JSON.stringify(Object.fromEntries(entries.slice(0, MAX_PROGRESS_RECORDS))),
+    );
   } catch {
     // ignore quota
   }

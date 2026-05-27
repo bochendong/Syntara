@@ -4,18 +4,21 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 
 export default function NewCoursePage() {
   const router = useRouter();
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) router.replace('/login');
-  }, [isLoggedIn, router]);
+  }, [authHydrated, isLoggedIn, router]);
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   return (
     <div className="min-h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(191,219,254,0.45),transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.35),transparent_45%),linear-gradient(180deg,#0a0f18_0%,#0f172a_100%)]">

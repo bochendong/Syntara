@@ -17,6 +17,7 @@ import {
   loadSourceBlob,
   cleanupOldImages,
   storeImages,
+  setSessionStorageJson,
 } from '@/lib/utils/image-storage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { MAX_PDF_CONTENT_CHARS, MAX_VISION_IMAGES } from '@/lib/constants/generation';
@@ -389,7 +390,11 @@ function GenerationPreviewContent() {
             pdfStorageKey: undefined,
           };
           setSession(updatedSession);
-          sessionStorage.setItem('generationSession', JSON.stringify(updatedSession));
+          setSessionStorageJson(
+            'generationSession',
+            updatedSession,
+            '保存「生成会话」到浏览器缓存（generationSession）时失败：',
+          );
           currentSession = updatedSession;
           activeSteps = getActiveSteps(currentSession);
         } else {
@@ -417,7 +422,11 @@ function GenerationPreviewContent() {
             pdfStorageKey: undefined, // Clear so we don't re-parse
           };
           setSession(updatedSession);
-          sessionStorage.setItem('generationSession', JSON.stringify(updatedSession));
+          setSessionStorageJson(
+            'generationSession',
+            updatedSession,
+            '保存「生成会话」到浏览器缓存（generationSession）时失败：',
+          );
 
           currentSession = updatedSession;
           activeSteps = getActiveSteps(currentSession);
@@ -461,7 +470,11 @@ function GenerationPreviewContent() {
           researchSources: sources,
         };
         setSession(updatedSessionWithSearch);
-        sessionStorage.setItem('generationSession', JSON.stringify(updatedSessionWithSearch));
+        setSessionStorageJson(
+          'generationSession',
+          updatedSessionWithSearch,
+          '保存「生成会话」到浏览器缓存（generationSession）时失败：',
+        );
         currentSession = updatedSessionWithSearch;
         activeSteps = getActiveSteps(currentSession);
       }
@@ -766,7 +779,11 @@ function GenerationPreviewContent() {
         const updatedSession = { ...currentSession, sceneOutlines: outlines };
         setSession(updatedSession);
         setStreamingOutlines(outlines);
-        sessionStorage.setItem('generationSession', JSON.stringify(updatedSession));
+        setSessionStorageJson(
+          'generationSession',
+          updatedSession,
+          '保存「生成会话」到浏览器缓存（generationSession）时失败：',
+        );
       }
 
       // Move to scene generation step

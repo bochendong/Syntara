@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Trash2 } from 'lucide-react';
+import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 export function NotificationsPageClient() {
   const router = useRouter();
+  const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const userId = useAuthStore((state) => state.userId);
   const activeUserId = useNotificationStore((state) => state.activeUserId);
@@ -23,6 +25,7 @@ export function NotificationsPageClient() {
   const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
   useEffect(() => {
+    if (!authHydrated) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -31,9 +34,9 @@ export function NotificationsPageClient() {
     if (userId.trim()) {
       void refreshNotifications({ userId });
     }
-  }, [isLoggedIn, refreshNotifications, router, userId]);
+  }, [authHydrated, isLoggedIn, refreshNotifications, router, userId]);
 
-  if (!isLoggedIn) return null;
+  if (!authHydrated || !isLoggedIn) return null;
 
   const currentReadSet = new Set(readByUser[(activeUserId || userId).trim()] ?? []);
   const unreadCount = notifications.reduce(
