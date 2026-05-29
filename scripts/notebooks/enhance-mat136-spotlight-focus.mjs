@@ -209,6 +209,186 @@ function expandDefiniteTargets(scene, baseTargets) {
   return extra;
 }
 
+function expandRiemannTargets(scene) {
+  if (scene.title === '黎曼积分：从矩形到极限') {
+    return [
+      generatedTarget(scene, 'riemann-map-title', '标题：从矩形到极限', {
+        left: 22,
+        top: 24,
+        width: 582,
+        height: 66,
+      }),
+      generatedTarget(scene, 'riemann-map-area-heading', '第 1 步标题：面积等于累积量', {
+        left: 34,
+        top: 130,
+        width: 185,
+        height: 50,
+      }),
+      generatedTarget(scene, 'riemann-map-area-graph', '第 1 步图像：曲线下面积', {
+        left: 29,
+        top: 188,
+        width: 112,
+        height: 200,
+      }),
+      generatedTarget(scene, 'riemann-map-area-text', '第 1 步文字：许多小矩形累加', {
+        left: 134,
+        top: 235,
+        width: 90,
+        height: 98,
+      }),
+      generatedTarget(scene, 'riemann-map-first-arrow', '从面积到分割箭头', {
+        left: 232,
+        top: 238,
+        width: 36,
+        height: 62,
+      }),
+      generatedTarget(scene, 'riemann-map-partition-heading', '第 2 步标题：分割区间 P', {
+        left: 270,
+        top: 130,
+        width: 205,
+        height: 58,
+      }),
+      generatedTarget(scene, 'riemann-map-partition-notation', '第 2 步符号：切点顺序', {
+        left: 278,
+        top: 190,
+        width: 188,
+        height: 48,
+      }),
+      generatedTarget(scene, 'riemann-map-partition-graph', '第 2 步图像：切出小区间', {
+        left: 276,
+        top: 240,
+        width: 198,
+        height: 160,
+      }),
+      generatedTarget(scene, 'riemann-map-second-arrow', '从分割到采样箭头', {
+        left: 486,
+        top: 238,
+        width: 36,
+        height: 62,
+      }),
+      generatedTarget(scene, 'riemann-map-sample-heading', '第 3 步标题：采样点 c 下标 i', {
+        left: 524,
+        top: 130,
+        width: 195,
+        height: 56,
+      }),
+      generatedTarget(scene, 'riemann-map-sample-rule', '第 3 步文字：每段取一点', {
+        left: 528,
+        top: 184,
+        width: 180,
+        height: 56,
+      }),
+      generatedTarget(scene, 'riemann-map-sample-graph', '第 3 步图像：采样点决定高度', {
+        left: 524,
+        top: 240,
+        width: 198,
+        height: 170,
+      }),
+      generatedTarget(scene, 'riemann-map-third-arrow', '从采样到极限箭头', {
+        left: 728,
+        top: 238,
+        width: 36,
+        height: 62,
+      }),
+      generatedTarget(scene, 'riemann-map-limit-heading', '第 4 步标题：网格变细和稳定', {
+        left: 762,
+        top: 130,
+        width: 205,
+        height: 56,
+      }),
+      generatedTarget(scene, 'riemann-map-limit-text', '第 4 步文字：和趋于稳定', {
+        left: 770,
+        top: 184,
+        width: 190,
+        height: 64,
+      }),
+      generatedTarget(scene, 'riemann-map-limit-graph', '第 4 步图像：细矩形贴近曲线', {
+        left: 762,
+        top: 242,
+        width: 200,
+        height: 138,
+      }),
+      generatedTarget(scene, 'riemann-map-limit-formula', '第 4 步公式：矩形和', {
+        left: 784,
+        top: 378,
+        width: 140,
+        height: 58,
+      }),
+      generatedTarget(scene, 'riemann-map-bottom-question', '底部问题：矩形和怎样逼近面积', {
+        left: 122,
+        top: 459,
+        width: 766,
+        height: 72,
+      }),
+    ];
+  }
+
+  if (scene.title !== 'MAT 136 · 黎曼积分') return [];
+
+  return [
+    generatedTarget(scene, 'riemann-cover-core-question', '核心问题：矩形近似到面积极限', {
+      left: 210,
+      top: 182,
+      width: 590,
+      height: 48,
+    }),
+    generatedTarget(scene, 'riemann-cover-coarse-graph', '粗分割图像主体', {
+      left: 22,
+      top: 246,
+      width: 278,
+      height: 140,
+    }),
+    generatedTarget(scene, 'riemann-cover-first-arrow', '第一次细化箭头', {
+      left: 294,
+      top: 294,
+      width: 54,
+      height: 58,
+    }),
+    generatedTarget(scene, 'riemann-cover-finer-graph', '较细分割图像主体', {
+      left: 326,
+      top: 246,
+      width: 250,
+      height: 140,
+    }),
+    generatedTarget(scene, 'riemann-cover-second-arrow', '第二次细化箭头', {
+      left: 578,
+      top: 294,
+      width: 50,
+      height: 58,
+    }),
+    generatedTarget(scene, 'riemann-cover-finest-graph', '更细分割图像主体', {
+      left: 626,
+      top: 246,
+      width: 252,
+      height: 140,
+    }),
+    generatedTarget(scene, 'riemann-cover-stable-a', '稳定面积箭头与 A', {
+      left: 832,
+      top: 260,
+      width: 145,
+      height: 105,
+    }),
+    generatedTarget(scene, 'riemann-cover-route-sums', '路线：Riemann sums', {
+      left: 130,
+      top: 466,
+      width: 250,
+      height: 52,
+    }),
+    generatedTarget(scene, 'riemann-cover-route-integrability', '路线：integrability', {
+      left: 430,
+      top: 466,
+      width: 190,
+      height: 52,
+    }),
+    generatedTarget(scene, 'riemann-cover-route-definite-integral', '路线：definite integral', {
+      left: 654,
+      top: 466,
+      width: 265,
+      height: 52,
+    }),
+  ];
+}
+
 function expandCoverTargets(scene) {
   const title = scene.title;
   if (title === 'MAT 136 · 换元法') {
@@ -261,6 +441,10 @@ function expandCoverTargets(scene) {
 }
 
 function expandTargets(notebookId, scene, baseTargets) {
+  if (notebookId === 'nb-mat136-riemann-integral-week1-20260518135718') {
+    return expandRiemannTargets(scene);
+  }
+
   if (notebookId === 'nb-mat136-definite-integral-week1-20260518150500') {
     return expandDefiniteTargets(scene, baseTargets);
   }
@@ -300,23 +484,37 @@ function targetByLabel(targets, includes) {
 function rangePlanForScene(scene) {
   if (scene.title === 'MAT 136 · 黎曼积分') {
     return [
-      { start: 1, end: 1, labels: ['封面标题区'] },
-      { start: 2, end: 2, labels: ['粗分割图'] },
-      { start: 3, end: 4, labels: ['较细分割图'] },
-      { start: 5, end: 6, labels: ['更细分割图'] },
-      { start: 7, end: 8, labels: ['稳定面积数'] },
-      { start: 9, end: 12, labels: ['课程路线条'] },
+      { start: 1, end: 2, labels: ['核心问题：矩形近似到面积极限'] },
+      { start: 3, end: 4, labels: ['粗分割图像主体'] },
+      { start: 5, end: 5, labels: ['第一次细化箭头'] },
+      { start: 6, end: 7, labels: ['较细分割图像主体'] },
+      { start: 8, end: 8, labels: ['第二次细化箭头'] },
+      { start: 9, end: 10, labels: ['更细分割图像主体'] },
+      { start: 11, end: 12, labels: ['稳定面积箭头与 A'] },
+      { start: 13, end: 13, labels: ['路线：Riemann sums'] },
+      { start: 14, end: 14, labels: ['路线：integrability'] },
+      { start: 15, end: 15, labels: ['路线：definite integral'] },
+      { start: 16, end: 16, labels: ['课程路线条'] },
     ];
   }
 
   if (scene.title === '黎曼积分：从矩形到极限') {
     return [
-      { start: 1, end: 2, labels: ['本页承接'] },
-      { start: 3, end: 4, labels: ['面积是累积量'] },
-      { start: 5, end: 6, labels: ['分割区间卡片'] },
-      { start: 7, end: 8, labels: ['采样点卡片'] },
-      { start: 9, end: 10, labels: ['网格变细卡片'] },
-      { start: 11, end: 12, labels: ['底部问题'] },
+      { start: 1, end: 2, labels: ['标题：从矩形到极限'] },
+      { start: 3, end: 3, labels: ['第 1 步标题：面积等于累积量'] },
+      { start: 4, end: 4, labels: ['第 1 步图像：曲线下面积'] },
+      { start: 5, end: 5, labels: ['第 1 步文字：许多小矩形累加'] },
+      { start: 6, end: 6, labels: ['从面积到分割箭头'] },
+      { start: 7, end: 7, labels: ['第 2 步标题：分割区间 P'] },
+      { start: 8, end: 8, labels: ['第 2 步符号：切点顺序'] },
+      { start: 9, end: 9, labels: ['第 2 步图像：切出小区间'] },
+      { start: 10, end: 10, labels: ['从分割到采样箭头'] },
+      { start: 11, end: 11, labels: ['第 3 步标题：采样点 c 下标 i'] },
+      { start: 12, end: 12, labels: ['第 3 步图像：采样点决定高度'] },
+      { start: 13, end: 13, labels: ['从采样到极限箭头'] },
+      { start: 14, end: 14, labels: ['第 4 步标题：网格变细和稳定'] },
+      { start: 15, end: 15, labels: ['第 4 步公式：矩形和'] },
+      { start: 16, end: 16, labels: ['底部问题：矩形和怎样逼近面积'] },
     ];
   }
 

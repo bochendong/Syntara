@@ -6,10 +6,12 @@ import type { NotebookGenerationQueueTask } from '@/lib/store/notebook-generatio
 import type { OrchestratorWorkedExampleLevel } from '@/lib/store/orchestrator-notebook-generation';
 import type { ImageMapping, PdfImage, SceneOutline } from '@/lib/types/generation';
 import type { Scene } from '@/lib/types/stage';
-import type {
-  ImageNotebookBriefPlan,
-  ImageNotebookPageBrief,
-  ImageNotebookQaResult,
+import {
+  formatImageNotebookStyleBriefForPrompt,
+  type ImageNotebookBriefPlan,
+  type ImageNotebookPageBrief,
+  type ImageNotebookQaResult,
+  type ImageNotebookStyleBrief,
 } from '@/lib/generation/image-notebook-quality';
 
 const MAX_SOURCE_FILE_SIZE_MB = 50;
@@ -182,21 +184,23 @@ function getImageGenerationTileStatus({
   mockEnabled,
   busy,
   task,
+  hasGeneratedThumbnail = false,
 }: {
   index: number;
   total: number;
   mockEnabled: boolean;
   busy: boolean;
   task?: NotebookGenerationQueueTask | null;
+  hasGeneratedThumbnail?: boolean;
 }): ImageGenerationTileStatus {
   if (mockEnabled) return getMockImageGenerationTileStatus(index, total);
-  if (task?.status === 'completed') return 'done';
+  if (task?.status === 'completed') return hasGeneratedThumbnail ? 'done' : 'waiting';
   if (task?.status === 'running') {
     const progress = task.progress;
-    if (progress?.stage === 'completed') return 'done';
+    if (progress?.stage === 'completed') return hasGeneratedThumbnail ? 'done' : 'waiting';
     if (progress?.stage === 'scene') {
       const completedCount = Math.max(0, Math.min(total, progress.completed));
-      if (index < completedCount) return 'done';
+      if (index < completedCount) return hasGeneratedThumbnail ? 'done' : 'generating';
       if (index < Math.min(total, completedCount + MAX_PARALLEL_IMAGE_GENERATION_TILES)) {
         return 'generating';
       }
@@ -325,6 +329,9 @@ type PagePlanningPreview = {
   commonPitfalls: string[];
   bottomTakeaway?: string;
   drawingPrompt?: string;
+  markerComponents: string[];
+  markerCount: number;
+  promptHash?: string;
   focusRegions: string[];
   focusCount: number;
   batchLabel?: string;
@@ -396,7 +403,7 @@ const WORKSPACE_PROGRESS_STEPS: WorkspaceProgressStep[] = [
     id: 'planning',
     activeSteps: ['outline'],
     planningPhases: ['course-spine', 'page-brief'],
-    label: '规划',
+    label: '规划+prompt',
     icon: ListChecks,
   },
   { id: 'result', activeSteps: ['style', 'result'], label: '生图', icon: ImageIcon },
@@ -441,25 +448,25 @@ const STYLE_OPTIONS = [
     id: 'board',
     label: '手绘笔记',
     prompt:
-      '纸面手绘笔记风格：自然手写线条，蓝黑墨水和少量荧光笔标注，轻微纸张纹理，像学生认真整理的课堂笔记。',
+      '高质感纸面手绘笔记：16:9 满画布铺开浅米白网格纸/横线纸，边缘有轻微纸张纤维和自然阴影；用深蓝/黑色手写笔画主内容，少量荧光笔只标关键公式、代码行或结论。构图像一页认真整理的课堂活页笔记：大标题、一个核心问题、一个主要推导/图解区域，留白充足，文字大而清楚。不要做网页卡片、PPT 模板、居中白框或密密麻麻的总结页。',
   },
   {
     id: 'clean',
     label: '卡通插画',
     prompt:
-      '卡通教育插画风格：圆润角色和物件，柔和边线，明亮但克制的色块，用轻量漫画感把抽象概念画成可理解的场景。',
+      '精致教育卡通图解：柔和浅色背景，圆润但干净的插画物件，少量有表情的学习道具或小角色只用于解释概念，不抢占知识内容。每页像一张高质量科普插画海报：上方一句学生视角问题，中间用 1 个主视觉隐喻解释知识点，下方配少量手写标注或公式。色彩明亮但克制，线条清爽，避免幼稚贴纸感、拥挤漫画格、随机装饰和不可读小字。',
   },
   {
     id: 'diagram',
     label: '极简线稿',
     prompt:
-      '极简线稿风格：干净单线条，少量重点色，图标化结构和清晰箭头，留白充分，像精心绘制的概念解释图。',
+      '极简蓝图线稿：浅灰白纸面或淡蓝网格背景，使用细黑线/蓝线绘制结构图、流程箭头、坐标轴或代码执行轨迹，只用一种高饱和强调色标出当前步骤。画面像设计师画的教学解释图：一个中心图形贯穿全页，旁边最多 3 个短注释气泡，公式/代码保持大字号。避免空洞图标堆叠、企业流程图、过度留白导致内容太薄，也不要生成普通 HTML 卡片。',
   },
   {
     id: 'exam',
     label: '水彩图解',
     prompt:
-      '水彩图解风格：柔和纸纹、水彩晕染块面、轻盈层次，用温和色彩突出关键公式、图形和例子，整体像插画学习页。',
+      '水彩课堂图解：温和纸纹背景，使用浅蓝、薄荷绿、淡琥珀等透明水彩块面承托知识区域，再用深色墨线写公式、代码和箭头。整体像一本高级学习杂志里的手绘讲义：一个柔和主视觉、一个清楚例子/推导、少量高亮结论。水彩只做氛围和层次，不能降低文字对比度；避免模糊、脏色、过度装饰、照片感背景和小字号密集段落。',
   },
   {
     id: 'custom',
@@ -474,6 +481,67 @@ const PALETTES = [
   { id: 'slate-cyan', label: '石板青', colors: ['#334155', '#0891b2', '#f1f5f9'] },
 ];
 
+function stylePresetForOption(styleId: string): ImageNotebookStyleBrief['preset'] {
+  if (styleId === 'clean') return 'cartoon-educational';
+  if (styleId === 'diagram') return 'minimal-line-art';
+  if (styleId === 'exam') return 'watercolor-explainer';
+  if (styleId === 'custom') return 'custom';
+  return 'hand-drawn-course-notebook';
+}
+
+function decorationLevelForStyle(
+  styleId: string,
+): ImageNotebookStyleBrief['decorationLevel'] {
+  if (styleId === 'clean' || styleId === 'exam') return 'moderate';
+  if (styleId === 'diagram') return 'light';
+  if (styleId === 'custom') return 'light';
+  return 'light';
+}
+
+function buildImageNotebookStyleBrief(args: {
+  style: (typeof STYLE_OPTIONS)[number];
+  customStylePrompt?: string;
+  palette: (typeof PALETTES)[number];
+  density?: ImageNotebookStyleBrief['density'];
+}): ImageNotebookStyleBrief {
+  const stylePrompt = compactPromptText(args.customStylePrompt || args.style.prompt, 900);
+  return {
+    schemaVersion: 1,
+    preset: stylePresetForOption(args.style.id),
+    canvas: '16:9',
+    background:
+      args.style.id === 'exam'
+        ? 'warm textured paper with faint hand-drawn guide lines'
+        : args.style.id === 'diagram'
+          ? 'white or very pale blueprint grid background'
+          : 'white graph-paper notebook background with faint light-gray grid',
+    writingStyle:
+      args.style.id === 'diagram'
+        ? 'minimal hand-drawn line annotations with large formula/code labels'
+        : 'common college-course hand-drawn marker notes with readable handwritten labels',
+    colorMood:
+      args.palette.id === 'ink-amber'
+        ? 'black ink, muted amber accents, and soft gray support marks'
+        : args.palette.id === 'slate-cyan'
+          ? 'slate ink, muted cyan accents, and pale blue-gray fills'
+          : 'black marker text, deep teal diagrams, pale teal fills, and muted brown arrows',
+    density: args.density || 'medium',
+    decorationLevel: decorationLevelForStyle(args.style.id),
+    palette: {
+      label: args.palette.label,
+      colors: args.palette.colors,
+    },
+    ...(stylePrompt ? { userStylePrompt: stylePrompt } : {}),
+    avoidPureMarkerColors: ['#ff0000', '#00ff00', '#0048ff', '#00ffff', '#ff00ff', '#ffff00'],
+    ordinaryContentColorRule:
+      'Do not use pure marker colors in normal content; reserve them only for recoverable corner markers.',
+  };
+}
+
+function formatImageNotebookStyleBriefPreview(styleBrief: ImageNotebookStyleBrief): string {
+  return formatImageNotebookStyleBriefForPrompt(styleBrief).join('\n');
+}
+
 const NOTEBOOK_IMAGE2_PROVIDER_ID = 'openai-image';
 const NOTEBOOK_IMAGE2_MODEL_ID = 'gpt-image-2';
 
@@ -486,7 +554,7 @@ const IMAGE_FIRST_NOTEBOOK_STYLE_SPEC = [
   '- Keep normal classroom padding for content, but never leave blank vertical columns on the left or right edges.',
   '- Use visual treatment consistent with the chosen art direction for titles, diagrams, highlights, characters, objects, and annotations.',
   '- The page should feel like one clear learning idea captured as a single bitmap image.',
-  '- Keep a consistent MAT 136 / Syntara notebook feel: friendly, careful, readable, sparse, and projector-safe.',
+  '- Keep a consistent course notebook feel: friendly, careful, readable, sparse, and projector-safe.',
   '- Use student-facing phrasing such as "我们先看", "你会先判断什么", "下一步怎么来"; avoid teacher-planning phrasing.',
   '- Never write visible meta labels like "让学生看到", "教学目标", "本页主线", "可迁移动作", "Teacher move", "Page role", or "QA checklist".',
   '- Avoid flat vector UI cards, generic corporate deck templates, stock-photo layouts, glossy gradients, browser chrome, app UI, and placeholder blocks.',
@@ -834,6 +902,7 @@ function buildStyleSamplePrompt(args: {
   language: string;
   style: (typeof STYLE_OPTIONS)[number];
   customStylePrompt?: string;
+  styleBrief?: ImageNotebookStyleBrief;
   palette: (typeof PALETTES)[number];
   sourceImages: ExtractedSourceImage[];
   includeQuizScenes: boolean;
@@ -848,7 +917,7 @@ function buildStyleSamplePrompt(args: {
     'Create one polished 16:9 classroom image-notebook page as a single bitmap image.',
     'This is the real style sample for an image-first notebook generator, not a UI mockup.',
     'The page must look like the final generated notebook page that a teacher can approve before full generation.',
-    'Match the approved image-generated notebook examples: warm grid paper, hand-drawn teacher board, marker accents, and large readable teaching content.',
+    'Use the selected drawing style as the primary visual direction while keeping the page readable, sparse, and projector-safe.',
     '',
     IMAGE_FIRST_NOTEBOOK_STYLE_SPEC,
     '',
@@ -862,6 +931,9 @@ function buildStyleSamplePrompt(args: {
     '',
     `Drawing / illustration style preset: ${args.style.label}`,
     `Drawing style prompt: ${compactPromptText(args.customStylePrompt || args.style.prompt, 620)}`,
+    args.styleBrief
+      ? `Structured page style brief:\n${formatImageNotebookStyleBriefPreview(args.styleBrief)}`
+      : '',
     `Color direction: ${args.palette.label}; use these colors as the core palette: ${args.palette.colors.join(', ')}`,
     `Worked examples: ${workedExampleLevelLabel(args.workedExampleLevel)}`,
     `Quiz/review pages enabled: ${args.includeQuizScenes ? 'yes' : 'no'}`,
@@ -966,6 +1038,8 @@ function pagePlanningPreviewsFromBlueprint(
       page.keyPoints?.filter(Boolean).slice(0, 3) ||
       [],
     commonPitfalls: [],
+    markerComponents: [],
+    markerCount: 0,
     focusRegions: [],
     focusCount: 0,
     status: 'indexed',
@@ -1007,6 +1081,17 @@ function pagePlanningPreviewsFromOutlines(
       commonPitfalls: brief?.visibleContent.commonPitfalls?.filter(Boolean).slice(0, 4) || [],
       bottomTakeaway: brief?.visibleContent.bottomTakeaway,
       drawingPrompt: outline.imageNotebookPrompt,
+      markerComponents:
+        outline.imageNotebookPromptPlan?.componentPlans
+          ?.filter((component) => component.participatesInMask)
+          .map((component) =>
+            [component.markerColorName || 'marker', component.markerColorHex || '', component.label]
+              .filter(Boolean)
+              .join(' · '),
+          )
+          .slice(0, 6) || [],
+      markerCount: outline.imageNotebookPromptPlan?.validationTarget.totalMarkerCount || 0,
+      promptHash: outline.imageNotebookPromptPlan?.promptHash,
       focusRegions:
         brief?.focusRegions
           ?.slice()
@@ -1053,6 +1138,8 @@ const MOCK_PLANNING_PAGES: PagePlanningPreview[] = [
     commonPitfalls: ['把多个例子当成证明', '没有说明“任意”的范围', '直接把结论重复一遍'],
     focusRegions: [],
     focusCount: 0,
+    markerComponents: [],
+    markerCount: 0,
     bottomTakeaway: '例子帮助我们猜，但证明要覆盖所有情况。',
     status: 'indexed',
   },
@@ -1073,6 +1160,8 @@ const MOCK_PLANNING_PAGES: PagePlanningPreview[] = [
     commonPitfalls: ['忘记写 k ∈ Z', '没有把目标改写成定义形式', '把 n 的一个例子当作一般 n'],
     focusRegions: [],
     focusCount: 0,
+    markerComponents: [],
+    markerCount: 0,
     bottomTakeaway: '定义不是装饰，它告诉我们下一步该把式子变成什么形状。',
     status: 'indexed',
   },
@@ -1093,6 +1182,8 @@ const MOCK_PLANNING_PAGES: PagePlanningPreview[] = [
     commonPitfalls: ['忘记说明 k 是整数', '只算到 4k^2 就停', '没有回扣偶数定义'],
     focusRegions: [],
     focusCount: 0,
+    markerComponents: [],
+    markerCount: 0,
     bottomTakeaway: '每一步都要回答：我现在用了哪个定义？',
     status: 'planned',
   },
@@ -1112,6 +1203,8 @@ const MOCK_PLANNING_PAGES: PagePlanningPreview[] = [
     commonPitfalls: ['只写结论不写整数来源', '把 a+b=2r+2s 停在那里', '没有说明 r+s ∈ Z'],
     focusRegions: [],
     focusCount: 0,
+    markerComponents: [],
+    markerCount: 0,
     bottomTakeaway: '迁移时先找定义，不要先背证明模板。',
     status: 'planned',
   },
@@ -1375,6 +1468,8 @@ export {
   outlineLengthLabel,
   outlineLengthStrategyText,
   workedExampleLevelLabel,
+  buildImageNotebookStyleBrief,
+  formatImageNotebookStyleBriefPreview,
   buildStyleSamplePrompt,
   sceneOutlinesToRows,
   outlineRowsToSceneOutlines,

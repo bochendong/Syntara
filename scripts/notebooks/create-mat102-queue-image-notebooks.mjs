@@ -1079,6 +1079,7 @@ async function findMat102Course(prisma, explicitCourseId) {
       OR: [
         { name: { contains: 'MAT102', mode: 'insensitive' } },
         { courseCode: { contains: 'MAT102', mode: 'insensitive' } },
+        { courseCode: { contains: 'MAT 102', mode: 'insensitive' } },
         { description: { contains: 'MAT102', mode: 'insensitive' } },
         { tags: { has: 'MAT102' } },
       ],
@@ -1090,7 +1091,7 @@ async function findMat102Course(prisma, explicitCourseId) {
     throw new Error('No MAT102 course found. Re-run with --course-id=<id>.');
   }
   const exact =
-    courses.find((course) => /^MAT102$/i.test(course.courseCode || '')) ||
+    courses.find((course) => /^MAT\s*102$/i.test(course.courseCode || '')) ||
     courses.find((course) => /MAT102/i.test(course.name || '')) ||
     courses[0];
   console.log(`[db] Using course ${exact.id}: ${exact.name}`);

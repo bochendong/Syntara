@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import {
   PUBLIC_GENERATED_NOTEBOOKS_PATH,
   PUBLIC_GENERATED_NOTEBOOKS_ROOT,
+  generatedNotebookDir,
 } from '../shared/paths.mjs';
 
 const DEFAULT_MAX_INLINE_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -115,6 +116,31 @@ function localImageToDataUrl(src, stats, maxBytes) {
   return `data:${mimeType};base64,${fs.readFileSync(filePath).toString('base64')}`;
 }
 
+function imageFileToDataUrl(filePath, stats, maxBytes) {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    stats.missing += 1;
+    return null;
+  }
+
+  const fileSize = fs.statSync(filePath).size;
+  if (fileSize > maxBytes) {
+    stats.skippedTooLarge += 1;
+    return null;
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  const mimeType = IMAGE_MIME_BY_EXTENSION[extension] || 'application/octet-stream';
+  stats.inlined += 1;
+  return `data:${mimeType};base64,${fs.readFileSync(filePath).toString('base64')}`;
+}
+
+function slideFilePath(notebookId, order) {
+  return path.join(
+    generatedNotebookDir(notebookId),
+    `slide-${String(order + 1).padStart(2, '0')}.png`,
+  );
+}
+
 function visit(value, stats, maxBytes) {
   if (!value || typeof value !== 'object') return;
   if (Array.isArray(value)) {
@@ -185,6 +211,7 @@ function buildNotebookMatchFilter(courseCodes) {
 async function main() {
   const write = hasFlag('--write');
   const quiet = hasFlag('--quiet');
+  const refreshFromFiles = hasFlag('--refresh-from-files');
   const notebookId = readOption('--notebook') || process.env.NOTEBOOK_ID || null;
   const courseCodes = readCourseCodes();
   const maxBytes = parseMaxBytes();
@@ -211,7 +238,7 @@ async function main() {
         notebookId: true,
         title: true,
         order: true,
-        content: true,
+        ...(refreshFromFiles ? {} : { content: true }),
         notebook: {
           select: {
             name: true,
@@ -229,7 +256,25 @@ async function main() {
 
     for (const scene of scenes) {
       total.scannedScenes += 1;
-      const result = transformContent(scene.content, maxBytes);
+      const result = refreshFromFiles
+        ? {
+            content: null,
+            stats: {
+              inlined: 0,
+              missing: 0,
+              skippedTooLarge: 0,
+              unresolvedRelative: 0,
+            },
+          }
+        : transformContent(scene.content, maxBytes);
+      if (refreshFromFiles) {
+        const dataUrl = imageFileToDataUrl(
+          slideFilePath(scene.notebookId, scene.order),
+          result.stats,
+          maxBytes,
+        );
+        if (dataUrl) result.content = dataUrl;
+      }
       addStats(total, result.stats);
       if (result.stats.inlined === 0) continue;
 
@@ -244,10 +289,23 @@ async function main() {
         );
       }
       if (write) {
-        await prisma.scene.update({
-          where: { id: scene.id },
-          data: { content: result.content },
-        });
+        if (refreshFromFiles) {
+          await prisma.$executeRaw`
+            UPDATE "Scene"
+            SET "content" = jsonb_set(
+              "content"::jsonb,
+              '{canvas,elements,0,src}',
+              to_jsonb(${result.content}::text),
+              false
+            )
+            WHERE "id" = ${scene.id}
+          `;
+        } else {
+          await prisma.scene.update({
+            where: { id: scene.id },
+            data: { content: result.content },
+          });
+        }
       }
     }
 

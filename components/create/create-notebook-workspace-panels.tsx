@@ -175,6 +175,7 @@ function buildPlanningWriterText(page: PagePlanningPreview): string {
   appendList('页面上要真正写出来', page.mustShow);
   appendList('公式 / 符号', page.formulas);
   appendList('例题或证明步骤', page.exampleSteps);
+  appendList('marker 组件', page.markerComponents);
   appendList('父级聚焦区域', page.focusRegions);
   appendList('易错点', page.commonPitfalls);
 
@@ -189,6 +190,12 @@ function buildPlanningWriterText(page: PagePlanningPreview): string {
   }
   if (page.visualBrief) {
     lines.push(`视觉意图：${page.visualBrief}`);
+  }
+  if (page.markerCount > 0) {
+    lines.push('', `marker 校验目标：${page.markerCount} 个四角点`);
+  }
+  if (page.promptHash) {
+    lines.push(`prompt hash：${page.promptHash}`);
   }
 
   return lines.join('\n');
@@ -391,10 +398,12 @@ function PagePromptResultCard({
   page,
   className,
   loading,
+  onCopyPrompt,
 }: {
   page: PagePlanningPreview;
   className?: string;
   loading?: boolean;
+  onCopyPrompt?: () => void;
 }) {
   return (
     <div
@@ -428,6 +437,19 @@ function PagePromptResultCard({
             <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-200">
               {page.batchLabel}
             </span>
+          ) : null}
+          {!loading && page.drawingPrompt ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-lg px-2 text-[11px]"
+              disabled={!onCopyPrompt}
+              onClick={onCopyPrompt}
+            >
+              <Copy className="mr-1 size-3" />
+              复制 prompt
+            </Button>
           ) : null}
         </div>
       </div>
@@ -476,6 +498,48 @@ function PagePromptResultCard({
           <span className="font-semibold">收束：</span>
           {page.bottomTakeaway}
         </div>
+      ) : null}
+
+      {!loading && (page.markerComponents.length > 0 || page.markerCount > 0 || page.promptHash) ? (
+        <div className="mt-3 rounded-lg border border-slate-900/[0.06] bg-white/70 px-3 py-2 text-xs leading-relaxed dark:border-white/[0.08] dark:bg-white/[0.04]">
+          <div className="flex flex-wrap items-center gap-2">
+            {page.markerCount > 0 ? (
+              <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-semibold text-white dark:bg-white dark:text-slate-950">
+                marker {page.markerCount}
+              </span>
+            ) : null}
+            {page.promptHash ? (
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 dark:bg-white/[0.08] dark:text-slate-300">
+                {page.promptHash}
+              </span>
+            ) : null}
+          </div>
+          {page.markerComponents.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {page.markerComponents.map((component, index) => (
+                <span
+                  key={`${page.id}-marker-${index}`}
+                  className="rounded-full bg-blue-50 px-2 py-1 text-[10px] leading-none text-blue-800 dark:bg-blue-400/10 dark:text-blue-200"
+                >
+                  {component}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!loading && page.drawingPrompt ? (
+        <details className="mt-3 rounded-lg border border-slate-900/[0.06] bg-slate-50/80 p-3 dark:border-white/[0.08] dark:bg-black/20">
+          <summary className="cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200">
+            最终图片 prompt
+          </summary>
+          <Textarea
+            readOnly
+            value={page.drawingPrompt}
+            className="mt-3 max-h-80 min-h-[180px] resize-y rounded-lg bg-white/90 font-mono text-[11px] leading-relaxed dark:bg-black/30"
+          />
+        </details>
       ) : null}
     </div>
   );
@@ -564,6 +628,7 @@ function StructuredPlanningOutput({
   courseSpine,
   selectedPage,
   onPageSelect,
+  onCopyPrompt,
   action,
   loadingState,
 }: {
@@ -572,6 +637,7 @@ function StructuredPlanningOutput({
   courseSpine?: ImageNotebookBriefPlan['courseSpine'] | null;
   selectedPage?: PagePlanningPreview;
   onPageSelect?: (pageId: string) => void;
+  onCopyPrompt?: (page: PagePlanningPreview) => void;
   action?: ReactNode;
   loadingState?: PlanningMockPhaseState;
 }) {
@@ -685,6 +751,7 @@ function StructuredPlanningOutput({
         <PagePromptResultCard
           page={currentPage}
           loading={isLoading}
+          onCopyPrompt={() => onCopyPrompt?.(currentPage)}
           className="min-h-0 flex-1 overflow-y-auto border-blue-500/25 bg-blue-50/55 dark:border-blue-300/20 dark:bg-blue-300/[0.08]"
         />
       </section>
@@ -703,6 +770,7 @@ function PlanningStreamBox({
   courseSpine,
   selectedPage,
   onPageSelect,
+  onCopyPrompt,
   active,
   revision,
   action,
@@ -717,6 +785,7 @@ function PlanningStreamBox({
   courseSpine?: ImageNotebookBriefPlan['courseSpine'] | null;
   selectedPage?: PagePlanningPreview;
   onPageSelect?: (pageId: string) => void;
+  onCopyPrompt?: (page: PagePlanningPreview) => void;
   active?: boolean;
   revision: number;
   action?: ReactNode;
@@ -761,6 +830,7 @@ function PlanningStreamBox({
           courseSpine={courseSpine}
           selectedPage={selectedPage}
           onPageSelect={onPageSelect}
+          onCopyPrompt={onCopyPrompt}
           action={action}
           loadingState={loadingState}
         />
@@ -885,7 +955,8 @@ function PipelineSectionIcon({ title, className }: { title: string; className?: 
   if (title.includes('任务') || title.includes('规划')) return <ListChecks className={className} />;
   if (title.includes('约束') || title.includes('必须'))
     return <CheckCircle2 className={className} />;
-  if (title.includes('风格')) return <Wand2 className={className} />;
+  if (title.includes('风格') || title.toLowerCase().includes('prompt'))
+    return <Wand2 className={className} />;
   return <FileText className={className} />;
 }
 

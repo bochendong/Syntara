@@ -21,7 +21,7 @@ export function emptySavedState(): SavedState {
     selectedFixtureId: null,
     selectedRunId: null,
     selectedDraftId: null,
-    selectedStepId: 'source-package',
+    selectedStepId: 'draft-generation',
   };
 }
 
@@ -40,7 +40,7 @@ export function sanitizeSavedState(value: unknown): SavedState {
   const selectedStepId =
     typeof value.selectedStepId === 'string' && value.selectedStepId in STEP_LABELS
       ? (value.selectedStepId as StepId)
-      : 'source-package';
+      : 'draft-generation';
   return {
     runs: runs.slice(0, MAX_STORED_RUNS),
     selectedFixtureId: typeof value.selectedFixtureId === 'string' ? value.selectedFixtureId : null,
@@ -55,7 +55,7 @@ export function sanitizeSavedState(value: unknown): SavedState {
 
 export function savedStateForPipelineMode(state: SavedState, mode: PipelineMode): SavedState {
   const runs = latestRunsByFixture(
-    state.runs.filter((run) => (run.pipelineMode || 'stepped') === mode),
+    state.runs.filter((run) => (run.pipelineMode || 'direct-llm') === mode),
   );
   const selectedRunId =
     state.selectedRunId && runs.some((run) => run.id === state.selectedRunId)
@@ -119,17 +119,14 @@ export async function writeSavedState(
   const state = {
     ...next,
     runs: latestRunsByFixture(
-      next.runs.filter((run) => (run.pipelineMode || 'stepped') === mode),
+      next.runs.filter((run) => (run.pipelineMode || 'direct-llm') === mode),
     ).slice(0, MAX_STORED_RUNS),
   };
   await saveTestResult({
     testId: testResultId,
     resultKey: TEST_RESULT_KEY,
     status: 'saved',
-    title:
-      mode === 'direct-llm'
-        ? 'Problem Import Pipeline v2 · LLM 直读'
-        : 'Problem Import Pipeline v2 · 分步管线',
+    title: 'Problem Import Pipeline v2 · LLM 直读',
     summary: { ...summarizeSavedState(state), pipelineMode: mode },
     payload: state,
   });

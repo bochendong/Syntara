@@ -27,6 +27,7 @@ const replaceScenesSchema = z.object({
 });
 
 const SCENE_CONTENT_DIAGNOSTICS_KEY = '__generationDiagnostics';
+const IMAGE_NOTEBOOK_FOCUS_REPAIR_KEY = 'imageNotebookFocusRepair';
 
 function attachGenerationDiagnosticsToContent(content: unknown, diagnostics: unknown): unknown {
   if (!diagnostics || !content || typeof content !== 'object' || Array.isArray(content)) {
@@ -36,6 +37,45 @@ function attachGenerationDiagnosticsToContent(content: unknown, diagnostics: unk
     ...(content as Record<string, unknown>),
     [SCENE_CONTENT_DIAGNOSTICS_KEY]: diagnostics,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function getCanvasElements(content: unknown): Array<Record<string, unknown>> {
+  if (!isRecord(content)) return [];
+  const canvas = content.canvas;
+  if (!isRecord(canvas) || !Array.isArray(canvas.elements)) return [];
+  return canvas.elements.filter(isRecord);
+}
+
+function hasFullPageBitmap(content: unknown): boolean {
+  return getCanvasElements(content).some((element) => {
+    if (element.type !== 'image') return false;
+    const name = String(element.name || '');
+    const width = Number(element.width || 0);
+    const height = Number(element.height || 0);
+    return /full_page_bitmap/i.test(name) || (width >= 900 && height >= 500);
+  });
+}
+
+function hasImageNotebookFocusRepair(content: unknown): boolean {
+  if (!isRecord(content)) return false;
+  const diagnostics = content[SCENE_CONTENT_DIAGNOSTICS_KEY];
+  return isRecord(diagnostics) && isRecord(diagnostics[IMAGE_NOTEBOOK_FOCUS_REPAIR_KEY]);
+}
+
+function shouldPreserveRepairedImageNotebookContent(
+  existingContent: unknown,
+  incomingContent: unknown,
+) {
+  return (
+    hasImageNotebookFocusRepair(existingContent) &&
+    hasFullPageBitmap(existingContent) &&
+    hasFullPageBitmap(incomingContent) &&
+    !hasImageNotebookFocusRepair(incomingContent)
+  );
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -70,6 +110,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       );
     }
 
+    const existingScenes = await listNotebookScenes(prisma, id);
+    const existingById = new Map(existingScenes.map((scene) => [scene.id, scene]));
+    const existingByOrder = new Map(existingScenes.map((scene) => [scene.order, scene]));
+
     const sceneData = await Promise.all(
       payload.data.scenes.map(async (s) => {
         const contentWithDiagnostics = attachGenerationDiagnosticsToContent(
@@ -77,12 +121,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
           s.generationDiagnostics,
         );
         const { content } = await inlineLocalGeneratedNotebookImages(contentWithDiagnostics);
+        const existingScene =
+          (s.id ? existingById.get(s.id) : undefined) || existingByOrder.get(s.order);
+        const mergedContent = shouldPreserveRepairedImageNotebookContent(
+          existingScene?.content,
+          content,
+        )
+          ? existingScene?.content
+          : content;
         return {
           id: s.id,
           title: s.title,
           type: s.type,
           order: s.order,
-          content: toPrismaJson(content),
+          content: toPrismaJson(mergedContent),
           actions: toPrismaNullableJson(s.actions),
           whiteboard: toPrismaNullableJson(s.whiteboards),
         };

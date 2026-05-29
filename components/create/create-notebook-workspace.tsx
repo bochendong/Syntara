@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +14,7 @@ import {
   ImageIcon,
   ListChecks,
   Loader2,
+  Maximize2,
   PencilLine,
   PlayCircle,
   Plus,
@@ -25,6 +27,12 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +83,11 @@ import {
 } from './create-notebook-workspace-panels';
 import { useCreateNotebookWorkspaceController } from './use-create-notebook-workspace-controller';
 export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
+  const [previewSlide, setPreviewSlide] = useState<{
+    imageUrl: string;
+    pageNumber: number;
+    title: string;
+  } | null>(null);
   const controller = useCreateNotebookWorkspaceController({ courseId });
   const {
     activeGenerationTask,
@@ -112,6 +125,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
     hasSelectedPlanningStepText,
     hidePlanningInputPanel,
     imageGenerationGridRows,
+    imageGenerationMockEnabled,
     imageGenerationMockPageCount,
     includeQuizScenes,
     keptMaterials,
@@ -196,6 +210,11 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
     visiblePilotImagePrompt,
     workedExampleLevel,
   } = controller;
+  const completedNotebookHref =
+    activeGenerationTask?.status === 'completed' && activeGenerationTask.notebookId
+      ? `/classroom/${encodeURIComponent(activeGenerationTask.notebookId)}`
+      : '';
+  const classroomHref = completedNotebookHref || `/course/${encodeURIComponent(courseId)}`;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
@@ -210,6 +229,37 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
           void handleGenerate(selection);
         }}
       />
+      <Dialog open={Boolean(previewSlide)} onOpenChange={(open) => !open && setPreviewSlide(null)}>
+        <DialogContent className="w-[min(94vw,1180px)] max-w-[1180px] gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950 p-0 text-white shadow-[0_30px_120px_rgba(15,23,42,0.45)]">
+          <DialogTitle className="sr-only">
+            {previewSlide
+              ? `第 ${previewSlide.pageNumber} 页生成缩略图预览`
+              : '生成缩略图预览'}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            放大查看已经生成完成的 16:9 幻灯片图片。
+          </DialogDescription>
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-3 pr-14">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-white/55">
+                第 {String(previewSlide?.pageNumber ?? 0).padStart(2, '0')} 页
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold">
+                {previewSlide?.title || '生成页面'}
+              </p>
+            </div>
+          </div>
+          <div className="bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.2),transparent_34%),#020617] p-4 sm:p-6">
+            {previewSlide ? (
+              <img
+                src={previewSlide.imageUrl}
+                alt={`第 ${previewSlide.pageNumber} 页生成图`}
+                className="mx-auto aspect-video max-h-[76vh] w-full rounded-xl border border-white/10 bg-white object-contain shadow-2xl shadow-black/35"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-7">
         <aside className="shrink-0 lg:flex lg:w-[118px] lg:items-center lg:justify-center">
@@ -733,7 +783,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                 <div className="flex shrink-0 items-start justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-semibold">
-                      {outlineIsLoading ? '正在生成规划与 prompt' : '审查 notebook 生成结构'}
+                      {outlineIsLoading ? '正在生成规划与画图 prompt' : '审查规划与画图 prompt'}
                     </h2>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                       {outlineGenerationMessage}
@@ -780,7 +830,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-64">
-                        <DropdownMenuLabel>规划与 prompt 链路状态</DropdownMenuLabel>
+                        <DropdownMenuLabel>规划 + prompt 链路状态</DropdownMenuLabel>
                         <div className="px-2 pb-2 text-[11px] leading-relaxed text-muted-foreground">
                           真实：
                           {selectedPlanningRealPhaseState
@@ -877,6 +927,9 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         courseSpine={structuredPlanningCourseSpine}
                         selectedPage={selectedPlanningPage}
                         onPageSelect={setSelectedOutlineId}
+                        onCopyPrompt={(page) =>
+                          void copyPrompt(page.drawingPrompt || '', `第 ${page.pageNumber} 页图片 prompt`)
+                        }
                         active={
                           hasSelectedPlanningStepText
                             ? selectedPlanningStepIsWriting
@@ -1233,12 +1286,12 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                       <DropdownMenuTrigger asChild>
                         <Button
                           type="button"
-                          variant={imageGenerationMockPageCount ? 'default' : 'outline'}
+                          variant={imageGenerationMockEnabled ? 'default' : 'outline'}
                           size="sm"
                           className="h-9 rounded-lg"
                         >
                           <PlayCircle className="mr-1.5 size-4" />
-                          {imageGenerationMockPageCount
+                          {imageGenerationMockEnabled
                             ? `${imageGenerationMockPageCount} 页 mock`
                             : '生图 mock'}
                           <ChevronDown className="ml-1.5 size-3.5" />
@@ -1274,7 +1327,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                       重画选中页
                     </Button>
                     <Button type="button" size="sm" className="h-9 rounded-lg" asChild>
-                      <Link href={`/course/${encodeURIComponent(courseId)}`}>
+                      <Link href={classroomHref}>
                         <PlayCircle className="mr-1.5 size-4" />
                         进入课堂
                       </Link>
@@ -1293,27 +1346,59 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                   {imageGenerationGridRows.length > 0 ? (
                     <div className={imageGenerationGridClassName()}>
                       {imageGenerationGridRows.map((row, index) => {
+                        const thumbnailUrl = getGeneratedPageThumbnailUrl(
+                          activeGenerationTask,
+                          index,
+                        );
+                        const hasGeneratedThumbnail = Boolean(thumbnailUrl);
                         const status = getImageGenerationTileStatus({
                           index,
                           total: imageGenerationGridRows.length,
-                          mockEnabled: imageGenerationMockPageCount !== null,
+                          mockEnabled: imageGenerationMockEnabled,
                           busy,
                           task: activeGenerationTask,
+                          hasGeneratedThumbnail,
                         });
                         const statusLabel = IMAGE_GENERATION_STATUS_LABELS[status];
-                        const thumbnailUrl =
-                          status === 'done'
-                            ? getGeneratedPageThumbnailUrl(activeGenerationTask, index)
-                            : '';
-                        const hasGeneratedThumbnail = Boolean(thumbnailUrl);
                         return (
                           <article
                             key={row.id}
+                            role={hasGeneratedThumbnail ? 'button' : undefined}
+                            tabIndex={hasGeneratedThumbnail ? 0 : undefined}
+                            aria-label={
+                              hasGeneratedThumbnail
+                                ? `放大查看第 ${index + 1} 页：${row.title}`
+                                : undefined
+                            }
+                            onClick={
+                              hasGeneratedThumbnail
+                                ? () =>
+                                    setPreviewSlide({
+                                      imageUrl: thumbnailUrl,
+                                      pageNumber: index + 1,
+                                      title: row.title,
+                                    })
+                                : undefined
+                            }
+                            onKeyDown={
+                              hasGeneratedThumbnail
+                                ? (event) => {
+                                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                                    event.preventDefault();
+                                    setPreviewSlide({
+                                      imageUrl: thumbnailUrl,
+                                      pageNumber: index + 1,
+                                      title: row.title,
+                                    });
+                                  }
+                                : undefined
+                            }
                             className={cn(
-                              'relative aspect-video overflow-hidden rounded-xl border border-slate-900/[0.06] shadow-sm shadow-slate-950/[0.03] dark:border-white/[0.08]',
+                              'group relative aspect-video overflow-hidden rounded-xl border border-slate-900/[0.06] shadow-sm shadow-slate-950/[0.03] outline-none transition dark:border-white/[0.08]',
                               imageGenerationTilePaddingClassName(),
                               status === 'done' && 'text-white',
-                              hasGeneratedThumbnail && 'bg-white',
+                              hasGeneratedThumbnail &&
+                                'cursor-zoom-in bg-white hover:-translate-y-0.5 hover:ring-2 hover:ring-blue-400/60 focus-visible:ring-2 focus-visible:ring-blue-500',
                               status === 'generating' && 'bg-blue-50 text-blue-950',
                               status === 'waiting' && 'bg-slate-50 text-slate-500',
                             )}
@@ -1333,6 +1418,9 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                                   className="absolute inset-0 size-full object-cover"
                                 />
                                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.18)_0%,rgba(15,23,42,0)_42%,rgba(15,23,42,0.1)_100%)]" />
+                                <span className="absolute bottom-2 right-2 z-20 inline-flex size-6 items-center justify-center rounded-full bg-slate-950/55 text-white opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100">
+                                  <Maximize2 className="size-3.5" />
+                                </span>
                               </>
                             ) : null}
                             <ImageGenerationCardProcessPreview index={index} status={status} />
@@ -1489,15 +1577,27 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         ? '质检生成中'
                         : '先跑质量检查'
                     : activeStep === 'input' || activeStep === 'materials'
-                      ? '生成规划与 prompt'
+                      ? '生成规划+prompt'
                       : activeStep === 'outline'
                         ? outlineIsLoading
-                          ? '规划与 prompt 生成中'
+                          ? '规划+prompt 生成中'
                           : outlineNeedsInitialGeneration
-                            ? '开始生成规划与 prompt'
+                            ? '开始生成规划+prompt'
                             : '并行生成图片'
                         : '下一步'}
                   <ArrowRight className="ml-2 size-4" />
+                </Button>
+              ) : completedNotebookHref ? (
+                <Button
+                  type="button"
+                  className="h-11 rounded-2xl bg-gradient-to-r from-violet-500 to-blue-500 px-6 text-white shadow-sm shadow-violet-500/20 hover:from-violet-600 hover:to-blue-600"
+                  asChild
+                >
+                  <Link href={completedNotebookHref}>
+                    <PlayCircle className="mr-2 size-4" />
+                    进入课堂
+                    <ArrowRight className="ml-2 size-4" />
+                  </Link>
                 </Button>
               ) : (
                 <Button

@@ -16,10 +16,13 @@ import type { PercentageGeometry } from '@/lib/types/action';
 import { useViewportSize } from './Canvas/hooks/useViewportSize';
 import { useMemo, type RefObject } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { hasFullPageBitmapElement } from '@/lib/utils/slide-background-policy';
 
 export interface ScreenCanvasProps {
   /** Fills the slide stage; used for viewport measurement and clipping (no extra wrapper inside). */
   readonly containerRef: RefObject<HTMLDivElement | null>;
+  /** Debug-only overlay that draws recoverable corner markers over invisible focus regions. */
+  readonly showMarkerDebugOverlay?: boolean;
 }
 
 const TITLE_BASELINE_LEFT = 64;
@@ -29,6 +32,9 @@ const LEGACY_FULL_ROW_MIN_LEFT = 80;
 const LEGACY_FULL_ROW_MAX_LEFT = 100;
 const LEGACY_COVER_REFLOW_TOP = 340;
 const LEGACY_COVER_REFLOW_DELTA = 260;
+const MARKER_DEBUG_SIZE = 10;
+const MARKER_DEBUG_COLORS = ['#ff0000', '#00ff00', '#0048ff', '#00ffff', '#ff00ff', '#ffff00'];
+const MARKER_DEBUG_TARGET_RE = /lecture-focus-generated|semantic-hit-map/i;
 
 type BoxGeometry = {
   left: number;
@@ -43,6 +49,76 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometr
     typeof (element as { top?: unknown }).top === 'number' &&
     typeof (element as { width?: unknown }).width === 'number' &&
     typeof (element as { height?: unknown }).height === 'number'
+  );
+}
+
+function isMarkerDebugFocusElement(element: PPTElement): element is PPTElement & BoxGeometry {
+  return (
+    hasBoxGeometry(element) &&
+    MARKER_DEBUG_TARGET_RE.test(`${element.id} ${(element as { name?: string }).name || ''}`)
+  );
+}
+
+function clampMarkerPosition(value: number, max: number): number {
+  return Math.min(Math.max(value, 0), Math.max(0, max - MARKER_DEBUG_SIZE));
+}
+
+function MarkerDebugOverlay({
+  contentHeight,
+  elements,
+  viewportWidth,
+}: {
+  readonly contentHeight: number;
+  readonly elements: PPTElement[];
+  readonly viewportWidth: number;
+}) {
+  const focusElements = elements
+    .filter(isMarkerDebugFocusElement)
+    .slice(0, MARKER_DEBUG_COLORS.length);
+
+  if (focusElements.length === 0) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0"
+      data-marker-debug-overlay="true"
+      style={{ zIndex: elements.length + 20 }}
+    >
+      {focusElements.flatMap((element, elementIndex) => {
+        const color = MARKER_DEBUG_COLORS[elementIndex % MARKER_DEBUG_COLORS.length];
+        const halfSize = MARKER_DEBUG_SIZE / 2;
+        const corners = [
+          { key: 'tl', left: element.left - halfSize, top: element.top - halfSize },
+          { key: 'tr', left: element.left + element.width - halfSize, top: element.top - halfSize },
+          {
+            key: 'bl',
+            left: element.left - halfSize,
+            top: element.top + element.height - halfSize,
+          },
+          {
+            key: 'br',
+            left: element.left + element.width - halfSize,
+            top: element.top + element.height - halfSize,
+          },
+        ];
+
+        return corners.map((corner) => (
+          <div
+            key={`${element.id}-${corner.key}`}
+            className="absolute"
+            style={{
+              left: clampMarkerPosition(corner.left, viewportWidth),
+              top: clampMarkerPosition(corner.top, contentHeight),
+              width: MARKER_DEBUG_SIZE,
+              height: MARKER_DEBUG_SIZE,
+              backgroundColor: color,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.22)',
+            }}
+          />
+        ));
+      })}
+    </div>
   );
 }
 
@@ -165,7 +241,7 @@ function getPercentageGeometryForElement(
   };
 }
 
-export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
+export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
   const rawElements = useSceneSelector<SlideContent, PPTElement[]>(
     (content) => content.canvas.elements,
@@ -240,7 +316,19 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
   const background = useSceneSelector<SlideContent, SlideBackground | undefined>(
     (content) => content.canvas.background,
   );
-  const { backgroundStyle } = useSlideBackgroundStyle(background);
+  const viewportSize = useSceneSelector<SlideContent, number>(
+    (content) => content.canvas.viewportSize ?? 1000,
+  );
+  const viewportRatio = useSceneSelector<SlideContent, number>(
+    (content) => content.canvas.viewportRatio ?? 0.5625,
+  );
+  const hasFullPageBitmap = useMemo(
+    () => hasFullPageBitmapElement(elements, viewportSize, viewportRatio),
+    [elements, viewportRatio, viewportSize],
+  );
+  const { backgroundStyle } = useSlideBackgroundStyle(background, {
+    applyProfileStyle: !hasFullPageBitmap,
+  });
 
   const contentHeight = viewportStyles.height;
   const fittedCanvasScale = canvasScale;
@@ -311,6 +399,14 @@ export function ScreenCanvas({ containerRef }: ScreenCanvasProps) {
         />
 
         <HighlightOverlay />
+
+        {showMarkerDebugOverlay ? (
+          <MarkerDebugOverlay
+            elements={adjustedElements}
+            viewportWidth={viewportStyles.width}
+            contentHeight={contentHeight}
+          />
+        ) : null}
       </div>
 
       <SpotlightOverlay />

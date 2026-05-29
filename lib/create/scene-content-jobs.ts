@@ -33,11 +33,10 @@ import type { PPTElement, SlideBackground, SlideTheme } from '@/lib/types/slides
 import type { SourceImageAsset } from '@/features/ppt-generation/server/html-ppt-slide/types';
 import {
   formatImageNotebookBriefForPrompt,
-  hasCriticalImageNotebookQaFailure,
   type ImageNotebookFocusRegion,
-  type ImageNotebookPageBrief,
   type ImageNotebookQaResult,
 } from '@/lib/generation/image-notebook-quality';
+import { buildImageNotebookPromptPlan } from '@/lib/generation/image-notebook-prompt-plan';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { buildPayloadTooLargeMessage, readApiErrorMessage } from './api-errors';
 import { getApiHeaders } from './generation-headers';
@@ -48,12 +47,14 @@ const NOTEBOOK_IMAGE2_MODEL_ID = 'gpt-image-2';
 
 const IMAGE_FIRST_NOTEBOOK_STYLE_SPEC = [
   'Visual style baseline:',
-  '- Make this look like a live classroom board moment for students, not a teacher handout, lesson plan, or frontend template.',
-  '- Use warm off-white grid paper / notebook paper as the full-slide background.',
-  '- Use thick navy handwritten Chinese title lettering, with teal, blue, and orange marker accents.',
-  '- Use hand-drawn rounded boxes, arrows, underlines, check marks, small stars or lightbulb doodles only when useful.',
-  '- The page should feel like the teacher is actively guiding the class through one thinking move captured as a single bitmap image.',
-  '- Keep a consistent MAT 136 / Syntara notebook feel: friendly, careful, readable, sparse, and projector-safe.',
+  '- Follow the selected drawing / illustration style first. The style may be notebook handwriting, cartoon illustration, minimalist line art, watercolor, or another user-specified art direction.',
+  '- Make this look like a finished educational illustration or illustrated notebook page for students, not a teacher handout, lesson plan, or frontend template.',
+  '- Use a full-bleed 16:9 canvas whose background, paper texture, board surface, or illustration treatment touches all four image edges.',
+  '- Do not draw a centered paper/card/slide inside a larger canvas. No pillarboxing, letterboxing, white side bars, or outer frame.',
+  '- Keep normal classroom padding for content, but never leave blank vertical columns on the left or right edges.',
+  '- Use visual treatment consistent with the chosen art direction for titles, diagrams, highlights, characters, objects, and annotations.',
+  '- The page should feel like one clear learning idea captured as a single bitmap image.',
+  '- Keep a consistent course notebook feel: friendly, careful, readable, sparse, and projector-safe.',
   '- Use student-facing phrasing such as "我们先看", "你会先判断什么", "下一步怎么来"; avoid teacher-planning phrasing.',
   '- Never write visible meta labels like "让学生看到", "教学目标", "本页主线", "可迁移动作", "Teacher move", "Page role", or "QA checklist".',
   '- Avoid flat vector UI cards, generic corporate slide templates, stock-photo layouts, glossy gradients, browser chrome, app UI, and placeholder blocks.',
@@ -549,50 +550,6 @@ function imageResultToUrl(result: ImageGenerationResult | undefined): string {
   return result.url || '';
 }
 
-function qaFindingsText(qa: ImageNotebookQaResult): string {
-  const findings = [...qa.findings, ...qa.mathFindings, ...qa.visualFindings];
-  return findings
-    .map((finding) => `${finding.severity}/${finding.category}: ${finding.message}`)
-    .join('\n');
-}
-
-async function runImageNotebookQa(args: {
-  imageResult: ImageGenerationResult;
-  imageUrl: string;
-  pageBrief?: ImageNotebookPageBrief;
-  outline: SceneOutline;
-  allOutlines: SceneOutline[];
-  headers: HeadersInit;
-  signal?: AbortSignal;
-}): Promise<ImageNotebookQaResult> {
-  const response = await backendFetch('/api/generate/image-notebook-qa', {
-    method: 'POST',
-    headers: args.headers,
-    body: JSON.stringify({
-      imageResult: args.imageResult,
-      imageUrl: args.imageUrl,
-      pageBrief: args.pageBrief,
-      outline: args.outline,
-      allOutlines: args.allOutlines,
-      language: args.outline.language || 'zh-CN',
-    }),
-    signal: args.signal,
-  });
-  if (!response.ok) {
-    const message = await readApiErrorMessage(response, '图片页 QA 失败');
-    throw new Error(message || '图片页 QA 失败');
-  }
-  const data = (await response.json().catch(() => ({}))) as {
-    success?: boolean;
-    qa?: ImageNotebookQaResult;
-    error?: string;
-  };
-  if (!data.success || !data.qa) {
-    throw new Error(data.error || '图片页 QA 失败：响应里没有 QA 结果');
-  }
-  return data.qa;
-}
-
 function compactLine(value: string | undefined, maxLength = 240): string {
   const text = (value || '').replace(/\s+/g, ' ').trim();
   if (text.length <= maxLength) return text;
@@ -1048,6 +1005,24 @@ function buildNotebookImagePrompt(args: {
   stage: Stage;
   assignedSourceImages: SourceImageAsset[];
 }): string {
+  if (args.outline.imageNotebookPromptPlan?.compiledImagePrompt) {
+    return args.outline.imageNotebookPromptPlan.compiledImagePrompt;
+  }
+  if (args.outline.imageNotebookBrief) {
+    const promptPlanLanguage =
+      args.outline.language || (args.stage.language === 'en-US' ? 'en-US' : 'zh-CN');
+    return buildImageNotebookPromptPlan({
+      outline: args.outline,
+      allOutlines: args.allOutlines,
+      notebookTitle: args.stage.name,
+      notebookGoal: args.stage.description,
+      language: promptPlanLanguage,
+      stylePrompt: args.stage.style || args.stage.description,
+      styleBrief: args.stage.imageNotebookStyle,
+      sourceImageHints: formatImageSourceHints(args.assignedSourceImages),
+    }).compiledImagePrompt;
+  }
+
   const { outline, allOutlines, stage } = args;
   const language = outline.language || stage.language || 'zh-CN';
   const pageIndex = Math.max(
@@ -1073,7 +1048,7 @@ function buildNotebookImagePrompt(args: {
     'Create one polished 16:9 classroom PPT slide as a single bitmap image.',
     'The image is one live teaching moment in the notebook, not a decorative illustration and not a teacher handout.',
     'The slide must contain only student-facing board content directly in the image.',
-    'Match the style of the approved image-generated notebook examples: warm grid paper, hand-drawn live classroom board, marker accents, and large readable math/content.',
+    'Use the selected or authoritative drawing style as the primary visual direction while keeping the page readable, sparse, and projector-safe.',
     '',
     IMAGE_FIRST_NOTEBOOK_STYLE_SPEC,
     '',
@@ -1133,6 +1108,7 @@ function buildFullPageImageSlideContent(args: {
   stage: Stage;
 }): {
   elements: PPTElement[];
+  imageNotebookPromptPlan?: SceneOutline['imageNotebookPromptPlan'];
   background: SlideBackground;
   theme: SlideTheme;
   remark: string;
@@ -1157,7 +1133,8 @@ function buildFullPageImageSlideContent(args: {
       },
       ...focusElements,
     ],
-    background: { type: 'solid', color: '#0f172a' },
+    imageNotebookPromptPlan: args.outline.imageNotebookPromptPlan,
+    background: { type: 'solid', color: '#0f172a', respectProfileStyle: false },
     theme: {
       backgroundColor: '#0f172a',
       themeColors: ['#0f172a', '#2563eb', '#14b8a6', '#f59e0b', '#f8fafc'],
@@ -1282,101 +1259,49 @@ export async function generateSceneContentBundle(args: {
       assignedSourceImages,
     });
     const imageHeaders = buildImageGenerationHeaders(headers);
-    let imagePrompt = baseImagePrompt;
-    let imageUrl = '';
-    let imageResult: ImageGenerationResult | undefined;
-    let qaResult: ImageNotebookQaResult | undefined;
-    let pageBrief = normalizedOutline.imageNotebookBrief;
-    const maxAttempts = Math.max(1, Math.min(3, args.imageNotebookMaxAttempts ?? 3));
+    const imagePrompt = baseImagePrompt;
+    const imageResp = await backendFetch('/api/generate/image', {
+      method: 'POST',
+      headers: imageHeaders,
+      body: JSON.stringify({
+        prompt: imagePrompt,
+        aspectRatio: '16:9',
+        notebookContext: {
+          id: args.stage.id,
+          name: args.stage.name,
+          courseId: args.stage.courseId,
+          sceneId: normalizedOutline.id,
+          sceneTitle: normalizedOutline.title,
+          sceneOrder: normalizedOutline.order,
+          sceneType: normalizedOutline.type,
+        },
+      }),
+      signal: args.signal,
+    });
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      const imageResp = await backendFetch('/api/generate/image', {
-        method: 'POST',
-        headers: imageHeaders,
-        body: JSON.stringify({
-          prompt: imagePrompt,
-          aspectRatio: '16:9',
-          notebookContext: {
-            id: args.stage.id,
-            name: args.stage.name,
-            courseId: args.stage.courseId,
-            sceneId: normalizedOutline.id,
-            sceneTitle: normalizedOutline.title,
-            sceneOrder: normalizedOutline.order,
-            sceneType: normalizedOutline.type,
-          },
-        }),
-        signal: args.signal,
-      });
+    if (!imageResp.ok) {
+      const responseLanguage: 'zh-CN' | 'en-US' =
+        args.stage.language === 'en-US' ? 'en-US' : 'zh-CN';
+      const fallback =
+        responseLanguage === 'en-US' ? 'PPT image page generation failed' : 'PPT 图片页生成失败';
+      const message = await readApiErrorMessage(imageResp, fallback);
+      throw new Error(message || fallback);
+    }
 
-      if (!imageResp.ok) {
-        const responseLanguage: 'zh-CN' | 'en-US' =
-          args.stage.language === 'en-US' ? 'en-US' : 'zh-CN';
-        const fallback =
-          responseLanguage === 'en-US' ? 'PPT image page generation failed' : 'PPT 图片页生成失败';
-        const message = await readApiErrorMessage(imageResp, fallback);
-        throw new Error(message || fallback);
-      }
-
-      const imageData = (await imageResp.json().catch(() => ({}))) as {
-        success?: boolean;
-        result?: ImageGenerationResult;
-        error?: string;
-      };
-      imageResult = imageData.result;
-      imageUrl = imageResultToUrl(imageResult);
-      if (!imageData.success || !imageResult || !imageUrl) {
-        throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
-      }
-
-      qaResult = await runImageNotebookQa({
-        imageResult,
-        imageUrl,
-        pageBrief,
-        outline: normalizedOutline,
-        allOutlines: normalizedAllOutlines,
-        headers,
-        signal: args.signal,
-      });
-
-      if (qaResult.revisedFocusRegions?.length && pageBrief) {
-        pageBrief = {
-          ...pageBrief,
-          focusRegions: qaResult.revisedFocusRegions,
-        };
-      }
-      if (qaResult.passed) break;
-
-      const findings = qaFindingsText(qaResult);
-      if (attempt >= maxAttempts || hasCriticalImageNotebookQaFailure(qaResult)) {
-        throw new Error(
-          [
-            '图片页 QA 未通过，未写入 notebook。',
-            findings,
-            qaResult.regeneratePromptAddendum
-              ? `重画建议：${qaResult.regeneratePromptAddendum}`
-              : '',
-          ]
-            .filter(Boolean)
-            .join('\n'),
-        );
-      }
-
-      imagePrompt = [
-        baseImagePrompt,
-        '',
-        `Regenerate attempt ${attempt + 1}: fix these QA failures exactly.`,
-        findings,
-        qaResult.regeneratePromptAddendum || '',
-        'Do not change correct formulas or titles while fixing the failures.',
-      ]
-        .filter(Boolean)
-        .join('\n');
+    const imageData = (await imageResp.json().catch(() => ({}))) as {
+      success?: boolean;
+      result?: ImageGenerationResult;
+      error?: string;
+    };
+    const imageResult = imageData.result;
+    const imageUrl = imageResultToUrl(imageResult);
+    if (!imageData.success || !imageResult || !imageUrl) {
+      throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
     }
 
     const effectiveOutline: SceneOutline = {
       ...normalizedOutline,
-      imageNotebookBrief: pageBrief,
+      imageNotebookBrief: normalizedOutline.imageNotebookBrief,
       type: 'slide',
     };
     const diagnostics: SceneGenerationDiagnostics = {
@@ -1400,11 +1325,6 @@ export async function generateSceneContentBundle(args: {
       effectiveOutlines: [effectiveOutline],
       allOutlinesForActions,
       generationDiagnostics: diagnostics,
-      imageNotebookQaByOutlineId: qaResult
-        ? {
-            [effectiveOutline.id]: qaResult,
-          }
-        : undefined,
       contentDiagnosticsByOutlineId: {
         [effectiveOutline.id]: {
           ...diagnostics,

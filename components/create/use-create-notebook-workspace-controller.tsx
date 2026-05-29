@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { BotOff } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -31,6 +31,7 @@ import {
   MOCK_COURSE_SPINE,
   PLANNING_MOCK_STATE_LABELS,
   PLANNING_PHASE_ORDER,
+  buildImageNotebookStyleBrief,
   buildMockPlanningPagesForPhase,
   buildMockPlanningRows,
   buildPlanningPhaseMockText,
@@ -38,6 +39,7 @@ import {
   buildStyleSamplePrompt,
   fileKindLabel,
   filterSelectedSourceMedia,
+  formatImageNotebookStyleBriefPreview,
   formatFileSize,
   getWorkspaceProgressIndex,
   getWorkspaceProgressLabel,
@@ -234,6 +236,8 @@ export function useCreateNotebookWorkspaceController({
               formulas: [],
               exampleSteps: [],
               commonPitfalls: [],
+              markerComponents: [],
+              markerCount: 0,
               focusRegions: [],
               focusCount: 0,
               status: outlineIsLoading ? 'indexed' : 'planned',
@@ -256,6 +260,8 @@ export function useCreateNotebookWorkspaceController({
           formulas: [],
           exampleSteps: [],
           commonPitfalls: [],
+          markerComponents: [],
+          markerCount: 0,
           focusRegions: [],
           focusCount: 0,
           status: outlineIsLoading ? 'indexed' : 'planned',
@@ -438,6 +444,21 @@ export function useCreateNotebookWorkspaceController({
     return abortStyleSampleRequest;
   }, [abortStyleSampleRequest]);
 
+  const imageNotebookStyleBrief = useMemo(
+    () =>
+      buildImageNotebookStyleBrief({
+        style: selectedStyle,
+        customStylePrompt: drawingStylePrompt,
+        palette: selectedPalette,
+        density: outlineLength === 'minimal' ? 'sparse' : 'medium',
+      }),
+    [drawingStylePrompt, outlineLength, selectedPalette, selectedStyle],
+  );
+  const imageNotebookStyleBriefPreview = useMemo(
+    () => formatImageNotebookStyleBriefPreview(imageNotebookStyleBrief),
+    [imageNotebookStyleBrief],
+  );
+
   const startPlanningReveal = (pageNumbers: number[]) => {
     const normalized = Array.from(
       new Set(pageNumbers.filter((pageNumber) => Number.isFinite(pageNumber) && pageNumber > 0)),
@@ -608,6 +629,7 @@ export function useCreateNotebookWorkspaceController({
     courseId,
     currentStyleSampleKey,
     drawingStylePrompt,
+    imageNotebookStyleBrief,
     form,
     hasCustomDrawingStyle,
     hasSelectableSourceImages,
@@ -679,10 +701,8 @@ export function useCreateNotebookWorkspaceController({
       '',
       '用户已确认以下生成方案：',
       `- 输出形式：整页图片 notebook，每页先由图像模型生成 16:9 课堂板书位图，再进入课堂播放。`,
-      `- 绘画风格：${selectedStyle.label}。`,
-      `- 绘画风格 prompt：${drawingStylePrompt}`,
-      '- 画面基准：16:9 满画布、无白边/外框/居中卡片；保持课堂可读性，标题和公式/代码足够大；画面美术优先服从上面的绘画风格。',
-      `- 色彩方向：${selectedPalette.label}。`,
+      '页面风格 brief：',
+      imageNotebookStyleBriefPreview,
       `- 篇幅档位：${outlineLengthLabel(outlineLength)}。`,
       `- 篇幅策略：${outlineLengthStrategyText(outlineLength)}`,
       `- 例题数量：${workedExampleLevelLabel(workedExampleLevel)}。`,
@@ -746,32 +766,35 @@ export function useCreateNotebookWorkspaceController({
         ].filter(Boolean)
       : ['无上传文件，仅基于用户主题/问题生成。'];
     const lines = [
-      '用户输入：',
-      requirement ||
-        (form.sourceFile ? '未填写额外文字需求；根据上传参考资料生成。' : '未填写明确主题。'),
-      '',
-      '来源流：',
+      '输入来源：',
+      `用户需求：${
+        requirement ||
+        (form.sourceFile ? '未填写额外文字需求；根据上传参考资料生成。' : '未填写明确主题。')
+      }`,
       ...sourceFlowLines,
       '',
-      '页面规划任务：',
+      '规划规则：',
       '根据当前输入直接生成一版可编辑页面规划，不需要单独确认素材；文件内容和文字需求都作为输入流进入规划。',
-      '只决定整课主线、页面数量、每页涉及的知识点和教学动作；不要在这里写完整绘画 prompt。',
-      '输出目标是整页图片 notebook，但本阶段只做页面规划。',
+      '先决定整课主线、页面数量、每页涉及的知识点和教学动作。',
+      '本步骤的输出是“页面规划 + 每页画图 prompt”，但规划规则只负责教学推进。',
+      '页面风格 brief（进入 deterministic prompt compiler）：',
+      imageNotebookStyleBriefPreview,
       `篇幅档位：${outlineLengthLabel(outlineLength)}。`,
       `篇幅策略：${outlineLengthStrategyText(outlineLength)}`,
       `例题数量：${workedExampleLevelLabel(workedExampleLevel)}。`,
       `测验页：${includeQuizScenes ? '可以包含轻量测验页' : '不要单独生成测验页'}。`,
       '',
-      '教学约束：',
+      '教学边界：',
       '页面规划 AI 的任务只跟知识点和教学推进有关：不要把课号、校区、week/日期、作者/导师、页眉页脚、免责声明、logo/水印当作页面内容。',
       '第 1 页必须是学生视角的 overview / hook：用第一个真实知识点、公式、例题或方法提出“我们为什么要解决这个问题”，但不要从课程身份或来源信息开始，也不要写成教师路线图。',
       '第 2 页进入第一个实质讲解动作：定义边界、公式使用、例题走读、代码走读或证明走读。',
       '每页只安排一个清楚教学动作，避免把完整课堂压进单页。',
       '最后一页做总结、迁移练习或下一节课钩子。',
       '',
-      '后续交接：',
-      '页面规划会继续传给画图 prompt 线程；下一步再补全每页定义、公式、代码、题目原文、例题步骤和视觉要求。',
-      `绘画风格只作为后续方向记录：${selectedStyle.label}。`,
+      '画图 prompt 规则：',
+      '页面规划完成后，同一步会把页面分批交给画图 prompt 线程；每个线程最多负责 4 页。',
+      '每页 prompt 必须写清定义全文、公式全文、代码全文、题目原文、例题步骤和必须避免的误区。',
+      'marker/recover 协议由代码固定编译，页面规划 AI 不负责选择 marker 颜色。',
     ];
     return lines.join('\n');
   };
@@ -797,7 +820,7 @@ export function useCreateNotebookWorkspaceController({
     setActiveStep('outline');
     setOutlineGenerationStatus('loading');
     setOutlineGenerationMessage(
-      form.sourceFile ? '正在读取参考资料并生成规划与 prompt…' : '正在根据主题生成规划与 prompt…',
+      form.sourceFile ? '正在读取参考资料并生成规划+prompt…' : '正在根据主题生成规划+prompt…',
     );
     setOutlineRows([]);
     setSelectedOutlineId('');
@@ -857,6 +880,12 @@ export function useCreateNotebookWorkspaceController({
           includeQuizScenes,
           workedExampleLevel,
         },
+        style: {
+          label: selectedStyle.label,
+          prompt: drawingStylePrompt,
+          palette: `${selectedPalette.label}: ${selectedPalette.colors.join(' / ')}`,
+        },
+        imageNotebookStyle: imageNotebookStyleBrief,
       };
       const budgetedMedia = buildBudgetedGenerationMedia({
         basePayload,
@@ -1208,6 +1237,7 @@ export function useCreateNotebookWorkspaceController({
               ? outlineRowsToSceneOutlines(outlineRows, language)
               : undefined),
           confirmedImageNotebookPlan: confirmedImageNotebookPlan?.plan,
+          imageNotebookStyle: imageNotebookStyleBrief,
           userNickname: userProfile.nickname || undefined,
           userBio: userProfile.bio || undefined,
           imageGenerationEnabledOverride: true,
@@ -1354,11 +1384,11 @@ export function useCreateNotebookWorkspaceController({
             ? `当前批次页码：${planningPromptBatchNumbers.join(', ')}`
             : '当前批次页码：等待页面规划。',
           '',
-          `绘画风格：${selectedStyle.label}`,
-          `绘画风格 prompt：${drawingStylePrompt}`,
+          '页面风格 brief：',
+          imageNotebookStyleBriefPreview,
           `篇幅档位：${outlineLengthLabel(outlineLength)}`,
           '',
-          '页面规划输入：',
+          '规划结果输入：',
           ...(planningInputPageLines.length ? planningInputPageLines : ['等待页面规划输出…']),
           '',
           '画图 prompt 必须写清：定义全文、公式全文、代码全文、题目原文、例题步骤和必须避免的误区。',
@@ -1378,8 +1408,9 @@ export function useCreateNotebookWorkspaceController({
     null;
   const runtimeImageGenerationRows = buildRuntimeImageGenerationRows(activeGenerationTask);
   const plannedImageGenerationRows =
-    outlineRows.length > 0 ? outlineRows : runtimeImageGenerationRows;
-  const imageGenerationGridRows = imageGenerationMockPageCount
+    runtimeImageGenerationRows.length > 0 ? runtimeImageGenerationRows : outlineRows;
+  const imageGenerationMockEnabled = imageGenerationMockPageCount !== null && !activeGenerationTask;
+  const imageGenerationGridRows = imageGenerationMockEnabled
     ? takeImageGenerationRowsWithFallback(plannedImageGenerationRows, imageGenerationMockPageCount)
     : plannedImageGenerationRows;
   const canStartImageGenerationFromResult =
@@ -1387,22 +1418,25 @@ export function useCreateNotebookWorkspaceController({
     outlineGenerationStatus === 'ready' &&
     outlineRows.length > 0 &&
     imageGenerationMockPageCount === null;
-  const currentPilotImagePromptPreview = selectedOutline
-    ? buildStyleSamplePrompt({
-        outline: selectedOutline,
-        outlineIndex: selectedOutlineIndex,
-        totalOutlines: Math.max(outlineRows.length, 1),
-        sourceFileName: form.sourceFile?.name,
-        requirement: form.requirement,
-        language,
-        style: selectedStyle,
-        customStylePrompt: drawingStylePrompt,
-        palette: selectedPalette,
-        sourceImages: selectedSourceImages,
-        includeQuizScenes,
-        workedExampleLevel,
-      })
-    : '';
+  const currentPilotImagePromptPreview =
+    selectedPlanningPage?.drawingPrompt ||
+    (selectedOutline
+      ? buildStyleSamplePrompt({
+          outline: selectedOutline,
+          outlineIndex: selectedOutlineIndex,
+          totalOutlines: Math.max(outlineRows.length, 1),
+          sourceFileName: form.sourceFile?.name,
+          requirement: form.requirement,
+          language,
+          style: selectedStyle,
+          customStylePrompt: drawingStylePrompt,
+          styleBrief: imageNotebookStyleBrief,
+          palette: selectedPalette,
+          sourceImages: selectedSourceImages,
+          includeQuizScenes,
+          workedExampleLevel,
+        })
+      : '');
   const visiblePilotImagePrompt = styleSample?.prompt || currentPilotImagePromptPreview;
   const copyPrompt = async (value: string, label: string) => {
     if (!value) return;
@@ -1452,6 +1486,7 @@ export function useCreateNotebookWorkspaceController({
     hasSelectedPlanningStepText,
     hidePlanningInputPanel,
     imageGenerationGridRows,
+    imageGenerationMockEnabled,
     imageGenerationMockPageCount,
     includeQuizScenes,
     keptMaterials,

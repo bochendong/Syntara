@@ -12,9 +12,10 @@ import { normalizeSemanticDocumentForRender } from '@/lib/notebook-content/seman
 interface SceneRendererProps {
   readonly scene: Scene;
   readonly mode: StageMode;
+  readonly showMarkerDebugOverlay?: boolean;
 }
 
-export function SceneRenderer({ scene, mode }: SceneRendererProps) {
+export function SceneRenderer({ scene, mode, showMarkerDebugOverlay = false }: SceneRendererProps) {
   const renderer = useMemo(() => {
     switch (scene.type) {
       case 'slide':
@@ -35,7 +36,7 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
             />
           );
         }
-        return <SlideRenderer mode={mode} />;
+        return <SlideRenderer mode={mode} showMarkerDebugOverlay={showMarkerDebugOverlay} />;
       case 'quiz':
         if (scene.content.type !== 'quiz') return <div>Invalid quiz content</div>;
         return <QuizView key={scene.id} questions={scene.content.questions} sceneId={scene.id} />;
@@ -48,7 +49,7 @@ export function SceneRenderer({ scene, mode }: SceneRendererProps) {
       default:
         return <div>Unknown scene type</div>;
     }
-  }, [scene, mode]);
+  }, [scene, mode, showMarkerDebugOverlay]);
 
   return <div className="w-full h-full">{renderer}</div>;
 }

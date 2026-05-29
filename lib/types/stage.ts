@@ -3,6 +3,10 @@ import type { Slide } from '@/lib/types/slides';
 import type { Action } from '@/lib/types/action';
 import type { PBLProjectConfig } from '@/lib/pbl/types';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
+import type {
+  ImageNotebookPagePromptPlan,
+  ImageNotebookStyleBrief,
+} from '@/lib/generation/image-notebook-quality';
 
 export type SceneType = 'slide' | 'quiz' | 'interactive' | 'pbl';
 
@@ -67,6 +71,7 @@ export interface Stage {
   // Stage metadata
   language?: string;
   style?: string;
+  imageNotebookStyle?: ImageNotebookStyleBrief;
   /** Historical total fallback usage count for this notebook/stage */
   fallbackUsageCount?: number;
   /** Persisted page-generation failures so skipped follow-up pages are explainable after refresh. */
@@ -149,6 +154,7 @@ export interface SlideContent {
    */
   semanticRenderVersion?: number;
   semanticRenderMode?: 'auto' | 'manual';
+  imageNotebookPromptPlan?: ImageNotebookPagePromptPlan;
   /**
    * Web classroom rendering mode. `scroll` keeps the semantic document as a
    * long reading page; `slide` uses the legacy fixed canvas.

@@ -27,6 +27,7 @@ import type {
 import type {
   ImageNotebookCourseSpine,
   ImageNotebookPageBrief,
+  ImageNotebookPagePromptPlan,
 } from '@/lib/generation/image-notebook-quality';
 
 export type SceneArchetype = 'intro' | 'concept' | 'definition' | 'example' | 'bridge' | 'summary';
@@ -180,6 +181,7 @@ export interface SceneOutline {
   teachingRole?: TeachingRole;
   imageNotebookBrief?: ImageNotebookPageBrief;
   imageNotebookCourseSpine?: ImageNotebookCourseSpine;
+  imageNotebookPromptPlan?: ImageNotebookPagePromptPlan;
   /**
    * Image-first notebooks can provide an authoritative drawing prompt per page.
    * This keeps the image model grounded in exact visible content from the source file.
@@ -275,6 +277,8 @@ export interface GeneratedSlidePageContent {
   remark?: string;
   syntaraMarkup?: string;
   contentDocument?: NotebookContentDocument;
+  imageNotebookPromptPlan?: ImageNotebookPagePromptPlan;
+  webRenderMode?: 'slide' | 'scroll';
 }
 
 export interface GeneratedSlideContinuationPage {

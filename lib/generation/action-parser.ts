@@ -17,12 +17,63 @@ import { jsonrepair } from 'jsonrepair';
 import { createLogger } from '@/lib/logger';
 const log = createLogger('ActionParser');
 
+export interface LectureSegment {
+  id?: string;
+  title?: string;
+  text: string;
+  focusTargetId?: string;
+}
+
 /**
  * Strip markdown code fences (```json ... ``` or ``` ... ```) from a response string.
  */
 function stripCodeFences(text: string): string {
   // Remove opening ```json or ``` and closing ```
   return text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/i, '');
+}
+
+function parseJsonArrayResponse(response: string): unknown[] | null {
+  const cleaned = stripCodeFences(response.trim());
+  const startIdx = cleaned.indexOf('[');
+  const endIdx = cleaned.lastIndexOf(']');
+
+  if (startIdx === -1) {
+    log.warn('No JSON array found in response');
+    return null;
+  }
+
+  const jsonStr = endIdx > startIdx ? cleaned.slice(startIdx, endIdx + 1) : cleaned.slice(startIdx);
+
+  try {
+    return JSON.parse(jsonStr) as unknown[];
+  } catch {
+    try {
+      const repaired = JSON.parse(jsonrepair(jsonStr)) as unknown[];
+      log.info('Recovered malformed JSON via jsonrepair');
+      return repaired;
+    } catch {
+      try {
+        return parsePartialJson(
+          jsonStr,
+          Allow.ARR | Allow.OBJ | Allow.STR | Allow.NUM | Allow.BOOL | Allow.NULL,
+        ) as unknown[];
+      } catch (e) {
+        log.warn('Failed to parse JSON array:', (e as Error).message);
+        return null;
+      }
+    }
+  }
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function normalizedFocusTargetId(value: unknown): string | undefined {
+  const text = stringValue(value);
+  if (!text) return undefined;
+  if (/^(none|null|undefined|no-focus|no_focus)$/i.test(text)) return undefined;
+  return text;
 }
 
 /**
@@ -44,41 +95,8 @@ export function parseActionsFromStructuredOutput(
   sceneType?: string,
   allowedActions?: string[],
 ): Action[] {
-  // Step 1: Strip markdown code fences if present
-  const cleaned = stripCodeFences(response.trim());
-
-  // Step 2: Find the JSON array range
-  const startIdx = cleaned.indexOf('[');
-  const endIdx = cleaned.lastIndexOf(']');
-
-  if (startIdx === -1) {
-    log.warn('No JSON array found in response');
-    return [];
-  }
-
-  const jsonStr = endIdx > startIdx ? cleaned.slice(startIdx, endIdx + 1) : cleaned.slice(startIdx); // unclosed array — let partial-json handle it
-
-  // Step 3: Parse — try JSON.parse first, then jsonrepair, fallback to partial-json
-  let items: unknown[];
-  try {
-    items = JSON.parse(jsonStr);
-  } catch {
-    // Try jsonrepair to fix malformed JSON (e.g. unescaped quotes in Chinese text)
-    try {
-      items = JSON.parse(jsonrepair(jsonStr));
-      log.info('Recovered malformed JSON via jsonrepair');
-    } catch {
-      try {
-        items = parsePartialJson(
-          jsonStr,
-          Allow.ARR | Allow.OBJ | Allow.STR | Allow.NUM | Allow.BOOL | Allow.NULL,
-        );
-      } catch (e) {
-        log.warn('Failed to parse JSON array:', (e as Error).message);
-        return [];
-      }
-    }
-  }
+  const items = parseJsonArrayResponse(response);
+  if (!items) return [];
 
   if (!Array.isArray(items)) {
     log.warn('Parsed result is not an array');
@@ -151,4 +169,56 @@ export function parseActionsFromStructuredOutput(
   }
 
   return actions;
+}
+
+/**
+ * Parse the preferred slide narration format: one object per speech segment,
+ * with an optional focusTargetId. A legacy spotlight action immediately before
+ * a text object is also folded into the following segment for compatibility.
+ */
+export function parseLectureSegmentsFromStructuredOutput(response: string): LectureSegment[] {
+  const items = parseJsonArrayResponse(response);
+  if (!items || !Array.isArray(items)) return [];
+
+  const segments: LectureSegment[] = [];
+  let pendingFocusTargetId: string | undefined;
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue;
+    const typedItem = item as Record<string, unknown>;
+
+    if (typedItem.type === 'action') {
+      const actionName = stringValue(typedItem.name || typedItem.tool_name);
+      const actionParams = (typedItem.params || typedItem.parameters || {}) as Record<
+        string,
+        unknown
+      >;
+      if (actionName === 'spotlight' || actionName === 'laser') {
+        pendingFocusTargetId = normalizedFocusTargetId(actionParams.elementId);
+      } else {
+        return [];
+      }
+      continue;
+    }
+
+    const text = stringValue(typedItem.content) || stringValue(typedItem.text);
+    if (!text) continue;
+
+    const explicitFocusTargetId =
+      normalizedFocusTargetId(typedItem.focusTargetId) ||
+      normalizedFocusTargetId(typedItem.focus_target_id) ||
+      normalizedFocusTargetId(typedItem.focusTarget) ||
+      normalizedFocusTargetId(typedItem.targetId) ||
+      normalizedFocusTargetId(typedItem.elementId);
+
+    segments.push({
+      id: stringValue(typedItem.id),
+      title: stringValue(typedItem.title) || stringValue(typedItem.label),
+      text,
+      focusTargetId: explicitFocusTargetId || pendingFocusTargetId,
+    });
+    pendingFocusTargetId = undefined;
+  }
+
+  return segments;
 }

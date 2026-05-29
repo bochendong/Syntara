@@ -18,7 +18,7 @@ import type { EngineMode, TriggerEvent, Effect } from '@/lib/playback';
 import { ActionEngine } from '@/lib/action/engine';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
 import type { Action, MouthShape, SpeechAction } from '@/lib/types/action';
-import type { SceneType } from '@/lib/types/stage';
+import type { Scene, SceneType } from '@/lib/types/stage';
 import type { SceneOutline } from '@/lib/types/generation';
 import {
   normalizeAzureVisemesToMouthCues,
@@ -81,6 +81,25 @@ import {
 import { useTitleCoverUpgrade } from '@/components/stage/use-title-cover-upgrade';
 
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
+
+const MARKER_DEBUG_TARGET_RE = /lecture-focus-generated|semantic-hit-map/i;
+
+function isMarkerDebugFocusElement(element: unknown): boolean {
+  if (!element || typeof element !== 'object' || Array.isArray(element)) return false;
+  const record = element as Record<string, unknown>;
+  const hasGeometry =
+    typeof record.left === 'number' &&
+    typeof record.top === 'number' &&
+    typeof record.width === 'number' &&
+    typeof record.height === 'number';
+  if (!hasGeometry) return false;
+  return MARKER_DEBUG_TARGET_RE.test(`${String(record.id ?? '')} ${String(record.name ?? '')}`);
+}
+
+function sceneSupportsMarkerDebugOverlay(scene: Scene | null | undefined): boolean {
+  if (!scene || scene.type !== 'slide' || scene.content.type !== 'slide') return false;
+  return scene.content.canvas.elements.some(isMarkerDebugFocusElement);
+}
 
 /**
  * Stage Component
@@ -178,6 +197,7 @@ export function Stage({
   const [slideEditTab, setSlideEditTab] = useState<SlideEditTab>('canvas');
   const [slideEditorSidebarTab, setSlideEditorSidebarTab] =
     useState<SlideEditorSidebarTab>('manual');
+  const [markerDebugOverlayEnabled, setMarkerDebugOverlayEnabled] = useState(false);
   const [editEntryConfirmOpen, setEditEntryConfirmOpen] = useState(false);
   const [speechAudioPreparing, setSpeechAudioPreparing] = useState(false);
   const [gridReflowPending, setGridReflowPending] = useState(false);
@@ -1367,6 +1387,12 @@ export function Stage({
     !isPendingScene &&
     currentScene?.type === 'slide' &&
     currentScene.content.type === 'slide';
+  const canShowMarkerDebugOverlay =
+    mainClassroomView === 'ppt' &&
+    !slideEditorOpen &&
+    !isPendingScene &&
+    !isSemanticScrollScene(currentScene) &&
+    sceneSupportsMarkerDebugOverlay(currentScene);
   const hasActivePlaybackOrLiveSession =
     engineMode !== 'idle' || chatIsStreaming || isTopicPending || !!discussionTrigger;
 
@@ -1423,6 +1449,18 @@ export function Stage({
     setSlideEditorSidebarTab('manual');
     setWhiteboardOpen(false);
   }, [setWhiteboardOpen]);
+
+  const handleMarkerDebugOverlayToggle = useCallback(() => {
+    setMainClassroomView('ppt');
+    handleCloseSlideEditor();
+    setMarkerDebugOverlayEnabled((enabled) => !enabled);
+  }, [handleCloseSlideEditor]);
+
+  useEffect(() => {
+    if (!canShowMarkerDebugOverlay && markerDebugOverlayEnabled) {
+      setMarkerDebugOverlayEnabled(false);
+    }
+  }, [canShowMarkerDebugOverlay, markerDebugOverlayEnabled]);
 
   // Map engine mode to the CanvasArea's expected engine state
   const canvasEngineState = (() => {
@@ -1704,6 +1742,8 @@ export function Stage({
       canRepairCurrentSlide={canRepairCurrentSlide}
       canRestoreCurrentSlide={canRestoreCurrentSlide}
       canRerenderCurrentSlide={canRerenderCurrentSlide}
+      canShowMarkerDebugOverlay={canShowMarkerDebugOverlay}
+      markerDebugOverlayEnabled={markerDebugOverlayEnabled}
       gridReflowPending={gridReflowPending}
       slideEditorOpen={slideEditorOpen}
       slideEditorSidebarTab={slideEditorSidebarTab}
@@ -1711,6 +1751,7 @@ export function Stage({
       onRestore={handleRestorePreRepairSlide}
       onOpenRepairSidebar={openRepairSidebar}
       onManualEditToggle={handleManualEditToggle}
+      onMarkerDebugOverlayToggle={handleMarkerDebugOverlayToggle}
     />
   );
 
@@ -1841,6 +1882,7 @@ export function Stage({
               hideToolbar={mode === 'playback' || slideEditorOpen}
               isPendingScene={isPendingScene}
               isPendingGenerationActive={generationStatus === 'generating'}
+              showMarkerDebugOverlay={markerDebugOverlayEnabled && canShowMarkerDebugOverlay}
               sceneSidebarLive2d={sceneSidebarLive2d}
               isGenerationFailed={isCurrentPendingGenerationFailed}
               pendingGenerationFailureReason={

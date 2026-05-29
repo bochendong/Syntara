@@ -138,7 +138,6 @@ export default function GenerationTestsPage() {
     'html-openmaic-lesson': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'html-notebook': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'ppt-image': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
-    'problem-import-stepped': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-import-direct-llm': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-image-extraction': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },
     'problem-workspace-ui': { generatedCount: 0, errorCount: 0, lastUpdatedAt: null },

@@ -13,6 +13,10 @@ import { useMediaGenerationStore, isMediaPlaceholder } from '@/lib/store/media-g
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { resolveEffectiveSlideBackground } from '@/lib/constants/slide-backgrounds';
+import {
+  hasFullPageBitmapElement,
+  preserveSlideBackground,
+} from '@/lib/utils/slide-background-policy';
 import type {
   Slide,
   PPTTextElement,
@@ -1272,7 +1276,12 @@ export function useExportPPTX() {
     () =>
       slides.map((slide) => ({
         ...slide,
-        background: resolveEffectiveSlideBackground(slide.background, slideBackgroundStyleId),
+        background: resolveEffectiveSlideBackground(
+          hasFullPageBitmapElement(slide.elements, slide.viewportSize, slide.viewportRatio)
+            ? preserveSlideBackground(slide.background)
+            : slide.background,
+          slideBackgroundStyleId,
+        ),
       })),
     [slides, slideBackgroundStyleId],
   );

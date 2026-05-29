@@ -79,7 +79,8 @@ function formatFocusPlanContext(ctx: SceneGenerationContext): string {
   if (!focusPlan.length) return '';
   return [
     'Lecture focus plan:',
-    'Use these targets in order when they are available. The speech immediately after a focus must explain that target, not a different region.',
+    'Each speech segment may optionally bind to one of these targets using focusTargetId. Bind only when the segment is actually about that visible region; otherwise omit focusTargetId.',
+    'If a target is unavailable after rendering/recovery, the compiler will keep the speech and skip the focus effect.',
     ...focusPlan
       .slice(0, 12)
       .map((item, index) =>
@@ -106,10 +107,14 @@ function formatNarrationPolicyContext(ctx: SceneGenerationContext): string {
       : '',
     policy.preferredSpeechSegments ? `- preferred pacing: ${policy.preferredSpeechSegments}` : '',
     policy.maxConsecutiveSpeechWithoutFocus
-      ? `- no more than ${policy.maxConsecutiveSpeechWithoutFocus} consecutive speech actions without a focus action when targets exist`
+      ? `- when several consecutive segments explain visible regions, prefer binding some of them to focusTargetId; do not force a focusTargetId on general transition or summary speech`
       : '',
-    policy.requireFocusBeforeSpeech ? '- normally focus before explaining a visual region' : '',
-    policy.requireSpeechAfterFocus ? '- every focus action should be followed by speech' : '',
+    policy.requireFocusBeforeSpeech
+      ? '- normally bind focusTargetId before explaining a specific visual region'
+      : '',
+    policy.requireSpeechAfterFocus
+      ? '- focusTargetId belongs on the speech segment it explains; do not output separate focus-only steps'
+      : '',
     policy.directAddress
       ? '- speak directly to the learner as “you/we”; do not write meta phrases such as “让学生明白”, “学生需要”, or “本页旨在” in speech text'
       : '',

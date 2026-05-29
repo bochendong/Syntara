@@ -5,32 +5,20 @@ export const MAX_STORED_RUNS = 50;
 export const PDF_LLM_TEST_MODEL = 'gpt-5.4';
 export const SAVED_STATE_READ_DELAY_MS = 2_000;
 export const DIRECT_PIPELINE_TIMEOUT_MS = 300_000;
-export const STEP_TIMEOUT_MS: Record<StepId, number> = {
-  'source-package': 60_000,
-  'structure-plan': 120_000,
-  'draft-generation': 180_000,
-  'quality-report': 240_000,
-  'render-review': 240_000,
-};
 
-export type StepId =
-  | 'source-package'
-  | 'structure-plan'
-  | 'draft-generation'
-  | 'quality-report'
-  | 'render-review';
+export type StepId = 'source-package' | 'draft-generation' | 'quality-report' | 'render-review';
 export type StepState = 'locked' | 'ready' | 'running' | 'pass' | 'warn' | 'fail';
 export type CheckStatus = 'pass' | 'warn' | 'fail';
 export type FixtureKind = 'choice' | 'long-form' | 'code' | 'material';
 export type FileType = 'pdf' | 'pptx' | 'md' | 'txt' | 'unknown';
-export type PipelineMode = 'stepped' | 'direct-llm';
+export type PipelineMode = 'direct-llm';
 
-export function normalizePipelineMode(value: string | null | undefined): PipelineMode {
-  return value === 'direct-llm' ? 'direct-llm' : 'stepped';
+export function normalizePipelineMode(_value: string | null | undefined): PipelineMode {
+  return 'direct-llm';
 }
 
-export function testResultIdForPipelineMode(mode: PipelineMode): string {
-  return mode === 'direct-llm' ? 'problem-import-direct-llm' : 'problem-import-stepped';
+export function testResultIdForPipelineMode(_mode: PipelineMode): string {
+  return 'problem-import-direct-llm';
 }
 
 export type TestFixture = {
@@ -186,43 +174,6 @@ export type StepResponse = {
 export const STEP_LABELS: Record<StepId, { order: number; title: string; artifact: string }> = {
   'source-package': {
     order: 1,
-    title: 'Source Package',
-    artifact: 'sourcePages / pageImages / parser metadata',
-  },
-  'structure-plan': {
-    order: 2,
-    title: 'Structure Plan',
-    artifact: 'nonProblemRegions / topLevelProblems / anchors',
-  },
-  'draft-generation': {
-    order: 3,
-    title: 'Draft Generation',
-    artifact: 'NotebookProblemImportDraft[] + structure metadata',
-  },
-  'quality-report': {
-    order: 4,
-    title: 'Quality Report',
-    artifact: 'coverage / structure / independence checks',
-  },
-  'render-review': {
-    order: 5,
-    title: 'Render Review',
-    artifact: 'student-facing stem / options / grading',
-  },
-};
-
-export const DIRECT_LLM_STEP_IDS: StepId[] = [
-  'source-package',
-  'draft-generation',
-  'quality-report',
-  'render-review',
-];
-
-export const DIRECT_LLM_STEP_LABELS: Partial<
-  Record<StepId, { order: number; title: string; artifact: string }>
-> = {
-  'source-package': {
-    order: 1,
     title: '读取文件',
     artifact: 'PDF / 页面预览 / parser metadata',
   },
@@ -239,24 +190,22 @@ export const DIRECT_LLM_STEP_LABELS: Partial<
   'render-review': {
     order: 4,
     title: '题目预览',
-    artifact: 'valid 正常题目 / invalid 调试信息',
+    artifact: 'student-facing stem / options / grading',
   },
 };
 
-export function visibleStepIdsForMode(mode: PipelineMode): StepId[] {
-  return mode === 'direct-llm' ? DIRECT_LLM_STEP_IDS : (Object.keys(STEP_LABELS) as StepId[]);
+export function visibleStepIdsForMode(_mode: PipelineMode): StepId[] {
+  return Object.keys(STEP_LABELS) as StepId[];
 }
 
-export function defaultStepIdForMode(mode: PipelineMode): StepId {
-  return mode === 'direct-llm' ? 'draft-generation' : 'source-package';
+export function defaultStepIdForMode(_mode: PipelineMode): StepId {
+  return 'draft-generation';
 }
 
 export function normalizeStepIdForMode(stepId: StepId, mode: PipelineMode): StepId {
   return visibleStepIdsForMode(mode).includes(stepId) ? stepId : defaultStepIdForMode(mode);
 }
 
-export function stepLabelForMode(stepId: StepId, mode: PipelineMode) {
-  return mode === 'direct-llm'
-    ? DIRECT_LLM_STEP_LABELS[stepId] || STEP_LABELS[stepId]
-    : STEP_LABELS[stepId];
+export function stepLabelForMode(stepId: StepId, _mode: PipelineMode) {
+  return STEP_LABELS[stepId];
 }

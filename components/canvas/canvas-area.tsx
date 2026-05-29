@@ -33,6 +33,7 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   readonly isGenerationFailed?: boolean;
   readonly pendingGenerationFailureReason?: string;
   readonly onRetryGeneration?: () => void;
+  readonly showMarkerDebugOverlay?: boolean;
   readonly onSidebarCollapseChange: (collapsed: boolean) => void;
   readonly onSceneSelect?: (sceneId: string) => void;
   readonly onRetryOutline?: (outlineId: string) => Promise<void>;
@@ -96,6 +97,7 @@ export function CanvasArea({
   isGenerationFailed,
   pendingGenerationFailureReason,
   onRetryGeneration,
+  showMarkerDebugOverlay = false,
   sceneSidebarLive2d,
   playPauseDisabled = false,
   playPauseBusy = false,
@@ -220,7 +222,11 @@ export function CanvasArea({
             {currentScene && !whiteboardOpen && (
               <div className="absolute inset-0">
                 <SceneProvider>
-                  <SceneRenderer scene={currentScene} mode={mode} />
+                  <SceneRenderer
+                    scene={currentScene}
+                    mode={mode}
+                    showMarkerDebugOverlay={showMarkerDebugOverlay}
+                  />
                 </SceneProvider>
               </div>
             )}

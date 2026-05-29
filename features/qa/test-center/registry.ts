@@ -13,7 +13,6 @@ export type TestKind =
   | 'html-openmaic-lesson'
   | 'html-notebook'
   | 'ppt-image'
-  | 'problem-import-stepped'
   | 'problem-import-direct-llm'
   | 'problem-image-extraction'
   | 'problem-workspace-ui'
@@ -184,17 +183,6 @@ export const TEST_ENTRIES: TestEntry[] = [
     chips: ['image2', 'full-slide bitmap', '16:9 PPT'],
     accentClass: 'from-indigo-600 to-sky-400',
     icon: 'presentation',
-  },
-  {
-    id: 'problem-import-stepped',
-    title: 'PDF 导题分步管线测试',
-    eyebrow: '已弃用 / Source Package → Structure Plan',
-    description: '已弃用，仅保留作历史回归参考；当前导题主链路以 LLM 直读测试为准。',
-    href: '/problem-import-test?mode=stepped',
-    chips: ['deprecated', 'source package', 'structure plan'],
-    accentClass: 'from-rose-500 to-orange-400',
-    icon: 'problem',
-    deprecated: true,
   },
   {
     id: 'problem-workspace-ui',

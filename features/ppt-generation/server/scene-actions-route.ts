@@ -54,7 +54,6 @@ function actionTargetIdsForContent(
     | GeneratedQuizContent
     | GeneratedInteractiveContent
     | GeneratedPBLContent,
-  actionContext?: SceneActionContextPayload,
 ): Set<string> {
   const ids = new Set<string>();
   if ('elements' in content) {
@@ -62,9 +61,6 @@ function actionTargetIdsForContent(
     if (content.contentDocument) {
       for (const id of semanticSpotlightTargetIds(content.contentDocument)) ids.add(id);
     }
-  }
-  for (const target of actionContext?.focusPlan || []) {
-    if (target.targetId) ids.add(target.targetId);
   }
   return ids;
 }
@@ -78,7 +74,7 @@ function buildLectureActionDiagnostics(args: {
     | GeneratedPBLContent;
   actionContext?: SceneActionContextPayload;
 }) {
-  const targetIds = actionTargetIdsForContent(args.content, args.actionContext);
+  const targetIds = actionTargetIdsForContent(args.content);
   const speechCount = args.actions.filter((action) => action.type === 'speech').length;
   const focusActions = args.actions.filter(
     (action) => action.type === 'spotlight' || action.type === 'laser',

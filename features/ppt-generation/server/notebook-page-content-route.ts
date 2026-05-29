@@ -1,6 +1,5 @@
 import type { NextRequest } from 'next/server';
 import { normalizeComputerScienceSceneOutline } from '@/lib/generation/cs-semantic-normalizer';
-import { hasCriticalImageNotebookQaFailure } from '@/lib/generation/image-notebook-quality';
 import {
   buildFullPageImageSlideContent,
   buildNotebookImagePrompt,
@@ -8,9 +7,10 @@ import {
   imageResultToUrl,
   NOTEBOOK_IMAGE2_MODEL_ID,
   NOTEBOOK_IMAGE2_PROVIDER_ID,
-  qaFindingsText,
   sourceImagesFromMedia,
 } from '@/lib/generation/notebook-page-content';
+import { recoverImageNotebookMarkers } from './image-notebook-marker-recovery';
+import { attachImageNotebookPromptPlan } from '@/lib/generation/image-notebook-prompt-plan';
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import {
   normalizeNotebookSlideGenerationRoute,
@@ -29,7 +29,10 @@ type NotebookPageContentRequestBody = {
   outline?: SceneOutline;
   allOutlines?: SceneOutline[];
   stage?: Stage;
-  stageInfo?: Pick<Stage, 'id' | 'name' | 'description' | 'language' | 'style' | 'courseId'>;
+  stageInfo?: Pick<
+    Stage,
+    'id' | 'name' | 'description' | 'language' | 'style' | 'courseId' | 'imageNotebookStyle'
+  >;
   agents?: AgentInfo[];
   courseContext?: CoursePersonalizationContext;
   pdfImages?: PdfImage[];
@@ -95,6 +98,7 @@ function stageFromBody(body: NotebookPageContentRequestBody): Stage {
     description: raw?.description || '',
     language: raw?.language === 'en-US' ? 'en-US' : 'zh-CN',
     style: raw?.style,
+    imageNotebookStyle: raw?.imageNotebookStyle,
     createdAt: body.stage?.createdAt || Date.now(),
     updatedAt: Date.now(),
   };
@@ -154,21 +158,41 @@ async function generateImageNotebookContentBundle(args: {
     pdfImages: args.body.pdfImages,
     imageMapping: args.body.imageMapping,
   });
-  const baseImagePrompt = buildNotebookImagePrompt({
+  const promptPlanLanguage =
+    args.outline.language || (args.stage.language === 'en-US' ? 'en-US' : 'zh-CN');
+  const promptReadyOutline = attachImageNotebookPromptPlan(args.outline, {
     outline: args.outline,
     allOutlines: args.allOutlines,
+    notebookTitle: args.stage.name,
+    notebookGoal: args.stage.description,
+    language: promptPlanLanguage,
+    stylePrompt: args.stage.style || args.stage.description,
+    styleBrief: args.stage.imageNotebookStyle,
+    sourceImageHints: assignedSourceImages
+      .map((image) =>
+        [image.id, image.pageNumber ? `page ${image.pageNumber}` : '', image.description]
+          .filter(Boolean)
+          .join(' / '),
+      )
+      .join('; '),
+  });
+  const promptReadyAllOutlines = args.allOutlines.map((outline) =>
+    outline.id === promptReadyOutline.id ? promptReadyOutline : outline,
+  );
+  const baseImagePrompt = buildNotebookImagePrompt({
+    outline: promptReadyOutline,
+    allOutlines: promptReadyAllOutlines,
     stage: args.stage,
     assignedSourceImages,
   });
-  let imagePrompt = baseImagePrompt;
+  const imagePrompt = baseImagePrompt;
   let imageUrl = '';
   let imageResult: ImageGenerationResult | undefined;
-  let qaResult: unknown;
-  let pageBrief = args.outline.imageNotebookBrief;
+  let pageBrief = promptReadyOutline.imageNotebookBrief;
+  let recoveredPromptPlan = promptReadyOutline.imageNotebookPromptPlan;
   const imageGenerationAttempts: Array<{ attempt: number; prompt: string; qa?: unknown }> = [];
-  const maxAttempts = Math.max(1, Math.min(3, args.body.imageNotebookMaxAttempts ?? 3));
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= 1; attempt += 1) {
     const imageData = await postInternalJson<{
       success?: boolean;
       result?: ImageGenerationResult;
@@ -197,78 +221,53 @@ async function generateImageNotebookContentBundle(args: {
       throw new Error(imageData.error || 'PPT 图片页生成失败：响应里没有可展示的图片');
     }
 
-    const qaData = await postInternalJson<{
-      success?: boolean;
-      qa?: unknown;
-      error?: string;
-    }>(args.req, '/api/generate/image-notebook-qa', {
-      imageResult,
-      imageUrl,
-      pageBrief,
-      outline: args.outline,
-      allOutlines: args.allOutlines,
-      language: args.outline.language || args.stage.language || 'zh-CN',
-    });
-    if (!qaData.success || !qaData.qa) {
-      throw new Error(qaData.error || '图片页 QA 失败：响应里没有 QA 结果');
-    }
-    qaResult = qaData.qa;
-    imageGenerationAttempts.push({ attempt, prompt: imagePrompt, qa: qaResult });
+    if (promptReadyOutline.imageNotebookPromptPlan) {
+      try {
+        const markerRecovery = await recoverImageNotebookMarkers({
+          imageUrl,
+          imageResult,
+          promptPlan: promptReadyOutline.imageNotebookPromptPlan,
+          requestUrl: args.req.url,
+        });
+        recoveredPromptPlan = markerRecovery.promptPlan;
+        imageResult = markerRecovery.studentImageResult;
+        imageUrl = markerRecovery.studentImageUrl;
 
-    const normalizedQa = qaResult as {
-      passed?: boolean;
-      revisedFocusRegions?: unknown[];
-      regeneratePromptAddendum?: string;
-    };
-    if (
-      Array.isArray(normalizedQa.revisedFocusRegions) &&
-      normalizedQa.revisedFocusRegions.length
-    ) {
-      pageBrief = pageBrief
-        ? {
+        if (markerRecovery.focusRegions.length > 0 && pageBrief) {
+          pageBrief = {
             ...pageBrief,
-            focusRegions: normalizedQa.revisedFocusRegions as typeof pageBrief.focusRegions,
-          }
-        : pageBrief;
-    }
-    if (normalizedQa.passed) break;
-
-    const findings = qaFindingsText(qaResult as Parameters<typeof qaFindingsText>[0]);
-    if (
-      attempt >= maxAttempts ||
-      hasCriticalImageNotebookQaFailure(qaResult as Parameters<typeof qaFindingsText>[0])
-    ) {
-      throw new Error(
-        [
-          '图片页 QA 未通过，未写入 notebook。',
-          findings,
-          normalizedQa.regeneratePromptAddendum
-            ? `重画建议：${normalizedQa.regeneratePromptAddendum}`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      );
+            focusRegions: markerRecovery.focusRegions,
+          };
+        }
+      } catch (recoveryError) {
+        if (recoveredPromptPlan) {
+          recoveredPromptPlan = {
+            ...recoveredPromptPlan,
+            recoveryResult: {
+              status: 'failed',
+              recoveredAt: Date.now(),
+              findings: [
+                `Marker recovery failed but generation was kept: ${
+                  recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
+                }`,
+              ],
+            },
+          };
+        }
+      }
     }
 
-    imagePrompt = [
-      baseImagePrompt,
-      '',
-      `Regenerate attempt ${attempt + 1}: fix these QA failures exactly.`,
-      findings,
-      normalizedQa.regeneratePromptAddendum || '',
-      'Do not change correct formulas or titles while fixing the failures.',
-    ]
-      .filter(Boolean)
-      .join('\n');
+    imageGenerationAttempts.push({ attempt, prompt: imagePrompt });
+    break;
   }
 
   const effectiveOutline: SceneOutline = {
-    ...args.outline,
+    ...promptReadyOutline,
     imageNotebookBrief: pageBrief,
+    imageNotebookPromptPlan: recoveredPromptPlan,
     type: 'slide',
   };
-  const allOutlinesForActions = args.allOutlines.map((outline) =>
+  const allOutlinesForActions = promptReadyAllOutlines.map((outline) =>
     outline.id === effectiveOutline.id ? effectiveOutline : outline,
   );
   const imageContent = buildFullPageImageSlideContent({
@@ -287,7 +286,6 @@ async function generateImageNotebookContentBundle(args: {
     effectiveOutlines: [effectiveOutline],
     allOutlinesForActions,
     generationDiagnostics: diagnostics,
-    imageNotebookQaByOutlineId: qaResult ? { [effectiveOutline.id]: qaResult } : undefined,
     contentDiagnosticsByOutlineId: {
       [effectiveOutline.id]: {
         ...diagnostics,

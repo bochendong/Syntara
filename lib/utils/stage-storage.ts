@@ -28,6 +28,30 @@ export interface SaveStageDataResult {
   remoteSynced: boolean;
 }
 
+const SCENE_CONTENT_DIAGNOSTICS_KEY = '__generationDiagnostics';
+const IMAGE_NOTEBOOK_FOCUS_REPAIR_KEY = 'imageNotebookFocusRepair';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function hasImageNotebookFocusRepair(scene: Scene): boolean {
+  const content = scene.content as unknown;
+  if (!isRecord(content)) return false;
+  const diagnostics = content[SCENE_CONTENT_DIAGNOSTICS_KEY];
+  return isRecord(diagnostics) && isRecord(diagnostics[IMAGE_NOTEBOOK_FOCUS_REPAIR_KEY]);
+}
+
+function shouldPreferRemoteRepair(remoteScenes: Scene[], draftScenes: Scene[]): boolean {
+  if (!remoteScenes.some(hasImageNotebookFocusRepair)) return false;
+  const repairedRemoteSceneIds = new Set(
+    remoteScenes.filter(hasImageNotebookFocusRepair).map((scene) => scene.id),
+  );
+  return draftScenes.some(
+    (scene) => repairedRemoteSceneIds.has(scene.id) && !hasImageNotebookFocusRepair(scene),
+  );
+}
+
 export interface StageListItem {
   id: string;
   courseId?: string;
@@ -81,12 +105,6 @@ type SceneApiRow = {
   createdAt: string;
   updatedAt: string;
 };
-
-const SCENE_CONTENT_DIAGNOSTICS_KEY = '__generationDiagnostics';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
 
 function extractGenerationDiagnosticsFromContent(content: Scene['content']): {
   content: Scene['content'];
@@ -522,8 +540,17 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       const remoteHasMoreScenes = remoteData.scenes.length > draftScenes.length;
       const remoteIsNewer = remoteFreshness > draftFreshness;
       const remoteHasNewerContent = remoteFreshness > draftContentFreshness;
+      const remoteHasRepairMissingFromDraft = shouldPreferRemoteRepair(
+        remoteData.scenes,
+        draftScenes,
+      );
 
-      if (remoteHasMoreScenes || remoteIsNewer || remoteHasNewerContent) {
+      if (
+        remoteHasMoreScenes ||
+        remoteIsNewer ||
+        remoteHasNewerContent ||
+        remoteHasRepairMissingFromDraft
+      ) {
         void writeStageDraftSnapshot(
           stageId,
           {
@@ -556,7 +583,11 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       );
       const remoteHasMoreScenes = remoteData.scenes.length > draftScenes.length;
       const remoteHasNewerContent = remoteFreshness > draftContentFreshness;
-      if (remoteHasMoreScenes || remoteHasNewerContent) {
+      const remoteHasRepairMissingFromDraft = shouldPreferRemoteRepair(
+        remoteData.scenes,
+        draftScenes,
+      );
+      if (remoteHasMoreScenes || remoteHasNewerContent || remoteHasRepairMissingFromDraft) {
         void writeStageDraftSnapshot(
           stageId,
           {

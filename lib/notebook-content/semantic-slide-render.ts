@@ -10,6 +10,7 @@ import { renderNotebookContentDocumentToSlide } from './slide-adapter';
 import { normalizeSlideTextLayout, validateSlideTextLayout } from '@/lib/slide-text-layout';
 import { normalizeMathSource } from '@/lib/math-engine';
 import { getExampleDisplaySteps } from './example-block';
+import { ensureImageNotebookFocusElementsInContent } from '@/lib/utils/image-notebook-focus-elements';
 
 export const SEMANTIC_SLIDE_RENDER_VERSION = 67;
 
@@ -1167,9 +1168,10 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
     return scene;
   }
 
-  const { content } = scene;
+  const content = ensureImageNotebookFocusElementsInContent(scene.content);
+  const sceneWithImageFocus: Scene = content === scene.content ? scene : { ...scene, content };
   if (!shouldAutoRefreshSemanticSlideContent(content)) {
-    return scene;
+    return sceneWithImageFocus;
   }
   const markupSource = content.syntaraMarkup;
   const preferSemanticDocument = isCodeLikeSemanticDocument(content.semanticDocument);
@@ -1192,7 +1194,7 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
     (content.semanticDocument
       ? normalizeSemanticDocumentForRender(content.semanticDocument)
       : null);
-  if (!sourceDocument) return scene;
+  if (!sourceDocument) return sceneWithImageFocus;
   const syntaraMarkup = shouldCompileFromMarkup
     ? normalizeSyntaraMarkupLayout(markupSource || '')
     : preferSemanticDocument
@@ -1201,7 +1203,7 @@ export function refreshSemanticSlideScene(scene: Scene): Scene {
   const renderDocument = normalizeSemanticDocumentForRender(sourceDocument);
 
   return {
-    ...scene,
+    ...sceneWithImageFocus,
     title: renderDocument.title || scene.title,
     content: renderSemanticSlideContent({
       document: renderDocument,

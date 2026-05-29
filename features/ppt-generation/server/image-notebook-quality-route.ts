@@ -2,25 +2,14 @@ import type { NextRequest } from 'next/server';
 import { callLLM } from '@/lib/ai/llm';
 import { API_ERROR_CODES, apiError, apiSuccess } from '@/lib/server/api-response';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import {
-  resolveModel,
-  resolveModelFromHeadersForNotebookStage,
-  type ResolvedModel,
-} from '@/lib/server/resolve-model';
+import { resolveModelFromHeadersForNotebookStage } from '@/lib/server/resolve-model';
 import { parseJsonResponse } from '@/lib/generation/json-repair';
-import { buildVisionUserContent } from '@/features/ppt-generation/domain/scene-actions';
 import type { CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
-import type { ImageGenerationResult } from '@/lib/media/types';
 import type { SceneOutline } from '@/lib/types/generation';
 import {
-  IMAGE_NOTEBOOK_CANVAS_HEIGHT,
-  IMAGE_NOTEBOOK_CANVAS_WIDTH,
   formatImageNotebookDensityPolicyForPrompt,
   type ImageNotebookBriefPlan,
-  type ImageNotebookQaFinding,
-  type ImageNotebookQaResult,
   normalizeImageNotebookBriefPlan,
-  normalizeImageNotebookPageBrief,
   resolveImageNotebookDensityPolicyForPageCount,
 } from '@/lib/generation/image-notebook-quality';
 
@@ -41,23 +30,6 @@ type BriefRequestBody = {
   sourceSummary?: string;
   researchContext?: string;
 };
-
-type QaRequestBody = {
-  imageUrl?: string;
-  imageResult?: ImageGenerationResult;
-  pageBrief?: unknown;
-  outline?: SceneOutline;
-  allOutlines?: SceneOutline[];
-  language?: 'zh-CN' | 'en-US';
-};
-
-async function resolveVisionQaModel(req: NextRequest): Promise<ResolvedModel> {
-  const requested = await resolveModelFromHeadersForNotebookStage(req, 'content', {
-    allowOpenAIModelOverride: true,
-  });
-  if (requested.modelInfo?.capabilities?.vision) return requested;
-  return resolveModel({ modelString: 'openai:gpt-4o' }, { allowOpenAIModelOverride: true });
-}
 
 function shouldSkipCreditChargeForTestRequest(req: NextRequest): boolean {
   const testRequested = req.headers.get('x-generation-test-no-charge') === 'true';
@@ -187,6 +159,16 @@ function buildBriefUserPrompt(args: {
       "bottomTakeaway": "one short student-facing takeaway or next question"
     },
     "focusRegions": [{"id":"focus-setup","label":"区域名","role":"opening|setup|formula|example|proof|strategy|pitfall|takeaway|visual","left":60,"top":110,"width":420,"height":140,"order":1}],
+    "componentPlans": [{
+      "id": "component-header",
+      "label": "组件标题",
+      "role": "header|opening|setup|definition|formula|example|proof|strategy|pitfall|takeaway|visual|question|decoration|other",
+      "layoutSlot": "top-full|middle-left|middle-center-left|middle-center-right|middle-right|bottom-full|free",
+      "visibleText": ["这个组件里学生真正看见的文字"],
+      "formulas": ["这个组件必须准确照写的公式"],
+      "diagramPrompt": "这个组件里的图、曲线、表格、代码轨迹或装饰说明",
+      "participatesInMask": true
+    }],
     "generationNotes": ["image-model instructions"],
     "qaChecklist": ["what must be checked after generation"]
   }]
@@ -202,6 +184,9 @@ function buildBriefUserPrompt(args: {
     '- Do not put teacher-script prose into visible content; visible content is what appears on the slide.',
     '- Forbidden visible phrases include: 让学生看到, 让学生理解, 教学目标, 本页主线, 可迁移动作, 讲解重点, Page role, Teacher move, QA checklist.',
     '- visualBrief must describe a live teaching moment: one active question or worked step, generous white space, and no dense handout-style summary grid.',
+    '- componentPlans must describe the real visible learning components for marker recovery; do not assign marker colors.',
+    '- Use at most 6 participatesInMask=true components per page. Decorative sketches must use participatesInMask=false.',
+    '- Each participatesInMask=true component must be compact, self-contained, and not split across far-apart islands.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -267,226 +252,4 @@ export async function handleImageNotebookBriefsRequest(req: NextRequest) {
     stage.name || body.courseContext?.name || 'Notebook',
   );
   return apiSuccess({ plan, model: modelString });
-}
-
-function findingArray(value: unknown, limit = 12): ImageNotebookQaFinding[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-      const record = item as Record<string, unknown>;
-      const category =
-        record.category === 'math' ||
-        record.category === 'text' ||
-        record.category === 'layout' ||
-        record.category === 'focus' ||
-        record.category === 'visual'
-          ? record.category
-          : 'visual';
-      const severity =
-        record.severity === 'critical' ||
-        record.severity === 'warning' ||
-        record.severity === 'info'
-          ? record.severity
-          : 'warning';
-      const message = compact(record.message, 360);
-      if (!message) return null;
-      return { category, severity, message };
-    })
-    .filter((item): item is ImageNotebookQaFinding => Boolean(item))
-    .slice(0, limit);
-}
-
-function normalizeQaResult(
-  value: unknown,
-  pageBrief: unknown,
-  outline?: SceneOutline,
-): ImageNotebookQaResult {
-  const record =
-    value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  const findings = findingArray(record.findings);
-  const mathFindings = findingArray(record.mathFindings);
-  const visualFindings = findingArray(record.visualFindings);
-  const allFindings = [...findings, ...mathFindings, ...visualFindings];
-  const parsedPassed = typeof record.passed === 'boolean' ? record.passed : false;
-  const passed = parsedPassed && !allFindings.some((finding) => finding.severity === 'critical');
-  const revisedFocusRegions =
-    Array.isArray(record.revisedFocusRegions) && outline
-      ? normalizeImageNotebookPageBrief(
-          {
-            ...(typeof pageBrief === 'object' && pageBrief ? pageBrief : {}),
-            focusRegions: record.revisedFocusRegions,
-          },
-          {
-            outlineId: outline.id,
-            pageNumber: outline.order || 1,
-            title: outline.title,
-            description: outline.description,
-            keyPoints: outline.keyPoints,
-          },
-        ).focusRegions
-      : undefined;
-  return {
-    passed,
-    findings,
-    mathFindings,
-    visualFindings,
-    regeneratePromptAddendum: compact(record.regeneratePromptAddendum, 1200) || undefined,
-    revisedFocusRegions,
-  };
-}
-
-function resultToImageSrc(result?: ImageGenerationResult, imageUrl?: string): string {
-  if (imageUrl?.trim()) return imageUrl.trim();
-  if (result?.base64) {
-    return result.base64.startsWith('data:')
-      ? result.base64
-      : `data:image/png;base64,${result.base64}`;
-  }
-  return result?.url || '';
-}
-
-async function imageSrcToVisionDataUrl(req: NextRequest, src: string): Promise<string> {
-  if (!src) return '';
-  if (src.startsWith('data:')) return src;
-  const url = src.startsWith('/') ? new URL(src, req.url).toString() : src;
-  const response = await fetch(url);
-  if (!response.ok) return src;
-  const contentType = response.headers.get('content-type') || 'image/png';
-  const base64 = Buffer.from(await response.arrayBuffer()).toString('base64');
-  return `data:${contentType};base64,${base64}`;
-}
-
-function buildQaPrompt(args: {
-  pageBrief: unknown;
-  outline?: SceneOutline;
-  allOutlines?: SceneOutline[];
-  language: 'zh-CN' | 'en-US';
-}) {
-  const densityPolicy = resolveImageNotebookDensityPolicyForPageCount(args.allOutlines?.length);
-  return [
-    'You are reviewing one generated full-page classroom notebook slide image.',
-    'Inspect the image itself, not just the prompt. Return JSON only.',
-    '',
-    `Language expected on slide: ${args.language}`,
-    args.outline
-      ? `Outline: ${args.outline.title}\nPurpose: ${args.outline.description}\nKey points: ${(args.outline.keyPoints || []).join(' | ')}`
-      : '',
-    args.outline?.imageNotebookPrompt
-      ? `Authoritative drawing prompt:\n${args.outline.imageNotebookPrompt.slice(0, 5000)}`
-      : '',
-    `Page density policy:\n${formatImageNotebookDensityPolicyForPrompt(densityPolicy)}`,
-    `Page brief JSON:\n${JSON.stringify(args.pageBrief, null, 2).slice(0, 6000)}`,
-    args.allOutlines?.length
-      ? `Neighbor sequence:\n${args.allOutlines
-          .slice(0, 20)
-          .map((outline) => `${outline.order}. ${outline.title}`)
-          .join('\n')}`
-      : '',
-    '',
-    'Check hard requirements:',
-    '- 16:9 full slide bitmap, not SVG/HTML/template/screenshot.',
-    '- The generated board/background must fill the whole 16:9 image edge-to-edge. Fail if you see pillarboxing, letterboxing, obvious white side bars, a smaller centered sheet, or an outer frame around the slide.',
-    '- Looks like a polished live classroom board on grid paper with readable handwritten-style text.',
-    '- The slide feels like it is speaking to students in the moment, not like a teacher handout, lesson-plan overview, or after-class summary sheet.',
-    '- The visible density must match the page-count policy. For 5 pages or fewer, fail cramped pages that try to teach the full lesson instead of giving an overview route.',
-    '- If the drawing prompt names exact visible content such as a definition, code block, original problem, theorem, or formula, the image must show that exact content clearly enough to read.',
-    '- Required formulas, symbols, proof/example steps, title, and takeaway are present and correct.',
-    '- Text is not tiny, garbled, placeholder, or visually overcrowded.',
-    '- Broad visual regions are identifiable for spotlight focus.',
-    '- Fail the page if visible text includes teacher-planning/meta phrases such as 让学生, 教学目标, 本页主线, 可迁移动作, 讲解重点, Page role, Teacher move, QA checklist.',
-    '- Fail the page if it uses many boxed mini-sections/checklists instead of 2-3 student-facing teaching regions, unless this page is explicitly a final summary.',
-    '- Do not treat ordinary problem statements, givens, goals, formulas, or questions as meta language. A phrase like "求出 y 关于 x 的表达式" is valid student-facing math content.',
-    '- Do not treat student prompts such as "我们已知什么？", "先判断要求的是函数还是导数？", "先问自己", or "下一步怎么来？" as meta language. Those are good live-teaching phrases.',
-    '- When reporting a meta-language failure, quote the exact forbidden phrase that appears in the image. If you cannot quote one, use a layout/visual warning instead of a critical text finding.',
-    '- If there is any formula/math/proof error, mark severity critical.',
-    '',
-    'Return JSON:',
-    `{
-  "passed": true,
-  "findings": [{"category":"text|layout|focus|visual|math","severity":"info|warning|critical","message":"..."}],
-  "mathFindings": [],
-  "visualFindings": [],
-  "regeneratePromptAddendum": "specific correction instructions if not passed",
-  "revisedFocusRegions": [{"id":"focus-setup","label":"...","role":"setup","left":60,"top":110,"width":420,"height":140,"order":1}]
-}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-export async function handleImageNotebookQaRequest(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as QaRequestBody | null;
-  if (!body) return apiError(API_ERROR_CODES.INVALID_REQUEST, 400, 'Invalid request body');
-  const imageSrc = resultToImageSrc(body.imageResult, body.imageUrl);
-  if (!imageSrc) {
-    return apiError(
-      API_ERROR_CODES.MISSING_REQUIRED_FIELD,
-      400,
-      'imageUrl or imageResult is required',
-    );
-  }
-  const language = body.language || body.outline?.language || 'zh-CN';
-  const { model, modelInfo, modelString } = await resolveVisionQaModel(req);
-  if (!modelInfo?.capabilities?.vision) {
-    return apiError(
-      API_ERROR_CODES.INVALID_REQUEST,
-      400,
-      'Image notebook QA requires a vision-capable model, and the automatic vision fallback model is unavailable.',
-    );
-  }
-  const visionSrc = await imageSrcToVisionDataUrl(req, imageSrc);
-  const prompt = buildQaPrompt({
-    pageBrief: body.pageBrief,
-    outline: body.outline,
-    allOutlines: body.allOutlines,
-    language,
-  });
-  const skipCreditCharge = shouldSkipCreditChargeForTestRequest(req);
-  const result = await runWithRequestContext(
-    req,
-    '/api/generate/image-notebook-qa',
-    () =>
-      callLLM(
-        {
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: buildVisionUserContent(
-                prompt,
-                [
-                  {
-                    id: 'generated-slide',
-                    src: visionSrc,
-                    width: body.imageResult?.width || IMAGE_NOTEBOOK_CANVAS_WIDTH,
-                    height: body.imageResult?.height || IMAGE_NOTEBOOK_CANVAS_HEIGHT,
-                  },
-                ],
-                language,
-              ),
-            },
-          ],
-          maxOutputTokens: modelInfo?.outputWindow,
-        },
-        'image-notebook-qa',
-      ),
-    {
-      notebookId: body.outline?.id,
-      sceneTitle: body.outline?.title,
-      sceneOrder: body.outline?.order,
-      sceneType: body.outline?.type,
-      operationCode: skipCreditCharge ? 'generation_quality_test' : 'image_notebook_qa',
-      chargeReason: skipCreditCharge ? '生成测试页面（免积分）' : '检查图片笔记本页面质量',
-      skipCreditCharge,
-    },
-  );
-  const parsed = parseJsonResponse<unknown>(result.text);
-  if (!parsed) {
-    return apiError(API_ERROR_CODES.PARSE_FAILED, 502, 'Image notebook QA returned invalid JSON');
-  }
-  const qa = normalizeQaResult(parsed, body.pageBrief, body.outline);
-  return apiSuccess({ qa, model: modelString });
 }

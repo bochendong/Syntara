@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   FileQuestion,
   Loader2,
-  PlayCircle,
   RefreshCw,
   Save,
   Trash2,
@@ -31,8 +30,6 @@ import {
   StepShell,
   StepSidebar,
   stepStateForMode,
-  StructurePlanPanel,
-  DraftGenerationPanel,
   DirectLlmResultPanel,
 } from './problem-import-test-panels';
 
@@ -43,11 +40,9 @@ import {
   MAX_STORED_RUNS,
   PDF_LLM_TEST_MODEL,
   SAVED_STATE_READ_DELAY_MS,
-  STEP_TIMEOUT_MS,
   defaultStepIdForMode,
   normalizePipelineMode,
   normalizeStepIdForMode,
-  stepLabelForMode,
   testResultIdForPipelineMode,
   visibleStepIdsForMode,
   type FixturesResponse,
@@ -81,7 +76,6 @@ function ProblemImportTestPageContent() {
     searchParams.get('mode') || searchParams.get('pipeline'),
   );
   const testResultId = testResultIdForPipelineMode(pipelineMode);
-  const isDirectLlmTest = pipelineMode === 'direct-llm';
   const [hydrated, setHydrated] = useState(false);
   const [fixtures, setFixtures] = useState<TestFixture[]>([]);
   const [fixturesLoading, setFixturesLoading] = useState(true);
@@ -89,7 +83,7 @@ function ProblemImportTestPageContent() {
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
-  const [selectedStepId, setSelectedStepId] = useState<StepId>('source-package');
+  const [selectedStepId, setSelectedStepId] = useState<StepId>('draft-generation');
   const [runningStep, setRunningStep] = useState<StepId | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const stepAbortRef = useRef<AbortController | null>(null);
@@ -97,7 +91,7 @@ function ProblemImportTestPageContent() {
   const selectedFixtureIdRef = useRef<string | null>(null);
   const selectedRunIdRef = useRef<string | null>(null);
   const selectedDraftIdRef = useRef<string | null>(null);
-  const selectedStepIdRef = useRef<StepId>('source-package');
+  const selectedStepIdRef = useRef<StepId>('draft-generation');
   const skippedInitialPersistRef = useRef(false);
 
   useEffect(() => {
@@ -269,78 +263,18 @@ function ProblemImportTestPageContent() {
     [activeFixture, activeRun, pipelineMode, selectedDraftId],
   );
 
-  const postStep = useCallback(
-    async (stepId: StepId) => {
-      if (!activeFixture?.exists || isRunning) return;
-      const endpointByStep: Record<StepId, string> = {
-        'source-package': 'source-package',
-        'structure-plan': 'structure-plan',
-        'draft-generation': 'drafts',
-        'quality-report': 'quality',
-        'render-review': 'quality',
-      };
-      stepAbortRef.current?.abort();
-      const controller = new AbortController();
-      stepAbortRef.current = controller;
-      let didTimeout = false;
-      const timeoutMs = STEP_TIMEOUT_MS[stepId];
-      const timeoutId = window.setTimeout(() => {
-        didTimeout = true;
-        controller.abort();
-      }, timeoutMs);
-      setRunningStep(stepId);
-      setErrorMessage(null);
-      try {
-        const response = await backendFetch(
-          `/api/problem-import-test/fixtures/${encodeURIComponent(activeFixture.id)}/${endpointByStep[stepId]}`,
-          {
-            method: 'POST',
-            headers: getProblemImportTestHeaders(),
-            signal: controller.signal,
-          },
-        );
-        const data = (await response.json().catch(() => ({}))) as StepResponse;
-        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-        applyStepResponse(data, stepId === 'render-review' ? 'render-review' : stepId);
-      } catch (error) {
-        if (controller.signal.aborted) {
-          const seconds = Math.round(timeoutMs / 1000);
-          const label = stepLabelForMode(stepId, pipelineMode);
-          setErrorMessage(
-            didTimeout
-              ? `${label.title} 超过 ${seconds} 秒没有返回，已自动停止。可以重试，或换一个较小的 source fixture。`
-              : `${label.title} 已停止，可以重新运行。`,
-          );
-        } else {
-          setErrorMessage(error instanceof Error ? error.message : 'Pipeline step failed');
-        }
-      } finally {
-        window.clearTimeout(timeoutId);
-        if (stepAbortRef.current === controller) {
-          stepAbortRef.current = null;
-        }
-        setRunningStep(null);
-      }
-    },
-    [activeFixture, applyStepResponse, isRunning, pipelineMode],
-  );
-
   const handleCancelRunningStep = useCallback(() => {
     if (!runningStep) return;
     stepAbortRef.current?.abort();
-    setErrorMessage(`${stepLabelForMode(runningStep, pipelineMode).title} 已停止，可以重新运行。`);
+    setErrorMessage('LLM 直读管线已停止，可以重新运行。');
     setRunningStep(null);
-  }, [pipelineMode, runningStep]);
+  }, [runningStep]);
 
   useEffect(() => {
     return () => {
       stepAbortRef.current?.abort();
     };
   }, []);
-
-  const runFullPipeline = useCallback(async () => {
-    await postStep('quality-report');
-  }, [postStep]);
 
   const runDirectLlmPipeline = useCallback(async () => {
     if (!activeFixture?.exists || isRunning) return;
@@ -434,13 +368,10 @@ function ProblemImportTestPageContent() {
                 <FileQuestion className="size-4" />
                 Problem Import Pipeline v2
               </div>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                {isDirectLlmTest ? '导题 LLM 直读测试' : '导题分步管线测试'}
-              </h1>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal">导题 LLM 直读测试</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                {isDirectLlmTest
-                  ? '让模型直接读取 PDF、判断题目边界并输出 drafts，再进入 QA 和渲染复核；这条链路不依赖本地预切题。'
-                  : '把源文件先解析成 Source Package，再让模型显式输出 Structure Plan，之后才生成 drafts 和 QA report。这里不是单纯看 schema，而是看模型有没有理解源材料层级。'}
+                让模型直接读取 PDF、判断题目边界并输出 drafts，再进入 QA
+                和渲染复核；这条链路不依赖本地预切题。
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -484,33 +415,18 @@ function ProblemImportTestPageContent() {
                 <RefreshCw className={cn('size-4', fixturesLoading && 'animate-spin')} />
                 刷新 fixture
               </Button>
-              {isDirectLlmTest ? (
-                <Button
-                  size="sm"
-                  disabled={!activeFixture?.exists || isRunning}
-                  onClick={runDirectLlmPipeline}
-                >
-                  {isRunning ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <WandSparkles className="size-4" />
-                  )}
-                  跑 LLM 直读管线
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  disabled={!activeFixture?.exists || isRunning}
-                  onClick={runFullPipeline}
-                >
-                  {isRunning ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <PlayCircle className="size-4" />
-                  )}
-                  跑分步管线
-                </Button>
-              )}
+              <Button
+                size="sm"
+                disabled={!activeFixture?.exists || isRunning}
+                onClick={runDirectLlmPipeline}
+              >
+                {isRunning ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <WandSparkles className="size-4" />
+                )}
+                跑 LLM 直读管线
+              </Button>
             </div>
           </div>
         </header>
@@ -604,15 +520,7 @@ function ProblemImportTestPageContent() {
                       setSelectedFixtureId(run.fixtureId);
                       setSelectedRunId(run.id);
                       setSelectedDraftId(run.draftResult?.drafts[0]?.draftId || null);
-                      setSelectedStepId(
-                        pipelineMode === 'direct-llm'
-                          ? run.draftResult
-                            ? 'render-review'
-                            : 'draft-generation'
-                          : run.qualityReport
-                            ? 'quality-report'
-                            : 'source-package',
-                      );
+                      setSelectedStepId(run.draftResult ? 'render-review' : 'draft-generation');
                     }}
                     className={cn(
                       'min-w-[220px] rounded-lg border px-2.5 py-2 text-left transition',
@@ -667,30 +575,11 @@ function ProblemImportTestPageContent() {
                 stepId="source-package"
                 mode={pipelineMode}
                 state={stepStateForMode('source-package', activeRun, runningStep, pipelineMode)}
-                actionLabel={
-                  activeRun?.sourcePackage ? '重新构建 Source Package' : '构建 Source Package'
-                }
+                actionLabel={activeRun?.sourcePackage ? '重新跑 LLM 直读' : '跑 LLM 直读'}
                 actionDisabled={!activeFixture?.exists || isRunning}
-                onAction={() => void postStep('source-package')}
-                onCancel={runningStep === 'source-package' ? handleCancelRunningStep : undefined}
+                onAction={() => void runDirectLlmPipeline()}
               >
                 <SourcePackagePanel sourcePackage={activeRun?.sourcePackage} />
-              </StepShell>
-            ) : null}
-
-            {!isDirectLlmTest && selectedStepId === 'structure-plan' ? (
-              <StepShell
-                stepId="structure-plan"
-                mode={pipelineMode}
-                state={stepStateForMode('structure-plan', activeRun, runningStep, pipelineMode)}
-                actionLabel={
-                  activeRun?.structurePlan ? '重新生成 Structure Plan' : '生成 Structure Plan'
-                }
-                actionDisabled={!activeFixture?.exists || isRunning}
-                onAction={() => void postStep('structure-plan')}
-                onCancel={runningStep === 'structure-plan' ? handleCancelRunningStep : undefined}
-              >
-                <StructurePlanPanel structurePlan={activeRun?.structurePlan} />
               </StepShell>
             ) : null}
 
@@ -699,37 +588,18 @@ function ProblemImportTestPageContent() {
                 stepId="draft-generation"
                 mode={pipelineMode}
                 state={stepStateForMode('draft-generation', activeRun, runningStep, pipelineMode)}
-                actionLabel={
-                  isDirectLlmTest
-                    ? activeRun?.draftResult
-                      ? '重新跑 LLM 直读'
-                      : '跑 LLM 直读'
-                    : activeRun?.draftResult
-                      ? '重新生成 Drafts'
-                      : '生成 Drafts'
-                }
+                actionLabel={activeRun?.draftResult ? '重新跑 LLM 直读' : '跑 LLM 直读'}
                 actionDisabled={!activeFixture?.exists || isRunning}
-                onAction={() =>
-                  void (isDirectLlmTest ? runDirectLlmPipeline() : postStep('draft-generation'))
-                }
+                onAction={() => void runDirectLlmPipeline()}
                 onCancel={runningStep === 'draft-generation' ? handleCancelRunningStep : undefined}
               >
-                {isDirectLlmTest ? (
-                  <DirectLlmResultPanel
-                    sourcePackage={activeRun?.sourcePackage}
-                    structurePlan={activeRun?.structurePlan}
-                    draftResult={activeRun?.draftResult}
-                    activeDraftId={selectedDraftId}
-                    onSelectDraft={setSelectedDraftId}
-                  />
-                ) : (
-                  <DraftGenerationPanel
-                    structurePlan={activeRun?.structurePlan}
-                    draftResult={activeRun?.draftResult}
-                    activeDraftId={selectedDraftId}
-                    onSelectDraft={setSelectedDraftId}
-                  />
-                )}
+                <DirectLlmResultPanel
+                  sourcePackage={activeRun?.sourcePackage}
+                  structurePlan={activeRun?.structurePlan}
+                  draftResult={activeRun?.draftResult}
+                  activeDraftId={selectedDraftId}
+                  onSelectDraft={setSelectedDraftId}
+                />
               </StepShell>
             ) : null}
 
@@ -738,18 +608,9 @@ function ProblemImportTestPageContent() {
                 stepId="quality-report"
                 mode={pipelineMode}
                 state={stepStateForMode('quality-report', activeRun, runningStep, pipelineMode)}
-                actionLabel={
-                  isDirectLlmTest
-                    ? '重新跑 LLM 直读'
-                    : activeRun?.qualityReport
-                      ? '重新生成 QA Report'
-                      : '生成 QA Report'
-                }
+                actionLabel="重新跑 LLM 直读"
                 actionDisabled={!activeFixture?.exists || isRunning}
-                onAction={() =>
-                  void (isDirectLlmTest ? runDirectLlmPipeline() : postStep('quality-report'))
-                }
-                onCancel={runningStep === 'quality-report' ? handleCancelRunningStep : undefined}
+                onAction={() => void runDirectLlmPipeline()}
               >
                 <QualityChecks report={activeRun?.qualityReport} />
               </StepShell>
@@ -760,12 +621,9 @@ function ProblemImportTestPageContent() {
                 stepId="render-review"
                 mode={pipelineMode}
                 state={stepStateForMode('render-review', activeRun, runningStep, pipelineMode)}
-                actionLabel={isDirectLlmTest ? '重新跑 LLM 直读' : '刷新完整结果'}
+                actionLabel="重新跑 LLM 直读"
                 actionDisabled={!activeFixture?.exists || isRunning}
-                onAction={() =>
-                  void (isDirectLlmTest ? runDirectLlmPipeline() : postStep('render-review'))
-                }
-                onCancel={runningStep === 'render-review' ? handleCancelRunningStep : undefined}
+                onAction={() => void runDirectLlmPipeline()}
               >
                 <RenderReviewPanel
                   draftResult={activeRun?.draftResult}

@@ -9,6 +9,7 @@ import {
   type ImageNotebookFocusRegion,
   type ImageNotebookQaResult,
 } from '@/lib/generation/image-notebook-quality';
+import { buildImageNotebookPromptPlan } from '@/lib/generation/image-notebook-prompt-plan';
 import { isTitleCoverOutline } from '@/lib/generation/title-cover';
 import type {
   SceneActionContinuityContext,
@@ -26,14 +27,14 @@ export const NOTEBOOK_IMAGE2_MODEL_ID = 'gpt-image-2';
 
 const IMAGE_FIRST_NOTEBOOK_STYLE_SPEC = [
   'Visual style baseline:',
-  '- Make this look like a live classroom board moment for students, not a teacher handout, lesson plan, or frontend template.',
-  '- Use warm off-white grid paper / notebook paper as a full-bleed 16:9 background that touches all four image edges.',
+  '- Follow the selected drawing / illustration style first. The style may be notebook handwriting, cartoon illustration, minimalist line art, watercolor, or another user-specified art direction.',
+  '- Make this look like a finished educational illustration or illustrated notebook page for students, not a teacher handout, lesson plan, or frontend template.',
+  '- Use a full-bleed 16:9 canvas whose background, paper texture, board surface, or illustration treatment touches all four image edges.',
   '- Do not draw a centered paper/card/slide inside a larger canvas. No pillarboxing, letterboxing, white side bars, or outer frame.',
   '- Keep normal classroom padding for content, but never leave blank vertical columns on the left or right edges.',
-  '- Use thick navy handwritten Chinese title lettering, with teal, blue, and orange marker accents.',
-  '- Use hand-drawn rounded boxes, arrows, underlines, check marks, small stars or lightbulb doodles only when useful.',
-  '- The page should feel like the teacher is actively guiding the class through one thinking move captured as a single bitmap image.',
-  '- Keep a consistent MAT 136 / Syntara notebook feel: friendly, careful, readable, sparse, and projector-safe.',
+  '- Use visual treatment consistent with the chosen art direction for titles, diagrams, highlights, characters, objects, and annotations.',
+  '- The page should feel like one clear learning idea captured as a single bitmap image.',
+  '- Keep a consistent course notebook feel: friendly, careful, readable, sparse, and projector-safe.',
   '- Use student-facing phrasing such as "我们先看", "你会先判断什么", "下一步怎么来"; avoid teacher-planning phrasing.',
   '- Never write visible meta labels like "让学生看到", "教学目标", "本页主线", "可迁移动作", "Teacher move", "Page role", or "QA checklist".',
   '- Avoid flat vector UI cards, generic corporate slide templates, stock-photo layouts, glossy gradients, browser chrome, app UI, and placeholder blocks.',
@@ -514,6 +515,24 @@ export function buildNotebookImagePrompt(args: {
   stage: Stage;
   assignedSourceImages: SourceImageAsset[];
 }): string {
+  if (args.outline.imageNotebookPromptPlan?.compiledImagePrompt) {
+    return args.outline.imageNotebookPromptPlan.compiledImagePrompt;
+  }
+  if (args.outline.imageNotebookBrief) {
+    const promptPlanLanguage =
+      args.outline.language || (args.stage.language === 'en-US' ? 'en-US' : 'zh-CN');
+    return buildImageNotebookPromptPlan({
+      outline: args.outline,
+      allOutlines: args.allOutlines,
+      notebookTitle: args.stage.name,
+      notebookGoal: args.stage.description,
+      language: promptPlanLanguage,
+      stylePrompt: args.stage.style || args.stage.description,
+      styleBrief: args.stage.imageNotebookStyle,
+      sourceImageHints: formatImageSourceHints(args.assignedSourceImages),
+    }).compiledImagePrompt;
+  }
+
   const { outline, allOutlines, stage } = args;
   const language = outline.language || stage.language || 'zh-CN';
   const pageIndex = Math.max(
@@ -541,7 +560,7 @@ export function buildNotebookImagePrompt(args: {
     'Create one polished 16:9 classroom PPT slide as a single bitmap image.',
     'The image is one live teaching moment in the notebook, not a decorative illustration and not a teacher handout.',
     'The slide must contain only student-facing board content directly in the image.',
-    'Match the style of the approved image-generated notebook examples: warm grid paper, hand-drawn live classroom board, marker accents, and large readable math/content.',
+    'Use the selected or authoritative drawing style as the primary visual direction while keeping the page readable, sparse, and projector-safe.',
     '',
     IMAGE_FIRST_NOTEBOOK_STYLE_SPEC,
     '',
@@ -611,6 +630,7 @@ export function buildFullPageImageSlideContent(args: {
   stage: Stage;
 }): {
   elements: PPTElement[];
+  imageNotebookPromptPlan?: SceneOutline['imageNotebookPromptPlan'];
   background: SlideBackground;
   theme: SlideTheme;
   remark: string;
@@ -635,7 +655,8 @@ export function buildFullPageImageSlideContent(args: {
       },
       ...focusElements,
     ],
-    background: { type: 'solid', color: '#0f172a' },
+    imageNotebookPromptPlan: args.outline.imageNotebookPromptPlan,
+    background: { type: 'solid', color: '#0f172a', respectProfileStyle: false },
     theme: {
       backgroundColor: '#0f172a',
       themeColors: ['#0f172a', '#2563eb', '#14b8a6', '#f59e0b', '#f8fafc'],

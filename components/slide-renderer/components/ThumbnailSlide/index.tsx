@@ -3,6 +3,7 @@ import type { Slide } from '@/lib/types/slides';
 import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style';
 import { prepareSlideDisplayElements } from '@/lib/utils/slide-display-elements';
 import { ThumbnailElement } from './ThumbnailElement';
+import { hasFullPageBitmapElement } from '@/lib/utils/slide-background-policy';
 
 interface ThumbnailSlideProps {
   /** Slide data */
@@ -33,9 +34,15 @@ export function ThumbnailSlide({
   // Calculate scale ratio
   const scale = useMemo(() => size / viewportSize, [size, viewportSize]);
   const elements = useMemo(() => prepareSlideDisplayElements(slide.elements), [slide.elements]);
+  const hasFullPageBitmap = useMemo(
+    () => hasFullPageBitmapElement(slide.elements, viewportSize, viewportRatio),
+    [slide.elements, viewportRatio, viewportSize],
+  );
 
   // Get background style
-  const { backgroundStyle } = useSlideBackgroundStyle(slide.background);
+  const { backgroundStyle } = useSlideBackgroundStyle(slide.background, {
+    applyProfileStyle: !hasFullPageBitmap,
+  });
 
   if (!visible) {
     return (

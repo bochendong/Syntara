@@ -58,7 +58,11 @@ import {
   normalizeNotebookSlideGenerationRoute,
   type SlideGenerationRoute,
 } from '@/lib/generation/slide-generation-route';
-import type { ImageNotebookBriefPlan } from '@/lib/generation/image-notebook-quality';
+import type {
+  ImageNotebookBriefPlan,
+  ImageNotebookStyleBrief,
+} from '@/lib/generation/image-notebook-quality';
+import { attachImageNotebookPromptPlan } from '@/lib/generation/image-notebook-prompt-plan';
 import {
   recordNotebookPublicMemory,
   type NotebookMemorySourceReference,
@@ -72,6 +76,7 @@ import {
 } from './scene-content-jobs';
 import { generateNotebookMetadata } from './notebook-metadata';
 import { maybeRunWebSearch, type WebSearchSource } from './research';
+import { ParallelTaskQueue } from '@/lib/utils/parallel-task-queue';
 
 type NotebookOutlinesApiResponse = {
   success?: boolean;
@@ -174,6 +179,22 @@ export type NotebookGeneratedPageThumbnail = {
   imageUrl: string;
 };
 
+type SlideCanvasImageElementLike = {
+  type?: unknown;
+  name?: unknown;
+  src?: unknown;
+  left?: unknown;
+  top?: unknown;
+  width?: unknown;
+  height?: unknown;
+};
+
+type SlideCanvasLike = {
+  elements?: unknown;
+  viewportSize?: unknown;
+  viewportRatio?: unknown;
+};
+
 export type NotebookGenerationTaskInput = {
   courseId?: string;
   generationTaskId?: string | null;
@@ -203,6 +224,7 @@ export type NotebookGenerationTaskInput = {
   /** 创建页已经审查通过的整本图片 notebook 页面规划；传入后并行生图阶段不会重新规划。 */
   confirmedImageNotebookOutlines?: SceneOutline[];
   confirmedImageNotebookPlan?: ImageNotebookBriefPlan | null;
+  imageNotebookStyle?: ImageNotebookStyleBrief;
   /** 覆盖设置里的「AI 配图」开关；不传则沿用全局设置 */
   imageGenerationEnabledOverride?: boolean;
   /** 传入后由页面规划 API 注入额外策略（总控侧栏「生成选项」） */
@@ -222,16 +244,54 @@ export type NotebookGenerationTaskResult = {
   failedScenes?: PageGenerationFailureRecord[];
 };
 
+function numericCanvasValue(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function imageElementArea(element: SlideCanvasImageElementLike) {
+  return numericCanvasValue(element.width, 0) * numericCanvasValue(element.height, 0);
+}
+
+function getFullPageImageUrlFromSlideCanvas(canvas: SlideCanvasLike | undefined): string {
+  const elements = canvas?.elements;
+  if (!Array.isArray(elements)) return '';
+  const imageElements = elements.filter(
+    (element): element is SlideCanvasImageElementLike & { src: string } =>
+      typeof element === 'object' &&
+      element !== null &&
+      (element as SlideCanvasImageElementLike).type === 'image' &&
+      typeof (element as SlideCanvasImageElementLike).src === 'string' &&
+      Boolean(((element as SlideCanvasImageElementLike).src as string).trim()),
+  );
+  const fullPageImage = imageElements.find((element) => element.name === 'full_page_bitmap');
+  if (fullPageImage) return fullPageImage.src;
+
+  const canvasWidth = numericCanvasValue(canvas?.viewportSize, 1000);
+  const canvasHeight = canvasWidth * numericCanvasValue(canvas?.viewportRatio, 0.5625);
+  const fullBleedImage = imageElements.find((element) => {
+    const left = numericCanvasValue(element.left, Number.POSITIVE_INFINITY);
+    const top = numericCanvasValue(element.top, Number.POSITIVE_INFINITY);
+    const width = numericCanvasValue(element.width, 0);
+    const height = numericCanvasValue(element.height, 0);
+    return (
+      left <= canvasWidth * 0.03 &&
+      top <= canvasHeight * 0.03 &&
+      width >= canvasWidth * 0.82 &&
+      height >= canvasHeight * 0.82
+    );
+  });
+  if (fullBleedImage) return fullBleedImage.src;
+
+  return imageElements.reduce<string>((bestSrc, element) => {
+    if (!bestSrc) return element.src;
+    const best = imageElements.find((candidate) => candidate.src === bestSrc);
+    return imageElementArea(element) > imageElementArea(best || {}) ? element.src : bestSrc;
+  }, '');
+}
+
 export function getFullPageImageUrlFromScene(scene: Scene | undefined): string {
   if (scene?.content?.type !== 'slide') return '';
-  const elements = scene.content.canvas?.elements;
-  if (!Array.isArray(elements)) return '';
-  const fullPageImage = elements.find(
-    (element) => element.name === 'full_page_bitmap' && element.type === 'image',
-  );
-  return fullPageImage?.type === 'image' && typeof fullPageImage.src === 'string'
-    ? fullPageImage.src
-    : '';
+  return getFullPageImageUrlFromSlideCanvas(scene.content.canvas);
 }
 
 function generatedPageThumbnailsFromScenes(scenes: Scene[]): NotebookGeneratedPageThumbnail[] {
@@ -239,8 +299,34 @@ function generatedPageThumbnailsFromScenes(scenes: Scene[]): NotebookGeneratedPa
     .map((scene, index) => {
       const imageUrl = getFullPageImageUrlFromScene(scene);
       if (!imageUrl) return null;
+      const pageNumber = Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
+      return { pageNumber, imageUrl };
+    })
+    .filter((entry): entry is NotebookGeneratedPageThumbnail => Boolean(entry));
+}
+
+function generatedPageThumbnailsFromContentBundle(
+  bundle: GeneratedSceneContentBundle,
+  fallbackPageNumber: number,
+): NotebookGeneratedPageThumbnail[] {
+  return bundle.contents
+    .map((content, index) => {
+      if (
+        typeof content !== 'object' ||
+        content === null ||
+        (content as { type?: unknown }).type !== 'slide'
+      ) {
+        return null;
+      }
+      const imageUrl = getFullPageImageUrlFromSlideCanvas(
+        (content as { canvas?: SlideCanvasLike }).canvas,
+      );
+      if (!imageUrl) return null;
+      const outline = bundle.effectiveOutlines[index];
       const pageNumber =
-        Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
+        outline && Number.isFinite(outline.order) && outline.order > 0
+          ? outline.order
+          : fallbackPageNumber + index;
       return { pageNumber, imageUrl };
     })
     .filter((entry): entry is NotebookGeneratedPageThumbnail => Boolean(entry));
@@ -448,6 +534,34 @@ function attachImageNotebookBriefPlan(
   }));
 }
 
+function ensureImageNotebookPromptPlans(args: {
+  outlines: SceneOutline[];
+  stage: Stage;
+  language: 'zh-CN' | 'en-US';
+}): SceneOutline[] {
+  if (
+    args.outlines.every((outline) => outline.imageNotebookPromptPlan?.compiledImagePrompt) ||
+    args.outlines.every((outline) => !outline.imageNotebookBrief)
+  ) {
+    return args.outlines;
+  }
+
+  return args.outlines.map((outline) => {
+    if (outline.imageNotebookPromptPlan?.compiledImagePrompt || !outline.imageNotebookBrief) {
+      return outline;
+    }
+    return attachImageNotebookPromptPlan(outline, {
+      outline,
+      allOutlines: args.outlines,
+      notebookTitle: args.stage.name,
+      notebookGoal: args.stage.description,
+      language: outline.language || args.language,
+      stylePrompt: args.stage.style || args.stage.description,
+      styleBrief: args.stage.imageNotebookStyle,
+    });
+  });
+}
+
 async function generateImageNotebookBriefPlan(args: {
   stage: Stage;
   outlines: SceneOutline[];
@@ -554,6 +668,7 @@ async function generateImageNotebookFullPlan(args: {
   pdfText?: string;
   pdfImages?: PdfImage[];
   imageMapping?: ImageMapping;
+  imageNotebookStyle?: ImageNotebookStyleBrief;
   outlinePreferences?: {
     length: OrchestratorOutlineLength;
     includeQuizScenes: boolean;
@@ -572,6 +687,11 @@ async function generateImageNotebookFullPlan(args: {
     coursePurpose: args.coursePurpose,
     courseContext: args.courseContext,
     outlinePreferences: args.outlinePreferences ?? null,
+    style: {
+      label: args.stage.style,
+      prompt: args.stage.description,
+    },
+    imageNotebookStyle: args.imageNotebookStyle,
     notebookContext: {
       id: args.stage.id,
       name: args.stage.name,
@@ -1305,6 +1425,7 @@ export async function runNotebookGenerationTask(
       tags: notebookMeta.tags,
       language,
       style: 'professional',
+      imageNotebookStyle: input.imageNotebookStyle,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1398,6 +1519,7 @@ export async function runNotebookGenerationTask(
           pdfText,
           pdfImages,
           imageMapping,
+          imageNotebookStyle: input.imageNotebookStyle,
           outlinePreferences: input.outlinePreferences ?? null,
           getHeaders,
           onProgress: input.onProgress,
@@ -1538,6 +1660,9 @@ export async function runNotebookGenerationTask(
           normalizeComputerScienceSceneOutline,
         );
       }
+      outlines = ensureImageNotebookPromptPlans({ outlines, stage, language }).map(
+        normalizeComputerScienceSceneOutline,
+      );
     }
     writePersistedStageOutlines(stage.id, outlines);
     persistNotebookPublicMemory({ stage, outlines, language });
@@ -1550,71 +1675,41 @@ export async function runNotebookGenerationTask(
         ? `Student: ${input.userNickname || 'Unknown'}${input.userBio ? ` — ${input.userBio}` : ''}`
         : undefined;
 
-    let sceneContentGeneration = 0;
-    let sceneContentCursor = 0;
     const maxParallelSceneContent =
       slideGenerationRoute === 'image-ppt'
         ? MAX_PARALLEL_IMAGE_NOTEBOOK_PAGES
         : MAX_PARALLEL_STANDARD_SCENE_CONTENT;
-    const sceneContentJobs = new Map<
-      string,
-      {
-        generation: number;
-        abortController: AbortController;
-        promise: Promise<SceneContentJobResult>;
-      }
-    >();
-
-    const enqueueSceneContentJob = (outline: SceneOutline) => {
-      if (sceneContentJobs.has(outline.id)) return;
-      const generation = sceneContentGeneration;
-      const allOutlinesSnapshot = outlines;
-      const abortController = createLinkedAbortController(input.signal);
-      const promise = generateNotebookPageContentBundle({
-        outline,
-        allOutlines: allOutlinesSnapshot,
-        stage,
-        agents,
-        courseContext,
-        signal: abortController.signal,
-        pdfImages,
-        imageMapping,
-        slideGenerationRoute,
-        getHeaders,
-      })
-        .then((bundle): SceneContentJobResult => ({ success: true, bundle }))
-        .catch(
-          (error): SceneContentJobResult => ({
-            success: false,
-            error: errorMessage(error, '页面内容生成失败'),
-          }),
-        );
-
-      sceneContentJobs.set(outline.id, {
-        generation,
-        abortController,
-        promise,
-      });
-    };
-
-    const fillSceneContentQueue = () => {
-      while (
-        sceneContentJobs.size < maxParallelSceneContent &&
-        sceneContentCursor < outlines.length
-      ) {
-        const outline = outlines[sceneContentCursor];
-        enqueueSceneContentJob(outline);
-        sceneContentCursor += 1;
-      }
-    };
+    const sceneContentQueue = new ParallelTaskQueue<SceneOutline, SceneContentJobResult>({
+      items: outlines,
+      concurrency: maxParallelSceneContent,
+      parentSignal: input.signal,
+      getKey: (outline) => outline.id,
+      run: ({ item: outline, signal }) => {
+        const allOutlinesSnapshot = outlines;
+        return generateNotebookPageContentBundle({
+          outline,
+          allOutlines: allOutlinesSnapshot,
+          stage,
+          agents,
+          courseContext,
+          signal,
+          pdfImages,
+          imageMapping,
+          slideGenerationRoute,
+          getHeaders,
+        })
+          .then((bundle): SceneContentJobResult => ({ success: true, bundle }))
+          .catch(
+            (error): SceneContentJobResult => ({
+              success: false,
+              error: errorMessage(error, '页面内容生成失败'),
+            }),
+          );
+      },
+    });
 
     const resetSceneContentQueue = (nextIndex: number) => {
-      sceneContentGeneration += 1;
-      for (const job of sceneContentJobs.values()) {
-        job.abortController.abort();
-      }
-      sceneContentJobs.clear();
-      sceneContentCursor = nextIndex;
+      sceneContentQueue.reset(nextIndex, outlines);
     };
 
     for (let i = 0; i < outlines.length; i += 1) {
@@ -1634,24 +1729,33 @@ export async function runNotebookGenerationTask(
         total: outlines.length,
       });
       try {
-        fillSceneContentQueue();
-        let contentJob = sceneContentJobs.get(outline.id);
-        if (!contentJob) {
-          enqueueSceneContentJob(outline);
-          contentJob = sceneContentJobs.get(outline.id);
-        }
-        if (!contentJob) throw new Error('页面内容生成任务创建失败');
+        sceneContentQueue.fill();
+        const contentQueueResult = await sceneContentQueue.take(i);
+        const contentResult = contentQueueResult.result;
 
-        const contentResult = await contentJob.promise;
-        sceneContentJobs.delete(outline.id);
-        fillSceneContentQueue();
-
-        if (contentJob.generation !== sceneContentGeneration) {
+        if (contentQueueResult.stale) {
           i -= 1;
           continue;
         }
         if (!contentResult.success) {
           throw new Error(contentResult.error);
+        }
+
+        const contentGeneratedPageThumbnails = generatedPageThumbnailsFromContentBundle(
+          contentResult.bundle,
+          i + 1,
+        );
+        if (contentGeneratedPageThumbnails.length > 0) {
+          input.onProgress?.({
+            stage: 'scene',
+            detail:
+              language === 'zh-CN'
+                ? `已生成第 ${i + 1}/${outlines.length} 页图片，正在准备讲解动作…`
+                : `Generated image page ${i + 1}/${outlines.length}; preparing narration actions...`,
+            completed: Math.min(outlines.length, i + 1),
+            total: outlines.length,
+            generatedPageThumbnails: contentGeneratedPageThumbnails,
+          });
         }
 
         const result = await generateSceneActionsFromContent({

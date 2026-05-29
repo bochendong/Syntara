@@ -1,5 +1,145 @@
 export const IMAGE_NOTEBOOK_CANVAS_WIDTH = 1000;
 export const IMAGE_NOTEBOOK_CANVAS_HEIGHT = 562.5;
+export const IMAGE_NOTEBOOK_PROMPT_CANVAS_WIDTH = 1600;
+export const IMAGE_NOTEBOOK_PROMPT_CANVAS_HEIGHT = 900;
+export const IMAGE_NOTEBOOK_PROMPT_PLAN_SCHEMA_VERSION = 1;
+
+export const IMAGE_NOTEBOOK_MARKER_COLOR_POOL = [
+  { name: 'red', hex: '#ff0000' },
+  { name: 'lime', hex: '#00ff00' },
+  { name: 'blue', hex: '#0048ff' },
+  { name: 'cyan', hex: '#00ffff' },
+  { name: 'magenta', hex: '#ff00ff' },
+  { name: 'yellow', hex: '#ffff00' },
+] as const;
+
+export type ImageNotebookMarkerColorName =
+  (typeof IMAGE_NOTEBOOK_MARKER_COLOR_POOL)[number]['name'];
+
+export type ImageNotebookPromptComponentRole =
+  | 'header'
+  | 'opening'
+  | 'setup'
+  | 'definition'
+  | 'formula'
+  | 'example'
+  | 'proof'
+  | 'strategy'
+  | 'pitfall'
+  | 'takeaway'
+  | 'visual'
+  | 'question'
+  | 'decoration'
+  | 'other';
+
+export type ImageNotebookPromptLayoutSlot =
+  | 'top-full'
+  | 'middle-left'
+  | 'middle-center-left'
+  | 'middle-center-right'
+  | 'middle-right'
+  | 'bottom-full'
+  | 'free';
+
+export interface ImageNotebookPromptComponentPlan {
+  id: string;
+  label: string;
+  role: ImageNotebookPromptComponentRole;
+  order: number;
+  layoutSlot: ImageNotebookPromptLayoutSlot;
+  markerColorName?: ImageNotebookMarkerColorName;
+  markerColorHex?: string;
+  visibleText: string[];
+  formulas: string[];
+  diagramPrompt?: string;
+  participatesInMask: boolean;
+}
+
+export interface ImageNotebookMarkerProtocol {
+  type: 'corner-square-markers';
+  markerSizePx: number;
+  markerCountPerComponent: 4;
+  blankBackgroundPaddingPx: number;
+  maxMaskableComponents: number;
+  colorPool: Array<{ name: ImageNotebookMarkerColorName; hex: string }>;
+  ordinaryContentForbiddenColors: string[];
+}
+
+export interface ImageNotebookPromptValidationTarget {
+  maskableComponentCount: number;
+  totalMarkerCount: number;
+  markerCountsByColor: Record<string, number>;
+  forbiddenVisibleMarks: string[];
+}
+
+export interface ImageNotebookPromptRecoveryResult {
+  status: 'pending' | 'passed' | 'partial' | 'failed';
+  recoveredAt?: number;
+  findings?: string[];
+  components?: Array<{
+    componentId: string;
+    markerColorHex: string;
+    bbox?: [number, number, number, number];
+    markerPoints?: Array<{
+      x: number;
+      y: number;
+      corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    }>;
+    markerCount?: number;
+  }>;
+}
+
+export type ImageNotebookStylePreset =
+  | 'hand-drawn-course-notebook'
+  | 'cartoon-educational'
+  | 'minimal-line-art'
+  | 'watercolor-explainer'
+  | 'custom';
+
+export type ImageNotebookStyleDensity = 'sparse' | 'medium' | 'dense';
+export type ImageNotebookDecorationLevel = 'none' | 'light' | 'moderate';
+
+export interface ImageNotebookStyleBrief {
+  schemaVersion: 1;
+  preset: ImageNotebookStylePreset;
+  canvas: '16:9';
+  background: string;
+  writingStyle: string;
+  colorMood: string;
+  density: ImageNotebookStyleDensity;
+  decorationLevel: ImageNotebookDecorationLevel;
+  palette?: {
+    label?: string;
+    colors: string[];
+  };
+  userStylePrompt?: string;
+  avoidPureMarkerColors: string[];
+  ordinaryContentColorRule: string;
+}
+
+export interface ImageNotebookPromptStyleProfile {
+  id: 'default-hand-drawn-notebook';
+  label: string;
+  baselineRules: string[];
+  userStylePrompt?: string;
+  styleBrief: ImageNotebookStyleBrief;
+}
+
+export interface ImageNotebookPagePromptPlan {
+  schemaVersion: typeof IMAGE_NOTEBOOK_PROMPT_PLAN_SCHEMA_VERSION;
+  canvas: {
+    width: typeof IMAGE_NOTEBOOK_PROMPT_CANVAS_WIDTH;
+    height: typeof IMAGE_NOTEBOOK_PROMPT_CANVAS_HEIGHT;
+    aspectRatio: '16:9';
+  };
+  styleProfile: ImageNotebookPromptStyleProfile;
+  componentPlans: ImageNotebookPromptComponentPlan[];
+  markerProtocol: ImageNotebookMarkerProtocol;
+  compiledImagePrompt: string;
+  promptHash: string;
+  validationTarget: ImageNotebookPromptValidationTarget;
+  recoveryResult?: ImageNotebookPromptRecoveryResult;
+}
 
 export type ImageNotebookPageRole =
   | 'overview'
@@ -74,6 +214,7 @@ export interface ImageNotebookPageBrief {
   visualBrief: string;
   visibleContent: ImageNotebookVisibleContent;
   focusRegions: ImageNotebookFocusRegion[];
+  componentPlans?: ImageNotebookPromptComponentPlan[];
   generationNotes?: string[];
   qaChecklist?: string[];
 }
@@ -125,6 +266,113 @@ export interface ImageNotebookDensityPolicy {
   maxFormulas: number;
   maxExampleSteps: number;
   maxDetailedExamples?: number;
+}
+
+function compactStyleText(value: unknown, maxLength = 900): string {
+  const text = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function normalizeStylePreset(value: unknown): ImageNotebookStylePreset {
+  if (
+    value === 'hand-drawn-course-notebook' ||
+    value === 'cartoon-educational' ||
+    value === 'minimal-line-art' ||
+    value === 'watercolor-explainer' ||
+    value === 'custom'
+  ) {
+    return value;
+  }
+  return 'hand-drawn-course-notebook';
+}
+
+function normalizeStyleDensity(value: unknown): ImageNotebookStyleDensity {
+  return value === 'sparse' || value === 'medium' || value === 'dense' ? value : 'medium';
+}
+
+function normalizeDecorationLevel(value: unknown): ImageNotebookDecorationLevel {
+  return value === 'none' || value === 'light' || value === 'moderate' ? value : 'light';
+}
+
+function normalizeStylePalette(value: unknown): ImageNotebookStyleBrief['palette'] | undefined {
+  const record = objectRecord(value);
+  const colors = Array.isArray(record.colors)
+    ? record.colors
+        .map((color) => compactStyleText(color, 24))
+        .filter((color) => /^#[0-9a-f]{6}$/i.test(color))
+        .slice(0, 8)
+    : [];
+  if (!colors.length) return undefined;
+  const label = compactStyleText(record.label, 80);
+  return {
+    ...(label ? { label } : {}),
+    colors,
+  };
+}
+
+export function normalizeImageNotebookStyleBrief(
+  value?: unknown,
+  fallbackPrompt?: string,
+): ImageNotebookStyleBrief {
+  const record = objectRecord(value);
+  const legacyPrompt = typeof value === 'string' ? value : fallbackPrompt;
+  const userStylePrompt =
+    compactStyleText(record.userStylePrompt || record.prompt || legacyPrompt, 900) || undefined;
+  const palette = normalizeStylePalette(record.palette);
+  return {
+    schemaVersion: 1,
+    preset: normalizeStylePreset(record.preset),
+    canvas: '16:9',
+    background:
+      compactStyleText(record.background, 160) ||
+      'white graph-paper notebook background with faint light-gray grid',
+    writingStyle:
+      compactStyleText(record.writingStyle, 180) ||
+      'common college-course hand-drawn marker notes with readable handwritten labels',
+    colorMood:
+      compactStyleText(record.colorMood, 180) ||
+      'black marker text, deep teal diagrams, pale teal fills, and muted brown arrows',
+    density: normalizeStyleDensity(record.density),
+    decorationLevel: normalizeDecorationLevel(record.decorationLevel),
+    ...(palette ? { palette } : {}),
+    ...(userStylePrompt ? { userStylePrompt } : {}),
+    avoidPureMarkerColors: IMAGE_NOTEBOOK_MARKER_COLOR_POOL.map((color) => color.hex),
+    ordinaryContentColorRule:
+      compactStyleText(record.ordinaryContentColorRule, 260) ||
+      'Do not use pure marker colors in normal content; those colors are reserved for recoverable corner markers only.',
+  };
+}
+
+export function formatImageNotebookStyleBriefForPrompt(
+  styleBrief: ImageNotebookStyleBrief,
+): string[] {
+  return [
+    `- Style preset: ${styleBrief.preset}.`,
+    `- Canvas: ${styleBrief.canvas} full-bleed page; no centered card, outer frame, browser UI, or watermark.`,
+    `- Background: ${styleBrief.background}.`,
+    `- Writing style: ${styleBrief.writingStyle}.`,
+    `- Color mood: ${styleBrief.colorMood}.`,
+    styleBrief.palette?.colors.length
+      ? `- Palette direction: ${[
+          styleBrief.palette.label,
+          styleBrief.palette.colors.join(', '),
+        ]
+          .filter(Boolean)
+          .join(' - ')}.`
+      : '',
+    `- Content density: ${styleBrief.density}; keep all text large, sparse, and projector-readable.`,
+    `- Decorative elements: ${styleBrief.decorationLevel}; decorations are allowed only as unmarked support and must not receive corner markers.`,
+    styleBrief.userStylePrompt ? `- User-selected art direction: ${styleBrief.userStylePrompt}.` : '',
+    `- Marker color reservation: ${styleBrief.ordinaryContentColorRule}`,
+    `- Do not use these pure colors in ordinary content: ${styleBrief.avoidPureMarkerColors.join(', ')}.`,
+  ].filter(Boolean);
 }
 
 const IMAGE_NOTEBOOK_DENSITY_POLICIES: Record<
@@ -430,6 +678,100 @@ function normalizeFocusRegions(value: unknown, outlineId: string): ImageNotebook
   return regions.length >= 3 ? regions : defaultImageNotebookFocusRegions(outlineId);
 }
 
+function normalizePromptComponentRole(value: unknown): ImageNotebookPromptComponentRole {
+  const raw = text(value).toLowerCase();
+  if (
+    raw === 'header' ||
+    raw === 'opening' ||
+    raw === 'setup' ||
+    raw === 'definition' ||
+    raw === 'formula' ||
+    raw === 'example' ||
+    raw === 'proof' ||
+    raw === 'strategy' ||
+    raw === 'pitfall' ||
+    raw === 'takeaway' ||
+    raw === 'visual' ||
+    raw === 'question' ||
+    raw === 'decoration' ||
+    raw === 'other'
+  ) {
+    return raw;
+  }
+  return 'other';
+}
+
+function normalizePromptLayoutSlot(value: unknown, index: number): ImageNotebookPromptLayoutSlot {
+  const raw = text(value).toLowerCase();
+  if (
+    raw === 'top-full' ||
+    raw === 'middle-left' ||
+    raw === 'middle-center-left' ||
+    raw === 'middle-center-right' ||
+    raw === 'middle-right' ||
+    raw === 'bottom-full' ||
+    raw === 'free'
+  ) {
+    return raw;
+  }
+  if (index === 0) return 'top-full';
+  if (index === 5) return 'bottom-full';
+  return (['middle-left', 'middle-center-left', 'middle-center-right', 'middle-right'][
+    (index - 1) % 4
+  ] || 'free') as ImageNotebookPromptLayoutSlot;
+}
+
+function normalizeMarkerColorName(value: unknown): ImageNotebookMarkerColorName | undefined {
+  const raw = text(value).toLowerCase();
+  return IMAGE_NOTEBOOK_MARKER_COLOR_POOL.some((color) => color.name === raw)
+    ? (raw as ImageNotebookMarkerColorName)
+    : undefined;
+}
+
+function normalizePromptComponentPlans(
+  value: unknown,
+  outlineId: string,
+): ImageNotebookPromptComponentPlan[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const components = value
+    .map((item, index): ImageNotebookPromptComponentPlan | null => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+      const record = item as Record<string, unknown>;
+      const role = normalizePromptComponentRole(record.role);
+      const label = text(record.label || record.title || record.name, `学习组件 ${index + 1}`);
+      const visibleText = [
+        ...studentFacingTextArray(record.visibleText, 8),
+        ...studentFacingTextArray(record.content, 8),
+      ].slice(0, 8);
+      const formulas = studentFacingTextArray(record.formulas, 6);
+      const markerColorName = normalizeMarkerColorName(
+        record.markerColorName || record.markerColor,
+      );
+      const participatesInMask =
+        record.participatesInMask === false || role === 'decoration' ? false : true;
+      return {
+        id: text(record.id, `${outlineId || 'image-page'}-component-${index + 1}`),
+        label: studentFacingText(label),
+        role,
+        order: numberInRange(record.order, 1, 30, index + 1),
+        layoutSlot: normalizePromptLayoutSlot(record.layoutSlot, index),
+        ...(markerColorName ? { markerColorName } : {}),
+        ...(typeof record.markerColorHex === 'string' && record.markerColorHex.trim()
+          ? { markerColorHex: record.markerColorHex.trim() }
+          : {}),
+        visibleText,
+        formulas,
+        diagramPrompt:
+          studentFacingText(text(record.diagramPrompt || record.visualPrompt)) || undefined,
+        participatesInMask,
+      };
+    })
+    .filter((item): item is ImageNotebookPromptComponentPlan => Boolean(item))
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 8);
+  return components.length ? components : undefined;
+}
+
 export function normalizeImageNotebookPageBrief(
   value: unknown,
   fallback: {
@@ -477,6 +819,10 @@ export function normalizeImageNotebookPageBrief(
       bottomTakeaway: studentFacingText(text(visible.bottomTakeaway)) || undefined,
     },
     focusRegions: normalizeFocusRegions(record.focusRegions, fallback.outlineId),
+    componentPlans: normalizePromptComponentPlans(
+      record.componentPlans || record.components || record.learningComponents,
+      fallback.outlineId,
+    ),
     generationNotes: textArray(record.generationNotes, 6),
     qaChecklist: textArray(record.qaChecklist, 8),
   };
@@ -602,10 +948,4 @@ export function formatImageNotebookBriefForPrompt(brief: ImageNotebookPageBrief)
     brief.qaChecklist?.length ? `QA checklist: ${brief.qaChecklist.join('; ')}` : '',
   ];
   return lines.filter(Boolean).join('\n');
-}
-
-export function hasCriticalImageNotebookQaFailure(result: ImageNotebookQaResult): boolean {
-  return [...result.findings, ...result.mathFindings, ...result.visualFindings].some(
-    (finding) => finding.severity === 'critical',
-  );
 }

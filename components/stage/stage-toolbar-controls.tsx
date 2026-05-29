@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, RefreshCcw, Sparkles, SquarePen } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, ScanSearch, Sparkles, SquarePen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SceneType } from '@/lib/types/stage';
 
@@ -174,6 +174,8 @@ export function StageTitleActions({
   canRepairCurrentSlide,
   canRestoreCurrentSlide,
   canRerenderCurrentSlide,
+  canShowMarkerDebugOverlay,
+  markerDebugOverlayEnabled,
   gridReflowPending,
   slideEditorOpen,
   slideEditorSidebarTab,
@@ -181,12 +183,15 @@ export function StageTitleActions({
   onRestore,
   onOpenRepairSidebar,
   onManualEditToggle,
+  onMarkerDebugOverlayToggle,
 }: {
   headerActions?: ReactNode;
   canEditCurrentSlide: boolean;
   canRepairCurrentSlide: boolean;
   canRestoreCurrentSlide: boolean;
   canRerenderCurrentSlide: boolean;
+  canShowMarkerDebugOverlay: boolean;
+  markerDebugOverlayEnabled: boolean;
   gridReflowPending: boolean;
   slideEditorOpen: boolean;
   slideEditorSidebarTab: SlideEditorSidebarTab;
@@ -194,12 +199,14 @@ export function StageTitleActions({
   onRestore: () => void;
   onOpenRepairSidebar: () => void;
   onManualEditToggle: () => void;
+  onMarkerDebugOverlayToggle: () => void;
 }) {
   const hasBuiltInActions =
     canEditCurrentSlide ||
     slideEditorOpen ||
     canRepairCurrentSlide ||
     canRestoreCurrentSlide ||
+    canShowMarkerDebugOverlay ||
     canRerenderCurrentSlide;
 
   if (!headerActions && !hasBuiltInActions) return null;
@@ -207,6 +214,22 @@ export function StageTitleActions({
   return (
     <div className="flex items-center gap-2">
       {headerActions}
+      {canShowMarkerDebugOverlay ? (
+        <button
+          type="button"
+          onClick={onMarkerDebugOverlayToggle}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+            markerDebugOverlayEnabled
+              ? 'border-orange-300 bg-orange-100 text-orange-900 shadow-sm dark:border-orange-400/45 dark:bg-orange-950/55 dark:text-orange-50'
+              : 'border-orange-200 bg-white/85 text-orange-700 hover:bg-orange-50 dark:border-orange-500/30 dark:bg-white/[0.05] dark:text-orange-200 dark:hover:bg-orange-950/35',
+          )}
+          title="显示/隐藏四角 marker 调试层；点击左侧讲解可验证遮罩定位"
+        >
+          <ScanSearch className="size-3.5" />
+          四角测试
+        </button>
+      ) : null}
       {canRerenderCurrentSlide ? (
         <button
           type="button"

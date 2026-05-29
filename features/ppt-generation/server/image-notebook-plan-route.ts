@@ -4,12 +4,16 @@ import { callLLM, streamLLM } from '@/lib/ai/llm';
 import { parseJsonResponse } from '@/lib/generation/json-repair';
 import {
   formatImageNotebookDensityPolicyForPrompt,
+  formatImageNotebookStyleBriefForPrompt,
   getImageNotebookRequiredWorkedExampleCount,
+  normalizeImageNotebookStyleBrief,
   normalizeImageNotebookBriefPlan,
   resolveImageNotebookDensityPolicy,
   type ImageNotebookBriefPlan,
   type ImageNotebookDensityPolicy,
+  type ImageNotebookStyleBrief,
 } from '@/lib/generation/image-notebook-quality';
+import { attachImageNotebookPromptPlans } from '@/lib/generation/image-notebook-prompt-plan';
 import type { CoursePersonalizationContext } from '@/lib/generation/pipeline-types';
 import { API_ERROR_CODES, apiError, apiSuccess } from '@/lib/server/api-response';
 import { runWithRequestContext, type RequestLLMContext } from '@/lib/server/request-context';
@@ -33,6 +37,13 @@ type ImageNotebookPlanRequestBody = {
   };
   coursePurpose?: 'research' | 'university' | 'daily';
   courseContext?: CoursePersonalizationContext;
+  style?: {
+    label?: string;
+    prompt?: string;
+    palette?: string;
+  };
+  imageNotebookStyle?: ImageNotebookStyleBrief;
+  drawingStylePrompt?: string;
 };
 
 type ImageNotebookPlanQualityReport = {
@@ -426,6 +437,19 @@ function pageCountRequirementText(body: ImageNotebookPlanRequestBody): string {
   return '';
 }
 
+function stylePromptFromBody(body: ImageNotebookPlanRequestBody): string | undefined {
+  return (
+    [body.style?.label, body.style?.prompt, body.style?.palette, body.drawingStylePrompt]
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .join('\n')
+      .trim() || undefined
+  );
+}
+
+function styleBriefFromBody(body: ImageNotebookPlanRequestBody): ImageNotebookStyleBrief {
+  return normalizeImageNotebookStyleBrief(body.imageNotebookStyle, stylePromptFromBody(body));
+}
+
 function combinedPlanText(outlines: SceneOutline[], plan: ImageNotebookBriefPlan): string {
   return [
     ...outlines.flatMap((outline) => [
@@ -524,18 +548,40 @@ function assessFullPlanQuality(
       `完整例题过多：${policy.label} 最多 ${policy.maxDetailedExamples} 组完整例题，目前 ${detailedExamples.length} 组，容易把 overview 压成密集讲义。`,
     );
   }
-  const missingDrawingPrompts = outlines.filter((outline) => !outline.imageNotebookPrompt?.trim());
-  if (missingDrawingPrompts.length) {
-    findings.push(`有 ${missingDrawingPrompts.length} 页缺少自包含画图 prompt。`);
-  }
-  const vagueDrawingPrompts = outlines.filter((outline) =>
-    /一道[^，。；\n]*(?:导数|积分|证明|代码|题)|某个(?:定义|公式|题目|代码)|some (?:code|problem|formula|definition)/i.test(
-      outline.imageNotebookPrompt || '',
-    ),
-  );
-  if (vagueDrawingPrompts.length) {
+  const overLimitSourceComponents = outlines.filter((outline) => {
+    const sourceComponents = outline.imageNotebookBrief?.componentPlans || [];
+    const maskable = sourceComponents.filter(
+      (component) => component.participatesInMask !== false && component.role !== 'decoration',
+    );
+    return maskable.length > 6;
+  });
+  if (overLimitSourceComponents.length) {
     findings.push(
-      `有 ${vagueDrawingPrompts.length} 页画图 prompt 仍然空泛，没有写出完整定义、代码、原题或公式。`,
+      `有 ${overLimitSourceComponents.length} 页原始组件计划超过 6 个可遮罩组件；必须合并组件或拆页，不能静默丢 marker。`,
+    );
+  }
+  const missingPromptPlans = outlines.filter(
+    (outline) => !outline.imageNotebookPromptPlan?.compiledImagePrompt,
+  );
+  if (missingPromptPlans.length) {
+    findings.push(`有 ${missingPromptPlans.length} 页缺少 prompt-plan 编译结果。`);
+  }
+  const weakComponentPlans = outlines.filter((outline) => {
+    const components = outline.imageNotebookPromptPlan?.componentPlans || [];
+    const maskable = components.filter((component) => component.participatesInMask);
+    return (
+      maskable.length === 0 ||
+      maskable.length > 6 ||
+      maskable.some(
+        (component) =>
+          !component.label.trim() ||
+          (!component.visibleText.length && !component.formulas.length && !component.diagramPrompt),
+      )
+    );
+  });
+  if (weakComponentPlans.length) {
+    findings.push(
+      `有 ${weakComponentPlans.length} 页组件计划不合规：需要 1-6 个带内容的可遮罩学习组件。`,
     );
   }
   const missingBriefs = outlines.filter(
@@ -601,6 +647,7 @@ function buildUserPrompt(args: {
   const requirement = args.body.requirements?.requirement || '';
   const pageCountRequirement = pageCountRequirementText(args.body);
   const densityPolicy = inferPageCountBounds(args.body).policy;
+  const styleBrief = styleBriefFromBody(args.body);
   const courseContext = args.body.courseContext
     ? [
         args.body.courseContext.university,
@@ -621,6 +668,7 @@ function buildUserPrompt(args: {
     args.body.researchContext
       ? `Research context:\n${args.body.researchContext.slice(0, 2400)}`
       : '',
+    `Page style brief for planner context:\n${formatImageNotebookStyleBriefForPrompt(styleBrief).join('\n')}`,
     `Page count and density policy:\n${formatImageNotebookDensityPolicyForPrompt(densityPolicy)}`,
     args.retryFindings?.length
       ? `Previous plan failed QA. Fix all issues:\n${args.retryFindings.map((item) => `- ${item}`).join('\n')}`
@@ -676,10 +724,19 @@ function buildUserPrompt(args: {
         "bottomTakeaway": "底部收束或下一页问题"
       },
       "focusRegions": [{"id":"focus-setup","label":"大区域名","role":"opening|setup|formula|example|proof|strategy|pitfall|takeaway|visual","left":60,"top":110,"width":420,"height":140,"order":1}],
+      "componentPlans": [{
+        "id": "component-header",
+        "label": "组件标题",
+        "role": "header|opening|setup|definition|formula|example|proof|strategy|pitfall|takeaway|visual|question|decoration|other",
+        "layoutSlot": "top-full|middle-left|middle-center-left|middle-center-right|middle-right|bottom-full|free",
+        "visibleText": ["这个组件里学生真正看见的文字"],
+        "formulas": ["这个组件必须准确照写的公式"],
+        "diagramPrompt": "这个组件里的图、曲线、表格、代码轨迹或装饰说明",
+        "participatesInMask": true
+      }],
       "generationNotes": ["0-3 条给图片模型的注意事项"],
       "qaChecklist": ["0-3 条生成后必须检查什么"]
-    },
-    "imagePrompt": "完整、自包含的画图 prompt，写清楚页面内容、完整定义/代码/原题/公式和视觉布局"
+    }
   }]
 }`,
     '',
@@ -688,12 +745,15 @@ function buildUserPrompt(args: {
     '- Page 1 must be an overview/hook page, not a title-only cover and not a full solution page.',
     '- Do not add a separate decorative cover. The first page is a real overview that frames the student problem.',
     '- Every page must have one pagePlans item with both outline and brief.',
-    '- Every pagePlans item must also include imagePrompt. It must be self-contained and include exact visible content, not abstract labels.',
+    '- Do not write the final image prompt. The system will compile the final prompt deterministically from brief.componentPlans.',
+    '- brief.componentPlans must contain the visual learning components, not marker colors. Marker colors are assigned by code.',
+    '- Use at most 6 participatesInMask=true learning components per page. Extra decorative elements must use participatesInMask=false.',
     '- Keep every string compact. Prefer short classroom board phrases over paragraphs.',
     '- Follow the page-count density profile exactly. Short notebooks are overview products, not compressed full lessons.',
     '- brief.visibleContent is exactly what the image should show. It must be student-facing board content, not planning labels.',
     '- For math pages, formulas must be exact and exampleSteps must include enough intermediate steps for class teaching.',
     `- focusRegions must contain ${densityPolicy.minFocusRegions}-${densityPolicy.maxFocusRegions} broad parent-level regions in a 1000 x 562.5 coordinate system.`,
+    '- componentPlans must be compact, self-contained, and not split one learning component into multiple far-apart islands.',
     '- Do not use these phrases anywhere: MAT136 是本节课材料里的具体对象, 这一行为什么成立, 定义里对象范围, 写证明前，先把定义改写成可以逐项检查的条件, 例题要留下, 总结要留下可执行的证明 checklist, 教学目标, 本页主线, 讲解重点, 可迁移动作.',
     '- Do not copy PDF extraction noise such as derek, ###, &&, or repeated punctuation.',
   ]
@@ -709,6 +769,7 @@ function buildBlueprintPrompt(args: {
   const requirement = args.body.requirements?.requirement || '';
   const pageCountRequirement = pageCountRequirementText(args.body);
   const densityPolicy = inferPageCountBounds(args.body).policy;
+  const styleBrief = styleBriefFromBody(args.body);
   const courseContext = args.body.courseContext
     ? [
         args.body.courseContext.university,
@@ -729,6 +790,7 @@ function buildBlueprintPrompt(args: {
     args.body.researchContext
       ? `Research context:\n${args.body.researchContext.slice(0, 2400)}`
       : '',
+    `Page style brief for planner context:\n${formatImageNotebookStyleBriefForPrompt(styleBrief).join('\n')}`,
     `Page count and density policy:\n${formatImageNotebookDensityPolicyForPrompt(densityPolicy)}`,
     args.retryFindings?.length
       ? `Previous blueprint failed QA. Fix all issues:\n${args.retryFindings.map((item) => `- ${item}`).join('\n')}`
@@ -921,9 +983,11 @@ function buildBatchPrompt(args: {
   retryReason?: string;
 }): string {
   const densityPolicy = inferPageCountBounds(args.body).policy;
+  const styleBrief = styleBriefFromBody(args.body);
   return [
     `Language: ${args.language}`,
     `Requirement:\n${args.body.requirements?.requirement || ''}`,
+    `Page style brief for planner context:\n${formatImageNotebookStyleBriefForPrompt(styleBrief).join('\n')}`,
     `Page count and density policy:\n${formatImageNotebookDensityPolicyForPrompt(densityPolicy)}`,
     `CourseSpine:\n${JSON.stringify(args.courseSpine, null, 2)}`,
     `Full page index:\n${args.pageIndex
@@ -979,18 +1043,45 @@ function buildBatchPrompt(args: {
         "finalAnswer": "..."
       }
     },
-    "imagePrompt": "完整、自包含的画图 prompt。必须写清楚这页画什么、哪些学生可见文字必须原样出现、完整定义/完整代码/原题/公式是什么、版面密度和视觉风格是什么。"
+    "brief": {
+      "pageRole": "overview|hook|definition|formula|example|proof|strategy|pitfalls|summary",
+      "title": "图片上的标题",
+      "pageMove": {"fromPrevious":"...", "currentJob":"...", "toNext":"...", "callbackToSpine":"..."},
+      "visualBrief": "整页生图说明：网格纸、手写板书、分区、具体图像和教学意图",
+      "visibleContent": {
+        "mustShow": ["必须出现在图上的学生可见文本"],
+        "formulas": ["必须准确照写的公式"],
+        "exampleSteps": ["例题/证明连续步骤"],
+        "commonPitfalls": ["0-3 条图上可以提示的易错点"],
+        "bottomTakeaway": "底部收束或下一页问题"
+      },
+      "focusRegions": [{"id":"focus-setup","label":"大区域名","role":"opening|setup|formula|example|proof|strategy|pitfall|takeaway|visual","left":60,"top":110,"width":420,"height":140,"order":1}],
+      "componentPlans": [{
+        "id": "component-header",
+        "label": "组件标题",
+        "role": "header|opening|setup|definition|formula|example|proof|strategy|pitfall|takeaway|visual|question|decoration|other",
+        "layoutSlot": "top-full|middle-left|middle-center-left|middle-center-right|middle-right|bottom-full|free",
+        "visibleText": ["这个组件里学生真正看见的文字"],
+        "formulas": ["这个组件必须准确照写的公式"],
+        "diagramPrompt": "这个组件里的图、曲线、表格、代码轨迹或装饰说明",
+        "participatesInMask": true
+      }],
+      "generationNotes": ["0-3 条给图片模型的注意事项"],
+      "qaChecklist": ["0-3 条生成后必须检查什么"]
+    }
   }]
 }`,
     '',
     'Hard requirements:',
     '- Return exactly the requested pageNumbers, no extra pages.',
-    '- This step is the drawing-prompt step. Do not write abstract pageBriefs. Write the actual prompt that will be sent to the image model.',
-    '- Every imagePrompt must be self-contained. If the page has a definition, include the complete definition text. If it has code, include the complete code block. If it has a problem, include the original problem statement. If it has a formula/theorem, write the exact formula/theorem.',
+    '- This step writes structured page components, not the final image prompt. The system will compile the final prompt deterministically.',
+    '- brief.componentPlans must describe the real visible learning components. If the page has a definition, include the complete definition text. If it has code, include the complete code block. If it has a problem, include the original problem statement. If it has a formula/theorem, write the exact formula/theorem.',
+    '- Do not assign marker colors. The code assigns marker colors later.',
+    '- Use at most 6 participatesInMask=true components. Mark decorative/support elements as participatesInMask=false.',
     '- Never say vague things like "draw a derivative problem", "show a theorem", or "include some code". Name the exact content to draw.',
     '- Follow the density policy. If a short notebook cannot hold a detail, summarize the decision and hand off instead of adding more tiny text.',
-    '- For example/proof/formula pages, include exact formulas and non-skipped steps in outline.workedExampleConfig and in imagePrompt.',
-    '- Write like a direct image-generation instruction for a live classroom board, not a teacher handout.',
+    '- For example/proof/formula pages, include exact formulas and non-skipped steps in outline.workedExampleConfig and brief.componentPlans.',
+    '- Write like a live classroom board plan, not a teacher handout.',
     '- Do not use forbidden meta labels: 教学目标, 本页主线, 讲解重点, 可迁移动作.',
   ]
     .filter(Boolean)
@@ -1176,6 +1267,13 @@ async function generateBatchedPlan(args: {
         notebookTitle,
       },
     );
+    const batchOutlines = attachImageNotebookPromptPlans(normalizedBatch.outlines, {
+      notebookTitle,
+      notebookGoal: args.body.notebookContext?.name || args.body.courseContext?.description,
+      language: args.language,
+      stylePrompt: stylePromptFromBody(args.body),
+      styleBrief: styleBriefFromBody(args.body),
+    });
     await args.onEvent?.({
       type: 'pages',
       batchIndex,
@@ -1183,7 +1281,7 @@ async function generateBatchedPlan(args: {
       pageNumbers: batch.map((page) => page.pageNumber),
       startPage: batch[0]?.pageNumber || 0,
       endPage: batch[batch.length - 1]?.pageNumber || 0,
-      outlines: normalizedBatch.outlines,
+      outlines: batchOutlines,
       pageBriefs: normalizedBatch.plan.pageBriefs,
     });
     return acceptedPagePlans;
@@ -1212,11 +1310,18 @@ async function generateBatchedPlan(args: {
       notebookTitle,
     },
   );
-  const finalReport = assessFullPlanQuality(normalized.outlines, normalized.plan, args.body, 0);
+  const promptReadyOutlines = attachImageNotebookPromptPlans(normalized.outlines, {
+    notebookTitle,
+    notebookGoal: args.body.notebookContext?.name || args.body.courseContext?.description,
+    language: args.language,
+    stylePrompt: stylePromptFromBody(args.body),
+    styleBrief: styleBriefFromBody(args.body),
+  });
+  const finalReport = assessFullPlanQuality(promptReadyOutlines, normalized.plan, args.body, 0);
   reports.push(finalReport);
   await args.onEvent?.({ type: 'quality', quality: finalReport });
   return {
-    outlines: normalized.outlines,
+    outlines: promptReadyOutlines,
     plan: normalized.plan,
     reports,
     batchCount: Math.ceil(activeBlueprint.pageIndex.length / batchSize),
@@ -1463,9 +1568,17 @@ export async function handleImageNotebookPlanRequest(req: NextRequest) {
         language,
         notebookTitle: body.notebookContext?.name || body.courseContext?.name || 'Notebook',
       });
-      const report = assessFullPlanQuality(normalized.outlines, normalized.plan, body, attempt);
+      const notebookTitle = body.notebookContext?.name || body.courseContext?.name || 'Notebook';
+      const promptReadyOutlines = attachImageNotebookPromptPlans(normalized.outlines, {
+        notebookTitle,
+        notebookGoal: body.notebookContext?.name || body.courseContext?.description,
+        language,
+        stylePrompt: stylePromptFromBody(body),
+        styleBrief: styleBriefFromBody(body),
+      });
+      const report = assessFullPlanQuality(promptReadyOutlines, normalized.plan, body, attempt);
       reports.push(report);
-      finalOutlines = normalized.outlines;
+      finalOutlines = promptReadyOutlines;
       finalPlan = normalized.plan;
       if (report.passed || attempt >= maxRetries) break;
       retryFindings = report.findings;
@@ -1482,6 +1595,66 @@ export async function handleImageNotebookPlanRequest(req: NextRequest) {
       model: modelString,
       planQuality: reports[reports.length - 1],
       planQualityAttempts: reports,
+    });
+  } catch (error) {
+    return apiError(
+      API_ERROR_CODES.INTERNAL_ERROR,
+      500,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+export async function handleImageNotebookPromptPlanRequest(req: NextRequest) {
+  try {
+    const body = (await req.json().catch(() => null)) as ImageNotebookPlanRequestBody | null;
+    if (!body?.requirements?.requirement?.trim()) {
+      return apiError(
+        API_ERROR_CODES.MISSING_REQUIRED_FIELD,
+        400,
+        'requirements.requirement is required',
+      );
+    }
+    const language = body.requirements.language || body.courseContext?.language || 'zh-CN';
+    const { model, modelInfo, modelString } = await resolveModelFromHeadersForNotebookStage(
+      req,
+      'outlines',
+      { allowOpenAIModelOverride: true },
+    );
+    const skipCreditCharge =
+      req.headers.get('x-generation-test-no-charge') === 'true' &&
+      (process.env.NODE_ENV !== 'production' ||
+        process.env.SYNTARA_ALLOW_NO_CHARGE_TEST_GENERATION === 'true');
+    const batched = await generateBatchedPlan({
+      req,
+      body,
+      language,
+      model,
+      outputWindow: modelInfo?.outputWindow,
+      system: buildSystemPrompt(language),
+      skipCreditCharge,
+    });
+    const quality = batched.reports[batched.reports.length - 1];
+    const styleBrief = styleBriefFromBody(body);
+    return apiSuccess({
+      courseSpine: batched.plan.courseSpine,
+      imageNotebookStyle: styleBrief,
+      pages: batched.outlines.map((outline) => ({
+        pageNumber: outline.order,
+        title: outline.title,
+        outline,
+        promptPlan: outline.imageNotebookPromptPlan,
+        compiledImagePrompt:
+          outline.imageNotebookPromptPlan?.compiledImagePrompt || outline.imageNotebookPrompt || '',
+        quality,
+      })),
+      plan: batched.plan,
+      outlines: batched.outlines,
+      model: modelString,
+      plannerMode: 'prompt-plan',
+      planBatchCount: batched.batchCount,
+      quality,
+      planQualityAttempts: batched.reports,
     });
   } catch (error) {
     return apiError(

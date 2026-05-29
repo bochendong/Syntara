@@ -59,9 +59,8 @@ export function fixtureKindLabel(kind?: FixtureKind): string {
   return 'fixture';
 }
 
-export function pipelineModeLabel(mode?: PipelineMode): string {
-  if (mode === 'direct-llm') return 'LLM 直读';
-  return '分步';
+export function pipelineModeLabel(_mode?: PipelineMode): string {
+  return 'LLM 直读';
 }
 
 function typeLabel(type: NotebookProblemImportDraft['type']) {
@@ -121,49 +120,12 @@ function checkIcon(status: CheckStatus) {
   return XCircle;
 }
 
-export function stepStateFor(
-  stepId: StepId,
-  run: PipelineRun | null,
-  runningStep: StepId | null,
-): StepState {
-  if (runningStep === stepId) return 'running';
-  if (stepId === 'source-package') return run?.sourcePackage ? 'pass' : 'ready';
-  if (stepId === 'structure-plan') {
-    if (!run?.sourcePackage) return 'locked';
-    if (!run.structurePlan) return 'ready';
-    return run.structurePlan.topLevelProblems.length > 0 ? 'pass' : 'fail';
-  }
-  if (stepId === 'draft-generation') {
-    if (!run?.structurePlan) return 'locked';
-    if (!run.draftResult) return 'ready';
-    return run.draftResult.drafts.length > 0 ? 'pass' : 'fail';
-  }
-  if (stepId === 'quality-report') {
-    if (!run?.draftResult) return 'locked';
-    if (!run.qualityReport) return 'ready';
-    if (run.qualityReport.blockingIssueCount > 0) return 'fail';
-    return run.qualityReport.warningIssueCount > 0 ? 'warn' : 'pass';
-  }
-  if (!run?.draftResult) return 'locked';
-  if (run.draftResult.drafts.length === 0) return 'ready';
-  const hasRenderBlocker = run.draftResult.drafts.some((draft) => {
-    const stem = draftStem(draft).trim();
-    if (!stem) return true;
-    return draft.publicContent.type === 'choice' && draft.publicContent.options.length < 2;
-  });
-  if (hasRenderBlocker) return 'fail';
-  return run.draftResult.drafts.some((draft) => draft.validationErrors.length > 0)
-    ? 'warn'
-    : 'pass';
-}
-
 export function stepStateForMode(
   stepId: StepId,
   run: PipelineRun | null,
   runningStep: StepId | null,
-  mode: PipelineMode,
+  _mode: PipelineMode,
 ): StepState {
-  if (mode !== 'direct-llm') return stepStateFor(stepId, run, runningStep);
   if (runningStep === stepId) return 'running';
   if (stepId === 'source-package') return run?.sourcePackage ? 'pass' : 'ready';
   if (stepId === 'draft-generation') {
@@ -203,7 +165,7 @@ export function mergeRun(
     fixtureKind: fixture?.kind || existing?.fixtureKind || 'material',
     fileName: fixture?.fileName || existing?.fileName || 'unknown',
     fileSize: fileSize || existing?.fileSize || 0,
-    pipelineMode: existing?.pipelineMode || 'stepped',
+    pipelineMode: existing?.pipelineMode || 'direct-llm',
     createdAt: existing?.createdAt || Date.now(),
     ...existing,
     ...patch,
@@ -221,18 +183,15 @@ export function StepSidebar({
   mode: PipelineMode;
   onSelectStep: (stepId: StepId) => void;
 }) {
-  const isDirect = mode === 'direct-llm';
   return (
     <aside className="min-w-0 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)]">
       <div className="border-b border-slate-100 px-4 py-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
           <Layers3 className="size-4 shrink-0" />
-          {isDirect ? 'Problem Import · LLM 直读' : 'Problem Import Pipeline v2'}
+          Problem Import · LLM 直读
         </div>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          {isDirect
-            ? '直读模式只看输入、一次 LLM 结果、QA 和题目预览；Structure Plan 是结果的一部分。'
-            : '逐步观察 Source Package、Structure Plan、Drafts 和 QA，不再把 PDF 读题当黑盒。'}
+          直读模式只看输入、一次 LLM 结果、QA 和题目预览；Structure Plan 是结果的一部分。
         </p>
       </div>
       <div className="grid gap-2 overflow-y-auto p-3 xl:max-h-[calc(100vh-10rem)]">
@@ -318,7 +277,7 @@ export function StepSidebar({
 export function StepShell({
   stepId,
   state,
-  mode = 'stepped',
+  mode = 'direct-llm',
   actionLabel,
   actionDisabled,
   onAction,
@@ -393,7 +352,7 @@ export function StepShell({
       {!locked ? <div className="border-t border-slate-100 p-4">{children}</div> : null}
       {locked ? (
         <div className="border-t border-slate-100 p-4 text-sm text-slate-500">
-          {mode === 'direct-llm' ? '需要先跑出 LLM 直读结果。' : '需要先完成上一个 step。'}
+          需要先跑出 LLM 直读结果。
         </div>
       ) : null}
     </section>
@@ -453,7 +412,7 @@ export function SourcePackagePanel({ sourcePackage }: { sourcePackage?: SourcePa
   if (!sourcePackage) {
     return (
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
-        点击“构建 Source Package”，先把源文件解析成页/段、图片预览和 parser metadata。
+        点击“跑 LLM 直读”，会同时读取源文件、保留页面预览和 parser metadata。
       </div>
     );
   }
@@ -558,195 +517,6 @@ export function MetricCard({ label, value }: { label: string; value: ReactNode }
     <div className="rounded-xl border border-slate-200 bg-white p-3">
       <div className="text-xs text-slate-500">{label}</div>
       <div className="mt-1 truncate text-lg font-semibold text-slate-950">{value}</div>
-    </div>
-  );
-}
-
-export function StructurePlanPanel({ structurePlan }: { structurePlan?: StructurePlan }) {
-  if (!structurePlan) {
-    return (
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
-        Source Package 通过后，生成 Structure Plan 来显式记录模型理解到的题目层级。
-      </div>
-    );
-  }
-  return (
-    <div className="grid gap-4">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{structurePlan.generatedBy}</Badge>
-          <Badge variant="outline">
-            {structurePlan.topLevelProblems.length} top-level problems
-          </Badge>
-          <Badge variant="outline">
-            {structurePlan.nonProblemRegions.length} non-problem regions
-          </Badge>
-        </div>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{structurePlan.sourceSummary}</p>
-      </div>
-
-      {structurePlan.nonProblemRegions.length ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-slate-950">非题目区域</h3>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {structurePlan.nonProblemRegions.map((region, index) => (
-              <div
-                key={`${region.kind}-${index}`}
-                className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm"
-              >
-                <Badge variant="outline">{region.kind}</Badge>
-                <p className="mt-2 text-xs leading-5 text-slate-600">
-                  pages {region.pageNumbers.join(', ') || '-'} · {region.reason}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {structurePlan.sharedContexts.length ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-slate-950">共享材料</h3>
-          <div className="mt-3 grid gap-2">
-            {structurePlan.sharedContexts.map((context) => (
-              <div
-                key={context.id}
-                className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm"
-              >
-                <div className="font-semibold text-slate-950">{context.title}</div>
-                <p className="mt-1 text-xs leading-5 text-slate-600">{context.summary}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-950">顶层题目计划</h3>
-        <div className="mt-3 grid gap-3">
-          {structurePlan.topLevelProblems.map((problem) => (
-            <div
-              key={`${problem.index}-${problem.topLevelLabel}`}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                  {problem.index}
-                </span>
-                <div className="font-semibold text-slate-950">{problem.title}</div>
-                <Badge variant="outline">{problem.problemTypeHint}</Badge>
-                <Badge variant="outline">confidence {Math.round(problem.confidence * 100)}%</Badge>
-              </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border border-slate-200 bg-white p-2">
-                  <div className="text-xs font-semibold text-slate-500">Subparts</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-600">
-                    {problem.subparts.length
-                      ? problem.subparts
-                          .map((subpart) => `(${subpart.label}) ${subpart.prompt}`)
-                          .join('\n')
-                      : '无'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-2">
-                  <div className="text-xs font-semibold text-slate-500">Context blocks</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-600">
-                    {problem.contextBlocks.length
-                      ? problem.contextBlocks
-                          .map((block) => `${block.kind}: ${block.title}`)
-                          .join('\n')
-                      : '无'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-white p-2">
-                  <div className="text-xs font-semibold text-slate-500">Anchors</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-600">
-                    {problem.sourceAnchors.length
-                      ? problem.sourceAnchors
-                          .map(
-                            (anchor) =>
-                              `page ${anchor.pageNumber || '-'}: ${anchor.textQuote || ''}`,
-                          )
-                          .join('\n')
-                      : '无'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-export function DraftGenerationPanel({
-  structurePlan,
-  draftResult,
-  activeDraftId,
-  onSelectDraft,
-}: {
-  structurePlan?: StructurePlan;
-  draftResult?: DraftResult;
-  activeDraftId: string | null;
-  onSelectDraft: (draftId: string) => void;
-}) {
-  if (!draftResult) {
-    return (
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
-        Structure Plan 通过后，生成 drafts。这里会对照“计划结构”和“最终题干”。
-      </div>
-    );
-  }
-  const activeDraft =
-    draftResult.drafts.find((draft) => draft.draftId === activeDraftId) || draftResult.drafts[0];
-  const activeIndex = activeDraft
-    ? Math.max(
-        0,
-        draftResult.drafts.findIndex((draft) => draft.draftId === activeDraft.draftId),
-      )
-    : 0;
-  const planItem = structurePlan?.topLevelProblems[activeIndex] || null;
-  return (
-    <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <DraftList
-        drafts={draftResult.drafts}
-        activeDraftId={activeDraft?.draftId}
-        onSelectDraft={onSelectDraft}
-      />
-      <div className="min-w-0 space-y-4">
-        {activeDraft ? (
-          <>
-            <DraftNavigator
-              drafts={draftResult.drafts}
-              activeDraft={activeDraft}
-              onSelectDraft={onSelectDraft}
-            />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-950">结构计划</h3>
-                <Textarea
-                  readOnly
-                  value={JSON.stringify(planItem, null, 2)}
-                  className="mt-3 min-h-[360px] resize-y font-mono text-xs leading-5"
-                />
-              </section>
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-950">最终题干</h3>
-                <ProblemRichText content={draftStem(activeDraft)} className="mt-3 text-slate-700" />
-              </section>
-            </div>
-            <section className="rounded-xl border border-slate-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-slate-950">sourceMeta</h3>
-              <Textarea
-                readOnly
-                value={JSON.stringify(activeDraft.sourceMeta, null, 2)}
-                className="mt-3 min-h-[220px] resize-y font-mono text-xs leading-5"
-              />
-            </section>
-          </>
-        ) : null}
-      </div>
     </div>
   );
 }

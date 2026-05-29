@@ -164,24 +164,10 @@ function textBlock(lines, x, y, options = {}) {
   return `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, Arial Unicode MS, Arial"${widthAttr}>${tspans}</text>`;
 }
 
-function bullets(items, x, y, theme, options = {}) {
-  const size = options.size ?? 34;
-  const gap = options.gap ?? 62;
-  return items
-    .map((item, index) => {
-      const top = y + index * gap;
-      return [
-        `<circle cx="${x}" cy="${top - 10}" r="13" fill="${theme.soft}" stroke="${theme.accent}" stroke-width="3"/>`,
-        `<path d="M ${x - 6} ${top - 10} L ${x - 1} ${top - 3} L ${x + 8} ${top - 18}" fill="none" stroke="${theme.accent}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
-        textBlock(wrapText(item, 22, 2), x + 34, top, {
-          size,
-          lineHeight: 1.18,
-          weight: 600,
-          fill: '#334155',
-        }),
-      ].join('');
-    })
-    .join('');
+function displayMathText(value) {
+  return String(value)
+    .replaceAll('b | a', 'b 整除 a')
+    .replaceAll('Cantor-Schroder-Bernstein', 'Cantor-Schröder-Bernstein');
 }
 
 function keywordChips(items, x, y, theme) {
@@ -202,28 +188,26 @@ function keywordChips(items, x, y, theme) {
 function getKeywords(title, intent, slug) {
   const source = `${title} ${intent}`;
   if (slug.includes('functions-ii')) {
-    if (/逆|inverse|undo/i.test(source)) return ['f o g = id', 'g o f = id', '双边 undo'];
+    if (/逆|inverse|undo/i.test(source)) return ['f∘g = id_B', 'g∘f = id_A', '双边逆'];
     if (/双射|bijection|可逆/.test(source)) return ['injective', 'surjective', 'bijection'];
     if (/基数|count|无限|Cantor|Schroder|对角线/.test(source))
       return ['|S| <= |T|', 'N ~ 2N', 'diagonal'];
     return ['domain', 'codomain', 'map'];
   }
   if (slug.includes('number-theory-i')) {
-    if (/欧几里得|gcd|Bezout|回代/.test(source))
-      return ['616 = 1·427 + 189', '427 = 2·189 + 49', 'gcd = 7'];
-    if (/整除|divisibility|余数|带余/.test(source)) return ['a = qb + r', 'b | a', '0 <= r < b'];
+    if (/欧几里得|gcd|Bezout|回代/.test(source)) return ['616=1·427+189', '427=2·189+49', 'gcd=7'];
+    if (/整除|divisibility|余数|带余/.test(source)) return ['a=bq+r', 'b divides a', '0<=r<b'];
     return ['Z', 'gcd(a,b)', 'linear combo'];
   }
   if (slug.includes('number-theory-ii')) {
     if (/丢番图|整数解|方程|所有解/.test(source))
-      return ['ax + by = c', 'gcd(a,b) | c', 'x = x0 + bt'];
-    if (/素数|算术基本|无限/.test(source))
-      return ['p | ab', 'prime factorization', 'N = p1...pk + 1'];
+      return ['ax+by=c', 'gcd(a,b) divides c', 'x=x0+(b/d)t'];
+    if (/素数|算术基本|无限/.test(source)) return ['p divides ab', '唯一分解', 'N=p1...pk+1'];
     return ['gcd', 'Bezout', 'prime'];
   }
   if (slug.includes('number-theory-iii')) {
-    if (/模|同余|Z_n|余数/.test(source)) return ['a ≡ b (mod n)', 'Z_n', 'remainder classes'];
-    if (/费马|Fermat|逆元|消去/.test(source)) return ['a^(p-1) ≡ 1', 'mod p', 'a^{-1} exists'];
+    if (/模|同余|Z_n|余数/.test(source)) return ['a=b (mod n)', 'Z_n', '余数类'];
+    if (/费马|Fermat|逆元|消去/.test(source)) return ['a^(p-1)=1', 'mod p', 'a^{-1} exists'];
     return ['clock arithmetic', 'cycles', 'classes'];
   }
   return ['definition', 'example', 'proof'];
@@ -238,6 +222,74 @@ function diagramSvg(slug, order, title, intent, theme) {
 }
 
 function functionsDiagram(keyword, theme) {
+  if (/Cantor|Schroder|Bernstein/.test(keyword)) {
+    return formulaBoard(
+      '互相嵌入 ⇒ 同基数',
+      ['若 |A| ≤ |B| 且 |B| ≤ |A|', '即存在 A→B 与 B→A 的单射', '则 |A| = |B|'],
+      theme,
+    );
+  }
+  if (/对角线|R 不可数|power set|Cantor theorem/i.test(keyword)) {
+    return formulaBoard(
+      '对角线思路',
+      ['列出所有候选对象', '沿对角线逐项改一个位置', '新对象不在原列表中'],
+      theme,
+    );
+  }
+  if (/可数|N、Z、Q|countable/i.test(keyword)) {
+    return formulaBoard(
+      '可数 = 可以排成列表',
+      ['N: 1, 2, 3, ...', 'Z: 0, 1, -1, 2, -2, ...', 'Q: 用网格 + 对角线枚举'],
+      theme,
+    );
+  }
+  if (/基数|无限|count|N 和偶|真子集/.test(keyword)) {
+    return formulaBoard(
+      '用函数比较大小',
+      ['|S| ≤ |T|：存在 S → T 的单射', 'N ∼ 2N：n ↦ 2n', '无限集合可以等大于真子集'],
+      theme,
+    );
+  }
+  if (/失败|非满射|非单射|漏掉|合并/.test(keyword)) {
+    return mappingBoard(
+      'inverse 失败的两种原因',
+      [
+        [1060, 355, 1300, 355],
+        [1060, 470, 1300, 355],
+        [1060, 585, 1300, 585],
+      ],
+      ['合并输入', '漏掉输出'],
+      theme,
+    );
+  }
+  if (/逆|inverse|undo|复合|恒等/.test(keyword)) {
+    return formulaBoard('双边 inverse', ['f: A → B,  g: B → A', 'g∘f = id_A', 'f∘g = id_B'], theme);
+  }
+  if (/双射|bijection|可逆/.test(keyword)) {
+    return mappingBoard(
+      '一一对应',
+      [
+        [1060, 345, 1300, 330],
+        [1060, 460, 1300, 455],
+        [1060, 575, 1300, 580],
+      ],
+      ['injective', 'surjective'],
+      theme,
+    );
+  }
+  return mappingBoard(
+    '映射图',
+    [
+      [1060, 345, 1300, 455],
+      [1060, 460, 1300, 330],
+      [1060, 575, 1300, 580],
+    ],
+    ['domain', 'codomain'],
+    theme,
+  );
+}
+
+function mappingBoard(title, arrows, captions, theme) {
   const nodesLeft = [
     ['a', 1020, 345],
     ['b', 1020, 460],
@@ -248,21 +300,9 @@ function functionsDiagram(keyword, theme) {
     ['2', 1340, 455],
     ['3', 1340, 580],
   ];
-  const arrows = /基数|无限|Cantor|count|对角线/.test(keyword)
-    ? [
-        [1020, 345, 1340, 330],
-        [1020, 460, 1340, 455],
-        [1020, 575, 1340, 580],
-        [1020, 660, 1340, 705],
-      ]
-    : [
-        [1060, 345, 1300, 455],
-        [1060, 460, 1300, 330],
-        [1060, 575, 1300, 580],
-      ];
   return [
     `<rect x="940" y="260" width="500" height="430" rx="34" fill="#ffffff" stroke="${theme.grid}" stroke-width="3"/>`,
-    `<text x="1190" y="305" text-anchor="middle" fill="${theme.accent}" font-size="34" font-weight="800" font-family="PingFang SC, Noto Sans CJK SC, Arial">映射图</text>`,
+    `<text x="1190" y="305" text-anchor="middle" fill="${theme.accent}" font-size="34" font-weight="800" font-family="PingFang SC, Noto Sans CJK SC, Arial">${esc(title)}</text>`,
     `<text x="1020" y="642" text-anchor="middle" fill="#64748b" font-size="26" font-family="Arial">A</text>`,
     `<text x="1340" y="642" text-anchor="middle" fill="#64748b" font-size="26" font-family="Arial">B</text>`,
     ...arrows.map(
@@ -277,31 +317,98 @@ function functionsDiagram(keyword, theme) {
       ([label, x, y]) =>
         `<circle cx="${x}" cy="${y}" r="38" fill="#ecfdf5" stroke="${theme.secondary}" stroke-width="4"/><text x="${x}" y="${y + 11}" text-anchor="middle" fill="#0f172a" font-size="34" font-weight="800" font-family="Arial">${label}</text>`,
     ),
+    `<text x="1190" y="710" text-anchor="middle" fill="#64748b" font-size="24" font-weight="700" font-family="PingFang SC, Noto Sans CJK SC, Arial">${esc(captions.join(' · '))}</text>`,
+  ].join('');
+}
+
+function formulaBoard(title, rows, theme) {
+  return [
+    `<rect x="930" y="255" width="520" height="440" rx="34" fill="#ffffff" stroke="${theme.grid}" stroke-width="3"/>`,
+    `<text x="1190" y="315" text-anchor="middle" fill="${theme.accent}" font-size="34" font-weight="900" font-family="PingFang SC, Noto Sans CJK SC, Arial">${esc(title)}</text>`,
+    ...rows
+      .slice(0, 4)
+      .map((row, index) => {
+        const y = 365 + index * 86;
+        const fontSize = row.length > 24 ? 23 : row.length > 18 ? 25 : 28;
+        return [
+          `<rect x="985" y="${y}" width="410" height="58" rx="18" fill="${index % 2 ? theme.pale : theme.soft}" stroke="${theme.grid}" stroke-width="2"/>`,
+          `<text x="1190" y="${y + 38}" text-anchor="middle" fill="#0f172a" font-size="${fontSize}" font-weight="850" font-family="Arial, PingFang SC, Noto Sans CJK SC">${esc(row)}</text>`,
+        ].join('');
+      })
+      .join(''),
   ].join('');
 }
 
 function numberTheoryDiagram(keyword, theme) {
-  const isPrime = /素数|prime|算术基本|无限/.test(keyword);
-  const isEquation = /丢番图|方程|整数解|解/.test(keyword);
-  const rows = isPrime
-    ? ['若 p | ab', '且 p 为素数', '则 p | a 或 p | b']
-    : isEquation
-      ? ['ax + by = c', 'gcd(a,b) | c', '整数解存在']
-      : ['a = qb + r', '0 <= r < b', 'gcd 会下降'];
-  return [
-    `<rect x="930" y="255" width="520" height="440" rx="34" fill="#ffffff" stroke="${theme.grid}" stroke-width="3"/>`,
-    `<path d="M 990 610 C 1050 500, 1165 520, 1215 420 S 1360 350, 1390 285" fill="none" stroke="${theme.secondary}" stroke-width="8" stroke-linecap="round"/>`,
-    ...rows
-      .map((row, index) => {
-        const y = 320 + index * 105;
-        return `<rect x="985" y="${y}" width="370" height="64" rx="20" fill="${index === 1 ? theme.pale : theme.soft}" stroke="${theme.accent}" stroke-width="3"/><text x="1170" y="${y + 42}" text-anchor="middle" fill="#0f172a" font-size="31" font-weight="800" font-family="Arial, PingFang SC, Noto Sans CJK SC">${esc(row)}</text>`;
-      })
-      .join(''),
-    `<text x="1190" y="658" text-anchor="middle" fill="#64748b" font-size="25" font-family="PingFang SC, Noto Sans CJK SC, Arial">从计算走向证明</text>`,
-  ].join('');
+  if (/整除语言|divisibility|b \| a|b ∣ a/.test(keyword)) {
+    return formulaBoard('整除定义', ['b divides a', 'means: a = b*k', 'k is an integer'], theme);
+  }
+  if (/带余|余数|division algorithm|为什么余数/.test(keyword)) {
+    return formulaBoard('带余除法', ['given a,b and b>0', 'a = bq + r', '0 <= r < b'], theme);
+  }
+  if (/良序|least positive/.test(keyword)) {
+    return formulaBoard(
+      '良序原理',
+      ['非空正整数集合', '一定有最小元素', '常用于存在性证明'],
+      theme,
+    );
+  }
+  if (/欧几里得|gcd|Bezout|回代|最大公因数/.test(keyword)) {
+    return formulaBoard(
+      'Euclidean algorithm',
+      ['616 = 1·427 + 189', '427 = 2·189 + 49', '189 = 3·49 + 42', 'gcd = 7'],
+      theme,
+    );
+  }
+  if (/丢番图|方程|整数解|所有解|非负解/.test(keyword)) {
+    return formulaBoard(
+      '线性丢番图方程',
+      ['ax + by = c', 'd = gcd(a,b)', 'integer solution iff d divides c', '通解沿整数格线移动'],
+      theme,
+    );
+  }
+  if (/互素整除|cancellation|关键工具/.test(keyword)) {
+    return formulaBoard(
+      '互素整除',
+      ['if a divides bc', 'and gcd(a,b)=1', 'then a divides c'],
+      theme,
+    );
+  }
+  if (/素数|prime|算术基本|无理|无限/.test(keyword)) {
+    return formulaBoard(
+      '素数控制整除',
+      ['p prime and p divides ab', 'then p divides a or b', '每个整数有唯一素因数分解'],
+      theme,
+    );
+  }
+  return formulaBoard('从计算走向证明', ['整数方程', '整除条件', 'gcd 与 Bezout'], theme);
 }
 
 function modularDiagram(keyword, theme) {
+  if (/定义：模|同余|congruent/.test(keyword)) {
+    return formulaBoard(
+      '模 n 同余',
+      ['a = b mod n', 'means n divides (a-b)', '等价类按余数分组'],
+      theme,
+    );
+  }
+  if (/等价关系/.test(keyword)) {
+    return formulaBoard('等价关系检查', ['reflexive', 'symmetric', 'transitive'], theme);
+  }
+  if (/良定义|加法|乘法/.test(keyword)) {
+    return formulaBoard(
+      '运算良定义',
+      ['[a]+[b]=[a+b]', '[a]·[b]=[ab]', '换代表元，结果同余'],
+      theme,
+    );
+  }
+  if (/消去|逆元|费马|Fermat|素数模/.test(keyword)) {
+    return formulaBoard(
+      '素数模里的逆元',
+      ['gcd(a,p)=1', 'a has inverse mod p', 'a^(p-1) = 1 mod p'],
+      theme,
+    );
+  }
   const labels = ['0', '1', '2', '3', '4', '5'];
   const centerX = 1190;
   const centerY = 455;
@@ -343,7 +450,8 @@ function slideSvg(notebook, order) {
   const [title, intent] = notebook.slides[order];
   const theme = pickTheme(notebook);
   const keywordItems = getKeywords(title, intent, notebook.slug);
-  const titleLines = wrapText(title, 22, 2);
+  const displayTitle = displayMathText(title);
+  const titleLines = wrapText(displayTitle, 22, 2);
   const intentLines = wrapText(intent, 25, 4);
   const total = notebook.slides.length;
   const section =
@@ -387,7 +495,7 @@ function slideSvg(notebook, order) {
   ${textBlock(intentLines, 182, 510, { size: 31, lineHeight: 1.36, weight: 600, fill: '#475569' })}
   <rect x="142" y="692" width="692" height="86" rx="26" fill="${theme.soft}" stroke="${theme.grid}" stroke-width="2"/>
   ${keywordChips(keywordItems, 176, 744, theme)}
-  ${diagramSvg(notebook.slug, order, title, intent, theme)}
+  ${diagramSvg(notebook.slug, order, displayTitle, intent, theme)}
   <text x="1450" y="775" text-anchor="end" fill="#94a3b8" font-size="24" font-weight="700" font-family="Arial">MAT102 · ${esc(notebook.title)}</text>
 </svg>`;
 }

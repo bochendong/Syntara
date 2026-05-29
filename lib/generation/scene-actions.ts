@@ -23,7 +23,11 @@ import type {
   CoursePersonalizationContext,
   SceneGenerationContext,
 } from './pipeline-types';
-import { parseActionsFromStructuredOutput } from './action-parser';
+import {
+  parseActionsFromStructuredOutput,
+  parseLectureSegmentsFromStructuredOutput,
+  type LectureSegment,
+} from './action-parser';
 import { buildPrompt, PROMPT_IDS } from './prompts';
 import {
   buildCourseContext,
@@ -66,14 +70,17 @@ export async function generateSceneActions(
     actions: Action[],
     elements: PPTElement[] = [],
     semanticDocument?: NotebookContentDocument,
+    options: { ensureOpeningFocus?: boolean } = {},
   ) =>
     verbalizeSpeechActions(
-      ensureOpeningSpotlight(
-        processActions(actions, elements, agents, semanticDocument),
-        elements,
-        lang,
-        semanticDocument,
-      ),
+      options.ensureOpeningFocus === false
+        ? processActions(actions, elements, agents, semanticDocument)
+        : ensureOpeningSpotlight(
+            processActions(actions, elements, agents, semanticDocument),
+            elements,
+            lang,
+            semanticDocument,
+          ),
       lang,
     );
 
@@ -129,7 +136,14 @@ export async function generateSceneActions(
     }
 
     const response = await aiCall(prompts.system, prompts.user);
-    const actions = parseActionsFromStructuredOutput(response, outline.type);
+    const lectureSegments = parseLectureSegmentsFromStructuredOutput(response);
+    const actions =
+      lectureSegments.length > 0
+        ? compileLectureSegmentsToActions(lectureSegments, {
+            validFocusTargetIds: focusTargetIdsForSlide(content.elements, content.contentDocument),
+            language: lang,
+          })
+        : parseActionsFromStructuredOutput(response, outline.type);
 
     if (actions.length > 0) {
       if (hasUnexpectedCjkForLanguage(actions, lang)) {
@@ -148,7 +162,9 @@ export async function generateSceneActions(
           lang,
         );
       }
-      return finalizeSlideActions(actions, content.elements, content.contentDocument);
+      return finalizeSlideActions(actions, content.elements, content.contentDocument, {
+        ensureOpeningFocus: false,
+      });
     }
 
     const semanticFallback = buildSemanticNarrationFallback(
@@ -471,6 +487,46 @@ function formatActionTeachingContext(
   return sections.join('\n\n');
 }
 
+function focusTargetIdsForSlide(
+  elements: PPTElement[],
+  semanticDocument?: NotebookContentDocument,
+): Set<string> {
+  const ids = new Set(elements.map((element) => element.id).filter(Boolean));
+  if (semanticDocument) {
+    for (const id of semanticSpotlightTargetIds(semanticDocument)) ids.add(id);
+  }
+  return ids;
+}
+
+function compileLectureSegmentsToActions(
+  segments: LectureSegment[],
+  options: { validFocusTargetIds: Set<string>; language: string },
+): Action[] {
+  const actions: Action[] = [];
+  const lang = options.language === 'en-US' ? 'en-US' : 'zh-CN';
+
+  for (const segment of segments) {
+    if (segment.focusTargetId && options.validFocusTargetIds.has(segment.focusTargetId)) {
+      actions.push({
+        id: `action_${nanoid(8)}`,
+        type: 'spotlight',
+        title: lang === 'zh-CN' ? '聚焦当前讲解区域' : 'Focus current explanation area',
+        elementId: segment.focusTargetId,
+        dimOpacity: 0.55,
+      });
+    }
+    actions.push({
+      id: segment.id || `action_${nanoid(8)}`,
+      type: 'speech',
+      title: segment.title,
+      text: segment.text,
+      speed: 1,
+    });
+  }
+
+  return actions;
+}
+
 function formatElementsForPrompt(
   elements: PPTElement[],
   semanticDocument?: NotebookContentDocument,
@@ -603,13 +659,12 @@ function processActions(
   agents?: AgentInfo[],
   semanticDocument?: NotebookContentDocument,
 ): Action[] {
-  const elementIds = new Set(elements.map((el) => el.id));
-  const semanticTargetIds = semanticDocument ? semanticSpotlightTargetIds(semanticDocument) : null;
+  const targetIds = focusTargetIdsForSlide(elements, semanticDocument);
   const agentIds = new Set(agents?.map((a) => a.id) || []);
   const studentAgents = agents?.filter((a) => a.role === 'student') || [];
   const nonTeacherAgents = agents?.filter((a) => a.role !== 'teacher') || [];
 
-  return actions.map((action) => {
+  return actions.flatMap((action) => {
     const processedAction: Action = {
       ...action,
       id: action.id || `action_${nanoid(8)}`,
@@ -617,17 +672,19 @@ function processActions(
 
     if (processedAction.type === 'spotlight') {
       const spotlightAction = processedAction;
-      const hasValidElementTarget = elementIds.has(spotlightAction.elementId);
-      const hasValidSemanticTarget = semanticTargetIds?.has(spotlightAction.elementId) ?? false;
-      if (!spotlightAction.elementId || (!hasValidElementTarget && !hasValidSemanticTarget)) {
-        const fallbackTargetId =
-          pickSemanticSpotlightTarget(semanticDocument) || pickSpotlightTarget(elements)?.id;
-        if (fallbackTargetId) {
-          spotlightAction.elementId = fallbackTargetId;
-          log.warn(
-            `Invalid spotlight elementId, falling back to teaching element: ${spotlightAction.elementId}`,
-          );
-        }
+      if (!spotlightAction.elementId || !targetIds.has(spotlightAction.elementId)) {
+        log.warn(
+          `Invalid spotlight elementId, dropping focus action: ${spotlightAction.elementId}`,
+        );
+        return [];
+      }
+    }
+
+    if (processedAction.type === 'laser') {
+      const laserAction = processedAction;
+      if (!laserAction.elementId || !targetIds.has(laserAction.elementId)) {
+        log.warn(`Invalid laser elementId, dropping focus action: ${laserAction.elementId}`);
+        return [];
       }
     }
 
@@ -646,7 +703,7 @@ function processActions(
       }
     }
 
-    return processedAction;
+    return [processedAction];
   });
 }
 

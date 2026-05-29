@@ -19,6 +19,7 @@ import type { Scene } from '@/lib/types/stage';
 import type { Action } from '@/lib/types/action';
 import { normalizeSlideTextLayout } from '@/lib/slide-text-layout';
 import { markSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
+import { isImageNotebookFocusElement } from '@/lib/utils/image-notebook-focus-elements';
 import { applyOutlineFallbacks } from './outline-generator';
 import {
   generateSceneContent,
@@ -33,6 +34,10 @@ const log = createLogger('Generation');
 function stripShapeElements(elements: Slide['elements']): Slide['elements'] {
   const converted: Slide['elements'] = [];
   for (const element of elements) {
+    if (isImageNotebookFocusElement(element)) {
+      converted.push(element);
+      continue;
+    }
     if (element.type !== 'shape') {
       converted.push(element);
       continue;
@@ -217,6 +222,8 @@ export function buildCompleteScene(
         canvas: slide,
         syntaraMarkup: content.syntaraMarkup,
         semanticDocument: content.contentDocument,
+        imageNotebookPromptPlan: content.imageNotebookPromptPlan,
+        webRenderMode: content.webRenderMode,
       }),
       actions,
       createdAt: Date.now(),

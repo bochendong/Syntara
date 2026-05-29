@@ -6,6 +6,11 @@ import {
 } from '@/lib/constants/slide-backgrounds';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import type { SlideBackground } from '@/lib/types/slides';
+import { preserveSlideBackground } from '@/lib/utils/slide-background-policy';
+
+type SlideBackgroundStyleOptions = {
+  applyProfileStyle?: boolean;
+};
 
 function cssUrl(src: string): string {
   return `url("${src.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`;
@@ -14,12 +19,19 @@ function cssUrl(src: string): string {
 /**
  * Convert slide background data to CSS styles
  */
-export function useSlideBackgroundStyle(background: SlideBackground | undefined) {
+export function useSlideBackgroundStyle(
+  background: SlideBackground | undefined,
+  options: SlideBackgroundStyleOptions = {},
+) {
   const slideBackgroundStyleId = useUserProfileStore((s) => s.slideBackgroundStyleId);
+  const applyProfileStyle = options.applyProfileStyle ?? true;
 
   const effectiveBackground = useMemo(
-    () => resolveEffectiveSlideBackground(background, slideBackgroundStyleId),
-    [background, slideBackgroundStyleId],
+    () =>
+      applyProfileStyle
+        ? resolveEffectiveSlideBackground(background, slideBackgroundStyleId)
+        : preserveSlideBackground(background),
+    [applyProfileStyle, background, slideBackgroundStyleId],
   );
 
   const backgroundStyle = useMemo<React.CSSProperties>(() => {

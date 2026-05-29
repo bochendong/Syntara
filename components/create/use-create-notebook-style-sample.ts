@@ -5,6 +5,7 @@ import type { NotebookGenerationModelMode } from '@/lib/constants/notebook-gener
 import { getApiHeaders } from '@/lib/create/generation-headers';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { createLogger } from '@/lib/logger';
+import type { ImageNotebookStyleBrief } from '@/lib/generation/image-notebook-quality';
 import type {
   NotebookStageModelOverrides,
   OrchestratorWorkedExampleLevel,
@@ -37,6 +38,7 @@ type UseCreateNotebookStyleSampleArgs = {
   courseId: string;
   currentStyleSampleKey: string;
   drawingStylePrompt: string;
+  imageNotebookStyleBrief: ImageNotebookStyleBrief;
   form: FormState;
   hasCustomDrawingStyle: boolean;
   includeQuizScenes: boolean;
@@ -66,6 +68,7 @@ export function useCreateNotebookStyleSample({
   courseId,
   currentStyleSampleKey,
   drawingStylePrompt,
+  imageNotebookStyleBrief,
   form,
   hasCustomDrawingStyle,
   includeQuizScenes,
@@ -109,6 +112,7 @@ export function useCreateNotebookStyleSample({
       language,
       style: selectedStyle,
       customStylePrompt: drawingStylePrompt,
+      styleBrief: imageNotebookStyleBrief,
       palette: selectedPalette,
       sourceImages: selectedSourceImages,
       includeQuizScenes,
@@ -149,6 +153,7 @@ export function useCreateNotebookStyleSample({
         ]
           .filter(Boolean)
           .join(' · '),
+        imageNotebookStyle: imageNotebookStyleBrief,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -272,6 +277,7 @@ export function useCreateNotebookStyleSample({
     form.sourceFile?.name,
     hasCustomDrawingStyle,
     hasSelectableSourceImages,
+    imageNotebookStyleBrief,
     includeQuizScenes,
     language,
     modelIdOverride,
