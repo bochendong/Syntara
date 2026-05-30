@@ -20,7 +20,7 @@
 - `{"type":"speech","content":"...","focusTargetId":"..."}`
 - `{"type":"speech","content":"..."}`
 
-`focusTargetId` 是可选字段。只有当这一段讲解明确对应某个可见区域时才填写；过渡、总览、追问、总结、口头铺垫不要填写。`focusTargetId` 必须来自输入里的 Focus Targets / Elements。不要输出单独的 spotlight / laser action；代码会根据 `focusTargetId` 编译播放动作。如果某个区域生成或 recover 失败，代码会保留 speech 并跳过聚焦。
+`focusTargetId` 是可选字段。只有当这一段讲解明确对应某个可见区域时才填写；过渡、总览、追问、总结、口头铺垫不要填写。`focusTargetId` 必须来自输入里的 Focus Targets / Elements。如果本段讲的是某个没有出现在 Focus Targets / Elements 里的组件，就省略 `focusTargetId`；不要为了显示聚焦而绑定到相邻、兜底或只是宽泛相关的区域。不要输出单独的 spotlight / laser action；代码会根据 `focusTargetId` 编译播放动作。如果某个区域生成或 recover 失败，代码会保留 speech 并跳过聚焦。
 
 ## 讲解质量
 

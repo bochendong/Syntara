@@ -69,14 +69,6 @@ function pickSlidePreviewImageUrl(slide: Slide | undefined): string | null {
   return image?.src.trim() || null;
 }
 
-function hasLocalOnlySlideImage(slide: Slide | undefined): boolean {
-  return Boolean(
-    slide?.elements.some(
-      (element) => element.type === 'image' && isLocalGeneratedNotebookImageSrc(element.src),
-    ),
-  );
-}
-
 const notebookSpineClassNames = [
   'border-blue-200/80 bg-blue-100/80 dark:border-blue-400/20 dark:bg-blue-500/15',
   'border-emerald-200/80 bg-emerald-100/80 dark:border-emerald-400/20 dark:bg-emerald-500/15',
@@ -84,6 +76,12 @@ const notebookSpineClassNames = [
   'border-amber-200/80 bg-amber-100/80 dark:border-amber-400/20 dark:bg-amber-500/15',
   'border-rose-200/80 bg-rose-100/75 dark:border-rose-400/20 dark:bg-rose-500/15',
 ] as const;
+
+type NotebookPracticeProgress = {
+  total: number;
+  attempted: number;
+  mastered?: number;
+};
 
 interface CourseGalleryCardProps {
   course: StageListItem;
@@ -126,6 +124,7 @@ interface CourseGalleryCardProps {
   memoryCount?: number;
   onMemoryAction?: () => void;
   problemCount?: number;
+  practiceProgress?: NotebookPracticeProgress;
   onProblemAction?: () => void;
 }
 
@@ -208,6 +207,7 @@ export function CourseGalleryCard({
   memoryCount,
   onMemoryAction,
   problemCount,
+  practiceProgress,
   onProblemAction,
 }: CourseGalleryCardProps) {
   const cfg = variantConfig[variant];
@@ -239,8 +239,7 @@ export function CourseGalleryCard({
       : null;
   const preferredCoverUrl = safeCoverAvatarUrl ?? galleryCoverUrl;
   const slidePreviewImageUrl = pickSlidePreviewImageUrl(slide);
-  const slideUsesLocalOnlyImage = hasLocalOnlySlideImage(slide);
-  const shouldRenderSlideThumbnail = Boolean(slide && thumbWidth > 0 && !slideUsesLocalOnlyImage);
+  const shouldRenderSlideThumbnail = Boolean(slide && thumbWidth > 0);
 
   useEffect(() => {
     setCoverImgSrc(null);
@@ -290,10 +289,33 @@ export function CourseGalleryCard({
       typeof memoryCount === 'number' && memoryCount > 0 ? memoryCount : 0;
     const formattedProblemCount =
       typeof problemCount === 'number' && problemCount > 0 ? problemCount : 0;
+    const practiceTotal = Math.max(0, Math.floor(practiceProgress?.total ?? 0));
+    const practiceAttempted = Math.min(
+      practiceTotal,
+      Math.max(0, Math.floor(practiceProgress?.attempted ?? 0)),
+    );
+    const practiceMastered = Math.min(
+      practiceTotal,
+      Math.max(0, Math.floor(practiceProgress?.mastered ?? 0)),
+    );
+    const practicePercent =
+      practiceTotal > 0 ? Math.round((practiceAttempted / practiceTotal) * 100) : 0;
+    const masteryPercent =
+      practiceTotal > 0 ? Math.round((practiceMastered / practiceTotal) * 100) : 0;
+    const practiceProgressClassName =
+      practicePercent >= 80
+        ? 'bg-emerald-500'
+        : practicePercent >= 40
+          ? 'bg-blue-500'
+          : practicePercent > 0
+            ? 'bg-amber-500'
+            : 'bg-slate-300 dark:bg-white/20';
+    const practiceProgressTitle =
+      practiceTotal > 0
+        ? `已做 ${practiceAttempted}/${practiceTotal}，掌握 ${practiceMastered}/${practiceTotal}（${masteryPercent}%）`
+        : '暂无题目';
     const shouldUseSlidePreviewImage = Boolean(
-      slidePreviewImageUrl &&
-      !slideUsesLocalOnlyImage &&
-      failedSlidePreviewUrl !== slidePreviewImageUrl,
+      slidePreviewImageUrl && failedSlidePreviewUrl !== slidePreviewImageUrl,
     );
     const hasMoveActions = Boolean(moveToCourseTargets?.length && onMoveToCourse);
     const hasPublishAction = Boolean(onSecondaryAction && secondaryActionLabel);
@@ -356,6 +378,31 @@ export function CourseGalleryCard({
                 />
               )}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/14 via-transparent to-white/10" />
+            </div>
+            <div
+              className="min-w-0 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 py-1.5 dark:border-white/10 dark:bg-white/[0.04]"
+              aria-label={practiceProgressTitle}
+              data-notebook-practice-progress
+              title={practiceProgressTitle}
+            >
+              <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[9px] font-medium leading-none">
+                <span className="truncate text-slate-500 dark:text-slate-400">做题进度</span>
+                <span className="shrink-0 tabular-nums text-slate-700 dark:text-slate-200">
+                  {practiceTotal > 0 ? `${practiceAttempted}/${practiceTotal}` : '暂无题'}
+                </span>
+              </div>
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10"
+                aria-hidden
+              >
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    practiceProgressClassName,
+                  )}
+                  style={{ width: `${practicePercent}%` }}
+                />
+              </div>
             </div>
           </div>
 

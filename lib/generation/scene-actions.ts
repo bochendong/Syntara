@@ -10,6 +10,10 @@ import type { Action } from '@/lib/types/action';
 import type { PPTElement } from '@/lib/types/slides';
 import type { QuizQuestion } from '@/lib/types/stage';
 import type { NotebookContentDocument } from '@/lib/notebook-content';
+import type {
+  ImageNotebookPagePromptPlan,
+  ImageNotebookPromptComponentPlan,
+} from '@/lib/generation/image-notebook-quality';
 import {
   buildSemanticSpotlightSections,
   flattenSemanticSpotlightTargets,
@@ -41,6 +45,12 @@ import { buildCsNarrationActions } from './cs-narration-planner';
 import type { TeachingPagePlan } from './teaching-plan';
 
 const log = createLogger('Generation');
+
+type ImageNotebookFocusTargetMetadata = {
+  id: string;
+  label: string;
+  anchors: string[];
+};
 
 export async function generateSceneActions(
   outline: SceneOutline,
@@ -142,6 +152,9 @@ export async function generateSceneActions(
         ? compileLectureSegmentsToActions(lectureSegments, {
             validFocusTargetIds: focusTargetIdsForSlide(content.elements, content.contentDocument),
             language: lang,
+            imageNotebookFocusTargets: buildImageNotebookFocusTargetMetadata(
+              content.imageNotebookPromptPlan,
+            ),
           })
         : parseActionsFromStructuredOutput(response, outline.type);
 
@@ -498,15 +511,138 @@ function focusTargetIdsForSlide(
   return ids;
 }
 
+function normalizeFocusText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[“”"'`·,，.。:：;；!?！？()[\]{}<>《》、/\\|_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const IMAGE_NOTEBOOK_FOCUS_STOP_ANCHORS = new Set([
+  'in',
+  's',
+  'py',
+  'startswith',
+  'endswith',
+  'start',
+  'end',
+  'true',
+  'false',
+  '开头',
+  '出现',
+  '结尾',
+  '判断',
+  '方法',
+  '对应',
+  '题目',
+  '任务',
+  '区域',
+  '内容',
+  '本页',
+]);
+
+function collectFocusAnchors(text: string): string[] {
+  const normalized = normalizeFocusText(text);
+  if (!normalized) return [];
+  const anchors = new Set<string>();
+  if (normalized.length >= 3 && normalized.length <= 42) anchors.add(normalized);
+
+  for (const token of normalized.match(/[a-z][a-z0-9_]{2,}/g) || []) {
+    if (!IMAGE_NOTEBOOK_FOCUS_STOP_ANCHORS.has(token)) anchors.add(token);
+  }
+  for (const token of normalized.match(/[\u4e00-\u9fff]{2,}/g) || []) {
+    if (!IMAGE_NOTEBOOK_FOCUS_STOP_ANCHORS.has(token)) anchors.add(token);
+    for (let size = 2; size <= Math.min(4, token.length); size += 1) {
+      for (let i = 0; i <= token.length - size; i += 1) {
+        const piece = token.slice(i, i + size);
+        if (!IMAGE_NOTEBOOK_FOCUS_STOP_ANCHORS.has(piece)) anchors.add(piece);
+      }
+    }
+  }
+  return [...anchors];
+}
+
+function componentFocusAnchors(component: ImageNotebookPromptComponentPlan): string[] {
+  const raw = [
+    component.label,
+    component.role,
+    component.layoutSlot,
+    ...(component.visibleText || []),
+    ...(component.formulas || []),
+    component.diagramPrompt || '',
+  ];
+  const anchors = new Set<string>();
+  raw.forEach((item) => collectFocusAnchors(item).forEach((anchor) => anchors.add(anchor)));
+  return [...anchors].slice(0, 80);
+}
+
+function buildImageNotebookFocusTargetMetadata(
+  promptPlan?: ImageNotebookPagePromptPlan,
+): Map<string, ImageNotebookFocusTargetMetadata> | undefined {
+  if (!promptPlan?.componentPlans?.length) return undefined;
+  const recoveredIds = new Set(
+    (promptPlan.recoveryResult?.components || [])
+      .filter((component) => component.bbox)
+      .map((component) => component.componentId),
+  );
+  const focusTargets = new Map<string, ImageNotebookFocusTargetMetadata>();
+  for (const component of promptPlan.componentPlans) {
+    if (!component.participatesInMask) continue;
+    if (recoveredIds.size > 0 && !recoveredIds.has(component.id)) continue;
+    focusTargets.set(component.id, {
+      id: component.id,
+      label: component.label,
+      anchors: componentFocusAnchors(component),
+    });
+  }
+  return focusTargets.size ? focusTargets : undefined;
+}
+
+function segmentMatchesImageNotebookTarget(
+  segmentText: string,
+  target: ImageNotebookFocusTargetMetadata,
+): boolean {
+  const segment = normalizeFocusText(segmentText);
+  if (!segment) return false;
+
+  const label = normalizeFocusText(target.label);
+  if (label && (segment.includes(label) || label.includes(segment))) return true;
+
+  let hits = 0;
+  for (const anchor of target.anchors) {
+    if (!anchor || IMAGE_NOTEBOOK_FOCUS_STOP_ANCHORS.has(anchor)) continue;
+    if (segment.includes(anchor)) hits += anchor.length >= 4 ? 2 : 1;
+    if (hits >= 3) return true;
+  }
+  return false;
+}
+
 function compileLectureSegmentsToActions(
   segments: LectureSegment[],
-  options: { validFocusTargetIds: Set<string>; language: string },
+  options: {
+    validFocusTargetIds: Set<string>;
+    language: string;
+    imageNotebookFocusTargets?: Map<string, ImageNotebookFocusTargetMetadata>;
+  },
 ): Action[] {
   const actions: Action[] = [];
   const lang = options.language === 'en-US' ? 'en-US' : 'zh-CN';
 
   for (const segment of segments) {
-    if (segment.focusTargetId && options.validFocusTargetIds.has(segment.focusTargetId)) {
+    const targetMetadata = segment.focusTargetId
+      ? options.imageNotebookFocusTargets?.get(segment.focusTargetId)
+      : undefined;
+    const focusMatchesImageNotebookTarget =
+      !options.imageNotebookFocusTargets ||
+      Boolean(targetMetadata && segmentMatchesImageNotebookTarget(segment.text, targetMetadata));
+
+    if (
+      segment.focusTargetId &&
+      options.validFocusTargetIds.has(segment.focusTargetId) &&
+      focusMatchesImageNotebookTarget
+    ) {
       actions.push({
         id: `action_${nanoid(8)}`,
         type: 'spotlight',

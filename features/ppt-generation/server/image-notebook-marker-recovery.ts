@@ -226,7 +226,9 @@ function toCanvasBbox(
   ];
 }
 
-function componentRoleToFocusRole(component: ImageNotebookPromptComponentPlan): ImageNotebookFocusRole {
+function componentRoleToFocusRole(
+  component: ImageNotebookPromptComponentPlan,
+): ImageNotebookFocusRole {
   if (component.role === 'header' || component.role === 'opening') return 'opening';
   if (component.role === 'formula') return 'formula';
   if (component.role === 'example') return 'example';
@@ -259,7 +261,7 @@ function focusRegionsFromRecovery(
       const bottom = Math.max(top + 1, Math.min(IMAGE_NOTEBOOK_CANVAS_HEIGHT, bbox[3]));
       return {
         id: component.id,
-        label: component.label,
+        label: focusLabelForComponent(component),
         role: componentRoleToFocusRole(component),
         left: round1(left),
         top: round1(top),
@@ -289,10 +291,13 @@ async function sourceToBuffer(imageSrc: string, requestUrl?: string): Promise<Bu
   if (/^[A-Za-z0-9+/=\s]+$/.test(imageSrc) && imageSrc.length > 200) {
     return Buffer.from(imageSrc, 'base64');
   }
-  const url = imageSrc.startsWith('/') && requestUrl ? new URL(imageSrc, requestUrl).toString() : imageSrc;
+  const url =
+    imageSrc.startsWith('/') && requestUrl ? new URL(imageSrc, requestUrl).toString() : imageSrc;
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Unable to fetch generated notebook image for marker recovery: ${response.status}`);
+    throw new Error(
+      `Unable to fetch generated notebook image for marker recovery: ${response.status}`,
+    );
   }
   return Buffer.from(await response.arrayBuffer());
 }
@@ -310,7 +315,19 @@ async function decodeRawImage(imageSrc: string, requestUrl?: string): Promise<Ra
   };
 }
 
-async function cleanMarkerImage(raw: RawImage, markerComponents: MarkerComponent[]): Promise<string> {
+async function rawImageToDataUrl(raw: RawImage): Promise<string> {
+  const imageBuffer = await sharp(raw.data, {
+    raw: { width: raw.width, height: raw.height, channels: 3 },
+  })
+    .png()
+    .toBuffer();
+  return `data:image/png;base64,${imageBuffer.toString('base64')}`;
+}
+
+async function cleanMarkerImage(
+  raw: RawImage,
+  markerComponents: MarkerComponent[],
+): Promise<string> {
   const out = Buffer.from(raw.data);
 
   const fillRect = (component: MarkerComponent) => {
@@ -324,8 +341,16 @@ async function cleanMarkerImage(raw: RawImage, markerComponents: MarkerComponent
     const gs: number[] = [];
     const bs: number[] = [];
 
-    for (let y = Math.max(0, y1 - samplePad); y <= Math.min(raw.height - 1, y2 + samplePad); y += 1) {
-      for (let x = Math.max(0, x1 - samplePad); x <= Math.min(raw.width - 1, x2 + samplePad); x += 1) {
+    for (
+      let y = Math.max(0, y1 - samplePad);
+      y <= Math.min(raw.height - 1, y2 + samplePad);
+      y += 1
+    ) {
+      for (
+        let x = Math.max(0, x1 - samplePad);
+        x <= Math.min(raw.width - 1, x2 + samplePad);
+        x += 1
+      ) {
         if (x >= x1 && x <= x2 && y >= y1 && y <= y2) continue;
         const i = (y * raw.width + x) * 3;
         const r = raw.data[i] || 0;
@@ -365,6 +390,15 @@ function matcherForHex(hex: string | undefined): MarkerColorMatcher | undefined 
   return MARKER_MATCHERS.find((matcher) => matcher.hex === normalized);
 }
 
+function focusLabelForComponent(component: ImageNotebookPromptComponentPlan): string {
+  const visibleText = [...(component.visibleText || []), ...(component.formulas || [])]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join(' / ');
+  return visibleText ? `${component.label}: ${visibleText}` : component.label;
+}
+
 export async function recoverImageNotebookMarkers(args: {
   imageUrl: string;
   imageResult: ImageGenerationResult;
@@ -378,6 +412,7 @@ export async function recoverImageNotebookMarkers(args: {
   studentImageResult: ImageGenerationResult;
 }> {
   const raw = await decodeRawImage(args.imageUrl, args.requestUrl);
+  const originalMarkerImageUrl = await rawImageToDataUrl(raw);
   const findings: string[] = [];
   const recoveredComponents: NonNullable<ImageNotebookPromptRecoveryResult['components']> = [];
   const cleanComponents: MarkerComponent[] = [];
@@ -388,7 +423,9 @@ export async function recoverImageNotebookMarkers(args: {
   for (const component of componentPlans) {
     const matcher = matcherForHex(component.markerColorHex);
     if (!matcher) {
-      findings.push(`${component.label}: missing marker color ${component.markerColorHex || 'unknown'}.`);
+      findings.push(
+        `${component.label}: missing marker color ${component.markerColorHex || 'unknown'}.`,
+      );
       recoveredComponents.push({
         componentId: component.id,
         markerColorHex: component.markerColorHex || '',
@@ -401,7 +438,8 @@ export async function recoverImageNotebookMarkers(args: {
     const compactComponents = components.filter(isCompactCornerMarker);
     cleanComponents.push(...compactComponents);
     const hits = selectCornerHitsFromComponents(compactComponents);
-    const sourceBbox = hits.length === 4 ? bboxFromComponents(hits.map((hit) => hit.component)) : undefined;
+    const sourceBbox =
+      hits.length === 4 ? bboxFromComponents(hits.map((hit) => hit.component)) : undefined;
     const canvasBbox = sourceBbox ? toCanvasBbox(sourceBbox, raw) : undefined;
 
     if (!canvasBbox) {
@@ -430,14 +468,18 @@ export async function recoverImageNotebookMarkers(args: {
     });
   }
 
-  const expectedColorHexes = new Set(componentPlans.map((component) => component.markerColorHex?.toLowerCase()));
+  const expectedColorHexes = new Set(
+    componentPlans.map((component) => component.markerColorHex?.toLowerCase()),
+  );
   for (const color of IMAGE_NOTEBOOK_MARKER_COLOR_POOL) {
     if (expectedColorHexes.has(color.hex)) continue;
     const matcher = matcherForHex(color.hex);
     if (!matcher) continue;
     const extra = componentsForColor(raw, matcher).filter(isCompactCornerMarker);
     if (extra.length > 0) {
-      findings.push(`Unexpected pure ${color.name} marker-like squares recovered: ${extra.length}.`);
+      findings.push(
+        `Unexpected pure ${color.name} marker-like squares recovered: ${extra.length}.`,
+      );
       cleanComponents.push(...extra);
     }
   }
@@ -446,6 +488,11 @@ export async function recoverImageNotebookMarkers(args: {
   const recoveryResult: ImageNotebookPromptRecoveryResult = {
     status: findings.length ? (recoveredRegionCount > 0 ? 'partial' : 'failed') : 'passed',
     recoveredAt: Date.now(),
+    originalMarkerImageUrl,
+    originalMarkerImageDimensions: {
+      width: raw.width,
+      height: raw.height,
+    },
     findings,
     components: recoveredComponents,
   };

@@ -1,7 +1,7 @@
 /**
  * Stage API - AI Agent Toolkit
  *
- * Provides a complete Stage operation interface for AI Agents to create and manage course content
+ * Provides the Stage operations still used by generation and playback flows.
  *
  * Design Principles:
  * 1. Type Safety: Fully leverage TypeScript's type system
@@ -20,29 +20,11 @@
  *   title: 'Introduction',
  *   // speech is now in actions
  * });
- *
- * // Add an element
- * const elementId = api.element.add(sceneId, {
- *   type: 'text',
- *   content: 'Hello World',
- *   left: 100,
- *   top: 100
- * });
- *
- * // Highlight an element (teaching feature)
- * api.canvas.highlight(sceneId, elementId, 3000);
  * ```
  */
 
 // Re-export all types
-export type {
-  APIResult,
-  CreateSceneParams,
-  CreateElementParams,
-  HighlightOptions,
-  SpotlightOptions,
-  StageStore,
-} from './stage-api-types';
+export type { APIResult, CreateSceneParams, StageStore } from './stage-api-types';
 
 // Re-export utility functions that were previously accessible
 export {
@@ -58,8 +40,6 @@ export {
 
 // Import sub-API factories
 import { createSceneAPI } from './stage-api-scene';
-import { createElementAPI } from './stage-api-element';
-import { createCanvasAPI } from './stage-api-canvas';
 import { createNavigationAPI } from './stage-api-navigation';
 import { createWhiteboardAPI } from './stage-api-whiteboard';
 import { createModeAPI, createStageMetaAPI } from './stage-api-mode';
@@ -77,8 +57,6 @@ export function createStageAPI(store: StageStore) {
   return {
     scene: createSceneAPI(store),
     navigation: createNavigationAPI(store),
-    element: createElementAPI(store),
-    canvas: createCanvasAPI(store),
     whiteboard: createWhiteboardAPI(store),
     mode: createModeAPI(store),
     stage: createStageMetaAPI(store),

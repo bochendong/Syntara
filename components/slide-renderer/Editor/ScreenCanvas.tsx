@@ -13,6 +13,7 @@ import { FlowTimelineOverlay } from '../components/FlowTimelineOverlay';
 import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, SlideBackground } from '@/lib/types/slides';
 import type { PercentageGeometry } from '@/lib/types/action';
+import type { ImageNotebookPromptRecoveryResult } from '@/lib/generation/image-notebook-quality';
 import { useViewportSize } from './Canvas/hooks/useViewportSize';
 import { useMemo, type RefObject } from 'react';
 import { AnimatePresence } from 'motion/react';
@@ -21,7 +22,7 @@ import { hasFullPageBitmapElement } from '@/lib/utils/slide-background-policy';
 export interface ScreenCanvasProps {
   /** Fills the slide stage; used for viewport measurement and clipping (no extra wrapper inside). */
   readonly containerRef: RefObject<HTMLDivElement | null>;
-  /** Debug-only overlay that draws recoverable corner markers over invisible focus regions. */
+  /** Debug-only overlay that shows the original generated image before marker cleanup. */
   readonly showMarkerDebugOverlay?: boolean;
 }
 
@@ -32,9 +33,6 @@ const LEGACY_FULL_ROW_MIN_LEFT = 80;
 const LEGACY_FULL_ROW_MAX_LEFT = 100;
 const LEGACY_COVER_REFLOW_TOP = 340;
 const LEGACY_COVER_REFLOW_DELTA = 260;
-const MARKER_DEBUG_SIZE = 10;
-const MARKER_DEBUG_COLORS = ['#ff0000', '#00ff00', '#0048ff', '#00ffff', '#ff00ff', '#ffff00'];
-const MARKER_DEBUG_TARGET_RE = /lecture-focus-generated|semantic-hit-map/i;
 
 type BoxGeometry = {
   left: number;
@@ -52,73 +50,79 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometr
   );
 }
 
-function isMarkerDebugFocusElement(element: PPTElement): element is PPTElement & BoxGeometry {
-  return (
-    hasBoxGeometry(element) &&
-    MARKER_DEBUG_TARGET_RE.test(`${element.id} ${(element as { name?: string }).name || ''}`)
-  );
-}
-
-function clampMarkerPosition(value: number, max: number): number {
-  return Math.min(Math.max(value, 0), Math.max(0, max - MARKER_DEBUG_SIZE));
-}
-
-function MarkerDebugOverlay({
+function OriginalMarkerDebugImage({
   contentHeight,
-  elements,
+  retrofitOverlay,
+  src,
+  zIndex,
   viewportWidth,
 }: {
   readonly contentHeight: number;
-  readonly elements: PPTElement[];
+  readonly retrofitOverlay?: ImageNotebookPromptRecoveryResult['retrofittedMarkerOverlay'];
+  readonly src?: string;
   readonly viewportWidth: number;
+  readonly zIndex: number;
 }) {
-  const focusElements = elements
-    .filter(isMarkerDebugFocusElement)
-    .slice(0, MARKER_DEBUG_COLORS.length);
+  if (!src && retrofitOverlay?.markers?.length) {
+    const scaleX = viewportWidth / Math.max(1, retrofitOverlay.canvasWidth || viewportWidth);
+    const scaleY = contentHeight / Math.max(1, retrofitOverlay.canvasHeight || contentHeight);
+    return (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        data-marker-debug-overlay="true"
+        style={{ zIndex }}
+      >
+        {retrofitOverlay.markers.map((marker, index) => {
+          const size = Math.max(4, marker.size * Math.min(scaleX, scaleY));
+          return (
+            <div
+              key={`${marker.componentId}-${marker.corner}-${index}`}
+              className="absolute"
+              style={{
+                left: marker.x * scaleX - size / 2,
+                top: marker.y * scaleY - size / 2,
+                width: size,
+                height: size,
+                backgroundColor: marker.markerColorHex,
+                boxShadow: '0 0 0 1px rgba(15,23,42,0.2)',
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
 
-  if (focusElements.length === 0) return null;
+  if (!src) {
+    return (
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute inset-0 flex items-start justify-center p-6"
+        data-marker-debug-overlay="true"
+        style={{ zIndex }}
+      >
+        <div className="rounded-full bg-slate-950/80 px-4 py-2 text-xs font-semibold text-white shadow-lg">
+          原始四角图未保存；重新生成后可查看真实 marker。
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
+    <img
+      alt=""
       aria-hidden="true"
       className="pointer-events-none absolute inset-0"
       data-marker-debug-overlay="true"
-      style={{ zIndex: elements.length + 20 }}
-    >
-      {focusElements.flatMap((element, elementIndex) => {
-        const color = MARKER_DEBUG_COLORS[elementIndex % MARKER_DEBUG_COLORS.length];
-        const halfSize = MARKER_DEBUG_SIZE / 2;
-        const corners = [
-          { key: 'tl', left: element.left - halfSize, top: element.top - halfSize },
-          { key: 'tr', left: element.left + element.width - halfSize, top: element.top - halfSize },
-          {
-            key: 'bl',
-            left: element.left - halfSize,
-            top: element.top + element.height - halfSize,
-          },
-          {
-            key: 'br',
-            left: element.left + element.width - halfSize,
-            top: element.top + element.height - halfSize,
-          },
-        ];
-
-        return corners.map((corner) => (
-          <div
-            key={`${element.id}-${corner.key}`}
-            className="absolute"
-            style={{
-              left: clampMarkerPosition(corner.left, viewportWidth),
-              top: clampMarkerPosition(corner.top, contentHeight),
-              width: MARKER_DEBUG_SIZE,
-              height: MARKER_DEBUG_SIZE,
-              backgroundColor: color,
-              boxShadow: '0 0 0 1px rgba(15,23,42,0.22)',
-            }}
-          />
-        ));
-      })}
-    </div>
+      src={src}
+      style={{
+        width: `${viewportWidth}px`,
+        height: `${contentHeight}px`,
+        objectFit: 'fill',
+        zIndex,
+      }}
+    />
   );
 }
 
@@ -247,6 +251,13 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
     (content) => content.canvas.elements,
   );
   const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
+  const originalMarkerImageUrl = useSceneSelector<SlideContent, string | undefined>(
+    (content) => content.imageNotebookPromptPlan?.recoveryResult?.originalMarkerImageUrl,
+  );
+  const retrofittedMarkerOverlay = useSceneSelector<
+    SlideContent,
+    ImageNotebookPromptRecoveryResult['retrofittedMarkerOverlay']
+  >((content) => content.imageNotebookPromptPlan?.recoveryResult?.retrofittedMarkerOverlay);
 
   const adjustedElements = useMemo(() => {
     if (!elements.length) return elements;
@@ -329,6 +340,9 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
   const { backgroundStyle } = useSlideBackgroundStyle(background, {
     applyProfileStyle: !hasFullPageBitmap,
   });
+  const canvasBackgroundStyle = hasFullPageBitmap
+    ? { backgroundColor: 'transparent' }
+    : backgroundStyle;
 
   const contentHeight = viewportStyles.height;
   const fittedCanvasScale = canvasScale;
@@ -374,7 +388,7 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
       }}
     >
       {/* Background layer — chrome (shadow / 20px radius) lives on canvas-area parent */}
-      <div className="h-full w-full bg-position-center" style={{ ...backgroundStyle }} />
+      <div className="h-full w-full bg-position-center" style={canvasBackgroundStyle} />
 
       {/* Content layer - logical slide size, scaled to viewport */}
       <div
@@ -401,10 +415,12 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
         <HighlightOverlay />
 
         {showMarkerDebugOverlay ? (
-          <MarkerDebugOverlay
-            elements={adjustedElements}
+          <OriginalMarkerDebugImage
+            src={originalMarkerImageUrl}
+            retrofitOverlay={retrofittedMarkerOverlay}
             viewportWidth={viewportStyles.width}
             contentHeight={contentHeight}
+            zIndex={adjustedElements.length + 20}
           />
         ) : null}
       </div>

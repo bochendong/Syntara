@@ -29,9 +29,10 @@ export function ViewportBackground() {
   const { backgroundStyle: bgStyle } = useSlideBackgroundStyle(background, {
     applyProfileStyle: !hasFullPageBitmap,
   });
+  const visibleBackgroundStyle = hasFullPageBitmap ? { backgroundColor: 'transparent' } : bgStyle;
 
   const backgroundStyle: React.CSSProperties = {
-    ...bgStyle,
+    ...visibleBackgroundStyle,
     width: '100%',
     height: '100%',
     backgroundPosition: 'center',

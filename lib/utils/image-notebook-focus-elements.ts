@@ -69,6 +69,17 @@ function focusShape(args: {
   };
 }
 
+function focusLabelForComponent(
+  component: NonNullable<ImageNotebookPagePromptPlan['componentPlans']>[number],
+): string {
+  const visibleText = [...(component.visibleText || []), ...(component.formulas || [])]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join(' / ');
+  return visibleText ? `${component.label}: ${visibleText}` : component.label;
+}
+
 export function buildImageNotebookFocusElementsFromPromptPlan(
   promptPlan: ImageNotebookPagePromptPlan | undefined,
   slide: Slide,
@@ -103,7 +114,7 @@ export function buildImageNotebookFocusElementsFromPromptPlan(
       );
       return focusShape({
         id: component.id,
-        label: component.label || component.id,
+        label: focusLabelForComponent(component) || component.id,
         ...rect,
       });
     });

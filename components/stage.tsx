@@ -82,23 +82,9 @@ import { useTitleCoverUpgrade } from '@/components/stage/use-title-cover-upgrade
 
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
-const MARKER_DEBUG_TARGET_RE = /lecture-focus-generated|semantic-hit-map/i;
-
-function isMarkerDebugFocusElement(element: unknown): boolean {
-  if (!element || typeof element !== 'object' || Array.isArray(element)) return false;
-  const record = element as Record<string, unknown>;
-  const hasGeometry =
-    typeof record.left === 'number' &&
-    typeof record.top === 'number' &&
-    typeof record.width === 'number' &&
-    typeof record.height === 'number';
-  if (!hasGeometry) return false;
-  return MARKER_DEBUG_TARGET_RE.test(`${String(record.id ?? '')} ${String(record.name ?? '')}`);
-}
-
 function sceneSupportsMarkerDebugOverlay(scene: Scene | null | undefined): boolean {
   if (!scene || scene.type !== 'slide' || scene.content.type !== 'slide') return false;
-  return scene.content.canvas.elements.some(isMarkerDebugFocusElement);
+  return Boolean(scene.content.imageNotebookPromptPlan?.recoveryResult);
 }
 
 /**

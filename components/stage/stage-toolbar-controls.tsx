@@ -224,7 +224,7 @@ export function StageTitleActions({
               ? 'border-orange-300 bg-orange-100 text-orange-900 shadow-sm dark:border-orange-400/45 dark:bg-orange-950/55 dark:text-orange-50'
               : 'border-orange-200 bg-white/85 text-orange-700 hover:bg-orange-50 dark:border-orange-500/30 dark:bg-white/[0.05] dark:text-orange-200 dark:hover:bg-orange-950/35',
           )}
-          title="显示/隐藏四角 marker 调试层；点击左侧讲解可验证遮罩定位"
+          title="显示/隐藏原始带四角 marker 的生成图；点击左侧讲解可验证遮罩定位"
         >
           <ScanSearch className="size-3.5" />
           四角测试

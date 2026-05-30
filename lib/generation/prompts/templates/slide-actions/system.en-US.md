@@ -20,7 +20,7 @@ Output only one JSON array. Items must be speech segments:
 - `{"type":"speech","content":"...","focusTargetId":"..."}`
 - `{"type":"speech","content":"..."}`
 
-`focusTargetId` is optional. Use it only when this segment is clearly about a specific visible region. Omit it for transitions, overview, questions, summaries, or verbal setup. Every `focusTargetId` must come from the provided Focus Targets / Elements. Do not output separate spotlight or laser actions; code will compile focus effects from `focusTargetId`. If a region fails rendering or recovery, code will keep the speech and skip the focus effect.
+`focusTargetId` is optional. Use it only when this segment is clearly about a specific visible region. Omit it for transitions, overview, questions, summaries, or verbal setup. Every `focusTargetId` must come from the provided Focus Targets / Elements. If the segment is about a component that is absent from Focus Targets / Elements, omit `focusTargetId`; never bind to a nearby, fallback, or loosely related region just to show focus. Do not output separate spotlight or laser actions; code will compile focus effects from `focusTargetId`. If a region fails rendering or recovery, code will keep the speech and skip the focus effect.
 
 ## Narration Quality
 

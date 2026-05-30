@@ -75,6 +75,24 @@ export interface ImageNotebookPromptValidationTarget {
 export interface ImageNotebookPromptRecoveryResult {
   status: 'pending' | 'passed' | 'partial' | 'failed';
   recoveredAt?: number;
+  originalMarkerImageUrl?: string;
+  originalMarkerImageDimensions?: {
+    width: number;
+    height: number;
+  };
+  retrofittedMarkerOverlay?: {
+    source: 'focus-geometry';
+    canvasWidth: number;
+    canvasHeight: number;
+    markers: Array<{
+      componentId: string;
+      markerColorHex: string;
+      x: number;
+      y: number;
+      size: number;
+      corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    }>;
+  };
   findings?: string[];
   components?: Array<{
     componentId: string;
@@ -360,16 +378,15 @@ export function formatImageNotebookStyleBriefForPrompt(
     `- Writing style: ${styleBrief.writingStyle}.`,
     `- Color mood: ${styleBrief.colorMood}.`,
     styleBrief.palette?.colors.length
-      ? `- Palette direction: ${[
-          styleBrief.palette.label,
-          styleBrief.palette.colors.join(', '),
-        ]
+      ? `- Palette direction: ${[styleBrief.palette.label, styleBrief.palette.colors.join(', ')]
           .filter(Boolean)
           .join(' - ')}.`
       : '',
     `- Content density: ${styleBrief.density}; keep all text large, sparse, and projector-readable.`,
     `- Decorative elements: ${styleBrief.decorationLevel}; decorations are allowed only as unmarked support and must not receive corner markers.`,
-    styleBrief.userStylePrompt ? `- User-selected art direction: ${styleBrief.userStylePrompt}.` : '',
+    styleBrief.userStylePrompt
+      ? `- User-selected art direction: ${styleBrief.userStylePrompt}.`
+      : '',
     `- Marker color reservation: ${styleBrief.ordinaryContentColorRule}`,
     `- Do not use these pure colors in ordinary content: ${styleBrief.avoidPureMarkerColors.join(', ')}.`,
   ].filter(Boolean);

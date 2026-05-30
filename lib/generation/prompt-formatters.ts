@@ -80,6 +80,7 @@ function formatFocusPlanContext(ctx: SceneGenerationContext): string {
   return [
     'Lecture focus plan:',
     'Each speech segment may optionally bind to one of these targets using focusTargetId. Bind only when the segment is actually about that visible region; otherwise omit focusTargetId.',
+    'If your intended visual component is not listed here, omit focusTargetId instead of using a nearby or loosely related target.',
     'If a target is unavailable after rendering/recovery, the compiler will keep the speech and skip the focus effect.',
     ...focusPlan
       .slice(0, 12)

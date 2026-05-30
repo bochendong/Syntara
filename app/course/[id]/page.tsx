@@ -102,6 +102,12 @@ function countStudyMemoryItems(notebookId: string): number {
 
 type CourseProblemPracticeState = 'mastered' | 'review' | 'wrong' | 'unattempted';
 
+type NotebookPracticeProgress = {
+  total: number;
+  attempted: number;
+  mastered: number;
+};
+
 function normalizeCourseProblemTopic(value: string): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, 48);
 }
@@ -132,6 +138,26 @@ function countProblemsByNotebook(problems: NotebookProblemClientRecord[]): Recor
     if (problem.notebookId) {
       acc[problem.notebookId] = (acc[problem.notebookId] ?? 0) + 1;
     }
+    return acc;
+  }, {});
+}
+
+function getNotebookPracticeProgress(
+  problems: NotebookProblemClientRecord[],
+): Record<string, NotebookPracticeProgress> {
+  return problems.reduce<Record<string, NotebookPracticeProgress>>((acc, problem) => {
+    if (!problem.notebookId) return acc;
+
+    const current = acc[problem.notebookId] ?? {
+      total: 0,
+      attempted: 0,
+      mastered: 0,
+    };
+    const state = getCourseProblemPracticeState(problem);
+    current.total += 1;
+    if (state !== 'unattempted') current.attempted += 1;
+    if (state === 'mastered') current.mastered += 1;
+    acc[problem.notebookId] = current;
     return acc;
   }, {});
 }
@@ -293,6 +319,10 @@ export default function CourseDetailPage() {
       weakTopics: leastPracticedChapters,
     };
   }, [activeCourseProblems, sortedNotebooks]);
+  const notebookPracticeProgress = useMemo(
+    () => getNotebookPracticeProgress(activeCourseProblems),
+    [activeCourseProblems],
+  );
   const publishTargetProblemCount = useMemo(() => {
     if (!publishTarget) return 0;
     if (publishTarget.kind === 'course') return activeCourseProblems.length;
@@ -772,6 +802,7 @@ export default function CourseDetailPage() {
                               memoryCount={memoryCounts[nb.id] ?? 0}
                               onMemoryAction={() => router.push(`/classroom/${nb.id}/memory`)}
                               problemCount={problemCounts[nb.id] ?? 0}
+                              practiceProgress={notebookPracticeProgress[nb.id]}
                               onProblemAction={() =>
                                 router.push(
                                   `/course/${encodeURIComponent(id)}/problem-bank?notebookId=${encodeURIComponent(nb.id)}`,
