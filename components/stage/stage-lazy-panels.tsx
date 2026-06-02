@@ -15,11 +15,6 @@ export const ProblemBankView = dynamic(
   { ssr: false, loading: StagePanelLoading },
 );
 
-export const SlideNarrationEditor = dynamic(
-  () => import('@/components/stage/slide-narration-editor').then((mod) => mod.SlideNarrationEditor),
-  { ssr: false, loading: StagePanelLoading },
-);
-
 export const ClassroomSlideCanvasEditor = dynamic(
   () =>
     import('@/components/stage/classroom-slide-canvas-editor').then(
@@ -28,11 +23,9 @@ export const ClassroomSlideCanvasEditor = dynamic(
   { ssr: false, loading: StagePanelLoading },
 );
 
-export const ClassroomSemanticSlideEditor = dynamic(
+export const SlideElementInspector = dynamic(
   () =>
-    import('@/components/stage/classroom-semantic-slide-editor').then(
-      (mod) => mod.ClassroomSemanticSlideEditor,
-    ),
+    import('@/components/stage/slide-element-inspector').then((mod) => mod.SlideElementInspector),
   { ssr: false, loading: StagePanelLoading },
 );
 

@@ -17,6 +17,8 @@ export function hasFullPageBitmapElement(
   return elements.some((element) => {
     if (element.type !== 'image') return false;
     if (/full_page_bitmap/i.test(element.name || '')) return true;
+    if (element.imageType === 'pageFigure') return true;
+    if (/\/generated-notebooks\//.test(element.src || '')) return true;
 
     const left = numberOr(element.left, Number.POSITIVE_INFINITY);
     const top = numberOr(element.top, Number.POSITIVE_INFINITY);

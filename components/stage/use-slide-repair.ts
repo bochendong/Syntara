@@ -16,10 +16,7 @@ import {
   resolveRewriteOutline,
   resolveSlideRepairProfile,
 } from '@/components/stage/stage-helpers';
-import type {
-  SlideEditTab,
-  SlideEditorSidebarTab,
-} from '@/components/stage/stage-toolbar-controls';
+import type { SlideEditorSidebarTab } from '@/components/stage/stage-toolbar-controls';
 
 export function useSlideRepair({
   currentScene,
@@ -30,7 +27,6 @@ export function useSlideRepair({
   setOutlines,
   updateScene,
   slideEditorOpen,
-  slideEditTab,
   setSlideEditorSidebarTab,
 }: {
   currentScene: Scene | undefined;
@@ -41,7 +37,6 @@ export function useSlideRepair({
   setOutlines: (outlines: SceneOutline[]) => void;
   updateScene: (id: string, patch: Partial<Scene>) => void;
   slideEditorOpen: boolean;
-  slideEditTab: SlideEditTab;
   setSlideEditorSidebarTab: (tab: SlideEditorSidebarTab) => void;
 }) {
   const [repairDraftByScene, setRepairDraftByScene] = useState<Record<string, string>>({});
@@ -280,10 +275,10 @@ export function useSlideRepair({
   ]);
 
   useEffect(() => {
-    if (!pendingRepairSidebarFocus || !slideEditorOpen || slideEditTab !== 'canvas') return;
+    if (!pendingRepairSidebarFocus || !slideEditorOpen) return;
     focusRepairSidebar();
     setPendingRepairSidebarFocus(false);
-  }, [focusRepairSidebar, pendingRepairSidebarFocus, slideEditTab, slideEditorOpen]);
+  }, [focusRepairSidebar, pendingRepairSidebarFocus, slideEditorOpen]);
 
   const handleRestorePreRepairSlide = useCallback(() => {
     if (

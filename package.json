@@ -16,6 +16,7 @@
     "format": "prettier . --write",
     "repo:audit": "node scripts/maintenance/audit-repository-structure.mjs",
     "notebooks:inline-generated-images": "dotenv -e .env.local -- node scripts/maintenance/inline-generated-notebook-page-images.mjs",
+    "notebooks:import-generated-assets": "node scripts/maintenance/import-generated-notebook-assets-to-db.mjs",
     "notebooks:repair-focus": "dotenv -e .env.local -- node scripts/maintenance/repair-image-notebook-focus-elements.mjs",
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",

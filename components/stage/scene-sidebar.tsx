@@ -53,6 +53,7 @@ import { EvilEyeStageBackground } from '@/components/gamification/evil-eye-stage
 interface SceneSidebarProps {
   readonly collapsed: boolean;
   readonly onCollapseChange: (collapsed: boolean) => void;
+  readonly variant?: 'panel' | 'rail';
   readonly onSceneSelect?: (sceneId: string) => void;
   readonly onRetryOutline?: (outlineId: string) => Promise<void>;
   readonly onAskActivate?: () => Promise<void> | void;
@@ -174,6 +175,7 @@ function applyLectureVisualCues(cues: readonly LectureNoteVisualCue[]): boolean 
 export function SceneSidebar({
   collapsed,
   onCollapseChange,
+  variant = 'panel',
   onSceneSelect,
   onRetryOutline,
   onAskActivate,
@@ -540,6 +542,116 @@ export function SceneSidebar({
       DEFAULT_LIVE2D_STAGE_SKIN,
     [selectedLive2dSkinId],
   );
+
+  if (variant === 'rail') {
+    const navigateToScene = (sceneId: string) => {
+      if (onSceneSelect) {
+        onSceneSelect(sceneId);
+      } else {
+        setCurrentSceneId(sceneId);
+      }
+    };
+
+    return (
+      <aside
+        aria-label="幻灯片页码导航"
+        className={cn(
+          'relative z-20 flex h-full min-h-0 w-[52px] shrink-0 flex-col items-center overflow-hidden rounded-2xl px-1.5 py-2.5',
+          'border border-sky-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,248,255,0.92)_48%,rgba(255,255,255,0.9)_100%)] shadow-[0_12px_34px_rgba(14,165,233,0.10)]',
+          'dark:border-sky-400/15 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.92)_0%,rgba(12,74,110,0.32)_52%,rgba(15,23,42,0.82)_100%)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.26)]',
+        )}
+      >
+        <div className="pointer-events-none absolute inset-x-1 top-1 h-16 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.18),transparent_68%)]" />
+        <div className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/88 text-sky-600 shadow-sm ring-1 ring-sky-200/80 backdrop-blur dark:bg-white/[0.08] dark:text-sky-200 dark:ring-sky-400/15">
+          <BookOpen className="size-4" strokeWidth={2} />
+        </div>
+        <div className="relative my-2.5 h-px w-7 shrink-0 bg-gradient-to-r from-transparent via-sky-200 to-transparent dark:via-sky-400/20" />
+
+        <div className="relative flex min-h-0 w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto overflow-x-hidden pb-1 scrollbar-hide">
+          {scenes.map((scene, index) => {
+            const isActive = currentSceneId === scene.id;
+            const typeLabel = t(`stage.sceneType.${scene.type}`);
+            return (
+              <button
+                key={scene.id}
+                type="button"
+                aria-label={`${index + 1}. ${scene.title}`}
+                aria-current={isActive ? 'page' : undefined}
+                title={`${index + 1}. ${scene.title}`}
+                onClick={() => navigateToScene(scene.id)}
+                className={cn(
+                  'group relative flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-all duration-200 ease-out active:scale-95',
+                  isActive
+                    ? 'scale-105 bg-[linear-gradient(135deg,#007AFF_0%,#22c55e_100%)] text-white shadow-[0_10px_24px_rgba(0,122,255,0.32)] ring-2 ring-white dark:bg-[linear-gradient(135deg,#0A84FF_0%,#34d399_100%)] dark:text-white dark:ring-white/10'
+                    : 'bg-white/86 text-slate-500 shadow-sm ring-1 ring-slate-900/[0.08] hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-700 hover:ring-sky-200 dark:bg-white/[0.07] dark:text-slate-300 dark:ring-white/[0.08] dark:hover:bg-sky-500/15 dark:hover:text-sky-100',
+                )}
+              >
+                <span>{index + 1}</span>
+                <span className="sr-only">
+                  {typeLabel === `stage.sceneType.${scene.type}` ? scene.type : typeLabel}
+                </span>
+                {isActive ? (
+                  <span className="absolute -right-1.5 top-1/2 h-5 w-1 -translate-y-1/2 animate-pulse rounded-full bg-sky-400 dark:bg-sky-300" />
+                ) : null}
+              </button>
+            );
+          })}
+
+          {generatingOutlines.length > 0
+            ? (() => {
+                const outline = generatingOutlines[0];
+                const isFailed = failedOutlines.some((f) => f.id === outline.id);
+                const isRetrying = retryingOutlineId === outline.id;
+                const isActive = currentSceneId === PENDING_SCENE_ID;
+
+                return (
+                  <button
+                    key={`generating-${outline.id}`}
+                    type="button"
+                    aria-label={
+                      isFailed
+                        ? `${t('stage.generationFailed')}: ${outline.title}`
+                        : `${scenes.length + 1}. ${outline.title}`
+                    }
+                    aria-current={isActive && !isFailed ? 'page' : undefined}
+                    title={outline.title}
+                    disabled={isFailed && !onRetryOutline}
+                    onClick={() => {
+                      if (isFailed) {
+                        if (!onRetryOutline) return;
+                        void handleRetryOutline(outline.id);
+                        return;
+                      }
+                      navigateToScene(PENDING_SCENE_ID);
+                    }}
+                    className={cn(
+                      'relative flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tabular-nums shadow-sm ring-1 transition-all duration-200 ease-out active:scale-95',
+                      isFailed
+                        ? 'bg-red-50 text-red-500 ring-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-200 dark:ring-red-500/25'
+                        : isActive
+                          ? 'scale-105 bg-[linear-gradient(135deg,#007AFF_0%,#22c55e_100%)] text-white ring-white dark:bg-[linear-gradient(135deg,#0A84FF_0%,#34d399_100%)] dark:ring-white/10'
+                          : 'bg-white/86 text-slate-400 ring-slate-900/[0.08] hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-700 dark:bg-white/[0.06] dark:text-slate-300 dark:ring-white/[0.08] dark:hover:bg-sky-500/15',
+                    )}
+                  >
+                    {isFailed ? (
+                      <RefreshCw
+                        className={cn('size-4', isRetrying && 'animate-spin')}
+                        strokeWidth={2}
+                      />
+                    ) : (
+                      <>
+                        <span>{scenes.length + 1}</span>
+                        <Loader2 className="absolute -right-1 -top-1 size-3.5 animate-spin rounded-full bg-white text-sky-500 dark:bg-slate-950 dark:text-sky-300" />
+                      </>
+                    )}
+                  </button>
+                );
+              })()
+            : null}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <div

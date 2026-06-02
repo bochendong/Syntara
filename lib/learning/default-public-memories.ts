@@ -26,6 +26,7 @@ type DefaultCoursePublicMemoryInput = {
 };
 
 const MAT136_PUBLIC_MEMORY_UPDATED_AT = Date.parse('2026-05-20T00:00:00.000Z');
+const MAT102_PUBLIC_MEMORY_UPDATED_AT = Date.parse('2026-06-01T00:00:00.000Z');
 
 const mat136CoursePublicMemory: DefaultPublicMemoryDefinition = {
   title: 'MAT136 课程知识地图',
@@ -1131,6 +1132,81 @@ const cpsc107PublicMemories: Record<string, DefaultPublicMemoryDefinition> = {
   },
 };
 
+const mat102PublicMemories: Record<string, DefaultPublicMemoryDefinition> = {
+  'mat102-sets-propositions-proof-v2': {
+    title: 'MAT102 集合与命题证明入口',
+    text: [
+      '## 来源范围',
+      '- 适用于 MAT102 第一本文字/图片 notebook：01 - 集合与命题。',
+      '- 来源是 queue/MAT102/02SetsAndPropositions (1).pdf、queue 生成稿，以及当前 proof-first 四角恢复图片笔记本。',
+      '- 后续答疑、出题和续写这本 notebook 时，优先按“定义展开 -> 元素任取 -> 逻辑翻译 -> 回到目标”的证明动作组织答案。',
+      '',
+      '## 老师讲了什么',
+      '- 这本不是单纯复习集合符号，而是在建立证明课的第一套语言：对象、集合、成员关系、包含关系和真假判断。',
+      '- 集合必须是无序、互异、定义明确的对象收集；well-defined 的重点是能判断一个对象到底属不属于集合。',
+      '- 集合构造式要能展开：a 属于 {x in U : P(x)} 等价于 a 在 U 中并且 P(a) 成立。',
+      '- 并、交、差、补集、笛卡尔积都要先翻译成“x 属于哪里”的逻辑句子，再做计算或证明。',
+      '- 命题有确定真值；谓词含自由变量，只有代入具体对象或加上量词后才变成可判真的句子。',
+      '- AND、OR、NOT 和真值表是后续证明逻辑等价、否定语句和处理量词的基础。',
+      '',
+      '## 标准证明动作',
+      '- 证明 S subset T：任取 x in S，展开 S 的定义或已知条件，目标是推出 x in T。',
+      '- 证明集合相等：分别证明 A subset B 和 B subset A，两条包含路缺一不可。',
+      '- 证明 A subset A union B：任取 x in A，由并集定义得到 x in A 或 x in B，因此 x in A union B。',
+      '- 证明 A intersection B subset A：任取 x in A intersection B，由交集定义得到 x in A 且 x in B，于是 x in A。',
+      '- 证明 A union B = B 且已知 A subset B：先证 A union B subset B，遇到 x in A 的分支时调用 A subset B；再证 B subset A union B。',
+      '- 证明两个集合构造式相等：从一边任取元素，把存在的整数参数代数改写成另一边需要的形式，再反向做一次。',
+      '- 证明逻辑等价：列出所有真值组合，逐列计算两边，最后比较结果列。',
+      '',
+      '## 易错点',
+      '- 说“看起来在里面”不是证明；必须指出任取对象、已知条件、定义依据和目标。',
+      '- 忘记全集 U 时，补集没有完整含义。',
+      '- 把有序对当普通集合会丢掉顺序信息；A x B 通常不同于 B x A。',
+      '- 把 A subset A intersection B 当作总成立命题是方向错误；总成立的是 A intersection B subset A。',
+      '- 把谓词当命题会导致真假未定；变量没固定时不能直接给出真值。',
+      '- 数学里的 OR 是包含式或：至少一个为真即可，两个都真也为真。',
+    ].join('\n'),
+  },
+  'nb-mat102-zh-induction-i-20260519': {
+    title: 'MAT102 归纳法证明格式与老师步骤',
+    text: [
+      '## 来源范围',
+      '- 适用于 MAT102 的 Induction I notebook，来源是 queue/MAT102/10InductionI-1.pdf 和已确认的 10 页 imagegen/recover 图片笔记本。',
+      '- 后续答疑、出题和续写这本 notebook 时，优先按这里的证明格式和老师步骤组织答案。',
+      '',
+      '## 老师讲了什么',
+      '- 本节主线是：用有限的起点检查和推进规则，覆盖无限多个编号命题。',
+      '- 普通归纳不是“检查很多例子”，而是证明 base case 成立，并证明从 P(k) 能推出 P(k+1)。',
+      '- 归纳假设只能临时使用已声明的旧命题，不能提前使用目标命题。',
+      '- 强归纳允许使用前面所有已经证明过的情形，适合新情况会退回多个旧情况的题。',
+      '- 结构归纳把对象看成由 basis elements 和 constructors 生成；证明要沿着生成规则走。',
+      '',
+      '## 证明格式',
+      '- 写普通归纳证明时，先定义命题 P(n) 和 n 的适用范围。',
+      '- Base case 要明确检查起点，不能只说显然。',
+      '- Induction step 要写：令 k 为任意满足范围的整数，并假设 P(k) 成立；目标是证明 P(k+1)。',
+      '- 推导中每次使用归纳假设都要能指出旧命题如何进入新命题。',
+      '- 结尾要写：由数学归纳法，P(n) 对范围内所有 n 成立。',
+      '- 若起点不是 1 或步长不是 1，要先说明链条覆盖哪些编号；步长为 2 时通常需要分别覆盖奇偶链。',
+      '- 强归纳证明要写清允许使用的旧情况范围，例如所有小于等于 k 的情形。',
+      '',
+      '## 老师给出的标准步骤',
+      '- 整除归纳题先把“整除”翻译成整数倍等式，再代入归纳步骤。',
+      '- 求和归纳题把前 k+1 项拆成“前 k 项的旧和”加“新的一项”，再用归纳假设替换旧和。',
+      '- 不等式归纳题先写出 k+1 目标式，再把它改写到可以调用 k 层假设的形状。',
+      '- L 形铺砖题用构造式归纳：把大棋盘分成四块小棋盘，中间放一块 L 形砖，让每块都变成同类小问题。',
+      '- 多个 base cases 不是形式要求，而是为了保证后续每次退回时都落在已经覆盖的范围。',
+      '',
+      '## 易错点',
+      '- 只验几个 n 不是证明。',
+      '- 把 P(k+1) 当成已经成立，是偷用结论。',
+      '- 忘记写 base case 会让整条归纳链没有起点。',
+      '- 在强归纳里不说明旧情况范围，会让证明不可审计。',
+      '- 在结构归纳里只验基本对象，不验每一种 constructor，证明不完整。',
+    ].join('\n'),
+  },
+};
+
 function isMat136Course(course: DefaultCoursePublicMemoryInput): boolean {
   const courseCode = course.courseCode?.trim().toUpperCase();
   if (courseCode === 'MAT136' || courseCode === 'MAT 136') return true;
@@ -1142,7 +1218,10 @@ function isMat136Course(course: DefaultCoursePublicMemoryInput): boolean {
 }
 
 export function getDefaultNotebookPublicMemories(stageId: string): DefaultPublicMemoryItem[] {
-  const definition = mat136PublicMemories[stageId] ?? cpsc107PublicMemories[stageId];
+  const definition =
+    mat136PublicMemories[stageId] ??
+    cpsc107PublicMemories[stageId] ??
+    mat102PublicMemories[stageId];
   if (!definition) return [];
 
   return [
@@ -1157,8 +1236,14 @@ export function getDefaultNotebookPublicMemories(stageId: string): DefaultPublic
       text: definition.text,
       sourceReferences: [],
       confidence: 1,
-      createdAt: MAT136_PUBLIC_MEMORY_UPDATED_AT,
-      updatedAt: MAT136_PUBLIC_MEMORY_UPDATED_AT,
+      createdAt:
+        mat102PublicMemories[stageId] !== undefined
+          ? MAT102_PUBLIC_MEMORY_UPDATED_AT
+          : MAT136_PUBLIC_MEMORY_UPDATED_AT,
+      updatedAt:
+        mat102PublicMemories[stageId] !== undefined
+          ? MAT102_PUBLIC_MEMORY_UPDATED_AT
+          : MAT136_PUBLIC_MEMORY_UPDATED_AT,
     },
   ];
 }

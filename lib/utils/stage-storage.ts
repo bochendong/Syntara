@@ -14,6 +14,7 @@ import { clearPersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 import { pickStableNotebookAgentAvatarUrl } from '@/lib/constants/notebook-agent-avatars';
 import { clearStudyMemory } from '@/lib/learning/study-memory';
+import { isImageNotebookFocusElement } from '@/lib/utils/image-notebook-focus-elements';
 
 const log = createLogger('StageStorage');
 
@@ -50,6 +51,34 @@ function shouldPreferRemoteRepair(remoteScenes: Scene[], draftScenes: Scene[]): 
   return draftScenes.some(
     (scene) => repairedRemoteSceneIds.has(scene.id) && !hasImageNotebookFocusRepair(scene),
   );
+}
+
+function sceneHasImageNotebookFocusElements(scene: Scene): boolean {
+  const refreshedScene = refreshSemanticSlideScene(scene);
+  if (
+    refreshedScene.type !== 'slide' ||
+    refreshedScene.content.type !== 'slide' ||
+    !Array.isArray(refreshedScene.content.canvas.elements)
+  ) {
+    return false;
+  }
+  return refreshedScene.content.canvas.elements.some(isImageNotebookFocusElement);
+}
+
+function shouldPreferRemoteImageNotebookFocus(
+  remoteScenes: Scene[],
+  draftScenes: Scene[],
+): boolean {
+  const remoteFocusSceneIds = new Set(
+    remoteScenes.filter(sceneHasImageNotebookFocusElements).map((scene) => scene.id),
+  );
+  if (remoteFocusSceneIds.size === 0) return false;
+
+  const draftScenesById = new Map(draftScenes.map((scene) => [scene.id, scene] as const));
+  return Array.from(remoteFocusSceneIds).some((sceneId) => {
+    const draftScene = draftScenesById.get(sceneId);
+    return !draftScene || !sceneHasImageNotebookFocusElements(draftScene);
+  });
 }
 
 export interface StageListItem {
@@ -544,12 +573,17 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
         remoteData.scenes,
         draftScenes,
       );
+      const remoteHasImageNotebookFocusMissingFromDraft = shouldPreferRemoteImageNotebookFocus(
+        remoteData.scenes,
+        draftScenes,
+      );
 
       if (
         remoteHasMoreScenes ||
         remoteIsNewer ||
         remoteHasNewerContent ||
-        remoteHasRepairMissingFromDraft
+        remoteHasRepairMissingFromDraft ||
+        remoteHasImageNotebookFocusMissingFromDraft
       ) {
         void writeStageDraftSnapshot(
           stageId,
@@ -587,7 +621,16 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
         remoteData.scenes,
         draftScenes,
       );
-      if (remoteHasMoreScenes || remoteHasNewerContent || remoteHasRepairMissingFromDraft) {
+      const remoteHasImageNotebookFocusMissingFromDraft = shouldPreferRemoteImageNotebookFocus(
+        remoteData.scenes,
+        draftScenes,
+      );
+      if (
+        remoteHasMoreScenes ||
+        remoteHasNewerContent ||
+        remoteHasRepairMissingFromDraft ||
+        remoteHasImageNotebookFocusMissingFromDraft
+      ) {
         void writeStageDraftSnapshot(
           stageId,
           {

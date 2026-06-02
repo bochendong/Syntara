@@ -13,17 +13,17 @@ import { FlowTimelineOverlay } from '../components/FlowTimelineOverlay';
 import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, SlideBackground } from '@/lib/types/slides';
 import type { PercentageGeometry } from '@/lib/types/action';
-import type { ImageNotebookPromptRecoveryResult } from '@/lib/generation/image-notebook-quality';
 import { useViewportSize } from './Canvas/hooks/useViewportSize';
 import { useMemo, type RefObject } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { hasFullPageBitmapElement } from '@/lib/utils/slide-background-policy';
+import { isImageNotebookFocusElement } from '@/lib/utils/image-notebook-focus-elements';
 
 export interface ScreenCanvasProps {
   /** Fills the slide stage; used for viewport measurement and clipping (no extra wrapper inside). */
   readonly containerRef: RefObject<HTMLDivElement | null>;
-  /** Debug-only overlay that shows the original generated image before marker cleanup. */
-  readonly showMarkerDebugOverlay?: boolean;
+  /** Debug-only overlay that shows every image-notebook mask region. */
+  readonly showMaskDebugOverlay?: boolean;
 }
 
 const TITLE_BASELINE_LEFT = 64;
@@ -41,6 +41,14 @@ type BoxGeometry = {
   height: number;
 };
 
+const MASK_REGION_COLORS = [
+  { border: 'rgba(37, 99, 235, 0.92)', bg: 'rgba(59, 130, 246, 0.16)', dot: '#0b73f6' },
+  { border: 'rgba(22, 163, 74, 0.88)', bg: 'rgba(34, 197, 94, 0.14)', dot: '#16a34a' },
+  { border: 'rgba(217, 119, 6, 0.9)', bg: 'rgba(245, 158, 11, 0.16)', dot: '#d89a14' },
+  { border: 'rgba(124, 58, 237, 0.88)', bg: 'rgba(139, 92, 246, 0.14)', dot: '#7c3aed' },
+  { border: 'rgba(14, 165, 233, 0.88)', bg: 'rgba(14, 165, 233, 0.14)', dot: '#0284c7' },
+] as const;
+
 function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometry {
   return (
     typeof (element as { left?: unknown }).left === 'number' &&
@@ -50,79 +58,52 @@ function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometr
   );
 }
 
-function OriginalMarkerDebugImage({
-  contentHeight,
-  retrofitOverlay,
-  src,
+function MaskDebugOverlay({
+  elements,
   zIndex,
-  viewportWidth,
 }: {
-  readonly contentHeight: number;
-  readonly retrofitOverlay?: ImageNotebookPromptRecoveryResult['retrofittedMarkerOverlay'];
-  readonly src?: string;
-  readonly viewportWidth: number;
+  readonly elements: PPTElement[];
   readonly zIndex: number;
 }) {
-  if (!src && retrofitOverlay?.markers?.length) {
-    const scaleX = viewportWidth / Math.max(1, retrofitOverlay.canvasWidth || viewportWidth);
-    const scaleY = contentHeight / Math.max(1, retrofitOverlay.canvasHeight || contentHeight);
-    return (
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        data-marker-debug-overlay="true"
-        style={{ zIndex }}
-      >
-        {retrofitOverlay.markers.map((marker, index) => {
-          const size = Math.max(4, marker.size * Math.min(scaleX, scaleY));
-          return (
-            <div
-              key={`${marker.componentId}-${marker.corner}-${index}`}
-              className="absolute"
-              style={{
-                left: marker.x * scaleX - size / 2,
-                top: marker.y * scaleY - size / 2,
-                width: size,
-                height: size,
-                backgroundColor: marker.markerColorHex,
-                boxShadow: '0 0 0 1px rgba(15,23,42,0.2)',
-              }}
-            />
-          );
-        })}
-      </div>
-    );
-  }
+  const maskElements = elements.filter(
+    (element) => isImageNotebookFocusElement(element) && hasBoxGeometry(element),
+  );
 
-  if (!src) {
-    return (
-      <div
-        aria-live="polite"
-        className="pointer-events-none absolute inset-0 flex items-start justify-center p-6"
-        data-marker-debug-overlay="true"
-        style={{ zIndex }}
-      >
-        <div className="rounded-full bg-slate-950/80 px-4 py-2 text-xs font-semibold text-white shadow-lg">
-          原始四角图未保存；重新生成后可查看真实 marker。
-        </div>
-      </div>
-    );
-  }
-
+  if (maskElements.length === 0) return null;
   return (
-    <img
-      alt=""
+    <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0"
-      data-marker-debug-overlay="true"
-      src={src}
-      style={{
-        width: `${viewportWidth}px`,
-        height: `${contentHeight}px`,
-        objectFit: 'fill',
-        zIndex,
-      }}
-    />
+      data-mask-debug-overlay="true"
+      style={{ zIndex }}
+    >
+      {maskElements.map((element, index) => {
+        const { minX, maxX, minY, maxY } = getElementRange(element);
+        const color = MASK_REGION_COLORS[index % MASK_REGION_COLORS.length];
+        return (
+          <div
+            key={element.id}
+            className="absolute rounded-[10px]"
+            style={{
+              left: minX,
+              top: minY,
+              width: Math.max(1, maxX - minX),
+              height: Math.max(1, maxY - minY),
+              border: `2.5px dashed ${color.border}`,
+              background: color.bg,
+              boxShadow: `0 0 0 1px rgba(255,255,255,0.85), 0 10px 28px rgba(15,23,42,0.10)`,
+            }}
+          >
+            <div
+              className="absolute -left-2.5 -top-2.5 flex size-6 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-sm ring-2 ring-white"
+              style={{ backgroundColor: color.dot }}
+            >
+              {index + 1}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -245,20 +226,12 @@ function getPercentageGeometryForElement(
   };
 }
 
-export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: ScreenCanvasProps) {
+export function ScreenCanvas({ containerRef, showMaskDebugOverlay = false }: ScreenCanvasProps) {
   const canvasScale = useCanvasStore.use.canvasScale();
   const rawElements = useSceneSelector<SlideContent, PPTElement[]>(
     (content) => content.canvas.elements,
   );
   const elements = useMemo(() => stripLegacyVerticalFlowMarkers(rawElements), [rawElements]);
-  const originalMarkerImageUrl = useSceneSelector<SlideContent, string | undefined>(
-    (content) => content.imageNotebookPromptPlan?.recoveryResult?.originalMarkerImageUrl,
-  );
-  const retrofittedMarkerOverlay = useSceneSelector<
-    SlideContent,
-    ImageNotebookPromptRecoveryResult['retrofittedMarkerOverlay']
-  >((content) => content.imageNotebookPromptPlan?.recoveryResult?.retrofittedMarkerOverlay);
-
   const adjustedElements = useMemo(() => {
     if (!elements.length) return elements;
     // Screen playback is now a pure projection of stored geometry.
@@ -387,8 +360,9 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
           : {}),
       }}
     >
-      {/* Background layer — chrome (shadow / 20px radius) lives on canvas-area parent */}
-      <div className="h-full w-full bg-position-center" style={canvasBackgroundStyle} />
+      {!hasFullPageBitmap ? (
+        <div className="h-full w-full bg-position-center" style={canvasBackgroundStyle} />
+      ) : null}
 
       {/* Content layer - logical slide size, scaled to viewport */}
       <div
@@ -414,14 +388,8 @@ export function ScreenCanvas({ containerRef, showMarkerDebugOverlay = false }: S
 
         <HighlightOverlay />
 
-        {showMarkerDebugOverlay ? (
-          <OriginalMarkerDebugImage
-            src={originalMarkerImageUrl}
-            retrofitOverlay={retrofittedMarkerOverlay}
-            viewportWidth={viewportStyles.width}
-            contentHeight={contentHeight}
-            zIndex={adjustedElements.length + 20}
-          />
+        {showMaskDebugOverlay ? (
+          <MaskDebugOverlay elements={adjustedElements} zIndex={adjustedElements.length + 20} />
         ) : null}
       </div>
 

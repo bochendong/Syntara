@@ -13,6 +13,7 @@ import {
 import { toast } from '@/lib/notifications/client-toast';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -39,7 +40,7 @@ import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-
 
 interface HeaderProps {
   readonly currentSceneTitle: string;
-  /** 标题行右侧附加操作，例如编辑当前页 */
+  /** 标题行右侧附加操作，例如编辑模式、AI 重写等 */
   readonly titleActions?: ReactNode;
 }
 
@@ -71,6 +72,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
   } | null>(null);
   const [synthPickerOpen, setSynthPickerOpen] = useState(false);
   const [selectedSynthSceneIds, setSelectedSynthSceneIds] = useState<Set<string>>(() => new Set());
+  const [speechFooterHost, setSpeechFooterHost] = useState<HTMLElement | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const scenes = useStageStore((s) => s.scenes);
   const currentSceneId = useStageStore((s) => s.currentSceneId);
@@ -240,8 +242,9 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     }
   }, [exportMenuOpen, handleClickOutside]);
 
-  const speechPendingText =
-    speechTtsBanner.variant === 'pending' ? t('stage.ttsSpeechPendingBanner') : '';
+  useEffect(() => {
+    setSpeechFooterHost(document.getElementById('classroom-speech-footer-slot'));
+  }, []);
 
   const speechPendingTooltipText =
     speechTtsBanner.variant === 'pending'
@@ -249,6 +252,21 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
         ? `${t('stage.ttsSpeechPendingBannerTooltip')}（${speechTtsBanner.ready}/${speechTtsBanner.total}）`
         : `${t('stage.ttsSpeechPendingBannerTooltip')} (${speechTtsBanner.ready}/${speechTtsBanner.total})`
       : '';
+
+  const speechStatusCompactText = (() => {
+    switch (speechTtsBanner.variant) {
+      case 'ready':
+        return locale === 'zh-CN' ? '已就绪' : 'Ready';
+      case 'pending':
+        return locale === 'zh-CN' ? '未就绪' : 'Pending';
+      case 'browser':
+        return locale === 'zh-CN' ? '浏览器' : 'Browser';
+      case 'tts_disabled':
+        return locale === 'zh-CN' ? '已关闭' : 'Off';
+      default:
+        return '';
+    }
+  })();
 
   const headerTitleHtml = useMemo(
     () => renderPlainTitleWithOptionalLatex(currentSceneTitle || t('common.loading')),
@@ -266,6 +284,21 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     return locale === 'zh-CN'
       ? `合成全部语音（${allSpeechStats.ready}/${allSpeechStats.total} 条已就绪）`
       : `Synth all speech (${allSpeechStats.ready}/${allSpeechStats.total} lines ready)`;
+  })();
+
+  const synthAllSpeechCompactText = (() => {
+    if (synthAllSpeechProgress != null) {
+      return `${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`;
+    }
+    if (speechPagesBreakdown.totalPagesWithSpeech > 0) {
+      const { readyPages, totalPagesWithSpeech } = speechPagesBreakdown;
+      return locale === 'zh-CN'
+        ? `合成 ${readyPages}/${totalPagesWithSpeech}`
+        : `Synth ${readyPages}/${totalPagesWithSpeech}`;
+    }
+    return locale === 'zh-CN'
+      ? `合成 ${allSpeechStats.ready}/${allSpeechStats.total}`
+      : `Synth ${allSpeechStats.ready}/${allSpeechStats.total}`;
   })();
 
   const synthAllSpeechTooltipBody = useMemo(() => {
@@ -470,40 +503,41 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
     void runSynthesizeSpeechForScenes(selectedSynthSceneIds);
   }, [locale, runSynthesizeSpeechForScenes, selectedSynthSceneIds, synthSceneRows, t]);
 
-  const metaChipsRow = (
-    <TooltipProvider delayDuration={250}>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
-        {fallbackUsageCount > 0 ? (
-          <span
-            className={cn(
-              'inline-flex max-w-[min(100%,260px)] items-center rounded-lg border px-2 py-1 text-[11px] font-medium leading-tight',
-              'border-violet-200/80 bg-violet-50/90 text-violet-800',
-              'dark:border-violet-500/30 dark:bg-violet-950/35 dark:text-violet-100',
-            )}
-            title={
-              locale === 'zh-CN'
-                ? `当前会话已触发 ${fallbackUsageCount} 次生成兜底`
-                : `${fallbackUsageCount} fallback generation(s) used in this session`
-            }
-          >
-            {locale === 'zh-CN'
-              ? `Fallback ${fallbackUsageCount} 次`
-              : `Fallback ${fallbackUsageCount}`}
-          </span>
-        ) : null}
+  const fallbackUsageChip =
+    fallbackUsageCount > 0 ? (
+      <span
+        className={cn(
+          'inline-flex max-w-[min(100%,260px)] items-center rounded-lg border px-2 py-1 text-[11px] font-medium leading-tight',
+          'border-violet-200/80 bg-violet-50/90 text-violet-800',
+          'dark:border-violet-500/30 dark:bg-violet-950/35 dark:text-violet-100',
+        )}
+        title={
+          locale === 'zh-CN'
+            ? `当前会话已触发 ${fallbackUsageCount} 次生成兜底`
+            : `${fallbackUsageCount} fallback generation(s) used in this session`
+        }
+      >
+        {locale === 'zh-CN'
+          ? `Fallback ${fallbackUsageCount} 次`
+          : `Fallback ${fallbackUsageCount}`}
+      </span>
+    ) : null;
 
+  const speechControlsRow = (
+    <TooltipProvider delayDuration={250}>
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1.5">
         {speechTtsBanner.variant === 'ready' ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <div
                 className={cn(
-                  'inline-flex max-w-[min(100%,320px)] cursor-default items-center gap-1.5 rounded-lg px-2 py-1',
+                  'inline-flex cursor-default items-center gap-1.5 rounded-full px-2.5 py-1',
                   'border border-emerald-200/70 bg-emerald-50/90 text-[11px] font-medium leading-tight',
                   'text-emerald-800 dark:border-emerald-500/25 dark:bg-emerald-950/40 dark:text-emerald-200',
                 )}
               >
                 <span className="size-1.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                <span className="min-w-0 truncate">{t('stage.ttsSpeechReadyBanner')}</span>
+                <span>{speechStatusCompactText}</span>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm text-xs">
@@ -515,13 +549,13 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
             <TooltipTrigger asChild>
               <div
                 className={cn(
-                  'inline-flex max-w-[min(100%,280px)] cursor-default items-center gap-1.5 rounded-lg px-2 py-1',
+                  'inline-flex cursor-default items-center gap-1.5 rounded-full px-2.5 py-1',
                   'border border-amber-200/80 bg-amber-50/90 text-[11px] font-medium leading-tight',
                   'text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/35 dark:text-amber-100',
                 )}
               >
                 <span className="size-1.5 shrink-0 rounded-full bg-amber-500 dark:bg-amber-400" />
-                <span className="min-w-0 truncate">{speechPendingText}</span>
+                <span>{speechStatusCompactText}</span>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm text-xs">
@@ -530,17 +564,17 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
           </Tooltip>
         ) : speechTtsBanner.variant === 'browser' ? (
           <span
-            className="inline-flex max-w-[min(100%,260px)] items-center truncate rounded-lg border border-slate-200/60 bg-slate-50/60 px-2 py-1 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400"
+            className="inline-flex items-center rounded-full border border-slate-200/60 bg-slate-50/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400"
             title={t('stage.ttsSpeechBrowserBanner')}
           >
-            {t('stage.ttsSpeechBrowserBanner')}
+            {speechStatusCompactText}
           </span>
         ) : speechTtsBanner.variant === 'tts_disabled' ? (
           <span
-            className="inline-flex max-w-[min(100%,260px)] items-center truncate rounded-lg border border-slate-200/60 bg-slate-50/60 px-2 py-1 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400"
+            className="inline-flex items-center rounded-full border border-slate-200/60 bg-slate-50/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400"
             title={t('stage.ttsSpeechOffBanner')}
           >
-            {t('stage.ttsSpeechOffBanner')}
+            {speechStatusCompactText}
           </span>
         ) : null}
 
@@ -551,8 +585,15 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
                 type="button"
                 onClick={openSynthPicker}
                 disabled={isSynthesizingAllSpeech}
+                aria-label={
+                  synthAllSpeechProgress
+                    ? locale === 'zh-CN'
+                      ? `语音生成中，${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`
+                      : `Generating speech, ${synthAllSpeechProgress.done}/${synthAllSpeechProgress.total}`
+                    : (synthAllSpeechStatusText ?? t('stage.ttsSynthesizeAllButton'))
+                }
                 className={cn(
-                  'inline-flex max-w-[min(100%,420px)] items-center gap-1.5 rounded-lg px-2 py-1',
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1',
                   'border border-sky-200/80 bg-sky-50/90 text-[11px] font-medium leading-tight',
                   'text-sky-900 transition-colors hover:bg-sky-100/90',
                   'disabled:cursor-wait disabled:opacity-80',
@@ -564,16 +605,7 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
                 ) : (
                   <Volume2 className="size-3 shrink-0" />
                 )}
-                {synthAllSpeechProgress ? (
-                  <SpeechGenerationIndicator
-                    label={locale === 'zh-CN' ? '语音生成中' : 'Generating speech'}
-                    done={synthAllSpeechProgress.done}
-                    total={synthAllSpeechProgress.total}
-                    className="min-w-0 truncate"
-                  />
-                ) : (
-                  <span className="min-w-0 truncate">{synthAllSpeechStatusText}</span>
-                )}
+                <span className="tabular-nums">{synthAllSpeechCompactText}</span>
               </button>
             </TooltipTrigger>
             <TooltipContent
@@ -606,90 +638,91 @@ export function Header({ currentSceneTitle, titleActions }: HeaderProps) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h1
-              className={cn(
-                'truncate text-xl font-bold tracking-tight text-[#1d1d1f] dark:text-white',
-                '[&_.katex]:text-[inherit] [&_.katex]:font-bold',
-              )}
-              suppressHydrationWarning
-              dangerouslySetInnerHTML={{ __html: headerTitleHtml }}
-            />
-            <div className="min-w-0">{metaChipsRow}</div>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1
+                className={cn(
+                  'min-w-0 truncate text-xl font-bold tracking-tight text-[#1d1d1f] dark:text-white',
+                  '[&_.katex]:text-[inherit] [&_.katex]:font-bold',
+                )}
+                suppressHydrationWarning
+                dangerouslySetInnerHTML={{ __html: headerTitleHtml }}
+              />
+              <div className="relative shrink-0" ref={exportRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (canExport && !isExporting) setExportMenuOpen(!exportMenuOpen);
+                  }}
+                  disabled={!canExport || isExporting}
+                  aria-label={
+                    canExport
+                      ? isExporting
+                        ? t('export.exporting')
+                        : t('export.pptx')
+                      : exportWaitMessage
+                  }
+                  title={
+                    canExport
+                      ? isExporting
+                        ? t('export.exporting')
+                        : t('export.pptx')
+                      : exportWaitMessage
+                  }
+                  className={cn(
+                    'inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition-all',
+                    canExport && !isExporting
+                      ? 'border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50 hover:shadow-sm dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200 dark:hover:bg-white/[0.08]'
+                      : failedOutlines.length > 0
+                        ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-600 opacity-80 dark:border-amber-500/30 dark:bg-amber-950/35 dark:text-amber-200'
+                        : 'cursor-not-allowed border-slate-200 bg-white/65 text-slate-400 opacity-70 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-500',
+                  )}
+                >
+                  {isExporting || (!canExport && exportWaitShowSpinner) ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : !canExport && failedOutlines.length > 0 ? (
+                    <AlertCircle className="size-3.5" />
+                  ) : (
+                    <Download className="size-3.5" />
+                  )}
+                </button>
+                {exportMenuOpen && canExport && !isExporting && (
+                  <div className="apple-glass absolute left-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-[14px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                    <button
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportPPTX();
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2.5"
+                    >
+                      <FileDown className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span>{t('export.pptx')}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportResourcePack();
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2.5"
+                    >
+                      <Package className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div>
+                        <div>{t('export.resourcePack')}</div>
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {t('export.resourcePackDesc')}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {fallbackUsageChip ? <div className="min-w-0">{fallbackUsageChip}</div> : null}
           </div>
           {titleActions ? <div className="shrink-0">{titleActions}</div> : null}
-          <div className="relative shrink-0 min-w-0" ref={exportRef}>
-            {!canExport && !isExporting ? (
-              <div
-                className="apple-glass flex max-w-[min(100vw-10rem,320px)] items-center gap-2 rounded-full px-3 py-1.5 text-xs text-[#1d1d1f]/75 dark:text-white/75"
-                role="status"
-                title={exportWaitMessage}
-              >
-                {exportWaitShowSpinner ? (
-                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />
-                ) : failedOutlines.length > 0 ? (
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-amber-400" />
-                ) : null}
-                <span className="min-w-0 truncate font-medium">{exportWaitMessage}</span>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (canExport && !isExporting) setExportMenuOpen(!exportMenuOpen);
-                }}
-                disabled={!canExport || isExporting}
-                title={
-                  canExport
-                    ? isExporting
-                      ? t('export.exporting')
-                      : t('export.pptx')
-                    : t('share.notReady')
-                }
-                className={cn(
-                  'shrink-0 rounded-full p-2 transition-all',
-                  canExport && !isExporting
-                    ? 'text-[#86868b] hover:bg-black/[0.05] hover:text-[#1d1d1f] hover:shadow-sm dark:text-[#a1a1a6] dark:hover:bg-white/[0.08] dark:hover:text-white'
-                    : 'cursor-not-allowed text-[#86868b]/40 opacity-50 dark:text-[#a1a1a6]/40',
-                )}
-              >
-                {isExporting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-              </button>
-            )}
-            {exportMenuOpen && canExport && !isExporting && (
-              <div className="apple-glass absolute right-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-[14px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
-                <button
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    exportPPTX();
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2.5"
-                >
-                  <FileDown className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span>{t('export.pptx')}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    exportResourcePack();
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2.5"
-                >
-                  <Package className="w-4 h-4 text-gray-400 shrink-0" />
-                  <div>
-                    <div>{t('export.resourcePack')}</div>
-                    <div className="text-[11px] text-gray-400 dark:text-gray-500">
-                      {t('export.resourcePackDesc')}
-                    </div>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </header>
+
+      {speechFooterHost ? createPortal(speechControlsRow, speechFooterHost) : null}
 
       <Dialog open={synthPickerOpen} onOpenChange={setSynthPickerOpen}>
         <DialogContent className="max-h-[min(90dvh,640px)] max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg">

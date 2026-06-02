@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
 import type { UIMessage } from 'ai';
-import { useSearchParams } from 'next/navigation';
 import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -18,8 +17,7 @@ import type { EngineMode, TriggerEvent, Effect } from '@/lib/playback';
 import { ActionEngine } from '@/lib/action/engine';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
 import type { Action, MouthShape, SpeechAction } from '@/lib/types/action';
-import type { Scene, SceneType } from '@/lib/types/stage';
-import type { SceneOutline } from '@/lib/types/generation';
+import type { Scene } from '@/lib/types/stage';
 import {
   normalizeAzureVisemesToMouthCues,
   resolveCurrentMouthCueFrame,
@@ -39,31 +37,20 @@ import type { ChatMessageMetadata } from '@/lib/types/chat';
 import { toast } from '@/lib/notifications/client-toast';
 import { ClassroomFooter } from '@/components/stage/classroom-footer';
 import { ClassroomFooterVoiceChip } from '@/components/stage/classroom-footer-voice-chip';
+import {
+  ClassroomTranscriptButton,
+  ClassroomTranscriptSidebar,
+} from '@/components/stage/classroom-transcript-popover';
+import { ClassroomAskButton, ClassroomAskSidebar } from '@/components/stage/classroom-ask-sidebar';
 import { SpeechGenerationIndicator } from '@/components/audio/speech-generation-indicator';
 import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
-import { sceneTypeTabLabel } from '@/components/stage/stage-helpers';
 import {
-  buildRawTypePayloadJson,
-  canReflowGridScene,
-  canReflowLayoutCardsScene,
-  getRawCurrentOutline,
-  getRawCurrentScene,
-  getRawDataTabTypes,
-  renderReflowedGridScene,
-  renderReflowedLayoutCardsScene,
-  type RawSlideDataView,
-} from '@/components/stage/raw-view-helpers';
-import { normalizeNotebookLatexSource, type NotebookContentDocument } from '@/lib/notebook-content';
-import {
-  EditorStatusChip,
   StageTitleActions,
-  StageViewToggle,
-  type MainClassroomView,
   type SlideEditorSidebarTab,
-  type SlideEditTab,
 } from '@/components/stage/stage-toolbar-controls';
 import { StageConfirmationDialogs } from '@/components/stage/stage-confirmation-dialogs';
 import { useSlideRepair } from '@/components/stage/use-slide-repair';
+import { SceneProvider } from '@/lib/contexts/scene-context';
 import {
   CLASSROOM_LIVE2D_PRESENTER_ENABLED,
   LIVE2D_PRESENTER_AVATAR_BY_ID,
@@ -71,20 +58,15 @@ import {
   SIDEBAR_VOICE_REPLY_PROVIDER_ORDER,
 } from '@/components/stage/stage-presenter-config';
 import { isSemanticScrollScene } from '@/components/stage/stage-scene-helpers';
-import {
-  ClassroomSemanticSlideEditor,
-  ClassroomSlideCanvasEditor,
-  ProblemBankView,
-  RawDataPanel,
-  SlideNarrationEditor,
-} from '@/components/stage/stage-lazy-panels';
+import { SlideElementInspector } from '@/components/stage/stage-lazy-panels';
 import { useTitleCoverUpgrade } from '@/components/stage/use-title-cover-upgrade';
+import { isImageNotebookFocusElement } from '@/lib/utils/image-notebook-focus-elements';
 
 type SpeechCadence = 'idle' | 'active' | 'pause' | 'fallback';
 
-function sceneSupportsMarkerDebugOverlay(scene: Scene | null | undefined): boolean {
+function sceneSupportsMaskDebugOverlay(scene: Scene | null | undefined): boolean {
   if (!scene || scene.type !== 'slide' || scene.content.type !== 'slide') return false;
-  return Boolean(scene.content.imageNotebookPromptPlan?.recoveryResult);
+  return scene.content.canvas.elements.some(isImageNotebookFocusElement);
 }
 
 /**
@@ -102,7 +84,6 @@ export function Stage({
   headerActions?: ReactNode;
 }) {
   const { t, locale } = useI18n();
-  const searchParams = useSearchParams();
   const {
     mode,
     getCurrentScene,
@@ -115,10 +96,7 @@ export function Stage({
   const stage = useStageStore((s) => s.stage);
   const stageLanguage = useStageStore((s) => s.stage?.language);
   const updateScene = useStageStore((s) => s.updateScene);
-  const storageSaveState = useStageStore((s) => s.storageSaveState);
-  const storageSaveScope = useStageStore((s) => s.storageSaveScope);
-  const storageSavedAt = useStageStore((s) => s.storageSavedAt);
-  const storageSaveError = useStageStore((s) => s.storageSaveError);
+  const setMode = useStageStore((s) => s.setMode);
   const setOutlines = useStageStore((s) => s.setOutlines);
   const failedOutlines = useStageStore.use.failedOutlines();
   const outlines = useStageStore((s) => s.outlines);
@@ -164,39 +142,23 @@ export function Stage({
 
   // Scene switch confirmation dialog state
   const [pendingSceneId, setPendingSceneId] = useState<string | null>(null);
-  const requestedInitialClassroomView = searchParams.get('view');
 
-  /** 主内容区：幻灯片画布 vs 原始 JSON */
-  const [mainClassroomView, setMainClassroomView] = useState<MainClassroomView>(
-    requestedInitialClassroomView === 'quiz' ||
-      requestedInitialClassroomView === 'raw' ||
-      requestedInitialClassroomView === 'ppt'
-      ? requestedInitialClassroomView
-      : 'ppt',
-  );
-  /** 原始数据下的子 Tab：按场景类型（slide / quiz / interactive / …） */
-  const [rawDataSubTab, setRawDataSubTab] = useState<SceneType>('slide');
-  /** 幻灯片原始数据细分：生成源 / 编译结果 / 渲染摘要 / 大纲 / 讲解动作 / UI衍生数据 */
-  const [rawSlideDataView, setRawSlideDataView] = useState<RawSlideDataView>('source');
-  /** 课堂内当前页编辑模式：页面布局 / 讲解稿 */
+  /** 编辑模式保持课堂主画布不变，只在右侧挂编辑侧栏。 */
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);
-  const [slideEditTab, setSlideEditTab] = useState<SlideEditTab>('canvas');
-  const [slideEditorSidebarTab, setSlideEditorSidebarTab] =
-    useState<SlideEditorSidebarTab>('manual');
-  const [markerDebugOverlayEnabled, setMarkerDebugOverlayEnabled] = useState(false);
+  const [slideEditorSidebarTab, setSlideEditorSidebarTab] = useState<SlideEditorSidebarTab>('ai');
+  const [transcriptSidebarOpen, setTranscriptSidebarOpen] = useState(false);
+  const [askSidebarOpen, setAskSidebarOpen] = useState(false);
+  const [maskDebugOverlayEnabled, setMaskDebugOverlayEnabled] = useState(false);
   const [editEntryConfirmOpen, setEditEntryConfirmOpen] = useState(false);
   const [speechAudioPreparing, setSpeechAudioPreparing] = useState(false);
   const [gridReflowPending, setGridReflowPending] = useState(false);
   const currentSlideSceneId = currentScene?.type === 'slide' ? currentScene.id : null;
   const {
-    focusRepairSidebar,
     handleRepairCurrentSlide,
     handleRestorePreRepairSlide,
     repairConversation,
     repairInstructions,
     repairSidebarFocusNonce,
-    requestRepairSidebarFocus,
-    saveCurrentSceneActions,
     setCurrentSlideRepairDraft,
     slideRepairPending,
   } = useSlideRepair({
@@ -208,7 +170,6 @@ export function Stage({
     setOutlines,
     updateScene,
     slideEditorOpen,
-    slideEditTab,
     setSlideEditorSidebarTab,
   });
 
@@ -218,13 +179,6 @@ export function Stage({
 
   // Selected agents from settings store (Zustand)
   const selectedAgentIds = useSettingsStore((s) => s.selectedAgentIds);
-
-  useEffect(() => {
-    const requestedView = searchParams.get('view');
-    if (requestedView === 'quiz' || requestedView === 'raw' || requestedView === 'ppt') {
-      setMainClassroomView(requestedView);
-    }
-  }, [searchParams]);
 
   // Pick a student agent for discussion trigger (prioritize student > non-teacher > fallback)
   const pickStudentAgent = useCallback((): string => {
@@ -1368,44 +1322,18 @@ export function Stage({
     setWhiteboardOpen(!whiteboardOpen);
   };
 
-  const canEditCurrentSlide =
-    mainClassroomView === 'ppt' &&
-    !isPendingScene &&
-    currentScene?.type === 'slide' &&
-    currentScene.content.type === 'slide';
-  const canShowMarkerDebugOverlay =
-    mainClassroomView === 'ppt' &&
-    !slideEditorOpen &&
+  const editModeActive = mode === 'autonomous';
+  const canToggleEditMode =
+    !isPendingScene && currentScene?.type === 'slide' && currentScene.content.type === 'slide';
+  const canShowMaskDebugOverlay =
+    slideEditorOpen &&
     !isPendingScene &&
     !isSemanticScrollScene(currentScene) &&
-    sceneSupportsMarkerDebugOverlay(currentScene);
+    sceneSupportsMaskDebugOverlay(currentScene);
   const hasActivePlaybackOrLiveSession =
     engineMode !== 'idle' || chatIsStreaming || isTopicPending || !!discussionTrigger;
 
-  const slideSceneIds = useMemo(
-    () =>
-      scenes
-        .filter((scene) => scene.type === 'slide' && scene.content.type === 'slide')
-        .map((scene) => scene.id),
-    [scenes],
-  );
-  const currentEditableSlideIndex = currentSceneId ? slideSceneIds.indexOf(currentSceneId) : -1;
-  const canGoPrevEditableSlide = currentEditableSlideIndex > 0;
-  const canGoNextEditableSlide =
-    currentEditableSlideIndex >= 0 && currentEditableSlideIndex < slideSceneIds.length - 1;
-
-  const handlePrevEditableSlide = useCallback(() => {
-    if (!canGoPrevEditableSlide) return;
-    gatedSceneSwitch(slideSceneIds[currentEditableSlideIndex - 1]);
-  }, [canGoPrevEditableSlide, currentEditableSlideIndex, gatedSceneSwitch, slideSceneIds]);
-
-  const handleNextEditableSlide = useCallback(() => {
-    if (!canGoNextEditableSlide) return;
-    gatedSceneSwitch(slideSceneIds[currentEditableSlideIndex + 1]);
-  }, [canGoNextEditableSlide, currentEditableSlideIndex, gatedSceneSwitch, slideSceneIds]);
-
-  const forceEnterSlideEditor = useCallback(async () => {
-    if (!canEditCurrentSlide) return;
+  const stopActiveClassroomSession = useCallback(async () => {
     await chatAreaRef.current?.endActiveSession();
     if (discussionAbortRef.current) {
       discussionAbortRef.current.abort();
@@ -1414,39 +1342,63 @@ export function Stage({
     engineRef.current?.stop();
     resetSceneState();
     setWhiteboardOpen(false);
-    setMainClassroomView('ppt');
-    setSlideEditorOpen(true);
-    setSlideEditTab('canvas');
-    setEditEntryConfirmOpen(false);
-  }, [canEditCurrentSlide, resetSceneState, setWhiteboardOpen]);
+  }, [resetSceneState, setWhiteboardOpen]);
 
-  const handleOpenSlideEditor = useCallback(() => {
-    if (!canEditCurrentSlide) return;
+  const forceEnterEditMode = useCallback(async () => {
+    if (!canToggleEditMode) return;
+    await stopActiveClassroomSession();
+    setTranscriptSidebarOpen(false);
+    setAskSidebarOpen(false);
+    setSlideEditorOpen(true);
+    setMaskDebugOverlayEnabled(true);
+    setSlideEditorSidebarTab('manual');
+    setMode('autonomous');
+    setEditEntryConfirmOpen(false);
+  }, [canToggleEditMode, setMode, stopActiveClassroomSession]);
+
+  const handleEditModeToggle = useCallback(() => {
+    if (editModeActive) {
+      setMode('playback');
+      setSlideEditorOpen(false);
+      setMaskDebugOverlayEnabled(false);
+      setSlideEditorSidebarTab('ai');
+      setTranscriptSidebarOpen(false);
+      setAskSidebarOpen(false);
+      setWhiteboardOpen(false);
+      return;
+    }
+    if (!canToggleEditMode) return;
     if (hasActivePlaybackOrLiveSession) {
       setEditEntryConfirmOpen(true);
       return;
     }
-    void forceEnterSlideEditor();
-  }, [canEditCurrentSlide, forceEnterSlideEditor, hasActivePlaybackOrLiveSession]);
+    void forceEnterEditMode();
+  }, [
+    canToggleEditMode,
+    editModeActive,
+    forceEnterEditMode,
+    hasActivePlaybackOrLiveSession,
+    setMode,
+    setWhiteboardOpen,
+  ]);
 
   const handleCloseSlideEditor = useCallback(() => {
     setSlideEditorOpen(false);
-    setSlideEditTab('canvas');
-    setSlideEditorSidebarTab('manual');
+    setMaskDebugOverlayEnabled(false);
+    setSlideEditorSidebarTab('ai');
     setWhiteboardOpen(false);
-  }, [setWhiteboardOpen]);
-
-  const handleMarkerDebugOverlayToggle = useCallback(() => {
-    setMainClassroomView('ppt');
-    handleCloseSlideEditor();
-    setMarkerDebugOverlayEnabled((enabled) => !enabled);
-  }, [handleCloseSlideEditor]);
+    setMode('playback');
+  }, [setMode, setWhiteboardOpen]);
 
   useEffect(() => {
-    if (!canShowMarkerDebugOverlay && markerDebugOverlayEnabled) {
-      setMarkerDebugOverlayEnabled(false);
+    if (canShowMaskDebugOverlay && !maskDebugOverlayEnabled) {
+      setMaskDebugOverlayEnabled(true);
+      return;
     }
-  }, [canShowMarkerDebugOverlay, markerDebugOverlayEnabled]);
+    if (!canShowMaskDebugOverlay && maskDebugOverlayEnabled) {
+      setMaskDebugOverlayEnabled(false);
+    }
+  }, [canShowMaskDebugOverlay, maskDebugOverlayEnabled]);
 
   // Map engine mode to the CanvasArea's expected engine state
   const canvasEngineState = (() => {
@@ -1466,16 +1418,14 @@ export function Stage({
   useEffect(() => {
     if (!slideEditorOpen) return;
     if (
-      mainClassroomView !== 'ppt' ||
       isPendingScene ||
       !currentScene ||
       currentScene.type !== 'slide' ||
       currentScene.content.type !== 'slide'
     ) {
       setSlideEditorOpen(false);
-      setSlideEditTab('canvas');
     }
-  }, [slideEditorOpen, mainClassroomView, isPendingScene, currentScene]);
+  }, [slideEditorOpen, isPendingScene, currentScene]);
 
   /** 课堂讲解 Live2D 暂时下线；保留计算入口，后续恢复时只需要打开这个开关。 */
   const live2dSidebarEligible =
@@ -1496,139 +1446,6 @@ export function Stage({
   const showPlaybackStopDiscussion =
     engineMode === 'live' || chatSessionType === 'qa' || chatSessionType === 'discussion';
 
-  const mergedOutlines = useMemo(() => {
-    const byId = new Map<string, SceneOutline>();
-    for (const o of outlines) byId.set(o.id, o);
-    for (const o of generatingOutlines) byId.set(o.id, o);
-    return Array.from(byId.values()).sort((a, b) => a.order - b.order);
-  }, [outlines, generatingOutlines]);
-
-  /** 子 Tab 顺序：固定 slide / quiz / interactive，再按字母序追加大纲或场景中出现的其它类型（如 pbl） */
-  const rawDataTabTypes = useMemo(
-    () => getRawDataTabTypes(mergedOutlines, scenes),
-    [mergedOutlines, scenes],
-  );
-
-  const rawCurrentScene = useMemo(
-    () => getRawCurrentScene(currentScene, rawDataSubTab),
-    [currentScene, rawDataSubTab],
-  );
-
-  const rawCurrentOutline = useMemo(
-    () => getRawCurrentOutline(mergedOutlines, rawCurrentScene, rawDataSubTab),
-    [mergedOutlines, rawCurrentScene, rawDataSubTab],
-  );
-
-  const canReflowCurrentGridScene = useMemo(
-    () => canReflowGridScene(rawCurrentScene),
-    [rawCurrentScene],
-  );
-
-  const canReflowCurrentLayoutCardsScene = useMemo(
-    () => canReflowLayoutCardsScene(rawCurrentScene),
-    [rawCurrentScene],
-  );
-
-  const handleReflowCurrentGridScene = useCallback(() => {
-    if (!rawCurrentScene) return;
-    const reRendered = renderReflowedGridScene(rawCurrentScene);
-    if (!reRendered) {
-      toast.info('当前页不是 Grid 布局，无需重排。');
-      return;
-    }
-    try {
-      setGridReflowPending(true);
-      updateScene(rawCurrentScene.id, {
-        content: reRendered,
-        updatedAt: Date.now(),
-      });
-      toast.success('已按 Grid 规则重排当前页。');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Grid 重排失败：${message}`);
-    } finally {
-      setGridReflowPending(false);
-    }
-  }, [rawCurrentScene, updateScene]);
-
-  const handleReflowCurrentLayoutCardsScene = useCallback(() => {
-    if (!rawCurrentScene) return;
-    const reRendered = renderReflowedLayoutCardsScene(rawCurrentScene);
-    if (!reRendered) {
-      toast.info('当前页没有 Layout Cards 块，无需重排。');
-      return;
-    }
-    try {
-      setGridReflowPending(true);
-      updateScene(rawCurrentScene.id, {
-        content: reRendered,
-        updatedAt: Date.now(),
-      });
-      toast.success('已按 Layout Cards 规则重排当前页。');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`Layout Cards 重排失败：${message}`);
-    } finally {
-      setGridReflowPending(false);
-    }
-  }, [rawCurrentScene, updateScene]);
-
-  const rawTypePayloadJson = useMemo(
-    () =>
-      buildRawTypePayloadJson({
-        currentSceneId,
-        rawDataSubTab,
-        rawSlideDataView,
-        rawCurrentOutline,
-        rawCurrentScene,
-      }),
-    [currentSceneId, rawDataSubTab, rawSlideDataView, rawCurrentOutline, rawCurrentScene],
-  );
-
-  useEffect(() => {
-    if (!rawDataTabTypes.includes(rawDataSubTab)) {
-      setRawDataSubTab(rawDataTabTypes[0] ?? 'slide');
-    }
-  }, [rawDataTabTypes, rawDataSubTab]);
-
-  const viewToggle = (
-    <StageViewToggle
-      slideEditorOpen={slideEditorOpen}
-      slideEditTab={slideEditTab}
-      onSlideEditTabChange={setSlideEditTab}
-      mainClassroomView={mainClassroomView}
-      onMainClassroomViewChange={setMainClassroomView}
-      currentSceneType={currentScene?.type}
-      onRawDataSubTabChange={setRawDataSubTab}
-      labels={{
-        ppt: t('stage.viewPpt'),
-        quiz: t('stage.viewQuiz'),
-        raw: t('stage.viewRawData'),
-      }}
-    />
-  );
-
-  const semanticManualEditorOpen =
-    slideEditorOpen &&
-    slideEditTab === 'canvas' &&
-    slideEditorSidebarTab === 'manual' &&
-    currentScene?.type === 'slide' &&
-    currentScene.content.type === 'slide' &&
-    Boolean(currentScene.content.semanticDocument);
-
-  const editorStatusSlot = slideEditorOpen ? (
-    <EditorStatusChip
-      storageSaveState={storageSaveState}
-      storageSaveScope={storageSaveScope}
-      storageSavedAt={storageSavedAt}
-      storageSaveError={storageSaveError}
-      slideEditTab={slideEditTab}
-      semanticEditorOpen={semanticManualEditorOpen}
-    />
-  ) : undefined;
-
-  const canRepairCurrentSlide =
-    !isPendingScene && currentScene?.type === 'slide' && currentScene.content.type === 'slide';
   const canRerenderCurrentSlide =
     currentScene?.type === 'slide' &&
     currentScene.content.type === 'slide' &&
@@ -1665,102 +1482,73 @@ export function Stage({
       setGridReflowPending(false);
     }
   }, [currentScene, updateScene]);
-  const handleSaveSemanticSlideMarkup = useCallback(
-    (markup: string, document: NotebookContentDocument) => {
-      if (!currentScene || currentScene.type !== 'slide' || currentScene.content.type !== 'slide') {
-        return;
-      }
-      const normalizedMarkup = normalizeNotebookLatexSource(markup);
-      const title = document.title || currentScene.title;
-      const rendered = renderSemanticSlideContent({
-        document,
-        fallbackTitle: title,
-        preserveCanvasId: currentScene.content.canvas.id,
-        syntaraMarkup: normalizedMarkup,
-        renderMode: currentScene.content.semanticRenderMode ?? 'auto',
-      });
-
-      updateScene(currentScene.id, {
-        title,
-        content: rendered,
-        updatedAt: Date.now(),
-      });
-      toast.success('已通过 Notebook LaTeX 重新编译并渲染当前页。');
-    },
-    [currentScene, updateScene],
-  );
-  const openRepairSidebar = useCallback(() => {
-    if (!canRepairCurrentSlide) return;
-
-    if (slideEditorOpen) {
-      setSlideEditTab('canvas');
-      focusRepairSidebar();
-      return;
-    }
-
-    requestRepairSidebarFocus();
-    handleOpenSlideEditor();
-  }, [
-    canRepairCurrentSlide,
-    focusRepairSidebar,
-    handleOpenSlideEditor,
-    requestRepairSidebarFocus,
-    slideEditorOpen,
-  ]);
-
-  const handleManualEditToggle = useCallback(() => {
-    if (!slideEditorOpen) {
-      setSlideEditorSidebarTab('manual');
-      handleOpenSlideEditor();
-      return;
-    }
-    if (slideEditorSidebarTab === 'manual') {
-      handleCloseSlideEditor();
-    } else {
-      setSlideEditorSidebarTab('manual');
-    }
-  }, [handleCloseSlideEditor, handleOpenSlideEditor, slideEditorOpen, slideEditorSidebarTab]);
+  const askSidebarVisible =
+    askSidebarOpen && !slideEditorOpen && !isPendingScene && Boolean(currentScene);
+  const transcriptSidebarVisible =
+    transcriptSidebarOpen &&
+    !askSidebarVisible &&
+    !slideEditorOpen &&
+    !isPendingScene &&
+    Boolean(currentScene);
 
   const titleActions = (
     <StageTitleActions
-      headerActions={headerActions}
-      canEditCurrentSlide={canEditCurrentSlide}
-      canRepairCurrentSlide={canRepairCurrentSlide}
+      headerActions={
+        <>
+          {headerActions}
+          <ClassroomAskButton
+            open={askSidebarVisible}
+            disabled={slideEditorOpen || isPendingScene || !currentScene}
+            onToggle={() => {
+              if (slideEditorOpen || isPendingScene || !currentScene) return;
+              setTranscriptSidebarOpen(false);
+              setAskSidebarOpen((open) => !open);
+              void handleSidebarInputActivate();
+            }}
+          />
+          <ClassroomTranscriptButton
+            scene={currentScene}
+            open={transcriptSidebarVisible}
+            disabled={slideEditorOpen || isPendingScene || !currentScene}
+            onToggle={() => {
+              if (slideEditorOpen || isPendingScene || !currentScene) return;
+              setAskSidebarOpen(false);
+              setTranscriptSidebarOpen((open) => !open);
+            }}
+          />
+        </>
+      }
+      canToggleEditMode={canToggleEditMode}
+      editModeActive={editModeActive}
       canRestoreCurrentSlide={canRestoreCurrentSlide}
       canRerenderCurrentSlide={canRerenderCurrentSlide}
-      canShowMarkerDebugOverlay={canShowMarkerDebugOverlay}
-      markerDebugOverlayEnabled={markerDebugOverlayEnabled}
       gridReflowPending={gridReflowPending}
       slideEditorOpen={slideEditorOpen}
-      slideEditorSidebarTab={slideEditorSidebarTab}
       onRerender={handleRerenderCurrentSlide}
       onRestore={handleRestorePreRepairSlide}
-      onOpenRepairSidebar={openRepairSidebar}
-      onManualEditToggle={handleManualEditToggle}
-      onMarkerDebugOverlayToggle={handleMarkerDebugOverlayToggle}
+      onEditModeToggle={handleEditModeToggle}
     />
   );
 
-  const footerCenterSlot = slideEditorOpen ? (
-    editorStatusSlot
-  ) : mode === 'playback' && mainClassroomView === 'ppt' ? (
-    <CanvasPlaybackPill
-      currentSceneIndex={currentSceneIndex}
-      scenesCount={totalScenesCount}
-      engineState={canvasEngineState}
-      isLiveSession={playbackToolbarLiveSession}
-      whiteboardOpen={whiteboardOpen}
-      onPrevSlide={handlePreviousScene}
-      onNextSlide={handleNextScene}
-      onPlayPause={handlePlayPause}
-      onWhiteboardClose={handleWhiteboardToggle}
-      showStopDiscussion={showPlaybackStopDiscussion}
-      onStopDiscussion={handleStopDiscussion}
-      playPauseDisabled={speechAudioPreparing}
-      playPauseBusy={speechAudioPreparing}
-    />
-  ) : undefined;
-
+  const footerCenterSlot =
+    mode === 'playback' || slideEditorOpen ? (
+      <CanvasPlaybackPill
+        currentSceneIndex={currentSceneIndex}
+        scenesCount={totalScenesCount}
+        engineState={canvasEngineState}
+        isLiveSession={playbackToolbarLiveSession}
+        whiteboardOpen={whiteboardOpen}
+        onPrevSlide={handlePreviousScene}
+        onNextSlide={handleNextScene}
+        onPlayPause={handlePlayPause}
+        onWhiteboardClose={handleWhiteboardToggle}
+        showStopDiscussion={showPlaybackStopDiscussion}
+        onStopDiscussion={handleStopDiscussion}
+        playPauseDisabled={speechAudioPreparing}
+        playPauseBusy={speechAudioPreparing}
+      />
+    ) : undefined;
+  const canvasAreaMode = slideEditorOpen ? 'playback' : mode;
   return (
     <div className="apple-mesh-bg flex-1 flex min-h-0 overflow-hidden">
       {/* Main Content Area — scene list lives inside CanvasArea, left of the slide */}
@@ -1771,70 +1559,19 @@ export function Stage({
           titleActions={titleActions}
         />
 
-        {/* Canvas Area — PPT 视图 / 原始数据 */}
-        <div className="overflow-hidden relative flex-1 min-h-0 isolate" suppressHydrationWarning>
-          {mainClassroomView === 'raw' ? (
-            <RawDataPanel
-              rawDataTabTypes={rawDataTabTypes}
-              rawDataSubTab={rawDataSubTab}
-              onRawDataSubTabChange={setRawDataSubTab}
-              rawSlideDataView={rawSlideDataView}
-              onRawSlideDataViewChange={setRawSlideDataView}
-              rawDataCaption={t('stage.rawDataCaption')}
-              sceneTypeLabel={(tabType) => sceneTypeTabLabel(t, tabType)}
-              canReflowCurrentGridScene={canReflowCurrentGridScene}
-              canReflowCurrentLayoutCardsScene={canReflowCurrentLayoutCardsScene}
-              gridReflowPending={gridReflowPending}
-              onReflowCurrentGridScene={handleReflowCurrentGridScene}
-              onReflowCurrentLayoutCardsScene={handleReflowCurrentLayoutCardsScene}
-              rawTypePayloadJson={rawTypePayloadJson}
-            />
-          ) : mainClassroomView === 'quiz' ? (
-            <ProblemBankView notebookId={stage?.id || ''} />
-          ) : slideEditorOpen && slideEditTab === 'narration' && currentScene?.type === 'slide' ? (
-            <SlideNarrationEditor
-              scene={currentScene}
-              sceneIndex={currentSceneIndex}
-              totalScenes={totalScenesCount}
-              language={stageLanguage}
-              canGoPrev={canGoPrevEditableSlide}
-              canGoNext={canGoNextEditableSlide}
-              onGoPrev={handlePrevEditableSlide}
-              onGoNext={handleNextEditableSlide}
-              onSaveActions={saveCurrentSceneActions}
-            />
-          ) : slideEditorOpen && slideEditTab === 'canvas' && currentScene?.type === 'slide' ? (
-            currentScene.content.type === 'slide' &&
-            currentScene.content.semanticDocument &&
-            slideEditorSidebarTab === 'manual' ? (
-              <ClassroomSemanticSlideEditor
-                key={currentScene.id}
-                currentScene={currentScene}
-                onSaveMarkup={handleSaveSemanticSlideMarkup}
-                onClose={handleCloseSlideEditor}
-              />
-            ) : (
-              <ClassroomSlideCanvasEditor
-                currentScene={currentScene}
-                currentSceneIndex={currentSceneIndex}
-                sidebarPanel={slideEditorSidebarTab}
-                repairDraft={repairInstructions}
-                onRepairDraftChange={setCurrentSlideRepairDraft}
-                repairConversation={repairConversation}
-                onSendRepairMessage={() => void handleRepairCurrentSlide()}
-                repairPending={slideRepairPending}
-                repairInputFocusNonce={repairSidebarFocusNonce}
-                onCloseInspector={handleCloseSlideEditor}
-              />
-            )
-          ) : (
+        {/* Canvas Area */}
+        <div
+          className="relative isolate flex min-h-0 flex-1 overflow-hidden"
+          suppressHydrationWarning
+        >
+          <div className="relative min-w-0 flex-1 overflow-hidden">
             <CanvasArea
               currentScene={currentScene}
               currentSceneIndex={currentSceneIndex}
               scenesCount={totalScenesCount}
-              mode={slideEditorOpen ? 'autonomous' : mode}
+              mode={canvasAreaMode}
               engineState={canvasEngineState}
-              isLiveSession={playbackToolbarLiveSession || !!chatSessionType}
+              isLiveSession={playbackToolbarLiveSession || !!chatSessionType || slideEditorOpen}
               whiteboardOpen={whiteboardOpen}
               sidebarCollapsed={sidebarCollapsed}
               onSidebarCollapseChange={setSidebarCollapsed}
@@ -1868,7 +1605,7 @@ export function Stage({
               hideToolbar={mode === 'playback' || slideEditorOpen}
               isPendingScene={isPendingScene}
               isPendingGenerationActive={generationStatus === 'generating'}
-              showMarkerDebugOverlay={markerDebugOverlayEnabled && canShowMarkerDebugOverlay}
+              showMaskDebugOverlay={maskDebugOverlayEnabled && canShowMaskDebugOverlay}
               sceneSidebarLive2d={sceneSidebarLive2d}
               isGenerationFailed={isCurrentPendingGenerationFailed}
               pendingGenerationFailureReason={
@@ -1880,11 +1617,43 @@ export function Stage({
                   : undefined
               }
             />
-          )}
+          </div>
+          {slideEditorOpen && currentScene?.type === 'slide' ? (
+            <SceneProvider>
+              <SlideElementInspector
+                sidebarPanel={slideEditorSidebarTab}
+                repairDraft={repairInstructions}
+                onRepairDraftChange={setCurrentSlideRepairDraft}
+                repairConversation={repairConversation}
+                onSendRepairMessage={() => void handleRepairCurrentSlide()}
+                repairPending={slideRepairPending}
+                repairInputFocusNonce={repairSidebarFocusNonce}
+                onClose={handleCloseSlideEditor}
+              />
+            </SceneProvider>
+          ) : null}
+          <ClassroomAskSidebar
+            open={askSidebarVisible}
+            thread={sceneSidebarAskThread}
+            thinking={thinkingState?.stage === 'director'}
+            streaming={chatIsStreaming}
+            paused={isDiscussionPaused}
+            onActivate={handleSidebarInputActivate}
+            onSubmit={(message) => handleSidebarQuestionSend(message)}
+            onClose={() => setAskSidebarOpen(false)}
+          />
+          <ClassroomTranscriptSidebar
+            scene={currentScene}
+            sceneIndex={currentSceneIndex}
+            totalScenes={totalScenesCount}
+            currentSpeechActionId={currentSpeechAction?.id ?? null}
+            open={transcriptSidebarVisible}
+            onClose={() => setTranscriptSidebarOpen(false)}
+          />
         </div>
 
         <ClassroomFooter
-          leadingSlot={viewToggle}
+          leadingSlot={<div id="classroom-speech-footer-slot" className="min-w-0 max-w-full" />}
           centerSlot={footerCenterSlot}
           trailingSlot={<ClassroomFooterVoiceChip />}
         />
@@ -1896,7 +1665,7 @@ export function Stage({
         onConfirmSceneSwitch={confirmSceneSwitch}
         editEntryConfirmOpen={editEntryConfirmOpen}
         onEditEntryConfirmOpenChange={setEditEntryConfirmOpen}
-        onForceEnterSlideEditor={() => void forceEnterSlideEditor()}
+        onConfirmEditEntry={() => void forceEnterEditMode()}
         labels={{
           confirmSwitchTitle: t('stage.confirmSwitchTitle'),
           confirmSwitchMessage: t('stage.confirmSwitchMessage'),

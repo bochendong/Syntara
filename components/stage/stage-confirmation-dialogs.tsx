@@ -17,7 +17,7 @@ export function StageConfirmationDialogs({
   onConfirmSceneSwitch,
   editEntryConfirmOpen,
   onEditEntryConfirmOpenChange,
-  onForceEnterSlideEditor,
+  onConfirmEditEntry,
   labels,
 }: {
   pendingSceneId: string | null;
@@ -25,7 +25,7 @@ export function StageConfirmationDialogs({
   onConfirmSceneSwitch: () => void;
   editEntryConfirmOpen: boolean;
   onEditEntryConfirmOpenChange: (open: boolean) => void;
-  onForceEnterSlideEditor: () => void;
+  onConfirmEditEntry: () => void;
   labels: {
     confirmSwitchTitle: string;
     confirmSwitchMessage: string;
@@ -83,7 +83,7 @@ export function StageConfirmationDialogs({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={onForceEnterSlideEditor}>继续编辑</AlertDialogAction>
+            <AlertDialogAction onClick={onConfirmEditEntry}>继续编辑</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

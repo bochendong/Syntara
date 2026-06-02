@@ -107,8 +107,8 @@ export function buildImageNotebookFocusElementsFromPromptPlan(
         {
           left: bbox[0] * scaleX,
           top: bbox[1] * scaleY,
-          width: (bbox[2] - bbox[0]) * scaleX,
-          height: (bbox[3] - bbox[1]) * scaleY,
+          width: bbox[2] * scaleX,
+          height: bbox[3] * scaleY,
         },
         slide,
       );

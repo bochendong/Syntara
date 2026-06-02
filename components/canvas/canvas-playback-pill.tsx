@@ -9,13 +9,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useSettingsStore, PLAYBACK_SPEEDS } from '@/lib/store/settings';
 
 const ctrlBtn = cn(
-  'relative w-7 h-7 rounded-md flex items-center justify-center',
+  'relative w-7 h-7 rounded-xl flex items-center justify-center',
   'transition-all duration-150 outline-none cursor-pointer',
-  'hover:bg-gray-500/[0.08] dark:hover:bg-gray-400/[0.08] active:scale-90',
+  'hover:bg-sky-500/[0.12] dark:hover:bg-sky-400/[0.14] active:scale-90',
 );
 
 function CtrlDivider() {
-  return <div className="w-px h-3 bg-gray-200/80 dark:bg-gray-700/60 mx-0.5 shrink-0" />;
+  return <div className="mx-0.5 h-5 w-px shrink-0 bg-sky-200/75 dark:bg-sky-400/20" />;
 }
 
 function VolumeIcon({
@@ -111,7 +111,7 @@ export function CanvasPlaybackPill({
   return (
     <div
       className={cn(
-        'apple-glass inline-flex h-9 items-center gap-0.5 rounded-xl px-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.25)]',
+        'inline-flex h-14 items-center gap-2 rounded-[24px] border border-sky-200/80 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,255,255,0.92)_48%,rgba(236,253,245,0.86))] px-4 shadow-[0_14px_36px_rgba(37,99,235,0.16)] backdrop-blur-2xl backdrop-saturate-150 dark:border-sky-400/20 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(12,38,66,0.78)_55%,rgba(6,78,59,0.62))] dark:shadow-[0_16px_40px_rgba(0,0,0,0.35)]',
         className,
       )}
     >
@@ -126,12 +126,12 @@ export function CanvasPlaybackPill({
           disabled={!ttsEnabled}
           className={cn(
             ctrlBtn,
-            'w-6 h-6',
+            'w-7 h-7',
             !ttsEnabled
-              ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
               : ttsMuted
-                ? 'text-red-500 dark:text-red-400'
-                : 'text-gray-500 dark:text-gray-400',
+                ? 'bg-rose-50 text-rose-600 ring-1 ring-rose-200/80 dark:bg-rose-400/10 dark:text-rose-300 dark:ring-rose-400/20'
+                : 'bg-sky-50/80 text-sky-700 ring-1 ring-sky-100/80 dark:bg-sky-400/10 dark:text-sky-300 dark:ring-sky-400/15',
           )}
           aria-label={ttsMuted ? 'Unmute' : 'Mute'}
         >
@@ -188,8 +188,8 @@ export function CanvasPlaybackPill({
                 'text-[11px] font-semibold tabular-nums leading-none',
                 'active:scale-90',
                 playbackSpeed !== 1
-                  ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
-                  : 'text-[#86868b] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white',
+                  ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/80 dark:bg-sky-400/20 dark:text-sky-200 dark:ring-sky-400/20'
+                  : 'bg-white/65 text-sky-700 hover:bg-sky-50 dark:bg-white/[0.06] dark:text-sky-300 dark:hover:bg-sky-400/10',
               )}
               aria-label="Playback speed"
             >
@@ -210,9 +210,9 @@ export function CanvasPlaybackPill({
           disabled={!canGoPrev}
           className={cn(
             ctrlBtn,
-            'w-auto h-9 min-h-9 px-2.5 text-gray-600 dark:text-gray-300 disabled:opacity-20 disabled:pointer-events-none',
-            'hover:bg-gray-500/[0.12] dark:hover:bg-gray-400/[0.12]',
-            'text-[11px] font-semibold whitespace-nowrap',
+            'h-9 min-h-9 w-auto px-2.5 text-[11px] font-semibold whitespace-nowrap',
+            'bg-white/70 text-sky-700 shadow-sm ring-1 ring-sky-100/80 hover:bg-sky-50 dark:bg-white/[0.06] dark:text-sky-200 dark:ring-sky-400/15 dark:hover:bg-sky-400/10',
+            'disabled:pointer-events-none disabled:bg-transparent disabled:text-slate-300 disabled:opacity-55 disabled:shadow-none disabled:ring-transparent dark:disabled:text-slate-600',
           )}
           aria-label={t('roundtable.prevPage')}
         >
@@ -246,11 +246,14 @@ export function CanvasPlaybackPill({
           disabled={playPauseDisabled}
           className={cn(
             ctrlBtn,
-            'w-9 h-9',
-            playPauseDisabled && 'cursor-not-allowed opacity-65 hover:bg-transparent active:scale-100',
-            engineState === 'playing'
-              ? 'text-[#007AFF] dark:text-[#0A84FF]'
-              : 'text-[#86868b] dark:text-[#a1a1a6]',
+            'w-10 h-10 rounded-full',
+            playPauseDisabled &&
+              'cursor-not-allowed opacity-65 hover:bg-slate-100 active:scale-100 dark:hover:bg-white/[0.06]',
+            playPauseBusy
+              ? 'bg-sky-500 text-white shadow-[0_10px_22px_rgba(14,165,233,0.34)] hover:bg-sky-500'
+              : engineState === 'playing'
+                ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200/80 hover:bg-amber-200/80 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-300/20'
+                : 'bg-[#007AFF] text-white shadow-[0_10px_22px_rgba(0,122,255,0.32)] hover:bg-[#0A84FF]',
           )}
           aria-label={engineState === 'playing' ? 'Pause' : 'Play'}
         >
@@ -270,9 +273,9 @@ export function CanvasPlaybackPill({
           disabled={!canGoNext}
           className={cn(
             ctrlBtn,
-            'w-auto h-9 min-h-9 px-2.5 text-gray-600 dark:text-gray-300 disabled:opacity-20 disabled:pointer-events-none',
-            'hover:bg-gray-500/[0.12] dark:hover:bg-gray-400/[0.12]',
-            'text-[11px] font-semibold whitespace-nowrap',
+            'h-9 min-h-9 w-auto px-2.5 text-[11px] font-semibold whitespace-nowrap',
+            'bg-white/70 text-sky-700 shadow-sm ring-1 ring-sky-100/80 hover:bg-sky-50 dark:bg-white/[0.06] dark:text-sky-200 dark:ring-sky-400/15 dark:hover:bg-sky-400/10',
+            'disabled:pointer-events-none disabled:bg-transparent disabled:text-slate-300 disabled:opacity-55 disabled:shadow-none disabled:ring-transparent dark:disabled:text-slate-600',
           )}
           aria-label={t('roundtable.nextPage')}
         >
@@ -289,10 +292,10 @@ export function CanvasPlaybackPill({
               onClick={() => setAutoPlayLecture(!autoPlayLecture)}
               className={cn(
                 ctrlBtn,
-                'w-8 h-6',
+                'w-8 h-7',
                 autoPlayLecture
-                  ? 'text-violet-600 dark:text-violet-400'
-                  : 'text-gray-500 dark:text-gray-400',
+                  ? 'bg-violet-100 text-violet-700 ring-1 ring-violet-200/80 dark:bg-violet-400/15 dark:text-violet-200 dark:ring-violet-300/20'
+                  : 'bg-indigo-50/75 text-indigo-600 ring-1 ring-indigo-100/80 dark:bg-indigo-400/10 dark:text-indigo-300 dark:ring-indigo-400/15',
               )}
               aria-label="Auto-play"
             >
@@ -312,10 +315,10 @@ export function CanvasPlaybackPill({
         }}
         className={cn(
           ctrlBtn,
-          'w-6 h-6',
+          'w-7 h-7',
           whiteboardOpen
-            ? 'text-violet-600 dark:text-violet-400'
-            : 'text-gray-500 dark:text-gray-400',
+            ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200/80 dark:bg-emerald-400/15 dark:text-emerald-200 dark:ring-emerald-300/20'
+            : 'bg-teal-50/75 text-teal-700 ring-1 ring-teal-100/80 dark:bg-teal-400/10 dark:text-teal-300 dark:ring-teal-400/15',
         )}
         title={whiteboardOpen ? t('whiteboard.minimize') : t('whiteboard.open')}
       >

@@ -1,212 +1,37 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, RefreshCcw, ScanSearch, Sparkles, SquarePen } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, SquarePen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SceneType } from '@/lib/types/stage';
 
-export type SlideEditTab = 'canvas' | 'narration';
 export type SlideEditorSidebarTab = 'ai' | 'manual';
-export type MainClassroomView = 'ppt' | 'quiz' | 'raw';
-
-function SegmentedShell({ children, ariaLabel }: { children: ReactNode; ariaLabel: string }) {
-  return (
-    <div
-      className={cn(
-        'apple-glass flex items-center gap-0.5 rounded-[14px] p-0.5',
-        'shadow-[0_2px_16px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.25)]',
-      )}
-      role="tablist"
-      aria-label={ariaLabel}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SegmentedButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={cn(
-        'rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
-        active
-          ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
-          : 'text-[#1d1d1f]/65 hover:bg-black/[0.04] hover:text-[#1d1d1f] dark:text-white/70 dark:hover:bg-white/[0.06] dark:hover:text-white',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-export function StageViewToggle({
-  slideEditorOpen,
-  slideEditTab,
-  onSlideEditTabChange,
-  mainClassroomView,
-  onMainClassroomViewChange,
-  currentSceneType,
-  onRawDataSubTabChange,
-  labels,
-}: {
-  slideEditorOpen: boolean;
-  slideEditTab: SlideEditTab;
-  onSlideEditTabChange: (tab: SlideEditTab) => void;
-  mainClassroomView: MainClassroomView;
-  onMainClassroomViewChange: (view: MainClassroomView) => void;
-  currentSceneType?: SceneType;
-  onRawDataSubTabChange: (tab: SceneType) => void;
-  labels: {
-    ppt: string;
-    quiz: string;
-    raw: string;
-  };
-}) {
-  if (slideEditorOpen) {
-    return (
-      <SegmentedShell ariaLabel="编辑模式切换">
-        <SegmentedButton
-          active={slideEditTab === 'canvas'}
-          onClick={() => onSlideEditTabChange('canvas')}
-        >
-          页面
-        </SegmentedButton>
-        <SegmentedButton
-          active={slideEditTab === 'narration'}
-          onClick={() => onSlideEditTabChange('narration')}
-        >
-          讲解
-        </SegmentedButton>
-      </SegmentedShell>
-    );
-  }
-
-  return (
-    <SegmentedShell ariaLabel={`${labels.ppt} / ${labels.quiz} / ${labels.raw}`}>
-      <SegmentedButton
-        active={mainClassroomView === 'ppt'}
-        onClick={() => onMainClassroomViewChange('ppt')}
-      >
-        {labels.ppt}
-      </SegmentedButton>
-      <SegmentedButton
-        active={mainClassroomView === 'quiz'}
-        onClick={() => onMainClassroomViewChange('quiz')}
-      >
-        {labels.quiz}
-      </SegmentedButton>
-      <SegmentedButton
-        active={mainClassroomView === 'raw'}
-        onClick={() => {
-          onMainClassroomViewChange('raw');
-          if (currentSceneType) onRawDataSubTabChange(currentSceneType);
-        }}
-      >
-        {labels.raw}
-      </SegmentedButton>
-    </SegmentedShell>
-  );
-}
-
-export function EditorStatusChip({
-  storageSaveState,
-  storageSaveScope,
-  storageSavedAt,
-  storageSaveError,
-  slideEditTab,
-  semanticEditorOpen = false,
-}: {
-  storageSaveState: string;
-  storageSaveScope?: string | null;
-  storageSavedAt?: number | null;
-  storageSaveError?: string | null;
-  slideEditTab: SlideEditTab;
-  semanticEditorOpen?: boolean;
-}) {
-  return (
-    <div className="apple-glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200">
-      <span
-        className={cn(
-          'inline-flex size-2 rounded-full',
-          storageSaveState === 'saving'
-            ? 'bg-amber-500 dark:bg-amber-400'
-            : storageSaveState === 'error'
-              ? 'bg-rose-500 dark:bg-rose-400'
-              : 'bg-emerald-500 dark:bg-emerald-400',
-        )}
-      />
-      <span>
-        {storageSaveState === 'saving'
-          ? semanticEditorOpen
-            ? 'Markup 正在保存…'
-            : slideEditTab === 'canvas'
-              ? '页面改动正在保存…'
-              : '讲解改动正在保存…'
-          : storageSaveState === 'error'
-            ? `保存失败${storageSaveError ? `：${storageSaveError}` : ''}`
-            : storageSaveState === 'saved'
-              ? storageSaveScope === 'draft'
-                ? `已保存草稿${storageSavedAt ? '，刷新不会丢' : ''}`
-                : '已保存'
-              : semanticEditorOpen
-                ? 'Markup 编辑模式：点击保存后重新编译当前页'
-                : slideEditTab === 'canvas'
-                  ? '编辑模式：页面改动会自动保存'
-                  : '编辑模式：讲解修改需要手动保存'}
-      </span>
-    </div>
-  );
-}
 
 export function StageTitleActions({
   headerActions,
-  canEditCurrentSlide,
-  canRepairCurrentSlide,
+  canToggleEditMode,
+  editModeActive,
   canRestoreCurrentSlide,
   canRerenderCurrentSlide,
-  canShowMarkerDebugOverlay,
-  markerDebugOverlayEnabled,
   gridReflowPending,
   slideEditorOpen,
-  slideEditorSidebarTab,
   onRerender,
   onRestore,
-  onOpenRepairSidebar,
-  onManualEditToggle,
-  onMarkerDebugOverlayToggle,
+  onEditModeToggle,
 }: {
   headerActions?: ReactNode;
-  canEditCurrentSlide: boolean;
-  canRepairCurrentSlide: boolean;
+  canToggleEditMode: boolean;
+  editModeActive: boolean;
   canRestoreCurrentSlide: boolean;
   canRerenderCurrentSlide: boolean;
-  canShowMarkerDebugOverlay: boolean;
-  markerDebugOverlayEnabled: boolean;
   gridReflowPending: boolean;
   slideEditorOpen: boolean;
-  slideEditorSidebarTab: SlideEditorSidebarTab;
   onRerender: () => void;
   onRestore: () => void;
-  onOpenRepairSidebar: () => void;
-  onManualEditToggle: () => void;
-  onMarkerDebugOverlayToggle: () => void;
+  onEditModeToggle: () => void;
 }) {
   const hasBuiltInActions =
-    canEditCurrentSlide ||
+    canToggleEditMode ||
+    editModeActive ||
     slideEditorOpen ||
-    canRepairCurrentSlide ||
     canRestoreCurrentSlide ||
-    canShowMarkerDebugOverlay ||
     canRerenderCurrentSlide;
 
   if (!headerActions && !hasBuiltInActions) return null;
@@ -214,22 +39,6 @@ export function StageTitleActions({
   return (
     <div className="flex items-center gap-2">
       {headerActions}
-      {canShowMarkerDebugOverlay ? (
-        <button
-          type="button"
-          onClick={onMarkerDebugOverlayToggle}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-            markerDebugOverlayEnabled
-              ? 'border-orange-300 bg-orange-100 text-orange-900 shadow-sm dark:border-orange-400/45 dark:bg-orange-950/55 dark:text-orange-50'
-              : 'border-orange-200 bg-white/85 text-orange-700 hover:bg-orange-50 dark:border-orange-500/30 dark:bg-white/[0.05] dark:text-orange-200 dark:hover:bg-orange-950/35',
-          )}
-          title="显示/隐藏原始带四角 marker 的生成图；点击左侧讲解可验证遮罩定位"
-        >
-          <ScanSearch className="size-3.5" />
-          四角测试
-        </button>
-      ) : null}
       {canRerenderCurrentSlide ? (
         <button
           type="button"
@@ -256,43 +65,28 @@ export function StageTitleActions({
             'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
             'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-950/35 dark:text-amber-100 dark:hover:bg-amber-950/55',
           )}
-          title="恢复到 AI 重写前的版本"
+          title="恢复到修改前的版本"
         >
           <AlertTriangle className="size-3.5" />
-          恢复重写前
+          恢复修改前
         </button>
       ) : null}
 
-      {canRepairCurrentSlide ? (
+      {canToggleEditMode || editModeActive ? (
         <button
           type="button"
-          onClick={onOpenRepairSidebar}
+          onClick={onEditModeToggle}
+          aria-pressed={editModeActive}
+          aria-label={editModeActive ? '退出编辑模式' : '进入编辑模式'}
           className={cn(
-            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-            slideEditorOpen && slideEditorSidebarTab === 'ai'
-              ? 'border-sky-400 bg-sky-100 text-sky-900 shadow-sm dark:border-sky-400/45 dark:bg-sky-950/55 dark:text-sky-50'
-              : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-500/30 dark:bg-sky-950/35 dark:text-sky-200 dark:hover:bg-sky-950/55',
-          )}
-          title="打开 AI 重写侧栏；与「编辑当前页」互斥，可在顶栏切换"
-        >
-          <Sparkles className="size-3.5" />
-          AI 重写
-        </button>
-      ) : null}
-
-      {canEditCurrentSlide || slideEditorOpen ? (
-        <button
-          type="button"
-          onClick={onManualEditToggle}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-            slideEditorOpen && slideEditorSidebarTab === 'manual'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-950/35 dark:text-emerald-200 dark:hover:bg-emerald-950/55'
+            'inline-flex size-9 items-center justify-center rounded-full border text-xs font-semibold transition-all',
+            editModeActive
+              ? 'border-emerald-300 bg-emerald-100 text-emerald-800 shadow-sm hover:bg-emerald-100 dark:border-emerald-400/45 dark:bg-emerald-950/55 dark:text-emerald-50'
               : 'border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200 dark:hover:bg-white/[0.08]',
           )}
+          title={editModeActive ? '退出编辑模式' : '进入编辑模式'}
         >
-          <SquarePen className="size-3.5" />
-          {slideEditorOpen && slideEditorSidebarTab === 'manual' ? '完成编辑' : '编辑当前页'}
+          <SquarePen className="size-4" />
         </button>
       ) : null}
     </div>

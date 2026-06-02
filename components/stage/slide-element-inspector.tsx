@@ -12,6 +12,8 @@ import { useSceneSelector } from '@/lib/contexts/scene-context';
 import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
 import { useHistorySnapshot } from '@/lib/hooks/use-history-snapshot';
 import { useCanvasStore } from '@/lib/store/canvas';
+import { useStageStore } from '@/lib/store/stage';
+import type { Action, SpeechAction, SpotlightAction } from '@/lib/types/action';
 import type { SlideRepairChatMessage } from '@/lib/types/slide-repair';
 import type { SlideContent } from '@/lib/types/stage';
 import type {
@@ -30,7 +32,18 @@ import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
 import { renderMathToHtml } from '@/lib/math-engine';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
-import { ImagePlus, Loader2, PlusSquare, SendHorizonal, Trash2, Upload, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ImagePlus,
+  Loader2,
+  MousePointer2,
+  PlusSquare,
+  SendHorizonal,
+  Trash2,
+  Upload,
+  Volume2,
+  X,
+} from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 
 function sectionTitle(title: string, description?: string) {
@@ -79,6 +92,57 @@ function getElementDisplayName(element: PPTElement, index: number): string {
   const explicitName = element.name?.trim();
   if (explicitName) return explicitName;
   return `${getElementTypeLabel(element.type)} ${index + 1}`;
+}
+
+const FOCUS_REGION_PATTERN = /lecture-focus-generated|semantic-hit-map/i;
+
+function isFocusRegionElement(element: PPTElement): element is PPTShapeElement {
+  return (
+    element.type === 'shape' &&
+    FOCUS_REGION_PATTERN.test(`${String(element.id || '')} ${String(element.name || '')}`)
+  );
+}
+
+function focusRegionLabel(element: PPTShapeElement, index: number): string {
+  const raw = (element.name || '').trim();
+  const cleaned = raw
+    .replace(/^lecture-focus-generated\s*:\s*/i, '')
+    .replace(/^semantic-hit-map\s*:\s*/i, '')
+    .trim();
+  return cleaned || `区域 ${index + 1}`;
+}
+
+type SpeechRegionRow = {
+  action: SpeechAction;
+  actionIndex: number;
+  speechIndex: number;
+  spotlight?: SpotlightAction;
+  regionId?: string;
+};
+
+function buildSpeechRegionRows(actions: readonly Action[] | undefined): SpeechRegionRow[] {
+  const rows: SpeechRegionRow[] = [];
+  let activeSpotlight: SpotlightAction | undefined;
+  let speechIndex = 0;
+
+  for (const [actionIndex, action] of (actions || []).entries()) {
+    if (action.type === 'spotlight') {
+      activeSpotlight = action as SpotlightAction;
+      continue;
+    }
+    if (action.type !== 'speech') continue;
+
+    rows.push({
+      action: action as SpeechAction,
+      actionIndex,
+      speechIndex,
+      spotlight: activeSpotlight,
+      regionId: activeSpotlight?.elementId,
+    });
+    speechIndex += 1;
+  }
+
+  return rows;
 }
 
 const COMMON_COLOR_SWATCHES = [
@@ -363,17 +427,11 @@ function colorInput(value: string | undefined, onChange: (next: string) => void)
   );
 }
 
-type ManualInspectorTab = 'add' | 'position' | 'text';
-
-const MANUAL_INSPECTOR_TABS: { id: ManualInspectorTab; label: string }[] = [
-  { id: 'text', label: '调整文本' },
-  { id: 'position', label: '调整位置' },
-  { id: 'add', label: '添加组件' },
-];
+type ManualInspectorTab = 'regions' | 'text' | 'position' | 'add';
 
 interface SlideElementInspectorProps {
   readonly className?: string;
-  /** 由顶栏「AI 重写 / 编辑当前页」切换，侧栏内不再使用 Tab 切换 */
+  /** 由顶栏 AI 重写入口控制；侧栏内不再使用 Tab 切换 */
   readonly sidebarPanel: 'ai' | 'manual';
   readonly repairDraft: string;
   readonly onRepairDraftChange: (value: string) => void;
@@ -398,7 +456,13 @@ export function SlideElementInspector({
   const elements = useSceneSelector<SlideContent, PPTElement[]>(
     (content) => content.canvas.elements,
   );
+  const currentSceneId = useStageStore((s) => s.currentSceneId);
+  const currentScene = useStageStore((s) =>
+    s.currentSceneId ? s.scenes.find((scene) => scene.id === s.currentSceneId) || null : null,
+  );
+  const updateScene = useStageStore((s) => s.updateScene);
   const activeElementIdList = useCanvasStore.use.activeElementIdList();
+  const setActiveElementIdList = useCanvasStore.use.setActiveElementIdList();
   const viewportSize = useCanvasStore.use.viewportSize();
   const viewportRatio = useCanvasStore.use.viewportRatio();
   const { addElement, updateElement, deleteElement } = useCanvasOperations();
@@ -407,12 +471,14 @@ export function SlideElementInspector({
   const repairConversationRef = useRef<HTMLDivElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
   const prevSidebarPanelRef = useRef(sidebarPanel);
+  const autoSelectedRegionSceneRef = useRef<string | null>(null);
   const [newTextContent, setNewTextContent] = useState('请输入文本');
   const [newTextFontFamily, setNewTextFontFamily] = useState<string>(DEFAULT_TEXT_FONT);
   const [newTextFontSize, setNewTextFontSize] = useState<number>(DEFAULT_TEXT_FONT_SIZE);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [addingImage, setAddingImage] = useState(false);
-  const [manualTab, setManualTab] = useState<ManualInspectorTab>('text');
+  const [manualTab, setManualTab] = useState<ManualInspectorTab>('regions');
+  const [expandedRegionIds, setExpandedRegionIds] = useState<Set<string>>(() => new Set());
 
   const selectedElements = useMemo(
     () => elements.filter((element) => activeElementIdList.includes(element.id)),
@@ -420,6 +486,32 @@ export function SlideElementInspector({
   );
   const selectedElement = selectedElements.length === 1 ? selectedElements[0] : null;
   const hasSelection = selectedElements.length > 0;
+  const focusRegionElements = useMemo(() => elements.filter(isFocusRegionElement), [elements]);
+  const speechRegionRows = useMemo(
+    () => buildSpeechRegionRows(currentScene?.actions as Action[] | undefined),
+    [currentScene?.actions],
+  );
+  const speechRowsByRegionId = useMemo(() => {
+    const map = new Map<string, SpeechRegionRow[]>();
+    for (const row of speechRegionRows) {
+      if (!row.regionId) continue;
+      map.set(row.regionId, [...(map.get(row.regionId) || []), row]);
+    }
+    return map;
+  }, [speechRegionRows]);
+  const unassignedSpeechRows = useMemo(
+    () =>
+      speechRegionRows.filter(
+        (row) =>
+          !row.regionId || !focusRegionElements.some((element) => element.id === row.regionId),
+      ),
+    [focusRegionElements, speechRegionRows],
+  );
+  const selectedFocusRegionId = useMemo(
+    () =>
+      focusRegionElements.find((element) => activeElementIdList.includes(element.id))?.id ?? null,
+    [activeElementIdList, focusRegionElements],
+  );
 
   useEffect(() => {
     if (!repairInputFocusNonce || sidebarPanel !== 'ai') return;
@@ -430,8 +522,44 @@ export function SlideElementInspector({
   useEffect(() => {
     const prev = prevSidebarPanelRef.current;
     prevSidebarPanelRef.current = sidebarPanel;
-    if (prev === 'ai' && sidebarPanel === 'manual') setManualTab('text');
+    if (prev === 'ai' && sidebarPanel === 'manual') {
+      setManualTab('regions');
+    }
   }, [sidebarPanel]);
+
+  useEffect(() => {
+    if (!selectedFocusRegionId) return;
+    setExpandedRegionIds((current) => {
+      if (current.has(selectedFocusRegionId)) return current;
+      const next = new Set(current);
+      next.add(selectedFocusRegionId);
+      return next;
+    });
+  }, [selectedFocusRegionId]);
+
+  useEffect(() => {
+    if (sidebarPanel !== 'manual' || !currentSceneId || focusRegionElements.length === 0) return;
+    if (autoSelectedRegionSceneRef.current === currentSceneId) return;
+    autoSelectedRegionSceneRef.current = currentSceneId;
+
+    const hasActiveFocusRegion = focusRegionElements.some((element) =>
+      activeElementIdList.includes(element.id),
+    );
+    if (hasActiveFocusRegion) return;
+
+    const firstRegion = focusRegionElements[0];
+    if (firstRegion.lock) {
+      updateElement({ id: firstRegion.id, props: { lock: false } });
+    }
+    setActiveElementIdList([firstRegion.id]);
+  }, [
+    activeElementIdList,
+    currentSceneId,
+    focusRegionElements,
+    setActiveElementIdList,
+    sidebarPanel,
+    updateElement,
+  ]);
 
   useEffect(() => {
     const container = repairConversationRef.current;
@@ -464,6 +592,41 @@ export function SlideElementInspector({
     if (!hasSelection) return;
     deleteElement();
   }, [deleteElement, hasSelection]);
+
+  const selectFocusRegion = useCallback(
+    (element: PPTShapeElement) => {
+      if (element.lock) {
+        updateElement({ id: element.id, props: { lock: false } });
+      }
+      setActiveElementIdList([element.id]);
+    },
+    [setActiveElementIdList, updateElement],
+  );
+
+  const toggleFocusRegionExpanded = useCallback((elementId: string) => {
+    setExpandedRegionIds((current) => {
+      const next = new Set(current);
+      if (next.has(elementId)) {
+        next.delete(elementId);
+      } else {
+        next.add(elementId);
+      }
+      return next;
+    });
+  }, []);
+
+  const updateSpeechText = useCallback(
+    (actionId: string, text: string) => {
+      if (!currentSceneId || !currentScene) return;
+      const actions = (currentScene.actions || []).map((action) =>
+        action.id === actionId && action.type === 'speech'
+          ? ({ ...action, text } satisfies SpeechAction)
+          : action,
+      );
+      updateScene(currentSceneId, { actions });
+    },
+    [currentScene, currentSceneId, updateScene],
+  );
 
   const getNextInsertPosition = useCallback(
     (width: number, height: number) => {
@@ -1182,6 +1345,123 @@ export function SlideElementInspector({
     </div>
   );
 
+  const renderSpeechRows = (rows: SpeechRegionRow[]) => (
+    <div className="space-y-2">
+      {rows.map((row) => (
+        <div
+          key={row.action.id}
+          className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-white/10 dark:bg-white/[0.025]"
+        >
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Volume2 className="size-3.5 shrink-0 text-slate-400" />
+              <span className="truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                第 {row.speechIndex + 1} 段
+              </span>
+            </div>
+          </div>
+          <Textarea
+            value={row.action.text}
+            onChange={(e) => updateSpeechText(row.action.id, e.target.value)}
+            className="min-h-[108px] resize-y bg-white text-sm leading-6 dark:bg-slate-950/35"
+            placeholder="输入这一段讲解稿"
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderRegionNarrationEditor = () => (
+    <section className="space-y-3">
+      {focusRegionElements.length === 0 && speechRegionRows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+          当前页还没有可编辑的区域框或讲解稿。
+        </div>
+      ) : null}
+
+      {focusRegionElements.map((element, index) => {
+        const rows = speechRowsByRegionId.get(element.id) || [];
+        const selected = activeElementIdList.includes(element.id);
+        const expanded = selected || expandedRegionIds.has(element.id);
+        return (
+          <div
+            key={element.id}
+            className={cn(
+              'space-y-3 rounded-[18px] border bg-white/88 p-3 shadow-sm transition-colors dark:bg-white/[0.035]',
+              selected
+                ? 'border-[#007AFF]/45 ring-2 ring-[#007AFF]/12 dark:border-[#0A84FF]/45 dark:ring-[#0A84FF]/16'
+                : 'border-slate-200 dark:border-white/10',
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
+                {index + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {focusRegionLabel(element, index)}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px]">
+                    {rows.length} 段讲解
+                  </Badge>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant={selected ? 'default' : 'outline'}
+                size="sm"
+                className="h-8 shrink-0 px-2.5 text-xs"
+                onClick={() => selectFocusRegion(element)}
+              >
+                <MousePointer2 className="size-3.5" />
+                {selected ? '已选中' : '选中'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 rounded-lg"
+                onClick={() => toggleFocusRegionExpanded(element.id)}
+                disabled={selected}
+                aria-expanded={expanded}
+                aria-label={expanded ? '收起区域' : '展开区域'}
+                title={selected ? '选中的区域会自动展开' : expanded ? '收起' : '展开'}
+              >
+                <ChevronDown
+                  className={cn(
+                    'size-4 transition-transform',
+                    expanded ? 'rotate-180' : 'rotate-0',
+                  )}
+                />
+              </Button>
+            </div>
+
+            {expanded ? (
+              rows.length > 0 ? (
+                renderSpeechRows(rows)
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 text-xs leading-5 text-slate-500 dark:border-white/10 dark:text-slate-400">
+                  这个区域还没有关联讲解段落。
+                </div>
+              )
+            ) : null}
+          </div>
+        );
+      })}
+
+      {unassignedSpeechRows.length > 0 ? (
+        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/25 dark:bg-amber-500/10">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+            <Volume2 className="size-4" />
+            未关联选框的讲解
+          </div>
+          {renderSpeechRows(unassignedSpeechRows)}
+        </div>
+      ) : null}
+    </section>
+  );
+
   const renderElementEditor = (element: PPTElement) => {
     switch (element.type) {
       case 'text':
@@ -1215,48 +1495,15 @@ export function SlideElementInspector({
     <aside
       aria-label={sidebarPanel === 'ai' ? 'AI 重写侧栏' : '手动编辑侧栏'}
       className={cn(
-        'flex h-full min-h-0 w-[360px] shrink-0 flex-col border-l border-slate-900/[0.08] bg-white/76 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0f1115]/78 xl:w-[400px]',
+        'flex h-full min-h-0 w-[360px] shrink-0 flex-col border-l border-slate-900/[0.08] bg-white/82 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0f1115]/82 xl:w-[380px]',
         className,
       )}
     >
-      {sidebarPanel === 'manual' ? (
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-900/[0.06] px-3 py-2 dark:border-white/[0.06]">
-          <div
-            role="tablist"
-            aria-label="手动编辑分区"
-            className="grid min-w-0 flex-1 grid-cols-3 gap-0.5 rounded-xl bg-slate-100/90 p-[3px] dark:bg-white/[0.06]"
-          >
-            {MANUAL_INSPECTOR_TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={manualTab === id}
-                onClick={() => setManualTab(id)}
-                className={cn(
-                  'min-w-0 truncate rounded-[10px] px-1.5 py-1.5 text-center text-[11px] font-semibold leading-tight transition-all',
-                  manualTab === id
-                    ? 'bg-[rgba(0,122,255,0.12)] text-[#007AFF] shadow-sm dark:bg-[rgba(10,132,255,0.18)] dark:text-[#0A84FF]'
-                    : 'text-slate-600 hover:bg-black/[0.04] dark:text-slate-400 dark:hover:bg-white/[0.06]',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="shrink-0 rounded-[10px] p-1.5 text-slate-500 transition-colors hover:bg-slate-900/[0.06] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100"
-              aria-label="关闭编辑"
-            >
-              <X className="size-4" strokeWidth={2} />
-            </button>
-          ) : null}
-        </div>
-      ) : onClose ? (
-        <div className="flex justify-end border-b border-slate-900/[0.06] px-4 py-2 dark:border-white/[0.06]">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-900/[0.06] px-4 dark:border-white/[0.06]">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          {sidebarPanel === 'ai' ? 'AI 重写' : '讲解编排'}
+        </h2>
+        {sidebarPanel === 'ai' && onClose ? (
           <button
             type="button"
             onClick={onClose}
@@ -1265,12 +1512,12 @@ export function SlideElementInspector({
           >
             <X className="size-4" strokeWidth={2} />
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {sidebarPanel === 'ai' ? (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-4">
             <div
               ref={repairConversationRef}
               className={cn(
@@ -1360,8 +1607,10 @@ export function SlideElementInspector({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-6 px-4 py-4">
+          <div className="space-y-4 px-3 pb-24 pt-3">
             <div className="space-y-4">
+              {manualTab === 'regions' ? renderRegionNarrationEditor() : null}
+
               {manualTab === 'text' ? (
                 <section className="space-y-4">
                   {selectedElement ? (

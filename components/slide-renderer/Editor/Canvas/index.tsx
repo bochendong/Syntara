@@ -30,10 +30,11 @@ import type { AlignmentLineProps } from '@/lib/types/edit';
 import type { ContextmenuItem } from './EditableElement';
 import type { SlideContent } from '@/lib/types/stage';
 import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
-import { getElementListRange } from '@/lib/utils/element';
+import { getElementListRange, getElementRange } from '@/lib/utils/element';
 import { stripLegacyVerticalFlowMarkers } from '@/lib/utils/legacy-flow-markers';
 import { FlowTimelineOverlay } from '../../components/FlowTimelineOverlay';
 import { CanvasViewportMetricsProvider } from './canvas-viewport-metrics-context';
+import { isImageNotebookFocusElement } from '@/lib/utils/image-notebook-focus-elements';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -52,6 +53,76 @@ const FULL_ROW_BASELINE_WIDTH = 872;
 const FULL_ROW_SNAP_MIN_WIDTH = 800;
 const LEGACY_FULL_ROW_MIN_LEFT = 80;
 const LEGACY_FULL_ROW_MAX_LEFT = 100;
+
+const FOCUS_REGION_COLORS = [
+  { border: 'rgba(37, 99, 235, 0.62)', bg: 'rgba(59, 130, 246, 0.07)', dot: '#0b73f6' },
+  { border: 'rgba(22, 163, 74, 0.58)', bg: 'rgba(34, 197, 94, 0.065)', dot: '#16a34a' },
+  { border: 'rgba(217, 119, 6, 0.58)', bg: 'rgba(245, 158, 11, 0.07)', dot: '#d89a14' },
+  { border: 'rgba(124, 58, 237, 0.52)', bg: 'rgba(139, 92, 246, 0.06)', dot: '#7c3aed' },
+  { border: 'rgba(14, 165, 233, 0.58)', bg: 'rgba(14, 165, 233, 0.06)', dot: '#0284c7' },
+] as const;
+
+type BoxGeometry = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function hasBoxGeometry(element: PPTElement): element is PPTElement & BoxGeometry {
+  return (
+    typeof (element as { left?: unknown }).left === 'number' &&
+    typeof (element as { top?: unknown }).top === 'number' &&
+    typeof (element as { width?: unknown }).width === 'number' &&
+    typeof (element as { height?: unknown }).height === 'number'
+  );
+}
+
+function FocusRegionGuideOverlay({
+  elements,
+  activeElementIdList,
+}: {
+  readonly elements: PPTElement[];
+  readonly activeElementIdList: string[];
+}) {
+  const focusElements = elements.filter(
+    (element) => isImageNotebookFocusElement(element) && hasBoxGeometry(element),
+  );
+
+  if (focusElements.length === 0) return null;
+
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[80]">
+      {focusElements.map((element, index) => {
+        const { minX, maxX, minY, maxY } = getElementRange(element);
+        const color = FOCUS_REGION_COLORS[index % FOCUS_REGION_COLORS.length];
+        const active = activeElementIdList.includes(element.id);
+        return (
+          <div
+            key={`focus-guide-${element.id}`}
+            className="absolute rounded-[10px]"
+            style={{
+              left: minX,
+              top: minY,
+              width: Math.max(1, maxX - minX),
+              height: Math.max(1, maxY - minY),
+              border: `${active ? 2 : 1.5}px dashed ${color.border}`,
+              background: color.bg,
+              boxShadow: active ? `0 0 0 1px rgba(255,255,255,0.9), 0 14px 34px ${color.bg}` : '',
+            }}
+          >
+            <span
+              className="absolute -left-2.5 -top-2.5 flex size-6 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-sm ring-2 ring-white"
+              style={{ backgroundColor: color.dot }}
+            >
+              {index + 1}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function normalizeTitleBaseline(elements: PPTElement[]): PPTElement[] {
   const baselineAdjusted = elements.map((element) => {
@@ -511,6 +582,11 @@ export function Canvas(_props: CanvasProps) {
                   elements={elementList}
                   viewportWidth={viewportStyles.width}
                   contentHeight={contentHeight}
+                />
+
+                <FocusRegionGuideOverlay
+                  elements={elementList}
+                  activeElementIdList={activeElementIdList}
                 />
               </div>
             </div>

@@ -24,6 +24,10 @@ The `/test` page reads its test catalog from `features/qa/test-center` instead o
 
 Fixtures that are actively read by QA routes remain in `testfile`. Generated notebooks, queue PDFs, temporary screenshots, and ad hoc outputs should not be added to Git going forward. Shared server paths live in `lib/server/project-paths.ts`; script-only paths live in `scripts/shared/paths.mjs`.
 
+## Generation Chain Docs
+
+Notebook quality process documentation lives in `docs/generation-chain`. Keep guidance about how to generate a good notebook, page-planning standards, narration standards, and quality checklists there when generation behavior changes.
+
 ## Structure Audit
 
 Run `pnpm repo:audit` before and after directory cleanup batches. The audit reports source files above the line-count warning/failure thresholds, QA pages outside `app/(qa)`, route-handler counts, and large generated or local-only directories that are still tracked by Git.

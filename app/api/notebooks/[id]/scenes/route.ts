@@ -4,7 +4,7 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { inlineLocalGeneratedNotebookImages } from '@/lib/server/notebook-scene-image-assets';
+import { persistLocalGeneratedNotebookImages } from '@/lib/server/notebook-scene-image-assets';
 import {
   findOwnedNotebookId,
   listNotebookScenes,
@@ -120,7 +120,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
           s.content,
           s.generationDiagnostics,
         );
-        const { content } = await inlineLocalGeneratedNotebookImages(contentWithDiagnostics);
+        const { content } = await persistLocalGeneratedNotebookImages(
+          prisma,
+          contentWithDiagnostics,
+        );
         const existingScene =
           (s.id ? existingById.get(s.id) : undefined) || existingByOrder.get(s.order);
         const mergedContent = shouldPreserveRepairedImageNotebookContent(

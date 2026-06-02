@@ -82,6 +82,8 @@ next-env.d.ts
 # docs
 /docs/*
 !/docs/course-settings-generation-effects.md
+!/docs/generation-chain/
+!/docs/generation-chain/**
 !/docs/lecture-narration-guidelines.md
 !/docs/notebook-generation-sidebar-options.md
 !/docs/repository-structure.md

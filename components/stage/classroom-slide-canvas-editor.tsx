@@ -8,6 +8,25 @@ import type { SlideRepairChatMessage } from '@/lib/types/slide-repair';
 import { cn } from '@/lib/utils';
 import { Canvas } from '@/components/slide-renderer/Editor/Canvas';
 import { SlideElementInspector } from '@/components/stage/slide-element-inspector';
+import { SceneSidebar } from '@/components/stage/scene-sidebar';
+import type { PPTElement, PPTImageElement, Slide } from '@/lib/types/slides';
+
+const IMAGE_NOTEBOOK_SRC_PATTERN = /\/generated-notebooks\//i;
+
+function isImageNotebookPageElement(element: PPTElement): element is PPTImageElement {
+  return (
+    element.type === 'image' &&
+    (element.imageType === 'pageFigure' || IMAGE_NOTEBOOK_SRC_PATTERN.test(element.src || ''))
+  );
+}
+
+function resolveEditorViewportRatio(canvas: Slide): number {
+  const pageImage = canvas.elements.find(isImageNotebookPageElement);
+  if (pageImage?.width && pageImage.height && pageImage.width > 0 && pageImage.height > 0) {
+    return pageImage.height / pageImage.width;
+  }
+  return canvas.viewportRatio ?? 0.5625;
+}
 
 interface ClassroomSlideCanvasEditorProps {
   readonly currentScene: Scene;
@@ -20,6 +39,8 @@ interface ClassroomSlideCanvasEditorProps {
   readonly repairPending: boolean;
   readonly repairInputFocusNonce: number;
   readonly onCloseInspector?: () => void;
+  readonly onSceneSelect?: (sceneId: string) => void;
+  readonly onRetryOutline?: (outlineId: string) => Promise<void>;
 }
 
 export function ClassroomSlideCanvasEditor({
@@ -32,6 +53,8 @@ export function ClassroomSlideCanvasEditor({
   repairPending,
   repairInputFocusNonce,
   onCloseInspector,
+  onSceneSelect,
+  onRetryOutline,
 }: ClassroomSlideCanvasEditorProps) {
   const setCanvasPercentage = useCanvasStore.use.setCanvasPercentage();
   const setCanvasDragged = useCanvasStore.use.setCanvasDragged();
@@ -39,18 +62,21 @@ export function ClassroomSlideCanvasEditor({
   const setViewportRatio = useCanvasStore.use.setViewportRatio();
   const viewportRatio =
     currentScene.type === 'slide' && currentScene.content.type === 'slide'
-      ? (currentScene.content.canvas.viewportRatio ?? 0.5625)
+      ? resolveEditorViewportRatio(currentScene.content.canvas)
       : 0.5625;
   const viewportSize =
     currentScene.type === 'slide' && currentScene.content.type === 'slide'
       ? (currentScene.content.canvas.viewportSize ?? 1000)
       : 1000;
-  const slideAspectRatio = 1 / viewportRatio;
+  const hasImageNotebookPage =
+    currentScene.type === 'slide' &&
+    currentScene.content.type === 'slide' &&
+    currentScene.content.canvas.elements.some(isImageNotebookPageElement);
 
   useEffect(() => {
     setViewportSize(viewportSize);
     setViewportRatio(viewportRatio);
-    setCanvasPercentage(92);
+    setCanvasPercentage(100);
     setCanvasDragged(false);
   }, [
     setCanvasDragged,
@@ -64,18 +90,32 @@ export function ClassroomSlideCanvasEditor({
   return (
     <div
       className={cn(
-        'relative flex h-full min-h-0 flex-row items-stretch justify-start gap-3 overflow-hidden p-3 transition-colors duration-500 md:p-4',
-        'bg-[radial-gradient(circle_at_15%_0%,rgba(179,229,252,0.28),transparent_40%),linear-gradient(180deg,rgba(248,250,252,0.92)_0%,rgba(238,242,247,0.85)_100%)]',
-        'dark:bg-[radial-gradient(circle_at_20%_10%,rgba(71,85,105,0.22),transparent_45%),linear-gradient(180deg,rgba(11,15,22,0.92)_0%,rgba(17,24,39,0.88)_100%)]',
+        'relative flex h-full min-h-0 flex-row items-stretch justify-start overflow-hidden transition-colors duration-500',
+        'bg-white dark:bg-slate-950',
       )}
     >
       <SceneProvider>
-        <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-3">
-          <div className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden">
-            <div className="relative h-full" style={{ aspectRatio: `${slideAspectRatio}` }}>
-              <div className="relative h-full w-full overflow-hidden rounded-[24px] border border-slate-900/[0.08] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]">
-                <Canvas />
-              </div>
+        <div className="flex w-[84px] shrink-0 justify-center border-r border-slate-900/[0.08] bg-white/86 px-3 py-6 dark:border-white/[0.08] dark:bg-[#0f1115]/86">
+          <SceneSidebar
+            collapsed={false}
+            onCollapseChange={() => undefined}
+            variant="rail"
+            onSceneSelect={onSceneSelect}
+            onRetryOutline={onRetryOutline}
+          />
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-1 items-stretch">
+          <div className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden px-5 pb-5 pt-5">
+            <div
+              className={cn(
+                'relative h-full w-full overflow-hidden',
+                hasImageNotebookPage
+                  ? 'bg-transparent'
+                  : 'rounded-[20px] border border-slate-900/[0.08] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/[0.08] dark:bg-[#1c1c1e] dark:shadow-[0_12px_48px_rgba(0,0,0,0.45)]',
+              )}
+            >
+              <Canvas />
             </div>
           </div>
 
