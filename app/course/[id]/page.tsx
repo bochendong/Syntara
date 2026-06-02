@@ -22,7 +22,6 @@ import { getCourse, touchCourseUpdatedAt, updateCourse } from '@/lib/utils/cours
 import type { CourseRecord } from '@/lib/utils/database';
 import {
   deleteStageData,
-  getFirstSlideByStages,
   listStagesByCourse,
   loadStageData,
   moveStageToCourse,
@@ -39,8 +38,8 @@ import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import { getLocalStudyMemoryUserId, loadStudyMemory } from '@/lib/learning/study-memory';
 import {
-  listCourseProblems,
-  type NotebookProblemClientRecord,
+  listCourseProblemSummaries,
+  type CourseProblemClientSummary,
 } from '@/lib/utils/notebook-problem-api';
 import {
   listNotebookStudyMemoryCounts,
@@ -143,14 +142,14 @@ function normalizeCourseProblemTopic(value: string): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, 48);
 }
 
-function getCourseProblemTopics(problem: NotebookProblemClientRecord): string[] {
+function getCourseProblemTopics(problem: CourseProblemClientSummary): string[] {
   const tags = problem.tags.map(normalizeCourseProblemTopic).filter(Boolean);
   if (tags.length > 0) return Array.from(new Set(tags)).slice(0, 6);
   return ['未标注'];
 }
 
 function getCourseProblemPracticeState(
-  problem: NotebookProblemClientRecord,
+  problem: CourseProblemClientSummary,
 ): CourseProblemPracticeState {
   const status = problem.latestAttempt?.status ?? null;
   if (!status) return 'unattempted';
@@ -164,7 +163,7 @@ function weakTopicBarClass(index: number): string {
   return classes[index % classes.length];
 }
 
-function countProblemsByNotebook(problems: NotebookProblemClientRecord[]): Record<string, number> {
+function countProblemsByNotebook(problems: CourseProblemClientSummary[]): Record<string, number> {
   return problems.reduce<Record<string, number>>((acc, problem) => {
     if (problem.notebookId) {
       acc[problem.notebookId] = (acc[problem.notebookId] ?? 0) + 1;
@@ -174,7 +173,7 @@ function countProblemsByNotebook(problems: NotebookProblemClientRecord[]): Recor
 }
 
 function getNotebookPracticeProgress(
-  problems: NotebookProblemClientRecord[],
+  problems: CourseProblemClientSummary[],
 ): Record<string, NotebookPracticeProgress> {
   return problems.reduce<Record<string, NotebookPracticeProgress>>((acc, problem) => {
     if (!problem.notebookId) return acc;
@@ -208,7 +207,7 @@ export default function CourseDetailPage() {
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [memoryCounts, setMemoryCounts] = useState<Record<string, number>>({});
   const [problemCounts, setProblemCounts] = useState<Record<string, number>>({});
-  const [courseProblems, setCourseProblems] = useState<NotebookProblemClientRecord[]>([]);
+  const [courseProblems, setCourseProblems] = useState<CourseProblemClientSummary[]>([]);
   const [moveTargets, setMoveTargets] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>('notebooks');
@@ -386,10 +385,9 @@ export default function CourseDetailPage() {
       }
       setCourse(c);
       const list = await listStagesByCourse(id);
-      const [slides, allCourses, problems, nextMemoryCounts] = await Promise.all([
-        getFirstSlideByStages(list.map((n) => n.id)),
+      const [allCourses, problems, nextMemoryCounts] = await Promise.all([
         listCourses(),
-        listCourseProblems(id).catch(() => []),
+        listCourseProblemSummaries(id).catch(() => []),
         buildNotebookMemoryCounts(list),
       ]);
       const targets: Array<{ id: string; name: string }> = allCourses
@@ -398,7 +396,7 @@ export default function CourseDetailPage() {
       const nextProblemCounts = countProblemsByNotebook(problems);
       if (!alive) return;
       setNotebooks(list);
-      setThumbnails(slides);
+      setThumbnails({});
       setMemoryCounts(nextMemoryCounts);
       setProblemCounts(nextProblemCounts);
       setCourseProblems(problems);
@@ -443,13 +441,12 @@ export default function CourseDetailPage() {
           : '已移动到其他课程',
       );
       const list = await listStagesByCourse(id);
-      const [slides, problems, nextMemoryCounts] = await Promise.all([
-        getFirstSlideByStages(list.map((n) => n.id)),
-        listCourseProblems(id).catch(() => []),
+      const [problems, nextMemoryCounts] = await Promise.all([
+        listCourseProblemSummaries(id).catch(() => []),
         buildNotebookMemoryCounts(list),
       ]);
       setNotebooks(list);
-      setThumbnails(slides);
+      setThumbnails({});
       setMemoryCounts(nextMemoryCounts);
       setProblemCounts(countProblemsByNotebook(problems));
       setCourseProblems(problems);
@@ -471,14 +468,13 @@ export default function CourseDetailPage() {
       });
 
       const list = await listStagesByCourse(id);
-      const [slides, problems, nextMemoryCounts] = await Promise.all([
-        getFirstSlideByStages(list.map((n) => n.id)),
-        listCourseProblems(id).catch(() => []),
+      const [problems, nextMemoryCounts] = await Promise.all([
+        listCourseProblemSummaries(id).catch(() => []),
         buildNotebookMemoryCounts(list),
       ]);
       const nextProblemCounts = countProblemsByNotebook(problems);
       setNotebooks(list);
-      setThumbnails(slides);
+      setThumbnails({});
       setMemoryCounts(nextMemoryCounts);
       setProblemCounts(nextProblemCounts);
       setCourseProblems(problems);
@@ -632,12 +628,9 @@ export default function CourseDetailPage() {
 
   const handleNotebookEditSaved = async () => {
     const list = await listStagesByCourse(id);
-    const [slides, nextMemoryCounts] = await Promise.all([
-      getFirstSlideByStages(list.map((n) => n.id)),
-      buildNotebookMemoryCounts(list),
-    ]);
+    const nextMemoryCounts = await buildNotebookMemoryCounts(list);
     setNotebooks(list);
-    setThumbnails(slides);
+    setThumbnails({});
     setMemoryCounts(nextMemoryCounts);
     toast.success('已更新笔记本信息');
     setEditingNotebook(null);

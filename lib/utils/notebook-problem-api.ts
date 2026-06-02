@@ -38,6 +38,11 @@ export type NotebookProblemClientRecord = {
   } | null;
 };
 
+export type CourseProblemClientSummary = Pick<
+  NotebookProblemClientRecord,
+  'id' | 'courseId' | 'notebookId' | 'notebookName' | 'title' | 'status' | 'tags' | 'latestAttempt'
+>;
+
 export type ProblemImportBatchClientRecord = {
   id: string;
   status: 'previewed' | 'committed' | 'cancelled';
@@ -71,6 +76,15 @@ export async function listNotebookProblems(
 export async function listCourseProblems(courseId: string): Promise<NotebookProblemClientRecord[]> {
   const data = await backendJson<{ problems: NotebookProblemClientRecord[] }>(
     `/api/courses/${encodeURIComponent(courseId)}/problems`,
+  );
+  return data.problems;
+}
+
+export async function listCourseProblemSummaries(
+  courseId: string,
+): Promise<CourseProblemClientSummary[]> {
+  const data = await backendJson<{ problems: CourseProblemClientSummary[] }>(
+    `/api/courses/${encodeURIComponent(courseId)}/problems?summary=1`,
   );
   return data.problems;
 }

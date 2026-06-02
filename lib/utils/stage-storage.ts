@@ -829,7 +829,7 @@ export async function getFirstSlideByStages(stageIds: string[]): Promise<Record<
   if (uniqueStageIds.length === 0) return {};
 
   try {
-    const params = new URLSearchParams({ ids: uniqueStageIds.join(',') });
+    const params = new URLSearchParams({ ids: uniqueStageIds.join(','), preview: '1' });
     const data = await backendJson<{ slides: Record<string, Slide> }>(
       `/api/notebooks/first-slides?${params.toString()}`,
     );
