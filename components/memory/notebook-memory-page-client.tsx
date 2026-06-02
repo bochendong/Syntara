@@ -34,7 +34,8 @@ import {
   type WeakPointMemory,
 } from '@/lib/learning/study-memory';
 import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
-import { loadStageData } from '@/lib/utils/stage-storage';
+import { loadStageData, loadStageMetadata } from '@/lib/utils/stage-storage';
+import { listStudyMemoryRecords, type StudyMemoryApiRecord } from '@/lib/utils/study-memory-api';
 import type { NotebookChatMessage } from '@/components/chat/chat-page-types';
 import type { Scene, Stage } from '@/lib/types/stage';
 
@@ -239,6 +240,40 @@ function sharedMemoryFromStored(memory: NotebookMemoryItem): SharedMemoryView {
     confidence: memory.confidence,
     derived: false,
     updatedAt: memory.updatedAt,
+  };
+}
+
+function sourceReferencesFromApi(record: StudyMemoryApiRecord): NotebookMemorySourceReference[] {
+  if (!Array.isArray(record.sourceReferences)) return [];
+  const references: NotebookMemorySourceReference[] = [];
+  for (const source of record.sourceReferences) {
+    if (!source || typeof source !== 'object') continue;
+    const raw = source as Record<string, unknown>;
+    const order = Number(raw.order);
+    const title = typeof raw.title === 'string' ? raw.title.trim() : '';
+    const why = typeof raw.why === 'string' ? raw.why : undefined;
+    if (!Number.isFinite(order) || !title) continue;
+    references.push({ order, title, why });
+  }
+  return references;
+}
+
+function sharedMemoryFromApi(record: StudyMemoryApiRecord): SharedMemoryView {
+  return {
+    id: `db:${record.id}`,
+    title: record.title,
+    text: record.text,
+    sourceLabel:
+      record.source === 'notebook_generation'
+        ? '数据库生成记忆'
+        : record.source === 'manual'
+          ? '数据库手动记忆'
+          : '数据库记忆',
+    sourceReferences: sourceReferencesFromApi(record),
+    kindLabel: record.kind || 'manual',
+    confidence: record.confidence ?? undefined,
+    derived: false,
+    updatedAt: Date.parse(record.updatedAt),
   };
 }
 
@@ -574,6 +609,7 @@ export function NotebookMemoryPageClient({
   const [tab, setTab] = useState<MemoryTab>('all');
   const [query, setQuery] = useState('');
   const [revision, setRevision] = useState(0);
+  const [dbMemories, setDbMemories] = useState<StudyMemoryApiRecord[]>([]);
   const [conversationSnapshot, setConversationSnapshot] = useState<{
     notebookId: string;
     memory: ConversationMemory;
@@ -582,13 +618,19 @@ export function NotebookMemoryPageClient({
   useEffect(() => {
     if (!notebookId) return;
     let alive = true;
-    void loadStageData(notebookId).then((data) => {
+    void Promise.all([
+      loadStageMetadata(notebookId),
+      listStudyMemoryRecords({ targetType: 'notebook', targetId: notebookId }).catch(
+        () => [] as StudyMemoryApiRecord[],
+      ),
+    ]).then(([stage, memories]) => {
       if (!alive) return;
       setLoaded({
         notebookId,
-        stage: data?.stage || null,
-        scenes: data?.scenes || [],
+        stage,
+        scenes: [],
       });
+      setDbMemories(memories);
     });
     return () => {
       alive = false;
@@ -648,6 +690,10 @@ export function NotebookMemoryPageClient({
     () => (profile?.publicMemories || []).filter((memory) => memory.status !== 'archived'),
     [profile?.publicMemories],
   );
+  const dbPublicMemories = useMemo(
+    () => dbMemories.filter((memory) => memory.scope === 'public' && memory.status !== 'archived'),
+    [dbMemories],
+  );
   const privateMemories = useMemo(
     () => (profile?.privateMemories || []).filter((memory) => memory.status !== 'archived'),
     [profile?.privateMemories],
@@ -657,8 +703,30 @@ export function NotebookMemoryPageClient({
     [profile?.weakPoints],
   );
 
+  useEffect(() => {
+    if (!notebookId || !currentLoaded || currentLoaded.scenes.length > 0) return;
+    const hasStoredPublicMemory = dbPublicMemories.length > 0 || publicMemories.length > 0;
+    if (hasStoredPublicMemory) return;
+
+    let alive = true;
+    void loadStageData(notebookId).then((data) => {
+      if (!alive || !data) return;
+      setLoaded({
+        notebookId,
+        stage: data.stage,
+        scenes: data.scenes,
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [currentLoaded, dbPublicMemories.length, notebookId, publicMemories.length]);
+
   const sharedMemories = useMemo(() => {
-    const stored = publicMemories.map(sharedMemoryFromStored);
+    const stored = [
+      ...dbPublicMemories.map(sharedMemoryFromApi),
+      ...publicMemories.map(sharedMemoryFromStored),
+    ];
     if (stored.length > 0) return stored.slice(0, 80);
     const derived = scenes
       .slice()
@@ -666,7 +734,7 @@ export function NotebookMemoryPageClient({
       .map(sharedMemoryFromScene)
       .filter((item) => item.text.trim() || item.title.trim());
     return derived.slice(0, 80);
-  }, [publicMemories, scenes]);
+  }, [dbPublicMemories, publicMemories, scenes]);
 
   const filteredShared = useMemo(
     () =>

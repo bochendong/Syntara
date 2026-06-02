@@ -9,6 +9,7 @@ import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
 import {
   createOwnedNotebook,
   findNotebookOwner,
+  listOwnedNotebooks,
   listOwnedNotebooksWithSpeechActions,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
@@ -35,9 +36,14 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId')?.trim();
+    const includeSpeech = searchParams.get('includeSpeech') === '1';
+
+    if (!includeSpeech) {
+      const notebooks = await listOwnedNotebooks(prisma, userId, courseId);
+      return NextResponse.json({ notebooks });
+    }
 
     const notebooks = await listOwnedNotebooksWithSpeechActions(prisma, userId, courseId);
-
     return NextResponse.json({
       notebooks: notebooks.map(({ scenes, ...notebook }) => {
         const speech = summarizeSpeechReadinessFromScenes(

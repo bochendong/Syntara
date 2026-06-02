@@ -665,6 +665,31 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
   }
 }
 
+export async function loadStageMetadata(stageId: string): Promise<Stage | null> {
+  const mockStageData = loadMockCourseChatStageData(stageId);
+  if (mockStageData) return mockStageData.stage;
+
+  try {
+    const { notebook } = await backendJson<{ notebook: NotebookApiRow }>(
+      `/api/notebooks/${encodeURIComponent(stageId)}?includeScenes=0`,
+    );
+    return {
+      id: notebook.id,
+      courseId: notebook.courseId || undefined,
+      avatarUrl: notebook.avatarUrl || undefined,
+      name: notebook.name,
+      description: notebook.description || undefined,
+      tags: notebook.tags || [],
+      createdAt: Date.parse(notebook.createdAt),
+      updatedAt: Date.parse(notebook.updatedAt),
+      language: notebook.language || undefined,
+      style: notebook.style || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteStageData(stageId: string): Promise<void> {
   await backendJson<{ ok: true }>(`/api/notebooks/${encodeURIComponent(stageId)}`, {
     method: 'DELETE',
@@ -800,9 +825,22 @@ export async function listStagesByCourse(courseId: string): Promise<StageListIte
 }
 
 export async function getFirstSlideByStages(stageIds: string[]): Promise<Record<string, Slide>> {
+  const uniqueStageIds = Array.from(new Set(stageIds.map((id) => id.trim()).filter(Boolean)));
+  if (uniqueStageIds.length === 0) return {};
+
+  try {
+    const params = new URLSearchParams({ ids: uniqueStageIds.join(',') });
+    const data = await backendJson<{ slides: Record<string, Slide> }>(
+      `/api/notebooks/first-slides?${params.toString()}`,
+    );
+    return data.slides;
+  } catch {
+    // Fall back to the older per-notebook path if the batch endpoint is unavailable.
+  }
+
   const result: Record<string, Slide> = {};
   await Promise.all(
-    stageIds.map(async (stageId) => {
+    uniqueStageIds.map(async (stageId) => {
       try {
         const data = await backendJson<{ scenes: SceneApiRow[] }>(
           `/api/notebooks/${encodeURIComponent(stageId)}/scenes`,

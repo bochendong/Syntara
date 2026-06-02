@@ -26,12 +26,24 @@ const updateNotebookSchema = z.object({
   notebookPriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { userId } = auth;
     const { id } = await context.params;
+    const url = new URL(request.url);
+    const includeScenes = url.searchParams.get('includeScenes') !== '0';
+
+    if (!includeScenes) {
+      const notebook = await prisma.notebook.findFirst({
+        where: { id, ownerId: userId },
+      });
+      if (!notebook) {
+        return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+      }
+      return NextResponse.json({ notebook });
+    }
 
     const notebook = await findOwnedNotebookWithScenes(prisma, userId, id);
     if (!notebook) {

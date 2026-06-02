@@ -13,6 +13,38 @@ export type UpdateOwnedNotebookData = Omit<
 
 export type ReplaceNotebookSceneData = Omit<Prisma.SceneCreateManyInput, 'notebookId'>;
 
+const notebookListSelect = {
+  id: true,
+  ownerId: true,
+  courseId: true,
+  name: true,
+  description: true,
+  tags: true,
+  avatarUrl: true,
+  language: true,
+  style: true,
+  listedInNotebookStore: true,
+  notebookPriceCents: true,
+  storePublishedAt: true,
+  sourceNotebookId: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: {
+    select: { scenes: true },
+  },
+} satisfies Prisma.NotebookSelect;
+
+export function listOwnedNotebooks(db: DbClient, userId: string, courseId?: string) {
+  return db.notebook.findMany({
+    where: {
+      ownerId: userId,
+      ...(courseId ? { courseId } : {}),
+    },
+    select: notebookListSelect,
+    orderBy: { updatedAt: 'desc' },
+  });
+}
+
 export function listOwnedNotebooksWithSpeechActions(
   db: DbClient,
   userId: string,
