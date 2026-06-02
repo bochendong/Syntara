@@ -24,6 +24,11 @@ export type StudyMemoryApiRecord = {
   updatedAt: string;
 };
 
+export type StudyMemoryNotebookCounts = Record<
+  string,
+  { public: number; private: number; total: number }
+>;
+
 export async function listStudyMemoryRecords(args: {
   targetType: StudyMemoryApiTargetType;
   targetId: string;
@@ -36,4 +41,17 @@ export async function listStudyMemoryRecords(args: {
     `/api/study-memory?${params.toString()}`,
   );
   return data.memories;
+}
+
+export async function listNotebookStudyMemoryCounts(
+  notebookIds: string[],
+): Promise<StudyMemoryNotebookCounts> {
+  const ids = Array.from(new Set(notebookIds.filter(Boolean)));
+  if (ids.length === 0) return {};
+
+  const params = new URLSearchParams({ ids: ids.join(',') });
+  const data = await backendJson<{ counts: StudyMemoryNotebookCounts }>(
+    `/api/study-memory/notebook-counts?${params.toString()}`,
+  );
+  return data.counts;
 }

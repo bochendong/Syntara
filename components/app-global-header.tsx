@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BrainCircuit,
   ClipboardList,
   Coins,
   Cpu,
@@ -127,7 +126,6 @@ export function AppGlobalHeader() {
   const problemBankHref = encodedCourseId
     ? `/course/${encodedCourseId}/problem-bank`
     : '/my-courses';
-  const courseMemoryHref = encodedCourseId ? `/course/${encodedCourseId}/memory` : '/my-courses';
   const createNotebookUrl = encodedCourseId ? createNotebookHref(courseId) : '/my-courses';
   const courseTitle = courseId ? courseName || '课程工作区' : '选择课程';
   const creditItems =
@@ -256,12 +254,6 @@ export function AppGlobalHeader() {
           active={Boolean(pathname?.startsWith(problemBankHref))}
           icon={ClipboardList}
           label="题库"
-        />
-        <HeaderLink
-          href={courseMemoryHref}
-          active={Boolean(pathname?.startsWith(courseMemoryHref))}
-          icon={BrainCircuit}
-          label="记忆"
         />
         <HeaderLink
           href="/chat"

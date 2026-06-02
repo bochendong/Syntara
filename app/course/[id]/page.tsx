@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertCircle, BookOpen, Brain, HardDrive, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, BookOpen, HardDrive, Loader2, Plus } from 'lucide-react';
 import {
   CourseGalleryCard,
   notebookAssetListGridClassName,
@@ -42,6 +42,10 @@ import {
   listCourseProblems,
   type NotebookProblemClientRecord,
 } from '@/lib/utils/notebook-problem-api';
+import {
+  listNotebookStudyMemoryCounts,
+  type StudyMemoryNotebookCounts,
+} from '@/lib/utils/study-memory-api';
 import {
   Dialog,
   DialogContent,
@@ -92,12 +96,39 @@ function omitRecordKey<T>(record: Record<string, T>, key: string): Record<string
   return Object.fromEntries(Object.entries(record).filter(([itemKey]) => itemKey !== key));
 }
 
-function countStudyMemoryItems(notebookId: string): number {
+type LocalStudyMemoryCounts = {
+  public: number;
+  private: number;
+  weak: number;
+};
+
+function countLocalStudyMemoryItems(notebookId: string): LocalStudyMemoryCounts {
   const profile = loadStudyMemory(getLocalStudyMemoryUserId(), notebookId);
   const activePublic = profile.publicMemories.filter((item) => item.status !== 'archived').length;
   const activePrivate = profile.privateMemories.filter((item) => item.status !== 'archived').length;
   const openWeakPoints = profile.weakPoints.filter((item) => item.status !== 'reviewed').length;
-  return activePublic + activePrivate + openWeakPoints;
+  return { public: activePublic, private: activePrivate, weak: openWeakPoints };
+}
+
+function mergeStudyMemoryCount(
+  notebookId: string,
+  databaseCounts: StudyMemoryNotebookCounts,
+): number {
+  const local = countLocalStudyMemoryItems(notebookId);
+  const databaseCount = databaseCounts[notebookId]?.total ?? 0;
+  if (databaseCount > 0) return databaseCount + local.private + local.weak;
+  return local.public + local.private + local.weak;
+}
+
+async function buildNotebookMemoryCounts(
+  notebooks: StageListItem[],
+): Promise<Record<string, number>> {
+  const databaseCounts: StudyMemoryNotebookCounts = await listNotebookStudyMemoryCounts(
+    notebooks.map((item) => item.id),
+  ).catch(() => ({}));
+  return Object.fromEntries(
+    notebooks.map((notebook) => [notebook.id, mergeStudyMemoryCount(notebook.id, databaseCounts)]),
+  );
 }
 
 type CourseProblemPracticeState = 'mastered' | 'review' | 'wrong' | 'unattempted';
@@ -355,17 +386,15 @@ export default function CourseDetailPage() {
       }
       setCourse(c);
       const list = await listStagesByCourse(id);
-      const [slides, allCourses, problems] = await Promise.all([
+      const [slides, allCourses, problems, nextMemoryCounts] = await Promise.all([
         getFirstSlideByStages(list.map((n) => n.id)),
         listCourses(),
         listCourseProblems(id).catch(() => []),
+        buildNotebookMemoryCounts(list),
       ]);
       const targets: Array<{ id: string; name: string }> = allCourses
         .filter((x) => x.id !== id)
         .map((x) => ({ id: x.id, name: x.name }));
-      const nextMemoryCounts = Object.fromEntries(
-        list.map((notebook) => [notebook.id, countStudyMemoryItems(notebook.id)]),
-      );
       const nextProblemCounts = countProblemsByNotebook(problems);
       if (!alive) return;
       setNotebooks(list);
@@ -414,15 +443,14 @@ export default function CourseDetailPage() {
           : '已移动到其他课程',
       );
       const list = await listStagesByCourse(id);
-      const [slides, problems] = await Promise.all([
+      const [slides, problems, nextMemoryCounts] = await Promise.all([
         getFirstSlideByStages(list.map((n) => n.id)),
         listCourseProblems(id).catch(() => []),
+        buildNotebookMemoryCounts(list),
       ]);
       setNotebooks(list);
       setThumbnails(slides);
-      setMemoryCounts(
-        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
-      );
+      setMemoryCounts(nextMemoryCounts);
       setProblemCounts(countProblemsByNotebook(problems));
       setCourseProblems(problems);
     } catch (e) {
@@ -443,16 +471,15 @@ export default function CourseDetailPage() {
       });
 
       const list = await listStagesByCourse(id);
-      const [slides, problems] = await Promise.all([
+      const [slides, problems, nextMemoryCounts] = await Promise.all([
         getFirstSlideByStages(list.map((n) => n.id)),
         listCourseProblems(id).catch(() => []),
+        buildNotebookMemoryCounts(list),
       ]);
       const nextProblemCounts = countProblemsByNotebook(problems);
       setNotebooks(list);
       setThumbnails(slides);
-      setMemoryCounts(
-        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
-      );
+      setMemoryCounts(nextMemoryCounts);
       setProblemCounts(nextProblemCounts);
       setCourseProblems(problems);
       toast.success(`已删除「${notebookName}」`);
@@ -575,9 +602,7 @@ export default function CourseDetailPage() {
       if (next) setCourse(next);
       const list = await listStagesByCourse(id);
       setNotebooks(list);
-      setMemoryCounts(
-        Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
-      );
+      setMemoryCounts(await buildNotebookMemoryCounts(list));
       setPublishState('published');
       toast.success(
         publishTarget.kind === 'course'
@@ -607,11 +632,13 @@ export default function CourseDetailPage() {
 
   const handleNotebookEditSaved = async () => {
     const list = await listStagesByCourse(id);
+    const [slides, nextMemoryCounts] = await Promise.all([
+      getFirstSlideByStages(list.map((n) => n.id)),
+      buildNotebookMemoryCounts(list),
+    ]);
     setNotebooks(list);
-    setThumbnails(await getFirstSlideByStages(list.map((n) => n.id)));
-    setMemoryCounts(
-      Object.fromEntries(list.map((item) => [item.id, countStudyMemoryItems(item.id)])),
-    );
+    setThumbnails(slides);
+    setMemoryCounts(nextMemoryCounts);
     toast.success('已更新笔记本信息');
     setEditingNotebook(null);
   };
@@ -678,19 +705,9 @@ export default function CourseDetailPage() {
                   </div>
                 </div>
                 <div
-                  className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:flex xl:items-center xl:pt-2"
+                  className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:flex xl:items-center xl:pt-2"
                   data-course-actions
                 >
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="h-auto min-h-9 rounded-xl border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 shadow-sm hover:bg-slate-50 sm:px-3 sm:text-sm dark:border-white/20 dark:bg-white/5 dark:text-slate-100"
-                  >
-                    <Link href={`/course/${encodeURIComponent(course.id)}/memory`}>
-                      <Brain className="mr-1.5 size-4" strokeWidth={1.8} />
-                      课程记忆
-                    </Link>
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
