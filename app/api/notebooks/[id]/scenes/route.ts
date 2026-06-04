@@ -5,8 +5,9 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { persistLocalGeneratedNotebookImages } from '@/lib/server/notebook-scene-image-assets';
+import { stripPrivateSpeechAudioFromActions } from '@/lib/server/speech-action-assets';
 import {
-  findOwnedNotebookId,
+  findReadableNotebookId,
   listNotebookScenes,
   replaceOwnedNotebookScenes,
 } from '@/lib/server/repositories/notebook-repository';
@@ -85,13 +86,18 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    const notebook = await findOwnedNotebookId(prisma, userId, id);
+    const notebook = await findReadableNotebookId(prisma, userId, id);
     if (!notebook) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
 
     const scenes = await listNotebookScenes(prisma, id);
-    return NextResponse.json({ scenes });
+    return NextResponse.json({
+      scenes: scenes.map((scene) => ({
+        ...scene,
+        actions: stripPrivateSpeechAudioFromActions(scene.actions),
+      })),
+    });
   });
 }
 
@@ -138,7 +144,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
           type: s.type,
           order: s.order,
           content: toPrismaJson(mergedContent),
-          actions: toPrismaNullableJson(s.actions),
+          actions: toPrismaNullableJson(stripPrivateSpeechAudioFromActions(s.actions)),
           whiteboard: toPrismaNullableJson(s.whiteboards),
         };
       }),

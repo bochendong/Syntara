@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import {
-  cloneCourseFromStore,
+  enrollCourseFromStore,
   listCommunityStoreCourses,
   listCourses,
 } from '@/lib/utils/course-storage';
@@ -56,13 +56,7 @@ function featuredReason(item: CommunityCourseListItem) {
 function speechStatusLabel(
   item: Pick<CommunityCourseListItem, 'speechStatus' | 'speechReadyCount' | 'speechTotalCount'>,
 ) {
-  if (item.speechStatus === 'ready') return '附带原始语音';
-  if (item.speechStatus === 'pending') {
-    return item.speechTotalCount
-      ? `部分语音待生成 ${item.speechReadyCount ?? 0}/${item.speechTotalCount}`
-      : '部分语音待生成';
-  }
-  return '需自行生成语音';
+  return item.speechTotalCount ? '讲解稿就绪，可生成我的语音' : '可生成我的语音';
 }
 
 export default function CourseStorePage() {
@@ -109,17 +103,17 @@ export default function CourseStorePage() {
     void load();
   }, [authHydrated, isLoggedIn, router, load]);
 
-  const handleCloneCommunityCourse = async (item: CommunityCourseListItem): Promise<boolean> => {
+  const handleEnrollCommunityCourse = async (item: CommunityCourseListItem): Promise<boolean> => {
     setAddingId(`c:${item.id}`);
     try {
-      const course = await cloneCourseFromStore(item.id);
+      const course = await enrollCourseFromStore(item.id);
       if (userId) markCourseOwnedByUser(userId, course.id);
-      toast.success(`已复制课程「${course.name}」到我的课程`);
+      toast.success(`已加入课程「${course.name}」`);
       await load();
       router.push(`/course/${course.id}`);
       return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '复制失败');
+      toast.error(e instanceof Error ? e.message : '加入失败');
       return false;
     } finally {
       setAddingId(null);
@@ -229,7 +223,7 @@ export default function CourseStorePage() {
         ].filter(Boolean) as string[],
         openLabel: '查看课程',
         onOpen: openCourse,
-        primaryActionLabel: busy ? '购买中…' : item.purchased ? '已拥有' : priceLabel,
+        primaryActionLabel: busy ? '加入中…' : item.purchased ? '已加入' : priceLabel,
         primaryActionDisabled: item.purchased || busy,
         onPrimaryAction: item.purchased ? openCourse : () => setPendingPurchaseCourse(item),
       };
@@ -244,24 +238,35 @@ export default function CourseStorePage() {
     }: {
       course: CourseRecord;
       notebookCount: number;
-    }): StorefrontItem => ({
-      id: course.id,
-      title: course.name,
-      subtitle: course.description || '你可以继续扩充笔记本、组织课堂与发布内容。',
-      description: course.description || '你可以继续扩充笔记本、组织课堂与发布内容。',
-      eyebrow: 'Your Library',
-      badge: purposeLabel(course.purpose),
-      artworkUrl: resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl),
-      metadata: [
-        `创作者 · ${creatorDisplay}`,
-        `${notebookCount} 个笔记本`,
-        course.university?.trim() ||
-          course.courseCode?.trim() ||
-          `更新于 ${formatDate(course.updatedAt)}`,
-      ].filter(Boolean) as string[],
-      primaryActionLabel: '打开',
-      onPrimaryAction: () => router.push(`/course/${course.id}`),
-    }),
+    }): StorefrontItem => {
+      const joined = course.accessRole === 'enrolled';
+      return {
+        id: course.id,
+        title: course.name,
+        subtitle:
+          course.description ||
+          (joined
+            ? '创建者维护的共享课程，学习记录会单独保存。'
+            : '你可以继续扩充笔记本、组织课堂与发布内容。'),
+        description:
+          course.description ||
+          (joined
+            ? '创建者维护的共享课程，学习记录会单独保存。'
+            : '你可以继续扩充笔记本、组织课堂与发布内容。'),
+        eyebrow: joined ? 'Joined Course' : 'Your Library',
+        badge: purposeLabel(course.purpose),
+        artworkUrl: resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl),
+        metadata: [
+          `创作者 · ${joined ? course.sourceOwnerName?.trim() || '创作者' : creatorDisplay}`,
+          `${notebookCount} 个笔记本`,
+          course.university?.trim() ||
+            course.courseCode?.trim() ||
+            `更新于 ${formatDate(course.updatedAt)}`,
+        ].filter(Boolean) as string[],
+        primaryActionLabel: '打开',
+        onPrimaryAction: () => router.push(`/course/${course.id}`),
+      };
+    },
     [creatorDisplay, router],
   );
 
@@ -298,8 +303,8 @@ export default function CourseStorePage() {
                 选一门课，从零散资料变成可开课、可自学的一套内容。
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600 md:text-lg dark:text-slate-300">
-                每门课以笔记本与课件组织完整学习路径。社区内容由创作者维护并可定价；购买或复制后，
-                整套课程会进入你的空间，便于继续编辑、补充与发布。
+                每门课以笔记本与课件组织完整学习路径。社区内容由创作者维护并可定价；加入后，
+                你会持续看到创建者更新的共享内容，做题记录和私有记忆则只属于你。
               </p>
               <div className="mt-6 max-w-2xl">
                 <div className="store-section-panel flex min-w-0 items-center gap-3 px-4 py-3 sm:rounded-[24px]">
@@ -367,7 +372,7 @@ export default function CourseStorePage() {
                   {searchActive ? filteredCommunity.length : community.length}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  已发布上架、可供浏览与购买的课程数量；列表会随创作者更新与评分变化。
+                  已发布上架、可供浏览与加入的课程数量；列表会随创作者更新与评分变化。
                 </p>
               </div>
               <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
@@ -376,7 +381,7 @@ export default function CourseStorePage() {
                   {searchActive ? filteredMine.length : mine.length}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  自建或已购入的课程总数；在此统一管理笔记本与课程内容。
+                  自建或已加入的课程总数；在此统一管理学习入口。
                 </p>
               </div>
               <div className="store-section-panel p-4 sm:rounded-[28px] sm:p-5">
@@ -386,7 +391,7 @@ export default function CourseStorePage() {
                   按场景与用途
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  下滑可见精选、新上架与大学 / 科研 / 日常等专题货架，按需点进详情再决定购买。
+                  下滑可见精选、新上架与大学 / 科研 / 日常等专题货架，按需点进详情再决定加入。
                 </p>
               </div>
             </div>
@@ -467,7 +472,7 @@ export default function CourseStorePage() {
             className="mt-12"
             eyebrow="Your Library"
             title="我已有的课程"
-            subtitle="已购买或自建课程集中展示，方便继续编辑、补充和扩展。"
+            subtitle="已加入或自建课程集中展示，创建者内容会持续更新。"
             actionLabel="前往我的课程"
             onAction={() => router.push('/my-courses')}
             items={ownedCourseItems}
@@ -475,7 +480,7 @@ export default function CourseStorePage() {
             emptyDescription={
               searchActive
                 ? `你已有的课程里没有匹配“${searchQuery.trim()}”的结果。`
-                : '暂无课程。请前往「我的课程」新建课程，或从上方社区课程中购买并复制到自己的空间。'
+                : '暂无课程。请前往「我的课程」新建课程，或从上方社区课程中加入一门共享课程。'
             }
           />
         )}
@@ -491,14 +496,14 @@ export default function CourseStorePage() {
           accountType="PURCHASE"
           countSummary={
             pendingPurchaseCourse
-              ? `将复制整门课程到你的个人空间，包含 ${pendingPurchaseCourse.notebookCount} 本笔记本。`
+              ? `将加入这门共享课程，包含 ${pendingPurchaseCourse.notebookCount} 本笔记本。`
               : undefined
           }
-          note="确认后会立即扣除对应购买积分，并把整门课程复制到你的课程库。"
+          note="确认后会立即扣除对应购买积分，并把课程加入你的课程库；内容由创建者维护，语音由你按自己的音色生成。"
           busy={pendingPurchaseCourse ? addingId === `c:${pendingPurchaseCourse.id}` : false}
-          confirmLabel="确认购买课程"
+          confirmLabel="确认加入课程"
           onConfirm={() =>
-            pendingPurchaseCourse ? handleCloneCommunityCourse(pendingPurchaseCourse) : false
+            pendingPurchaseCourse ? handleEnrollCommunityCourse(pendingPurchaseCourse) : false
           }
         />
       </main>

@@ -1,4 +1,5 @@
 import type { DbClient } from '@/lib/server/repositories/types';
+import { findCourseEnrollment } from '@/lib/server/repositories/course-enrollment-repository';
 
 export function listPublicStoreCoursesForUser(db: DbClient, userId: string) {
   return db.course.findMany({
@@ -12,9 +13,10 @@ export function listPublicStoreCoursesForUser(db: DbClient, userId: string) {
       _count: { select: { notebooks: true } },
       notebooks: {
         select: {
-          scenes: {
-            select: { actions: true },
-          },
+          sceneCount: true,
+          speechReadyCount: true,
+          speechTotalCount: true,
+          speechStatus: true,
         },
       },
     },
@@ -42,10 +44,12 @@ export function findPublicStoreCourseDetail(db: DbClient, userId: string, course
           notebookPriceCents: true,
           updatedAt: true,
           createdAt: true,
-          scenes: {
-            select: { actions: true },
-          },
-          _count: { select: { scenes: true } },
+          sceneCount: true,
+          problemCount: true,
+          publishedProblemCount: true,
+          speechReadyCount: true,
+          speechTotalCount: true,
+          speechStatus: true,
         },
       },
     },
@@ -59,18 +63,34 @@ export function listCourseReviewRatings(db: DbClient, courseIds: string[]) {
   });
 }
 
-export function listCoursePurchasesForSources(
+export async function listCoursePurchasesForSources(
   db: DbClient,
   buyerId: string,
   sourceCourseIds: string[],
 ) {
-  return db.coursePurchase.findMany({
-    where: { buyerId, sourceCourseId: { in: sourceCourseIds } },
-    select: { sourceCourseId: true },
-  });
+  const [legacyPurchases, enrollmentRows] = await Promise.all([
+    db.coursePurchase.findMany({
+      where: { buyerId, sourceCourseId: { in: sourceCourseIds } },
+      select: { sourceCourseId: true },
+    }),
+    Promise.all(
+      sourceCourseIds.map(async (sourceCourseId) => {
+        const enrollment = await findCourseEnrollment(db, buyerId, sourceCourseId);
+        return enrollment ? { sourceCourseId } : null;
+      }),
+    ),
+  ]);
+  return [
+    ...legacyPurchases,
+    ...enrollmentRows.filter((row): row is { sourceCourseId: string } => Boolean(row)),
+  ];
 }
 
-export function findCoursePurchase(db: DbClient, buyerId: string, sourceCourseId: string) {
+export async function findCoursePurchase(db: DbClient, buyerId: string, sourceCourseId: string) {
+  const enrollment = await findCourseEnrollment(db, buyerId, sourceCourseId);
+  if (enrollment) {
+    return { id: enrollment.id, clonedCourseId: null };
+  }
   return db.coursePurchase.findFirst({
     where: { buyerId, sourceCourseId },
     select: { id: true, clonedCourseId: true },
@@ -157,6 +177,26 @@ export function findPublicCourseForClone(db: DbClient, userId: string, sourceCou
         },
         orderBy: { updatedAt: 'asc' },
       },
+    },
+  });
+}
+
+export function findPublicCourseForEnrollment(
+  db: DbClient,
+  userId: string,
+  sourceCourseId: string,
+) {
+  return db.course.findFirst({
+    where: {
+      id: sourceCourseId,
+      listedInCourseStore: true,
+      ownerId: { not: userId },
+    },
+    select: {
+      id: true,
+      ownerId: true,
+      name: true,
+      coursePriceCents: true,
     },
   });
 }

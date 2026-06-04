@@ -7,11 +7,11 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import { getOptionalPrisma } from '@/lib/server/prisma-safe';
 import {
   createStudyMemory,
-  listStudyMemories,
-  resolveOwnedStudyMemoryTarget,
+  listStudyMemoriesForViewer,
+  resolveReadableStudyMemoryTarget,
   type StudyMemoryRecord,
   type StudyMemoryScopeValue,
-  type StudyMemoryTarget,
+  type ReadableStudyMemoryTarget,
   type StudyMemoryTargetType,
 } from '@/lib/server/study-memory-store';
 
@@ -38,10 +38,16 @@ function unavailableResponse() {
 async function seedDefaultCoursePublicMemories(args: {
   prisma: PrismaClient;
   userId: string;
-  target: StudyMemoryTarget;
+  target: ReadableStudyMemoryTarget;
   memories: StudyMemoryRecord[];
 }): Promise<StudyMemoryRecord[]> {
-  if (args.target.targetType !== 'course' || !args.target.courseId) return args.memories;
+  if (
+    args.target.accessRole !== 'owner' ||
+    args.target.targetType !== 'course' ||
+    !args.target.courseId
+  ) {
+    return args.memories;
+  }
 
   const course = await args.prisma.course.findFirst({
     where: { id: args.target.courseId, ownerId: args.userId },
@@ -96,7 +102,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid memory target' }, { status: 400 });
     }
 
-    const target = await resolveOwnedStudyMemoryTarget(
+    const target = await resolveReadableStudyMemoryTarget(
       prisma,
       auth.userId,
       targetType.data as StudyMemoryTargetType,
@@ -110,7 +116,7 @@ export async function GET(request: Request) {
       prisma,
       userId: auth.userId,
       target,
-      memories: await listStudyMemories(prisma, auth.userId, target),
+      memories: await listStudyMemoriesForViewer(prisma, auth.userId, target),
     });
     return NextResponse.json({ memories, storage: 'database' });
   });
@@ -134,7 +140,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const target = await resolveOwnedStudyMemoryTarget(
+    const target = await resolveReadableStudyMemoryTarget(
       prisma,
       auth.userId,
       payload.data.targetType,
@@ -142,6 +148,12 @@ export async function POST(request: Request) {
     );
     if (!target) {
       return NextResponse.json({ error: 'Memory target not found' }, { status: 404 });
+    }
+    if (payload.data.scope === 'public' && target.accessRole !== 'owner') {
+      return NextResponse.json(
+        { error: 'Only the course creator can edit shared memories' },
+        { status: 403 },
+      );
     }
 
     const memory = await createStudyMemory({

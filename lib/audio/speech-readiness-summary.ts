@@ -41,3 +41,18 @@ export function summarizeSpeechReadinessFromScenes(
     total === 0 ? 'no_speech' : pending === 0 ? 'ready' : 'pending';
   return { total, ready, pending, status };
 }
+
+export function summarizeSpeechScriptReadinessFromScenes(
+  scenes: Pick<Scene, 'actions'>[],
+): SpeechReadinessSummary {
+  let total = 0;
+
+  for (const scene of scenes) {
+    total += (scene.actions || []).filter(
+      (action): action is SpeechAction => action.type === 'speech' && Boolean(action.text?.trim()),
+    ).length;
+  }
+
+  const status: SpeechReadinessStatus = total === 0 ? 'no_speech' : 'ready';
+  return { total, ready: total, pending: 0, status };
+}

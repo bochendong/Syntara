@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { findReadableNotebookId } from '@/lib/server/repositories/notebook-repository';
 import type { Slide } from '@/lib/types/slides';
 
 type FirstSlideRow = {
@@ -15,6 +16,11 @@ type FirstSlidePreviewRow = {
   viewportSize: number | string | null;
   viewportRatio: number | string | null;
   image: unknown;
+};
+
+type CachedCoverSlideRow = {
+  id: string;
+  coverSlideJson: unknown;
 };
 
 function parseNotebookIds(request: Request): string[] {
@@ -77,6 +83,14 @@ function slidePreviewFromRow(row: FirstSlidePreviewRow): Slide | null {
   };
 }
 
+function slidePreviewFromCachedCover(row: CachedCoverSlideRow): Slide | null {
+  if (!row.coverSlideJson || typeof row.coverSlideJson !== 'object') return null;
+  if (Array.isArray(row.coverSlideJson)) return null;
+  const slide = row.coverSlideJson as Partial<Slide>;
+  if (!Array.isArray(slide.elements) || slide.elements.length === 0) return null;
+  return slide as Slide;
+}
+
 export async function GET(request: Request) {
   return safeRoute(async () => {
     const auth = await requireUserId();
@@ -86,14 +100,31 @@ export async function GET(request: Request) {
     const ids = parseNotebookIds(request);
     if (ids.length === 0) return NextResponse.json({ slides: {} });
 
-    const owned = await prisma.notebook.findMany({
-      where: { ownerId: auth.userId, id: { in: ids } },
-      select: { id: true },
-    });
-    const ownedIds = owned.map((notebook) => notebook.id);
-    if (ownedIds.length === 0) return NextResponse.json({ slides: {} });
+    const readable = await Promise.all(
+      ids.map((id) => findReadableNotebookId(prisma, auth.userId, id)),
+    );
+    const readableIds = readable
+      .map((notebook) => notebook?.id)
+      .filter((id): id is string => Boolean(id));
+    if (readableIds.length === 0) return NextResponse.json({ slides: {} });
 
     if (preview) {
+      const cachedRows = (await prisma.notebook.findMany({
+        where: { id: { in: readableIds } },
+        select: { id: true, coverSlideJson: true },
+      })) as CachedCoverSlideRow[];
+
+      const slides: Record<string, Slide> = {};
+      for (const row of cachedRows) {
+        const slide = slidePreviewFromCachedCover(row);
+        if (slide) slides[row.id] = slide;
+      }
+
+      const missingIds = readableIds.filter((id) => !slides[id]);
+      if (missingIds.length === 0) {
+        return NextResponse.json({ slides });
+      }
+
       const rows = await prisma.$queryRawUnsafe<FirstSlidePreviewRow[]>(
         `
           SELECT DISTINCT ON (s."notebookId")
@@ -118,10 +149,9 @@ export async function GET(request: Request) {
             COALESCE(NULLIF(element.value->>'width', '')::double precision, 0)
               * COALESCE(NULLIF(element.value->>'height', '')::double precision, 0) DESC
         `,
-        ownedIds,
+        missingIds,
       );
 
-      const slides: Record<string, Slide> = {};
       for (const row of rows) {
         const slide = slidePreviewFromRow(row);
         if (slide) slides[row.notebookId] = slide;
@@ -137,7 +167,7 @@ export async function GET(request: Request) {
           AND "content"->>'type' = 'slide'
         ORDER BY "notebookId", "order" ASC
       `,
-      ownedIds,
+      readableIds,
     );
 
     const slides: Record<string, Slide> = {};

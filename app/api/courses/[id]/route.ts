@@ -5,6 +5,7 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { pickStableCourseAvatarUrl } from '@/lib/constants/course-avatars';
 import { getCoursePublishBlockReasonFromFlags } from '@/lib/utils/course-publish';
+import { findCourseAccessRole } from '@/lib/server/repositories/course-enrollment-repository';
 import {
   countPurchasedNotebooksInOwnedCourse,
   deleteOwnedCourseWithNotebooks,
@@ -13,6 +14,14 @@ import {
   updateOwnedCourse,
 } from '@/lib/server/repositories/course-repository';
 import { publishCourseProblemBankForUser } from '@/features/problems/server/service';
+
+function ownerDisplayName(owner: { name: string | null; email: string | null }): string {
+  const n = owner.name?.trim();
+  if (n) return n;
+  const e = owner.email?.trim();
+  if (e) return e.split('@')[0] || e;
+  return '匿名创作者';
+}
 
 const updateCourseSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -34,17 +43,35 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const { userId } = auth;
     const { id } = await context.params;
 
-    let course = await findOwnedCourse(prisma, userId, id);
+    const accessRole = await findCourseAccessRole(prisma, userId, id);
+    let course = accessRole
+      ? await prisma.course.findUnique({
+          where: { id },
+          include: { owner: { select: { name: true, email: true } } },
+        })
+      : null;
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
-    if (!course.avatarUrl?.trim()) {
-      course =
-        (await updateOwnedCourse(prisma, userId, id, {
-          avatarUrl: pickStableCourseAvatarUrl(id),
-        })) ?? course;
+    if (accessRole === 'owner' && !course.avatarUrl?.trim()) {
+      const updatedCourse = await updateOwnedCourse(prisma, userId, id, {
+        avatarUrl: pickStableCourseAvatarUrl(id),
+      });
+      if (updatedCourse) {
+        course = {
+          ...updatedCourse,
+          owner: course.owner,
+        };
+      }
     }
-    return NextResponse.json({ course });
+    const { owner, ...courseWithoutRelations } = course;
+    return NextResponse.json({
+      course: {
+        ...courseWithoutRelations,
+        accessRole,
+        sourceOwnerName: accessRole === 'enrolled' ? ownerDisplayName(owner) : undefined,
+      },
+    });
   });
 }
 

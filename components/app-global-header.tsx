@@ -32,6 +32,7 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { cn } from '@/lib/utils';
 import { backendJson } from '@/lib/utils/backend-api';
 import { getCourse } from '@/lib/utils/course-storage';
+import { pruneCourseWorkspaceCachesForPathname } from '@/lib/utils/course-workspace-cache';
 import {
   formatCashCreditsLabel,
   formatComputeCreditsLabel,
@@ -154,6 +155,10 @@ export function AppGlobalHeader() {
           },
         ]
       : [];
+
+  useEffect(() => {
+    pruneCourseWorkspaceCachesForPathname(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     if (!routeCourseId) return;

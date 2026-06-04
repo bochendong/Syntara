@@ -249,7 +249,7 @@ function getServiceLabel(row: CreditNotificationRow): string {
 function buildSourceLabel(row: CreditNotificationRow): string {
   switch (row.kind) {
     case CreditTransactionKind.COURSE_PURCHASE:
-      return '课程购买';
+      return '课程加入';
     case CreditTransactionKind.NOTEBOOK_PURCHASE:
       return '笔记本购买';
     case CreditTransactionKind.CREATOR_COURSE_SALE:
@@ -319,7 +319,7 @@ function buildNotificationDetails(row: CreditNotificationRow): AppNotificationDe
 function buildNotificationTitle(row: CreditNotificationRow): string {
   switch (row.kind) {
     case CreditTransactionKind.COURSE_PURCHASE:
-      return '课程购买扣款成功';
+      return '课程加入扣款成功';
     case CreditTransactionKind.NOTEBOOK_PURCHASE:
       return '笔记本购买扣款成功';
     case CreditTransactionKind.CREATOR_COURSE_SALE:
@@ -365,7 +365,7 @@ function buildNotificationBody(row: CreditNotificationRow): string {
 
   switch (row.kind) {
     case CreditTransactionKind.COURSE_PURCHASE:
-      return `你购买课程时扣除了 ${formatAccountValue(row.accountType, Math.abs(row.delta))}，${balanceText}。`;
+      return `你加入课程时扣除了 ${formatAccountValue(row.accountType, Math.abs(row.delta))}，${balanceText}。`;
     case CreditTransactionKind.NOTEBOOK_PURCHASE:
       return `你购买笔记本时扣除了 ${formatAccountValue(row.accountType, Math.abs(row.delta))}，${balanceText}。`;
     case CreditTransactionKind.CREATOR_COURSE_SALE:

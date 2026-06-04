@@ -20,6 +20,11 @@ import {
   type NotebookProblemSummary,
 } from '@/lib/problem-bank';
 import type { Scene } from '@/lib/types/stage';
+import {
+  findCourseAccessRole,
+  type CourseAccessRole,
+} from '@/lib/server/repositories/course-enrollment-repository';
+import { refreshCourseSummaryFields } from '@/lib/server/repositories/notebook-repository';
 
 const prismaDb = prisma;
 
@@ -32,6 +37,10 @@ type OwnedNotebook = {
 type OwnedCourse = {
   id: string;
   name: string;
+};
+
+type ReadableNotebook = OwnedNotebook & {
+  accessRole: CourseAccessRole;
 };
 
 type ProblemRow = {
@@ -78,6 +87,17 @@ type ProblemAttemptSummaryRow = {
   status: string;
   score: number | null;
   createdAt: Date;
+};
+
+type ProblemProgressSummaryRow = {
+  problemId: string;
+  status: string;
+  score: number | null;
+  lastAttemptAt: Date | null;
+  latestAttempt: {
+    id: string;
+    createdAt: Date;
+  } | null;
 };
 
 type ProblemWithSecretRow = ProblemRow & {
@@ -321,6 +341,40 @@ async function requireNotebookOwnership(
   return notebook;
 }
 
+async function requireNotebookReadAccess(
+  userId: string,
+  notebookId: string,
+): Promise<ReadableNotebook> {
+  const notebook = await prisma.notebook.findFirst({
+    where: { id: notebookId },
+    select: { id: true, name: true, courseId: true, ownerId: true },
+  });
+  if (!notebook) {
+    throw new Error('Notebook not found');
+  }
+  if (notebook.ownerId === userId) {
+    return {
+      id: notebook.id,
+      name: notebook.name,
+      courseId: notebook.courseId,
+      accessRole: 'owner',
+    };
+  }
+  if (!notebook.courseId) {
+    throw new Error('Notebook not found');
+  }
+  const courseAccessRole = await findCourseAccessRole(prisma, userId, notebook.courseId);
+  if (!courseAccessRole) {
+    throw new Error('Notebook not found');
+  }
+  return {
+    id: notebook.id,
+    name: notebook.name,
+    courseId: notebook.courseId,
+    accessRole: courseAccessRole,
+  };
+}
+
 async function requireCourseOwnership(userId: string, courseId: string): Promise<OwnedCourse> {
   const course = await prisma.course.findFirst({
     where: { id: courseId, ownerId: userId },
@@ -332,12 +386,38 @@ async function requireCourseOwnership(userId: string, courseId: string): Promise
   return course;
 }
 
+async function requireCourseReadAccess(
+  userId: string,
+  courseId: string,
+): Promise<CourseAccessRole> {
+  const accessRole = await findCourseAccessRole(prisma, userId, courseId);
+  if (!accessRole) {
+    throw new Error('Course not found');
+  }
+  return accessRole;
+}
+
 async function listOwnedCourseNotebooks(
   userId: string,
   courseId: string,
 ): Promise<OwnedNotebook[]> {
   return prisma.notebook.findMany({
     where: { ownerId: userId, courseId },
+    orderBy: [{ updatedAt: 'desc' }],
+    select: { id: true, name: true, courseId: true },
+  });
+}
+
+async function listReadableCourseNotebooks(
+  userId: string,
+  courseId: string,
+): Promise<OwnedNotebook[]> {
+  const accessRole = await requireCourseReadAccess(userId, courseId);
+  return prisma.notebook.findMany({
+    where: {
+      courseId,
+      ...(accessRole === 'owner' ? { ownerId: userId } : {}),
+    },
     orderBy: [{ updatedAt: 'desc' }],
     select: { id: true, name: true, courseId: true },
   });
@@ -430,27 +510,59 @@ async function createProblemFromDraftTx(args: {
   return created;
 }
 
+async function refreshNotebookProblemSummaryFieldsTx(
+  tx: Prisma.TransactionClient,
+  notebookIds: string[],
+  now: Date,
+) {
+  for (const notebookId of notebookIds) {
+    const [problemCount, publishedProblemCount] = await Promise.all([
+      tx.notebookProblem.count({ where: { notebookId } }),
+      tx.notebookProblem.count({ where: { notebookId, status: 'published' } }),
+    ]);
+    await tx.notebook.updateMany({
+      where: { id: notebookId },
+      data: {
+        problemCount,
+        publishedProblemCount,
+        updatedAt: now,
+      },
+    });
+  }
+}
+
+async function refreshNotebookProblemSummaryFields(notebookIds: string[], now: Date) {
+  for (const notebookId of notebookIds) {
+    const [problemCount, publishedProblemCount] = await Promise.all([
+      prismaDb.notebookProblem.count({ where: { notebookId } }),
+      prismaDb.notebookProblem.count({ where: { notebookId, status: 'published' } }),
+    ]);
+    await prismaDb.notebook.updateMany({
+      where: { id: notebookId },
+      data: {
+        problemCount,
+        publishedProblemCount,
+        updatedAt: now,
+      },
+    });
+  }
+}
+
 async function touchOwnersAfterProblemWriteTx(args: {
   tx: Prisma.TransactionClient;
   courseId?: string | null;
   notebookIds?: Array<string | null | undefined>;
 }) {
   const now = new Date();
-  if (args.courseId) {
-    await args.tx.course.update({
-      where: { id: args.courseId },
-      data: { updatedAt: now },
-    });
-  }
-
   const notebookIds = Array.from(
     new Set((args.notebookIds ?? []).filter((value): value is string => Boolean(value))),
   );
   if (notebookIds.length > 0) {
-    await args.tx.notebook.updateMany({
-      where: { id: { in: notebookIds } },
-      data: { updatedAt: now },
-    });
+    await refreshNotebookProblemSummaryFieldsTx(args.tx, notebookIds, now);
+  }
+
+  if (args.courseId) {
+    await refreshCourseSummaryFields(args.tx, args.courseId);
   }
 }
 
@@ -459,21 +571,15 @@ async function touchOwnersAfterProblemWrite(args: {
   notebookIds?: Array<string | null | undefined>;
 }) {
   const now = new Date();
-  if (args.courseId) {
-    await prismaDb.course.update({
-      where: { id: args.courseId },
-      data: { updatedAt: now },
-    });
-  }
-
   const notebookIds = Array.from(
     new Set((args.notebookIds ?? []).filter((value): value is string => Boolean(value))),
   );
   if (notebookIds.length > 0) {
-    await prismaDb.notebook.updateMany({
-      where: { id: { in: notebookIds } },
-      data: { updatedAt: now },
-    });
+    await refreshNotebookProblemSummaryFields(notebookIds, now);
+  }
+
+  if (args.courseId) {
+    await refreshCourseSummaryFields(prismaDb, args.courseId);
   }
 }
 
@@ -507,15 +613,48 @@ async function listLatestAttemptsForUser(
 ): Promise<Map<string, ProblemAttemptRow>> {
   if (problemIds.length === 0) return new Map<string, ProblemAttemptRow>();
 
-  const attempts = (await prismaDb.notebookProblemAttempt.findMany({
+  const progressRows = await prismaDb.notebookProblemProgress.findMany({
     where: {
       userId,
       problemId: { in: problemIds },
     },
+    select: {
+      problemId: true,
+      latestAttemptId: true,
+    },
+  });
+
+  const latestAttemptIds = progressRows
+    .map((row) => row.latestAttemptId)
+    .filter((id): id is string => Boolean(id));
+  const attemptsById =
+    latestAttemptIds.length > 0
+      ? new Map(
+          (
+            (await prismaDb.notebookProblemAttempt.findMany({
+              where: { id: { in: latestAttemptIds } },
+            })) as unknown as ProblemAttemptRow[]
+          ).map((attempt) => [attempt.id, attempt] as const),
+        )
+      : new Map<string, ProblemAttemptRow>();
+
+  const latestByProblemId = new Map<string, ProblemAttemptRow>();
+  for (const row of progressRows) {
+    const attempt = row.latestAttemptId ? attemptsById.get(row.latestAttemptId) : null;
+    if (attempt) latestByProblemId.set(row.problemId, attempt);
+  }
+
+  const missingProblemIds = problemIds.filter((problemId) => !latestByProblemId.has(problemId));
+  if (missingProblemIds.length === 0) return latestByProblemId;
+
+  const attempts = (await prismaDb.notebookProblemAttempt.findMany({
+    where: {
+      userId,
+      problemId: { in: missingProblemIds },
+    },
     orderBy: [{ createdAt: 'desc' }],
   })) as unknown as ProblemAttemptRow[];
 
-  const latestByProblemId = new Map<string, ProblemAttemptRow>();
   for (const attempt of attempts) {
     if (!latestByProblemId.has(attempt.problemId)) {
       latestByProblemId.set(attempt.problemId, attempt);
@@ -530,10 +669,44 @@ async function listLatestAttemptSummariesForUser(
 ): Promise<Map<string, ProblemAttemptSummaryRow>> {
   if (problemIds.length === 0) return new Map<string, ProblemAttemptSummaryRow>();
 
-  const attempts = (await prismaDb.notebookProblemAttempt.findMany({
+  const progressRows = (await prismaDb.notebookProblemProgress.findMany({
     where: {
       userId,
       problemId: { in: problemIds },
+    },
+    select: {
+      problemId: true,
+      status: true,
+      score: true,
+      lastAttemptAt: true,
+      latestAttempt: {
+        select: {
+          id: true,
+          createdAt: true,
+        },
+      },
+    },
+  })) as unknown as ProblemProgressSummaryRow[];
+
+  const latestByProblemId = new Map<string, ProblemAttemptSummaryRow>();
+  for (const row of progressRows) {
+    if (!row.latestAttempt) continue;
+    latestByProblemId.set(row.problemId, {
+      id: row.latestAttempt.id,
+      problemId: row.problemId,
+      status: row.status,
+      score: row.score,
+      createdAt: row.lastAttemptAt ?? row.latestAttempt.createdAt,
+    });
+  }
+
+  const missingProblemIds = problemIds.filter((problemId) => !latestByProblemId.has(problemId));
+  if (missingProblemIds.length === 0) return latestByProblemId;
+
+  const attempts = (await prismaDb.notebookProblemAttempt.findMany({
+    where: {
+      userId,
+      problemId: { in: missingProblemIds },
     },
     select: {
       id: true,
@@ -545,7 +718,6 @@ async function listLatestAttemptSummariesForUser(
     orderBy: [{ createdAt: 'desc' }],
   })) as unknown as ProblemAttemptSummaryRow[];
 
-  const latestByProblemId = new Map<string, ProblemAttemptSummaryRow>();
   for (const attempt of attempts) {
     if (!latestByProblemId.has(attempt.problemId)) {
       latestByProblemId.set(attempt.problemId, attempt);
@@ -739,8 +911,11 @@ export async function listNotebookProblemsForUser(
   userId: string,
   notebookId: string,
 ): Promise<NotebookProblemSummary[]> {
-  await ensureLegacyProblemsBackfilled(userId, notebookId);
-  await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
+  const notebook = await requireNotebookReadAccess(userId, notebookId);
+  if (notebook.accessRole === 'owner') {
+    await ensureLegacyProblemsBackfilled(userId, notebookId);
+    await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
+  }
   const problems = await loadProblemsWithNotebook({
     where: { notebookId },
   });
@@ -757,9 +932,12 @@ export async function listCourseProblemsForUser(
   userId: string,
   courseId: string,
 ): Promise<NotebookProblemSummary[]> {
-  await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
-  await ensureProblemNumbersBackfilledForCourse(userId, courseId);
-  const notebooks = await listOwnedCourseNotebooks(userId, courseId);
+  const accessRole = await requireCourseReadAccess(userId, courseId);
+  if (accessRole === 'owner') {
+    await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
+    await ensureProblemNumbersBackfilledForCourse(userId, courseId);
+  }
+  const notebooks = await listReadableCourseNotebooks(userId, courseId);
   const notebookIds = notebooks.map((notebook) => notebook.id);
 
   const problems = await loadProblemsWithNotebook({
@@ -784,8 +962,11 @@ export async function listCourseProblemSummariesForUser(
   userId: string,
   courseId: string,
 ): Promise<CourseProblemListSummary[]> {
-  await requireCourseOwnership(userId, courseId);
-  const notebooks = await listOwnedCourseNotebooks(userId, courseId);
+  const accessRole = await requireCourseReadAccess(userId, courseId);
+  if (accessRole === 'owner') {
+    await ensureProblemNumbersBackfilledForCourse(userId, courseId);
+  }
+  const notebooks = await listReadableCourseNotebooks(userId, courseId);
   const notebookIds = notebooks.map((notebook) => notebook.id);
 
   const problems = (await prismaDb.notebookProblem.findMany({
@@ -922,8 +1103,11 @@ export async function getNotebookProblemForUser(
   problem: NotebookProblemRecord;
   secretJudge?: NotebookProblemSecretJudge;
 }> {
-  await ensureLegacyProblemsBackfilled(userId, notebookId);
-  await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
+  const notebookAccess = await requireNotebookReadAccess(userId, notebookId);
+  if (notebookAccess.accessRole === 'owner') {
+    await ensureLegacyProblemsBackfilled(userId, notebookId);
+    await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
+  }
   const row = (await prismaDb.notebookProblem.findFirst({
     where: { id: problemId, notebookId },
     include: {
@@ -975,12 +1159,15 @@ export async function getCourseProblemForUser(
   problem: NotebookProblemRecord;
   secretJudge?: NotebookProblemSecretJudge;
 }> {
-  await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
-  await ensureProblemNumbersBackfilledForCourse(userId, courseId);
+  const accessRole = await requireCourseReadAccess(userId, courseId);
+  if (accessRole === 'owner') {
+    await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
+    await ensureProblemNumbersBackfilledForCourse(userId, courseId);
+  }
   const row = (await prismaDb.notebookProblem.findFirst({
     where: {
       id: problemId,
-      OR: [{ courseId }, { notebook: { courseId, ownerId: userId } }],
+      OR: [{ courseId }, { notebook: { courseId } }],
     },
     include: {
       notebook: {
@@ -1403,6 +1590,7 @@ export async function deleteCourseProblem(args: {
   courseId: string;
   problemId: string;
 }): Promise<void> {
+  await requireCourseOwnership(args.userId, args.courseId);
   const current = await getCourseProblemForUser(args.userId, args.courseId, args.problemId);
   await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.notebookProblem.delete({
@@ -1425,16 +1613,47 @@ export async function createNotebookProblemAttempt(args: {
   answer: NotebookProblemAttemptAnswer;
   result?: NotebookProblemAttemptResult;
 }): Promise<NotebookProblemAttemptRecord> {
-  const created = (await prismaDb.notebookProblemAttempt.create({
-    data: {
-      userId: args.userId,
-      problemId: args.problemId,
-      kind: args.kind,
-      status: args.status,
-      score: args.score ?? null,
-      answerJson: toPrismaJson(args.answer),
-      resultJson: args.result ? toPrismaJson(args.result) : undefined,
-    },
+  const created = (await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
+    const attempt = await tx.notebookProblemAttempt.create({
+      data: {
+        userId: args.userId,
+        problemId: args.problemId,
+        kind: args.kind,
+        status: args.status,
+        score: args.score ?? null,
+        answerJson: toPrismaJson(args.answer),
+        resultJson: args.result ? toPrismaJson(args.result) : undefined,
+      },
+    });
+
+    await tx.notebookProblemProgress.upsert({
+      where: {
+        problemId_userId: {
+          problemId: args.problemId,
+          userId: args.userId,
+        },
+      },
+      update: {
+        latestAttemptId: attempt.id,
+        status: args.status,
+        score: args.score ?? null,
+        lastAttemptAt: attempt.createdAt,
+        attemptedCount: { increment: 1 },
+        ...(args.status === 'passed' ? { passedCount: { increment: 1 } } : {}),
+      },
+      create: {
+        problemId: args.problemId,
+        userId: args.userId,
+        latestAttemptId: attempt.id,
+        status: args.status,
+        score: args.score ?? null,
+        attemptedCount: 1,
+        passedCount: args.status === 'passed' ? 1 : 0,
+        lastAttemptAt: attempt.createdAt,
+      },
+    });
+
+    return attempt;
   })) as unknown as ProblemAttemptRow;
 
   return mapAttemptRow(created);

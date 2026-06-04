@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
-import type { Action } from '@/lib/types/action';
 import {
   findCoursePurchase,
   findPublicStoreCourseDetail,
@@ -19,12 +17,9 @@ function ownerDisplayName(owner: { name: string | null; email: string | null }):
   return '匿名创作者';
 }
 
-function summarizeActions(scenes: Array<{ actions: unknown }>) {
-  return summarizeSpeechReadinessFromScenes(
-    scenes.map((scene) => ({
-      actions: (scene.actions as unknown as Action[] | undefined) ?? undefined,
-    })),
-  );
+function speechStatus(total: number, ready: number): 'no_speech' | 'ready' | 'pending' {
+  if (total <= 0) return 'no_speech';
+  return ready >= total ? 'ready' : 'pending';
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -56,24 +51,31 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     );
 
     const ratingSum = reviews.reduce((sum, review) => sum + review.rating, 0);
-    const courseSpeech = summarizeActions(course.notebooks.flatMap((notebook) => notebook.scenes));
+    const courseSpeechReadyCount = course.notebooks.reduce(
+      (sum, notebook) => sum + (notebook.speechReadyCount ?? 0),
+      0,
+    );
+    const courseSpeechTotalCount = course.notebooks.reduce(
+      (sum, notebook) => sum + (notebook.speechTotalCount ?? 0),
+      0,
+    );
     return NextResponse.json({
       course: {
         ...course,
         notebooks: course.notebooks.map((notebook) => {
-          const speech = summarizeActions(notebook.scenes);
           return {
             ...notebook,
-            speechReadyCount: speech.ready,
-            speechTotalCount: speech.total,
-            speechStatus: speech.status,
+            _count: { scenes: notebook.sceneCount ?? 0 },
+            speechReadyCount: notebook.speechReadyCount ?? 0,
+            speechTotalCount: notebook.speechTotalCount ?? 0,
+            speechStatus: notebook.speechStatus ?? 'no_speech',
             purchased: notebookPurchaseMap.has(notebook.id),
             clonedNotebookId: notebookPurchaseMap.get(notebook.id) ?? null,
           };
         }),
-        speechReadyCount: courseSpeech.ready,
-        speechTotalCount: courseSpeech.total,
-        speechStatus: courseSpeech.status,
+        speechReadyCount: courseSpeechReadyCount,
+        speechTotalCount: courseSpeechTotalCount,
+        speechStatus: speechStatus(courseSpeechTotalCount, courseSpeechReadyCount),
         ownerName: ownerDisplayName(course.owner),
         averageRating: reviews.length > 0 ? ratingSum / reviews.length : 0,
         reviewCount: reviews.length,

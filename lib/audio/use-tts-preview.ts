@@ -7,6 +7,7 @@ import {
   playBrowserTTSPreview,
 } from '@/lib/audio/browser-tts-preview';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 export interface TTSPreviewOptions {
   text: string;
@@ -99,11 +100,12 @@ export function useTTSPreview() {
           ttsProviderId: options.providerId,
           ttsVoice: options.voice,
           ttsSpeed: options.speed,
+          persist: false,
         };
         if (options.apiKey?.trim()) body.ttsApiKey = options.apiKey;
         if (options.baseUrl?.trim()) body.ttsBaseUrl = options.baseUrl;
 
-        const res = await fetch('/api/generate/tts', {
+        const res = await backendFetch('/api/generate/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

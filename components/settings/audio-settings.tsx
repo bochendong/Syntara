@@ -31,6 +31,7 @@ import {
   isBrowserTTSAbortError,
   playBrowserTTSPreview,
 } from '@/lib/audio/browser-tts-preview';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('AudioSettings');
 
@@ -342,6 +343,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
         ttsProviderId,
         ttsVoice: ttsVoice,
         ttsSpeed: ttsSpeed,
+        persist: false,
       };
 
       const apiKeyValue = ttsProvidersConfig[ttsProviderId]?.apiKey;
@@ -354,7 +356,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
         requestBody.ttsBaseUrl = baseUrlValue;
       }
 
-      const response = await fetch('/api/generate/tts', {
+      const response = await backendFetch('/api/generate/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

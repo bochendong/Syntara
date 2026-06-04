@@ -3,14 +3,11 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
-import { summarizeSpeechReadinessFromScenes } from '@/lib/audio/speech-readiness-summary';
-import type { Action } from '@/lib/types/action';
 import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
 import {
   createOwnedNotebook,
   findNotebookOwner,
-  listOwnedNotebooks,
-  listOwnedNotebooksWithSpeechActions,
+  listReadableNotebooks,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
 
@@ -36,29 +33,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId')?.trim();
-    const includeSpeech = searchParams.get('includeSpeech') === '1';
 
-    if (!includeSpeech) {
-      const notebooks = await listOwnedNotebooks(prisma, userId, courseId);
-      return NextResponse.json({ notebooks });
-    }
-
-    const notebooks = await listOwnedNotebooksWithSpeechActions(prisma, userId, courseId);
-    return NextResponse.json({
-      notebooks: notebooks.map(({ scenes, ...notebook }) => {
-        const speech = summarizeSpeechReadinessFromScenes(
-          scenes.map((scene) => ({
-            actions: (scene.actions as unknown as Action[] | undefined) ?? undefined,
-          })),
-        );
-        return {
-          ...notebook,
-          speechReadyCount: speech.ready,
-          speechTotalCount: speech.total,
-          speechStatus: speech.status,
-        };
-      }),
-    });
+    const notebooks = await listReadableNotebooks(prisma, userId, courseId);
+    return NextResponse.json({ notebooks });
   });
 }
 

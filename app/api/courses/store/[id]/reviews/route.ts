@@ -27,7 +27,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     const purchase = await findCoursePurchase(prisma, userId, id);
     if (!purchase) {
-      return NextResponse.json({ error: '请先购买课程后再评分' }, { status: 403 });
+      return NextResponse.json({ error: '请先加入课程后再评分' }, { status: 403 });
     }
 
     const review = await upsertCourseReview(prisma, {

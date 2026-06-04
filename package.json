@@ -21,6 +21,8 @@
     "db:generate": "dotenv -e .env.local -- prisma generate",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:push": "dotenv -e .env.local -- prisma db push",
+    "db:v2:export-critical": "dotenv -e .env.local -- node scripts/maintenance/export-db-v2-critical-data.mjs",
+    "db:v2:backfill": "dotenv -e .env.local -- node scripts/maintenance/backfill-db-v2-summaries.mjs",
     "credits:backfill-500": "dotenv -e .env.local -- node scripts/maintenance/backfill-credits-to-500.mjs",
     "backend:up": "bash scripts/maintenance/start-backend.sh",
     "backend:dev": "bash scripts/maintenance/start-backend.sh --dev",

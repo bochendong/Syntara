@@ -3,6 +3,7 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
+import { stripPrivateSpeechAudioFromActions } from '@/lib/server/speech-action-assets';
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
@@ -70,7 +71,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
             type: scene.type,
             order: scene.order,
             content: toPrismaJson(scene.content),
-            actions: toPrismaNullableJson(scene.actions),
+            actions: toPrismaNullableJson(stripPrivateSpeechAudioFromActions(scene.actions)),
             whiteboard: toPrismaNullableJson(scene.whiteboard),
           })),
         });

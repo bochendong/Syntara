@@ -4,12 +4,14 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { cleanupGeneratedNotebookArtifacts } from '@/lib/server/notebook-artifacts';
+import { stripPrivateSpeechAudioFromActions } from '@/lib/server/speech-action-assets';
 import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
 import {
   deleteOwnedNotebook,
   findOwnedNotebookForStoreUpdate,
   findOwnedNotebookId,
-  findOwnedNotebookWithScenes,
+  findReadableNotebook,
+  findReadableNotebookWithScenes,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
 import { publishNotebookProblemBankForUser } from '@/features/problems/server/service';
@@ -36,20 +38,32 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const includeScenes = url.searchParams.get('includeScenes') !== '0';
 
     if (!includeScenes) {
-      const notebook = await prisma.notebook.findFirst({
-        where: { id, ownerId: userId },
-      });
+      const notebook = await findReadableNotebook(prisma, userId, id);
       if (!notebook) {
         return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
       }
-      return NextResponse.json({ notebook });
+      return NextResponse.json({
+        notebook: {
+          ...notebook,
+          accessRole: notebook.ownerId === userId ? 'owner' : 'enrolled',
+        },
+      });
     }
 
-    const notebook = await findOwnedNotebookWithScenes(prisma, userId, id);
+    const notebook = await findReadableNotebookWithScenes(prisma, userId, id);
     if (!notebook) {
       return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
     }
-    return NextResponse.json({ notebook });
+    return NextResponse.json({
+      notebook: {
+        ...notebook,
+        accessRole: notebook.ownerId === userId ? 'owner' : 'enrolled',
+        scenes: notebook.scenes.map((scene) => ({
+          ...scene,
+          actions: stripPrivateSpeechAudioFromActions(scene.actions),
+        })),
+      },
+    });
   });
 }
 

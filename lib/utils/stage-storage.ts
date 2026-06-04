@@ -117,6 +117,8 @@ type NotebookApiRow = {
   speechReadyCount?: number;
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';
+  sceneCount?: number;
+  accessRole?: 'owner' | 'enrolled';
   createdAt: string;
   updatedAt: string;
   _count?: { scenes: number };
@@ -167,7 +169,7 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
     speechReadyCount: row.speechReadyCount ?? 0,
     speechTotalCount: row.speechTotalCount ?? 0,
     speechStatus: row.speechStatus ?? 'no_speech',
-    sceneCount: row._count?.scenes ?? 0,
+    sceneCount: row.sceneCount ?? row._count?.scenes ?? 0,
     createdAt: Date.parse(row.createdAt),
     updatedAt: Date.parse(row.updatedAt),
   };
@@ -544,6 +546,19 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       currentSceneId: scenes[0]?.id || null,
       chats,
     };
+
+    if (notebook.accessRole === 'enrolled') {
+      void writeStageDraftSnapshot(
+        stageId,
+        {
+          stage: remoteData.stage,
+          scenes: remoteData.scenes,
+          currentSceneId: remoteData.currentSceneId,
+        },
+        true,
+      );
+      return normalizeStageStoreData(remoteData);
+    }
 
     const remoteSceneUpdatedAt = scenes.reduce(
       (latest, scene) => Math.max(latest, scene.updatedAt || 0),

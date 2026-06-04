@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '@/lib/server/generated-prisma';
+import {
+  findCourseAccessRole,
+  type CourseAccessRole,
+} from '@/lib/server/repositories/course-enrollment-repository';
 
 export type StudyMemoryTargetType = 'course' | 'notebook';
 export type StudyMemoryScopeValue = 'public' | 'private';
@@ -35,6 +39,11 @@ export type StudyMemoryTarget = {
   targetId: string;
   courseId: string | null;
   notebookId: string | null;
+};
+
+export type ReadableStudyMemoryTarget = StudyMemoryTarget & {
+  targetOwnerId: string;
+  accessRole: CourseAccessRole;
 };
 
 let ensureStudyMemoryTablePromise: Promise<void> | null = null;
@@ -118,6 +127,68 @@ export async function resolveOwnedStudyMemoryTarget(
   return { targetType, targetId, courseId: notebook.courseId, notebookId: notebook.id };
 }
 
+export async function resolveReadableStudyMemoryTarget(
+  prisma: PrismaClient,
+  userId: string,
+  targetType: StudyMemoryTargetType,
+  targetId: string,
+): Promise<ReadableStudyMemoryTarget | null> {
+  if (targetType === 'course') {
+    const course = await prisma.course.findUnique({
+      where: { id: targetId },
+      select: { id: true, ownerId: true },
+    });
+    if (!course) return null;
+    if (course.ownerId === userId) {
+      return {
+        targetType,
+        targetId,
+        courseId: course.id,
+        notebookId: null,
+        targetOwnerId: course.ownerId,
+        accessRole: 'owner',
+      };
+    }
+    const accessRole = await findCourseAccessRole(prisma, userId, course.id);
+    if (!accessRole) return null;
+    return {
+      targetType,
+      targetId,
+      courseId: course.id,
+      notebookId: null,
+      targetOwnerId: course.ownerId,
+      accessRole,
+    };
+  }
+
+  const notebook = await prisma.notebook.findUnique({
+    where: { id: targetId },
+    select: { id: true, ownerId: true, courseId: true },
+  });
+  if (!notebook) return null;
+  if (notebook.ownerId === userId) {
+    return {
+      targetType,
+      targetId,
+      courseId: notebook.courseId,
+      notebookId: notebook.id,
+      targetOwnerId: notebook.ownerId,
+      accessRole: 'owner',
+    };
+  }
+  if (!notebook.courseId) return null;
+  const accessRole = await findCourseAccessRole(prisma, userId, notebook.courseId);
+  if (!accessRole) return null;
+  return {
+    targetType,
+    targetId,
+    courseId: notebook.courseId,
+    notebookId: notebook.id,
+    targetOwnerId: notebook.ownerId,
+    accessRole,
+  };
+}
+
 export async function listStudyMemories(
   prisma: PrismaClient,
   userId: string,
@@ -145,6 +216,51 @@ export async function listStudyMemories(
         `,
           userId,
           target.notebookId,
+        );
+  return rows.map(serializeRow);
+}
+
+export async function listStudyMemoriesForViewer(
+  prisma: PrismaClient,
+  userId: string,
+  target: ReadableStudyMemoryTarget,
+): Promise<StudyMemoryRecord[]> {
+  await ensureStudyMemoryTable(prisma);
+  const rows =
+    target.targetType === 'course'
+      ? await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+          `
+          SELECT * FROM "StudyMemory"
+          WHERE "targetType" = 'course'
+            AND "courseId" = $1
+            AND "status" = 'active'
+            AND (
+              ("ownerId" = $2 AND "scope" = 'public')
+              OR ("ownerId" = $3 AND "scope" = 'private')
+            )
+          ORDER BY "updatedAt" DESC
+          LIMIT 120
+        `,
+          target.courseId,
+          target.targetOwnerId,
+          userId,
+        )
+      : await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+          `
+          SELECT * FROM "StudyMemory"
+          WHERE "targetType" = 'notebook'
+            AND "notebookId" = $1
+            AND "status" = 'active'
+            AND (
+              ("ownerId" = $2 AND "scope" = 'public')
+              OR ("ownerId" = $3 AND "scope" = 'private')
+            )
+          ORDER BY "updatedAt" DESC
+          LIMIT 120
+        `,
+          target.notebookId,
+          target.targetOwnerId,
+          userId,
         );
   return rows.map(serializeRow);
 }

@@ -1,5 +1,9 @@
 import type { Prisma } from '@/lib/server/generated-prisma';
 import type { DbClient, RootDbClient } from '@/lib/server/repositories/types';
+import {
+  ensureCourseEnrollmentTable,
+  listCourseEnrollmentsForUser,
+} from '@/lib/server/repositories/course-enrollment-repository';
 
 export type CreateOwnedCourseData = Omit<
   Prisma.CourseUncheckedCreateInput,
@@ -40,6 +44,51 @@ export function listOwnedCoursesWithCloneSourceOwner(db: DbClient, userId: strin
       },
     },
   });
+}
+
+export async function listJoinedCoursesWithOwner(db: DbClient, userId: string) {
+  await ensureCourseEnrollmentTable(db);
+  const enrollments = await listCourseEnrollmentsForUser(db, userId);
+  const enrollmentCourseIds = enrollments.map((enrollment) => enrollment.courseId);
+  const legacyPurchases = await db.coursePurchase.findMany({
+    where: { buyerId: userId },
+    select: { sourceCourseId: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  const courseIds = Array.from(
+    new Set([
+      ...enrollmentCourseIds,
+      ...legacyPurchases.map((purchase) => purchase.sourceCourseId),
+    ]),
+  );
+  if (courseIds.length === 0) return [];
+
+  const joinedAtByCourseId = new Map<string, Date>();
+  for (const enrollment of enrollments) {
+    joinedAtByCourseId.set(enrollment.courseId, enrollment.joinedAt);
+  }
+  for (const purchase of legacyPurchases) {
+    if (!joinedAtByCourseId.has(purchase.sourceCourseId)) {
+      joinedAtByCourseId.set(purchase.sourceCourseId, purchase.createdAt);
+    }
+  }
+
+  const courses = await db.course.findMany({
+    where: {
+      id: { in: courseIds },
+      ownerId: { not: userId },
+    },
+    include: {
+      owner: { select: { name: true, email: true } },
+    },
+  });
+
+  return courses
+    .map((course) => ({
+      ...course,
+      joinedAt: joinedAtByCourseId.get(course.id) ?? course.updatedAt,
+    }))
+    .sort((a, b) => b.joinedAt.getTime() - a.joinedAt.getTime());
 }
 
 export async function backfillOwnedCourseAvatars(

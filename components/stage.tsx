@@ -6,6 +6,7 @@ import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
+import { useAuthStore } from '@/lib/store/auth';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { renderSemanticSlideContent } from '@/lib/notebook-content/semantic-slide-render';
@@ -29,10 +30,11 @@ import type { ChatAreaRef } from '@/components/chat/chat-area';
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { getActionsForRole } from '@/lib/orchestration/registry/types';
 import { ensureMissingSpeechAudioForScene } from '@/lib/hooks/use-scene-generator';
-import { hydrateSpeechAudioFromTtsCache } from '@/lib/utils/tts-audio-cache';
+import { hydrateSpeechAudioFromUserAssets } from '@/lib/utils/tts-audio-assets';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import { buildSceneSidebarAskThreadFromMessages } from '@/lib/utils/scene-sidebar-ask-thread';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
+import { backendFetch } from '@/lib/utils/backend-api';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import { toast } from '@/lib/notifications/client-toast';
 import { ClassroomFooter } from '@/components/stage/classroom-footer';
@@ -635,13 +637,15 @@ export function Stage({
   const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
   const ttsSpeed = useSettingsStore((s) => s.ttsSpeed);
+  const userId = useAuthStore((s) => s.userId || 'anonymous');
 
-  /** Restore speech audioUrl from local TTS cache when scene has text but no URL (saves tokens on replay). */
+  /** Restore speech audioUrl from the current user's private speech assets. */
   useEffect(() => {
     if (!currentScene || !ttsEnabled || ttsProviderId === 'browser-native-tts') return;
     let cancelled = false;
     void (async () => {
-      const touched = await hydrateSpeechAudioFromTtsCache(currentScene, {
+      const touched = await hydrateSpeechAudioFromUserAssets(currentScene, {
+        userId,
         providerId: ttsProviderId,
         voice: ttsVoice,
         speed: ttsSpeed,
@@ -655,7 +659,7 @@ export function Stage({
     return () => {
       cancelled = true;
     };
-  }, [currentScene, ttsEnabled, ttsProviderId, ttsVoice, ttsSpeed, updateScene]);
+  }, [currentScene, ttsEnabled, ttsProviderId, ttsVoice, ttsSpeed, updateScene, userId]);
 
   const speakSidebarAnswer = useCallback(
     async (text: string) => {
@@ -719,11 +723,12 @@ export function Stage({
           ttsProviderId: providerId,
           ttsVoice: voice,
           ttsSpeed: settings.ttsSpeed ?? 1,
+          persist: false,
         };
         if (providerConfig?.apiKey?.trim()) body.ttsApiKey = providerConfig.apiKey;
         if (providerConfig?.baseUrl?.trim()) body.ttsBaseUrl = providerConfig.baseUrl;
 
-        const response = await fetch('/api/generate/tts', {
+        const response = await backendFetch('/api/generate/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

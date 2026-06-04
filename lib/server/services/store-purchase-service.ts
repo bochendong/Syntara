@@ -1,16 +1,19 @@
 import { applyCreditDelta, ensureUserCreditsInitialized } from '@/lib/server/credits';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
+import { stripPrivateSpeechAudioFromActions } from '@/lib/server/speech-action-assets';
 import {
-  findCoursePurchaseWithClonedCourse,
+  createCourseEnrollment,
+  ensureCourseEnrollmentTable,
+  findCourseEnrollment,
+} from '@/lib/server/repositories/course-enrollment-repository';
+import {
   findNotebookPurchaseWithClonedNotebook,
-  findPublicCourseForClone,
+  findPublicCourseForEnrollment,
   findPublicNotebookForClone,
-  listPublishedCourseProblemsForClone,
   listPublishedNotebookProblemsForClone,
 } from '@/lib/server/repositories/store-repository';
 import type { RootDbClient } from '@/lib/server/repositories/types';
 import type { Prisma } from '@/lib/server/generated-prisma';
-import { pickRandomCourseAvatarUrl } from '@/lib/constants/course-avatars';
 import { creditsFromPriceCents } from '@/lib/utils/credits';
 
 export type StorePurchaseResult<T> =
@@ -19,7 +22,7 @@ export type StorePurchaseResult<T> =
   | { status: 'created'; item: T };
 
 type PublishedProblemForClone = Awaited<
-  ReturnType<typeof listPublishedCourseProblemsForClone>
+  ReturnType<typeof listPublishedNotebookProblemsForClone>
 >[number];
 
 async function clonePublishedProblemTx(args: {
@@ -62,23 +65,24 @@ export async function cloneStoreCourseForUser(
   userId: string,
   sourceCourseId: string,
 ) {
-  const source = await findPublicCourseForClone(db, userId, sourceCourseId);
+  const source = await findPublicCourseForEnrollment(db, userId, sourceCourseId);
   if (!source) return { status: 'not_found' } as const;
 
-  const existingPurchase = await findCoursePurchaseWithClonedCourse(db, userId, source.id);
-  if (existingPurchase?.clonedCourse) {
-    return { status: 'existing', item: existingPurchase.clonedCourse } as const;
+  const [existingEnrollment, existingLegacyPurchase] = await Promise.all([
+    findCourseEnrollment(db, userId, source.id),
+    db.coursePurchase.findFirst({
+      where: { buyerId: userId, sourceCourseId: source.id },
+      select: { id: true },
+    }),
+  ]);
+  if (existingEnrollment || existingLegacyPurchase) {
+    const existingCourse = await db.course.findUnique({ where: { id: source.id } });
+    return { status: 'existing', item: existingCourse ?? source } as const;
   }
 
-  const avatarUrl = source.avatarUrl?.trim() || pickRandomCourseAvatarUrl();
   const courseCostCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
   const creatorSaleCredits = creditsFromPriceCents(source.coursePriceCents ?? 0);
-  const sourceNotebookIds = source.notebooks.map((notebook) => notebook.id);
-  const sourceProblems = await listPublishedCourseProblemsForClone(
-    db,
-    source.id,
-    sourceNotebookIds,
-  );
+  await ensureCourseEnrollmentTable(db);
 
   const course = await db.$transaction(async (tx) => {
     await ensureUserCreditsInitialized(tx, userId);
@@ -90,7 +94,7 @@ export async function cloneStoreCourseForUser(
         delta: -courseCostCredits,
         kind: 'COURSE_PURCHASE',
         accountType: 'PURCHASE',
-        description: `Purchased course "${source.name}"`,
+        description: `Joined course "${source.name}"`,
         referenceType: 'course',
         referenceId: source.id,
       });
@@ -100,86 +104,20 @@ export async function cloneStoreCourseForUser(
           delta: creatorSaleCredits,
           kind: 'CREATOR_COURSE_SALE',
           accountType: 'CASH',
-          description: `Course sale: "${source.name}"`,
+          description: `Course enrollment sale: "${source.name}"`,
           referenceType: 'course',
           referenceId: source.id,
         });
       }
     }
 
-    const clonedCourse = await tx.course.create({
-      data: {
-        ownerId: userId,
-        name: source.name,
-        description: source.description ?? undefined,
-        language: source.language,
-        tags: source.tags,
-        purpose: source.purpose,
-        university: source.university ?? undefined,
-        courseCode: source.courseCode ?? undefined,
-        avatarUrl,
-        listedInCourseStore: false,
-        coursePriceCents: 0,
-        sourceCourseId: source.id,
-      },
+    await createCourseEnrollment(tx, {
+      userId,
+      courseId: source.id,
+      priceCents: source.coursePriceCents ?? 0,
     });
 
-    const clonedNotebookIdBySourceId = new Map<string, string>();
-    for (const notebook of source.notebooks) {
-      const clonedNotebook = await tx.notebook.create({
-        data: {
-          ownerId: userId,
-          courseId: clonedCourse.id,
-          name: notebook.name,
-          description: notebook.description ?? undefined,
-          tags: notebook.tags,
-          avatarUrl: notebook.avatarUrl ?? undefined,
-          language: notebook.language ?? undefined,
-          style: notebook.style ?? undefined,
-          listedInNotebookStore: false,
-          notebookPriceCents: 0,
-          sourceNotebookId: notebook.id,
-        },
-      });
-
-      if (notebook.scenes.length > 0) {
-        await tx.scene.createMany({
-          data: notebook.scenes.map((scene) => ({
-            notebookId: clonedNotebook.id,
-            title: scene.title,
-            type: scene.type,
-            order: scene.order,
-            content: toPrismaJson(scene.content),
-            actions: toPrismaNullableJson(scene.actions),
-            whiteboard: toPrismaNullableJson(scene.whiteboard),
-          })),
-        });
-      }
-      clonedNotebookIdBySourceId.set(notebook.id, clonedNotebook.id);
-    }
-
-    for (const problem of sourceProblems) {
-      const clonedNotebookId = problem.notebookId
-        ? (clonedNotebookIdBySourceId.get(problem.notebookId) ?? null)
-        : null;
-      await clonePublishedProblemTx({
-        tx,
-        problem,
-        courseId: clonedCourse.id,
-        notebookId: clonedNotebookId,
-      });
-    }
-
-    await tx.coursePurchase.create({
-      data: {
-        buyerId: userId,
-        sourceCourseId: source.id,
-        clonedCourseId: clonedCourse.id,
-        priceCents: source.coursePriceCents ?? 0,
-      },
-    });
-
-    return clonedCourse;
+    return tx.course.findUniqueOrThrow({ where: { id: source.id } });
   });
 
   return { status: 'created', item: course } as const;
@@ -253,7 +191,7 @@ export async function cloneStoreNotebookForUser(
           type: scene.type,
           order: scene.order,
           content: toPrismaJson(scene.content),
-          actions: toPrismaNullableJson(scene.actions),
+          actions: toPrismaNullableJson(stripPrivateSpeechAudioFromActions(scene.actions)),
           whiteboard: toPrismaNullableJson(scene.whiteboard),
         })),
       });

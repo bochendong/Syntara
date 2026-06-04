@@ -10,6 +10,7 @@ import {
 import {
   backfillOwnedCourseAvatars,
   createOwnedCourse,
+  listJoinedCoursesWithOwner,
   listOwnedCourses,
   listOwnedCoursesWithCloneSourceOwner,
 } from '@/lib/server/repositories/course-repository';
@@ -44,16 +45,31 @@ export async function GET() {
     const rows = await listOwnedCourses(prisma, userId);
     await backfillOwnedCourseAvatars(prisma, rows, pickStableCourseAvatarUrl);
 
-    const courses = await listOwnedCoursesWithCloneSourceOwner(prisma, userId);
+    const [courses, joinedCourses] = await Promise.all([
+      listOwnedCoursesWithCloneSourceOwner(prisma, userId),
+      listJoinedCoursesWithOwner(prisma, userId),
+    ]);
     return NextResponse.json({
-      courses: courses.map((course) => {
-        const sourceOwner = course.clonePurchase?.sourceCourse.owner;
-        const { clonePurchase: _clonePurchase, ...courseWithoutRelations } = course;
-        return {
-          ...courseWithoutRelations,
-          sourceOwnerName: sourceOwner ? ownerDisplayName(sourceOwner) : undefined,
-        };
-      }),
+      courses: [
+        ...courses.map((course) => {
+          const sourceOwner = course.clonePurchase?.sourceCourse.owner;
+          const { clonePurchase: _clonePurchase, ...courseWithoutRelations } = course;
+          return {
+            ...courseWithoutRelations,
+            accessRole: 'owner' as const,
+            sourceOwnerName: sourceOwner ? ownerDisplayName(sourceOwner) : undefined,
+          };
+        }),
+        ...joinedCourses.map((course) => {
+          const { owner, joinedAt, ...courseWithoutRelations } = course;
+          return {
+            ...courseWithoutRelations,
+            accessRole: 'enrolled' as const,
+            joinedAt,
+            sourceOwnerName: ownerDisplayName(owner),
+          };
+        }),
+      ],
     });
   });
 }

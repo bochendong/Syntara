@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { useStageStore } from '@/lib/store/stage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { useSettingsStore } from '@/lib/store/settings';
+import { useAuthStore } from '@/lib/store/auth';
 import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
 import type { AgentInfo, CoursePersonalizationContext } from '@/lib/generation/generation-pipeline';
 import type { PageGenerationFailureRecord, Scene } from '@/lib/types/stage';
@@ -12,16 +13,15 @@ import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
 import { createLogger } from '@/lib/logger';
 import {
-  buildTtsCacheKey,
-  getCachedTtsAudio,
-  setCachedTtsAudio,
-} from '@/lib/utils/tts-audio-cache';
+  buildUserSpeechAudioAssetKey,
+  getUserSpeechAudioAsset,
+} from '@/lib/utils/tts-audio-assets';
 import {
   buildBudgetedGenerationMedia,
   SAFE_GENERATION_REQUEST_BYTES,
 } from '@/lib/generation/request-payload-budget';
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
-import { backendFetch } from '@/lib/utils/backend-api';
+import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { buildShortFailureReason } from '@/lib/create/api-errors';
 
 const log = createLogger('SceneGenerator');
@@ -327,33 +327,44 @@ async function fetchSceneActions(
   return response.json();
 }
 
-/** Generate TTS for one speech action; uses local IndexedDB cache when possible. */
+/** Generate TTS for one speech action; reuses the current user's private speech asset when possible. */
 export async function generateAndStoreTTS(
   audioId: string,
   text: string,
   signal?: AbortSignal,
 ): Promise<{ audioUrl: string; visemes?: SpeechVisemeCue[]; mouthCues?: MouthCue[] }> {
   const settings = useSettingsStore.getState();
+  const userId = useAuthStore.getState().userId || 'anonymous';
   if (settings.ttsProviderId === 'browser-native-tts') return { audioUrl: '' };
   const spokenText = verbalizeNarrationText(text);
 
-  const cacheKey = await buildTtsCacheKey(
+  const assetKey = await buildUserSpeechAudioAssetKey(
+    userId,
+    audioId,
     settings.ttsProviderId,
     settings.ttsVoice,
     settings.ttsSpeed,
     spokenText,
   );
-  const cached = await getCachedTtsAudio(cacheKey);
-  if (cached) {
+  const storedAsset = await getUserSpeechAudioAsset(assetKey);
+  if (storedAsset) {
     return {
-      audioUrl: `data:audio/${cached.format};base64,${cached.base64}`,
-      visemes: cached.visemes,
-      mouthCues: cached.mouthCues,
+      audioUrl: `data:audio/${storedAsset.format};base64,${storedAsset.base64}`,
+      visemes: storedAsset.visemes,
+      mouthCues: storedAsset.mouthCues,
     };
   }
 
   const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
-  const response = await fetch('/api/generate/tts', {
+  const data = await backendJson<{
+    success?: boolean;
+    base64?: string;
+    format?: string;
+    visemes?: SpeechVisemeCue[];
+    mouthCues?: MouthCue[];
+    error?: string;
+    details?: string;
+  }>('/api/generate/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -368,18 +379,12 @@ export async function generateAndStoreTTS(
     signal,
   });
 
-  const data = await response
-    .json()
-    .catch(() => ({ success: false, error: response.statusText || 'Invalid TTS response' }));
-  if (!response.ok || !data.success || !data.base64 || !data.format) {
-    const err = new Error(
-      data.details || data.error || `TTS request failed: HTTP ${response.status}`,
-    );
+  if (!data.success || !data.base64 || !data.format) {
+    const err = new Error(data.details || data.error || 'TTS request failed');
     log.warn('TTS failed for', audioId, ':', err);
     throw err;
   }
   void audioId;
-  await setCachedTtsAudio(cacheKey, data.format, data.base64, data.visemes, data.mouthCues);
   return {
     audioUrl: `data:audio/${data.format};base64,${data.base64}`,
     visemes: data.visemes,

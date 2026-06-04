@@ -85,7 +85,7 @@ export async function listCommunityStoreCourses(): Promise<CommunityCourseListIt
   }
 }
 
-export async function cloneCourseFromStore(sourceCourseId: string): Promise<CourseRecord> {
+export async function enrollCourseFromStore(sourceCourseId: string): Promise<CourseRecord> {
   const data = await backendJson<{ course: CourseRecord }>('/api/courses/clone', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -94,6 +94,8 @@ export async function cloneCourseFromStore(sourceCourseId: string): Promise<Cour
   notifyCreditsBalancesChanged();
   return data.course;
 }
+
+export const cloneCourseFromStore = enrollCourseFromStore;
 
 export async function listCourses(): Promise<CourseRecord[]> {
   try {

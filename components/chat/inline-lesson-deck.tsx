@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
 import type { Scene } from '@/lib/types/stage';
 import { base64ToObjectUrl, getSceneNarration } from './chat-notebook-routing';
+import { backendFetch } from '@/lib/utils/backend-api';
 
 export function InlineLessonDeck({
   scenes,
@@ -125,7 +126,7 @@ export function InlineLessonDeck({
       const providerConfig = ttsProvidersConfig[ttsProviderId];
       void (async () => {
         try {
-          const response = await fetch('/api/generate/tts', {
+          const response = await backendFetch('/api/generate/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -136,6 +137,7 @@ export function InlineLessonDeck({
               ttsSpeed,
               ttsApiKey: providerConfig?.apiKey || undefined,
               ttsBaseUrl: providerConfig?.baseUrl || undefined,
+              persist: false,
             }),
           });
           const data = (await response.json().catch(() => ({}))) as {

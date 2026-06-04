@@ -7,6 +7,7 @@
  * POST /api/generate/tts
  */
 
+import crypto from 'node:crypto';
 import { NextRequest } from 'next/server';
 import { generateTTS } from '@/lib/audio/tts-providers';
 import { resolveTTSApiKey, resolveTTSBaseUrl } from '@/lib/server/provider-config';
@@ -15,23 +16,52 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import { requireUserId } from '@/lib/server/api-auth';
+import { prisma } from '@/lib/server/prisma';
+import {
+  findUserSpeechAudio,
+  upsertUserSpeechAudio,
+} from '@/lib/server/repositories/user-speech-audio-repository';
 
 const log = createLogger('TTS API');
 
 export const maxDuration = 60;
 
+function sha256Hex(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function buildUserSpeechAudioAssetKey(args: {
+  userId: string;
+  actionId: string;
+  providerId: string;
+  voice: string;
+  speed: number;
+  text: string;
+}): string {
+  return sha256Hex(
+    `${args.userId || 'anonymous'}\0${args.actionId}\0${args.providerId}\0${args.voice}\0${args.speed}\0${args.text}`,
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const { userId } = auth;
+
     const body = await req.json();
-    const { text, audioId, ttsProviderId, ttsVoice, ttsSpeed, ttsApiKey, ttsBaseUrl } = body as {
-      text: string;
-      audioId: string;
-      ttsProviderId: TTSProviderId;
-      ttsVoice: string;
-      ttsSpeed?: number;
-      ttsApiKey?: string;
-      ttsBaseUrl?: string;
-    };
+    const { text, audioId, ttsProviderId, ttsVoice, ttsSpeed, ttsApiKey, ttsBaseUrl, persist } =
+      body as {
+        text: string;
+        audioId: string;
+        ttsProviderId: TTSProviderId;
+        ttsVoice: string;
+        ttsSpeed?: number;
+        ttsApiKey?: string;
+        ttsBaseUrl?: string;
+        persist?: boolean;
+      };
 
     // Validate required fields
     if (!text || !audioId || !ttsProviderId || !ttsVoice) {
@@ -63,12 +93,35 @@ export async function POST(req: NextRequest) {
       : resolveTTSBaseUrl(ttsProviderId, ttsBaseUrl || undefined);
 
     const spokenText = verbalizeNarrationText(text);
+    const speed = ttsSpeed ?? 1.0;
+    const shouldPersist = persist !== false;
+    const assetKey = buildUserSpeechAudioAssetKey({
+      userId,
+      actionId: audioId,
+      providerId: ttsProviderId,
+      voice: ttsVoice,
+      speed,
+      text: spokenText,
+    });
+
+    if (shouldPersist) {
+      const existingAudio = await findUserSpeechAudio(prisma, userId, assetKey);
+      if (existingAudio) {
+        return apiSuccess({
+          audioId,
+          base64: existingAudio.base64,
+          format: existingAudio.format,
+          visemes: existingAudio.visemes,
+          mouthCues: existingAudio.mouthCues,
+        });
+      }
+    }
 
     // Build TTS config
     const config = {
       providerId: ttsProviderId,
       voice: ttsVoice,
-      speed: ttsSpeed ?? 1.0,
+      speed,
       apiKey,
       baseUrl,
     };
@@ -82,6 +135,23 @@ export async function POST(req: NextRequest) {
 
     // Convert to base64
     const base64 = Buffer.from(audio).toString('base64');
+
+    if (shouldPersist) {
+      await upsertUserSpeechAudio(prisma, {
+        userId,
+        assetKey,
+        actionId: audioId,
+        textHash: sha256Hex(spokenText),
+        voiceConfigHash: sha256Hex(`${ttsProviderId}\0${ttsVoice}\0${speed}`),
+        providerId: ttsProviderId,
+        voice: ttsVoice,
+        speed,
+        format,
+        base64,
+        visemes,
+        mouthCues,
+      });
+    }
 
     return apiSuccess({ audioId, base64, format, visemes, mouthCues });
   } catch (error) {

@@ -24,7 +24,7 @@ export function getCoursePublishBlockReasonFromFlags(
   containsPurchasedNotebook: boolean,
 ): string | null {
   if (course?.sourceCourseId?.trim()) {
-    return '购买得到的课程副本不能再次发布到商城';
+    return '旧版商城课程副本不能再次发布到商城';
   }
   if (containsPurchasedNotebook) {
     return '课程包含从商城购买的笔记本副本，不能发布到商城';

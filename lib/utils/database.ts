@@ -56,8 +56,15 @@ export interface CourseRecord {
   coursePriceCents?: number;
   storePublishedAt?: number | string;
   sourceCourseId?: string;
-  /** 当课程是从商城复制而来时，记录源课程创作者展示名 */
+  /** 旧版商城课程副本或已加入课程的源课程创作者展示名 */
   sourceOwnerName?: string;
+  /** 当前用户与课程的关系：创建者可编辑，已加入课程只读 */
+  accessRole?: 'owner' | 'enrolled';
+  joinedAt?: number | string;
+  notebookCount?: number;
+  sceneCount?: number;
+  problemCount?: number;
+  publishedProblemCount?: number;
   speechReadyCount?: number;
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';

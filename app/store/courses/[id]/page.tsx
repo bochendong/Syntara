@@ -18,9 +18,7 @@ import { PurchaseConfirmDialog } from '@/components/courses/purchase-confirm-dia
 import { Textarea } from '@/components/ui/textarea';
 import { backendJson } from '@/lib/utils/backend-api';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
-import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useNotificationStore } from '@/lib/store/notifications';
-import { listStagesByCourse } from '@/lib/utils/stage-storage';
 import { creditsFromPriceCents, formatPurchaseCreditsLabel } from '@/lib/utils/credits';
 import { notifyCreditsBalancesChanged } from '@/lib/utils/credits-balance-events';
 
@@ -32,8 +30,6 @@ type StoreNotebook = {
   avatarUrl: string | null;
   listedInNotebookStore: boolean;
   notebookPriceCents: number;
-  purchased: boolean;
-  clonedNotebookId: string | null;
   updatedAt: string;
   createdAt: string;
   speechReadyCount?: number;
@@ -87,7 +83,7 @@ function buildHighlights(course: StoreCourseDetailResponse['course']) {
   return [
     {
       title: '完整内容包',
-      description: `包含 ${notebookCount} 本笔记本与 ${totalScenes} 页内容，适合直接复制后开始学习。`,
+      description: `包含 ${notebookCount} 本笔记本与 ${totalScenes} 页内容，加入后可持续看到创建者更新。`,
     },
     {
       title: '适合人群',
@@ -107,12 +103,7 @@ function buildHighlights(course: StoreCourseDetailResponse['course']) {
     },
     {
       title: '语音状态',
-      description:
-        course.speechStatus === 'ready'
-          ? '这门课程已附带原始语音，购买后可以直接使用。'
-          : course.speechStatus === 'pending'
-            ? `当前已有 ${course.speechReadyCount ?? 0}/${course.speechTotalCount ?? 0} 条语音就绪；其余部分可在购买后继续生成。`
-            : '当前未附带原始语音，购买后可自行生成。',
+      description: '课程共享讲解稿文本；音频会按你的个人音色设置生成，不受创建者设置影响。',
     },
   ];
 }
@@ -123,20 +114,13 @@ function speechStatusLabel(
     'speechStatus' | 'speechReadyCount' | 'speechTotalCount'
   >,
 ) {
-  if (item.speechStatus === 'ready') return '附带原始语音';
-  if (item.speechStatus === 'pending') {
-    return item.speechTotalCount
-      ? `部分语音待生成 ${item.speechReadyCount ?? 0}/${item.speechTotalCount}`
-      : '部分语音待生成';
-  }
-  return '需自行生成语音';
+  return item.speechTotalCount ? '讲解稿就绪，可生成我的语音' : '可生成我的语音';
 }
 
 export default function StoreCourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = typeof params.id === 'string' ? params.id : '';
-  const currentCourseId = useCurrentCourseStore((s) => s.id);
   const refreshNotifications = useNotificationStore((s) => s.refreshNotifications);
   const [data, setData] = useState<StoreCourseDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,12 +128,7 @@ export default function StoreCourseDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
-  const [ownedNotebookMap, setOwnedNotebookMap] = useState<Record<string, string>>({});
   const [coursePurchaseOpen, setCoursePurchaseOpen] = useState(false);
-  const [buyingNotebookId, setBuyingNotebookId] = useState<string | null>(null);
-  const [pendingNotebookPurchase, setPendingNotebookPurchase] = useState<StoreNotebook | null>(
-    null,
-  );
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -165,31 +144,6 @@ export default function StoreCourseDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    if (!currentCourseId) {
-      setOwnedNotebookMap({});
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
-      const notebooks = await listStagesByCourse(currentCourseId);
-      if (cancelled) return;
-
-      const nextMap: Record<string, string> = {};
-      for (const notebook of notebooks) {
-        const sourceNotebookId = notebook.sourceNotebookId?.trim();
-        if (!sourceNotebookId) continue;
-        nextMap[sourceNotebookId] = notebook.id;
-      }
-      setOwnedNotebookMap(nextMap);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentCourseId]);
 
   const priceLabel = useMemo(() => {
     return formatPurchaseCreditsLabel(creditsFromPriceCents(data?.course.coursePriceCents ?? 0));
@@ -216,11 +170,11 @@ export default function StoreCourseDetailPage() {
       );
       await refreshNotifications({ silent: true });
       notifyCreditsBalancesChanged();
-      toast.success(`已购买并复制课程「${response.course.name}」`);
+      toast.success(`已加入课程「${response.course.name}」`);
       router.push(`/course/${response.course.id}`);
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '购买失败');
+      toast.error(error instanceof Error ? error.message : '加入失败');
       return false;
     } finally {
       setBuying(false);
@@ -243,30 +197,6 @@ export default function StoreCourseDetailPage() {
       toast.error(error instanceof Error ? error.message : '提交评价失败');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleBuyNotebook = async (notebookId: string): Promise<boolean> => {
-    setBuyingNotebookId(notebookId);
-    try {
-      const response = await backendJson<{ notebook: { id: string; name: string } }>(
-        '/api/notebooks/clone',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceNotebookId: notebookId }),
-        },
-      );
-      await refreshNotifications({ silent: true });
-      notifyCreditsBalancesChanged();
-      toast.success(`已购买笔记本「${response.notebook.name}」`);
-      router.push(`/classroom/${response.notebook.id}`);
-      return true;
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '购买笔记本失败');
-      return false;
-    } finally {
-      setBuyingNotebookId(null);
     }
   };
 
@@ -346,22 +276,22 @@ export default function StoreCourseDetailPage() {
                     disabled={buying || course.purchased}
                     onClick={() => setCoursePurchaseOpen(true)}
                   >
-                    {course.purchased ? '已购买' : buying ? '购买中…' : '购买整门课程'}
+                    {course.purchased ? '已加入' : buying ? '加入中…' : '加入课程'}
                   </button>
-                  {course.purchased && course.clonedCourseId ? (
+                  {course.purchased ? (
                     <button
                       type="button"
                       className="store-cta-secondary w-full rounded-full px-5 py-3 text-sm font-semibold"
-                      onClick={() => router.push(`/course/${course.clonedCourseId}`)}
+                      onClick={() => router.push(`/course/${course.id}`)}
                     >
-                      打开我的副本
+                      打开课程
                     </button>
                   ) : null}
                 </div>
 
                 <div className="mt-6 space-y-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  <p>购买后会把整门课程和全部笔记本复制到你的个人空间。</p>
-                  <p>如果只想先试一部分内容，也可以在下方按单本 notebook 购买。</p>
+                  <p>加入后会持续读取创建者维护的同一份课程内容。</p>
+                  <p>你的做题记录、私有记忆和个人语音会单独保存。</p>
                 </div>
               </div>
             </aside>
@@ -417,8 +347,6 @@ export default function StoreCourseDetailPage() {
 
             <div className="mt-6 space-y-4">
               {course.notebooks.map((notebook, index) => {
-                const ownedNotebookId = ownedNotebookMap[notebook.id] ?? null;
-                const notebookAlreadyOwned = Boolean(notebook.purchased || ownedNotebookId);
                 return (
                   <div
                     key={notebook.id}
@@ -458,27 +386,15 @@ export default function StoreCourseDetailPage() {
                         </div>
                       </div>
 
-                      {notebook.listedInNotebookStore && !course.purchased ? (
-                        notebookAlreadyOwned ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full rounded-full md:w-auto"
-                            disabled
-                          >
-                            已拥有
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full rounded-full md:w-auto"
-                            disabled={buyingNotebookId === notebook.id}
-                            onClick={() => setPendingNotebookPurchase(notebook)}
-                          >
-                            {buyingNotebookId === notebook.id ? '购买中…' : '购买单本'}
-                          </Button>
-                        )
+                      {course.purchased ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full rounded-full md:w-auto"
+                          onClick={() => router.push(`/classroom/${notebook.id}`)}
+                        >
+                          打开
+                        </Button>
                       ) : null}
                     </div>
                   </div>
@@ -498,15 +414,15 @@ export default function StoreCourseDetailPage() {
               <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
                 <div className="flex gap-3">
                   <CheckCircle2 className="mt-1 size-4 shrink-0 text-sky-500" />
-                  <p>如果你想直接复制一整套结构化内容，这是最省时的购买方式。</p>
+                  <p>如果你想直接跟随一整套结构化内容，这是最省时的加入方式。</p>
                 </div>
                 <div className="flex gap-3">
                   <CheckCircle2 className="mt-1 size-4 shrink-0 text-sky-500" />
-                  <p>购买后可以按自己的课堂节奏继续修改、扩展与重新组织笔记本。</p>
+                  <p>加入后内容会跟随创建者更新，你的学习记录会保留在自己的账号下。</p>
                 </div>
                 <div className="flex gap-3">
                   <CheckCircle2 className="mt-1 size-4 shrink-0 text-sky-500" />
-                  <p>若只需要局部内容，可以先浏览下方单本购买入口，逐步拼出自己的课程包。</p>
+                  <p>课堂语音会按你的个人音色生成，创建者不需要提前附带音频。</p>
                 </div>
               </div>
             </div>
@@ -552,7 +468,7 @@ export default function StoreCourseDetailPage() {
                 </div>
               ) : (
                 <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  购买课程后可以打分和评论。
+                  加入课程后可以打分和评论。
                 </p>
               )}
 
@@ -615,32 +531,11 @@ export default function StoreCourseDetailPage() {
           itemName={course.name}
           creditsCost={creditsFromPriceCents(course.coursePriceCents)}
           accountType="PURCHASE"
-          countSummary={`将复制 ${course.notebooks.length} 本笔记本，共 ${totalScenes} 页内容到你的个人空间。`}
-          note="确认后会立即扣除对应购买积分，并生成你自己的课程副本。"
+          countSummary={`将加入 ${course.notebooks.length} 本笔记本，共 ${totalScenes} 页共享内容。`}
+          note="确认后会立即扣除对应购买积分；课程内容由创建者维护，做题记录和语音缓存属于你自己。"
           busy={buying}
-          confirmLabel="确认购买课程"
+          confirmLabel="确认加入课程"
           onConfirm={handleBuy}
-        />
-        <PurchaseConfirmDialog
-          open={Boolean(pendingNotebookPurchase)}
-          onOpenChange={(open) => {
-            if (!open) setPendingNotebookPurchase(null);
-          }}
-          itemTypeLabel="笔记本"
-          itemName={pendingNotebookPurchase?.name ?? ''}
-          creditsCost={creditsFromPriceCents(pendingNotebookPurchase?.notebookPriceCents ?? 0)}
-          accountType="PURCHASE"
-          countSummary={
-            pendingNotebookPurchase
-              ? `将复制这本笔记本到你的空间，包含 ${pendingNotebookPurchase._count.scenes} 页内容。`
-              : undefined
-          }
-          note="确认后会立即扣除对应购买积分，并生成你自己的笔记本副本。"
-          busy={buyingNotebookId != null}
-          confirmLabel="确认购买笔记本"
-          onConfirm={() =>
-            pendingNotebookPurchase ? handleBuyNotebook(pendingNotebookPurchase.id) : false
-          }
         />
       </main>
     </div>

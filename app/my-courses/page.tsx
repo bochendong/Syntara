@@ -107,12 +107,16 @@ export default function MyCoursesPage() {
   };
 
   const handleTogglePublishCourse = async (course: CourseRecord) => {
+    if (course.accessRole === 'enrolled') {
+      toast.error('已加入的课程由创建者维护，不能发布');
+      return;
+    }
     if (course.sourceCourseId) {
-      toast.error('购买得到的课程副本不能再次发布到商城');
+      toast.error('旧版商城课程副本不能再次发布到商城');
       return;
     }
     if (!course.listedInCourseStore) {
-      toast.info('请先进入课程页，选择是否附带原始语音后再发布。');
+      toast.info('请先进入课程页确认共享内容与题库后再发布。');
       router.push(`/course/${course.id}`);
       return;
     }
@@ -129,7 +133,7 @@ export default function MyCoursesPage() {
         coursePriceCents: course.coursePriceCents ?? 0,
       });
       await loadMyCourses();
-      toast.success(course.listedInCourseStore ? '已取消发布课程' : '已发布课程到商城');
+      toast.success(course.listedInCourseStore ? '已停止上架课程' : '已发布课程到商城');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '发布失败');
     }
@@ -300,25 +304,39 @@ export default function MyCoursesPage() {
                         actionLabel="进入课程"
                         onAction={() => router.push(`/course/${course.id}`)}
                         secondaryActionLabel={
-                          course.sourceCourseId
+                          course.accessRole === 'enrolled' || course.sourceCourseId
                             ? undefined
                             : course.listedInCourseStore
-                              ? '取消发布'
+                              ? '停止上架'
                               : '发布'
                         }
                         onSecondaryAction={
-                          course.sourceCourseId
+                          course.accessRole === 'enrolled' || course.sourceCourseId
                             ? undefined
                             : () => void handleTogglePublishCourse(course)
                         }
                         coverAvatarUrl={resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl)}
-                        onEdit={() => {
-                          setEditingCourse(course);
-                          setEditOpen(true);
-                        }}
-                        deleteDialogTitle="删除课程？"
-                        deleteDialogDescription={`将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`}
-                        onDelete={() => handleDeleteCourse(course.id, course.name)}
+                        onEdit={
+                          course.accessRole === 'enrolled'
+                            ? undefined
+                            : () => {
+                                setEditingCourse(course);
+                                setEditOpen(true);
+                              }
+                        }
+                        deleteDialogTitle={
+                          course.accessRole === 'enrolled' ? undefined : '删除课程？'
+                        }
+                        deleteDialogDescription={
+                          course.accessRole === 'enrolled'
+                            ? undefined
+                            : `将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`
+                        }
+                        onDelete={
+                          course.accessRole === 'enrolled'
+                            ? undefined
+                            : () => handleDeleteCourse(course.id, course.name)
+                        }
                       />
                     </motion.li>
                   );

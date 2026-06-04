@@ -15,7 +15,7 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
-import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
+import dynamic from 'next/dynamic';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 import type { PPTImageElement, Slide } from '@/lib/types/slides';
 import { pickStableGalleryCoverUrl } from '@/lib/constants/gallery-covers';
@@ -39,6 +39,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+const LazyThumbnailSlide = dynamic(
+  () =>
+    import('@/components/slide-renderer/components/ThumbnailSlide').then(
+      (mod) => mod.ThumbnailSlide,
+    ),
+  {
+    ssr: false,
+    loading: () => <div className="size-full bg-white dark:bg-slate-900/70" />,
+  },
+);
 
 /** 课程画廊用弹性列；课程内笔记本在桌面页保持双列，贴近课堂工作区设计稿。 */
 export const courseGalleryListGridClassName =
@@ -362,7 +373,7 @@ export function CourseGalleryCard({
                 />
               ) : shouldRenderSlideThumbnail && slide ? (
                 <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-white">
-                  <ThumbnailSlide
+                  <LazyThumbnailSlide
                     slide={slide}
                     size={thumbWidth}
                     viewportSize={slide.viewportSize ?? 1000}
@@ -676,8 +687,15 @@ export function CourseGalleryCard({
     >
       <div ref={thumbRef} className={cn('relative w-full shrink-0 overflow-hidden', cfg.media)}>
         <div className="absolute inset-0">
-          {shouldRenderSlideThumbnail && slide ? (
-            <ThumbnailSlide
+          {slidePreviewImageUrl && failedSlidePreviewUrl !== slidePreviewImageUrl ? (
+            <img
+              src={slidePreviewImageUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]"
+              onError={() => setFailedSlidePreviewUrl(slidePreviewImageUrl)}
+            />
+          ) : shouldRenderSlideThumbnail && slide ? (
+            <LazyThumbnailSlide
               slide={slide}
               size={thumbWidth}
               viewportSize={slide.viewportSize ?? 1000}
