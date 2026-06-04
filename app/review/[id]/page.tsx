@@ -512,7 +512,7 @@ export default function ReviewNotebookPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <div className="flex min-h-full items-center justify-center bg-slate-950 text-white">
         <Loader2 className="mr-2 size-5 animate-spin" />
         正在读取笔记本…
       </div>
@@ -521,7 +521,7 @@ export default function ReviewNotebookPage() {
 
   if (!data?.stage) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 text-white">
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-slate-950 text-white">
         <p>没有找到这个笔记本。</p>
         <button
           type="button"
@@ -538,7 +538,7 @@ export default function ReviewNotebookPage() {
     const theme = nodeTheme(activeChallenge.node.kind);
     const Icon = theme.icon;
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_18%_0%,rgba(251,207,232,0.36),transparent_34%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_18%_0%,rgba(190,24,93,0.22),transparent_34%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
+      <main className="min-h-full bg-[radial-gradient(circle_at_18%_0%,rgba(251,207,232,0.36),transparent_34%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_18%_0%,rgba(190,24,93,0.22),transparent_34%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
         <div className="mx-auto flex max-w-5xl flex-col gap-6">
           <button
             type="button"
@@ -670,7 +670,7 @@ export default function ReviewNotebookPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(251,207,232,0.38),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(125,211,252,0.28),transparent_34%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_12%_0%,rgba(190,24,93,0.22),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(14,165,233,0.18),transparent_34%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
+    <main className="min-h-full overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(251,207,232,0.38),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(125,211,252,0.28),transparent_34%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_12%_0%,rgba(190,24,93,0.22),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(14,165,233,0.18),transparent_34%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>

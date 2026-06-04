@@ -381,8 +381,8 @@ export default function ReviewLoadingPage() {
   ] as const;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(251,207,232,0.42),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(125,211,252,0.24),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_20%_0%,rgba(190,24,93,0.24),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(14,165,233,0.18),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl flex-col justify-center gap-6">
+    <main className="flex min-h-full overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(251,207,232,0.42),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(125,211,252,0.24),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2f7)] px-4 py-6 text-slate-950 dark:bg-[radial-gradient(circle_at_20%_0%,rgba(190,24,93,0.24),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(14,165,233,0.18),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white md:px-8">
+      <div className="mx-auto flex w-full max-w-5xl flex-col justify-center gap-6">
         <Link
           href={`/review/${encodeURIComponent(notebookId)}`}
           className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:text-slate-950 dark:border-white/10 dark:bg-white/8 dark:text-slate-300 dark:hover:text-white"

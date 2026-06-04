@@ -135,8 +135,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isCourseMemory = pathname != null && /^\/course\/[^/]+\/memory(?:\/|$)/.test(pathname);
   const isNotebookCreatePage =
     pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
-  const isReviewImmersive =
-    pathname != null && /^\/review\/[^/]+\/(?:loading|map)(?:\/|$)/.test(pathname);
+  const isReviewPage = pathname != null && /^\/review\/[^/]+(?:\/|$)/.test(pathname);
   const hideStudyCompanion = shouldHideStudyCompanion(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [chatRightCollapsed, setChatRightCollapsed] = useState(getInitialChatRightCollapsed);
@@ -180,7 +179,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return withStudyCompanion(<>{children}</>);
   }
 
-  if (isReviewImmersive || isTestPage) {
+  if (isReviewPage || isTestPage) {
     return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
   }
 
