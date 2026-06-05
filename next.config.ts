@@ -33,6 +33,13 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     '/*': ['./assets/**/*', './OpenMAIC-org/**/*', './public/generated-notebooks/**/*'],
   },
+  outputFileTracingIncludes: {
+    '/*': [
+      './node_modules/.prisma/client/**/*',
+      './node_modules/@prisma/client/**/*',
+      './node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/**/*',
+    ],
+  },
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },
