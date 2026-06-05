@@ -206,6 +206,7 @@ export function useNotebookChatActions({
           courseId,
           'notebook',
           notebook.id,
+          { expectedTargetName: notebook.name },
         );
         const next: NotebookChatMessage[] = [
           ...existing,
@@ -241,6 +242,9 @@ export function useNotebookChatActions({
       streamCallbacks?: {
         onAnswerDelta?: (delta: string) => void;
         onStatus?: (message: string) => void;
+      },
+      options?: {
+        persistConversation?: boolean;
       },
     ): Promise<NotebookSubtaskResult> => {
       const childTaskId =
@@ -307,7 +311,9 @@ export function useNotebookChatActions({
           prerequisiteHints: plan.prerequisiteHints,
           webSearchUsed: plan.webSearchUsed,
         };
-        await persistNotebookConversation(notebook, question, assistantPayload);
+        if (options?.persistConversation !== false) {
+          await persistNotebookConversation(notebook, question, assistantPayload);
+        }
 
         if (childTaskId) {
           await updateAgentTask(childTaskId, {

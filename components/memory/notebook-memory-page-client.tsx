@@ -662,6 +662,7 @@ export function NotebookMemoryPageClient({
     let alive = true;
     void loadContactMessages<NotebookChatMessage>(courseId, 'notebook', notebookId, {
       ignoreCourseId: true,
+      expectedTargetName: stage?.name,
     })
       .then((messages) => {
         if (!alive) return;
@@ -674,7 +675,7 @@ export function NotebookMemoryPageClient({
     return () => {
       alive = false;
     };
-  }, [courseId, notebookId]);
+  }, [courseId, notebookId, stage?.name]);
 
   const currentConversationSnapshot =
     conversationSnapshot?.notebookId === notebookId ? conversationSnapshot : null;

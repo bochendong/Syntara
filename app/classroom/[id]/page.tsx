@@ -1,12 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import { loadImageMapping } from '@/lib/utils/image-storage';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -21,13 +22,15 @@ import type { PdfImage } from '@/lib/types/generation';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from '@/lib/notifications/client-toast';
-import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { BookOpen, FileText, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { syncStageFromSource } from '@/lib/utils/stage-storage';
 import { refreshSemanticSlideScene } from '@/lib/notebook-content/semantic-slide-render';
 import { readGenerationContext } from '@/lib/utils/generation-context-storage';
 import { getCurrentPageGenerationData } from '@/lib/utils/current-page-generation-data';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { ClassroomLoadingSkeleton } from '@/components/loading/app-page-skeletons';
+import { MessageResponse } from '@/components/ai-elements/message';
+import type { Scene, Stage as StageData } from '@/lib/types/stage';
 
 const log = createLogger('Classroom');
 
@@ -45,6 +48,111 @@ function summarizeSpeechProgress(scenes: Array<{ actions?: Array<{ type: string 
     speechReadyCount,
     speechMissingCount: Math.max(0, speechActions.length - speechReadyCount),
   };
+}
+
+function MarkdownNotebookReader({
+  stage,
+  scenes,
+  currentSceneId,
+  onSelectScene,
+  headerActions,
+}: {
+  stage: StageData;
+  scenes: Scene[];
+  currentSceneId: string | null;
+  onSelectScene: (sceneId: string) => void;
+  headerActions?: ReactNode;
+}) {
+  const sections = scenes.filter((scene) => scene.content.type === 'markdown');
+  const selected = sections.find((scene) => scene.id === currentSceneId) || sections[0] || null;
+  const courseHref = stage.courseId
+    ? `/course/${encodeURIComponent(stage.courseId)}`
+    : '/my-courses';
+
+  return (
+    <div className="flex min-h-0 flex-1 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+      <aside className="hidden w-[280px] shrink-0 border-r border-slate-200 bg-white/88 p-4 lg:flex lg:flex-col dark:border-white/10 dark:bg-white/[0.04]">
+        <Link
+          href={courseHref}
+          className="mb-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+        >
+          <BookOpen className="size-3.5" />
+          返回课程
+        </Link>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">
+            Markdown 笔记本
+          </p>
+          <h1 className="mt-1 line-clamp-2 text-lg font-semibold">{stage.name}</h1>
+          {stage.description ? (
+            <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              {stage.description}
+            </p>
+          ) : null}
+        </div>
+        <div className="mt-5 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+          {sections.map((section, index) => {
+            const active = section.id === selected?.id;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => onSelectScene(section.id)}
+                className={[
+                  'flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                  active
+                    ? 'border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-400/40 dark:bg-blue-400/12 dark:text-blue-50'
+                    : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:hover:border-white/10 dark:hover:bg-white/[0.06]',
+                ].join(' ')}
+              >
+                <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-900/[0.06] dark:bg-black/20 dark:text-slate-300 dark:ring-white/10">
+                  {index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{section.title}</span>
+                  {section.content.type === 'markdown' && section.content.summary ? (
+                    <span className="mt-1 line-clamp-2 text-[11px] leading-4 opacity-75">
+                      {section.content.summary}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/88 px-5 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {sections.length} 个 section
+            </p>
+            <h2 className="truncate text-base font-semibold">
+              {selected ? selected.title : stage.name}
+            </h2>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-5 sm:px-8 lg:px-12">
+          {selected?.content.type === 'markdown' ? (
+            <article className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white px-6 py-6 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:px-8">
+              <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100">
+                {selected.content.markdown}
+              </MessageResponse>
+            </article>
+          ) : (
+            <div className="mx-auto flex min-h-[360px] max-w-3xl items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/80 text-center text-sm text-slate-500 dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-400">
+              <div>
+                <FileText className="mx-auto mb-3 size-8 opacity-60" />
+                这个 markdown 笔记本还没有 section。
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export default function ClassroomDetailPage() {
@@ -561,6 +669,14 @@ export default function ClassroomDetailPage() {
                 </button>
               </div>
             </div>
+          ) : stage?.notebookKind === 'markdown' ? (
+            <MarkdownNotebookReader
+              stage={stage}
+              scenes={scenes}
+              currentSceneId={currentSceneId}
+              onSelectScene={setCurrentSceneId}
+              headerActions={manualGenerationActions}
+            />
           ) : (
             <Stage onRetryOutline={retrySingleOutline} headerActions={manualGenerationActions} />
           )}

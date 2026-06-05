@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bell,
   Bug,
@@ -14,7 +14,6 @@ import {
   LogOut,
   Moon,
   Search,
-  Settings,
   Sun,
   Wallet,
 } from 'lucide-react';
@@ -96,6 +95,9 @@ function formatRailCreditAmount(value: number): string {
   return Math.max(0, Math.round(value)).toLocaleString('en-US');
 }
 
+const CHAT_CONTACT_SCROLL_THUMB_RATIO = 0.13;
+const CHAT_CONTACT_SCROLL_THUMB_MIN_PX = 32;
+
 export function AppLeftRail({
   collapsed,
   hasGlobalHeader = true,
@@ -122,7 +124,6 @@ export function AppLeftRail({
 
   const displayName = nickname.trim() || authName.trim() || t('profile.defaultNickname');
 
-  const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
   const notificationsActive =
     pathname === '/notifications' || pathname?.startsWith('/notifications/');
   const unreadNotificationCount = useNotificationStore((s) => s.unreadCount);
@@ -207,6 +208,12 @@ export function AppLeftRail({
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [userAffinityLevel, setUserAffinityLevel] = useState<number | null>(null);
   const [userCreditBalances, setUserCreditBalances] = useState<CreditsBalances | null>(null);
+  const chatContactsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [chatContactsScrollThumb, setChatContactsScrollThumb] = useState({
+    height: 0,
+    top: 0,
+    visible: false,
+  });
 
   const loadRailAccountState = useCallback(
     async (shouldApply: () => boolean = () => true) => {
@@ -270,6 +277,60 @@ export function AppLeftRail({
       ]
     : [];
 
+  const syncChatContactsScrollThumb = useCallback(() => {
+    const el = chatContactsScrollRef.current;
+    if (!isChatPage || collapsed || !el || el.scrollHeight <= el.clientHeight + 1) {
+      setChatContactsScrollThumb((prev) =>
+        prev.visible ? { height: 0, top: 0, visible: false } : prev,
+      );
+      return;
+    }
+
+    const trackHeight = el.clientHeight;
+    const height = Math.min(
+      trackHeight,
+      Math.max(CHAT_CONTACT_SCROLL_THUMB_MIN_PX, trackHeight * CHAT_CONTACT_SCROLL_THUMB_RATIO),
+    );
+    const maxScrollTop = el.scrollHeight - el.clientHeight;
+    const maxThumbTop = Math.max(0, trackHeight - height);
+    const top = maxScrollTop > 0 ? (el.scrollTop / maxScrollTop) * maxThumbTop : 0;
+
+    setChatContactsScrollThumb((prev) => {
+      if (prev.visible && Math.abs(prev.height - height) < 0.5 && Math.abs(prev.top - top) < 0.5) {
+        return prev;
+      }
+      return { height, top, visible: true };
+    });
+  }, [collapsed, isChatPage]);
+
+  useEffect(() => {
+    if (!isChatPage) {
+      return;
+    }
+
+    const sync = () => syncChatContactsScrollThumb();
+    sync();
+    const frame = window.requestAnimationFrame(sync);
+    const timers = [
+      window.setTimeout(sync, 250),
+      window.setTimeout(sync, 1000),
+      window.setTimeout(sync, 3000),
+    ];
+    const el = chatContactsScrollRef.current;
+    const observer = typeof ResizeObserver === 'undefined' || !el ? null : new ResizeObserver(sync);
+    if (observer && el) {
+      observer.observe(el);
+      if (el.firstElementChild) observer.observe(el.firstElementChild);
+    }
+    window.addEventListener('resize', sync);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      observer?.disconnect();
+      window.removeEventListener('resize', sync);
+    };
+  }, [isChatPage, syncChatContactsScrollThumb]);
+
   useEffect(() => {
     if (!pathname) return;
     const shouldClear = COURSE_CONTEXT_CLEAR_PREFIXES.some(
@@ -311,7 +372,7 @@ export function AppLeftRail({
           'pointer-events-none fixed left-4 z-[1300] overflow-hidden rounded-[20px]',
           hideBelowLg && 'hidden lg:block',
           hasGlobalHeader ? 'top-[76px] h-[calc(100dvh-92px)]' : 'top-4 h-[calc(100dvh-2rem)]',
-          collapsed ? 'w-[78px]' : 'w-[min(256px,calc(100vw-2rem))]',
+          collapsed ? 'w-[78px]' : 'w-[min(280px,calc(100vw-2rem))]',
         )}
         aria-label="主导航"
       >
@@ -644,12 +705,21 @@ export function AppLeftRail({
             {isChatPage ? (
               <nav
                 className={cn(
-                  'flex min-h-0 flex-1 flex-col overflow-hidden',
+                  'relative flex min-h-0 flex-1 flex-col overflow-hidden',
                   collapsed ? 'px-1.5' : 'px-2',
                 )}
                 aria-label="聊天联系人"
               >
-                <div className={cn(leftRailScrollClass(onLightRail), 'min-h-0 flex-1 px-0')}>
+                <div
+                  ref={chatContactsScrollRef}
+                  onScroll={syncChatContactsScrollThumb}
+                  className={cn(
+                    leftRailScrollClass(onLightRail),
+                    'min-h-0 flex-1 px-0',
+                    !collapsed &&
+                      '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                  )}
+                >
                   <Suspense
                     fallback={
                       <div
@@ -672,6 +742,25 @@ export function AppLeftRail({
                     />
                   </Suspense>
                 </div>
+                {chatContactsScrollThumb.visible ? (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute bottom-0 right-0 top-0 w-[5px]"
+                  >
+                    <div
+                      className={cn(
+                        'absolute left-0 top-0 w-[5px] rounded-full transition-[background-color,height,transform] duration-150',
+                        onLightRail
+                          ? 'bg-slate-900/18'
+                          : 'bg-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]',
+                      )}
+                      style={{
+                        height: `${chatContactsScrollThumb.height}px`,
+                        transform: `translateY(${chatContactsScrollThumb.top}px)`,
+                      }}
+                    />
+                  </div>
+                ) : null}
               </nav>
             ) : (
               <nav
@@ -702,17 +791,106 @@ export function AppLeftRail({
               </nav>
             )}
 
-            <div className={cn('shrink-0', railDividers.t)}>
-              {!collapsed ? (
-                <div className="px-3 py-3">
-                  <div
-                    className={cn(
-                      'ml-auto flex w-fit items-center gap-0.5 rounded-full border p-1 backdrop-blur-md',
-                      onLightRail
-                        ? 'border-border/60 bg-card/70 shadow-sm shadow-slate-950/[0.03]'
-                        : 'border-white/10 bg-white/[0.055] shadow-sm shadow-black/20',
-                    )}
-                  >
+            {!isChatPage ? (
+              <div className={cn('shrink-0', railDividers.t)}>
+                {!collapsed ? (
+                  <div className="px-3 py-3">
+                    <div
+                      className={cn(
+                        'ml-auto flex w-fit items-center gap-0.5 rounded-full border p-1 backdrop-blur-md',
+                        onLightRail
+                          ? 'border-border/60 bg-card/70 shadow-sm shadow-slate-950/[0.03]'
+                          : 'border-white/10 bg-white/[0.055] shadow-sm shadow-black/20',
+                      )}
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href={CONTACT_SUPPORT_NAV_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                              railIconPadBtn,
+                            )}
+                            aria-label="联系客服"
+                          >
+                            <LifeBuoy className="size-[17px]" strokeWidth={1.75} />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">联系客服</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href={REPORT_ISSUE_NAV_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                              railIconPadBtn,
+                            )}
+                            aria-label="报告问题"
+                          >
+                            <Bug className="size-[17px]" strokeWidth={1.75} />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">报告问题</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
+                            className={cn(
+                              'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                              railIconPadBtn,
+                            )}
+                            aria-label={
+                              resolvedTheme === 'light'
+                                ? t('settings.themeSwitchToDark')
+                                : t('settings.themeSwitchToLight')
+                            }
+                          >
+                            {resolvedTheme === 'light' ? (
+                              <Moon className="size-[18px]" strokeWidth={1.75} />
+                            ) : (
+                              <Sun className="size-[18px]" strokeWidth={1.75} />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          {resolvedTheme === 'light'
+                            ? t('settings.themeSwitchToDark')
+                            : t('settings.themeSwitchToLight')}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              isLoggedIn ? void signOutAndRedirect() : router.push('/login')
+                            }
+                            className={cn(
+                              'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                              onLightRail
+                                ? 'text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-600'
+                                : 'text-zinc-400 transition-colors hover:bg-red-500/15 hover:text-red-400',
+                            )}
+                            aria-label={isLoggedIn ? '退出登录' : '登录'}
+                          >
+                            <LogOut className="size-[18px]" strokeWidth={1.75} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          {isLoggedIn ? '退出登录' : '登录'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 px-2 py-3">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
@@ -720,12 +898,12 @@ export function AppLeftRail({
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(
-                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            'flex size-10 items-center justify-center rounded-[10px] shadow-none',
                             railIconPadBtn,
                           )}
                           aria-label="联系客服"
                         >
-                          <LifeBuoy className="size-[17px]" strokeWidth={1.75} />
+                          <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">联系客服</TooltipContent>
@@ -737,12 +915,12 @@ export function AppLeftRail({
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(
-                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            'flex size-10 items-center justify-center rounded-[10px] shadow-none',
                             railIconPadBtn,
                           )}
                           aria-label="报告问题"
                         >
-                          <Bug className="size-[17px]" strokeWidth={1.75} />
+                          <Bug className="size-[18px]" strokeWidth={1.75} />
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">报告问题</TooltipContent>
@@ -753,7 +931,7 @@ export function AppLeftRail({
                           type="button"
                           onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
                           className={cn(
-                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            'flex size-10 items-center justify-center rounded-[10px] shadow-none',
                             railIconPadBtn,
                           )}
                           aria-label={
@@ -775,28 +953,6 @@ export function AppLeftRail({
                           : t('settings.themeSwitchToLight')}
                       </TooltipContent>
                     </Tooltip>
-                    {isChatPage ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => router.push('/settings')}
-                            className={cn(
-                              'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
-                              railIconPadBtn,
-                              settingsActive &&
-                                (onLightRail
-                                  ? 'bg-violet-200/50 text-violet-900'
-                                  : 'bg-violet-500/20 text-violet-200'),
-                            )}
-                            aria-label="设置"
-                          >
-                            <Settings className="size-[18px]" strokeWidth={1.75} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">设置</TooltipContent>
-                      </Tooltip>
-                    ) : null}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
@@ -805,7 +961,7 @@ export function AppLeftRail({
                             isLoggedIn ? void signOutAndRedirect() : router.push('/login')
                           }
                           className={cn(
-                            'flex size-8 shrink-0 items-center justify-center rounded-full shadow-none',
+                            'flex size-10 items-center justify-center rounded-[10px] shadow-none',
                             onLightRail
                               ? 'text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-600'
                               : 'text-zinc-400 transition-colors hover:bg-red-500/15 hover:text-red-400',
@@ -820,116 +976,9 @@ export function AppLeftRail({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 px-2 py-3">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={CONTACT_SUPPORT_NAV_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                          railIconPadBtn,
-                        )}
-                        aria-label="联系客服"
-                      >
-                        <LifeBuoy className="size-[18px]" strokeWidth={1.75} />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">联系客服</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={REPORT_ISSUE_NAV_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                          railIconPadBtn,
-                        )}
-                        aria-label="报告问题"
-                      >
-                        <Bug className="size-[18px]" strokeWidth={1.75} />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">报告问题</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
-                        className={cn(
-                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                          railIconPadBtn,
-                        )}
-                        aria-label={
-                          resolvedTheme === 'light'
-                            ? t('settings.themeSwitchToDark')
-                            : t('settings.themeSwitchToLight')
-                        }
-                      >
-                        {resolvedTheme === 'light' ? (
-                          <Moon className="size-[18px]" strokeWidth={1.75} />
-                        ) : (
-                          <Sun className="size-[18px]" strokeWidth={1.75} />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {resolvedTheme === 'light'
-                        ? t('settings.themeSwitchToDark')
-                        : t('settings.themeSwitchToLight')}
-                    </TooltipContent>
-                  </Tooltip>
-                  {isChatPage ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => router.push('/settings')}
-                          className={cn(
-                            'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                            railIconPadBtn,
-                            settingsActive &&
-                              (onLightRail
-                                ? 'bg-violet-200/50 text-violet-900'
-                                : 'bg-violet-500/20 text-violet-200'),
-                          )}
-                          aria-label="设置"
-                        >
-                          <Settings className="size-[18px]" strokeWidth={1.75} />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">设置</TooltipContent>
-                    </Tooltip>
-                  ) : null}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          isLoggedIn ? void signOutAndRedirect() : router.push('/login')
-                        }
-                        className={cn(
-                          'flex size-10 items-center justify-center rounded-[10px] shadow-none',
-                          onLightRail
-                            ? 'text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-600'
-                            : 'text-zinc-400 transition-colors hover:bg-red-500/15 hover:text-red-400',
-                        )}
-                        aria-label={isLoggedIn ? '退出登录' : '登录'}
-                      >
-                        <LogOut className="size-[18px]" strokeWidth={1.75} />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{isLoggedIn ? '退出登录' : '登录'}</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </aside>

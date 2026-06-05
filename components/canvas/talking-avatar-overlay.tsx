@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
+import {
+  DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
+  LIVE2D_PRESENTER_MODELS,
+} from '@/lib/live2d/presenter-models';
 import type { Live2DPresenterModelId } from '@/lib/live2d/presenter-models';
 import type { MouthShape } from '@/lib/types/action';
 import { mapAzureVisemeToLegacyMouthShape } from '@/lib/audio/mouth-cues';
@@ -771,7 +774,7 @@ function fitModelToFrame(
   baseSize: ModelBaseSize,
   layout: 'overlay' | 'sidebar' | 'card',
   cardFraming: 'default' | 'half' | 'stage' = 'default',
-  modelId: Live2DPresenterModelId = 'mark',
+  modelId: Live2DPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID,
 ) {
   const width = mount.clientWidth;
   const height = mount.clientHeight;

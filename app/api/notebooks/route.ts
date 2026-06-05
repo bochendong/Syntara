@@ -3,13 +3,25 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { findOwnedCourse } from '@/lib/server/repositories/course-repository';
 import {
   createOwnedNotebook,
   findNotebookOwner,
+  findReadableNotebook,
   listReadableNotebooks,
+  replaceOwnedMarkdownNotebookSections,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
+
+const markdownSectionSchema = z.object({
+  id: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).max(200),
+  order: z.number().int().min(0),
+  markdown: z.string().trim().min(1).max(250000),
+  summary: z.string().trim().max(2000).optional(),
+  sourceMeta: z.unknown().optional(),
+});
 
 const createNotebookSchema = z.object({
   /** 客户端生成（如 nanoid）的笔记本 id；不传则使用数据库默认 cuid */
@@ -21,6 +33,8 @@ const createNotebookSchema = z.object({
   avatarUrl: z.string().trim().max(2048).optional(),
   language: z.string().trim().max(24).optional(),
   style: z.string().trim().max(80).optional(),
+  notebookKind: z.enum(['image', 'markdown']).default('image'),
+  markdownSections: z.array(markdownSectionSchema).max(300).optional(),
   listedInNotebookStore: z.boolean().optional(),
   notebookPriceCents: z.number().int().min(0).max(100000000).optional(),
 });
@@ -53,7 +67,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { id: clientId, ...rest } = payload.data;
+    const { id: clientId, markdownSections, ...rest } = payload.data;
+    const notebookKind = markdownSections?.length ? 'markdown' : rest.notebookKind;
 
     if (rest.courseId) {
       const ownCourse = await findOwnedCourse(prisma, userId, rest.courseId);
@@ -68,9 +83,31 @@ export async function POST(request: Request) {
         if (existing.ownerId !== userId) {
           return NextResponse.json({ error: 'Notebook id already in use' }, { status: 409 });
         }
-        const notebook = await updateOwnedNotebook(prisma, userId, clientId, rest);
+        let notebook = await updateOwnedNotebook(prisma, userId, clientId, {
+          ...rest,
+          notebookKind,
+        });
         if (!notebook) {
           return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+        }
+        if (notebookKind === 'markdown' && markdownSections) {
+          const sections = await replaceOwnedMarkdownNotebookSections(
+            prisma,
+            userId,
+            clientId,
+            markdownSections.map((section) => ({
+              id: section.id,
+              title: section.title,
+              order: section.order,
+              markdown: section.markdown,
+              summary: section.summary,
+              sourceMeta: toPrismaNullableJson(section.sourceMeta),
+            })),
+          );
+          if (!sections) {
+            return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+          }
+          notebook = await findReadableNotebook(prisma, userId, clientId);
         }
         return NextResponse.json({ notebook });
       }
@@ -79,7 +116,28 @@ export async function POST(request: Request) {
     const notebook = await createOwnedNotebook(prisma, userId, {
       ...(clientId ? { id: clientId } : {}),
       ...rest,
+      notebookKind,
     });
+    if (notebookKind === 'markdown') {
+      const sections = await replaceOwnedMarkdownNotebookSections(
+        prisma,
+        userId,
+        notebook.id,
+        (markdownSections || []).map((section) => ({
+          id: section.id,
+          title: section.title,
+          order: section.order,
+          markdown: section.markdown,
+          summary: section.summary,
+          sourceMeta: toPrismaNullableJson(section.sourceMeta),
+        })),
+      );
+      if (!sections) {
+        return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+      }
+      const refreshed = await findReadableNotebook(prisma, userId, notebook.id);
+      return NextResponse.json({ notebook: refreshed }, { status: 201 });
+    }
 
     return NextResponse.json({ notebook }, { status: 201 });
   });

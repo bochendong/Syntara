@@ -22,17 +22,20 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
-import { QuizView, type QuestionResult } from '@/components/scene-renderers/quiz-view';
+import { CourseProblemBankView } from '@/components/problem-bank/course-problem-bank-view';
 import type { ReviewRoute, ReviewRouteNode } from '@/features/review';
-import { listReviewRouteHistory } from '@/features/review';
+import { listReviewRouteHistory, MIN_TEMPLATE_REVIEW_PROBLEMS } from '@/features/review';
 import {
   loadReviewRouteProgress,
   markReviewRouteNodeCompleted,
   withdrawReviewRouteReward,
 } from '@/features/review';
 import { useAuthStore } from '@/lib/store/auth';
-import type { QuizQuestion, Scene } from '@/lib/types/stage';
 import { loadStageData, type StageStoreData } from '@/lib/utils/stage-storage';
+import {
+  listReviewNotebookProblems,
+  type NotebookProblemClientRecord,
+} from '@/lib/utils/notebook-problem-api';
 import { cn } from '@/lib/utils';
 
 const MAP_WIDTH = 780;
@@ -100,12 +103,6 @@ type ChallengeResult = {
   ok: boolean;
   title: string;
   feedback: string;
-};
-
-type ReviewQuestionSource = {
-  sceneId: string;
-  sceneTitle: string;
-  question: QuizQuestion;
 };
 
 function nodeTheme(kind: ReviewRouteNode['kind']) {
@@ -575,136 +572,6 @@ function getRequiredCorrectCount(node: ReviewRouteNode, questionCount: number): 
   return Math.max(1, questionCount - 1);
 }
 
-function normalizeSearchText(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, '');
-}
-
-function flattenStageQuizQuestions(data: StageStoreData | null): ReviewQuestionSource[] {
-  if (!data) return [];
-  const rows: ReviewQuestionSource[] = [];
-  data.scenes
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .forEach((scene: Scene) => {
-      if (scene.type !== 'quiz' || scene.content.type !== 'quiz') return;
-      scene.content.questions.forEach((question) => {
-        rows.push({
-          sceneId: scene.id,
-          sceneTitle: scene.title || '历史测验',
-          question,
-        });
-      });
-    });
-  return rows;
-}
-
-function scoreQuestionForNode(source: ReviewQuestionSource, node: ReviewRouteNode): number {
-  const haystack = normalizeSearchText(
-    [
-      source.sceneTitle,
-      source.question.question,
-      source.question.analysis,
-      source.question.explanation,
-      source.question.commentPrompt,
-      source.question.options?.map((option) => option.label).join(' '),
-    ]
-      .filter(Boolean)
-      .join(' '),
-  );
-  let score = 0;
-  for (const point of node.knowledgePoints) {
-    const normalizedPoint = normalizeSearchText(point);
-    if (!normalizedPoint) continue;
-    if (haystack.includes(normalizedPoint)) score += 12;
-    const pieces = normalizedPoint.split(/[、，,;；/\\|·.。:：()[\]{}<>《》]+/).filter(Boolean);
-    for (const piece of pieces) {
-      if (piece.length >= 2 && haystack.includes(piece)) score += 3;
-    }
-  }
-  const title = normalizeSearchText(getDisplayNodeTitle(node));
-  if (title && haystack.includes(title)) score += 5;
-  return score;
-}
-
-function makeFallbackOption(label: string, value: string): { label: string; value: string } {
-  return { label, value };
-}
-
-function buildSyntheticReviewQuestions(node: ReviewRouteNode): QuizQuestion[] {
-  const count = getQuestionCount(node);
-  const points = node.knowledgePoints.length > 0 ? node.knowledgePoints : ['本关知识点'];
-  return Array.from({ length: Math.max(1, count) }, (_, index) => {
-    const point = points[index % points.length] ?? points[0];
-    const suffix = `${node.id}-fallback-${index + 1}`;
-    const values = ['A', 'B', 'C', 'D'];
-    const correctValue = values[index % values.length] ?? 'A';
-    const correctLabel =
-      index % 3 === 2 ? `对「${point}」的关键条件、适用范围或推理链条还没有说清。` : node.checkGoal;
-    const distractors = [
-      '只看题目关键词，不需要写出推理过程。',
-      '遇到不会的步骤直接跳过，不影响判断。',
-      '只背结论，不检查适用条件。',
-    ];
-    let distractorIndex = 0;
-    return {
-      id: suffix,
-      type: 'single',
-      question:
-        index % 3 === 1
-          ? `做「${getDisplayNodeTitle(node)}」这一关时，最应该先确认哪件事？`
-          : index % 3 === 2
-            ? `如果这关做错，最可能说明哪块还没稳住？`
-            : `这关围绕「${point}」检测你是否达成目标。下面哪一项最符合本关要求？`,
-      options: values.map((value) =>
-        makeFallbackOption(
-          value === correctValue ? correctLabel : (distractors[distractorIndex++] ?? '偏离题意'),
-          value,
-        ),
-      ),
-      answer: correctValue,
-      analysis: `这一关要确认的是：${node.checkGoal}。这道题是路线图为防止做题空间空白生成的兜底题，后续可以用题库真题替换。`,
-      points: 1,
-    };
-  });
-}
-
-function buildReviewQuestionsForNode(
-  node: ReviewRouteNode,
-  sources: ReviewQuestionSource[],
-): QuizQuestion[] {
-  const count = Math.max(1, getQuestionCount(node));
-  const ranked = sources
-    .map((source, index) => ({ source, index, score: scoreQuestionForNode(source, node) }))
-    .sort((a, b) => b.score - a.score || a.index - b.index);
-  const selected = ranked
-    .filter((entry) => entry.score > 0)
-    .slice(0, count)
-    .map((entry) => ({
-      ...entry.source.question,
-      id: `review-${node.id}-${entry.source.sceneId}-${entry.source.question.id}`,
-    }));
-
-  if (selected.length >= count) return selected;
-
-  const used = new Set(selected.map((question) => question.id));
-  const fillers = ranked
-    .filter((entry) => entry.score <= 0)
-    .slice(0, count - selected.length)
-    .map((entry) => ({
-      ...entry.source.question,
-      id: `review-${node.id}-${entry.source.sceneId}-${entry.source.question.id}`,
-    }))
-    .filter((question) => {
-      if (used.has(question.id)) return false;
-      used.add(question.id);
-      return true;
-    });
-  const combined = [...selected, ...fillers];
-  if (combined.length >= count) return combined.slice(0, count);
-
-  return [...combined, ...buildSyntheticReviewQuestions(node)].slice(0, count);
-}
-
 function getSourceSignalLabels(node: ReviewRouteNode): string[] {
   const labels: Record<string, string> = {
     wrong_problem: '错题线索',
@@ -778,20 +645,34 @@ export default function ReviewRouteMapPageClient() {
   const [selectedChallenge, setSelectedChallenge] = useState<ReviewChallenge | null>(null);
   const [activeChallenge, setActiveChallenge] = useState<ReviewChallenge | null>(null);
   const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
+  const [passedReviewProblemIds, setPassedReviewProblemIds] = useState<string[]>([]);
   const [selectedEventOptionIndex, setSelectedEventOptionIndex] = useState(0);
   const mapBackground = useMemo(() => getRouteMapBackground(routeId), [routeId]);
   const [stageDataState, setStageDataState] = useState<{
     notebookId: string;
     data: StageStoreData | null;
   }>(() => ({ notebookId: '', data: null }));
+  const [problemBankState, setProblemBankState] = useState<{
+    notebookId: string;
+    problems: NotebookProblemClientRecord[];
+    status: 'idle' | 'loading' | 'ready' | 'error';
+  }>(() => ({ notebookId: '', problems: [], status: 'idle' }));
   const stageData = stageDataState.notebookId === notebookId ? stageDataState.data : null;
+  const reviewProblemCourseId = stageData?.stage.courseId ?? null;
+  const notebookProblems = useMemo(
+    () => (problemBankState.notebookId === notebookId ? problemBankState.problems : []),
+    [notebookId, problemBankState.notebookId, problemBankState.problems],
+  );
+  const problemBankStatus =
+    problemBankState.notebookId === notebookId ? problemBankState.status : 'loading';
+  const isProblemBankInsufficient =
+    problemBankStatus === 'ready' && notebookProblems.length < MIN_TEMPLATE_REVIEW_PROBLEMS;
   const completedNodeSet = useMemo(() => new Set(completedNodeIds), [completedNodeIds]);
   const displayRouteLayers = useMemo(() => (route ? buildDisplayLayers(route) : []), [route]);
-  const quizQuestionSources = useMemo(() => flattenStageQuizQuestions(stageData), [stageData]);
-  const activeChallengeQuestions = useMemo(() => {
+  const activeChallengeProblemIds = useMemo(() => {
     if (!activeChallenge || !isQuestionNode(activeChallenge.node)) return [];
-    return buildReviewQuestionsForNode(activeChallenge.node, quizQuestionSources);
-  }, [activeChallenge, quizQuestionSources]);
+    return Array.from(new Set((activeChallenge.node.problemIds ?? []).filter(Boolean)));
+  }, [activeChallenge]);
   const totalRouteNodeCount = useMemo(
     () => displayRouteLayers.reduce((sum, layer) => sum + layer.nodes.length, 0),
     [displayRouteLayers],
@@ -845,26 +726,44 @@ export default function ReviewRouteMapPageClient() {
     };
   }, [notebookId]);
 
-  const handleReviewQuizFinished = (results?: QuestionResult[]) => {
-    if (
-      !activeChallenge ||
-      !isQuestionNode(activeChallenge.node) ||
-      !results ||
-      results.length === 0
-    ) {
-      setChallengeResult(null);
-      return;
+  useEffect(() => {
+    let cancelled = false;
+    if (!notebookId) return undefined;
+    void listReviewNotebookProblems({ notebookId, courseId: reviewProblemCourseId })
+      .then((problems) => {
+        if (!cancelled) setProblemBankState({ notebookId, problems, status: 'ready' });
+      })
+      .catch(() => {
+        if (!cancelled) setProblemBankState({ notebookId, problems: [], status: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [notebookId, reviewProblemCourseId]);
+
+  const handleReviewProblemAttemptResolved = (event: { problemId: string; status: string }) => {
+    if (!activeChallenge || !isQuestionNode(activeChallenge.node)) return;
+    const problemIds = activeChallengeProblemIds;
+    if (!problemIds.includes(event.problemId)) return;
+    const nextPassedProblemIds = new Set(passedReviewProblemIds);
+    if (event.status === 'passed') {
+      nextPassedProblemIds.add(event.problemId);
+    } else {
+      nextPassedProblemIds.delete(event.problemId);
     }
-    const correctCount = results.filter((result) => result.status === 'correct').length;
-    const totalCount = activeChallengeQuestions.length || results.length;
+    const passedCount = problemIds.filter((problemId) =>
+      nextPassedProblemIds.has(problemId),
+    ).length;
+    const totalCount = problemIds.length;
     const requiredCorrect = getRequiredCorrectCount(activeChallenge.node, totalCount);
-    const ok = correctCount >= requiredCorrect;
+    const ok = totalCount > 0 && passedCount >= requiredCorrect;
+    setPassedReviewProblemIds(Array.from(nextPassedProblemIds));
     setChallengeResult({
       ok,
-      title: ok ? '结果 OK' : '还没过关',
+      title: ok ? '结果 OK' : '继续完成本关',
       feedback: ok
-        ? `答对 ${correctCount}/${totalCount}，已经达到本关标准。看完解析后结算，${getRewardPointsLine(activeChallenge.node)}，我会帮你解锁下一段路线。`
-        : `这次答对 ${correctCount}/${totalCount}，本关需要至少答对 ${requiredCorrect} 题。先把解析看一下，再重试一轮就好。`,
+        ? `已通过 ${passedCount}/${totalCount}，达到本关标准。可以结算，${getRewardPointsLine(activeChallenge.node)}。`
+        : `已通过 ${passedCount}/${totalCount}，本关需要至少通过 ${requiredCorrect} 题。继续做本关剩下的题就好。`,
     });
   };
 
@@ -880,6 +779,7 @@ export default function ReviewRouteMapPageClient() {
     setActiveChallenge(null);
     setSelectedChallenge(null);
     setChallengeResult(null);
+    setPassedReviewProblemIds([]);
     toast.success(`本关完成，${getRewardPointsLine(activeChallenge.node)}`);
   };
 
@@ -895,6 +795,7 @@ export default function ReviewRouteMapPageClient() {
     setActiveChallenge(null);
     setSelectedChallenge(null);
     setChallengeResult(null);
+    setPassedReviewProblemIds([]);
     setSelectedEventOptionIndex(0);
     toast.success(`补给节点完成，${getRewardPointsLine(activeChallenge.node)}`);
   };
@@ -932,6 +833,34 @@ export default function ReviewRouteMapPageClient() {
     );
   }
 
+  if (isProblemBankInsufficient) {
+    return (
+      <main className="flex min-h-full flex-col items-center justify-center gap-4 bg-slate-950 px-4 text-center text-white">
+        <div className="max-w-md rounded-2xl border border-amber-300/30 bg-amber-300/10 p-6">
+          <h1 className="text-xl font-black">题库不足，无法复习</h1>
+          <p className="mt-3 text-sm leading-6 text-amber-50/80">
+            复习路线至少需要 {MIN_TEMPLATE_REVIEW_PROBLEMS} 道题，目前只有 {notebookProblems.length}{' '}
+            道。请先添加题目，再回来开始复习。
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link
+              href={`/review/${encodeURIComponent(notebookId)}`}
+              className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950"
+            >
+              返回复习首页
+            </Link>
+            <Link
+              href={`/classroom/${encodeURIComponent(notebookId)}?view=quiz`}
+              className="rounded-full border border-white/25 px-4 py-2 text-sm font-bold text-white"
+            >
+              去题库添加题目
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (activeChallenge) {
     const theme = nodeTheme(activeChallenge.node.kind);
     const Icon = theme.icon;
@@ -941,80 +870,58 @@ export default function ReviewRouteMapPageClient() {
     const selectedEventOption = eventOptions[selectedEventOptionIndex] ?? eventOptions[0];
 
     if (questionNode) {
-      const battleHeader = (
-        <header className="shrink-0 rounded-[1.5rem] border border-white/80 bg-white/86 p-3 shadow-[0_14px_36px_rgba(148,163,184,0.18)] backdrop-blur dark:border-white/10 dark:bg-slate-950/82 dark:shadow-black/25 md:p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
+      const initialProblemId = activeChallengeProblemIds[0];
+      return (
+        <main className="relative h-full min-h-full overflow-hidden bg-[#f5f5f5] text-slate-950 dark:bg-slate-950 dark:text-white">
+          {reviewProblemCourseId && initialProblemId ? (
+            <CourseProblemBankView
+              key={`${routeId}:${activeChallenge.node.id}:${activeChallengeProblemIds.join('|')}`}
+              courseId={reviewProblemCourseId}
+              initialNotebookId={notebookId}
+              initialProblemId={initialProblemId}
+              mode="practice"
+              practiceBackLabel="地图"
+              practiceProblemIds={activeChallengeProblemIds}
+              onPracticeBack={() => {
+                setActiveChallenge(null);
+                setChallengeResult(null);
+                setPassedReviewProblemIds([]);
+                setSelectedEventOptionIndex(0);
+              }}
+              onPracticeAttemptResolved={handleReviewProblemAttemptResolved}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
+              <p className="text-base font-black">这关还没有绑定题库题目</p>
+              <p className="max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+                复习关卡现在只使用真实题库题目。请回到地图或重新生成路线。
+              </p>
               <button
                 type="button"
                 onClick={() => {
                   setActiveChallenge(null);
                   setChallengeResult(null);
+                  setPassedReviewProblemIds([]);
                   setSelectedEventOptionIndex(0);
                 }}
-                className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:border-rose-200 hover:text-slate-950 dark:border-white/10 dark:bg-white/8 dark:text-slate-300 dark:hover:text-white"
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white dark:bg-white dark:text-slate-950"
               >
-                <ArrowLeft className="size-4" />
-                地图
+                返回地图
               </button>
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 shadow-inner dark:bg-rose-400/10 dark:text-rose-100">
-                <Icon className="size-6" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-slate-950 px-2 py-1 text-[11px] font-black text-white dark:bg-white dark:text-slate-950">
-                    第 {activeChallenge.layerIndex + 1} 层 · {theme.label}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-                    {activeChallenge.node.difficulty}
-                  </span>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-400/10 dark:text-amber-100">
-                    {getRewardSummary(activeChallenge.node)}
-                  </span>
-                </div>
-                <h1 className="mt-2 truncate text-xl font-black md:text-2xl">
-                  {getDisplayNodeTitle(activeChallenge.node)}
-                </h1>
-                <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400 md:text-sm">
-                  {getPersonalReason(activeChallenge.node)} ·{' '}
-                  {getPassCriteria(activeChallenge.node)}
-                </p>
-              </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-              <div className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-xs font-black text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/7 dark:text-slate-300">
-                共 {activeChallengeQuestions.length} 题 · 需答对{' '}
-                {getRequiredCorrectCount(activeChallenge.node, activeChallengeQuestions.length)} 题
-              </div>
-              <div className="rounded-2xl border border-sky-100 bg-sky-50/85 px-3 py-2 text-xs font-black text-sky-700 shadow-sm dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-100">
-                题库 {quizQuestionSources.length} 题可用
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-xs font-black text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/7 dark:text-slate-300">
-                进度 {completedRouteNodeCount}/{totalRouteNodeCount}
-              </div>
-            </div>
-          </div>
-
-          {challengeResult ? (
-            <div
-              className={cn(
-                'mt-3 flex flex-col gap-3 rounded-2xl border px-3 py-2 text-sm leading-6 md:flex-row md:items-center md:justify-between',
-                challengeResult.ok
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-100'
-                  : 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-400/20 dark:bg-rose-950/30 dark:text-rose-100',
-              )}
-            >
-              <div>
-                <div className="flex items-center gap-2 font-black">
-                  {challengeResult.ok ? <CheckCircle2 className="size-4" /> : null}
-                  {challengeResult.title}
+          )}
+          {challengeResult?.ok ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4">
+              <div className="pointer-events-auto flex max-w-2xl flex-col gap-3 rounded-2xl border border-emerald-200 bg-white/95 p-3 text-sm leading-6 text-emerald-900 shadow-xl shadow-slate-950/10 backdrop-blur md:flex-row md:items-center md:justify-between dark:border-emerald-400/20 dark:bg-slate-950/95 dark:text-emerald-100">
+                <div>
+                  <div className="flex items-center gap-2 font-black">
+                    <CheckCircle2 className="size-4" />
+                    {challengeResult.title}
+                  </div>
+                  <p className="text-xs font-semibold opacity-80 md:text-sm">
+                    {challengeResult.feedback}
+                  </p>
                 </div>
-                <p className="text-xs font-semibold opacity-80 md:text-sm">
-                  {challengeResult.feedback}
-                </p>
-              </div>
-              {challengeResult.ok ? (
                 <button
                   type="button"
                   onClick={handleCompleteChallenge}
@@ -1022,21 +929,9 @@ export default function ReviewRouteMapPageClient() {
                 >
                   结算 +{getRewardPoints(activeChallenge.node)} 奖励积分
                 </button>
-              ) : null}
+              </div>
             </div>
           ) : null}
-        </header>
-      );
-
-      return (
-        <main className="h-full min-h-full overflow-hidden bg-[radial-gradient(circle_at_18%_0%,rgba(251,207,232,0.38),transparent_34%),linear-gradient(180deg,#fff7fb,#eef6ff)] text-slate-950 dark:bg-[radial-gradient(circle_at_18%_0%,rgba(190,24,93,0.22),transparent_34%),linear-gradient(180deg,#020617,#0f172a)] dark:text-white">
-          <QuizView
-            key={`${routeId}:${activeChallenge.node.id}:${activeChallengeQuestions.map((question) => question.id).join('|')}`}
-            questions={activeChallengeQuestions}
-            sceneId={`review:${routeId}:${activeChallenge.node.id}`}
-            onAttemptFinished={handleReviewQuizFinished}
-            battleHeader={battleHeader}
-          />
         </main>
       );
     }
@@ -1049,6 +944,7 @@ export default function ReviewRouteMapPageClient() {
             onClick={() => {
               setActiveChallenge(null);
               setChallengeResult(null);
+              setPassedReviewProblemIds([]);
               setSelectedEventOptionIndex(0);
             }}
             className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/8 dark:text-slate-300"
@@ -1103,134 +999,75 @@ export default function ReviewRouteMapPageClient() {
                 </p>
               </div>
             </div>
-            {questionNode ? (
-              <div className="mt-6 rounded-3xl bg-white/70 p-5 shadow-sm dark:bg-slate-950/45">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="text-sm font-black">本关做题空间</p>
-                    <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-                      共 {activeChallengeQuestions.length} 题，至少答对{' '}
-                      {getRequiredCorrectCount(
-                        activeChallenge.node,
-                        activeChallengeQuestions.length,
-                      )}{' '}
-                      题过关。
-                      {quizQuestionSources.length > 0
-                        ? '我会优先从这个笔记本题库里挑题；不够的地方会临时补题，保证你能开始。'
-                        : '现在题库还没有可匹配的 quiz 题，我先用路线节点生成临时题，保证这关能打。'}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-white/75 px-3 py-2 text-xs font-black text-slate-600 shadow-sm dark:bg-black/15 dark:text-slate-300">
-                    {quizQuestionSources.length} 道题库题可用
-                  </div>
+            <div className="mt-6 rounded-3xl bg-white/70 p-5 shadow-sm dark:bg-slate-950/45">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-sm font-black">本节点效果</p>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 opacity-75">
+                    {activeChallenge.node.checkGoal}
+                  </p>
                 </div>
-                <div className="mt-4 h-[min(720px,calc(100dvh-16rem))] min-h-[520px] overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-inner dark:border-white/10 dark:bg-slate-950/75">
-                  <QuizView
-                    key={`${routeId}:${activeChallenge.node.id}:${activeChallengeQuestions.map((question) => question.id).join('|')}`}
-                    questions={activeChallengeQuestions}
-                    sceneId={`review:${routeId}:${activeChallenge.node.id}`}
-                    onAttemptFinished={handleReviewQuizFinished}
-                  />
+                <div className="flex items-center gap-2 rounded-2xl bg-white/75 px-3 py-2 text-xs font-black shadow-sm dark:bg-black/15">
+                  <Coins className="size-4" />
+                  {rewardKindLabel(activeChallenge.node.rewardKind)}
                 </div>
-                {challengeResult ? (
-                  <div
-                    className={cn(
-                      'mt-4 rounded-2xl border p-4 text-sm leading-6',
-                      challengeResult.ok
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-100'
-                        : 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-400/20 dark:bg-rose-950/30 dark:text-rose-100',
-                    )}
-                  >
-                    <div className="flex items-center gap-2 font-black">
-                      {challengeResult.ok ? <CheckCircle2 className="size-4" /> : null}
-                      {challengeResult.title}
-                    </div>
-                    <p className="mt-1">{challengeResult.feedback}</p>
-                  </div>
-                ) : null}
-                <div className="mt-4 flex flex-wrap justify-end gap-3">
-                  {challengeResult?.ok ? (
+              </div>
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-100">
+                {getRewardSummary(activeChallenge.node)}
+              </div>
+              {activeChallenge.node.kind === 'event' ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {eventOptions.slice(0, 2).map((option, optionIndex) => (
                     <button
+                      key={`${activeChallenge.node.id}-event-${optionIndex}`}
                       type="button"
-                      onClick={handleCompleteChallenge}
-                      className="rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white shadow-lg dark:bg-white dark:text-slate-950"
+                      onClick={() => setSelectedEventOptionIndex(optionIndex)}
+                      className={cn(
+                        'rounded-2xl border p-4 text-left transition-colors',
+                        selectedEventOptionIndex === optionIndex
+                          ? 'border-sky-300 bg-sky-50 text-sky-950 dark:border-sky-400/30 dark:bg-sky-950/35 dark:text-sky-50'
+                          : 'border-slate-200 bg-white/75 text-slate-700 hover:border-sky-200 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-200',
+                      )}
                     >
-                      结算 +{getRewardPoints(activeChallenge.node)} 奖励积分
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6 rounded-3xl bg-white/70 p-5 shadow-sm dark:bg-slate-950/45">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="text-sm font-black">本节点效果</p>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 opacity-75">
-                      {activeChallenge.node.checkGoal}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-2xl bg-white/75 px-3 py-2 text-xs font-black shadow-sm dark:bg-black/15">
-                    <Coins className="size-4" />
-                    {rewardKindLabel(activeChallenge.node.rewardKind)}
-                  </div>
-                </div>
-                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-100">
-                  {getRewardSummary(activeChallenge.node)}
-                </div>
-                {activeChallenge.node.kind === 'event' ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {eventOptions.slice(0, 2).map((option, optionIndex) => (
-                      <button
-                        key={`${activeChallenge.node.id}-event-${optionIndex}`}
-                        type="button"
-                        onClick={() => setSelectedEventOptionIndex(optionIndex)}
-                        className={cn(
-                          'rounded-2xl border p-4 text-left transition-colors',
-                          selectedEventOptionIndex === optionIndex
-                            ? 'border-sky-300 bg-sky-50 text-sky-950 dark:border-sky-400/30 dark:bg-sky-950/35 dark:text-sky-50'
-                            : 'border-slate-200 bg-white/75 text-slate-700 hover:border-sky-200 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-200',
-                        )}
-                      >
-                        <p className="text-sm font-black">{option.label}</p>
-                        <p className="mt-2 text-xs font-semibold leading-5 opacity-75">
-                          {option.effect}
+                      <p className="text-sm font-black">{option.label}</p>
+                      <p className="mt-2 text-xs font-semibold leading-5 opacity-75">
+                        {option.effect}
+                      </p>
+                      {option.tradeoff ? (
+                        <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-200">
+                          代价：{option.tradeoff}
                         </p>
-                        {option.tradeoff ? (
-                          <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-200">
-                            代价：{option.tradeoff}
-                          </p>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : supportActions.length > 0 ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    {supportActions.map((action) => (
-                      <div
-                        key={action}
-                        className="rounded-2xl border border-slate-200 bg-white/75 p-4 text-sm font-bold leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-200"
-                      >
-                        {action}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-900 dark:border-rose-400/20 dark:bg-rose-950/30 dark:text-rose-100">
-                  {activeChallenge.node.kind === 'event' && selectedEventOption
-                    ? `选「${selectedEventOption.label}」吧，我会把这个选择记进本局节奏里。`
-                    : '领取后会回到地图，后面的题目还是要乖乖打完，我会盯着你的。'}
+                      ) : null}
+                    </button>
+                  ))}
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleCompleteSupportNode}
-                    className="rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white shadow-lg dark:bg-white dark:text-slate-950"
-                  >
-                    领取 +{getRewardPoints(activeChallenge.node)} 奖励积分
-                  </button>
+              ) : supportActions.length > 0 ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {supportActions.map((action) => (
+                    <div
+                      key={action}
+                      className="rounded-2xl border border-slate-200 bg-white/75 p-4 text-sm font-bold leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-200"
+                    >
+                      {action}
+                    </div>
+                  ))}
                 </div>
+              ) : null}
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-900 dark:border-rose-400/20 dark:bg-rose-950/30 dark:text-rose-100">
+                {activeChallenge.node.kind === 'event' && selectedEventOption
+                  ? `选「${selectedEventOption.label}」吧，我会把这个选择记进本局节奏里。`
+                  : '领取后会回到地图，后面的题目还是要乖乖打完，我会盯着你的。'}
               </div>
-            )}
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleCompleteSupportNode}
+                  className="rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white shadow-lg dark:bg-white dark:text-slate-950"
+                >
+                  领取 +{getRewardPoints(activeChallenge.node)} 奖励积分
+                </button>
+              </div>
+            </div>
           </section>
         </div>
       </main>
@@ -1270,44 +1107,44 @@ export default function ReviewRouteMapPageClient() {
         style={{ backgroundImage: `url("${mapBackground}")` }}
       />
 
-      <div className="absolute left-5 top-5 z-50 max-w-md overflow-visible rounded-[1.7rem_2rem_1.55rem_1.9rem] border border-amber-200/80 bg-[#fffaf0]/90 p-4 shadow-[0_14px_34px_rgba(166,124,82,0.18)] backdrop-blur-[2px] dark:border-amber-200/20 dark:bg-slate-950/78 dark:shadow-black/30 md:left-8 md:top-7">
-        <span className="pointer-events-none absolute -top-3 left-10 h-7 w-28 -rotate-3 rounded-sm border border-amber-200/50 bg-[#ffe5ad]/60 shadow-sm" />
-        <span className="pointer-events-none absolute right-8 top-3 h-3 w-16 rotate-6 rounded-full bg-rose-200/30 blur-[1px]" />
-        <Link
-          href={`/review/${notebookId}`}
-          className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-[#fffdf7]/85 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/8 dark:text-slate-300"
-        >
-          <ArrowLeft className="size-4" />
-          返回复习
-        </Link>
-        <h1 className="text-2xl font-black md:text-3xl">{route.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-          {route.teacherLine}
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-[1.1rem_1.35rem_1.2rem_1rem] border border-amber-300/70 bg-[#fff4cd]/72 p-3 text-amber-950 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58)] dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-100">
-            <p className="text-[11px] font-black opacity-70">奖励积分</p>
-            <p className="mt-1 text-lg font-black">
-              +{completedRewardPoints} / {totalRewardPoints}
+      <div className="absolute left-5 top-5 z-50 w-[min(360px,calc(100vw-2.5rem))] overflow-visible rounded-[1.2rem_1.45rem_1.15rem_1.35rem] border border-amber-200/70 bg-[#fffaf0]/82 p-3 shadow-[0_10px_24px_rgba(166,124,82,0.14)] backdrop-blur-[2px] dark:border-amber-200/20 dark:bg-slate-950/72 dark:shadow-black/25 md:left-8 md:top-7">
+        <div className="flex items-start gap-2">
+          <Link
+            href={`/review/${notebookId}`}
+            aria-label="返回复习"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-amber-200/80 bg-[#fffdf7]/85 text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/8 dark:text-slate-300"
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-black leading-7">{route.title}</h1>
+            <p className="line-clamp-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">
+              {route.teacherLine}
             </p>
           </div>
-          <div className="rounded-[1.25rem_1rem_1.15rem_1.35rem] border border-sky-200/80 bg-[#eaf7ff]/72 p-3 text-sky-950 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58)] dark:border-sky-400/20 dark:bg-sky-950/30 dark:text-sky-100">
-            <p className="text-[11px] font-black opacity-70">当前倍率</p>
-            <p className="mt-1 text-lg font-black">{formatMultiplier(currentMultiplier)}</p>
-          </div>
         </div>
-        <div className="mt-2 rounded-[1rem_1.25rem_1.1rem_1.2rem] border border-amber-200/70 bg-[#fffdf8]/72 p-3 text-xs font-bold leading-5 text-slate-600 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5)] dark:border-white/10 dark:bg-white/7 dark:text-slate-300">
-          可提现 = 已获得 {completedRewardPoints} × 倍率 {formatMultiplier(currentMultiplier)} =
-          <span className="ml-1 font-black text-slate-950 dark:text-white">
-            {withdrawableRewardPoints} 积分
-          </span>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <div className="rounded-lg border border-amber-300/70 bg-[#fff4cd]/72 px-2.5 py-1.5 text-amber-950 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48)] dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="text-[10px] font-black opacity-70">奖励</p>
+            <p className="text-sm font-black">
+              +{completedRewardPoints}/{totalRewardPoints}
+            </p>
+          </div>
+          <div className="rounded-lg border border-sky-200/80 bg-[#eaf7ff]/72 px-2.5 py-1.5 text-sky-950 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48)] dark:border-sky-400/20 dark:bg-sky-950/30 dark:text-sky-100">
+            <p className="text-[10px] font-black opacity-70">倍率</p>
+            <p className="text-sm font-black">{formatMultiplier(currentMultiplier)}</p>
+          </div>
+          <div className="min-w-24 flex-1 rounded-lg border border-slate-200/70 bg-[#fffdf8]/72 px-2.5 py-1.5 text-slate-700 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.42)] dark:border-white/10 dark:bg-white/7 dark:text-slate-200">
+            <p className="text-[10px] font-black opacity-60">可提现</p>
+            <p className="text-sm font-black">{withdrawableRewardPoints} 积分</p>
+          </div>
         </div>
         <button
           type="button"
           disabled={!bossCompleted || rewardWithdrawn}
           onClick={handleWithdrawReward}
           className={cn(
-            'mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[1.1rem_1.35rem_1.15rem_1.25rem] border px-4 py-2.5 text-sm font-black shadow-[0_8px_16px_rgba(148,163,184,0.2)] transition-transform',
+            'mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-black shadow-[0_6px_12px_rgba(148,163,184,0.16)] transition-transform',
             bossCompleted && !rewardWithdrawn
               ? 'border-slate-950/80 bg-slate-950 text-white hover:-translate-y-0.5 dark:border-white dark:bg-white dark:text-slate-950'
               : 'cursor-not-allowed border-slate-300/80 bg-[#e9eef6]/85 text-slate-500 dark:border-white/10 dark:bg-white/10 dark:text-slate-500',
@@ -1326,20 +1163,19 @@ export default function ReviewRouteMapPageClient() {
         </button>
       </div>
 
-      <div className="absolute right-5 top-5 z-50 w-64 overflow-visible rounded-[1.5rem_1.85rem_1.4rem_1.7rem] border border-sky-100/90 bg-[#fffaf0]/88 p-4 shadow-[0_14px_32px_rgba(92,119,151,0.16)] backdrop-blur-[2px] dark:border-white/10 dark:bg-slate-950/74 dark:shadow-black/30 md:right-8 md:top-7">
-        <span className="pointer-events-none absolute -top-3 right-10 h-7 w-24 rotate-3 rounded-sm border border-sky-100/70 bg-[#dff5ff]/62 shadow-sm" />
+      <div className="absolute right-5 top-5 z-50 w-52 overflow-visible rounded-[1.15rem_1.35rem_1.1rem_1.3rem] border border-sky-100/90 bg-[#fffaf0]/82 p-3 shadow-[0_10px_24px_rgba(92,119,151,0.13)] backdrop-blur-[2px] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-black/25 md:right-8 md:top-7">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-slate-500 dark:text-slate-400">路线进度</p>
-            <p className="mt-1 text-2xl font-black">
+            <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">路线进度</p>
+            <p className="mt-0.5 text-xl font-black">
               {completedRouteNodeCount}/{totalRouteNodeCount}
             </p>
           </div>
-          <div className="flex size-12 items-center justify-center rounded-[1rem_1.25rem_1rem_1.2rem] border border-rose-100 bg-rose-50/85 text-rose-500 shadow-inner dark:bg-rose-400/10 dark:text-rose-200">
-            <Trophy className="size-6" />
+          <div className="flex size-9 items-center justify-center rounded-lg border border-rose-100 bg-rose-50/85 text-rose-500 shadow-inner dark:bg-rose-400/10 dark:text-rose-200">
+            <Trophy className="size-5" />
           </div>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full border border-slate-200/70 bg-[#e9edf5] dark:border-white/10 dark:bg-white/10">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full border border-slate-200/70 bg-[#e9edf5] dark:border-white/10 dark:bg-white/10">
           <div
             className="h-full rounded-full bg-gradient-to-r from-rose-400 to-amber-300"
             style={{
@@ -1347,23 +1183,29 @@ export default function ReviewRouteMapPageClient() {
             }}
           />
         </div>
-        <p className="mt-3 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-          每条分支都会把核心知识点复习完，最后汇合到 Boss。
+        <p className="mt-2 text-[11px] font-semibold leading-4 text-slate-500 dark:text-slate-400">
+          最后汇合到 Boss。
         </p>
       </div>
 
-      <div className="absolute bottom-5 left-5 z-50 max-w-md overflow-visible rounded-[1.45rem_1.8rem_1.55rem_1.6rem] border border-rose-100/90 bg-[#fffaf0]/86 p-4 shadow-[0_14px_30px_rgba(166,124,82,0.16)] backdrop-blur-[2px] dark:border-white/10 dark:bg-slate-950/74 dark:shadow-black/30 md:bottom-7 md:left-8">
-        <span className="pointer-events-none absolute -top-2 left-8 h-5 w-20 -rotate-2 rounded-sm border border-rose-100/60 bg-rose-100/54 shadow-sm" />
-        <p className="mb-2 text-xs font-black text-slate-500 dark:text-slate-400">本轮覆盖知识点</p>
-        <div className="flex max-h-28 flex-wrap gap-2 overflow-hidden">
-          {route.knowledgePoints.map((point) => (
+      <div className="absolute bottom-5 left-5 z-50 w-[min(360px,calc(100vw-2.5rem))] overflow-visible rounded-[1.15rem_1.4rem_1.2rem_1.3rem] border border-rose-100/90 bg-[#fffaf0]/80 p-3 shadow-[0_10px_22px_rgba(166,124,82,0.13)] backdrop-blur-[2px] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-black/25 md:bottom-7 md:left-8">
+        <p className="mb-2 text-[11px] font-black text-slate-500 dark:text-slate-400">
+          本轮覆盖知识点
+        </p>
+        <div className="flex max-h-28 flex-wrap gap-1.5 overflow-hidden">
+          {route.knowledgePoints.slice(0, 16).map((point) => (
             <span
               key={point}
-              className="rounded-[0.8rem_1rem_0.85rem_0.95rem] border border-rose-200/90 bg-rose-50/78 px-3 py-1 text-xs font-semibold text-rose-700 shadow-sm dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100"
+              className="rounded-md border border-rose-200/90 bg-rose-50/78 px-2 py-0.5 text-[11px] font-semibold text-rose-700 shadow-sm dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-100"
             >
               {point}
             </span>
           ))}
+          {route.knowledgePoints.length > 16 ? (
+            <span className="rounded-md border border-slate-200/80 bg-white/70 px-2 py-0.5 text-[11px] font-black text-slate-500 dark:border-white/10 dark:bg-white/8 dark:text-slate-300">
+              +{route.knowledgePoints.length - 16}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -1661,6 +1503,7 @@ export default function ReviewRouteMapPageClient() {
                   if (selectedLocked) return;
                   setActiveChallenge(selectedChallenge);
                   setChallengeResult(null);
+                  setPassedReviewProblemIds([]);
                   setSelectedEventOptionIndex(0);
                 }}
                 className={cn(

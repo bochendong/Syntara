@@ -159,6 +159,7 @@ export function ChatPageClient() {
   }, []);
   const agThreadRef = useRef(agThread);
   const nbThreadRef = useRef(nbThread);
+  const nbThreadOwnerIdRef = useRef<string | null>(null);
   agThreadRef.current = agThread;
   nbThreadRef.current = nbThread;
   const [pickContactDone, setPickContactDone] = useState(false);
@@ -432,6 +433,7 @@ export function ChatPageClient() {
 
   useEffect(() => {
     // 切换笔记本时先清空，避免旧线程被保存到新 notebook 会话
+    nbThreadOwnerIdRef.current = null;
     setNbThread([]);
     setNbThreadHydrated(false);
   }, [notebookId]);
@@ -491,20 +493,28 @@ export function ChatPageClient() {
 
   useEffect(() => {
     if (!notebookId) {
+      nbThreadOwnerIdRef.current = null;
       revokeNotebookAttachmentUrls(nbThreadRef.current);
       setNbThread([]);
+      setNbThreadHydrated(false);
+      return;
+    }
+    if (courseId && stageMeta?.id !== notebookId) {
+      nbThreadOwnerIdRef.current = null;
       setNbThreadHydrated(false);
       return;
     }
     let cancelled = false;
     loadContactMessages<NotebookChatMessage>(courseId, 'notebook', notebookId, {
       ignoreCourseId: true,
+      expectedTargetName: stageMeta?.name,
     }).then(async (messages) => {
       const hydrated = await hydrateNotebookThread(messages);
       if (cancelled) {
         revokeNotebookAttachmentUrls(hydrated);
         return;
       }
+      nbThreadOwnerIdRef.current = notebookId;
       setNbThread(hydrated);
       setNbThreadHydrated(true);
     });
@@ -512,10 +522,11 @@ export function ChatPageClient() {
       cancelled = true;
       revokeNotebookAttachmentUrls(nbThreadRef.current);
     };
-  }, [notebookId, courseId]);
+  }, [notebookId, courseId, stageMeta?.id, stageMeta?.name]);
 
   useEffect(() => {
     if (!notebookId || !courseId || !nbThreadHydrated) return;
+    if (nbThreadOwnerIdRef.current !== notebookId) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -1074,7 +1085,9 @@ export function ChatPageClient() {
   return (
     <div
       data-chat-page-root
-      className={cn('flex h-full max-h-full min-h-0 flex-col overflow-hidden bg-background text-foreground')}
+      className={cn(
+        'flex h-full max-h-full min-h-0 flex-col overflow-hidden bg-background text-foreground',
+      )}
     >
       <ChatPageHeader
         titleLine={titleLine}
@@ -1092,10 +1105,7 @@ export function ChatPageClient() {
         }
       />
 
-      <div
-        ref={scrollRef}
-        className={chatMessageScrollClassName}
-      >
+      <div ref={scrollRef} className={chatMessageScrollClassName}>
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           {mode === 'none' && courseId && pickContactDone ? (
             <p className="text-center text-sm text-muted-foreground">

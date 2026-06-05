@@ -14,6 +14,7 @@ import type {
   QuizContent,
   InteractiveContent,
   PBLContent,
+  MarkdownContent,
 } from '@/lib/types/stage';
 
 // ==================== Utility Functions ====================
@@ -106,6 +107,13 @@ export function createDefaultPBLContent(): PBLContent {
   };
 }
 
+export function createDefaultMarkdownContent(): MarkdownContent {
+  return {
+    type: 'markdown',
+    markdown: '',
+  };
+}
+
 /**
  * Create default Content based on type
  */
@@ -119,6 +127,8 @@ export function createDefaultContent(type: SceneType): SceneContent {
       return createDefaultInteractiveContent();
     case 'pbl':
       return createDefaultPBLContent();
+    case 'markdown':
+      return createDefaultMarkdownContent();
     default:
       throw new Error(`Unknown scene type: ${type}`);
   }

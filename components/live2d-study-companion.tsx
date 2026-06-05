@@ -2,10 +2,10 @@
 
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, X } from 'lucide-react';
+import { Clock3, ListChecks, Loader2 } from 'lucide-react';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
-import { LIVE2D_PRESENTER_MODELS } from '@/lib/live2d/presenter-models';
-import { LIVE2D_PRESENTER_PERSONAS } from '@/lib/live2d/presenter-personas';
+import type { AiTaskRecord } from '@/lib/store/ai-task-queue';
+import { useAiTaskQueueStore } from '@/lib/store/ai-task-queue';
 import { useSettingsStore } from '@/lib/store/settings';
 import { cn } from '@/lib/utils';
 
@@ -33,27 +33,27 @@ type DragState = {
 
 export function Live2DStudyCompanion() {
   const modelId = useSettingsStore((state) => state.live2dPresenterModelId);
-  const model = LIVE2D_PRESENTER_MODELS[modelId];
-  const persona = LIVE2D_PRESENTER_PERSONAS[modelId];
+  const tasks = useAiTaskQueueStore((state) => state.tasks);
   const [size, setSize] = useState<CompanionSize>(DESKTOP_SIZE);
   const [position, setPosition] = useState<CompanionPosition | null>(null);
   const latestPositionRef = useRef<CompanionPosition | null>(null);
   const latestModeRef = useRef<CompanionMode | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [messageOpen, setMessageOpen] = useState(false);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [queueOpen, setQueueOpen] = useState(false);
 
-  const messages = useMemo(
-    () => [
-      persona.bondLine,
-      persona.teachingStyle,
-      `先收住一个小目标：把当前页面最卡的一点讲清楚，${model.badgeLabel} 在旁边陪你。`,
-      '如果今天状态一般，就先做一道最小练习；能重新开始，本身就是进度。',
-    ],
-    [model.badgeLabel, persona.bondLine, persona.teachingStyle],
+  const queueTasks = useMemo(
+    () =>
+      tasks
+        .filter((task) => task.status === 'running' || task.status === 'queued')
+        .sort((a, b) => {
+          if (a.status !== b.status) return a.status === 'running' ? -1 : 1;
+          return a.createdAt - b.createdAt;
+        }),
+    [tasks],
   );
-  const activeMessage = messages[messageIndex % messages.length];
+  const runningCount = queueTasks.filter((task) => task.status === 'running').length;
+  const queuedCount = queueTasks.filter((task) => task.status === 'queued').length;
 
   const moveTo = useCallback(
     (nextPosition: CompanionPosition, nextSize: CompanionSize = size) => {
@@ -129,15 +129,6 @@ export function Live2DStudyCompanion() {
     }
   };
 
-  const handleMessageButtonClick = () => {
-    setMessageOpen((open) => {
-      if (open) {
-        setMessageIndex((current) => (current + 1) % messages.length);
-      }
-      return true;
-    });
-  };
-
   const style: CSSProperties = position
     ? {
         left: position.x,
@@ -168,9 +159,9 @@ export function Live2DStudyCompanion() {
       <TalkingAvatarOverlay
         layout="card"
         cardFraming="stage"
-        speaking={messageOpen}
-        cadence={messageOpen ? 'fallback' : 'idle'}
-        speechText={messageOpen ? activeMessage : null}
+        speaking={false}
+        cadence="idle"
+        speechText={null}
         modelIdOverride={modelId}
         showBadge={false}
         className="h-full min-h-0"
@@ -182,42 +173,112 @@ export function Live2DStudyCompanion() {
       >
         <button
           type="button"
-          aria-label="打开伴学消息"
-          title="伴学消息"
-          className="inline-flex size-8 items-center justify-center rounded-full border border-white/[0.65] bg-black/35 text-white shadow-[0_8px_22px_rgba(15,23,42,0.24)] backdrop-blur-md transition hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-          onClick={handleMessageButtonClick}
+          aria-label={queueOpen ? '关闭任务队列' : '打开任务队列'}
+          title="任务队列"
+          className={cn(
+            'inline-flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-white/[0.65] bg-black/38 px-2 text-white shadow-[0_8px_22px_rgba(15,23,42,0.24)] backdrop-blur-md transition hover:bg-black/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
+            runningCount > 0 && 'bg-sky-600/82 hover:bg-sky-600/92',
+          )}
+          onClick={() => setQueueOpen((open) => !open)}
         >
-          <MessageCircle className="size-4" strokeWidth={2.2} />
+          {runningCount > 0 ? (
+            <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+          ) : (
+            <ListChecks className="size-3.5" strokeWidth={2.2} />
+          )}
+          <span className="tabular-nums text-[11px] font-semibold leading-none">
+            {runningCount}
+          </span>
+          {queuedCount > 0 ? (
+            <span className="rounded-full bg-white/18 px-1 text-[10px] font-semibold leading-4">
+              +{queuedCount}
+            </span>
+          ) : null}
         </button>
       </div>
 
-      {messageOpen ? (
+      {queueOpen ? (
         <div
           data-study-companion-action
-          className="absolute right-0 top-10 z-20 w-[min(230px,calc(100vw-2rem))] rounded-2xl border border-white/70 bg-white/[0.92] p-3 text-slate-900 shadow-[0_18px_48px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-white/15 dark:bg-slate-950/[0.88] dark:text-slate-50"
+          className="absolute bottom-full right-0 z-20 mb-2 flex w-[min(292px,calc(100vw-2rem))] flex-col items-end gap-2 text-slate-900 dark:text-slate-50"
         >
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 text-[12px] leading-relaxed">{activeMessage}</p>
-            <button
-              type="button"
-              aria-label="关闭伴学消息"
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-950/[0.08] hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-              onClick={() => setMessageOpen(false)}
-            >
-              <X className="size-3.5" strokeWidth={2.2} />
-            </button>
-          </div>
-          <button
-            type="button"
-            className="mt-2 inline-flex items-center rounded-full bg-slate-950/[0.08] px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-950/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
-            onClick={() => setMessageIndex((current) => (current + 1) % messages.length)}
-          >
-            换一句
-          </button>
+          {queueTasks.length > 0 ? (
+            <ul className="flex max-h-60 w-full flex-col items-end gap-2 overflow-y-auto pr-1">
+              {queueTasks.map((task) => (
+                <li
+                  key={task.id}
+                  className="relative w-full max-w-[272px] rounded-2xl border border-white/75 bg-white/[0.92] px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/15 dark:bg-slate-950/[0.86]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-1 right-7 size-3 rotate-45 border-b border-r border-white/75 bg-white/[0.92] dark:border-white/15 dark:bg-slate-950/[0.86]"
+                  />
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={cn(
+                        'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full',
+                        task.status === 'running'
+                          ? 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200'
+                          : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300',
+                      )}
+                    >
+                      {task.status === 'running' ? (
+                        <Loader2 className="size-3 animate-spin" strokeWidth={2.2} />
+                      ) : (
+                        <Clock3 className="size-3" strokeWidth={2.2} />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-[12px] font-semibold">{task.title}</span>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px]',
+                            taskStatusClass(task),
+                          )}
+                        >
+                          {taskStatusLabel(task)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 max-h-10 overflow-hidden text-[11px] leading-5 text-slate-600 dark:text-slate-300">
+                        {compactTaskDescription(task.description)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="relative w-full max-w-[272px] rounded-2xl border border-dashed border-slate-200/90 bg-white/[0.9] px-3 py-3 text-[12px] text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-white/12 dark:bg-slate-950/[0.82] dark:text-slate-400">
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 right-7 size-3 rotate-45 border-b border-r border-dashed border-slate-200/90 bg-white/[0.9] dark:border-white/12 dark:bg-slate-950/[0.82]"
+              />
+              暂无运行中的 AI 任务
+            </div>
+          )}
         </div>
       ) : null}
     </div>
   );
+}
+
+function taskStatusLabel(task: AiTaskRecord) {
+  if (task.status === 'running') return '运行中';
+  if (task.status === 'queued') return '排队中';
+  return '已结束';
+}
+
+function taskStatusClass(task: AiTaskRecord) {
+  if (task.status === 'running') {
+    return 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200';
+  }
+  return 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300';
+}
+
+function compactTaskDescription(description: string) {
+  const text = description.replace(/\s+/g, ' ').trim();
+  return text.length > 96 ? `${text.slice(0, 96)}...` : text;
 }
 
 function resolveCompanionSize(): CompanionSize {

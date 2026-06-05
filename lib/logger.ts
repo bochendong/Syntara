@@ -1,3 +1,5 @@
+import { safeJsonStringify } from '@/lib/utils/safe-json';
+
 const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
 type LogLevel = keyof typeof LOG_LEVELS;
 
@@ -15,7 +17,11 @@ function formatLine(level: LogLevel, tag: string, args: unknown[]): string {
   const upperLevel = level.toUpperCase();
   const msg = args
     .map((a) =>
-      a instanceof Error ? (a.stack ?? a.message) : typeof a === 'string' ? a : JSON.stringify(a),
+      a instanceof Error
+        ? (a.stack ?? a.message)
+        : typeof a === 'string'
+          ? a
+          : safeJsonStringify(a, { maxChars: 20_000, maxDepth: 5 }),
     )
     .join(' ');
 

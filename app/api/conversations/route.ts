@@ -4,6 +4,8 @@ import { prisma } from '@/lib/server/prisma';
 import { requireUserId } from '@/lib/server/api-auth';
 import { toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { findCourseAccessRole } from '@/lib/server/repositories/course-enrollment-repository';
+import { findReadableNotebookId } from '@/lib/server/repositories/notebook-repository';
 
 const createConversationSchema = z.object({
   courseId: z.string().trim().min(1).optional(),
@@ -56,18 +58,18 @@ export async function POST(request: Request) {
     }
 
     if (payload.data.courseId) {
-      const ownCourse = await prisma.course.findFirst({
-        where: { id: payload.data.courseId, ownerId: userId },
-        select: { id: true },
-      });
-      if (!ownCourse) return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      const courseAccess = await findCourseAccessRole(prisma, userId, payload.data.courseId);
+      if (!courseAccess) return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
     if (payload.data.notebookId) {
-      const ownNotebook = await prisma.notebook.findFirst({
-        where: { id: payload.data.notebookId, ownerId: userId },
-        select: { id: true },
-      });
-      if (!ownNotebook) return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+      const readableNotebook = await findReadableNotebookId(
+        prisma,
+        userId,
+        payload.data.notebookId,
+      );
+      if (!readableNotebook) {
+        return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
+      }
     }
 
     const conversation = await prisma.conversation.create({

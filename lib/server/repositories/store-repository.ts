@@ -210,6 +210,7 @@ export function findPublicNotebookForClone(db: DbClient, userId: string, sourceN
     },
     include: {
       scenes: { orderBy: { order: 'asc' } },
+      markdownSections: { orderBy: { order: 'asc' } },
     },
   });
 }

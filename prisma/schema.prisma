@@ -13,6 +13,11 @@ enum CoursePurpose {
   daily
 }
 
+enum NotebookKind {
+  image
+  markdown
+}
+
 enum ConversationKind {
   notebook
   agent
@@ -258,18 +263,19 @@ model Course {
   speechReadyCount      Int           @default(0)
   speechTotalCount      Int           @default(0)
 
-  owner           User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  notebooks       Notebook[]
-  notebookPages   NotebookPage[]
-  problems        NotebookProblem[]
-  conversations   Conversation[]
-  agentTasks      AgentTask[]
-  sourcePurchases CoursePurchase[]     @relation("CoursePurchaseSource")
-  clonePurchase   CoursePurchase?      @relation("CoursePurchaseClone")
-  enrollments     CourseEnrollment[]
-  reviews         CourseReview[]
-  studyMemories   StudyMemory[]
-  problemImports  ProblemImportBatch[]
+  owner            User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  notebooks        Notebook[]
+  notebookPages    NotebookPage[]
+  markdownSections MarkdownNotebookSection[]
+  problems         NotebookProblem[]
+  conversations    Conversation[]
+  agentTasks       AgentTask[]
+  sourcePurchases  CoursePurchase[]          @relation("CoursePurchaseSource")
+  clonePurchase    CoursePurchase?           @relation("CoursePurchaseClone")
+  enrollments      CourseEnrollment[]
+  reviews          CourseReview[]
+  studyMemories    StudyMemory[]
+  problemImports   ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -279,7 +285,7 @@ model Course {
 }
 
 model Notebook {
-  id                    String    @id @default(cuid())
+  id                    String       @id @default(cuid())
   ownerId               String
   courseId              String?
   name                  String
@@ -288,32 +294,35 @@ model Notebook {
   avatarUrl             String?
   language              String?
   style                 String?
-  listedInNotebookStore Boolean   @default(false)
-  notebookPriceCents    Int       @default(0)
+  notebookKind          NotebookKind @default(image)
+  listedInNotebookStore Boolean      @default(false)
+  notebookPriceCents    Int          @default(0)
   storePublishedAt      DateTime?
   sourceNotebookId      String?
-  sceneCount            Int       @default(0)
-  problemCount          Int       @default(0)
-  publishedProblemCount Int       @default(0)
-  speechReadyCount      Int       @default(0)
-  speechTotalCount      Int       @default(0)
-  speechStatus          String    @default("no_speech")
+  sceneCount            Int          @default(0)
+  sectionCount          Int          @default(0)
+  problemCount          Int          @default(0)
+  publishedProblemCount Int          @default(0)
+  speechReadyCount      Int          @default(0)
+  speechTotalCount      Int          @default(0)
+  speechStatus          String       @default("no_speech")
   coverSlideJson        Json?
   coverImagePath        String?
-  contentVersion        Int       @default(1)
+  contentVersion        Int          @default(1)
 
-  owner           User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  course          Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  scenes          Scene[]
-  pages           NotebookPage[]
-  problems        NotebookProblem[]
-  conversations   Conversation[]
-  agentTasks      AgentTask[]
-  sourcePurchases NotebookPurchase[]   @relation("NotebookPurchaseSource")
-  clonePurchase   NotebookPurchase?    @relation("NotebookPurchaseClone")
-  reviews         NotebookReview[]
-  studyMemories   StudyMemory[]
-  problemImports  ProblemImportBatch[]
+  owner            User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course           Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  scenes           Scene[]
+  markdownSections MarkdownNotebookSection[]
+  pages            NotebookPage[]
+  problems         NotebookProblem[]
+  conversations    Conversation[]
+  agentTasks       AgentTask[]
+  sourcePurchases  NotebookPurchase[]        @relation("NotebookPurchaseSource")
+  clonePurchase    NotebookPurchase?         @relation("NotebookPurchaseClone")
+  reviews          NotebookReview[]
+  studyMemories    StudyMemory[]
+  problemImports   ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -340,6 +349,27 @@ model Scene {
   updatedAt DateTime @updatedAt
 
   @@index([notebookId, order])
+}
+
+model MarkdownNotebookSection {
+  id         String  @id @default(cuid())
+  notebookId String
+  courseId   String?
+  title      String
+  order      Int
+  markdown   String  @db.Text
+  summary    String? @db.Text
+  sourceMeta Json?
+
+  notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  course   Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([notebookId, order])
+  @@index([courseId, order])
+  @@index([notebookId, updatedAt(sort: Desc)])
 }
 
 model NotebookPage {

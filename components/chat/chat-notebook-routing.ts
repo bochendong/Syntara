@@ -75,6 +75,9 @@ function stripHtmlTags(input: string): string {
 
 export function sceneSearchText(scene: Scene): string {
   const title = scene.title || '';
+  if (scene.content.type === 'markdown') {
+    return `${title} ${scene.content.summary || ''} ${scene.content.markdown}`.trim();
+  }
   if (scene.content.type !== 'slide') return title;
   const elements = scene.content.canvas.elements || [];
   const textBits = elements

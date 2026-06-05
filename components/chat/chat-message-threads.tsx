@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { UIMessage } from 'ai';
 import { Loader2, Presentation, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MessageResponse } from '@/components/ai-elements/message';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,10 +18,8 @@ import type {
 } from '@/lib/types/chat';
 import type { Scene } from '@/lib/types/stage';
 import type { CourseAgentListItem } from '@/lib/utils/course-agents';
-import { loadStageData } from '@/lib/utils/stage-storage';
 import { cn } from '@/lib/utils';
 import { normalizeLooseMathDelimiters } from '@/lib/math-engine';
-import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import { ATTACHMENT_ONLY_PLACEHOLDER } from './chat-attachment-utils';
 import { actionHref } from './chat-avatars';
 import { messageText } from './chat-message-utils';
@@ -274,90 +270,18 @@ function SourceReferencePreviewChip({
 }: {
   reference: NonNullable<ChatMessageMetadata['sourceReferences']>[number];
 }) {
-  const [open, setOpen] = useState(false);
-  const [scenes, setScenes] = useState<Scene[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadedNotebookId, setLoadedNotebookId] = useState<string | null>(null);
-  const notebookId = reference.notebookId?.trim() || '';
-  const label = `${reference.notebookName ? `《${reference.notebookName}》` : ''}第 ${reference.order} 页 · ${reference.title}`;
-  const scene = useMemo(
-    () => scenes.find((s) => s.order === reference.order - 1),
-    [reference.order, scenes],
-  );
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen || !notebookId || loadedNotebookId === notebookId || loading) return;
-    setLoading(true);
-    void loadStageData(notebookId)
-      .then((data) => {
-        setScenes(data?.scenes || []);
-        setLoadedNotebookId(notebookId);
-      })
-      .catch(() => {
-        setScenes([]);
-        setLoadedNotebookId(notebookId);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
+  const label = `${reference.notebookName ? `《${reference.notebookName}》` : ''}第 ${reference.order} 节 · ${reference.title}`;
 
   return (
-    <HoverCard open={open} onOpenChange={handleOpenChange} openDelay={220} closeDelay={80}>
-      <HoverCardTrigger asChild>
-        <span
-          className={cn(
-            'inline-flex max-w-full cursor-help items-center rounded-full border px-2.5 py-1 text-[11px] leading-none transition-colors',
-            'border-slate-200 bg-slate-50 text-muted-foreground hover:border-slate-300 hover:bg-white hover:text-slate-900',
-            'dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-slate-100',
-          )}
-          tabIndex={0}
-        >
-          <span className="truncate font-medium">{label}</span>
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="right"
-        align="start"
-        className="z-[80] w-auto max-w-[min(92vw,340px)] border border-slate-900/[0.08] bg-white/95 p-2 text-xs shadow-lg dark:border-white/[0.12] dark:bg-[#1c1c1e]/95"
-      >
-        <div className="mb-2 min-w-0 px-1">
-          <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-slate-100">
-            {label}
-          </p>
-          {reference.why ? (
-            <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">
-              {reference.why}
-            </p>
-          ) : null}
-        </div>
-        {loading ? (
-          <p className="px-1 py-3 text-muted-foreground">正在加载该页预览…</p>
-        ) : !notebookId ? (
-          <p className="max-w-[260px] px-1 py-3 text-muted-foreground">
-            这条来源缺少笔记本 ID，暂时无法预览缩略图。
-          </p>
-        ) : !scene ? (
-          <p className="max-w-[260px] px-1 py-3 text-muted-foreground">
-            未找到第 {reference.order} 页（可能已调整页序）。
-          </p>
-        ) : scene.content.type === 'slide' ? (
-          <div className="overflow-hidden rounded-[10px] ring-1 ring-black/[0.06] dark:ring-white/[0.1]">
-            <ThumbnailSlide
-              slide={scene.content.canvas}
-              size={260}
-              viewportSize={scene.content.canvas.viewportSize ?? 1000}
-              viewportRatio={scene.content.canvas.viewportRatio ?? 0.5625}
-            />
-          </div>
-        ) : (
-          <p className="max-w-[260px] px-1 py-3 text-muted-foreground">
-            该页不是幻灯片类型，暂无缩略图。
-          </p>
-        )}
-      </HoverCardContent>
-    </HoverCard>
+    <span
+      className={cn(
+        'inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-[11px] leading-none',
+        'border-slate-200 bg-slate-50 text-muted-foreground',
+        'dark:border-white/10 dark:bg-white/5',
+      )}
+    >
+      <span className="truncate font-medium">{label}</span>
+    </span>
   );
 }
 

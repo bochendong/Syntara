@@ -23,9 +23,10 @@ import {
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { buildShortFailureReason } from '@/lib/create/api-errors';
+import { AI_TASK_QUEUE_MAX_ACTIVE, runQueuedAiTask } from '@/lib/store/ai-task-queue';
 
 const log = createLogger('SceneGenerator');
-const MAX_TTS_PARALLELISM = 6;
+const MAX_TTS_PARALLELISM = AI_TASK_QUEUE_MAX_ACTIVE;
 const MAX_PARALLEL_SCENE_CONTENT = 2;
 
 export interface SpeechAudioProgress {
@@ -405,69 +406,79 @@ export async function ensureSpeechActionsHaveAudio(
   if (missing.length === 0) return { ok: true };
 
   const total = missing.length;
-  const parallelism = Math.min(MAX_TTS_PARALLELISM, total);
-  let active = 0;
-  onProgress?.({ done: 0, total, active, parallelism });
+  return runQueuedAiTask(
+    {
+      kind: 'speech-generation',
+      title: '讲解语音生成',
+      description: `正在生成 ${total} 段讲解语音`,
+      signal,
+    },
+    async ({ signal: queueSignal }) => {
+      const parallelism = Math.min(MAX_TTS_PARALLELISM, total);
+      let active = 0;
+      onProgress?.({ done: 0, total, active, parallelism });
 
-  let nextIndex = 0;
-  let done = 0;
-  let firstError: string | null = null;
+      let nextIndex = 0;
+      let done = 0;
+      let firstError: string | null = null;
 
-  const runWorker = async () => {
-    while (!firstError) {
-      if (signal?.aborted) {
-        throw new DOMException('The operation was aborted.', 'AbortError');
-      }
+      const runWorker = async () => {
+        while (!firstError) {
+          if (queueSignal.aborted) {
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          }
 
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      if (currentIndex >= total) return;
+          const currentIndex = nextIndex;
+          nextIndex += 1;
+          if (currentIndex >= total) return;
 
-      const action = missing[currentIndex];
-      const audioId = action.audioId || `tts_${action.id}`;
-      action.audioId = audioId;
-      active += 1;
-      onProgress?.({ done, total, active, parallelism });
+          const action = missing[currentIndex];
+          const audioId = action.audioId || `tts_${action.id}`;
+          action.audioId = audioId;
+          active += 1;
+          onProgress?.({ done, total, active, parallelism });
+
+          try {
+            const { audioUrl, visemes, mouthCues } = await generateAndStoreTTS(
+              audioId,
+              action.text,
+              queueSignal,
+            );
+            if (audioUrl) action.audioUrl = audioUrl;
+            if (visemes?.length) action.visemes = visemes;
+            if (mouthCues?.length) action.mouthCues = mouthCues;
+            done += 1;
+          } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+              active = Math.max(0, active - 1);
+              onProgress?.({ done, total, active, parallelism });
+              throw error;
+            }
+            firstError =
+              error instanceof Error ? error.message : `TTS failed for speech action ${action.id}`;
+          } finally {
+            active = Math.max(0, active - 1);
+            onProgress?.({ done, total, active, parallelism });
+          }
+        }
+      };
 
       try {
-        const { audioUrl, visemes, mouthCues } = await generateAndStoreTTS(
-          audioId,
-          action.text,
-          signal,
-        );
-        if (audioUrl) action.audioUrl = audioUrl;
-        if (visemes?.length) action.visemes = visemes;
-        if (mouthCues?.length) action.mouthCues = mouthCues;
-        done += 1;
+        await Promise.all(Array.from({ length: parallelism }, () => runWorker()));
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          active = Math.max(0, active - 1);
-          onProgress?.({ done, total, active, parallelism });
           throw error;
         }
-        firstError =
-          error instanceof Error ? error.message : `TTS failed for speech action ${action.id}`;
-      } finally {
-        active = Math.max(0, active - 1);
-        onProgress?.({ done, total, active, parallelism });
+        firstError = error instanceof Error ? error.message : String(error);
       }
-    }
-  };
 
-  try {
-    await Promise.all(Array.from({ length: parallelism }, () => runWorker()));
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw error;
-    }
-    firstError = error instanceof Error ? error.message : String(error);
-  }
+      if (firstError) {
+        return { ok: false, error: firstError };
+      }
 
-  if (firstError) {
-    return { ok: false, error: firstError };
-  }
-
-  return { ok: true };
+      return { ok: true };
+    },
+  );
 }
 
 /**

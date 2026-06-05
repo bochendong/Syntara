@@ -13,6 +13,7 @@ import type {
 } from '@/lib/types/chat';
 import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 
 const log = createLogger('CourseSideChat');
 
@@ -163,7 +164,29 @@ async function consumeOneResponse(
   return { cueUserReceived, doneData };
 }
 
+function summarizeChatPrompt(messages: UIMessage<ChatMessageMetadata>[]) {
+  const lastUser = [...messages].reverse().find((message) => message.role === 'user');
+  const text = lastUser?.parts
+    ?.map((part) => ('text' in part && typeof part.text === 'string' ? part.text : ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text || '正在生成聊天回复';
+}
+
 export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Promise<void> {
+  return runQueuedAiTask(
+    {
+      kind: 'chat-reply',
+      title: '聊天回复',
+      description: summarizeChatPrompt(params.initialMessages),
+      signal: params.signal,
+    },
+    () => runCourseSideChatLoopUnqueued(params),
+  );
+}
+
+async function runCourseSideChatLoopUnqueued(params: RunCourseSideChatParams): Promise<void> {
   const {
     initialMessages,
     agentIds,

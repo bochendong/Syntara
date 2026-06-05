@@ -1,4 +1,4 @@
-import type { Stage, Scene, SceneGenerationDiagnostics } from '../types/stage';
+import type { NotebookKind, Stage, Scene, SceneGenerationDiagnostics } from '../types/stage';
 import type { ChatSession } from '../types/chat';
 import { createLogger } from '@/lib/logger';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
@@ -88,6 +88,8 @@ export interface StageListItem {
   description?: string;
   tags?: string[];
   avatarUrl?: string;
+  notebookKind?: NotebookKind;
+  sectionCount?: number;
   listedInNotebookStore?: boolean;
   notebookPriceCents?: number;
   storePublishedAt?: number;
@@ -110,6 +112,7 @@ type NotebookApiRow = {
   avatarUrl: string | null;
   language: string | null;
   style: string | null;
+  notebookKind?: NotebookKind;
   listedInNotebookStore?: boolean;
   notebookPriceCents?: number;
   storePublishedAt?: string | null;
@@ -118,10 +121,24 @@ type NotebookApiRow = {
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';
   sceneCount?: number;
+  sectionCount?: number;
   accessRole?: 'owner' | 'enrolled';
   createdAt: string;
   updatedAt: string;
   _count?: { scenes: number };
+};
+
+type MarkdownSectionApiRow = {
+  id: string;
+  notebookId: string;
+  courseId: string | null;
+  title: string;
+  order: number;
+  markdown: string;
+  summary: string | null;
+  sourceMeta?: unknown;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SceneApiRow = {
@@ -162,6 +179,8 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
     description: row.description || undefined,
     tags: row.tags || [],
     avatarUrl: row.avatarUrl || undefined,
+    notebookKind: row.notebookKind ?? 'image',
+    sectionCount: row.sectionCount ?? 0,
     listedInNotebookStore: Boolean(row.listedInNotebookStore),
     notebookPriceCents: row.notebookPriceCents ?? 0,
     storePublishedAt: row.storePublishedAt ? Date.parse(row.storePublishedAt) : undefined,
@@ -402,6 +421,24 @@ function mapScene(stageId: string, row: SceneApiRow): Scene {
   };
 }
 
+function mapMarkdownSection(stageId: string, row: MarkdownSectionApiRow): Scene {
+  return {
+    id: row.id,
+    stageId,
+    title: row.title,
+    type: 'markdown',
+    order: row.order,
+    content: {
+      type: 'markdown',
+      markdown: row.markdown,
+      summary: row.summary || undefined,
+    },
+    actions: [],
+    createdAt: Date.parse(row.createdAt),
+    updatedAt: Date.parse(row.updatedAt),
+  };
+}
+
 export async function saveStageData(
   stageId: string,
   data: StageStoreData,
@@ -512,17 +549,26 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
   const draftSnapshot = await readStageDraftSnapshot(stageId);
   try {
     const { notebook } = await backendJson<{
-      notebook: NotebookApiRow & { scenes: SceneApiRow[] };
+      notebook: NotebookApiRow & {
+        scenes: SceneApiRow[];
+        markdownSections?: MarkdownSectionApiRow[];
+      };
     }>(`/api/notebooks/${encodeURIComponent(stageId)}`);
 
-    const scenes = (notebook.scenes || [])
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
+    const isMarkdownNotebook = (notebook.notebookKind ?? 'image') === 'markdown';
+    const scenes = isMarkdownNotebook
+      ? (notebook.markdownSections || [])
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((section) => mapMarkdownSection(stageId, section))
+      : (notebook.scenes || [])
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
     const chats = await withFallbackTimeout(
-      loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId).catch(
-        () => [],
-      ),
+      loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId, {
+        expectedTargetName: notebook.name,
+      }).catch(() => []),
       2500,
       [],
     );
@@ -538,6 +584,8 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       updatedAt: Date.parse(notebook.updatedAt),
       language: notebook.language || undefined,
       style: notebook.style || undefined,
+      notebookKind: notebook.notebookKind ?? (isMarkdownNotebook ? 'markdown' : 'image'),
+      sectionCount: notebook.sectionCount ?? (isMarkdownNotebook ? scenes.length : 0),
     };
 
     const remoteData: StageStoreData = {
@@ -699,6 +747,8 @@ export async function loadStageMetadata(stageId: string): Promise<Stage | null> 
       updatedAt: Date.parse(notebook.updatedAt),
       language: notebook.language || undefined,
       style: notebook.style || undefined,
+      notebookKind: notebook.notebookKind ?? 'image',
+      sectionCount: notebook.sectionCount ?? 0,
     };
   } catch {
     return null;

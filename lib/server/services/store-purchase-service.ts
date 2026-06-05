@@ -177,9 +177,17 @@ export async function cloneStoreNotebookForUser(
         avatarUrl: source.avatarUrl ?? undefined,
         language: source.language ?? undefined,
         style: source.style ?? undefined,
+        notebookKind: source.notebookKind,
         listedInNotebookStore: false,
         notebookPriceCents: 0,
         sourceNotebookId: source.id,
+        sceneCount: source.sceneCount,
+        sectionCount: source.sectionCount,
+        speechReadyCount: source.speechReadyCount,
+        speechTotalCount: source.speechTotalCount,
+        speechStatus: source.speechStatus,
+        coverSlideJson: toPrismaNullableJson(source.coverSlideJson),
+        coverImagePath: source.coverImagePath,
       },
     });
 
@@ -193,6 +201,20 @@ export async function cloneStoreNotebookForUser(
           content: toPrismaJson(scene.content),
           actions: toPrismaNullableJson(stripPrivateSpeechAudioFromActions(scene.actions)),
           whiteboard: toPrismaNullableJson(scene.whiteboard),
+        })),
+      });
+    }
+
+    if (source.markdownSections.length > 0) {
+      await tx.markdownNotebookSection.createMany({
+        data: source.markdownSections.map((section) => ({
+          notebookId: clonedNotebook.id,
+          courseId: null,
+          title: section.title,
+          order: section.order,
+          markdown: section.markdown,
+          summary: section.summary,
+          sourceMeta: toPrismaNullableJson(section.sourceMeta),
         })),
       });
     }

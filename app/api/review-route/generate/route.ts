@@ -82,6 +82,7 @@ const bodySchema = z.object({
   candidateProblems: z.array(candidateProblemSchema).default([]),
   reviewHistory: z.array(reviewHistorySchema).default([]),
   selectedProblemIds: z.array(z.string().trim().min(1)).default([]),
+  routeTemplate: z.string().trim().min(1).optional(),
 });
 
 function stripCodeFences(text: string): string {
@@ -435,7 +436,7 @@ export async function POST(req: NextRequest) {
               .filter((problem) => problem.concepts.includes(concept))
               .slice(0, 6)
               .map((problem) => problem.id);
-            return `- ${concept}: ${matches.length ? matches.join(', ') : '暂无候选题，必须标注需要先补题入题库'}`;
+            return `- ${concept}: ${matches.length ? matches.join(', ') : '暂无候选题，必须标注需要先添加题目入题库'}`;
           })
           .join('\n')
       : '- 暂无强制覆盖概念。';
@@ -473,6 +474,7 @@ export async function POST(req: NextRequest) {
           )
           .join('\n')
       : '暂无历史复习记录。';
+  const routeTemplateLines = body.routeTemplate || '未指定内置模板，请按默认路线图规则生成。';
   const problemBankLines = problemBank
     ? [
         `题库总题量：${problemBank.totalProblems}`,
@@ -524,6 +526,9 @@ ${privateMemoryLines}
 
 候选题库题目（优先从这些题里组织 normal/elite/boss）：
 ${candidateProblemLines}
+
+本轮必须填充的内置路线模板：
+${routeTemplateLines}
 
 本轮路线必须覆盖的目标概念与可用候选题：
 ${candidateCoverageLines}
@@ -623,6 +628,8 @@ ${reviewHistoryLines}
 }
 
 要求：
+- 如果提供了“内置路线模板”，必须严格沿用模板中的 layers 数量、layer id、node id、node kind、difficulty、questionCount、requiresQuestion、rewardKind、rewardPoints；你只负责给每个题目节点选择候选题 problemIds，并补全知识点、关卡名和说明。
+- 模板总题量必须保持 5-10 道；不要额外增加题目节点，也不要把 support 节点改成题目节点。
 - knowledgePoints 总数 6-16 个。
 - layers 4-7 层。
 - 第一层偏基础，最后一层必须只有 1 个 boss；所有路线都要在这个 Boss 汇聚。
@@ -632,15 +639,15 @@ ${reviewHistoryLines}
 - 最后一层只能有 boss，不能混入商店、营火、宝箱、事件或普通题。
 - normal/elite/boss 的 title 禁止使用“检测”“小测”“练习”这类泛标题，必须像关卡名。
 - normal/elite/boss 的 personalReason 必须引用错题、薄弱、未尝试、题量偏薄、已掌握巩固中的至少一种学生画像信号。
-- normal/elite/boss 必须优先使用候选题库题目，并在 problemIds 写入 1-5 个候选题 id；如果缺题，questionStyle 必须写“需要先补题入题库”。
-- “本轮路线必须覆盖的目标概念”是硬约束：每个有候选题 id 的目标概念，至少要出现在 1 个 normal/elite/boss 节点的 knowledgePoints 里，并且该节点 problemIds 必须包含对应概念的候选题 id。没有候选题的目标概念也要以“需要先补题入题库”显式暴露。
+- normal/elite/boss 必须优先使用候选题库题目，并在 problemIds 写入 1-5 个候选题 id；如果缺题，questionStyle 必须写“需要先添加题目入题库”。
+- “本轮路线必须覆盖的目标概念”是硬约束：每个有候选题 id 的目标概念，至少要出现在 1 个 normal/elite/boss 节点的 knowledgePoints 里，并且该节点 problemIds 必须包含对应概念的候选题 id。没有候选题的目标概念也要以“需要先添加题目入题库”显式暴露。
 - “必须精确修复的私人记忆概念”和“必须精确修复的历史失败概念”也是硬约束；请使用原始概念词写入 normal/elite/boss 的 knowledgePoints，不要用上位概念替代。例如输入是“等价无穷小”时，knowledgePoints 里必须出现“等价无穷小”，不能只写“极限”。
 - normal/elite/boss 的 questionCount 必须是 2-5，boss 必须是 4-6；passCriteria 必须明确几题答对几题。
 - 每个节点必须提供 rewardPoints 整数，并在 rewardPreview 里写清楚“通关 +X 奖励积分”。建议 normal 12-22、elite 28-42、boss 70-100、camp/event 8-22、treasure 18-40、shop 0-10。
 - sourceSignals 使用英文短标签，例如 private_memory、review_history、candidate_problem、wrong_problem、weak_point、untried_concept、thin_bank、mastered_review、boss_mix、reward。
 - 事件节点必须给 2 个 eventOptions；商店节点 rewardKind 优先 hint_card/forgiveness/mentor_cosmetic_shard；宝箱节点 rewardKind 优先 run_card/reward_coin/card_back_shard/relic_shard；营火节点 rewardKind 优先 forgiveness/card_upgrade。
 - 路线图要优先安排错题概念、未尝试概念和题量偏薄概念；已掌握概念可以作为 boss 综合题或低频巩固。
-- 如果题库缺少某专题题目，请在节点的 questionStyle 里标注“需要先补题入题库”，不要假装题库已经足够。`;
+- 如果题库缺少某专题题目，请在节点的 questionStyle 里标注“需要先添加题目入题库”，不要假装题库已经足够。`;
 
   try {
     const result = await runWithRequestContext(req, '/api/review-route/generate', () =>

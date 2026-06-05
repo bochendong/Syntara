@@ -4,7 +4,7 @@ import type { NotebookContentDocument } from '@/lib/notebook-content';
 export type NotebookSceneBrief = {
   id: string;
   order: number;
-  type: 'slide' | 'quiz' | 'interactive' | 'pbl';
+  type: 'slide' | 'quiz' | 'interactive' | 'pbl' | 'markdown';
   title: string;
   knowledgeDigest: string;
 };

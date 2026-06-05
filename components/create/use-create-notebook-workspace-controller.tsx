@@ -82,6 +82,163 @@ type CreateNotebookWorkspaceControllerArgs = {
   courseId: string;
 };
 
+type NotebookKindSelection = 'image' | 'markdown';
+
+type MarkdownNotebookSectionDraft = {
+  title: string;
+  order: number;
+  markdown: string;
+  summary?: string;
+  sourceMeta?: Record<string, unknown>;
+};
+
+const MARKDOWN_SECTION_TARGET_CHARS = 4200;
+const MARKDOWN_SECTION_MAX_CHARS = 7200;
+const MARKDOWN_SECTION_LIMIT = 80;
+
+function stripMarkdownForSummary(input: string): string {
+  return input
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/[*_~>#-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function compactTitle(input: string, fallback: string): string {
+  const normalized = stripMarkdownForSummary(input).replace(/\s+/g, ' ').trim();
+  if (!normalized) return fallback;
+  return normalized.length > 64 ? `${normalized.slice(0, 64)}…` : normalized;
+}
+
+function splitPlainTextIntoChunks(text: string): string[] {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (paragraphs.length === 0) return [];
+
+  const chunks: string[] = [];
+  let current = '';
+  for (const paragraph of paragraphs) {
+    if (
+      current &&
+      current.length + paragraph.length > MARKDOWN_SECTION_TARGET_CHARS &&
+      current.length >= 800
+    ) {
+      chunks.push(current.trim());
+      current = paragraph;
+      continue;
+    }
+    current = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (current.length >= MARKDOWN_SECTION_MAX_CHARS) {
+      chunks.push(current.trim());
+      current = '';
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+
+function splitMarkdownTextByHeadings(text: string): Array<{ title: string; markdown: string }> {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const sections: Array<{ title: string; lines: string[] }> = [];
+  let current: { title: string; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const heading = line.match(/^(#{1,3})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+      if (current?.lines.some((item) => item.trim())) sections.push(current);
+      current = { title: heading[2].trim(), lines: [line] };
+      continue;
+    }
+    if (!current) {
+      current = { title: '', lines: [] };
+    }
+    current.lines.push(line);
+  }
+  if (current?.lines.some((item) => item.trim())) sections.push(current);
+
+  if (sections.length <= 1) return [];
+  return sections
+    .map((section, index) => {
+      const markdown = section.lines.join('\n').trim();
+      return {
+        title: compactTitle(section.title || markdown.split('\n')[0] || '', `第 ${index + 1} 节`),
+        markdown,
+      };
+    })
+    .filter((section) => section.markdown);
+}
+
+function buildMarkdownNotebookSections(args: {
+  requirement: string;
+  sourceText: string;
+  sourceFileName?: string;
+}): MarkdownNotebookSectionDraft[] {
+  const requirement = args.requirement.trim();
+  const sourceText = args.sourceText.trim();
+  const primaryText = sourceText || requirement;
+  if (!primaryText) return [];
+
+  const headingSections = splitMarkdownTextByHeadings(primaryText);
+  const sourceMeta = {
+    sourceFileName: args.sourceFileName || null,
+    createdFrom: sourceText ? 'source-text' : 'requirement',
+  };
+  const rawSections =
+    headingSections.length > 0
+      ? headingSections
+      : splitPlainTextIntoChunks(primaryText).map((markdown, index) => ({
+          title:
+            index === 0
+              ? compactTitle(requirement || markdown.split('\n')[0] || '', '概览')
+              : `第 ${index + 1} 节`,
+          markdown: markdown.startsWith('#')
+            ? markdown
+            : `# ${index === 0 ? compactTitle(requirement || markdown, '概览') : `第 ${index + 1} 节`}\n\n${markdown}`,
+        }));
+
+  const sections = rawSections.slice(0, MARKDOWN_SECTION_LIMIT).map((section, index) => ({
+    title: section.title || `第 ${index + 1} 节`,
+    order: index,
+    markdown: section.markdown,
+    summary: stripMarkdownForSummary(section.markdown).slice(0, 420),
+    sourceMeta,
+  }));
+
+  if (requirement && sourceText && !stripMarkdownForSummary(sourceText).includes(requirement)) {
+    return [
+      {
+        title: '学习目标',
+        order: 0,
+        markdown: `# 学习目标\n\n${requirement}`,
+        summary: requirement.slice(0, 420),
+        sourceMeta: { ...sourceMeta, createdFrom: 'requirement' },
+      },
+      ...sections.slice(0, MARKDOWN_SECTION_LIMIT - 1).map((section, index) => ({
+        ...section,
+        order: index + 1,
+      })),
+    ];
+  }
+
+  return sections;
+}
+
+function buildMarkdownNotebookName(args: {
+  requirement: string;
+  sourceFileName?: string;
+  firstSectionTitle?: string;
+}): string {
+  const sourceBase = args.sourceFileName?.replace(/\.[^.]+$/, '').trim();
+  const candidate = args.requirement.trim().split('\n')[0] || sourceBase || args.firstSectionTitle;
+  return compactTitle(candidate || '', 'Markdown 笔记本');
+}
+
 export function useCreateNotebookWorkspaceController({
   courseId,
 }: CreateNotebookWorkspaceControllerArgs) {
@@ -130,6 +287,7 @@ export function useCreateNotebookWorkspaceController({
   const [imageGenerationMockPageCount, setImageGenerationMockPageCount] =
     useState<ImageGenerationMockPageCount | null>(null);
   const [activeGenerationTaskId, setActiveGenerationTaskId] = useState<string | null>(null);
+  const [notebookKind, setNotebookKind] = useState<NotebookKindSelection>('image');
   const [currentPlanningPageNumbers, setCurrentPlanningPageNumbers] = useState<number[]>([]);
   const [revealingPlanningPageNumbers, setRevealingPlanningPageNumbers] = useState<number[]>([]);
   const [planningRevealRevision, setPlanningRevealRevision] = useState(0);
@@ -200,9 +358,9 @@ export function useCreateNotebookWorkspaceController({
   }, []);
 
   useEffect(() => {
-    setGenerateSlides(true);
-    setUseAiImages(true);
-  }, [setGenerateSlides, setUseAiImages]);
+    setGenerateSlides(notebookKind === 'image');
+    setUseAiImages(notebookKind === 'image');
+  }, [notebookKind, setGenerateSlides, setUseAiImages]);
 
   useEffect(() => {
     return () => {
@@ -1170,17 +1328,75 @@ export function useCreateNotebookWorkspaceController({
     }
   };
 
-  const handleGenerate = async (forcedSelection?: PdfSourceSelection) => {
-    if (!currentModelId) {
-      showSetupToast(
-        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
-        t('settings.modelNotConfigured'),
-        t('settings.setupNeeded'),
-      );
-      openSettings();
+  const handleCreateMarkdownNotebook = async () => {
+    if (!hasInput) {
+      setError('请先输入想听的主题/问题，或上传一份参考资料。');
+      setActiveStep('input');
       return;
     }
 
+    const cid = courseId.trim();
+    if (!cid) {
+      setError('请先从「我的课程」进入某一门课程，再创建笔记本。');
+      return;
+    }
+
+    setError(null);
+    setBusy(true);
+    setActiveStep('result');
+
+    try {
+      const preparedSource = await prepareSourceInputForPlanning();
+      const sections = buildMarkdownNotebookSections({
+        requirement: form.requirement,
+        sourceText: preparedSource.extract.text,
+        sourceFileName: form.sourceFile?.name,
+      });
+      if (sections.length === 0) {
+        throw new Error('没有可写入的 Markdown 内容，请输入主题/内容或上传一份可解析的资料。');
+      }
+      const notebookName = buildMarkdownNotebookName({
+        requirement: form.requirement,
+        sourceFileName: form.sourceFile?.name,
+        firstSectionTitle: sections[0]?.title,
+      });
+      const response = await backendFetch('/api/notebooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: cid,
+          name: notebookName,
+          description: `纯文字 Markdown 笔记本，共 ${sections.length} 个 section。`,
+          tags: ['Markdown', '纯文字'],
+          language,
+          style: 'markdown',
+          notebookKind: 'markdown',
+          markdownSections: sections,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(await readApiErrorMessage(response, 'Markdown 笔记本创建失败'));
+      }
+      const data = (await response.json()) as { notebook?: { id?: string; name?: string } };
+      const notebookId = data.notebook?.id?.trim();
+      if (!notebookId) throw new Error('Markdown 笔记本创建失败：服务端没有返回 notebook id');
+      window.dispatchEvent(
+        new CustomEvent('synatra-notebook-list-updated', {
+          detail: { courseId: cid, notebookId },
+        }),
+      );
+      toast.success(`已创建「${data.notebook?.name || notebookName}」`);
+      router.push(`/classroom/${encodeURIComponent(notebookId)}`);
+    } catch (err) {
+      log.error('Error creating markdown notebook:', err);
+      setActiveStep('input');
+      setError(err instanceof Error ? err.message : 'Markdown 笔记本创建失败');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGenerate = async (forcedSelection?: PdfSourceSelection) => {
     if (!hasInput) {
       setError('请先输入想听的主题/问题，或上传一份参考资料。');
       setActiveStep('input');
@@ -1208,6 +1424,21 @@ export function useCreateNotebookWorkspaceController({
       !effectiveSelection
     ) {
       setPageSelectionDialogOpen(true);
+      return;
+    }
+
+    if (notebookKind === 'markdown') {
+      void handleCreateMarkdownNotebook();
+      return;
+    }
+
+    if (!currentModelId) {
+      showSetupToast(
+        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
+        t('settings.modelNotConfigured'),
+        t('settings.setupNeeded'),
+      );
+      openSettings();
       return;
     }
 
@@ -1305,8 +1536,16 @@ export function useCreateNotebookWorkspaceController({
         setError('请先输入想听的主题/问题，或上传一份参考资料。');
         return;
       }
+      if (notebookKind === 'markdown') {
+        void handleGenerate();
+        return;
+      }
       void generateOutlineForReview();
     } else if (activeStep === 'materials') {
+      if (notebookKind === 'markdown') {
+        void handleGenerate();
+        return;
+      }
       void generateOutlineForReview();
     } else if (activeStep === 'outline') {
       if (outlineNeedsInitialGeneration) {
@@ -1493,6 +1732,7 @@ export function useCreateNotebookWorkspaceController({
     language,
     materials,
     missingSourceImagePreviewCount,
+    notebookKind,
     outlineGenerationMessage,
     outlineGenerationStatus,
     outlineIsLoading,
@@ -1534,6 +1774,7 @@ export function useCreateNotebookWorkspaceController({
     setIncludeQuizScenes,
     setLanguage,
     setMaterialKeep,
+    setNotebookKind,
     setOutlineGenerationMessage,
     setOutlineGenerationStatus,
     setOutlineLength,

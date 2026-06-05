@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bot,
   ChevronLeft,
@@ -20,15 +20,12 @@ import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
   COURSE_ORCHESTRATOR_ID,
   COURSE_ORCHESTRATOR_NAME,
-  createNotebookHref,
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import { OrchestratorGenerateOptionsPanel } from '@/components/chat/orchestrator-generate-options-panel';
 import { listAgentsForCourse, type CourseAgentListItem } from '@/lib/utils/course-agents';
 import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
-import { listActiveAgentTasksByCourse } from '@/lib/utils/agent-task-storage';
 import { loadCourseChatGroupMeta } from '@/lib/utils/contact-chat-storage';
-import type { AgentTaskRecord } from '@/lib/utils/database';
 import type { CourseChatGroupMeta } from '@/lib/types/chat';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { Scene, SlideContent } from '@/lib/types/stage';
@@ -67,12 +64,19 @@ const sceneLikeItemClass = cn(
 const rightRailTabTriggerClass =
   'text-xs data-active:text-[#007AFF] dark:data-active:text-[#64B5FF]';
 
-const ACTIVE_TASK_POLL_INTERVAL_MS = 8000;
+const notebookTagToneClasses = [
+  'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/12 dark:text-sky-200',
+  'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/12 dark:text-emerald-200',
+  'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:border-violet-300/20 dark:bg-violet-400/12 dark:text-violet-200',
+  'border-amber-500/25 bg-amber-500/12 text-amber-800 dark:border-amber-300/22 dark:bg-amber-400/14 dark:text-amber-200',
+  'border-rose-500/20 bg-rose-500/10 text-rose-700 dark:border-rose-300/20 dark:bg-rose-400/12 dark:text-rose-200',
+  'border-teal-500/20 bg-teal-500/10 text-teal-700 dark:border-teal-300/20 dark:bg-teal-400/12 dark:text-teal-200',
+];
 
-function notebookTagClass() {
+function notebookTagClass(index: number) {
   return cn(
-    'max-w-full truncate rounded-md border border-black/[0.08] bg-black/[0.04] px-2 py-0.5 text-[10px] font-medium text-[#1d1d1f]/80',
-    'dark:border-white/[0.12] dark:bg-white/[0.08] dark:text-white/78',
+    'max-w-full truncate rounded-md border px-2 py-0.5 text-[10px] font-semibold shadow-sm shadow-black/[0.015]',
+    notebookTagToneClasses[index % notebookTagToneClasses.length],
   );
 }
 
@@ -143,30 +147,6 @@ function ParticipantAvatar({
   );
 }
 
-/** 已绑定笔记本时进入互动教室；否则进入课程内创建界面；无课程时回退到聊天。 */
-function taskProgressHref(courseId: string | null | undefined, t: AgentTaskRecord): string {
-  const nid = t.notebookId?.trim();
-  if (nid && t.status === 'done') {
-    return `/classroom/${encodeURIComponent(nid)}`;
-  }
-  const cid = courseId?.trim();
-  if (cid) {
-    return createNotebookHref(cid);
-  }
-  if (t.contactKind === 'notebook') {
-    return `/chat?notebook=${encodeURIComponent(t.contactId)}`;
-  }
-  return `/chat?agent=${encodeURIComponent(t.contactId)}`;
-}
-
-function taskKindLabel(kind: AgentTaskRecord['contactKind']): string {
-  return kind === 'notebook' ? '笔记本' : 'Agent';
-}
-
-function isMockTaskLike(task: Pick<AgentTaskRecord, 'title' | 'detail'>): boolean {
-  return /mock/i.test(task.title || '') || /\[mock\]/i.test(task.detail || '');
-}
-
 export interface ChatRightRailProps {
   collapsed: boolean;
   hasGlobalHeader?: boolean;
@@ -175,7 +155,7 @@ export interface ChatRightRailProps {
 }
 
 /**
- * 聊天页右侧玻璃侧栏：Tab「当前」展示会话对象资料；Tab「进行中」展示课程内活跃 Agent 任务。
+ * 聊天页右侧玻璃侧栏：展示会话对象资料，笔记本会话额外展示内容目录。
  */
 export function ChatRightRail({
   collapsed,
@@ -206,17 +186,12 @@ export function ChatRightRail({
   const groupId = searchParams.get('group');
   const isGroupChat =
     agentId === COURSE_ORCHESTRATOR_ID && (chatView === 'group' || Boolean(groupId));
-  const tabGridClass = notebookId ? 'grid-cols-3' : 'grid-cols-2';
 
   const [notebookStage, setNotebookStage] = useState<StageListItem | null>(null);
   const [resolvedAgent, setResolvedAgent] = useState<CourseAgentListItem | null>(null);
   const [groupMeta, setGroupMeta] = useState<CourseChatGroupMeta | null>(null);
   const [groupMetaLoading, setGroupMetaLoading] = useState(false);
-  const [courseStages, setCourseStages] = useState<StageListItem[]>([]);
-  const [courseAgents, setCourseAgents] = useState<CourseAgentListItem[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [activeTasks, setActiveTasks] = useState<AgentTaskRecord[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
   const [notebookScenes, setNotebookScenes] = useState<Scene[]>([]);
   const [notebookScenesLoading, setNotebookScenesLoading] = useState(false);
   const [railTab, setRailTab] = useState(isNotebookCreateMode ? 'generate-options' : 'profile');
@@ -226,28 +201,28 @@ export function ChatRightRail({
       setRailTab('generate-options');
       return;
     }
-    setRailTab((current) => (current === 'generate-options' ? 'profile' : current));
-  }, [isNotebookCreateMode]);
+    setRailTab((current) => (current === 'scene-like' && notebookId ? current : 'profile'));
+  }, [isNotebookCreateMode, notebookId]);
 
   useEffect(() => {
     if (!courseId) {
       setNotebookStage(null);
       setResolvedAgent(null);
-      setCourseStages([]);
-      setCourseAgents([]);
       return;
     }
     let alive = true;
     (async () => {
       setProfileLoading(true);
       try {
+        const shouldLoadStages = Boolean(notebookId);
+        const shouldLoadAgents = Boolean(agentId && agentId !== COURSE_ORCHESTRATOR_ID);
         const [stages, agents] = await Promise.all([
-          listStagesByCourse(courseId),
-          listAgentsForCourse(courseId),
+          shouldLoadStages ? listStagesByCourse(courseId) : Promise.resolve<StageListItem[]>([]),
+          shouldLoadAgents
+            ? listAgentsForCourse(courseId)
+            : Promise.resolve<CourseAgentListItem[]>([]),
         ]);
         if (!alive) return;
-        setCourseStages(stages);
-        setCourseAgents(agents);
         if (notebookId) {
           setNotebookStage(stages.find((s) => s.id === notebookId) ?? null);
         } else {
@@ -327,93 +302,6 @@ export function ChatRightRail({
       alive = false;
     };
   }, [notebookId]);
-
-  useEffect(() => {
-    if (!courseId || isNotebookCreateMode) {
-      setActiveTasks([]);
-      setTasksLoading(false);
-      return;
-    }
-    let alive = true;
-    const load = async () => {
-      setTasksLoading(true);
-      try {
-        const tasks = await listActiveAgentTasksByCourse(courseId);
-        if (!alive) return;
-        setActiveTasks(tasks.filter((t) => !isMockTaskLike(t)));
-      } catch {
-        if (alive) setActiveTasks([]);
-      } finally {
-        if (alive) setTasksLoading(false);
-      }
-    };
-    void load();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void load();
-    }, ACTIVE_TASK_POLL_INTERVAL_MS);
-    const handleFocus = () => void load();
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      alive = false;
-      window.clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [courseId, isNotebookCreateMode]);
-
-  const activeTaskCount = activeTasks.length;
-
-  const taskContactAvatar = (t: AgentTaskRecord) => {
-    if (t.contactKind === 'agent') {
-      const agent =
-        t.contactId === COURSE_ORCHESTRATOR_ID
-          ? orchestratorAgentLive
-          : courseAgents.find((a) => a.id === t.contactId);
-      const src = agent?.avatar?.trim() || '';
-      if (src && isImageAvatar(src)) {
-        return (
-          <img
-            src={src}
-            alt=""
-            className="size-8 shrink-0 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
-          />
-        );
-      }
-      return (
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-xs font-semibold text-violet-800 ring-1 ring-black/5 dark:text-violet-200 dark:ring-white/10">
-          {(agent?.name || 'A').slice(0, 1)}
-        </div>
-      );
-    }
-    const notebook = courseStages.find((s) => s.id === t.contactId);
-    const src = notebook?.avatarUrl?.trim() || '';
-    if (src && isImageAvatar(src)) {
-      return (
-        <img
-          src={src}
-          alt=""
-          className="size-8 shrink-0 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
-        />
-      );
-    }
-    return (
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-        <NotebookPen className="size-3.5" strokeWidth={1.8} />
-      </div>
-    );
-  };
-
-  const taskActorLabel = (t: AgentTaskRecord): string => {
-    if (t.contactKind === 'agent') {
-      if (t.contactId === COURSE_ORCHESTRATOR_ID) return COURSE_ORCHESTRATOR_NAME;
-      return (
-        courseAgents.find((a) => a.id === t.contactId)?.name ||
-        `Agent · ${t.contactId.slice(0, 10)}`
-      );
-    }
-    return (
-      courseStages.find((s) => s.id === t.contactId)?.name || `笔记本 · ${t.contactId.slice(0, 10)}`
-    );
-  };
 
   const profileBody = () => {
     if (!courseId) {
@@ -573,8 +461,8 @@ export function ChatRightRail({
                 <div className="mt-4 w-full">
                   <p className={cn(profileSectionLabel, 'w-full text-left')}>标签</p>
                   <div className="mt-2 flex w-full flex-wrap justify-start gap-1.5 px-0.5">
-                    {notebookStage.tags.map((tag) => (
-                      <span key={tag} className={notebookTagClass()} title={tag}>
+                    {notebookStage.tags.map((tag, index) => (
+                      <span key={tag} className={notebookTagClass(index)} title={tag}>
                         {tag}
                       </span>
                     ))}
@@ -670,83 +558,6 @@ export function ChatRightRail({
     );
   };
 
-  const activeTasksEmptyWrap = (children: ReactNode) => (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3 py-8 text-center">
-      {children}
-    </div>
-  );
-
-  const activeTasksBody = () => {
-    if (!courseId) {
-      return activeTasksEmptyWrap(
-        <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          进入课程后即可查看进行中的调度任务。
-        </p>,
-      );
-    }
-    if (tasksLoading && activeTasks.length === 0) {
-      return activeTasksEmptyWrap(
-        <Loader2 className="size-6 animate-spin text-[#007AFF] dark:text-[#0A84FF]" />,
-      );
-    }
-    if (activeTasks.length === 0) {
-      return activeTasksEmptyWrap(
-        <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          {isNotebookCreateMode
-            ? '当前没有运行中或等待中的创建任务。提交新笔记本后，会在此列出。'
-            : '当前没有运行中或等待中的 Agent 任务。向总控发指令，或在课程内创建页生成笔记本后，会在此列出。'}
-        </p>,
-      );
-    }
-    return (
-      <ul className="flex list-none flex-col gap-2 p-0">
-        {activeTasks.map((t) => (
-          <li key={t.id}>
-            <Link
-              href={taskProgressHref(courseId, t)}
-              title="查看任务进度"
-              className="block rounded-[12px] border border-slate-900/[0.08] bg-white/50 p-2.5 transition-colors hover:bg-white/80 dark:border-white/[0.1] dark:bg-black/20 dark:hover:bg-black/35"
-            >
-              <div className="flex items-start gap-2.5">
-                {taskContactAvatar(t)}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
-                      {t.title}
-                    </span>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                        t.status === 'waiting'
-                          ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
-                          : 'bg-amber-500/15 text-amber-800 dark:text-amber-200',
-                      )}
-                    >
-                      {t.status === 'waiting' ? '等待' : '运行'}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    {taskKindLabel(t.contactKind)} · {taskActorLabel(t)}
-                  </p>
-                  {t.detail ? (
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
-                      {t.detail}
-                    </p>
-                  ) : null}
-                  <p className="mt-1.5 text-[10px] text-muted-foreground/90">
-                    {t.status === 'done' && t.notebookId?.trim()
-                      ? '点击进入互动教室'
-                      : '点击查看当前生成进度'}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    );
-  };
-
   const sceneLikeBody = () => {
     if (!courseId) {
       return (
@@ -791,6 +602,8 @@ export function ChatRightRail({
             <li key={scene.id}>
               <ScenePreviewDialog
                 scene={scene}
+                previewMode="thumbnail"
+                description="放大当前目录缩略图。"
                 trigger={
                   <button
                     type="button"
@@ -940,6 +753,18 @@ export function ChatRightRail({
               <OrchestratorGenerateOptionsPanel />
             </div>
           </>
+        ) : !notebookId ? (
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            <button
+              type="button"
+              onClick={() => onCollapsedChange(true)}
+              className="absolute right-2 top-2 z-10 flex size-8 shrink-0 items-center justify-center rounded-[10px] border-0 bg-transparent text-muted-foreground shadow-none transition-colors hover:text-foreground"
+              aria-label="收起右侧栏"
+            >
+              <ChevronRight className="size-4" strokeWidth={1.75} />
+            </button>
+            <div className={profileTabShellClass}>{profileBody()}</div>
+          </div>
         ) : (
           <>
             <Tabs
@@ -948,33 +773,13 @@ export function ChatRightRail({
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
               <div className="flex h-14 shrink-0 items-center gap-1.5 border-b border-slate-900/[0.08] px-2 py-0 dark:border-white/[0.08]">
-                <TabsList
-                  className={cn('grid min-h-9 min-w-0 flex-1', tabGridClass)}
-                  variant="default"
-                >
+                <TabsList className="grid min-h-9 min-w-0 flex-1 grid-cols-2" variant="default">
                   <TabsTrigger value="profile" className={rightRailTabTriggerClass}>
                     对象
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="active"
-                    title={activeTaskCount > 0 ? `${activeTaskCount} 个进行中的任务` : undefined}
-                    className={cn('relative', rightRailTabTriggerClass)}
-                  >
-                    <span className={activeTaskCount > 0 ? 'pr-3.5' : undefined}>任务</span>
-                    {activeTaskCount > 0 ? (
-                      <span
-                        className="pointer-events-none absolute right-1 top-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#007AFF] px-1 text-[8px] font-bold leading-none text-white tabular-nums dark:bg-[#0A84FF]"
-                        aria-hidden
-                      >
-                        {activeTaskCount > 99 ? '99+' : activeTaskCount}
-                      </span>
-                    ) : null}
+                  <TabsTrigger value="scene-like" className={rightRailTabTriggerClass}>
+                    目录
                   </TabsTrigger>
-                  {notebookId ? (
-                    <TabsTrigger value="scene-like" className={rightRailTabTriggerClass}>
-                      目录
-                    </TabsTrigger>
-                  ) : null}
                 </TabsList>
                 <button
                   type="button"
@@ -990,41 +795,12 @@ export function ChatRightRail({
                 {profileBody()}
               </TabsContent>
               <TabsContent
-                value="active"
+                value="scene-like"
                 className={cn(scrollClass, 'mt-0 flex min-h-0 flex-1 flex-col')}
               >
-                {activeTasksBody()}
+                {sceneLikeBody()}
               </TabsContent>
-              {notebookId ? (
-                <TabsContent
-                  value="scene-like"
-                  className={cn(scrollClass, 'mt-0 flex min-h-0 flex-1 flex-col')}
-                >
-                  {sceneLikeBody()}
-                </TabsContent>
-              ) : null}
             </Tabs>
-            <div className="shrink-0 border-t border-slate-900/[0.08] px-3 py-3 dark:border-white/[0.08]">
-              <p className={cn(profileSectionLabel, 'mb-2 px-0')}>课程导航</p>
-              <AppCoreNavList
-                collapsed={false}
-                variant="notebook"
-                tooltipSide="left"
-                chatRightRailOrder
-                excludeKeys={[
-                  'top-up',
-                  'credits-market',
-                  'store',
-                  'chat',
-                  'notifications',
-                  'live2d',
-                  'profile',
-                  'settings',
-                  'contact-support',
-                  'report-issue',
-                ]}
-              />
-            </div>
           </>
         )}
       </div>

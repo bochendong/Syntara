@@ -171,9 +171,11 @@ export function ChatMemoryDrawer({
 
   useEffect(() => {
     if (groupMeta || !courseId || !notebookId) return;
+    const targetName = targets.find((target) => target.id === notebookId)?.name;
     let alive = true;
     void loadContactMessages<NotebookChatMessage>(courseId, 'notebook', notebookId, {
       ignoreCourseId: true,
+      expectedTargetName: targetName,
     })
       .then((messages) => {
         if (!alive) return;
@@ -186,7 +188,7 @@ export function ChatMemoryDrawer({
     return () => {
       alive = false;
     };
-  }, [courseId, groupMeta, notebookId]);
+  }, [courseId, groupMeta, notebookId, targets]);
 
   const removeMemory = (memory: NotebookMemoryItem) => {
     deleteNotebookPrivateMemory({ stageId: memory.stageId, memoryId: memory.id });

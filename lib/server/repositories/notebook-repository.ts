@@ -16,6 +16,11 @@ export type UpdateOwnedNotebookData = Omit<
 
 export type ReplaceNotebookSceneData = Omit<Prisma.SceneCreateManyInput, 'notebookId'>;
 
+export type ReplaceMarkdownNotebookSectionData = Omit<
+  Prisma.MarkdownNotebookSectionCreateManyInput,
+  'notebookId' | 'courseId'
+>;
+
 type NotebookSceneMetadataInput = Pick<ReplaceNotebookSceneData, 'content' | 'actions' | 'order'>;
 
 type NotebookSceneMetadataSummary = {
@@ -149,11 +154,13 @@ const notebookListSelect = {
   avatarUrl: true,
   language: true,
   style: true,
+  notebookKind: true,
   listedInNotebookStore: true,
   notebookPriceCents: true,
   storePublishedAt: true,
   sourceNotebookId: true,
   sceneCount: true,
+  sectionCount: true,
   problemCount: true,
   publishedProblemCount: true,
   speechReadyCount: true,
@@ -271,6 +278,9 @@ export async function findReadableNotebookWithScenes(
       scenes: {
         orderBy: { order: 'asc' },
       },
+      markdownSections: {
+        orderBy: { order: 'asc' },
+      },
     },
   });
   if (!notebook) return null;
@@ -382,6 +392,13 @@ export function listNotebookScenes(db: DbClient, notebookId: string) {
   });
 }
 
+export function listMarkdownNotebookSections(db: DbClient, notebookId: string) {
+  return db.markdownNotebookSection.findMany({
+    where: { notebookId },
+    orderBy: { order: 'asc' },
+  });
+}
+
 export async function replaceOwnedNotebookScenes(
   db: RootDbClient,
   userId: string,
@@ -394,6 +411,7 @@ export async function replaceOwnedNotebookScenes(
   const summary = summarizeNotebookScenesForMetadata(scenes);
 
   await db.$transaction(async (tx) => {
+    await tx.markdownNotebookSection.deleteMany({ where: { notebookId } });
     await tx.scene.deleteMany({ where: { notebookId } });
     await tx.scene.createMany({
       data: scenes.map((scene) => ({
@@ -404,7 +422,9 @@ export async function replaceOwnedNotebookScenes(
     await tx.notebook.update({
       where: { id: notebookId },
       data: {
+        notebookKind: 'image',
         sceneCount: summary.sceneCount,
+        sectionCount: 0,
         speechReadyCount: summary.speechReadyCount,
         speechTotalCount: summary.speechTotalCount,
         speechStatus: summary.speechStatus,
@@ -420,4 +440,48 @@ export async function replaceOwnedNotebookScenes(
   });
 
   return listNotebookScenes(db, notebookId);
+}
+
+export async function replaceOwnedMarkdownNotebookSections(
+  db: RootDbClient,
+  userId: string,
+  notebookId: string,
+  sections: ReplaceMarkdownNotebookSectionData[],
+) {
+  const notebook = await findOwnedNotebookId(db, userId, notebookId);
+  if (!notebook) return null;
+
+  await db.$transaction(async (tx) => {
+    await tx.scene.deleteMany({ where: { notebookId } });
+    await tx.markdownNotebookSection.deleteMany({ where: { notebookId } });
+    if (sections.length > 0) {
+      await tx.markdownNotebookSection.createMany({
+        data: sections.map((section) => ({
+          ...section,
+          notebookId,
+          courseId: notebook.courseId,
+        })),
+      });
+    }
+    await tx.notebook.update({
+      where: { id: notebookId },
+      data: {
+        notebookKind: 'markdown',
+        sceneCount: sections.length,
+        sectionCount: sections.length,
+        speechReadyCount: 0,
+        speechTotalCount: 0,
+        speechStatus: 'no_speech',
+        coverSlideJson: Prisma.DbNull,
+        coverImagePath: null,
+        contentVersion: { increment: 1 },
+        updatedAt: new Date(),
+      },
+    });
+    if (notebook.courseId) {
+      await refreshCourseSummaryFields(tx, notebook.courseId);
+    }
+  });
+
+  return listMarkdownNotebookSections(db, notebookId);
 }

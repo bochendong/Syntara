@@ -5,7 +5,7 @@ import type { CourseChatGroupMeta } from '@/lib/types/chat';
 const MAX_CONTACT_MESSAGES = 300;
 const MAX_LOCAL_CONTACT_SNAPSHOT_BYTES = 512 * 1024;
 const MIN_LOCAL_CONTACT_MESSAGES = 25;
-const LOCAL_CONTACT_MESSAGES_PREFIX = 'syntara-contact-chat:';
+const LOCAL_CONTACT_MESSAGES_PREFIX = 'syntara-contact-chat:v2';
 const MOCK_COURSE_CHAT_ID = 'syntara-mock-course-chat';
 export const COURSE_CHAT_GROUP_TARGET_PREFIX = 'course-group:';
 
@@ -33,6 +33,15 @@ type LocalMessageSnapshot<T> = {
   messages: T[];
   updatedAt: number | null;
   meta?: unknown;
+  target?: unknown;
+};
+
+type PersistedAuthState = {
+  state?: {
+    userId?: string;
+    email?: string;
+    isLoggedIn?: boolean;
+  };
 };
 
 function byteLength(value: string): number {
@@ -44,15 +53,34 @@ function normalizeKeyPart(value: string | null | undefined): string {
   return trimmed || '_';
 }
 
+function currentLocalUserKeyPart(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    const raw = localStorage.getItem('synatra-auth');
+    if (!raw) return 'anonymous';
+    const parsed = JSON.parse(raw) as PersistedAuthState;
+    const userId = parsed.state?.userId?.trim();
+    if (userId) return userId;
+    const email = parsed.state?.email?.trim().toLowerCase();
+    if (email) return `email:${email}`;
+  } catch {
+    /* localStorage may be unavailable */
+  }
+  return 'anonymous';
+}
+
 function localStorageKey(args: {
   courseId?: string | null;
   kind: ContactConversationKind;
   targetId: string;
   ignoreCourseId?: boolean;
 }): string {
-  const coursePart = args.ignoreCourseId ? '_' : normalizeKeyPart(args.courseId);
+  const userPart = normalizeKeyPart(currentLocalUserKeyPart());
+  const coursePart =
+    args.ignoreCourseId || args.kind === 'notebook' ? '_' : normalizeKeyPart(args.courseId);
   return [
     LOCAL_CONTACT_MESSAGES_PREFIX,
+    encodeURIComponent(userPart),
     encodeURIComponent(coursePart),
     encodeURIComponent(args.kind),
     encodeURIComponent(args.targetId),
@@ -69,7 +97,12 @@ function readLocalSnapshot<T>(args: {
   try {
     const raw = localStorage.getItem(localStorageKey(args));
     if (!raw) return { messages: [], updatedAt: null };
-    const parsed = JSON.parse(raw) as { messages?: unknown[]; updatedAt?: unknown; meta?: unknown };
+    const parsed = JSON.parse(raw) as {
+      messages?: unknown[];
+      updatedAt?: unknown;
+      meta?: unknown;
+      target?: unknown;
+    };
     const updatedAt =
       typeof parsed.updatedAt === 'string'
         ? Date.parse(parsed.updatedAt)
@@ -78,6 +111,7 @@ function readLocalSnapshot<T>(args: {
       messages: (Array.isArray(parsed.messages) ? parsed.messages : []) as T[],
       updatedAt: Number.isFinite(updatedAt) ? updatedAt : null,
       meta: parsed.meta,
+      target: parsed.target,
     };
   } catch {
     return { messages: [], updatedAt: null };
@@ -88,6 +122,7 @@ function writeLocalMessages<T>(args: {
   courseId: string;
   kind: ContactConversationKind;
   targetId: string;
+  targetName?: string;
   messages: T[];
   meta?: unknown;
 }): void {
@@ -101,6 +136,12 @@ function writeLocalMessages<T>(args: {
     while (messages.length > MIN_LOCAL_CONTACT_MESSAGES) {
       const serialized = JSON.stringify({
         updatedAt,
+        target: {
+          version: 1,
+          kind: args.kind,
+          targetId: args.targetId,
+          targetName: args.targetName,
+        },
         messages,
         ...(includeMeta ? { meta: args.meta } : {}),
       });
@@ -114,6 +155,12 @@ function writeLocalMessages<T>(args: {
     for (const metaEnabled of [includeMeta, false]) {
       const serialized = JSON.stringify({
         updatedAt,
+        target: {
+          version: 1,
+          kind: args.kind,
+          targetId: args.targetId,
+          targetName: args.targetName,
+        },
         messages,
         ...(metaEnabled ? { meta: args.meta } : {}),
       });
@@ -128,6 +175,49 @@ function writeLocalMessages<T>(args: {
   } catch {
     /* localStorage may be unavailable; backend persistence remains best-effort */
   }
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isLegacyNotebookDispatchPrompt(text: string): boolean {
+  return (
+    (text.startsWith('@') &&
+      text.includes(' 请基于你的笔记回答：') &&
+      text.includes('。先直接解决问题，再用一句话说明依据或复杂度。')) ||
+    (text.startsWith('@') &&
+      text.includes(' 请只补你这个笔记本最相关的一点：') &&
+      text.includes('。最多 4 句，能引用页码就引用。')) ||
+    text.includes('请以课程微信群里的笔记本成员身份回答：最多 4 句；只讲你这个笔记本最相关的一个点')
+  );
+}
+
+function stripLegacyNotebookDispatchMessages<T>(kind: ContactConversationKind, messages: T[]): T[] {
+  if (kind !== 'notebook' || messages.length === 0) return messages;
+
+  const next: T[] = [];
+  let skipNextAssistant = false;
+  for (const message of messages) {
+    const record = isPlainRecord(message) ? message : null;
+    const role = record?.role;
+    if (
+      record &&
+      role === 'user' &&
+      typeof record.text === 'string' &&
+      isLegacyNotebookDispatchPrompt(record.text.trim())
+    ) {
+      skipNextAssistant = true;
+      continue;
+    }
+    if (skipNextAssistant && role === 'assistant') {
+      skipNextAssistant = false;
+      continue;
+    }
+    skipNextAssistant = false;
+    next.push(message);
+  }
+  return next.length === messages.length ? messages : next;
 }
 
 function removeLocalSnapshot(args: {
@@ -145,14 +235,16 @@ function removeLocalSnapshot(args: {
 
 function removeLocalSnapshotsForTarget(kind: ContactConversationKind, targetId: string): void {
   if (typeof window === 'undefined') return;
+  const userPart = encodeURIComponent(normalizeKeyPart(currentLocalUserKeyPart()));
   const encodedKind = encodeURIComponent(kind);
   const encodedTargetId = encodeURIComponent(targetId);
   const keySuffix = `:${encodedKind}:${encodedTargetId}`;
+  const keyPrefix = `${LOCAL_CONTACT_MESSAGES_PREFIX}:${userPart}:`;
   try {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.startsWith(LOCAL_CONTACT_MESSAGES_PREFIX) && key.endsWith(keySuffix)) {
+      if (key?.startsWith(keyPrefix) && key.endsWith(keySuffix)) {
         keys.push(key);
       }
     }
@@ -169,11 +261,40 @@ function backendKey(args: {
   kind: ContactConversationKind;
   targetId: string;
 }): string {
-  return `${normalizeKeyPart(args.courseId)}:${args.kind}:${args.targetId}`;
+  const coursePart = args.kind === 'notebook' ? '_' : normalizeKeyPart(args.courseId);
+  return `${normalizeKeyPart(currentLocalUserKeyPart())}:${coursePart}:${args.kind}:${args.targetId}`;
 }
 
 function shouldUseLocalOnly(courseId: string): boolean {
   return courseId === MOCK_COURSE_CHAT_ID;
+}
+
+function isNotebookConversationTitleCompatible(
+  kind: ContactConversationKind,
+  conversation: ConversationRow,
+  expectedTargetName?: string | null,
+): boolean {
+  if (kind !== 'notebook') return true;
+  const expected = expectedTargetName?.trim();
+  if (!expected) return true;
+  const title = conversation.title?.trim();
+  return !title || title === '笔记本' || title === expected;
+}
+
+function isLocalSnapshotTargetCompatible<T>(
+  kind: ContactConversationKind,
+  targetId: string,
+  snapshot: LocalMessageSnapshot<T>,
+  expectedTargetName?: string | null,
+): boolean {
+  if (kind !== 'notebook') return true;
+  const expected = expectedTargetName?.trim();
+  if (!expected) return true;
+  if (!isPlainRecord(snapshot.target)) return false;
+  if (snapshot.target.kind !== kind || snapshot.target.targetId !== targetId) return false;
+  const targetName =
+    typeof snapshot.target.targetName === 'string' ? snapshot.target.targetName.trim() : '';
+  return !targetName || targetName === '笔记本' || targetName === expected;
 }
 
 async function ensureConversation(args: {
@@ -194,8 +315,11 @@ async function ensureConversation(args: {
   const listed = await backendJson<{ conversations: ConversationRow[] }>(
     `/api/conversations?${q.toString()}`,
   );
-  if (listed.conversations.length > 0) {
-    return listed.conversations[0].id;
+  const reusable = listed.conversations.find((conversation) =>
+    isNotebookConversationTitleCompatible(args.kind, conversation, args.targetName),
+  );
+  if (reusable) {
+    return reusable.id;
   }
 
   const created = await backendJson<{ conversation: ConversationRow }>('/api/conversations', {
@@ -323,10 +447,11 @@ function parseCourseChatGroupMeta(value: unknown): CourseChatGroupMeta | null {
 function listLocalCourseChatGroups(courseId: string): CourseChatGroupMeta[] {
   if (typeof window === 'undefined') return [];
   const metas: CourseChatGroupMeta[] = [];
+  const userPart = encodeURIComponent(normalizeKeyPart(currentLocalUserKeyPart()));
   const coursePart = encodeURIComponent(normalizeKeyPart(courseId));
   const kindPart = encodeURIComponent('agent');
   const targetPrefix = encodeURIComponent(COURSE_CHAT_GROUP_TARGET_PREFIX);
-  const prefix = `${LOCAL_CONTACT_MESSAGES_PREFIX}:${coursePart}:${kindPart}:`;
+  const prefix = `${LOCAL_CONTACT_MESSAGES_PREFIX}:${userPart}:${coursePart}:${kindPart}:`;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -364,14 +489,26 @@ export async function loadContactMessages<T>(
   options?: {
     /** 为 notebook 会话提供「仅按 targetId」读取能力，避免受当前课程上下文影响 */
     ignoreCourseId?: boolean;
+    expectedTargetName?: string | null;
   },
 ): Promise<T[]> {
-  const localSnapshot = readLocalSnapshot<T>({
+  const localSnapshotRaw = readLocalSnapshot<T>({
     courseId,
     kind,
     targetId,
     ignoreCourseId: options?.ignoreCourseId,
   });
+  const localSnapshot: LocalMessageSnapshot<T> = isLocalSnapshotTargetCompatible(
+    kind,
+    targetId,
+    localSnapshotRaw,
+    options?.expectedTargetName,
+  )
+    ? {
+        ...localSnapshotRaw,
+        messages: stripLegacyNotebookDispatchMessages(kind, localSnapshotRaw.messages),
+      }
+    : { messages: [], updatedAt: null };
   if (courseId?.trim() && shouldUseLocalOnly(courseId.trim())) {
     return localSnapshot.messages;
   }
@@ -388,7 +525,10 @@ export async function loadContactMessages<T>(
     const listed = await backendJson<{ conversations: ConversationRow[] }>(
       `/api/conversations?${q.toString()}`,
     );
-    conversation = listed.conversations[0];
+    conversation =
+      listed.conversations.find((row) =>
+        isNotebookConversationTitleCompatible(kind, row, options?.expectedTargetName),
+      ) || (!options?.expectedTargetName ? listed.conversations[0] : undefined);
   } catch {
     return localSnapshot.messages;
   }
@@ -411,7 +551,7 @@ export async function loadContactMessages<T>(
     return localSnapshot.messages;
   }
   const payload = latest.content as { messages?: unknown[] };
-  const remoteMessages = (payload.messages || []) as T[];
+  const remoteMessages = stripLegacyNotebookDispatchMessages(kind, (payload.messages || []) as T[]);
   const remoteUpdatedAt = Date.parse(latest.createdAt);
   if (
     localSnapshot.messages.length > 0 &&

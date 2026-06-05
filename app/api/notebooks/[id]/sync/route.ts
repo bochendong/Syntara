@@ -36,6 +36,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         scenes: {
           orderBy: { order: 'asc' },
         },
+        markdownSections: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
     if (!source) {
@@ -52,6 +55,15 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
           avatarUrl: source.avatarUrl,
           language: source.language,
           style: source.style,
+          notebookKind: source.notebookKind,
+          sceneCount: source.sceneCount,
+          sectionCount: source.sectionCount,
+          speechReadyCount: source.speechReadyCount,
+          speechTotalCount: source.speechTotalCount,
+          speechStatus: source.speechStatus,
+          coverSlideJson: toPrismaNullableJson(source.coverSlideJson),
+          coverImagePath: source.coverImagePath,
+          contentVersion: { increment: 1 },
           // 保持用户自己的归属课程和商城状态不变，仅同步内容。
           courseId: target.courseId,
           listedInNotebookStore: target.listedInNotebookStore,
@@ -60,6 +72,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       });
 
       await tx.scene.deleteMany({
+        where: { notebookId: target.id },
+      });
+      await tx.markdownNotebookSection.deleteMany({
         where: { notebookId: target.id },
       });
 
@@ -77,10 +92,27 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         });
       }
 
+      if (source.markdownSections.length > 0) {
+        await tx.markdownNotebookSection.createMany({
+          data: source.markdownSections.map((section) => ({
+            notebookId: target.id,
+            courseId: target.courseId,
+            title: section.title,
+            order: section.order,
+            markdown: section.markdown,
+            summary: section.summary,
+            sourceMeta: toPrismaNullableJson(section.sourceMeta),
+          })),
+        });
+      }
+
       return tx.notebook.findUnique({
         where: { id: target.id },
         include: {
           scenes: {
+            orderBy: { order: 'asc' },
+          },
+          markdownSections: {
             orderBy: { order: 'asc' },
           },
         },

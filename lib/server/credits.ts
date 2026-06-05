@@ -23,6 +23,15 @@ import {
 
 const log = createLogger('Credits');
 
+function isComputeCreditSpendingDisabledForTesting(): boolean {
+  if (process.env.SYNTARA_ENABLE_COMPUTE_CREDIT_SPENDING === 'true') return false;
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SYNTARA_DISABLE_COMPUTE_CREDIT_SPENDING === 'true' ||
+    process.env.SYNTARA_TEST_NO_CHARGE === 'true'
+  );
+}
+
 interface ChargeCreditsForUsdArgs {
   userId?: string | null;
   usdCost?: number | null;
@@ -54,6 +63,15 @@ async function chargeCreditsForUsdCost(args: ChargeCreditsForUsdArgs): Promise<{
 } | null> {
   const userId = args.userId?.trim();
   if (!userId) return null;
+  if (isComputeCreditSpendingDisabledForTesting()) {
+    log.info('Skipped compute credit charge in test mode', {
+      userId,
+      route: args.route ?? null,
+      source: args.source ?? null,
+      referenceType: args.referenceType,
+    });
+    return null;
+  }
 
   const usdCost =
     typeof args.usdCost === 'number' && !Number.isNaN(args.usdCost) ? Math.max(0, args.usdCost) : 0;
@@ -129,6 +147,7 @@ export async function assertUserHasCredits(
 ): Promise<void> {
   const normalizedUserId = userId?.trim();
   if (!normalizedUserId) return;
+  if (accountType === 'COMPUTE' && isComputeCreditSpendingDisabledForTesting()) return;
 
   const prisma = getOptionalPrisma();
   if (!prisma) return;

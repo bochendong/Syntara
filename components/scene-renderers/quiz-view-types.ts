@@ -20,4 +20,5 @@ export interface QuizViewProps {
   readonly hubPrevDisabled?: boolean;
   readonly onHubNextQuestion?: () => void;
   readonly hubNextDisabled?: boolean;
+  readonly showLearningCompanion?: boolean;
 }

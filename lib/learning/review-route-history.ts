@@ -7,13 +7,15 @@ const MAX_REVIEW_ROUTE_HISTORY = 20;
 const MIN_REVIEW_ROUTE_HISTORY = 3;
 const MAX_REVIEW_ROUTE_HISTORY_BYTES = 512 * 1024;
 
+export type ReviewRouteHistorySource = 'wrong' | 'comprehensive' | 'ai';
+
 export interface ReviewRouteHistoryItem {
   id: string;
   notebookId: string;
   notebookName: string;
   route: ReviewRoute;
   createdAt: number;
-  source: 'ai';
+  source: ReviewRouteHistorySource;
   stats: {
     layerCount: number;
     nodeCount: number;
@@ -89,6 +91,7 @@ export function addReviewRouteHistoryItem(args: {
   notebookName: string;
   route: ReviewRoute;
   weakPointCount: number;
+  source?: ReviewRouteHistorySource;
 }): ReviewRouteHistoryItem {
   const item: ReviewRouteHistoryItem = {
     id: `${args.notebookId}:${Date.now()}`,
@@ -96,7 +99,7 @@ export function addReviewRouteHistoryItem(args: {
     notebookName: args.notebookName,
     route: args.route,
     createdAt: Date.now(),
-    source: 'ai',
+    source: args.source ?? 'ai',
     stats: {
       layerCount: args.route.layers.length,
       nodeCount: args.route.layers.reduce((sum, layer) => sum + layer.nodes.length, 0),

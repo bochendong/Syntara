@@ -10,6 +10,7 @@ import {
   type NotebookGenerationTaskInput,
   type NotebookGenerationTaskResult,
 } from '@/lib/create/run-notebook-generation-task';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 
 export type NotebookGenerationQueueStatus =
   | 'queued'
@@ -126,8 +127,7 @@ function collectGeneratedPageThumbnails(
     .map((scene, index) => {
       const imageUrl = getFullPageImageUrlFromScene(scene);
       if (!imageUrl) return null;
-      const pageNumber =
-        Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
+      const pageNumber = Number.isFinite(scene.order) && scene.order > 0 ? scene.order : index + 1;
       return { pageNumber, imageUrl };
     })
     .filter((entry): entry is NotebookGeneratedPageThumbnail => Boolean(entry));
@@ -184,37 +184,46 @@ async function runNextTask() {
   patchTask(nextTask.id, { status: 'running', error: undefined });
 
   try {
-    const result = await runNotebookGenerationTask({
-      ...runtime.input,
-      sourceFile: sourceFileByTaskId.get(nextTask.id) ?? null,
-      signal: controller.signal,
-      onProgress: (progress) => {
-        const notebookId =
-          'notebookId' in progress && typeof progress.notebookId === 'string'
-            ? progress.notebookId
-            : undefined;
-        const notebookName =
-          'notebookName' in progress && typeof progress.notebookName === 'string'
-            ? progress.notebookName
-            : undefined;
-        const currentTask = getTask(nextTask.id);
-        const generatedPageThumbnails =
-          progress.stage === 'scene'
-            ? mergeGeneratedPageThumbnails(
-                currentTask?.generatedPageThumbnails,
-                progress.generatedPageThumbnails,
-              )
-            : currentTask?.generatedPageThumbnails;
-        patchTask(nextTask.id, {
-          progress,
-          ...(generatedPageThumbnails ? { generatedPageThumbnails } : {}),
-          ...(notebookId ? { notebookId } : {}),
-          ...(notebookName ? { notebookName } : {}),
-        });
-        const fresh = getTask(nextTask.id);
-        if (fresh) runtime.callbacks?.onProgress?.(fresh, progress);
+    const result = await runQueuedAiTask(
+      {
+        kind: 'course-generation',
+        title: '课程生成',
+        description: nextTask.requirement || nextTask.fileName || '正在生成课程笔记本',
+        signal: controller.signal,
       },
-    });
+      ({ signal }) =>
+        runNotebookGenerationTask({
+          ...runtime.input,
+          sourceFile: sourceFileByTaskId.get(nextTask.id) ?? null,
+          signal,
+          onProgress: (progress) => {
+            const notebookId =
+              'notebookId' in progress && typeof progress.notebookId === 'string'
+                ? progress.notebookId
+                : undefined;
+            const notebookName =
+              'notebookName' in progress && typeof progress.notebookName === 'string'
+                ? progress.notebookName
+                : undefined;
+            const currentTask = getTask(nextTask.id);
+            const generatedPageThumbnails =
+              progress.stage === 'scene'
+                ? mergeGeneratedPageThumbnails(
+                    currentTask?.generatedPageThumbnails,
+                    progress.generatedPageThumbnails,
+                  )
+                : currentTask?.generatedPageThumbnails;
+            patchTask(nextTask.id, {
+              progress,
+              ...(generatedPageThumbnails ? { generatedPageThumbnails } : {}),
+              ...(notebookId ? { notebookId } : {}),
+              ...(notebookName ? { notebookName } : {}),
+            });
+            const fresh = getTask(nextTask.id);
+            if (fresh) runtime.callbacks?.onProgress?.(fresh, progress);
+          },
+        }),
+    );
 
     const latestAfterRun = getTask(nextTask.id);
     if (controller.signal.aborted && latestAfterRun?.status === 'cancelled') {

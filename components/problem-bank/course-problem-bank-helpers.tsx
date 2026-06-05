@@ -382,7 +382,10 @@ function answerFeedbackSummaryLabel(
       ? `部分正确${scoreText ? ` · 得分 ${scoreText}` : ''}`
       : `Partially correct${scoreText ? ` · Score ${scoreText}` : ''}`;
   }
-  if (feedback.status === 'error') return locale === 'zh-CN' ? '提交失败' : 'Submit failed';
+  if (feedback.status === 'error') {
+    const message = feedback.feedback.trim();
+    return message || (locale === 'zh-CN' ? '提交失败' : 'Submit failed');
+  }
   return locale === 'zh-CN' ? '等待评估' : 'Pending review';
 }
 
@@ -397,6 +400,7 @@ function AnswerFeedbackSummaryBadge({
   locale: 'zh-CN' | 'en-US';
   className?: string;
 }) {
+  const label = answerFeedbackSummaryLabel(feedback, points, locale);
   return (
     <div
       className={cn(
@@ -404,6 +408,7 @@ function AnswerFeedbackSummaryBadge({
         answerFeedbackTone(feedback.status),
         className,
       )}
+      title={label}
     >
       {feedback.saving ? (
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
@@ -412,7 +417,7 @@ function AnswerFeedbackSummaryBadge({
       ) : (
         <AlertCircle className="h-4 w-4 shrink-0" />
       )}
-      <span className="truncate">{answerFeedbackSummaryLabel(feedback, points, locale)}</span>
+      <span className="truncate">{label}</span>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import type {
   NotebookProblemAttemptAnswer,
   NotebookProblemAttemptRecord,
@@ -78,6 +79,43 @@ export async function listCourseProblems(courseId: string): Promise<NotebookProb
     `/api/courses/${encodeURIComponent(courseId)}/problems`,
   );
   return data.problems;
+}
+
+function dedupeProblemsById(
+  problems: NotebookProblemClientRecord[],
+): NotebookProblemClientRecord[] {
+  const seen = new Set<string>();
+  const deduped: NotebookProblemClientRecord[] = [];
+  for (const problem of problems) {
+    if (seen.has(problem.id)) continue;
+    seen.add(problem.id);
+    deduped.push(problem);
+  }
+  return deduped;
+}
+
+export async function listReviewNotebookProblems(args: {
+  notebookId: string;
+  courseId?: string | null;
+}): Promise<NotebookProblemClientRecord[]> {
+  const notebookProblems = listNotebookProblems(args.notebookId);
+  if (!args.courseId) return notebookProblems;
+
+  const [notebookResult, courseResult] = await Promise.allSettled([
+    notebookProblems,
+    listCourseProblems(args.courseId),
+  ]);
+  if (notebookResult.status === 'rejected' && courseResult.status === 'rejected') {
+    throw notebookResult.reason;
+  }
+  const notebookScopedProblems = notebookResult.status === 'fulfilled' ? notebookResult.value : [];
+  const courseScopedProblems =
+    courseResult.status === 'fulfilled'
+      ? courseResult.value.filter(
+          (problem) => !problem.notebookId || problem.notebookId === args.notebookId,
+        )
+      : [];
+  return dedupeProblemsById([...notebookScopedProblems, ...courseScopedProblems]);
 }
 
 export async function listCourseProblemSummaries(
@@ -398,15 +436,24 @@ export async function submitNotebookProblem(args: {
   images?: NotebookProblemAttemptAnswer['images'];
   language: 'zh-CN' | 'en-US';
 }) {
-  return backendJson<{
-    attempt: NotebookProblemAttemptRecord;
-    result: NotebookProblemAttemptRecord['result'];
-  }>(
-    `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems/${encodeURIComponent(args.problemId)}/attempts/submit`,
+  return runQueuedAiTask(
     {
-      method: 'POST',
-      headers: withModelHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(args),
+      kind: 'problem-evaluation',
+      title: '题目判断正误',
+      description: '正在评估你的作答并生成反馈',
     },
+    ({ signal }) =>
+      backendJson<{
+        attempt: NotebookProblemAttemptRecord;
+        result: NotebookProblemAttemptRecord['result'];
+      }>(
+        `/api/notebooks/${encodeURIComponent(args.notebookId)}/problems/${encodeURIComponent(args.problemId)}/attempts/submit`,
+        {
+          method: 'POST',
+          headers: withModelHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(args),
+          signal,
+        },
+      ),
   );
 }

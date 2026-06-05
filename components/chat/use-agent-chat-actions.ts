@@ -150,6 +150,9 @@ export function useAgentChatActions({
       onAnswerDelta?: (delta: string) => void;
       onStatus?: (message: string) => void;
     },
+    options?: {
+      persistConversation?: boolean;
+    },
   ) => Promise<NotebookSubtaskResult>;
 }) {
   return useCallback(
@@ -558,6 +561,8 @@ export function useAgentChatActions({
                   null,
                   undefined,
                   orchAttachments,
+                  undefined,
+                  { persistConversation: false },
                 );
                 appendGroupMessage(
                   buildChatMessage(compactGroupReply(result.answer), {
@@ -754,9 +759,7 @@ export function useAgentChatActions({
               updateAgentMessage(streamingMessage.id, (message) => ({
                 ...message,
                 parts:
-                  patch.text === undefined
-                    ? message.parts
-                    : [{ type: 'text', text: patch.text }],
+                  patch.text === undefined ? message.parts : [{ type: 'text', text: patch.text }],
                 metadata: {
                   ...message.metadata,
                   ...patch.metadata,
@@ -784,6 +787,7 @@ export function useAgentChatActions({
                   });
                 },
               },
+              { persistConversation: false },
             );
             updateStreamingMessage({
               text: result.answer || streamedAnswer || '这个笔记本暂时没有返回内容。',
@@ -818,8 +822,7 @@ export function useAgentChatActions({
             }
 
             const routedNotebooks = decision.notebooks.slice(0, GROUP_NOTEBOOK_REPLY_LIMIT);
-            const routingReason =
-              `问题需要 ${routedNotebooks.length} 个笔记本共同补充：${mergedPrompt.slice(0, 80)}`;
+            const routingReason = `问题需要 ${routedNotebooks.length} 个笔记本共同补充：${mergedPrompt.slice(0, 80)}`;
             const joinedAt = Date.now();
             const requiredParticipants: CourseChatParticipant[] = [
               makeOrchestratorParticipant({ avatarUrl: orchestratorAvatar, joinedAt }),
@@ -883,9 +886,7 @@ export function useAgentChatActions({
             };
             const updateGroupMessage = (
               messageId: string,
-              updater: (
-                message: UIMessage<ChatMessageMetadata>,
-              ) => UIMessage<ChatMessageMetadata>,
+              updater: (message: UIMessage<ChatMessageMetadata>) => UIMessage<ChatMessageMetadata>,
             ) => {
               groupThread = groupThread.map((message) =>
                 message.id === messageId ? updater(message) : message,
@@ -945,7 +946,9 @@ export function useAgentChatActions({
                   dispatchVerb: hasNewParticipants ? '拉入了' : '转发给',
                   dispatchNote: '已把用户问题拆成短任务发给相关笔记本',
                   dispatchPrompt: routedNotebooks
-                    .map((notebook) => buildGroupNotebookDispatchPrompt(notebook.name, mergedPrompt))
+                    .map((notebook) =>
+                      buildGroupNotebookDispatchPrompt(notebook.name, mergedPrompt),
+                    )
                     .join('\n'),
                 },
               ),
@@ -971,7 +974,9 @@ export function useAgentChatActions({
                   dispatchVerb: hasNewParticipants ? '拉入了' : '转发给',
                   dispatchNote: '进入群聊后，每个笔记本只补最相关的一点',
                   dispatchPrompt: routedNotebooks
-                    .map((notebook) => buildGroupNotebookDispatchPrompt(notebook.name, mergedPrompt))
+                    .map((notebook) =>
+                      buildGroupNotebookDispatchPrompt(notebook.name, mergedPrompt),
+                    )
                     .join('\n'),
                 },
               ),
@@ -1044,6 +1049,7 @@ export function useAgentChatActions({
                       });
                     },
                   },
+                  { persistConversation: false },
                 );
                 results.push(result);
                 updateStreamingMessage({

@@ -274,9 +274,9 @@ Notebook:
 - id: ${body.notebook.id}
 - name: ${body.notebook.name}
 - description: ${body.notebook.description || 'N/A'}
-- scenes:
+- reference units (image notebooks use pages; markdown notebooks use sections):
 ${body.notebook.scenes
-  .map((s) => `  - page ${s.order} | ${s.type} | ${s.title} | ${s.knowledgeDigest}`)
+  .map((s) => `  - unit ${s.order} | ${s.type} | ${s.title} | ${s.knowledgeDigest}`)
   .join('\n')}
 
 Course:
@@ -344,7 +344,7 @@ Rules:
 - default to a teacher-style explanation that is complete enough for the student to keep learning on their own.
 - for substantive questions, prefer this flow: direct answer -> intuition/background -> step-by-step explanation -> example/application -> common pitfall or next step.
 - do NOT be stingy. Only keep it very short if the user explicitly asks for brevity or the question is trivial.
-- references must point only to existing notebook pages that actually support the answer.
+- references must point only to existing notebook pages/sections that actually support the answer.
 - do not update memory for greetings, thanks, simple follow-ups, or ordinary questions that do not reveal a durable learning gap.
 - if the notebook is missing prerequisite/reference content and that gap is useful for future learning, set knowledgeGap=true and explain the gap plainly.
 - when there is a durable gap, propose the smallest useful insert/update candidate as a private-memory note. Return operations even if background private-memory permission is disabled.

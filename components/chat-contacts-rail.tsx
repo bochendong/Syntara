@@ -231,7 +231,7 @@ export function ChatContactsRail({
             courseId,
             'notebook',
             nb.id,
-            { ignoreCourseId: true },
+            { ignoreCourseId: true, expectedTargetName: nb.name },
           );
           const p = lastNotebookChatPreview(msgs);
           const activity = lastNotebookChatActivityAt(msgs);
@@ -278,7 +278,10 @@ export function ChatContactsRail({
             courseId,
             'notebook',
             nid,
-            { ignoreCourseId: true },
+            {
+              ignoreCourseId: true,
+              expectedTargetName: notebooks.find((notebook) => notebook.id === nid)?.name,
+            },
           );
           const p = lastNotebookChatPreview(msgs);
           const activity = lastNotebookChatActivityAt(msgs);
@@ -302,7 +305,7 @@ export function ChatContactsRail({
     window.addEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
     return () =>
       window.removeEventListener(NOTEBOOK_CHAT_PREVIEW_EVENT, onUpdated as EventListener);
-  }, [courseId]);
+  }, [courseId, notebooks]);
 
   const refreshGroupChats = useCallback(async () => {
     if (!courseId) {

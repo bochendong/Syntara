@@ -82,6 +82,7 @@ export function QuizView({
   hubPrevDisabled = false,
   onHubNextQuestion,
   hubNextDisabled = false,
+  showLearningCompanion = true,
 }: QuizViewProps) {
   const { t, locale } = useI18n();
   const stageId = useStageStore((s) => s.stage?.id ?? '');
@@ -101,7 +102,10 @@ export function QuizView({
   );
   const [results, setResults] = useState<QuestionResult[]>(() => initialSnapshot?.results ?? []);
   const [answeringQuestionIndex, setAnsweringQuestionIndex] = useState(0);
-  const questionsKey = useMemo(() => questions.map((question) => question.id).join('|'), [questions]);
+  const questionsKey = useMemo(
+    () => questions.map((question) => question.id).join('|'),
+    [questions],
+  );
   const [questionEditsState, setQuestionEditsState] = useState<{
     key: string;
     edits: Record<string, Partial<QuizQuestion>>;
@@ -117,24 +121,30 @@ export function QuizView({
   const [learningRunSummary, setLearningRunSummary] = useState<LearningRunSummary | null>(null);
   const [newlyUnlockedCards, setNewlyUnlockedCards] = useState<LearningCardDefinition[]>([]);
   const useBattleShell = Boolean(battleHeader);
+  const battleGridClass = showLearningCompanion
+    ? 'lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]'
+    : 'grid-cols-1';
 
   const effectiveQuestions = useMemo(
     () => questions.map((q) => ({ ...q, ...(questionEdits[q.id] ?? {}) })),
     [questions, questionEdits],
   );
 
-  const handleQuestionUpdate = useCallback((questionId: string, patch: Partial<QuizQuestion>) => {
-    setQuestionEditsState((prev) => ({
-      key: questionsKey,
-      edits: {
-        ...(prev.key === questionsKey ? prev.edits : {}),
-        [questionId]: {
-          ...((prev.key === questionsKey ? prev.edits[questionId] : undefined) ?? {}),
-          ...patch,
+  const handleQuestionUpdate = useCallback(
+    (questionId: string, patch: Partial<QuizQuestion>) => {
+      setQuestionEditsState((prev) => ({
+        key: questionsKey,
+        edits: {
+          ...(prev.key === questionsKey ? prev.edits : {}),
+          [questionId]: {
+            ...((prev.key === questionsKey ? prev.edits[questionId] : undefined) ?? {}),
+            ...patch,
+          },
         },
-      },
-    }));
-  }, [questionsKey]);
+      }));
+    },
+    [questionsKey],
+  );
 
   const draftKey =
     singleQuestionMode && questions[0]
@@ -635,7 +645,7 @@ export function QuizView({
           >
             {useBattleShell ? (
               <div className="h-full min-h-0 bg-gradient-to-br from-rose-50/45 via-white to-sky-50/55 dark:from-rose-950/10 dark:via-slate-900 dark:to-sky-950/15">
-                <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+                <div className={cn('grid h-full min-h-0', battleGridClass)}>
                   <div className="flex min-h-0 flex-col gap-3 p-3 md:p-4">
                     {battleHeader ? <div className="shrink-0">{battleHeader}</div> : null}
                     <div className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-gray-100 bg-white/95 shadow-sm dark:border-white/10 dark:bg-slate-900/85">
@@ -646,17 +656,19 @@ export function QuizView({
                       />
                     </div>
                   </div>
-                  <LearningCompanionPanel
-                    run={learningRun}
-                    currentQuestion={effectiveQuestions[0]}
-                    summary={learningRunSummary}
-                    modelId={live2dPresenterModelId}
-                    phase={phase}
-                    answeredCount={answeredCount}
-                    totalCount={effectiveQuestions.length}
-                    onUseCard={handleUseLearningCard}
-                    fullHeight
-                  />
+                  {showLearningCompanion ? (
+                    <LearningCompanionPanel
+                      run={learningRun}
+                      currentQuestion={effectiveQuestions[0]}
+                      summary={learningRunSummary}
+                      modelId={live2dPresenterModelId}
+                      phase={phase}
+                      answeredCount={answeredCount}
+                      totalCount={effectiveQuestions.length}
+                      onUseCard={handleUseLearningCard}
+                      fullHeight
+                    />
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -685,7 +697,8 @@ export function QuizView({
             >
               <div
                 className={cn(
-                  'grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]',
+                  'grid h-full min-h-0',
+                  battleGridClass,
                   useBattleShell ? 'gap-0' : 'gap-4',
                 )}
               >
@@ -821,17 +834,19 @@ export function QuizView({
                     )}
                   </div>
                 </div>
-                <LearningCompanionPanel
-                  run={learningRun}
-                  currentQuestion={effectiveQuestions[safeAnsweringQuestionIndex]}
-                  summary={learningRunSummary}
-                  modelId={live2dPresenterModelId}
-                  phase={phase}
-                  answeredCount={answeredCount}
-                  totalCount={effectiveQuestions.length}
-                  onUseCard={handleUseLearningCard}
-                  fullHeight={useBattleShell}
-                />
+                {showLearningCompanion ? (
+                  <LearningCompanionPanel
+                    run={learningRun}
+                    currentQuestion={effectiveQuestions[safeAnsweringQuestionIndex]}
+                    summary={learningRunSummary}
+                    modelId={live2dPresenterModelId}
+                    phase={phase}
+                    answeredCount={answeredCount}
+                    totalCount={effectiveQuestions.length}
+                    onUseCard={handleUseLearningCard}
+                    fullHeight={useBattleShell}
+                  />
+                ) : null}
               </div>
             </div>
           </motion.div>
@@ -885,7 +900,8 @@ export function QuizView({
             >
               <div
                 className={cn(
-                  'grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]',
+                  'grid h-full min-h-0',
+                  battleGridClass,
                   useBattleShell ? 'gap-0' : 'gap-4',
                 )}
               >
@@ -966,17 +982,19 @@ export function QuizView({
                     </div>
                   </div>
                 </div>
-                <LearningCompanionPanel
-                  run={learningRun}
-                  currentQuestion={effectiveQuestions[0]}
-                  summary={learningRunSummary}
-                  modelId={live2dPresenterModelId}
-                  phase={phase}
-                  answeredCount={effectiveQuestions.length}
-                  totalCount={effectiveQuestions.length}
-                  onUseCard={handleUseLearningCard}
-                  fullHeight={useBattleShell}
-                />
+                {showLearningCompanion ? (
+                  <LearningCompanionPanel
+                    run={learningRun}
+                    currentQuestion={effectiveQuestions[0]}
+                    summary={learningRunSummary}
+                    modelId={live2dPresenterModelId}
+                    phase={phase}
+                    answeredCount={effectiveQuestions.length}
+                    totalCount={effectiveQuestions.length}
+                    onUseCard={handleUseLearningCard}
+                    fullHeight={useBattleShell}
+                  />
+                ) : null}
               </div>
             </div>
           </motion.div>

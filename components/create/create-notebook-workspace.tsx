@@ -27,12 +27,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,6 +127,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
     language,
     materials,
     missingSourceImagePreviewCount,
+    notebookKind,
     outlineGenerationMessage,
     outlineGenerationStatus,
     outlineIsLoading,
@@ -173,6 +169,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
     setIncludeQuizScenes,
     setLanguage,
     setMaterialKeep,
+    setNotebookKind,
     setOutlineGenerationMessage,
     setOutlineGenerationStatus,
     setOutlineLength,
@@ -232,9 +229,7 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
       <Dialog open={Boolean(previewSlide)} onOpenChange={(open) => !open && setPreviewSlide(null)}>
         <DialogContent className="w-[min(94vw,1180px)] max-w-[1180px] gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950 p-0 text-white shadow-[0_30px_120px_rgba(15,23,42,0.45)]">
           <DialogTitle className="sr-only">
-            {previewSlide
-              ? `第 ${previewSlide.pageNumber} 页生成缩略图预览`
-              : '生成缩略图预览'}
+            {previewSlide ? `第 ${previewSlide.pageNumber} 页生成缩略图预览` : '生成缩略图预览'}
           </DialogTitle>
           <DialogDescription className="sr-only">
             放大查看已经生成完成的 16:9 幻灯片图片。
@@ -335,6 +330,65 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         />
                       </div>
                     </div>
+                    <div className="mt-5 grid grid-cols-2 gap-2 rounded-[18px] border border-slate-900/[0.06] bg-white/72 p-1.5 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.04]">
+                      {[
+                        {
+                          kind: 'image' as const,
+                          label: '图像笔记本',
+                          desc: '生成图片课堂页',
+                          icon: ImageIcon,
+                        },
+                        {
+                          kind: 'markdown' as const,
+                          label: 'Markdown',
+                          desc: '纯文字 section',
+                          icon: FileText,
+                        },
+                      ].map((option) => {
+                        const selected = notebookKind === option.kind;
+                        const Icon = option.icon;
+                        return (
+                          <button
+                            key={option.kind}
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setNotebookKind(option.kind)}
+                            className={cn(
+                              'flex min-h-[58px] items-center gap-3 rounded-[14px] px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                              selected
+                                ? 'bg-slate-950 text-white shadow-sm shadow-slate-950/15 dark:bg-white dark:text-slate-950'
+                                : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/[0.08]',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'flex size-9 shrink-0 items-center justify-center rounded-lg',
+                                selected
+                                  ? 'bg-white/12 dark:bg-black/10'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-white/[0.08] dark:text-slate-300',
+                              )}
+                            >
+                              <Icon className="size-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold">
+                                {option.label}
+                              </span>
+                              <span
+                                className={cn(
+                                  'mt-0.5 block truncate text-[11px]',
+                                  selected
+                                    ? 'text-white/70 dark:text-slate-700'
+                                    : 'text-muted-foreground',
+                                )}
+                              >
+                                {option.desc}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                     <Textarea
                       value={form.requirement}
                       onChange={(event) => updateRequirement(event.target.value)}
@@ -426,127 +480,201 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
 
                 <section className="flex min-h-0 flex-col gap-3">
                   <div className="flex min-h-0 flex-1 flex-col rounded-[28px] border border-blue-200/80 bg-[#f5f9ff]/[0.92] p-5 shadow-[0_22px_80px_rgba(37,99,235,0.10)] ring-1 ring-white/80 dark:border-white/[0.08] dark:bg-white/[0.04] dark:ring-white/[0.04]">
-                    <div className="flex min-h-0 flex-1 flex-col">
-                      <div className="mb-5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-12 items-center justify-center rounded-full bg-blue-600/10 text-blue-700 shadow-sm shadow-blue-900/[0.04] ring-1 ring-blue-600/10 dark:text-blue-200">
-                            <Wand2 className="size-4" />
-                          </span>
-                          <div>
-                            <Label className="text-[17px] font-semibold">绘画风格</Label>
-                            <p className="mt-0.5 text-xs text-muted-foreground">画面美术</p>
+                    {notebookKind === 'image' ? (
+                      <>
+                        <div className="flex min-h-0 flex-1 flex-col">
+                          <div className="mb-5 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <span className="flex size-12 items-center justify-center rounded-full bg-blue-600/10 text-blue-700 shadow-sm shadow-blue-900/[0.04] ring-1 ring-blue-600/10 dark:text-blue-200">
+                                <Wand2 className="size-4" />
+                              </span>
+                              <div>
+                                <Label className="text-[17px] font-semibold">绘画风格</Label>
+                                <p className="mt-0.5 text-xs text-muted-foreground">画面美术</p>
+                              </div>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-900/[0.06] bg-white/75 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm dark:bg-white/[0.08] dark:text-slate-300">
+                              <PencilLine className="size-3.5" />
+                              {selectedStyleId === 'custom'
+                                ? '自定义'
+                                : hasCustomDrawingStyle
+                                  ? `${selectedStyle.label} + 自定义`
+                                  : selectedStyle.label}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                            {STYLE_OPTIONS.map((style) => {
+                              const selected = selectedStyleId === style.id;
+                              return (
+                                <button
+                                  key={style.id}
+                                  type="button"
+                                  disabled={busy}
+                                  className={cn(
+                                    'relative min-h-12 rounded-2xl border px-2.5 py-2 text-center text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                                    selected
+                                      ? 'border-blue-500/50 bg-blue-500/10 text-blue-950 shadow-sm shadow-blue-950/[0.05] dark:text-blue-100'
+                                      : 'border-slate-900/[0.06] bg-white/[0.76] shadow-sm shadow-slate-950/[0.035] hover:border-blue-400/35 hover:bg-white dark:border-white/[0.08] dark:bg-black/20 dark:hover:bg-blue-500/10',
+                                  )}
+                                  onClick={() => selectDrawingStyle(style)}
+                                >
+                                  {style.label}
+                                  {selected ? (
+                                    <span className="absolute -bottom-3 left-1/2 h-1 w-7 -translate-x-1/2 rounded-full bg-blue-600" />
+                                  ) : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="relative mt-6 flex min-h-[220px] flex-1">
+                            <Textarea
+                              ref={stylePromptTextareaRef}
+                              value={customStylePrompt}
+                              onChange={(event) => {
+                                setCustomStylePrompt(event.target.value);
+                                setConfirmedImageNotebookPlan(null);
+                              }}
+                              placeholder="也可以直接输入绘画风格，例如：像可汗学院黑板手绘、Notability 手写笔记、水彩示意图、极简线稿、漫画分镜感..."
+                              className="h-full min-h-[220px] flex-1 resize-none rounded-[18px] border border-blue-400/45 bg-white/[0.86] px-5 py-5 pb-12 text-sm leading-7 shadow-[inset_0_1px_5px_rgba(15,23,42,0.04)] placeholder:text-muted-foreground/55 focus-visible:border-blue-500/70 focus-visible:ring-blue-500/20 dark:border-white/[0.08] dark:bg-black/20"
+                              disabled={busy}
+                              style={{
+                                backgroundImage:
+                                  'linear-gradient(to bottom, transparent 27px, rgba(15, 23, 42, 0.035) 28px)',
+                                backgroundSize: '100% 28px',
+                              }}
+                            />
+                            <span className="pointer-events-none absolute bottom-4 right-11 text-xs text-slate-500">
+                              {drawingStylePromptCharacterCount} / 300
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute bottom-4 right-4 h-5 w-5 text-blue-500/75"
+                            >
+                              <span className="absolute bottom-0 right-0 h-px w-3 rotate-[-45deg] rounded-full bg-current" />
+                              <span className="absolute bottom-1.5 right-0 h-px w-4 rotate-[-45deg] rounded-full bg-current" />
+                              <span className="absolute bottom-3 right-0 h-px w-5 rotate-[-45deg] rounded-full bg-current" />
+                            </span>
                           </div>
                         </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-900/[0.06] bg-white/75 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm dark:bg-white/[0.08] dark:text-slate-300">
-                          <PencilLine className="size-3.5" />
-                          {selectedStyleId === 'custom'
-                            ? '自定义'
-                            : hasCustomDrawingStyle
-                              ? `${selectedStyle.label} + 自定义`
-                              : selectedStyle.label}
-                        </span>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                        {STYLE_OPTIONS.map((style) => {
-                          const selected = selectedStyleId === style.id;
-                          return (
-                            <button
-                              key={style.id}
-                              type="button"
-                              disabled={busy}
-                              className={cn(
-                                'relative min-h-12 rounded-2xl border px-2.5 py-2 text-center text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-                                selected
-                                  ? 'border-blue-500/50 bg-blue-500/10 text-blue-950 shadow-sm shadow-blue-950/[0.05] dark:text-blue-100'
-                                  : 'border-slate-900/[0.06] bg-white/[0.76] shadow-sm shadow-slate-950/[0.035] hover:border-blue-400/35 hover:bg-white dark:border-white/[0.08] dark:bg-black/20 dark:hover:bg-blue-500/10',
-                              )}
-                              onClick={() => selectDrawingStyle(style)}
+                        <div className="mt-5 grid gap-4 border-t border-dashed border-blue-200/80 pt-5 sm:grid-cols-2 dark:border-white/[0.08]">
+                          <div className="rounded-[20px] bg-white/[0.66] px-4 py-3.5 shadow-sm shadow-blue-950/[0.025] dark:bg-black/20">
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="flex size-6 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-600/10 dark:bg-white/[0.08] dark:text-blue-200">
+                                <Globe2 className="size-3.5" />
+                              </span>
+                              <Label className="text-xs font-semibold">课程语言</Label>
+                            </div>
+                            <Select
+                              value={language}
+                              onValueChange={(value) => setLanguage(value as 'zh-CN' | 'en-US')}
                             >
-                              {style.label}
-                              {selected ? (
-                                <span className="absolute -bottom-3 left-1/2 h-1 w-7 -translate-x-1/2 rounded-full bg-blue-600" />
-                              ) : null}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="relative mt-6 flex min-h-[220px] flex-1">
-                        <Textarea
-                          ref={stylePromptTextareaRef}
-                          value={customStylePrompt}
-                          onChange={(event) => {
-                            setCustomStylePrompt(event.target.value);
-                            setConfirmedImageNotebookPlan(null);
-                          }}
-                          placeholder="也可以直接输入绘画风格，例如：像可汗学院黑板手绘、Notability 手写笔记、水彩示意图、极简线稿、漫画分镜感..."
-                          className="h-full min-h-[220px] flex-1 resize-none rounded-[18px] border border-blue-400/45 bg-white/[0.86] px-5 py-5 pb-12 text-sm leading-7 shadow-[inset_0_1px_5px_rgba(15,23,42,0.04)] placeholder:text-muted-foreground/55 focus-visible:border-blue-500/70 focus-visible:ring-blue-500/20 dark:border-white/[0.08] dark:bg-black/20"
-                          disabled={busy}
-                          style={{
-                            backgroundImage:
-                              'linear-gradient(to bottom, transparent 27px, rgba(15, 23, 42, 0.035) 28px)',
-                            backgroundSize: '100% 28px',
-                          }}
-                        />
-                        <span className="pointer-events-none absolute bottom-4 right-11 text-xs text-slate-500">
-                          {drawingStylePromptCharacterCount} / 300
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute bottom-4 right-4 h-5 w-5 text-blue-500/75"
-                        >
-                          <span className="absolute bottom-0 right-0 h-px w-3 rotate-[-45deg] rounded-full bg-current" />
-                          <span className="absolute bottom-1.5 right-0 h-px w-4 rotate-[-45deg] rounded-full bg-current" />
-                          <span className="absolute bottom-3 right-0 h-px w-5 rotate-[-45deg] rounded-full bg-current" />
-                        </span>
-                      </div>
-                    </div>
+                              <SelectTrigger className="h-11 w-full rounded-xl bg-white text-base shadow-sm dark:bg-black/20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="zh-CN">中文</SelectItem>
+                                <SelectItem value="en-US">English</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                    <div className="mt-5 grid gap-4 border-t border-dashed border-blue-200/80 pt-5 sm:grid-cols-2 dark:border-white/[0.08]">
-                      <div className="rounded-[20px] bg-white/[0.66] px-4 py-3.5 shadow-sm shadow-blue-950/[0.025] dark:bg-black/20">
-                        <div className="mb-2 flex items-center gap-2">
-                          <span className="flex size-6 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-600/10 dark:bg-white/[0.08] dark:text-blue-200">
-                            <Globe2 className="size-3.5" />
-                          </span>
-                          <Label className="text-xs font-semibold">课程语言</Label>
+                          <div className="rounded-[20px] bg-white/[0.66] px-4 py-3.5 shadow-sm shadow-blue-950/[0.025] dark:bg-black/20">
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="flex size-6 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-600/10 dark:bg-white/[0.08] dark:text-blue-200">
+                                <FileText className="size-3.5" />
+                              </span>
+                              <Label className="text-xs font-semibold">页数范围</Label>
+                            </div>
+                            <Select
+                              value={outlineLength}
+                              onValueChange={(value) =>
+                                setOutlineLength(value as typeof outlineLength)
+                              }
+                            >
+                              <SelectTrigger className="h-11 w-full rounded-xl bg-white text-base shadow-sm dark:bg-black/20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="minimal">极简（5 页以下）</SelectItem>
+                                <SelectItem value="compact">简短（10 页以下）</SelectItem>
+                                <SelectItem value="standard">中等（10-20 页）</SelectItem>
+                                <SelectItem value="extended">深入（20 页以上）</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <Select
-                          value={language}
-                          onValueChange={(value) => setLanguage(value as 'zh-CN' | 'en-US')}
-                        >
-                          <SelectTrigger className="h-11 w-full rounded-xl bg-white text-base shadow-sm dark:bg-black/20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="zh-CN">中文</SelectItem>
-                            <SelectItem value="en-US">English</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="rounded-[20px] bg-white/[0.66] px-4 py-3.5 shadow-sm shadow-blue-950/[0.025] dark:bg-black/20">
-                        <div className="mb-2 flex items-center gap-2">
-                          <span className="flex size-6 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-600/10 dark:bg-white/[0.08] dark:text-blue-200">
+                      </>
+                    ) : (
+                      <div className="flex min-h-0 flex-1 flex-col">
+                        <div className="mb-5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-12 items-center justify-center rounded-full bg-emerald-600/10 text-emerald-700 shadow-sm shadow-emerald-900/[0.04] ring-1 ring-emerald-600/10 dark:text-emerald-200">
+                              <FileText className="size-4" />
+                            </span>
+                            <div>
+                              <Label className="text-[17px] font-semibold">Markdown 结构</Label>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                section 化文字笔记
+                              </p>
+                            </div>
+                          </div>
+                          <span className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-900/[0.06] bg-white/75 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm dark:bg-white/[0.08] dark:text-slate-300">
                             <FileText className="size-3.5" />
+                            纯文字
                           </span>
-                          <Label className="text-xs font-semibold">页数范围</Label>
                         </div>
-                        <Select
-                          value={outlineLength}
-                          onValueChange={(value) => setOutlineLength(value as typeof outlineLength)}
-                        >
-                          <SelectTrigger className="h-11 w-full rounded-xl bg-white text-base shadow-sm dark:bg-black/20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="minimal">极简（5 页以下）</SelectItem>
-                            <SelectItem value="compact">简短（10 页以下）</SelectItem>
-                            <SelectItem value="standard">中等（10-20 页）</SelectItem>
-                            <SelectItem value="extended">深入（20 页以上）</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="grid gap-3">
+                          {[
+                            ['按标题切分', '上传 .md 时会优先使用 # / ## / ### 标题作为 section。'],
+                            [
+                              '无标题自动分段',
+                              'PDF、PPTX 或普通文本会按段落长度切成多个 section。',
+                            ],
+                            ['引用到 section', '课程聊天中的 reference 会指向第 N 个 section。'],
+                          ].map(([title, body]) => (
+                            <div
+                              key={title}
+                              className="rounded-[18px] border border-emerald-200/70 bg-white/72 px-4 py-3 shadow-sm shadow-emerald-950/[0.025] dark:border-white/[0.08] dark:bg-black/20"
+                            >
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-300" />
+                                <p className="text-sm font-semibold">{title}</p>
+                              </div>
+                              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                                {body}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-5 rounded-[20px] bg-white/[0.66] px-4 py-3.5 shadow-sm shadow-blue-950/[0.025] dark:bg-black/20">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/10 dark:bg-white/[0.08] dark:text-emerald-200">
+                              <Globe2 className="size-3.5" />
+                            </span>
+                            <Label className="text-xs font-semibold">课程语言</Label>
+                          </div>
+                          <Select
+                            value={language}
+                            onValueChange={(value) => setLanguage(value as 'zh-CN' | 'en-US')}
+                          >
+                            <SelectTrigger className="h-11 w-full rounded-xl bg-white text-base shadow-sm dark:bg-black/20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="zh-CN">中文</SelectItem>
+                              <SelectItem value="en-US">English</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="mt-5 flex min-h-[180px] flex-1 items-center justify-center rounded-[22px] border border-dashed border-emerald-300/70 bg-white/55 px-5 py-6 text-center dark:border-white/[0.12] dark:bg-white/[0.04]">
+                          <p className="max-w-sm text-sm leading-7 text-slate-600 dark:text-slate-300">
+                            点击下一步后会直接创建文字笔记本，不进入图片规划和生图队列。
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </section>
               </div>
@@ -928,7 +1056,10 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         selectedPage={selectedPlanningPage}
                         onPageSelect={setSelectedOutlineId}
                         onCopyPrompt={(page) =>
-                          void copyPrompt(page.drawingPrompt || '', `第 ${page.pageNumber} 页图片 prompt`)
+                          void copyPrompt(
+                            page.drawingPrompt || '',
+                            `第 ${page.pageNumber} 页图片 prompt`,
+                          )
                         }
                         active={
                           hasSelectedPlanningStepText
@@ -1563,6 +1694,12 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                     ) : (
                       <Sparkles className="mr-1.5 size-4" />
                     )
+                  ) : notebookKind === 'markdown' && activeStep === 'input' ? (
+                    busy ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : (
+                      <FileText className="mr-2 size-4" />
+                    )
                   ) : ((activeStep === 'input' || activeStep === 'materials') &&
                       outlineIsLoading) ||
                     (activeStep === 'outline' && outlineIsLoading) ? (
@@ -1576,15 +1713,19 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                       : styleSampleStatus === 'loading'
                         ? '质检生成中'
                         : '先跑质量检查'
-                    : activeStep === 'input' || activeStep === 'materials'
-                      ? '生成规划+prompt'
-                      : activeStep === 'outline'
-                        ? outlineIsLoading
-                          ? '规划+prompt 生成中'
-                          : outlineNeedsInitialGeneration
-                            ? '开始生成规划+prompt'
-                            : '并行生成图片'
-                        : '下一步'}
+                    : notebookKind === 'markdown' && activeStep === 'input'
+                      ? busy
+                        ? '正在创建'
+                        : '创建文字笔记本'
+                      : activeStep === 'input' || activeStep === 'materials'
+                        ? '生成规划+prompt'
+                        : activeStep === 'outline'
+                          ? outlineIsLoading
+                            ? '规划+prompt 生成中'
+                            : outlineNeedsInitialGeneration
+                              ? '开始生成规划+prompt'
+                              : '并行生成图片'
+                          : '下一步'}
                   <ArrowRight className="ml-2 size-4" />
                 </Button>
               ) : completedNotebookHref ? (

@@ -25,6 +25,7 @@ import {
 } from '@/lib/live2d/presenter-models';
 
 const log = createLogger('Settings');
+const LEGACY_DEFAULT_LIVE2D_PRESENTER_MODEL_ID: Live2DPresenterModelId = 'mark';
 
 function isLive2DPresenterModelId(value: unknown): value is Live2DPresenterModelId {
   return (
@@ -43,6 +44,19 @@ function ensureValidLive2DSelections(state: Partial<SettingsState>) {
   if (!isLive2DPresenterModelId(state.checkInCompanionId)) {
     state.checkInCompanionId = state.live2dPresenterModelId;
   }
+}
+
+function migrateLegacyDefaultLive2DSelection(state: Partial<SettingsState>) {
+  const usedLegacyDefault =
+    state.live2dPresenterModelId === LEGACY_DEFAULT_LIVE2D_PRESENTER_MODEL_ID &&
+    state.notificationCompanionId === LEGACY_DEFAULT_LIVE2D_PRESENTER_MODEL_ID &&
+    state.checkInCompanionId === LEGACY_DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+
+  if (!usedLegacyDefault) return;
+
+  state.live2dPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+  state.notificationCompanionId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+  state.checkInCompanionId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
 }
 
 type ServerProvidersResponse = {
@@ -1107,7 +1121,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 6,
+      version: 7,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
@@ -1127,6 +1141,9 @@ export const useSettingsStore = create<SettingsState>()(
 
         if (version < 4 || !state.live2dPresenterModelId) {
           state.live2dPresenterModelId = DEFAULT_LIVE2D_PRESENTER_MODEL_ID;
+        }
+        if (version < 7) {
+          migrateLegacyDefaultLive2DSelection(state);
         }
         ensureValidLive2DSelections(state);
 

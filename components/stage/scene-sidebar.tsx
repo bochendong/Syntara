@@ -440,6 +440,7 @@ export function SceneSidebar({
       quiz: PieChart,
       interactive: MousePointer2,
       pbl: Cpu,
+      markdown: BookOpen,
     };
     return icons[type] || BookOpen;
   };

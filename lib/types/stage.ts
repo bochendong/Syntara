@@ -8,7 +8,9 @@ import type {
   ImageNotebookStyleBrief,
 } from '@/lib/generation/image-notebook-quality';
 
-export type SceneType = 'slide' | 'quiz' | 'interactive' | 'pbl';
+export type NotebookKind = 'image' | 'markdown';
+
+export type SceneType = 'slide' | 'quiz' | 'interactive' | 'pbl' | 'markdown';
 
 export type StageMode = 'autonomous' | 'playback';
 
@@ -71,6 +73,8 @@ export interface Stage {
   // Stage metadata
   language?: string;
   style?: string;
+  notebookKind?: NotebookKind;
+  sectionCount?: number;
   imageNotebookStyle?: ImageNotebookStyleBrief;
   /** Historical total fallback usage count for this notebook/stage */
   fallbackUsageCount?: number;
@@ -135,7 +139,12 @@ export interface Scene {
 /**
  * Scene content based on type
  */
-export type SceneContent = SlideContent | QuizContent | InteractiveContent | PBLContent;
+export type SceneContent =
+  | SlideContent
+  | QuizContent
+  | InteractiveContent
+  | PBLContent
+  | MarkdownContent;
 
 /**
  * Slide content - PPTist Canvas data
@@ -244,6 +253,12 @@ export interface InteractiveContent {
 export interface PBLContent {
   type: 'pbl';
   projectConfig: PBLProjectConfig;
+}
+
+export interface MarkdownContent {
+  type: 'markdown';
+  markdown: string;
+  summary?: string;
 }
 
 // Re-export generation types for convenience

@@ -1,5 +1,6 @@
 import { createLogger } from '@/lib/logger';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import type { QuizCodeReport, QuizQuestion } from '@/lib/types/stage';
 
 const log = createLogger('QuizView');
@@ -140,21 +141,30 @@ export async function gradeTextQuestion(
     if (modelConfig.providerType) headers['x-provider-type'] = modelConfig.providerType;
     if (modelConfig.requiresApiKey) headers['x-requires-api-key'] = 'true';
 
-    const res = await fetch('/api/quiz-grade', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        question: question.question,
-        userAnswer,
-        points: pts,
-        commentPrompt: buildTextRubric(question),
-        language,
-        questionType: question.type,
-        referenceAnswer: typeof question.answer === 'string' ? question.answer : undefined,
-        proof: question.proof,
-        analysis: question.analysis,
-      }),
-    });
+    const res = await runQueuedAiTask(
+      {
+        kind: 'quiz-grading',
+        title: '题目判断正误',
+        description: question.question || '正在批改文字题',
+      },
+      ({ signal }) =>
+        fetch('/api/quiz-grade', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            question: question.question,
+            userAnswer,
+            points: pts,
+            commentPrompt: buildTextRubric(question),
+            language,
+            questionType: question.type,
+            referenceAnswer: typeof question.answer === 'string' ? question.answer : undefined,
+            proof: question.proof,
+            analysis: question.analysis,
+          }),
+          signal,
+        }),
+    );
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as { score: number; comment: string };

@@ -27,9 +27,9 @@ const Live2DStudyCompanionLauncher = dynamic(
   { ssr: false },
 );
 
-/** 侧栏 inset left-4 / right-4 各 16px；左侧 Dashboard 导航略宽，右侧聊天栏保持紧凑。 */
+/** 侧栏 inset left-4 / right-4 各 16px；左侧导航略宽，右侧聊天栏保持紧凑。 */
 const SIDEBAR_GAP = 12;
-const LEFT_RAIL_EXPANDED_WIDTH = 256;
+const LEFT_RAIL_EXPANDED_WIDTH = 280;
 const RIGHT_RAIL_EXPANDED_WIDTH = 270;
 const RAIL_COLLAPSED_WIDTH = 78;
 const GLOBAL_HEADER_OFFSET_PX = 76;
@@ -161,7 +161,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   /** 独立聊天页使用右侧信息栏；创建笔记本页的设置已并入主工作台。 */
   const isChatPage = pathname === '/chat';
   const hasRightRail = isChatPage;
-  const hasGlobalHeader = !isMyCourses && !isChatPage;
+  const hasGlobalHeader = !isMyCourses;
   const withStudyCompanion = (content: ReactNode) => {
     if (hideStudyCompanion) return <>{content}</>;
 
@@ -179,8 +179,20 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     return withStudyCompanion(<>{children}</>);
   }
 
-  if (isReviewPage || isTestPage) {
-    return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
+  if (isReviewPage) {
+    return (
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>
+    );
+  }
+
+  if (isTestPage) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
   }
 
   if (isNotebookCreatePage) {

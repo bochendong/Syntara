@@ -12,6 +12,7 @@ import {
   hasProblemTranslation,
   notebookProblemImportDraftSchema,
   type NotebookProblemAttemptRecord,
+  type NotebookProblemAttemptStatus,
   type NotebookProblemImportDraft,
   type ProblemContentLanguage,
 } from '@/lib/problem-bank';
@@ -68,6 +69,14 @@ type CourseProblemBankControllerArgs = {
   initialNotebookId?: string;
   initialProblemId?: string;
   mode?: 'bank' | 'practice';
+  onPracticeAttemptResolved?: (event: CourseProblemPracticeAttemptResolvedEvent) => void;
+};
+
+export type CourseProblemPracticeAttemptResolvedEvent = {
+  problemId: string;
+  status: NotebookProblemAttemptStatus;
+  score?: number | null;
+  feedback: string;
 };
 
 export function useCourseProblemBankController({
@@ -75,6 +84,7 @@ export function useCourseProblemBankController({
   initialNotebookId,
   initialProblemId,
   mode = 'bank',
+  onPracticeAttemptResolved,
 }: CourseProblemBankControllerArgs) {
   const router = useRouter();
   const isPracticeMode = mode === 'practice';
@@ -1288,20 +1298,28 @@ export function useCourseProblemBankController({
           ...(prev[selectedProblem.id] ?? []).filter((item) => item.id !== attempt.id),
         ],
       }));
+      const feedback =
+        result?.feedback ||
+        immediateChoiceFeedback?.feedback ||
+        (locale === 'zh-CN' ? '答案已提交。' : 'Answer submitted.');
+      const score = attempt.score ?? immediateChoiceFeedback?.score ?? null;
       setAnswerFeedbackByProblemId((prev) => ({
         ...prev,
         [selectedProblem.id]: {
           status: attempt.status,
-          score: attempt.score ?? immediateChoiceFeedback?.score ?? null,
-          feedback:
-            result?.feedback ||
-            immediateChoiceFeedback?.feedback ||
-            (locale === 'zh-CN' ? '答案已提交。' : 'Answer submitted.'),
+          score,
+          feedback,
           correctOptionIds: immediateChoiceFeedback?.correctOptionIds,
           selectedOptionIds: immediateChoiceFeedback?.selectedOptionIds,
           saving: false,
         },
       }));
+      onPracticeAttemptResolved?.({
+        problemId: selectedProblem.id,
+        status: attempt.status,
+        score,
+        feedback,
+      });
       if (attempt.status === 'passed') {
         toast.success(locale === 'zh-CN' ? '回答正确' : 'Correct');
       } else if (attempt.status === 'failed') {
@@ -1336,6 +1354,7 @@ export function useCourseProblemBankController({
     photoAnswers,
     selectedProblem,
     selectedAnswerMode,
+    onPracticeAttemptResolved,
     submittingAnswer,
     textAnswers,
   ]);
@@ -1453,6 +1472,7 @@ export function useCourseProblemBankController({
     setPracticeFilter,
     setProblemLanguage,
     setProblemPage,
+    setSelectedProblemId,
     setSearchQuery,
     setSelectedTextAnswer,
     setStatusFilter,

@@ -11,7 +11,7 @@ const Live2DStudyCompanion = dynamic(
 );
 
 export function Live2DStudyCompanionLauncher({ className }: { className?: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   if (open) {
     return (
