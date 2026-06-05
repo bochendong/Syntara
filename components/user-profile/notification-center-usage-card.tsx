@@ -7,7 +7,7 @@ import { CreditsAccountPanel } from './credits-card';
 import { TokenUsageAccountPanel } from './token-usage-card';
 
 /**
- * 个人中心：紧挨「头像 / 头像框 / 通知样式」卡片下方，展示 Credits 与 Token 用量分栏。
+ * 个人中心：紧挨「头像 / 头像框」卡片下方，展示 Credits 与 Token 用量分栏。
  */
 export function NotificationCenterUsageCard() {
   const [activeTab, setActiveTab] = useState('credits');

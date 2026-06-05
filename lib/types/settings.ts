@@ -8,6 +8,7 @@ export type SettingsSection =
   | 'asr'
   | 'pdf'
   | 'image'
+  | 'live2d'
   | 'web-search';
 
 /**

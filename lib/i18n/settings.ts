@@ -8,7 +8,9 @@ export const settingsZhCN = {
     themeDesc: '选择主题模式（浅色/深色/跟随系统）',
     live2dPresenter: '讲课角色',
     live2dPresenterPreviewBadge: '预览',
-    live2dPresenterDesc: '选择课堂左侧栏「虚拟讲师」中显示的讲师形象，切换后立即生效。',
+    live2dPresenterDesc: '选择右下角伴学角色和课堂「虚拟讲师」中显示的形象，切换后立即生效。',
+    live2dPresenterVisibility: '显示 Live2D 伴学',
+    live2dPresenterVisibilityDesc: '关闭后，右下角伴学角色和课堂虚拟讲师都不会显示。',
     notebookChatWrites: '允许后台更新私有记忆',
     notebookChatWritesDesc:
       '在笔记本对话中，允许 AI 偶尔把长期有用的补充点写入你的私有记忆。不会自动插入或改写页面。',
@@ -651,7 +653,10 @@ export const settingsEnUS = {
     live2dPresenter: 'Lecture presenter',
     live2dPresenterPreviewBadge: 'Preview',
     live2dPresenterDesc:
-      'Choose the virtual presenter shown in the classroom sidebar (Presenter tab). Changes apply immediately.',
+      'Choose the character shown in the lower-right study companion and classroom presenter. Changes apply immediately.',
+    live2dPresenterVisibility: 'Show Live2D companion',
+    live2dPresenterVisibilityDesc:
+      'When off, the lower-right study companion and classroom presenter are hidden.',
     notebookChatWrites: 'Allow background private memory',
     notebookChatWritesDesc:
       'In notebook chat, let the AI occasionally save durable learning notes to your private memory. It will not auto-insert or rewrite pages.',

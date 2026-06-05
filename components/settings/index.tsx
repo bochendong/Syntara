@@ -6,7 +6,15 @@ import { SettingsButton } from '@/components/settings/settings-button';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { SettingsSection } from '@/lib/types/settings';
-import { Settings, FileText, Image as ImageIcon, Search, Volume2, Mic } from 'lucide-react';
+import {
+  Settings,
+  FileText,
+  Image as ImageIcon,
+  Search,
+  Volume2,
+  Mic,
+  UserRound,
+} from 'lucide-react';
 import { GeneralSettings } from './general-settings';
 import { PDFSettings } from './pdf-settings';
 import { ImageSettings } from './image-settings';
@@ -14,6 +22,7 @@ import { TTSSettings } from './tts-settings';
 import { ASRSettings } from './asr-settings';
 import { WebSearchSettings } from './web-search-settings';
 import { SystemLLMPanel } from './system-llm-panel';
+import { Live2dPresenterSettingsPanel } from './live2d-presenter-settings-panel';
 import { useSettingsStore } from '@/lib/store/settings';
 
 interface SettingsDialogProps {
@@ -63,6 +72,7 @@ export function SettingsDialog({
               <WebSearchSettings selectedProviderId={webSearchProviderId} />
             )}
             {activeSection === 'image' && <ImageSettings selectedProviderId={imageProviderId} />}
+            {activeSection === 'live2d' && <Live2dPresenterSettingsPanel />}
             {activeSection === 'tts' && <TTSSettings selectedProviderId={ttsProviderId} />}
             {activeSection === 'asr' && <ASRSettings selectedProviderId={asrProviderId} />}
           </div>
@@ -105,6 +115,16 @@ export function SettingsDialog({
         >
           <ImageIcon className="h-4 w-4 shrink-0" />
           <span className="truncate">{t('settings.imageSettings')}</span>
+        </button>
+        <button
+          onClick={() => setActiveSection('live2d')}
+          className={cn(
+            'apple-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors',
+            activeSection === 'live2d' ? 'active font-medium' : 'text-slate-700 dark:text-slate-200',
+          )}
+        >
+          <UserRound className="h-4 w-4 shrink-0" />
+          <span className="truncate">{t('settings.live2dPresenter')}</span>
         </button>
         <button
           onClick={() => setActiveSection('tts')}

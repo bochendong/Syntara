@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -11,7 +12,11 @@ import { cn } from '@/lib/utils';
 export function Live2dPresenterSettingsPanel({ className }: { className?: string }) {
   const { t } = useI18n();
   const live2dPresenterModelId = useSettingsStore((state) => state.live2dPresenterModelId);
+  const live2dPresenterVisible = useSettingsStore((state) => state.live2dPresenterVisible);
   const setLive2DPresenterModelId = useSettingsStore((state) => state.setLive2DPresenterModelId);
+  const setLive2DPresenterVisible = useSettingsStore(
+    (state) => state.setLive2DPresenterVisible,
+  );
   const [hoveredModelId, setHoveredModelId] = useState<string | null>(null);
   const activePreviewModelId = hoveredModelId ?? live2dPresenterModelId;
 
@@ -20,6 +25,19 @@ export function Live2dPresenterSettingsPanel({ className }: { className?: string
       <div>
         <Label className="text-sm font-medium">{t('settings.live2dPresenter')}</Label>
         <p className="mt-1 text-xs text-muted-foreground">{t('settings.live2dPresenterDesc')}</p>
+      </div>
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-card/70 px-4 py-3">
+        <div className="min-w-0">
+          <Label className="text-sm font-medium">{t('settings.live2dPresenterVisibility')}</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('settings.live2dPresenterVisibilityDesc')}
+          </p>
+        </div>
+        <Switch
+          checked={live2dPresenterVisible}
+          onCheckedChange={setLive2DPresenterVisible}
+          aria-label={t('settings.live2dPresenterVisibility')}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {Object.values(LIVE2D_PRESENTER_MODELS).map((model) => {

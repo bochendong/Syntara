@@ -111,6 +111,7 @@ export function Stage({
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore((s) => s.setSidebarCollapsed);
   const live2dPresenterModelId = useSettingsStore((s) => s.live2dPresenterModelId);
+  const live2dPresenterVisible = useSettingsStore((s) => s.live2dPresenterVisible);
 
   // PlaybackEngine state
   const [engineMode, setEngineMode] = useState<EngineMode>('idle');
@@ -1434,7 +1435,10 @@ export function Stage({
 
   /** 课堂讲解 Live2D 暂时下线；保留计算入口，后续恢复时只需要打开这个开关。 */
   const live2dSidebarEligible =
-    CLASSROOM_LIVE2D_PRESENTER_ENABLED && !isPendingScene && !whiteboardOpen;
+    live2dPresenterVisible &&
+    CLASSROOM_LIVE2D_PRESENTER_ENABLED &&
+    !isPendingScene &&
+    !whiteboardOpen;
 
   const sceneSidebarLive2d = live2dSidebarEligible
     ? mode === 'playback' && currentScene?.type === 'slide'

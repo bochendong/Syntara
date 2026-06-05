@@ -13,6 +13,7 @@ const SECTION_KEYS = new Set<string>([
   'asr',
   'pdf',
   'image',
+  'live2d',
   'web-search',
 ]);
 
