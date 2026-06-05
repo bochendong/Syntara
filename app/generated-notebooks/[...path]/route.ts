@@ -165,6 +165,10 @@ async function debugGeneratedNotebookImage(request: NextRequest) {
 
   return NextResponse.json({
     publicPathname,
+    deployment: {
+      environment: process.env.VERCEL_ENV ?? null,
+      commitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    },
     local: {
       checked: Boolean(filePath),
       found: Boolean(localInfo?.isFile()),
