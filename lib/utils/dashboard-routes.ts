@@ -19,7 +19,6 @@ export function isDashboardRoute(
   if (p === '/my-courses') return true;
   if (p === '/top-up' || p.startsWith('/top-up/')) return true;
   if (p === '/credits-market' || p.startsWith('/credits-market/')) return true;
-  if (p === '/gamification' || p.startsWith('/gamification/')) return true;
   if (p === '/profile' || p.startsWith('/profile/')) return true;
   if (p === '/settings' || p.startsWith('/settings/')) return true;
   if (p === '/live2d' || p.startsWith('/live2d/')) return true;

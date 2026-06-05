@@ -25,6 +25,7 @@ import { actionHref } from './chat-avatars';
 import { messageText } from './chat-message-utils';
 import type { NotebookChatMessage } from './chat-page-types';
 import { InlineLessonDeck } from './inline-lesson-deck';
+import { NotebookProblemChatCardView } from './notebook-problem-chat-card';
 import { NotebookReferencePreviewLi } from './notebook-reference-preview';
 
 const threadRowClassName = 'mx-auto w-full max-w-5xl';
@@ -405,22 +406,25 @@ export function NotebookMessageThread({
           <div key={`u-${m.at}-${i}`} className={cn(threadRowClassName, 'flex justify-end')}>
             <ContextMenu>
               <ContextMenuTrigger asChild>
-                <div className={userBubbleClassName}>
-                  <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                  {m.attachments && m.attachments.length > 0 ? (
-                    <div className="mt-2 space-y-2">
-                      {m.attachments.map((a) => (
-                        <ChatAttachmentBubble
-                          key={a.id}
-                          name={a.name}
-                          size={a.size}
-                          mimeType={a.mimeType}
-                          objectUrl={a.objectUrl}
-                          variant="onUserBubble"
-                        />
-                      ))}
-                    </div>
-                  ) : null}
+                <div className="flex min-w-0 flex-col items-end gap-2">
+                  {m.problemAsk ? <NotebookProblemChatCardView card={m.problemAsk} /> : null}
+                  <div className={userBubbleClassName}>
+                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                    {m.attachments && m.attachments.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {m.attachments.map((a) => (
+                          <ChatAttachmentBubble
+                            key={a.id}
+                            name={a.name}
+                            size={a.size}
+                            mimeType={a.mimeType}
+                            objectUrl={a.objectUrl}
+                            variant="onUserBubble"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>

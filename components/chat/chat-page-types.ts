@@ -6,12 +6,23 @@ import type { NotebookContentDocument } from '@/lib/notebook-content';
 import type { Scene } from '@/lib/types/stage';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 
+export type NotebookProblemChatCard = {
+  courseId: string;
+  notebookId: string;
+  problemId: string;
+  href: string;
+  title: string;
+  notebookName?: string | null;
+  problemNumber?: number | null;
+};
+
 export type NotebookChatMessage =
   | {
       role: 'user';
       text: string;
       at: number;
       attachments?: ChatMessageMetadata['attachments'];
+      problemAsk?: NotebookProblemChatCard;
     }
   | {
       role: 'assistant';

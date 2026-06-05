@@ -8,7 +8,6 @@ import {
   ListChecks,
   Bug,
   Coins,
-  Flame,
   LifeBuoy,
   MessageCircle,
   Settings,
@@ -97,10 +96,9 @@ const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   store: 3,
   'top-up': 4,
   'credits-market': 5,
-  gamification: 6,
-  'avatar-store': 7,
-  chat: 8,
-  live2d: 9,
+  'avatar-store': 6,
+  chat: 7,
+  live2d: 8,
   profile: 10,
   settings: 11,
   'contact-support': 12,
@@ -179,7 +177,6 @@ export function AppCoreNavList({
     pathname === '/credits-market' || pathname?.startsWith('/credits-market/');
   const profileActive = pathname === '/profile' || pathname?.startsWith('/profile/');
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
-  const gamificationActive = pathname === '/gamification' || pathname?.startsWith('/gamification/');
 
   const courseStoreActive =
     pathname === '/store/courses' || pathname?.startsWith('/store/courses/');
@@ -197,14 +194,6 @@ export function AppCoreNavList({
           tooltip: '所有课程',
           icon: BookOpen,
           active: pathname === '/my-courses',
-        },
-        {
-          key: 'gamification',
-          href: '/gamification',
-          label: '学习成长',
-          tooltip: '学习成长',
-          icon: Flame,
-          active: gamificationActive,
         },
         {
           key: 'live2d',
@@ -360,18 +349,6 @@ export function AppCoreNavList({
               icon: BookOpen,
               active: pathname === '/my-courses',
             },
-            ...(!inCourseContext
-              ? ([
-                  {
-                    key: 'gamification',
-                    href: '/gamification',
-                    label: '学习成长',
-                    tooltip: '学习成长',
-                    icon: Flame,
-                    active: gamificationActive,
-                  },
-                ] satisfies CoreNavItem[])
-              : []),
             {
               key: 'store',
               href: storeHref,

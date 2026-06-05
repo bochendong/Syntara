@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import { Bell, CalendarCheck2, Lock, Mic2 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 import { Card } from '@/components/ui/card';
@@ -22,7 +21,6 @@ import {
   playCharacterVoicePack,
   readStringRecordFromStorage,
   resolveBonusTier,
-  resolveLive2DPoster,
   toLive2DModelId,
   writeStringRecordToStorage,
   type CharacterMotionPack,
@@ -116,9 +114,6 @@ export function Live2DCompanionHub() {
             : [],
           nextUnlockHint: character.nextUnlockHint,
           modelId,
-          posterSrc: modelId
-            ? resolveLive2DPoster(modelId, character.previewSrc)
-            : (character.previewSrc ?? ''),
           source: 'summary',
         };
       });
@@ -142,7 +137,6 @@ export function Live2DCompanionHub() {
       personalityTags: [...LIVE2D_PRESENTER_PERSONAS[model.id].personalityTags],
       nextUnlockHint: null,
       modelId: model.id,
-      posterSrc: resolveLive2DPoster(model.id, model.previewSrc),
       source: 'local',
     }));
   }, [checkInCompanionId, live2dPresenterModelId, sortedLive2dCharacters]);
@@ -399,14 +393,10 @@ export function Live2DCompanionHub() {
                                 : 'border-white/12 bg-white/8 hover:bg-white/14',
                             )}
                           >
-                            <Image
-                              src={character.posterSrc}
-                              alt={character.name}
-                              width={56}
-                              height={56}
-                              sizes="56px"
-                              className="size-full rounded-full object-cover object-top"
-                              draggable={false}
+                            <Live2DShowcaseAvatar
+                              modelId={character.modelId}
+                              name={character.name}
+                              selected={selected}
                             />
                             {selected ? (
                               <span className="absolute -bottom-1 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-sky-200 shadow-[0_0_14px_rgba(125,211,252,0.8)]" />
@@ -790,5 +780,40 @@ export function Live2DCompanionHub() {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+function Live2DShowcaseAvatar({
+  modelId,
+  name,
+  selected,
+}: {
+  modelId: CharacterShowcaseItem['modelId'];
+  name: string;
+  selected: boolean;
+}) {
+  const label = name.trim().slice(0, 2) || 'AI';
+
+  return (
+    <span
+      className={cn(
+        'relative flex size-full overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.2),transparent_58%),linear-gradient(180deg,rgba(14,165,233,0.34),rgba(15,23,42,0.82))]',
+        selected &&
+          'bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.32),transparent_58%),linear-gradient(180deg,rgba(56,189,248,0.54),rgba(30,41,59,0.88))]',
+      )}
+    >
+      <span className="absolute inset-x-2 top-2 h-3 rounded-full bg-white/18 blur-[3px]" />
+      <span className="relative flex size-full flex-col items-center justify-center gap-0.5">
+        <span className="text-[11px] font-semibold uppercase leading-none text-sky-50 md:text-xs">
+          {label}
+        </span>
+        {modelId ? (
+          <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-sky-100/76">
+            Live2D
+          </span>
+        ) : null}
+      </span>
+      <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/12" />
+    </span>
   );
 }

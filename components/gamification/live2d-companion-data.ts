@@ -7,10 +7,7 @@ import {
   formatComputeCreditsLabel,
   formatPurchaseCreditsLabel,
 } from '@/lib/utils/credits';
-import {
-  LIVE2D_PRESENTER_MODELS,
-  type Live2DPresenterModelId,
-} from '@/lib/live2d/presenter-models';
+import type { Live2DPresenterModelId } from '@/lib/live2d/presenter-models';
 
 export const LIVE2D_CHARACTER_TRAITS: Record<
   Live2DPresenterModelId,
@@ -89,13 +86,6 @@ export const LIVE2D_CHARACTER_TRAITS: Record<
 
 export const COMPANION_GIFT_CLAIM_STORAGE_KEY = 'companion-gift-claim-status';
 export const COMPANION_STAGE_SKIN_STORAGE_KEY = 'companion-stage-skin-status';
-const LIVE2D_POSTER_BY_ID: Partial<Record<Live2DPresenterModelId, string>> = {
-  haru: '/live2d/previews/haru.jpg',
-  hiyori: '/live2d/previews/hiyori.jpg',
-  mark: '/live2d/previews/mark.jpg',
-  mao: '/live2d/previews/mao.jpg',
-  rice: '/live2d/previews/rice.jpg',
-};
 export type NotificationActionOption = {
   id: string;
   label: string;
@@ -753,16 +743,8 @@ export type CharacterShowcaseItem = {
   personalityTags?: string[];
   nextUnlockHint?: string | null;
   modelId: Live2DPresenterModelId | null;
-  posterSrc: string;
   source: 'summary' | 'local';
 };
-
-export function resolveLive2DPoster(
-  modelId: Live2DPresenterModelId,
-  previewSrc?: string | null,
-): string {
-  return LIVE2D_POSTER_BY_ID[modelId] ?? previewSrc ?? LIVE2D_PRESENTER_MODELS[modelId].previewSrc;
-}
 
 export function readStringRecordFromStorage(key: string): Record<string, string> {
   if (typeof window === 'undefined') return {};

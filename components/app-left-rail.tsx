@@ -80,7 +80,6 @@ export interface AppLeftRailProps {
 /** 进入这些路由时清空「当前课程」。侧栏「商城」：未选课程 → `/store/courses`（课程商城）；已选课程 → `/store`（笔记本商城） */
 const COURSE_CONTEXT_CLEAR_PREFIXES = [
   '/my-courses',
-  '/gamification',
   '/store/courses',
   '/store/avatars',
   '/profile',

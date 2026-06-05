@@ -32,6 +32,7 @@ import {
 } from './chat-attachment-utils';
 import { buildChatMessage, shouldOfferMicroLessonButton } from './chat-message-utils';
 import { NOTEBOOK_CHAT_PREVIEW_EVENT } from './chat-notebook-routing';
+import { notebookProblemAskConversationText } from './notebook-problem-chat-card';
 import type {
   NotebookAttachmentInput,
   NotebookChatMessage,
@@ -546,13 +547,15 @@ export function useNotebookChatActions({
           : null;
       let streamingAssistantAt: number | null = null;
       try {
-        const conversation = [...nbThread, userMsg]
-          .slice(-12)
-          .map((m) =>
-            m.role === 'user'
-              ? { role: 'user' as const, content: m.text, at: m.at }
-              : { role: 'assistant' as const, content: m.answer, at: m.at },
-          );
+        const conversation = [...nbThread, userMsg].slice(-12).map((m) =>
+          m.role === 'user'
+            ? {
+                role: 'user' as const,
+                content: `${m.text}${m.problemAsk ? notebookProblemAskConversationText(m.problemAsk) : ''}`,
+                at: m.at,
+              }
+            : { role: 'assistant' as const, content: m.answer, at: m.at },
+        );
         if (shouldImportIntoProblemBank(text)) {
           const payload = await buildProblemBankImportPayload({
             text: stripProblemBankImportCommand(text),

@@ -76,7 +76,7 @@ function isTestSurface(pathname: string | null): boolean {
 }
 
 function shouldHideStudyCompanion(pathname: string | null): boolean {
-  return pathname === '/';
+  return pathname === '/' || pathname === '/live2d' || Boolean(pathname?.startsWith('/live2d/'));
 }
 
 function MainShellNoRail({

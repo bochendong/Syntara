@@ -518,6 +518,10 @@ export function useCourseProblemBankController({
   const selectedProblemHasTranslation = hasProblemTranslation(selectedProblem);
   const selectedProblemRef = useRef<NotebookProblemClientRecord | null>(null);
   const selectedProblemNotebookId = selectedProblem?.notebookId ?? null;
+  const selectedProblemNotebook = useMemo(() => {
+    if (!selectedProblemNotebookId) return null;
+    return notebooks.find((notebook) => notebook.id === selectedProblemNotebookId) ?? null;
+  }, [notebooks, selectedProblemNotebookId]);
   const selectedProblemNotebookLabel = useMemo(() => {
     if (!selectedProblem) return '';
     if (!selectedProblem.notebookId) {
@@ -527,11 +531,11 @@ export function useCourseProblemBankController({
       );
     }
     return (
-      notebooks.find((notebook) => notebook.id === selectedProblem.notebookId)?.name ||
+      selectedProblemNotebook?.name ||
       selectedProblem.notebookName ||
       (locale === 'zh-CN' ? '未知笔记本' : 'Unknown notebook')
     );
-  }, [locale, notebooks, selectedProblem]);
+  }, [locale, selectedProblem, selectedProblemNotebook?.name]);
   const selectedProblemLatestAttemptId = selectedProblem?.latestAttempt?.id ?? null;
   useEffect(() => {
     selectedProblemRef.current = selectedProblem;
@@ -1445,6 +1449,7 @@ export function useCourseProblemBankController({
     selectedProblemEditDraft,
     selectedProblemHasTranslation,
     selectedProblemId,
+    selectedProblemNotebook,
     selectedProblemNotebookLabel,
     selectedProblemPoints,
     selectedProblemSolutionSections,
