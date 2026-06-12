@@ -136,7 +136,6 @@ export function useNotebookChatActions({
             question: args.question,
             reason: '笔记本问答识别到可长期保留的知识补充点。',
             kind: 'knowledge_gap',
-            confidence: 0.78,
             sourceReferences: (args.plan.references || []).slice(0, 4).map((reference) => ({
               notebookId: args.notebook.id,
               notebookName: args.notebook.name,

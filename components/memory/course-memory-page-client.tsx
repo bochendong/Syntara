@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { code } from '@streamdown/code';
 import { createMathPlugin } from '@streamdown/math';
-import { ArrowLeft, BookOpen, Brain, Database, Loader2, Lock, Share2 } from 'lucide-react';
+import { BookOpen, Brain, Database, Loader2, Lock, Share2 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
+import { MemoryPageHeader } from '@/components/memory/memory-page-header';
 import { getDefaultCoursePublicMemories } from '@/lib/learning/default-public-memories';
 import {
   getLocalStudyMemoryUserId,
@@ -38,6 +39,11 @@ type PrivateMemoryView = {
   sourceLabel: string;
   notebookName?: string;
   updatedAt?: number;
+};
+
+type NotebookMemoryRecordBundle = {
+  notebookId: string;
+  memories: StudyMemoryApiRecord[];
 };
 
 const markdownMath = createMathPlugin({ singleDollarTextMath: true });
@@ -89,12 +95,39 @@ function notebookPublicMemory(
   };
 }
 
+function notebookApiPublicMemory(
+  notebook: StageListItem,
+  record: StudyMemoryApiRecord,
+): PublicMemoryView {
+  return {
+    id: `db-notebook:${notebook.id}:${record.id}`,
+    title: `${notebook.name}：${record.title}`,
+    text: record.text,
+    sourceLabel: '数据库笔记本记忆',
+    updatedAt: Date.parse(record.updatedAt),
+  };
+}
+
 function apiPrivateMemory(record: StudyMemoryApiRecord): PrivateMemoryView {
   return {
     id: `db:${record.id}`,
     title: record.title,
     text: record.text,
     sourceLabel: '数据库课程私有记忆',
+    updatedAt: Date.parse(record.updatedAt),
+  };
+}
+
+function notebookApiPrivateMemory(
+  notebook: StageListItem,
+  record: StudyMemoryApiRecord,
+): PrivateMemoryView {
+  return {
+    id: `db-notebook-private:${notebook.id}:${record.id}`,
+    title: record.title,
+    text: record.text,
+    sourceLabel: '数据库笔记本私有记忆',
+    notebookName: notebook.name,
     updatedAt: Date.parse(record.updatedAt),
   };
 }
@@ -196,6 +229,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [dbMemories, setDbMemories] = useState<StudyMemoryApiRecord[]>([]);
+  const [dbNotebookMemories, setDbNotebookMemories] = useState<NotebookMemoryRecordBundle[]>([]);
   const [dbAvailable, setDbAvailable] = useState(false);
 
   useEffect(() => {
@@ -208,10 +242,21 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
           .then((memories) => ({ ok: true, memories }))
           .catch(() => ({ ok: false, memories: [] as StudyMemoryApiRecord[] })),
       ]);
+      const loadedNotebookMemories =
+        loadedMemories.ok && loadedNotebooks.length > 0
+          ? await Promise.all(
+              loadedNotebooks.map((notebook) =>
+                listStudyMemoryRecords({ targetType: 'notebook', targetId: notebook.id })
+                  .then((memories) => ({ notebookId: notebook.id, memories }))
+                  .catch(() => ({ notebookId: notebook.id, memories: [] })),
+              ),
+            )
+          : [];
       if (!alive) return;
       setCourse(loadedCourse ?? null);
       setNotebooks(loadedNotebooks);
       setDbMemories(loadedMemories.memories);
+      setDbNotebookMemories(loadedNotebookMemories);
       setDbAvailable(loadedMemories.ok);
     })();
     return () => {
@@ -233,6 +278,21 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
     () => dbMemories.filter((memory) => memory.scope === 'public' && isActive(memory)),
     [dbMemories],
   );
+  const notebooksById = useMemo(
+    () => new Map(notebooks.map((notebook) => [notebook.id, notebook] as const)),
+    [notebooks],
+  );
+  const dbNotebookPublicMemories = useMemo(
+    () =>
+      dbNotebookMemories.flatMap(({ notebookId, memories }) => {
+        const notebook = notebooksById.get(notebookId);
+        if (!notebook) return [];
+        return memories
+          .filter((memory) => memory.scope === 'public' && isActive(memory))
+          .map((memory) => notebookApiPublicMemory(notebook, memory));
+      }),
+    [dbNotebookMemories, notebooksById],
+  );
   const coursePublicMemories = useMemo(() => {
     if (!course) return [];
     if (dbPublicMemories.length > 0) return dbPublicMemories.map(apiPublicMemory);
@@ -240,17 +300,27 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
   }, [course, dbPublicMemories]);
   const notebookPublicMemories = useMemo(
     () =>
-      notebookProfiles.flatMap(({ notebook, profile }) =>
-        profile.publicMemories
-          .filter(isActive)
-          .map((memory) => notebookPublicMemory(notebook, memory)),
-      ),
-    [notebookProfiles],
+      [
+        ...dbNotebookPublicMemories,
+        ...notebookProfiles.flatMap(({ notebook, profile }) =>
+          profile.publicMemories
+            .filter(isActive)
+            .map((memory) => notebookPublicMemory(notebook, memory)),
+        ),
+      ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)),
+    [dbNotebookPublicMemories, notebookProfiles],
   );
   const privateMemories = useMemo(() => {
     const dbPrivate = dbMemories
       .filter((memory) => memory.scope === 'private' && isActive(memory))
       .map(apiPrivateMemory);
+    const dbNotebookPrivate = dbNotebookMemories.flatMap(({ notebookId, memories }) => {
+      const notebook = notebooksById.get(notebookId);
+      if (!notebook) return [];
+      return memories
+        .filter((memory) => memory.scope === 'private' && isActive(memory))
+        .map((memory) => notebookApiPrivateMemory(notebook, memory));
+    });
     const notebookPrivate = notebookProfiles.flatMap(({ notebook, profile }) => [
       ...profile.privateMemories
         .filter(isActive)
@@ -259,10 +329,10 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
         .filter((point) => point.status === 'open')
         .map((point) => weakPointMemory(notebook, point)),
     ]);
-    return [...dbPrivate, ...notebookPrivate].sort(
+    return [...dbPrivate, ...dbNotebookPrivate, ...notebookPrivate].sort(
       (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
     );
-  }, [dbMemories, notebookProfiles]);
+  }, [dbMemories, dbNotebookMemories, notebookProfiles, notebooksById]);
 
   const publicMarkdown = useMemo(
     () =>
@@ -276,10 +346,22 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
 
   if (course === undefined) {
     return (
-      <main className="flex min-h-full items-center justify-center bg-[#f3f6fb] p-6 dark:bg-[#0e1117]">
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/80 px-5 py-4 text-sm font-medium text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
-          <Loader2 className="size-4 animate-spin text-[#007AFF]" />
-          正在读取课程记忆…
+      <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
+        <div className="mx-auto flex w-full max-w-[86rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
+          <MemoryPageHeader
+            title="课程记忆"
+            subtitle="正在读取课程公共记忆、笔记本索引和私有学习状态。"
+            eyebrow="课程记忆"
+            backHref="/my-courses"
+            backLabel="返回我的课程"
+            icon={Brain}
+          />
+          <div className="flex min-h-[20rem] items-center justify-center">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/80 px-5 py-4 text-sm font-medium text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
+              <Loader2 className="size-4 animate-spin text-[#007AFF]" />
+              正在读取课程记忆…
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -287,16 +369,30 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
 
   if (!course) {
     return (
-      <main className="flex min-h-full items-center justify-center bg-[#f3f6fb] p-6 dark:bg-[#0e1117]">
-        <div className="max-w-md rounded-3xl border border-slate-200/80 bg-white/86 p-7 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/[0.06]">
-          <BookOpen className="mx-auto size-10 text-slate-400" strokeWidth={1.5} />
-          <h1 className="mt-4 text-lg font-semibold text-slate-950 dark:text-white">未找到课程</h1>
-          <Link
-            href="/my-courses"
-            className="mt-5 inline-flex h-9 items-center justify-center rounded-xl bg-[#007AFF] px-4 text-sm font-semibold text-white"
-          >
-            返回我的课程
-          </Link>
+      <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
+        <div className="mx-auto flex w-full max-w-[86rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
+          <MemoryPageHeader
+            title="课程记忆"
+            subtitle="该课程可能已删除，或当前环境暂时无法加载它。"
+            eyebrow="课程记忆"
+            backHref="/my-courses"
+            backLabel="返回我的课程"
+            icon={Brain}
+          />
+          <div className="flex min-h-[20rem] items-center justify-center">
+            <div className="max-w-md rounded-3xl border border-slate-200/80 bg-white/86 p-7 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/[0.06]">
+              <BookOpen className="mx-auto size-10 text-slate-400" strokeWidth={1.5} />
+              <h2 className="mt-4 text-lg font-semibold text-slate-950 dark:text-white">
+                未找到课程
+              </h2>
+              <Link
+                href="/my-courses"
+                className="mt-5 inline-flex h-9 items-center justify-center rounded-xl bg-[#007AFF] px-4 text-sm font-semibold text-white"
+              >
+                返回我的课程
+              </Link>
+            </div>
+          </div>
         </div>
       </main>
     );
@@ -305,23 +401,20 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
   return (
     <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
       <div className="mx-auto flex w-full max-w-[86rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
-        <header className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <Link
-              href={`/course/${encodeURIComponent(course.id)}`}
-              className="inline-flex items-center gap-1 rounded-xl px-2 py-1 transition-colors hover:bg-white/80 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white"
-            >
-              <ArrowLeft className="size-3.5" strokeWidth={1.8} />
-              返回课程
-            </Link>
-            <span>/</span>
-            <span className="truncate text-slate-800 dark:text-slate-100">课程记忆</span>
-          </div>
-          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/85 bg-white/82 px-3 text-xs font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200">
-            <Database className="size-3.5" strokeWidth={1.8} />
-            {dbAvailable ? '数据库已连接' : '本地默认记忆'}
-          </span>
-        </header>
+        <MemoryPageHeader
+          title="课程记忆"
+          subtitle={[course.name, course.courseCode].filter(Boolean).join(' · ')}
+          eyebrow="课程记忆"
+          backHref={`/course/${encodeURIComponent(course.id)}`}
+          backLabel="返回课程"
+          icon={Brain}
+          actions={
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/85 bg-white/82 px-3 text-xs font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200">
+              <Database className="size-3.5" strokeWidth={1.8} />
+              {dbAvailable ? '数据库已连接' : '本地默认记忆'}
+            </span>
+          }
+        />
 
         <section className="rounded-[24px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] dark:border-white/10 dark:bg-white/[0.065] md:p-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">

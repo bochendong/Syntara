@@ -196,14 +196,16 @@ function buildMarkdownNotebookSections(args: {
           title:
             index === 0
               ? compactTitle(requirement || markdown.split('\n')[0] || '', '概览')
-              : `第 ${index + 1} 节`,
+              : compactTitle(markdown.split('\n')[0] || '', `续写 ${index + 1}`),
           markdown: markdown.startsWith('#')
             ? markdown
-            : `# ${index === 0 ? compactTitle(requirement || markdown, '概览') : `第 ${index + 1} 节`}\n\n${markdown}`,
+            : index === 0
+              ? `# ${compactTitle(requirement || markdown, '概览')}\n\n${markdown}`
+              : markdown,
         }));
 
   const sections = rawSections.slice(0, MARKDOWN_SECTION_LIMIT).map((section, index) => ({
-    title: section.title || `第 ${index + 1} 节`,
+    title: section.title || `Markdown ${index + 1}`,
     order: index,
     markdown: section.markdown,
     summary: stripMarkdownForSummary(section.markdown).slice(0, 420),
@@ -1366,7 +1368,7 @@ export function useCreateNotebookWorkspaceController({
         body: JSON.stringify({
           courseId: cid,
           name: notebookName,
-          description: `纯文字 Markdown 笔记本，共 ${sections.length} 个 section。`,
+          description: `纯文字 Markdown 笔记本，按文档结构连续阅读。`,
           tags: ['Markdown', '纯文字'],
           language,
           style: 'markdown',

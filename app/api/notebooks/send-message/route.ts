@@ -16,6 +16,7 @@ import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { assertUserHasCredits, chargeCreditsForWebSearch } from '@/lib/server/credits';
 import type { CoursePurpose } from '@/lib/utils/database';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
+import { buildNotebookStudyMemoryPromptContext } from '@/lib/server/study-memory-context';
 import {
   buildNotebookContentDocumentFromInsert,
   buildNotebookContentDocumentFromText,
@@ -245,7 +246,11 @@ Your job:
 - If the notebook lacks prerequisite or reference material, say so clearly. Only set knowledgeGap=true when this is a durable learning gap worth remembering privately.
 - Operations are candidate private-memory notes for the client. They are NOT slide/page writes and should be sparse.
 - Be encouraging, calm, and specific. Never patronize.
-- Prioritize accuracy over confidence. If the notebook does not support a claim, do not pretend it does.`;
+- Prioritize accuracy over confidence. If the notebook does not support a claim, do not pretend it does.
+- Use layered memory context as durable course/learner context when provided.
+- Structured memory facts are the current source of truth for exact values; they override fuzzy semantic recalls.
+- Treat public memory as reusable course or notebook knowledge. Treat private memory only as learner-specific context; never present private learner memory as a public course fact.
+- If study memory conflicts with the current notebook excerpts, prefer the current notebook and explain the uncertainty briefly.`;
       const conversationContext = (body.conversation || [])
         .slice(-12)
         .map((m, idx) => {
@@ -267,6 +272,11 @@ Your job:
           return `${line1}\n${line2}`;
         })
         .join('\n');
+      const studyMemoryContext = await buildNotebookStudyMemoryPromptContext({
+        notebookId: body.notebook.id,
+        userId: getRequestContext()?.userId,
+        question: body.message,
+      });
       const userPrompt = `User message:
 ${body.message}
 
@@ -292,6 +302,9 @@ ${purposePolicy}
 
 Web search context (optional):
 ${webSearchContext || 'N/A'}
+
+Layered memory context (structured facts, public/shared memory, private learner memory, semantic recall, and knowledge matches):
+${studyMemoryContext.prompt}
 
 Conversation context (recent turns, optional):
 ${conversationContext || 'N/A'}

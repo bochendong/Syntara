@@ -10,6 +10,8 @@ This directory is the product-domain boundary for Syntara. New code should enter
 - `review`: review routes, maps, route progress, and problem-bank readiness.
 - `memory`: study memory, private memory, and companion nudges.
 - `notifications`: notification models, feeds, banners, and notification operations.
+- `agent`: agent-facing skill, MCP resource, and tool capability registry. This layer
+  composes existing feature domains instead of owning product data directly.
 
 During migration, each feature can re-export old modules as a facade. The important rule is that new or touched feature work should import from `features/<domain>` first, then old `lib/*` paths can be retired gradually.
 

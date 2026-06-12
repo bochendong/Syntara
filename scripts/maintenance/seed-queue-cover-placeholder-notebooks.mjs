@@ -568,7 +568,6 @@ async function seedNotebook(prisma, spec) {
           { label: 'queue 原始课件', source: spec.sourcePdf },
           { label: 'cover placeholder notebook', source: `/classroom/${spec.id}` },
         ],
-        confidence: 0.88,
       },
       create: {
         id: memoryId,
@@ -587,7 +586,6 @@ async function seedNotebook(prisma, spec) {
           { label: 'queue 原始课件', source: spec.sourcePdf },
           { label: 'cover placeholder notebook', source: `/classroom/${spec.id}` },
         ],
-        confidence: 0.88,
       },
     });
   });

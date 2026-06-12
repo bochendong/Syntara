@@ -19,7 +19,6 @@ export type StudyMemoryApiRecord = {
   reason: string | null;
   question: string | null;
   sourceReferences: unknown;
-  confidence: number | null;
   createdAt: string;
   updatedAt: string;
 };

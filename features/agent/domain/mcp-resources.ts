@@ -1,0 +1,79 @@
+import type { AgentMcpResourceDefinition } from './types';
+
+export const AGENT_MCP_RESOURCES = [
+  {
+    namespace: 'openmaic.content',
+    title: 'OpenMAIC content MCP',
+    description: 'Course, notebook, scene, page, and ownership context for all agent workflows.',
+    owns: ['Course', 'Notebook', 'Scene', 'NotebookPage', 'MarkdownNotebookSection'],
+    readToolIds: ['read_course_context', 'read_notebook_context'],
+    writeToolIds: ['write_notebook_scenes', 'sync_notebook_generation'],
+    featureDomains: ['content', 'ppt-generation', 'review', 'memory'],
+  },
+  {
+    namespace: 'openmaic.problem_bank',
+    title: 'OpenMAIC problem-bank MCP',
+    description: 'Problem import, editing, publishing, and course/notebook problem-bank reads.',
+    owns: ['NotebookProblem', 'ProblemImportBatch', 'NotebookProblemSecret'],
+    readToolIds: ['list_problem_bank'],
+    writeToolIds: [
+      'preview_problem_import',
+      'commit_problem_import',
+      'create_problem_from_draft',
+      'update_problem',
+      'delete_problem',
+    ],
+    featureDomains: ['problems', 'review'],
+  },
+  {
+    namespace: 'openmaic.review',
+    title: 'OpenMAIC review MCP',
+    description: 'Custom review routes, problem attempts, grading, and per-user mastery progress.',
+    owns: ['ReviewRoute', 'NotebookProblemAttempt', 'NotebookProblemProgress'],
+    readToolIds: ['assess_problem_bank', 'generate_review_route'],
+    writeToolIds: ['grade_answer', 'run_code_answer', 'record_problem_attempt'],
+    featureDomains: ['review', 'practice', 'problems'],
+  },
+  {
+    namespace: 'openmaic.memory',
+    title: 'OpenMAIC memory MCP',
+    description:
+      'Structured memory facts, public course memory, private learner memory, and local-first fallback memory.',
+    owns: ['MemoryFact', 'MemoryFactEvent', 'StudyMemory', 'StudyMemoryProfile'],
+    readToolIds: ['list_memory_facts', 'get_layered_memory_context', 'list_study_memory'],
+    writeToolIds: [
+      'upsert_memory_fact',
+      'create_study_memory',
+      'update_study_memory_status',
+      'delete_study_memory',
+      'write_local_study_memory',
+    ],
+    featureDomains: ['memory'],
+  },
+  {
+    namespace: 'openmaic.asset',
+    title: 'OpenMAIC asset MCP',
+    description: 'Generated images, speech audio, notebook assets, and PPTX export artifacts.',
+    owns: ['Asset', 'NotebookImageAsset', 'NotebookPageAsset', 'UserSpeechAudio', 'PPTX export'],
+    readToolIds: [],
+    writeToolIds: ['generate_image_asset', 'generate_tts_asset', 'export_pptx'],
+    featureDomains: ['ppt-generation'],
+  },
+  {
+    namespace: 'openmaic.generation_jobs',
+    title: 'OpenMAIC generation-jobs MCP',
+    description:
+      'Durable long-running generation/import task records and resumable progress envelopes.',
+    owns: ['AgentTask', 'AgentEnvelope', 'ClassroomJob'],
+    readToolIds: ['read_generation_job'],
+    writeToolIds: [
+      'create_generation_job',
+      'generate_scene_outlines',
+      'generate_notebook_page_content',
+      'generate_scene_content',
+      'generate_scene_actions',
+      'generate_html_ppt_slide',
+    ],
+    featureDomains: ['agent', 'ppt-generation'],
+  },
+] satisfies readonly AgentMcpResourceDefinition[];

@@ -4,6 +4,7 @@ import {
   findCourseAccessRole,
   type CourseAccessRole,
 } from '@/lib/server/repositories/course-enrollment-repository';
+import { indexStudyMemoryRecord } from '@/lib/server/study-memory-vector-store';
 
 export type StudyMemoryTargetType = 'course' | 'notebook';
 export type StudyMemoryScopeValue = 'public' | 'private';
@@ -24,7 +25,6 @@ export type StudyMemoryRecord = {
   reason: string | null;
   question: string | null;
   sourceReferences: unknown;
-  confidence: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,6 +33,11 @@ type RawStudyMemoryRow = Omit<StudyMemoryRecord, 'createdAt' | 'updatedAt'> & {
   createdAt: Date | string;
   updatedAt: Date | string;
 };
+
+const STUDY_MEMORY_COLUMNS = `
+  "id", "ownerId", "courseId", "notebookId", "targetType", "scope", "kind", "status",
+  "source", "title", "text", "reason", "question", "sourceReferences", "createdAt", "updatedAt"
+`;
 
 export type StudyMemoryTarget = {
   targetType: StudyMemoryTargetType;
@@ -79,7 +84,6 @@ export async function ensureStudyMemoryTable(prisma: PrismaClient): Promise<void
           "reason" TEXT,
           "question" TEXT,
           "sourceReferences" JSONB,
-          "confidence" DOUBLE PRECISION,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -199,7 +203,7 @@ export async function listStudyMemories(
     target.targetType === 'course'
       ? await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
-          SELECT * FROM "StudyMemory"
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'course' AND "courseId" = $2
           ORDER BY "updatedAt" DESC
           LIMIT 120
@@ -209,7 +213,7 @@ export async function listStudyMemories(
         )
       : await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
-          SELECT * FROM "StudyMemory"
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'notebook' AND "notebookId" = $2
           ORDER BY "updatedAt" DESC
           LIMIT 120
@@ -230,7 +234,7 @@ export async function listStudyMemoriesForViewer(
     target.targetType === 'course'
       ? await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
-          SELECT * FROM "StudyMemory"
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "targetType" = 'course'
             AND "courseId" = $1
             AND "status" = 'active'
@@ -247,7 +251,7 @@ export async function listStudyMemoriesForViewer(
         )
       : await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
-          SELECT * FROM "StudyMemory"
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "targetType" = 'notebook'
             AND "notebookId" = $1
             AND "status" = 'active'
@@ -278,9 +282,52 @@ export async function createStudyMemory(args: {
   reason?: string | null;
   question?: string | null;
   sourceReferences?: unknown;
-  confidence?: number | null;
 }): Promise<StudyMemoryRecord> {
   await ensureStudyMemoryTable(args.prisma);
+  const existing = await args.prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+    `
+      SELECT ${STUDY_MEMORY_COLUMNS}
+      FROM "StudyMemory"
+      WHERE
+        "ownerId" = $1
+        AND "targetType" = $2
+        AND "scope" = $3
+        AND "status" = $4
+        AND "title" = $5
+        AND "text" = $6
+        AND (
+          ($7::text IS NULL AND "courseId" IS NULL)
+          OR "courseId" = $7
+        )
+        AND (
+          ($8::text IS NULL AND "notebookId" IS NULL)
+          OR "notebookId" = $8
+        )
+      ORDER BY "updatedAt" DESC
+      LIMIT 1
+    `,
+    args.userId,
+    args.target.targetType,
+    args.scope,
+    args.status ?? 'active',
+    args.title,
+    args.text,
+    args.target.courseId,
+    args.target.notebookId,
+  );
+  if (existing[0]) {
+    const memory = serializeRow(existing[0]);
+    try {
+      await indexStudyMemoryRecord(args.prisma, memory);
+    } catch (error) {
+      console.warn('[study-memory-store] failed to index existing memory', {
+        memoryId: memory.id,
+        error,
+      });
+    }
+    return memory;
+  }
+
   const id = createMemoryId();
   const sourceReferences =
     args.sourceReferences === undefined ? null : JSON.stringify(args.sourceReferences);
@@ -289,16 +336,16 @@ export async function createStudyMemory(args: {
       INSERT INTO "StudyMemory" (
         "id", "ownerId", "courseId", "notebookId", "targetType",
         "scope", "kind", "status", "source", "title", "text",
-        "reason", "question", "sourceReferences", "confidence",
+        "reason", "question", "sourceReferences",
         "createdAt", "updatedAt"
       )
       VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8, $9, $10, $11,
-        $12, $13, $14::jsonb, $15,
+        $12, $13, $14::jsonb,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
-      RETURNING *
+      RETURNING ${STUDY_MEMORY_COLUMNS}
     `,
     id,
     args.userId,
@@ -314,9 +361,17 @@ export async function createStudyMemory(args: {
     args.reason ?? null,
     args.question ?? null,
     sourceReferences,
-    args.confidence ?? null,
   );
-  return serializeRow(rows[0]);
+  const memory = serializeRow(rows[0]);
+  try {
+    await indexStudyMemoryRecord(args.prisma, memory);
+  } catch (error) {
+    console.warn('[study-memory-store] failed to index created memory', {
+      memoryId: memory.id,
+      error,
+    });
+  }
+  return memory;
 }
 
 export async function updateStudyMemoryStatus(args: {
@@ -331,13 +386,23 @@ export async function updateStudyMemoryStatus(args: {
       UPDATE "StudyMemory"
       SET "status" = $3, "updatedAt" = CURRENT_TIMESTAMP
       WHERE "id" = $1 AND "ownerId" = $2
-      RETURNING *
+      RETURNING ${STUDY_MEMORY_COLUMNS}
     `,
     args.memoryId,
     args.userId,
     args.status,
   );
-  return rows[0] ? serializeRow(rows[0]) : null;
+  if (!rows[0]) return null;
+  const memory = serializeRow(rows[0]);
+  try {
+    await indexStudyMemoryRecord(args.prisma, memory);
+  } catch (error) {
+    console.warn('[study-memory-store] failed to update memory vector index', {
+      memoryId: memory.id,
+      error,
+    });
+  }
+  return memory;
 }
 
 export async function deleteStudyMemory(args: {

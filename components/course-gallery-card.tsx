@@ -5,6 +5,7 @@ import {
   BookOpen,
   Brain,
   CircleDollarSign,
+  FileText,
   FileQuestion,
   FolderInput,
   MoreHorizontal,
@@ -291,6 +292,18 @@ export function CourseGalleryCard({
         : 'Notebook Library';
 
   if (variant === 'notebook') {
+    const isMarkdownNotebook = course.notebookKind === 'markdown';
+    const notebookContentCount = isMarkdownNotebook
+      ? Math.max(0, Math.floor(course.sectionCount ?? course.sceneCount ?? 0))
+      : Math.max(0, Math.floor(course.sceneCount ?? 0));
+    const ContentCountIcon = isMarkdownNotebook ? FileText : Presentation;
+    const contentCountLabel = isMarkdownNotebook ? '笔记' : '课件';
+    const contentCountTone = isMarkdownNotebook
+      ? 'text-sky-700 dark:text-sky-300'
+      : 'text-emerald-700 dark:text-emerald-300';
+    const compactActionLabel = isMarkdownNotebook
+      ? '阅读'
+      : actionLabel.replace('笔记本', '') || actionLabel;
     const compactPriceLabel = priceLabel?.trim() || '免费';
     const priceInlineClassName =
       compactPriceLabel === '免费'
@@ -331,18 +344,24 @@ export function CourseGalleryCard({
     const hasMoveActions = Boolean(moveToCourseTargets?.length && onMoveToCourse);
     const hasPublishAction = Boolean(onSecondaryAction && secondaryActionLabel);
     const hasOverflowActions = hasPublishAction || hasMoveActions || Boolean(onDelete);
-    const notebookSpineClassName =
-      notebookSpineClassNames[(listIndex ?? 0) % notebookSpineClassNames.length];
+    const notebookSpineClassName = isMarkdownNotebook
+      ? 'border-slate-300/80 bg-slate-100/95 dark:border-white/15 dark:bg-white/10'
+      : notebookSpineClassNames[(listIndex ?? 0) % notebookSpineClassNames.length];
     const notebookMetaParts = [
       creatorName?.trim() ? `创作者 · ${creatorName.trim()}` : null,
       subtitle,
-      `${course.sceneCount} ${countUnit}`,
+      isMarkdownNotebook
+        ? `${notebookContentCount} 节笔记`
+        : `${notebookContentCount} ${countUnit}`,
     ].filter(Boolean);
+    const showPracticeProgress = !isMarkdownNotebook || practiceTotal > 0;
 
     return (
       <article
         className={cn(
           'group relative flex h-full min-h-[10.75rem] min-w-0 overflow-hidden rounded-2xl border border-slate-200/85 bg-white/92 shadow-[0_14px_34px_rgba(15,23,42,0.07)] ring-1 ring-slate-900/[0.02] transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-200/80 hover:bg-white hover:shadow-[0_20px_48px_rgba(15,23,42,0.11)] dark:border-white/10 dark:bg-white/[0.065] dark:ring-white/[0.02] dark:hover:border-white/18 dark:hover:bg-white/[0.085]',
+          isMarkdownNotebook &&
+            'min-h-[11.5rem] border-slate-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(248,250,252,0.96)_54%,rgba(236,253,245,0.5))] hover:border-sky-200/90 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(21,25,33,0.96),rgba(16,20,28,0.97)_58%,rgba(8,47,73,0.38))]',
         )}
       >
         <div
@@ -352,19 +371,58 @@ export function CourseGalleryCard({
           )}
           aria-hidden
         >
-          <span className="absolute left-1.5 top-4 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
-          <span className="absolute left-1.5 top-10 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
-          <span className="absolute bottom-10 left-1.5 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
-          <span className="absolute bottom-4 left-1.5 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
+          {isMarkdownNotebook ? (
+            <>
+              <span className="absolute inset-x-1.5 top-4 h-px bg-slate-300/80 dark:bg-white/18" />
+              <span className="absolute inset-x-1.5 top-8 h-px bg-slate-300/70 dark:bg-white/14" />
+              <span className="absolute inset-x-1.5 top-12 h-px bg-slate-300/60 dark:bg-white/12" />
+            </>
+          ) : (
+            <>
+              <span className="absolute left-1.5 top-4 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
+              <span className="absolute left-1.5 top-10 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
+              <span className="absolute bottom-10 left-1.5 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
+              <span className="absolute bottom-4 left-1.5 size-2 rounded-full bg-white/95 shadow-sm dark:bg-white/55" />
+            </>
+          )}
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-2.5 p-2.5 pl-9 sm:flex-row sm:items-center">
           <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-[36%] sm:min-w-[5.5rem] 2xl:min-w-[6.5rem]">
             <div
               ref={thumbRef}
-              className="relative h-[6.75rem] w-full overflow-hidden rounded-xl border border-slate-200/85 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70"
+              className={cn(
+                'relative h-[6.75rem] w-full overflow-hidden rounded-xl border border-slate-200/85 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70',
+                isMarkdownNotebook &&
+                  'border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,0.98))] shadow-[0_10px_24px_rgba(15,23,42,0.06)] dark:border-white/12 dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.72),rgba(15,23,42,0.86))]',
+              )}
             >
-              {shouldUseSlidePreviewImage && slidePreviewImageUrl ? (
+              {isMarkdownNotebook ? (
+                <div
+                  className="absolute inset-0 flex flex-col justify-between px-3 py-2.5"
+                  aria-label="纯笔记预览"
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-400/20">
+                      <FileText className="size-2.5 shrink-0" strokeWidth={2} />
+                      <span className="truncate">纯笔记</span>
+                    </span>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-slate-600 dark:bg-white/10 dark:text-slate-200">
+                      {notebookContentCount} 节
+                    </span>
+                  </div>
+                  <div className="space-y-1.5" aria-hidden>
+                    <span className="block h-1.5 w-[82%] rounded-full bg-slate-300/80 dark:bg-white/24" />
+                    <span className="block h-1.5 w-[94%] rounded-full bg-slate-200/95 dark:bg-white/16" />
+                    <span className="block h-1.5 w-[72%] rounded-full bg-slate-200/95 dark:bg-white/16" />
+                    <span className="block h-1.5 w-[88%] rounded-full bg-slate-200/80 dark:bg-white/12" />
+                  </div>
+                  <div className="flex min-w-0 items-center justify-between gap-2 border-t border-slate-200/80 pt-1.5 text-[9px] font-medium leading-none text-slate-500 dark:border-white/10 dark:text-slate-300">
+                    <span className="truncate">文本阅读</span>
+                    <span className="shrink-0">无图</span>
+                  </div>
+                </div>
+              ) : shouldUseSlidePreviewImage && slidePreviewImageUrl ? (
                 <img
                   src={slidePreviewImageUrl}
                   alt=""
@@ -390,31 +448,46 @@ export function CourseGalleryCard({
               )}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/14 via-transparent to-white/10" />
             </div>
-            <div
-              className="min-w-0 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 py-1.5 dark:border-white/10 dark:bg-white/[0.04]"
-              aria-label={practiceProgressTitle}
-              data-notebook-practice-progress
-              title={practiceProgressTitle}
-            >
-              <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[9px] font-medium leading-none">
-                <span className="truncate text-slate-500 dark:text-slate-400">做题进度</span>
-                <span className="shrink-0 tabular-nums text-slate-700 dark:text-slate-200">
-                  {practiceTotal > 0 ? `${practiceAttempted}/${practiceTotal}` : '暂无题'}
+            {showPracticeProgress ? (
+              <div
+                className="min-w-0 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 py-1.5 dark:border-white/10 dark:bg-white/[0.04]"
+                aria-label={practiceProgressTitle}
+                data-notebook-practice-progress
+                title={practiceProgressTitle}
+              >
+                <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[9px] font-medium leading-none">
+                  <span className="truncate text-slate-500 dark:text-slate-400">做题进度</span>
+                  <span className="shrink-0 tabular-nums text-slate-700 dark:text-slate-200">
+                    {practiceTotal > 0 ? `${practiceAttempted}/${practiceTotal}` : '暂无题'}
+                  </span>
+                </div>
+                <div
+                  className="h-1.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10"
+                  aria-hidden
+                >
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-all duration-500',
+                      practiceProgressClassName,
+                    )}
+                    style={{ width: `${practicePercent}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/75 px-2 py-1.5 text-[9px] font-medium leading-none text-slate-500 dark:border-white/10 dark:bg-white/[0.045] dark:text-slate-300">
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <FileText
+                    className="size-3 shrink-0 text-sky-600 dark:text-sky-300"
+                    strokeWidth={1.8}
+                  />
+                  <span className="truncate">笔记目录</span>
+                </span>
+                <span className="shrink-0 tabular-nums text-slate-700 dark:text-slate-100">
+                  {notebookContentCount} 节
                 </span>
               </div>
-              <div
-                className="h-1.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10"
-                aria-hidden
-              >
-                <div
-                  className={cn(
-                    'h-full rounded-full transition-all duration-500',
-                    practiceProgressClassName,
-                  )}
-                  style={{ width: `${practicePercent}%` }}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="flex min-w-0 flex-1 self-stretch py-0.5">
@@ -527,7 +600,12 @@ export function CourseGalleryCard({
                 </div>
               </div>
 
-              <p className="mt-1.5 line-clamp-1 text-[10px] leading-4 text-slate-600 dark:text-slate-300 2xl:text-[11px]">
+              <p
+                className={cn(
+                  'mt-1.5 text-[10px] leading-4 text-slate-600 dark:text-slate-300 2xl:text-[11px]',
+                  isMarkdownNotebook ? 'line-clamp-2' : 'line-clamp-1',
+                )}
+              >
                 {description}
               </p>
 
@@ -563,12 +641,12 @@ export function CourseGalleryCard({
                     </span>
                   )}
                   <span className="flex min-w-0 flex-col items-center justify-center gap-0.5 border-x border-slate-200/75 px-1 py-1 text-center dark:border-white/10">
-                    <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-300">
-                      <Presentation className="size-3" strokeWidth={1.8} />
-                      {course.sceneCount}
+                    <span className={cn('flex items-center gap-1 font-semibold', contentCountTone)}>
+                      <ContentCountIcon className="size-3" strokeWidth={1.8} />
+                      {notebookContentCount}
                     </span>
                     <span className="text-[8px] leading-none text-slate-500 dark:text-slate-400">
-                      课件
+                      {contentCountLabel}
                     </span>
                   </span>
                   {onProblemAction ? (
@@ -619,7 +697,7 @@ export function CourseGalleryCard({
                   }}
                   className="store-cta-primary h-8 min-w-0 rounded-lg px-2 text-xs font-semibold"
                 >
-                  {actionLabel.replace('笔记本', '')}
+                  {compactActionLabel}
                 </button>
                 {onTertiaryAction && tertiaryActionLabel ? (
                   <button

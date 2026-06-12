@@ -498,21 +498,64 @@ function buildNotebookPublicMemorySourceReferences(args: {
     }));
 }
 
+async function persistNotebookPublicMemoryToDatabase(args: {
+  stageId: string;
+  title: string;
+  text: string;
+  reason: string;
+  sourceReferences: NotebookMemorySourceReference[];
+}): Promise<void> {
+  if (!args.text.trim()) return;
+  try {
+    const response = await backendFetch('/api/study-memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetType: 'notebook',
+        targetId: args.stageId,
+        scope: 'public',
+        kind: 'manual',
+        source: 'notebook_generation',
+        title: args.title,
+        text: args.text,
+        reason: args.reason,
+        sourceReferences: args.sourceReferences,
+      }),
+    });
+    if (!response.ok) {
+      const message = await response.text().catch(() => '');
+      console.warn('[NotebookGeneration] Failed to persist database public memory', {
+        stageId: args.stageId,
+        status: response.status,
+        message: message.slice(0, 240),
+      });
+    }
+  } catch (memoryError) {
+    console.warn('[NotebookGeneration] Failed to persist database public memory', {
+      stageId: args.stageId,
+      error: errorMessage(memoryError, '数据库公共记忆写入失败'),
+    });
+  }
+}
+
 function persistNotebookPublicMemory(args: {
   stage: Stage;
   outlines: SceneOutline[];
   language: 'zh-CN' | 'en-US';
 }): void {
+  const title = '涉及知识点与讲解重点';
+  const text = buildNotebookPublicMemoryText(args);
+  const reason = '笔记本生成时根据最终页面规划自动写入，供问答和复习路线读取。';
+  const sourceReferences = buildNotebookPublicMemorySourceReferences(args);
   try {
     recordNotebookPublicMemory({
       stageId: args.stage.id,
-      title: '涉及知识点与讲解重点',
-      text: buildNotebookPublicMemoryText(args),
-      reason: '笔记本生成时根据最终页面规划自动写入，供问答和复习路线读取。',
+      title,
+      text,
+      reason,
       kind: 'manual',
       source: 'notebook_generation',
-      sourceReferences: buildNotebookPublicMemorySourceReferences(args),
-      confidence: 0.9,
+      sourceReferences,
     });
   } catch (memoryError) {
     console.warn('[NotebookGeneration] Failed to persist public memory', {
@@ -520,6 +563,13 @@ function persistNotebookPublicMemory(args: {
       error: errorMessage(memoryError, '公共记忆写入失败'),
     });
   }
+  void persistNotebookPublicMemoryToDatabase({
+    stageId: args.stage.id,
+    title,
+    text,
+    reason,
+    sourceReferences,
+  });
 }
 
 function attachImageNotebookBriefPlan(
@@ -933,16 +983,19 @@ function persistFinalImageNotebookPublicMemory(args: {
   scenes: Scene[];
   language: 'zh-CN' | 'en-US';
 }): void {
+  const title = '最终图片笔记本教学主线';
+  const text = buildFinalImageNotebookPublicMemoryText(args);
+  const reason = '整本图片 notebook 页面、遮罩和讲解稿通过生成流程后自动写入。';
+  const sourceReferences = buildNotebookPublicMemorySourceReferences(args);
   try {
     recordNotebookPublicMemory({
       stageId: args.stage.id,
-      title: '最终图片笔记本教学主线',
-      text: buildFinalImageNotebookPublicMemoryText(args),
-      reason: '整本图片 notebook 页面、遮罩和讲解稿通过生成流程后自动写入。',
+      title,
+      text,
+      reason,
       kind: 'manual',
       source: 'notebook_generation',
-      sourceReferences: buildNotebookPublicMemorySourceReferences(args),
-      confidence: 0.95,
+      sourceReferences,
     });
   } catch (memoryError) {
     console.warn('[NotebookGeneration] Failed to persist final image notebook memory', {
@@ -950,6 +1003,13 @@ function persistFinalImageNotebookPublicMemory(args: {
       error: errorMessage(memoryError, '最终公共记忆写入失败'),
     });
   }
+  void persistNotebookPublicMemoryToDatabase({
+    stageId: args.stage.id,
+    title,
+    text,
+    reason,
+    sourceReferences,
+  });
 }
 
 async function maybeGenerateAgents(args: {

@@ -2,6 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Particles, { ParticlesProvider, useParticlesProvider } from '@tsparticles/react';
+import type { ISourceOptions } from '@tsparticles/engine';
+import { loadSlim } from '@tsparticles/slim';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -44,7 +47,7 @@ const TalkingAvatarOverlay = dynamic(
 );
 
 const HOME_IMAGES = {
-  realClassroom: '/home/syntara-real-classroom-hero.png',
+  abstractBrandHero: '/home/syntara-abstract-brand-hero.png',
   classroomWorkflow: '/home/syntara-classroom-workflow.png',
   classroomQuestions: '/home/syntara-classroom-questions.png',
   classroomTrace: '/home/syntara-classroom-trace.png',
@@ -162,8 +165,7 @@ function copyForLocale(isZh: boolean, currentCourseName: string, isLoggedIn: boo
         status: currentCourseName
           ? `正在创作：${currentCourseName}`
           : '无需配置，先体验一间 AI 教室',
-        imageAlt:
-          '生成图片：参考真实课堂页面绘制的 AI 课堂画面，包含彩色阶段条、课程卡片和代码执行追踪。',
+        imageAlt: '抽象品牌图：深蓝背景中的层叠书页与叶片形态，使用青色、暖黄和白色光面材质。',
       },
       workflow: [
         {
@@ -259,7 +261,7 @@ function copyForLocale(isZh: boolean, currentCourseName: string, isLoggedIn: boo
         ? `Now creating: ${currentCourseName}`
         : 'Open an AI classroom before setup gets in the way',
       imageAlt:
-        'Generated image inspired by the real classroom page, with colored progress bars, lesson cards, and a code execution trace.',
+        'Abstract brand image with layered page and leaf forms on a deep navy background, using cyan, warm yellow, and white satin materials.',
     },
     workflow: [
       {
@@ -347,7 +349,7 @@ function GeneratedSceneImage({
   priority?: boolean;
 }) {
   return (
-    <figure className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_42px_rgba(24,24,27,0.1)] sm:rounded-[28px] sm:shadow-[0_28px_80px_rgba(24,24,27,0.12)]">
+    <figure className="relative overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-[0_18px_50px_rgba(24,24,27,0.1)]">
       <img
         src={src}
         alt={alt}
@@ -358,7 +360,7 @@ function GeneratedSceneImage({
   );
 }
 
-function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; label: string }) {
+function HeroClassroomBackdrop({ slides, label }: { slides: HomeImageSlide[]; label: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slides[activeIndex] ?? slides[0];
 
@@ -367,54 +369,183 @@ function ClassroomImageCarousel({ slides, label }: { slides: HomeImageSlide[]; l
   }, []);
 
   return (
-    <figure
-      className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_42px_rgba(24,24,27,0.1)] sm:rounded-[28px] sm:shadow-[0_28px_80px_rgba(24,24,27,0.12)]"
-      aria-label={label}
-    >
-      <div className="relative aspect-[16/9] w-full">
-        {activeSlide ? (
-          <img
-            key={activeSlide.src}
-            src={activeSlide.src}
-            alt={activeSlide.alt}
-            loading="eager"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : null}
-      </div>
+    <figure className="pointer-events-none absolute inset-0" aria-label={label}>
+      {activeSlide ? (
+        <img
+          key={activeSlide.src}
+          src={activeSlide.src}
+          alt={activeSlide.alt}
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(13,15,18,0.92)_0%,rgba(13,15,18,0.74)_38%,rgba(13,15,18,0.2)_74%,rgba(13,15,18,0.04)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(13,15,18,0.1)_0%,rgba(13,15,18,0.44)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,transparent,#151715)]" />
 
-      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-200 bg-white/85 px-2.5 py-1.5 shadow-sm backdrop-blur sm:bottom-4 sm:gap-2 sm:px-3 sm:py-2">
-        {slides.map((slide, index) => (
-          <button
-            key={slide.src}
-            type="button"
-            className={`h-2.5 rounded-full transition-all ${
-              index === activeIndex ? 'w-7 bg-zinc-950' : 'w-2.5 bg-zinc-300 hover:bg-zinc-500'
-            }`}
-            aria-label={`${label} ${index + 1}`}
-            aria-current={index === activeIndex ? 'true' : undefined}
-            onClick={() => selectSlide(index)}
-          />
-        ))}
+      <div className="pointer-events-auto absolute bottom-5 left-4 right-4 flex items-center justify-between gap-3 sm:left-auto sm:right-6 sm:w-auto sm:justify-end lg:bottom-7 lg:right-8">
+        <div className="hidden max-w-[260px] border-l border-white/[0.24] pl-3 text-xs leading-5 text-white/[0.64] sm:block">
+          {activeSlide?.alt}
+        </div>
+        <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-black/[0.28] px-2.5 py-2 shadow-lg backdrop-blur">
+          {slides.map((slide, index) => (
+            <button
+              key={slide.src}
+              type="button"
+              className={`h-2 rounded-full transition-all ${
+                index === activeIndex ? 'w-7 bg-white' : 'w-2 bg-white/[0.38] hover:bg-white/70'
+              }`}
+              aria-label={`${label} ${index + 1}`}
+              aria-current={index === activeIndex ? 'true' : undefined}
+              onClick={() => selectSlide(index)}
+            />
+          ))}
+        </div>
       </div>
     </figure>
   );
 }
 
+function HeroParticleField() {
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const options = useMemo<ISourceOptions>(
+    () => ({
+      background: {
+        color: {
+          value: 'transparent',
+        },
+      },
+      detectRetina: true,
+      fpsLimit: 60,
+      fullScreen: {
+        enable: false,
+      },
+      interactivity: {
+        events: {
+          onClick: {
+            enable: false,
+          },
+          onHover: {
+            enable: false,
+          },
+          resize: {
+            enable: true,
+          },
+        },
+      },
+      particles: {
+        color: {
+          value: ['#7dd3fc', '#67e8f9', '#f8c84f', '#fff7d6'],
+        },
+        links: {
+          color: '#7dd3fc',
+          distance: 180,
+          enable: true,
+          opacity: 0.3,
+          width: 1,
+        },
+        move: {
+          direction: 'top-right',
+          enable: true,
+          outModes: {
+            default: 'out',
+          },
+          random: true,
+          speed: {
+            min: 0.24,
+            max: 0.72,
+          },
+          straight: false,
+        },
+        number: {
+          density: {
+            enable: true,
+          },
+          value: 92,
+        },
+        opacity: {
+          animation: {
+            enable: true,
+            speed: 0.52,
+            startValue: 'random',
+            sync: false,
+          },
+          value: {
+            min: 0.3,
+            max: 0.78,
+          },
+        },
+        shape: {
+          type: 'circle',
+        },
+        size: {
+          animation: {
+            enable: true,
+            speed: 0.5,
+            sync: false,
+          },
+          value: {
+            min: 1.3,
+            max: 5,
+          },
+        },
+      },
+      pauseOnBlur: true,
+      pauseOnOutsideViewport: true,
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMotionPreference = () => {
+      setMotionAllowed(!mediaQuery.matches);
+    };
+    const timeout = window.setTimeout(syncMotionPreference, 0);
+
+    mediaQuery.addEventListener('change', syncMotionPreference);
+    return () => {
+      window.clearTimeout(timeout);
+      mediaQuery.removeEventListener('change', syncMotionPreference);
+    };
+  }, []);
+
+  if (!motionAllowed) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-[1] opacity-95 mix-blend-screen [filter:drop-shadow(0_0_8px_rgba(125,211,252,0.42))]"
+      aria-hidden="true"
+    >
+      <ParticlesProvider init={loadSlim}>
+        <HeroParticleCanvas options={options} />
+      </ParticlesProvider>
+    </div>
+  );
+}
+
+function HeroParticleCanvas({ options }: { options: ISourceOptions }) {
+  const { loaded } = useParticlesProvider();
+
+  if (!loaded) return null;
+
+  return <Particles id="syntara-hero-particles" className="h-full w-full" options={options} />;
+}
+
 function WorkflowBand({ items }: { items: HomeCopy['workflow'] }) {
   return (
-    <section className="border-y border-zinc-200 bg-white">
+    <section className="border-y border-zinc-200 bg-[#fbfaf6]">
       <div className="mx-auto grid max-w-7xl gap-0 px-4 py-0 sm:px-6 md:grid-cols-3 lg:px-8">
         {items.map((item) => (
           <article
             key={item.label}
-            className="border-zinc-200 py-6 md:border-r md:px-5 md:py-7 last:md:border-r-0 lg:px-8 lg:py-8"
+            className="border-t border-zinc-200 py-6 first:border-t-0 md:border-l md:border-t-0 md:px-5 md:py-7 first:md:border-l-0 lg:px-8 lg:py-8"
           >
             <div className="mb-4 flex items-center gap-3">
-              <span className="font-mono text-sm text-zinc-400">{item.label}</span>
+              <span className="font-mono text-xs text-zinc-400">{item.label}</span>
               <span className="h-px flex-1 bg-zinc-200" />
             </div>
-            <h2 className="text-xl font-semibold text-zinc-950 sm:text-2xl">{item.title}</h2>
+            <h2 className="text-lg font-semibold text-zinc-950 sm:text-xl">{item.title}</h2>
             <p className="mt-3 max-w-md text-sm leading-6 text-zinc-600">{item.body}</p>
           </article>
         ))}
@@ -432,6 +563,7 @@ function CapabilitySection({
   onAction,
   children,
   reverse = false,
+  surface = 'light',
 }: {
   icon: LucideIcon;
   label: string;
@@ -441,31 +573,36 @@ function CapabilitySection({
   onAction: () => void;
   children: ReactNode;
   reverse?: boolean;
+  surface?: 'light' | 'warm';
 }) {
+  const surfaceClass = surface === 'warm' ? 'bg-[#fbfaf6]' : 'bg-white';
+
   return (
-    <section className="mx-auto grid max-w-7xl items-center gap-6 px-4 py-10 sm:gap-8 sm:px-6 sm:py-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:py-14 lg:grid-cols-2 lg:gap-10 lg:px-8 lg:py-20">
-      <div className={reverse ? 'md:order-2' : undefined}>
-        <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 sm:mb-5">
-          <Icon className="size-4 text-[#2f6fed]" />
-          {label}
+    <section className={`border-t border-zinc-200 ${surfaceClass}`}>
+      <div className="mx-auto grid max-w-7xl items-center gap-7 px-4 py-12 sm:gap-9 sm:px-6 sm:py-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:grid-cols-2 lg:gap-12 lg:px-8 lg:py-20">
+        <div className={reverse ? 'md:order-2' : undefined}>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-normal text-zinc-600 shadow-sm">
+            <Icon className="size-4 text-[#2478ff]" />
+            {label}
+          </div>
+          <h2 className="max-w-xl text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl lg:text-5xl">
+            {title}
+          </h2>
+          <p className="mt-4 max-w-xl text-base leading-7 text-zinc-600 sm:mt-5 sm:leading-8">
+            {body}
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            className="mt-6 rounded-lg bg-[#171918] px-4 text-white shadow-[0_12px_24px_rgba(23,25,24,0.14)] hover:bg-[#282b29] sm:mt-7"
+            onClick={onAction}
+          >
+            {action}
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
-        <h2 className="max-w-xl text-3xl font-semibold text-zinc-950 sm:text-4xl lg:text-5xl">
-          {title}
-        </h2>
-        <p className="mt-4 max-w-xl text-base leading-7 text-zinc-600 sm:mt-5 sm:leading-8">
-          {body}
-        </p>
-        <Button
-          type="button"
-          size="lg"
-          className="mt-6 rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800 sm:mt-7"
-          onClick={onAction}
-        >
-          {action}
-          <ArrowRight className="size-4" />
-        </Button>
+        <div className={reverse ? 'md:order-1' : undefined}>{children}</div>
       </div>
-      <div className={reverse ? 'md:order-1' : undefined}>{children}</div>
     </section>
   );
 }
@@ -513,9 +650,9 @@ function MentorCompanionVisual({
       <aside
         ref={live2dStageRef}
         aria-label={live2dLabel}
-        className="relative min-h-[220px] overflow-hidden rounded-2xl border border-violet-200/50 bg-[radial-gradient(circle_at_50%_10%,rgba(167,139,250,0.38),transparent_48%),linear-gradient(180deg,#18111f_0%,#0b1020_100%)] shadow-[0_16px_42px_rgba(24,24,27,0.14)] sm:min-h-[260px] sm:rounded-[28px] lg:min-h-[300px] lg:shadow-[0_28px_80px_rgba(24,24,27,0.18)]"
+        className="relative min-h-[220px] overflow-hidden rounded-lg border border-zinc-800/70 bg-[linear-gradient(180deg,#201b24_0%,#10161f_100%)] shadow-[0_18px_50px_rgba(24,24,27,0.14)] sm:min-h-[260px] lg:min-h-[300px]"
       >
-        <div className="absolute inset-x-3 top-3 z-20 rounded-2xl border border-white/14 bg-white/10 px-3 py-2.5 text-white shadow-lg backdrop-blur sm:inset-x-4 sm:top-4 sm:px-4 sm:py-3">
+        <div className="absolute inset-x-3 top-3 z-20 rounded-lg border border-white/[0.14] bg-white/10 px-3 py-2.5 text-white shadow-lg backdrop-blur sm:inset-x-4 sm:top-4 sm:px-4 sm:py-3">
           <p className="text-xs font-semibold text-violet-100/80">Live2D mentor</p>
           <p className="mt-1 text-sm font-semibold">{live2dTitle}</p>
         </div>
@@ -533,16 +670,16 @@ function MentorCompanionVisual({
               className="h-full w-full"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center px-5 text-center text-violet-50/75">
-              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-4 shadow-lg backdrop-blur sm:py-5">
+            <div className="flex h-full w-full items-center justify-center px-5 text-center text-violet-50/[0.75]">
+              <div className="rounded-lg border border-white/[0.12] bg-white/10 px-4 py-4 shadow-lg backdrop-blur sm:py-5">
                 <Sparkles className="mx-auto mb-3 size-6 text-violet-200" />
                 <p className="text-sm font-semibold">{live2dTitle}</p>
-                <p className="mt-2 text-xs leading-5 text-violet-50/65">{live2dBody}</p>
+                <p className="mt-2 text-xs leading-5 text-violet-50/[0.65]">{live2dBody}</p>
               </div>
             </div>
           )}
         </div>
-        <div className="absolute inset-x-3 bottom-3 z-20 rounded-2xl border border-white/12 bg-black/28 px-3 py-2.5 text-xs leading-5 text-violet-50/82 backdrop-blur sm:inset-x-4 sm:bottom-4 sm:px-4 sm:py-3">
+        <div className="absolute inset-x-3 bottom-3 z-20 rounded-lg border border-white/[0.12] bg-black/[0.28] px-3 py-2.5 text-xs leading-5 text-violet-50/[0.82] backdrop-blur sm:inset-x-4 sm:bottom-4 sm:px-4 sm:py-3">
           {live2dBody}
         </div>
       </aside>
@@ -566,7 +703,7 @@ export default function HomePage() {
   const heroSlides = useMemo<HomeImageSlide[]>(
     () => [
       {
-        src: HOME_IMAGES.realClassroom,
+        src: HOME_IMAGES.abstractBrandHero,
         alt: copy.hero.imageAlt,
       },
       {
@@ -664,8 +801,8 @@ export default function HomePage() {
   ];
 
   return (
-    <main className="min-h-dvh bg-[#f3f4f1] text-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-[#f3f4f1]/90 backdrop-blur">
+    <main className="min-h-dvh bg-[#fbfaf6] text-zinc-950">
+      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-[#fbfaf6]/92 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
           <button
             type="button"
@@ -684,7 +821,7 @@ export default function HomePage() {
               <button
                 key={item.label}
                 type="button"
-                className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-white hover:text-zinc-950"
+                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-white hover:text-zinc-950"
                 onClick={item.action}
               >
                 {item.label}
@@ -699,7 +836,7 @@ export default function HomePage() {
                   type="button"
                   variant="outline"
                   size="icon-sm"
-                  className="rounded-lg border-zinc-200 bg-white lg:hidden"
+                  className="rounded-lg border-zinc-200 bg-white shadow-sm lg:hidden"
                   aria-label={isZh ? '打开导航菜单' : 'Open navigation menu'}
                 >
                   <Menu className="size-4" />
@@ -728,7 +865,7 @@ export default function HomePage() {
               type="button"
               variant="outline"
               size="icon-sm"
-              className="rounded-lg border-zinc-200 bg-white"
+              className="rounded-lg border-zinc-200 bg-white shadow-sm"
               onClick={() => setLocale(isZh ? 'en-US' : 'zh-CN')}
             >
               <Languages className="size-4" />
@@ -737,7 +874,7 @@ export default function HomePage() {
             <Button
               type="button"
               size="sm"
-              className="rounded-lg bg-zinc-950 px-2 text-white hover:bg-zinc-800 min-[380px]:px-2.5"
+              className="rounded-lg bg-[#171918] px-2 text-white shadow-[0_10px_20px_rgba(23,25,24,0.12)] hover:bg-[#282b29] min-[380px]:px-2.5"
               aria-label={copy.headerCta}
               onClick={goToCoursesOrLogin}
             >
@@ -761,28 +898,32 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden border-b border-zinc-200 bg-[linear-gradient(180deg,#f3f4f1_0%,#ffffff_100%)]">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(24,24,27,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,24,27,0.05)_1px,transparent_1px)] bg-[size:48px_48px]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-4 py-7 sm:gap-7 sm:px-6 sm:py-10 md:grid-cols-[0.46fr_0.54fr] lg:min-h-[70dvh] lg:grid-cols-[0.42fr_0.58fr] lg:gap-10 lg:px-8">
-          <div className="max-w-xl">
+      <section className="relative isolate overflow-hidden bg-[#151715] text-white">
+        <HeroClassroomBackdrop
+          slides={heroSlides}
+          label={isZh ? '课堂画面轮播' : 'Classroom image carousel'}
+        />
+        <HeroParticleField />
+        <div className="pointer-events-none relative z-10 mx-auto flex min-h-[78svh] max-w-7xl items-end px-4 pb-16 pt-20 sm:px-6 sm:pb-20 sm:pt-24 lg:min-h-[82svh] lg:px-8 lg:pb-20">
+          <div className="pointer-events-auto max-w-3xl">
             <Badge
               variant="outline"
-              className="mb-4 border-zinc-300 bg-white text-zinc-700 sm:mb-5"
+              className="mb-5 border-white/[0.18] bg-white/10 text-white shadow-lg backdrop-blur sm:mb-6"
             >
               <Sparkles className="size-3.5 text-[#f5b044]" />
               {copy.hero.eyebrow}
             </Badge>
-            <h1 className="text-4xl font-semibold text-zinc-950 sm:text-5xl lg:text-6xl xl:text-7xl">
+            <h1 className="max-w-3xl text-5xl font-semibold leading-[1.02] text-white sm:text-6xl lg:text-7xl">
               {copy.hero.title}
             </h1>
-            <p className="mt-5 text-base leading-7 text-zinc-600 sm:text-lg sm:leading-8 lg:mt-6">
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/[0.76] sm:text-lg sm:leading-8 lg:mt-6">
               {copy.hero.body}
             </p>
             <div className="mt-7 flex flex-col gap-3 min-[360px]:flex-row min-[360px]:flex-wrap min-[360px]:items-center lg:mt-8">
               <Button
                 type="button"
                 size="lg"
-                className="w-full rounded-lg bg-zinc-950 px-4 text-white hover:bg-zinc-800 min-[360px]:w-auto"
+                className="w-full rounded-lg bg-white px-4 text-[#171918] shadow-[0_18px_34px_rgba(0,0,0,0.18)] hover:bg-zinc-100 min-[360px]:w-auto"
                 onClick={goToCreate}
               >
                 <WandSparkles className="size-4" />
@@ -792,23 +933,18 @@ export default function HomePage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="w-full rounded-lg border-zinc-300 bg-white px-4 min-[360px]:w-auto"
+                className="w-full rounded-lg border-white/20 bg-white/[0.08] px-4 text-white shadow-lg backdrop-blur hover:bg-white/[0.14] hover:text-white min-[360px]:w-auto"
                 onClick={goToClassroom}
               >
                 <Play className="size-4" />
                 {copy.hero.secondary}
               </Button>
             </div>
-            <div className="mt-6 flex max-w-md items-center gap-3 border-l-2 border-[#2f6fed] bg-white px-4 py-3 text-sm text-zinc-600 lg:mt-7">
+            <div className="mt-7 flex max-w-md items-center gap-3 border-l-2 border-[#70d496] bg-white/10 px-4 py-3 text-sm text-white/[0.74] backdrop-blur lg:mt-8">
               <CheckCircle2 className="size-4 shrink-0 text-[#10b981]" />
               <span className="min-w-0">{copy.hero.status}</span>
             </div>
           </div>
-
-          <ClassroomImageCarousel
-            slides={heroSlides}
-            label={isZh ? '课堂画面轮播' : 'Classroom image carousel'}
-          />
         </div>
       </section>
 
@@ -822,7 +958,11 @@ export default function HomePage() {
         action={copy.classroom.action}
         onAction={goToClassroom}
       >
-        <GeneratedSceneImage src={HOME_IMAGES.classroomTrace} alt={copy.classroom.imageAlt} />
+        <GeneratedSceneImage
+          src={HOME_IMAGES.classroomTrace}
+          alt={copy.classroom.imageAlt}
+          priority
+        />
       </CapabilitySection>
 
       <CapabilitySection
@@ -833,6 +973,7 @@ export default function HomePage() {
         action={copy.chat.action}
         onAction={goToChat}
         reverse
+        surface="warm"
       >
         <GeneratedSceneImage src={HOME_IMAGES.notebookAgent} alt={copy.chat.imageAlt} />
       </CapabilitySection>
@@ -856,6 +997,7 @@ export default function HomePage() {
         action={copy.reviewPlan.action}
         onAction={goToReviewPlan}
         reverse
+        surface="warm"
       >
         <GeneratedSceneImage src={HOME_IMAGES.reviewPlan} alt={copy.reviewPlan.imageAlt} />
       </CapabilitySection>
@@ -884,17 +1026,26 @@ export default function HomePage() {
         body={copy.store.body}
         action={copy.store.action}
         onAction={goToStore}
+        surface="warm"
       >
         <GeneratedSceneImage src={HOME_IMAGES.marketplace} alt={copy.store.imageAlt} />
       </CapabilitySection>
 
-      <section className="border-t border-zinc-200 bg-zinc-950 text-white">
+      <section className="relative overflow-hidden border-t border-zinc-800 bg-[#171918] text-white">
+        <img
+          src={HOME_IMAGES.studio}
+          alt=""
+          loading="lazy"
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-[0.16] mix-blend-screen"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#171918_0%,rgba(23,25,24,0.94)_54%,rgba(23,25,24,0.76)_100%)]" />
         <div className="mx-auto grid max-w-7xl gap-7 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-[1fr_auto] lg:gap-8 lg:px-8 lg:py-14">
-          <div>
+          <div className="relative">
             <h2 className="max-w-3xl text-3xl font-semibold sm:text-4xl">{copy.closing.title}</h2>
             <p className="mt-4 max-w-2xl text-base leading-8 text-zinc-400">{copy.closing.body}</p>
           </div>
-          <div className="flex items-center">
+          <div className="relative flex items-center">
             <Button
               type="button"
               size="lg"

@@ -112,6 +112,8 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isLanding = pathname === '/';
   const isMyCourses = pathname === '/my-courses' || pathname?.startsWith('/my-courses/');
   const isClassroom = pathname?.startsWith('/classroom/');
+  const isClassroomMemory =
+    pathname != null && /^\/classroom\/[^/]+\/memory(?:\/|$)/.test(pathname);
   const isAdmin = pathname?.startsWith('/admin');
   const isTestPage = isTestSurface(pathname);
   const isCourseHome = pathname != null && /^\/course\/[^/]+\/?$/.test(pathname);
@@ -223,7 +225,9 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   }
 
   if (isClassroom) {
-    return withStudyCompanion(<MainShellNoRail>{children}</MainShellNoRail>);
+    return withStudyCompanion(
+      <MainShellNoRail showHeader={isClassroomMemory}>{children}</MainShellNoRail>,
+    );
   }
 
   return withStudyCompanion(

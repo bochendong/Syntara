@@ -340,8 +340,8 @@ export function CreateNotebookWorkspace({ courseId }: { courseId: string }) {
                         },
                         {
                           kind: 'markdown' as const,
-                          label: 'Markdown',
-                          desc: '纯文字 section',
+                          label: 'Markdown 文档',
+                          desc: '连续阅读稿',
                           icon: FileText,
                         },
                       ].map((option) => {

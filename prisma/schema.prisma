@@ -193,6 +193,8 @@ model User {
   missionProgress         UserMissionProgress[]
   testResults             TestResult[]
   studyMemories           StudyMemory[]
+  memoryFacts             MemoryFact[]
+  memoryFactEvents        MemoryFactEvent[]
   speechAudios            UserSpeechAudio[]
   problemImportBatches    ProblemImportBatch[]
 
@@ -755,7 +757,6 @@ model StudyMemory {
   reason           String? @db.Text
   question         String? @db.Text
   sourceReferences Json?
-  confidence       Float?
 
   owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -767,6 +768,56 @@ model StudyMemory {
   @@index([ownerId, targetType, courseId, updatedAt(sort: Desc)])
   @@index([ownerId, targetType, notebookId, updatedAt(sort: Desc)])
   @@index([ownerId, scope, status, updatedAt(sort: Desc)])
+}
+
+model MemoryFact {
+  id           String    @id @default(cuid())
+  ownerId      String
+  scopeType    String
+  scopeId      String?
+  namespace    String
+  key          String
+  valueJson    Json
+  confidence   Float     @default(1)
+  source       String    @default("manual")
+  sourceRef    Json?
+  status       String    @default("active")
+  validFrom    DateTime  @default(now())
+  supersededAt DateTime?
+
+  owner  User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events MemoryFactEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, scopeType, scopeId, namespace, key, status])
+  @@index([ownerId, scopeType, scopeId, validFrom(sort: Desc)])
+  @@index([ownerId, status, updatedAt(sort: Desc)])
+}
+
+model MemoryFactEvent {
+  id           String  @id @default(cuid())
+  factId       String?
+  ownerId      String
+  scopeType    String
+  scopeId      String?
+  namespace    String
+  key          String
+  eventType    String
+  oldValueJson Json?
+  newValueJson Json?
+  source       String  @default("manual")
+  sourceRef    Json?
+
+  fact  MemoryFact? @relation(fields: [factId], references: [id], onDelete: SetNull)
+  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, scopeType, scopeId, namespace, key, createdAt(sort: Desc)])
+  @@index([ownerId, eventType, createdAt(sort: Desc)])
+  @@index([factId, createdAt(sort: Desc)])
 }
 
 model CoursePurchase {

@@ -17,8 +17,12 @@ const CANVAS_HEIGHT = 562.5;
 const SOURCE_WIDTH = 1600;
 const SOURCE_HEIGHT = 900;
 const HOTSPOT_PATH = 'M 0 0 L 200 0 L 200 200 L 0 200 Z';
-const HELPER = '/Users/dongpochen/.codex/skills/openmaic-lecture-image/scripts/render_single_lecture_image_artifacts.cjs';
-const ARTIFACT_DIR = path.join(ROOT, 'tmp/notebook-imagegen-queue/MAT102/queue-mat102-10inductioni-1');
+const HELPER =
+  '/Users/dongpochen/.codex/skills/openmaic-lecture-image/scripts/render_single_lecture_image_artifacts.cjs';
+const ARTIFACT_DIR = path.join(
+  ROOT,
+  'tmp/notebook-imagegen-queue/MAT102/queue-mat102-10inductioni-1',
+);
 const PAGE_SPEC_PATH = path.join(ARTIFACT_DIR, 'page-specs-imagegen-20260601.json');
 const NATIVE_DIR = path.join(ARTIFACT_DIR, 'generated-images-native-marker-20260601');
 const PROMPT_DIR = path.join(ARTIFACT_DIR, 'prompts-native-marker-20260601');
@@ -203,7 +207,9 @@ function pages() {
 }
 
 function compactText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function labelFromVisible(visible, index) {
@@ -305,7 +311,10 @@ function preparePrompts() {
       order: index,
       title: page.title,
       promptPath: path.join(PROMPT_DIR, `page-${pageNo3(index)}.prompt.md`),
-      expectedSourceMarkerImage: path.join(SOURCE_MARKER_DIR, `page-${pageNo3(index)}-source-marker-imagegen.png`),
+      expectedSourceMarkerImage: path.join(
+        SOURCE_MARKER_DIR,
+        `page-${pageNo3(index)}-source-marker-imagegen.png`,
+      ),
       components: componentPlans(page, index),
     });
   }
@@ -314,7 +323,10 @@ function preparePrompts() {
 }
 
 function specForPage(page, pageIndex, outputDir) {
-  const sourceMarkerImage = path.join(SOURCE_MARKER_DIR, `page-${pageNo3(pageIndex)}-source-marker-imagegen.png`);
+  const sourceMarkerImage = path.join(
+    SOURCE_MARKER_DIR,
+    `page-${pageNo3(pageIndex)}-source-marker-imagegen.png`,
+  );
   return {
     sourceMarkerImage,
     outputDir,
@@ -351,7 +363,8 @@ function runRecovery(pageFilter = null) {
       page: index + 1,
       title: page.title,
       status: validation.status,
-      recoveredRegionCount: validation.recoveredRegions.filter((region) => region.status === 'pass').length,
+      recoveredRegionCount: validation.recoveredRegions.filter((region) => region.status === 'pass')
+        .length,
       totalRegionCount: validation.recoveredRegions.length,
       sourceCounts: validation.sourceCounts,
       cleanCounts: validation.cleanCounts,
@@ -488,7 +501,14 @@ function promptPlanForPage(page, index, regions) {
       markerSizePx: '22-28',
       note: 'Source image already contains markers. Clean image is recovered by removing marker components.',
       ordinaryContentSafePalette: ['black', 'graphite gray', 'light gray', 'muted brown'],
-      ordinaryContentForbiddenColors: ['#ff0000', '#00ff00', '#0048ff', '#00ffff', '#ff00ff', '#ffff00'],
+      ordinaryContentForbiddenColors: [
+        '#ff0000',
+        '#00ff00',
+        '#0048ff',
+        '#00ffff',
+        '#ff00ff',
+        '#ffff00',
+      ],
     },
     compiledImagePromptPath: path.join(PROMPT_DIR, `page-${pageNo3(index)}.prompt.md`),
     recoveryResult: {
@@ -617,13 +637,29 @@ async function publishBuild() {
     const builtPageDir = path.join(BUILD_DIR, 'pages', `page-${page3}`);
     const publicPageDir = path.join(PUBLIC_DIR, 'pages', `page-${page3}`);
     fs.cpSync(builtPageDir, publicPageDir, { recursive: true });
-    fs.copyFileSync(path.join(publicPageDir, 'source-marker.png'), path.join(PUBLIC_DIR, 'source', `page-${page3}-source.png`));
-    fs.copyFileSync(path.join(publicPageDir, 'clean.png'), path.join(PUBLIC_DIR, 'recovered', `page-${page3}-clean.png`));
-    fs.copyFileSync(path.join(publicPageDir, 'clean.png'), path.join(PUBLIC_DIR, `slide-${page2}.png`));
-    fs.copyFileSync(path.join(publicPageDir, 'source-marker.png'), path.join(PUBLIC_DIR, 'raw', `page-${page3}-source-marker.png`));
-    fs.cpSync(path.join(publicPageDir, 'mask-previews'), path.join(PUBLIC_DIR, 'mask-previews', `page-${page3}`), {
-      recursive: true,
-    });
+    fs.copyFileSync(
+      path.join(publicPageDir, 'source-marker.png'),
+      path.join(PUBLIC_DIR, 'source', `page-${page3}-source.png`),
+    );
+    fs.copyFileSync(
+      path.join(publicPageDir, 'clean.png'),
+      path.join(PUBLIC_DIR, 'recovered', `page-${page3}-clean.png`),
+    );
+    fs.copyFileSync(
+      path.join(publicPageDir, 'clean.png'),
+      path.join(PUBLIC_DIR, `slide-${page2}.png`),
+    );
+    fs.copyFileSync(
+      path.join(publicPageDir, 'source-marker.png'),
+      path.join(PUBLIC_DIR, 'raw', `page-${page3}-source-marker.png`),
+    );
+    fs.cpSync(
+      path.join(publicPageDir, 'mask-previews'),
+      path.join(PUBLIC_DIR, 'mask-previews', `page-${page3}`),
+      {
+        recursive: true,
+      },
+    );
     const metadata = readJson(path.join(publicPageDir, 'metadata.json'));
     const validation = readJson(path.join(publicPageDir, 'validation-report.json'));
     artifacts.push({
@@ -655,7 +691,11 @@ async function publishBuild() {
       maskLabels.push(`第 ${index + 1} 页 · ${region.label}`);
     }
   }
-  await renderContactSheet(maskFiles, path.join(PUBLIC_DIR, 'mask-preview-contact-sheet.png'), maskLabels);
+  await renderContactSheet(
+    maskFiles,
+    path.join(PUBLIC_DIR, 'mask-preview-contact-sheet.png'),
+    maskLabels,
+  );
 
   const scenes = scenesForNotebook();
   const hitMap = {
@@ -679,7 +719,10 @@ async function publishBuild() {
           image: region.maskPreviewUrl,
         })),
         hitMap: semanticHitMapForPage(page, index, metadata.regions),
-        validation: { status: artifacts[index].status, maskPreviewCount: artifacts[index].maskPreviewCount },
+        validation: {
+          status: artifacts[index].status,
+          maskPreviewCount: artifacts[index].maskPreviewCount,
+        },
       };
     }),
   };
@@ -687,7 +730,12 @@ async function publishBuild() {
   writeJson(path.join(PUBLIC_DIR, 'notebook-scenes.json'), scenes);
   writeJson(
     path.join(PUBLIC_DIR, 'scene-actions.json'),
-    scenes.map((scene) => ({ id: scene.id, title: scene.title, order: scene.order, actions: scene.actions })),
+    scenes.map((scene) => ({
+      id: scene.id,
+      title: scene.title,
+      order: scene.order,
+      actions: scene.actions,
+    })),
   );
   writeJson(path.join(PUBLIC_DIR, 'artifact-summary.json'), artifacts);
   writeJson(path.join(PUBLIC_DIR, 'validation-summary.json'), {
@@ -756,8 +804,15 @@ async function seedDatabase() {
           ownerId,
           courseId: course.id,
           name: NOTEBOOK_NAME,
-          description: 'MAT102 中文 imagegen notebook：source-marker 原生四角生成，recover 后得到 clean slides 和 masks。',
-          tags: ['MAT102', 'zh-CN', 'native-imagegen-marker', 'marker-recovery', '10InductionI-1.pdf'],
+          description:
+            'MAT102 中文 imagegen notebook：source-marker 原生四角生成，recover 后得到 clean slides 和 masks。',
+          tags: [
+            'MAT102',
+            'zh-CN',
+            'native-imagegen-marker',
+            'marker-recovery',
+            '10InductionI-1.pdf',
+          ],
           avatarUrl: '/avatars/notebook-agents/avatar8.avif',
           language: 'zh-CN',
           style: 'native-imagegen-marker-recovered',
@@ -767,8 +822,15 @@ async function seedDatabase() {
           ownerId,
           courseId: course.id,
           name: NOTEBOOK_NAME,
-          description: 'MAT102 中文 imagegen notebook：source-marker 原生四角生成，recover 后得到 clean slides 和 masks。',
-          tags: ['MAT102', 'zh-CN', 'native-imagegen-marker', 'marker-recovery', '10InductionI-1.pdf'],
+          description:
+            'MAT102 中文 imagegen notebook：source-marker 原生四角生成，recover 后得到 clean slides 和 masks。',
+          tags: [
+            'MAT102',
+            'zh-CN',
+            'native-imagegen-marker',
+            'marker-recovery',
+            '10InductionI-1.pdf',
+          ],
           avatarUrl: '/avatars/notebook-agents/avatar8.avif',
           language: 'zh-CN',
           style: 'native-imagegen-marker-recovered',
@@ -805,7 +867,6 @@ async function seedDatabase() {
             { label: 'queue PDF', source: SOURCE_PDF },
             { label: 'generated notebook', source: PUBLIC_URL },
           ],
-          confidence: 0.94,
         },
         create: {
           id: 'memory_mat102_induction_i_public_20260601',
@@ -824,7 +885,6 @@ async function seedDatabase() {
             { label: 'queue PDF', source: SOURCE_PDF },
             { label: 'generated notebook', source: PUBLIC_URL },
           ],
-          confidence: 0.94,
         },
       });
     });

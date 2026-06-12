@@ -64,10 +64,19 @@ function MarkdownNotebookReader({
   headerActions?: ReactNode;
 }) {
   const sections = scenes.filter((scene) => scene.content.type === 'markdown');
-  const selected = sections.find((scene) => scene.id === currentSceneId) || sections[0] || null;
+  const activeSectionId =
+    currentSceneId && sections.some((scene) => scene.id === currentSceneId)
+      ? currentSceneId
+      : sections[0]?.id || null;
   const courseHref = stage.courseId
     ? `/course/${encodeURIComponent(stage.courseId)}`
     : '/my-courses';
+  const sectionAnchors = sections.map((section, index) => ({
+    sceneId: section.id,
+    domId: `markdown-${String(section.id || index).replace(/[^a-zA-Z0-9_-]/g, '-')}`,
+    title: section.title || `Markdown ${index + 1}`,
+    summary: section.content.type === 'markdown' ? section.content.summary : undefined,
+  }));
 
   return (
     <div className="flex min-h-0 flex-1 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
@@ -81,7 +90,7 @@ function MarkdownNotebookReader({
         </Link>
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">
-            Markdown 笔记本
+            Markdown 文档
           </p>
           <h1 className="mt-1 line-clamp-2 text-lg font-semibold">{stage.name}</h1>
           {stage.description ? (
@@ -91,13 +100,13 @@ function MarkdownNotebookReader({
           ) : null}
         </div>
         <div className="mt-5 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
-          {sections.map((section, index) => {
-            const active = section.id === selected?.id;
+          {sectionAnchors.map((section, index) => {
+            const active = section.sceneId === activeSectionId;
             return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onSelectScene(section.id)}
+              <a
+                key={section.sceneId}
+                href={`#${section.domId}`}
+                onClick={() => onSelectScene(section.sceneId)}
                 className={[
                   'flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
                   active
@@ -110,13 +119,13 @@ function MarkdownNotebookReader({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{section.title}</span>
-                  {section.content.type === 'markdown' && section.content.summary ? (
+                  {section.summary ? (
                     <span className="mt-1 line-clamp-2 text-[11px] leading-4 opacity-75">
-                      {section.content.summary}
+                      {section.summary}
                     </span>
                   ) : null}
                 </span>
-              </button>
+              </a>
             );
           })}
         </div>
@@ -126,26 +135,36 @@ function MarkdownNotebookReader({
         <div className="flex min-h-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/88 px-5 py-3 dark:border-white/10 dark:bg-white/[0.04]">
           <div className="min-w-0">
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              {sections.length} 个 section
+              {sections.length} 段 Markdown 内容
             </p>
-            <h2 className="truncate text-base font-semibold">
-              {selected ? selected.title : stage.name}
-            </h2>
+            <h2 className="truncate text-base font-semibold">{stage.name}</h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto px-4 py-5 sm:px-8 lg:px-12">
-          {selected?.content.type === 'markdown' ? (
-            <article className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white px-6 py-6 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:px-8">
-              <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100">
-                {selected.content.markdown}
-              </MessageResponse>
+        <div className="min-h-0 flex-1 scroll-smooth overflow-auto px-4 py-6 sm:px-8 lg:px-12">
+          {sections.length > 0 ? (
+            <article className="mx-auto max-w-4xl">
+              {sections.map((section, index) => {
+                if (section.content.type !== 'markdown') return null;
+                const anchor = sectionAnchors[index];
+                return (
+                  <section
+                    key={section.id}
+                    id={anchor.domId}
+                    className="scroll-mt-6 border-b border-slate-200/70 py-7 first:pt-0 last:border-b-0 dark:border-white/10"
+                  >
+                    <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100 [&_a]:text-blue-600 [&_a]:underline-offset-4 hover:[&_a]:underline dark:[&_a]:text-blue-300">
+                      {section.content.markdown}
+                    </MessageResponse>
+                  </section>
+                );
+              })}
             </article>
           ) : (
             <div className="mx-auto flex min-h-[360px] max-w-3xl items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/80 text-center text-sm text-slate-500 dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-400">
               <div>
                 <FileText className="mx-auto mb-3 size-8 opacity-60" />
-                这个 markdown 笔记本还没有 section。
+                这个 Markdown 笔记本还没有内容。
               </div>
             </div>
           )}

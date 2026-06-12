@@ -36,7 +36,6 @@ export interface NotebookMemoryItem {
   question?: string;
   sourceReferences?: NotebookMemorySourceReference[];
   lastUsedAt?: number;
-  confidence?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -218,16 +217,11 @@ function normalizeNotebookMemoryItem(item: NotebookMemoryItem): NotebookMemoryIt
         .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
         .slice(0, item.scope === 'public' ? 12 : 6)
     : undefined;
-  const confidence =
-    typeof item.confidence === 'number' && Number.isFinite(item.confidence)
-      ? Math.max(0, Math.min(1, item.confidence))
-      : undefined;
   return {
     ...item,
     kind,
     status,
     sourceReferences,
-    confidence,
   };
 }
 
@@ -265,7 +259,6 @@ export function recordNotebookPrivateMemory(args: {
   question?: string;
   kind?: StudyMemoryKind;
   sourceReferences?: NotebookMemorySourceReference[];
-  confidence?: number;
   source?: NotebookMemoryItem['source'];
 }): { profile: StudyMemoryProfile; item: NotebookMemoryItem | null; created: boolean } {
   const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
@@ -303,10 +296,6 @@ export function recordNotebookPrivateMemory(args: {
       .map((reference) => normalizeMemoryReference(reference))
       .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
       .slice(0, 6),
-    confidence:
-      typeof args.confidence === 'number' && Number.isFinite(args.confidence)
-        ? Math.max(0, Math.min(1, args.confidence))
-        : undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -328,7 +317,6 @@ export function recordNotebookPublicMemory(args: {
   reason?: string;
   kind?: StudyMemoryKind;
   sourceReferences?: NotebookMemorySourceReference[];
-  confidence?: number;
   source?: NotebookMemoryItem['source'];
 }): { profile: StudyMemoryProfile; item: NotebookMemoryItem | null; created: boolean } {
   const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
@@ -364,10 +352,6 @@ export function recordNotebookPublicMemory(args: {
       .map((reference) => normalizeMemoryReference(reference))
       .filter((reference): reference is NotebookMemorySourceReference => Boolean(reference))
       .slice(0, 12),
-    confidence:
-      typeof args.confidence === 'number' && Number.isFinite(args.confidence)
-        ? Math.max(0, Math.min(1, args.confidence))
-        : undefined,
     createdAt: now,
     updatedAt: now,
   };

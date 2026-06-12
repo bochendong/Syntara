@@ -1,0 +1,126 @@
+{
+  "courseId": "cmpanemia001v8ouzmhttvkrn",
+  "memories": [
+    {
+      "id": "memory_mat136_queue_definite_integral_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "title": "MAT136 定积分公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 01《定积分：从矩形到基本定理》。\n\n## 记忆边界\n不记录定积分、Riemann sum、FTC 的通用定义。共有记忆只保留本讲从面积近似到定积分识别、再到 FTC 变限求导的知识路径和答题格式。\n\n## 知识路径\n1. 先用速度变化时如何求路程/面积建立矩形近似直觉：采样越细，矩形面积和越接近真实面积。\n2. 再区分 left-hand sum 和 right-hand sum，并用函数递增/递减判断 overestimate 与 underestimate。\n3. 接着把 Riemann sum 的极限解释成定积分，重点是从求和式读出区间、Δx、采样点和 integrand。\n4. FTC II 用于把定积分转成 F(b)-F(a)；FTC I 用于把上限为 x 的面积函数求导回 integrand。\n5. 变上限/变下限积分求导时，最后进入链式法则形式：上限贡献减下限贡献。\n\n## 格式规则\n- Riemann sum 题先读 Δx，再读采样点是 a+iΔx 还是 a+(i-1)Δx，由此判断 left/right endpoint。\n- 从极限求和式反推定积分时，要显式写出 a、b、Δx、f(x)，并注意括号结构，如 7-x^2 和 (7-x)^2 不能混。\n- 四项 LHS/RHS 近似题要先写 Δx 和四个采样点，再代入函数值相乘，最后化简或估算数值。\n- FTC I 变限求导要先代入 integrand，再乘对应上限或下限的导数；下限项要带负号。\n- 若上下限都依赖 x，先拆成固定下限到上限的两个面积函数，再分别求导。\n\n## 例题/题型规则\n- 本讲反复训练 Riemann sum 与 definite integral 的双向转换：一种题从积分写求和式，另一种题从极限求和式读 b 和 f(x)。\n- LHS/RHS 估计题用 sqrt(x) 这类递增函数训练 under/over estimate 判断。\n- FTC I 题从 F(x)=∫f(t)dt 过渡到 F'(x)=f(x)，再训练 F''(x)=f'(x) 以及上下限含 x 的链式求导。\n\n## 检查点\n区间被分成几段？每段宽度 Δx 是多少？采样点是左端点还是右端点？integrand 里变量和积分变量是否一致？变限积分求导时是否乘了上/下限导数？下限项是否带负号？",
+      "reason": "本讲的课程私有价值在于从面积近似到 Riemann sum 识别，再到 FTC 变限求导的答题顺序。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_substitution_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-02-substitution",
+      "title": "MAT136 换元法公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 02《换元法：从反向链式法则到定积分换元》。\n\n## 记忆边界\n不记录 u-substitution 的通用定义。共有记忆只保留本讲把整道题换到 u 的变量系统的格式规则、常数/负号处理和定积分换限规则。\n\n## 知识路径\n1. 不定积分换元从识别 inner function 开始：选 u 后写 du，把 dx 和缺少的常数一起处理。\n2. 换元完成后 integrand、differential、变量都必须属于同一个 u 系统，不能残留原变量。\n3. 不定积分求完后要回代 x；定积分则把上下限代入 u=g(x)，之后全程在 u 的区间里计算。\n4. 已知 ∫f(x)dx 的缩放题不需要找 f 的公式，核心是变量替换带来的区间缩放和 dx 因子。\n\n## 格式规则\n- 选 u 时说明它对应 integrand 的哪一层结构；du 中差出的常数或负号要在积分外补齐。\n- 定积分换元要把 x 上下限同步换成 u 上下限；换限后答案不再回代 x。\n- 若换元后仍出现 x、dx 或原上下限，说明变量系统没有统一。\n- 对 f(2x)、f(ax+b) 这类题，先令 u=ax+b，再用 dx=du/a 改写积分和区间。\n\n## 例题/题型规则\n- z sqrt(z^2-5)、sin t/cos^3 t、x/sqrt(x-1) 训练差常数、差负号和代数整理。\n- 已知 ∫_0^6 f(x)dx=8 求 ∫_0^3 f(2x)dx 这类题训练函数未知但积分区间可换元。\n- 定积分换元题优先检查变量、微分、上下限是否一致。\n\n## 检查点\nu 选的是哪一层结构？du 和原 integrand 差几个常数或负号？换元后是否还有原变量？定积分上下限是否已经换到 u 的世界？",
+      "reason": "本讲的课程私有价值在于定积分换元时上下限必须随 u 改写，以及无公式函数题的变量缩放思路。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_inverse_substitution_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-03-inverse-substitution",
+      "title": "MAT136 逆换元法公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 03《逆换元法：从根号形状到三角代换》。\n\n## 记忆边界\n不记录三角恒等式清单。共有记忆只保留本讲从根号形状识别三角代换、处理 dx、化简根号和回代的格式。\n\n## 知识路径\n1. 普通换元无法简化根号时，先把根号内整理成 a^2-x^2、a^2+x^2 或 x^2-a^2。\n2. 按形状选择代换：a^2-x^2 对应 x=a sin u，a^2+x^2 对应 x=a tan u，x^2-a^2 对应 x=a sec u。\n3. 写出 dx 后，用对应恒等式把根号化成三角函数，再进入三角积分。\n4. 定积分可把上下限换成 u；不定积分需要用三角形或反三角函数回到 x。\n\n## 格式规则\n- 遇到 x^2 一次项时先 completing square，再判断根号形状。\n- 根号化简时 sqrt(cos^2 u) 这类表达式的正负由代换区间保证，不能随意丢绝对值。\n- 若三角积分出现课程暂未展开的复杂形式，可以先保留在三角函数积分阶段，再根据题目要求继续化简。\n- 不定积分回代时要把 sin u、tan u、sec u 等全部改回 x 的表达式。\n\n## 例题/题型规则\n- sqrt(5+4x-x^2) 训练先配方再选代换。\n- x^2/sqrt(4-x^2) 训练 x=2 sin u 后把剩余 x^2 也换成三角函数。\n- x^2+16 型题训练 sec/tan 关系和回代三角形。\n\n## 检查点\n根号内是否已配方？属于三种形状中的哪一种？dx 是否已替换？根号正负是否由区间控制？不定积分是否完成回代？",
+      "reason": "本讲的课程私有价值在于根号形状驱动代换选择，并允许某些题先化到三角积分形式。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_area_volume_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-04-area-volume",
+      "title": "MAT136 面积与体积公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 04《面积与体积：从曲线间面积到切片法》。\n\n## 记忆边界\n不记录面积/体积公式本身。共有记忆只保留本讲的几何建模顺序：画区域、找交点、选切片方向、写长度或截面积再积分。\n\n## 知识路径\n1. 曲线间面积先画区域并找交点，再判断 vertical slice 还是 horizontal slice。\n2. 竖直切片用 top-bottom，水平切片用 right-left；若上下或左右关系改变，必须分段。\n3. 体积题先把小片截面写成 A(x) 或 A(y)，再积分 V=∫A。\n4. 旋转体先确定旋转轴，再从到旋转轴的距离得到圆盘/垫片半径。\n5. 圆锥、球、金字塔等体积题用相似比例或几何关系先写截面积函数。\n\n## 格式规则\n- 面积 integrand 应是长度；体积 integrand 应是面积，单位不匹配通常表示建模错。\n- 曲线交点决定积分边界；图像关系决定 integrand 的顺序。\n- 水平切片要把 x 写成 y 的函数，并使用 x_right(y)-x_left(y)。\n- 垫片法要写 outer radius 和 inner radius，积分中是 π(R^2-r^2)。\n\n## 例题/题型规则\n- y=x^2 与 y=sqrt(x)、|2x| 与 x+2、sin 2x 与 cos 2x 训练交点和上下关系。\n- 旋转体题训练绕不同轴时半径表达式会变化。\n- 已知几何体切片题训练从相似三角形或边长比例写 A(y)。\n\n## 检查点\n区域画出来了吗？交点是否正确？该用 top-bottom 还是 right-left？是否需要分段？integrand 的单位是长度还是面积？旋转半径是否量到正确轴？",
+      "reason": "本讲的课程私有价值在于曲线间面积和体积题的建模流程，尤其水平切片和截面积先行的格式。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_integration_by_parts_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "title": "MAT136 分部积分公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 05《分部积分：从乘积法则到选 u》。\n\n## 记忆边界\n不记录 integration by parts 公式本身。共有记忆只保留本讲选 u、列 u/u'/v'/v 表、处理定积分边界和多次分部的格式规则。\n\n## 知识路径\n1. 分部积分来自乘积法则反向使用：∫u v' = uv - ∫u'v。\n2. 题目先拆成 u 和 v'，再求 u' 与 v，目标是让剩余积分更简单。\n3. 选 u 的优先级可按反三角、Log、Polynomial、三角、Exponential 参考，但最终以剩余积分是否变轻为准。\n4. 多项式乘 e^x、sin/cos 这类题可能要连续分部；技巧也可与换元组合。\n5. 定积分分部要同时处理边界项 uv|_a^b 和剩余定积分。\n\n## 格式规则\n- 每题先列 u、u'、v'、v，不省略 v 的积分过程。\n- ln x、arctan x 这类单函数题要把 1 当作 v'。\n- 多次分部时保持符号和边界项顺序，必要时让积分项抵消。\n- 反函数积分可先令 x=f(t) 改变量，再使用分部积分。\n\n## 例题/题型规则\n- ∫ln x dx、∫arctan x dx 训练补 v'=1。\n- ∫x^3 e^x dx 训练多次分部。\n- ∫x^3 cos(x^2) dx 训练先换元再分部。\n- 含 f''(x)ln x 与 f(x)/x^2 的题训练连续分部和抵消结构。\n\n## 检查点\nu' 是否比 u 更简单？v 是否能顺利积分？定积分边界项是否写出？多次分部的符号是否一致？剩余积分是否真的变轻？",
+      "reason": "本讲的课程私有价值在于分部积分的书写模板、选 u 优先级，以及换元/分部组合题的处理顺序。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_differential_equations_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "title": "MAT136 微分方程公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 06《微分方程：从变化率到斜率场》。\n\n## 记忆边界\n不记录 differential equation、slope field 或 Euler method 的通用定义。共有记忆只保留本讲初值问题、变上限积分判解、斜率场读图和 Euler 估计的答题格式。\n\n## 知识路径\n1. 微分方程先被当作变化率规则处理：把 dy/dx 改写成 dy=...dx，两边积分得到 y=...+C。\n2. 初值问题分两步：先积分得到通解，再代入初值求 C。\n3. 判断某个积分形式是否为解时，不必先算出 y；用 FTC 和链式法则直接对变上限积分求导。\n4. 斜率场从右端公式的依赖关系读图：只依赖 x 时同一竖线斜率相同，含 y 时看水平线、零斜率线和平衡解。\n5. Euler 方法从当前点斜率一步步走，估计高低由解曲线凹凸判断。\n\n## 格式规则\n- 初值问题必须写出 C 的求法，不能停在不含初值的通解。\n- 变上限积分判解时，代入上限后还要乘上限导数；下限变化时加负号。\n- 斜率场匹配先看斜率的正负区域，再看零斜率线、对称性和只依赖 x/只依赖 y 的条纹特征。\n- Euler 表格按 x_n、y_n、slope、step update 的顺序记录，避免一次跨多步。\n\n## 例题/题型规则\n- dy/dx=2x, y(3)=5 训练通解加初值两步。\n- 压力/体积题训练从导数形状判断函数类型，如 1/P 对应 logarithmic。\n- 多选题给出变上限积分，训练用 FTC 判定哪个函数满足给定 dy/dx。\n- slope field 题训练由 x、y、x^2-y^2、(2-y)(y+1)^2 等依赖关系识别图像。\n\n## 检查点\n是否已经从 dy/dx 转成可积分形式？C 是否由初值确定？变上限积分求导是否乘了链式因子？斜率场的零斜率线和正负区域是否匹配？Euler 每一步是否使用当前点斜率？",
+      "reason": "本讲的课程私有价值在于初值问题的两步写法、变上限积分判解、斜率场读图和 Euler 估计判断。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_sequence_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-07-sequence",
+      "title": "MAT136 数列公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 07《数列：从通项到极限》。\n\n## 记忆边界\n不记录 sequence、recursive sequence、convergence 的通用定义。共有记忆只保留本讲显式通项和递归数列的不同判断路线，以及单调有界证明格式。\n\n## 知识路径\n1. 先区分显式通项和递归定义；显式通项优先看几何型、指数型、最高次项、夹逼或有界因子除以 n。\n2. 交错或振荡通项不能只凭符号变化判发散，要同时看大小是否趋向 0。\n3. 递归数列先列前几项建立趋势，再证明 monotonic 和 bounded。\n4. 单调有界推出 converges 后，设极限 L 并代入递推式求候选极限。\n5. 候选极限若有多个根，要用数列范围或非负性排除不可能的根。\n\n## 格式规则\n- 显式数列题先写 lim a_n 的主要比较对象，再说明振荡、有界或夹逼如何进入判断。\n- 递归数列题按列项、证单调、证有界、设 L、解方程的顺序组织。\n- bounded alone 不能推出收敛，必须配合单调；振荡数列是常用反例。\n- 递推极限方程只在已证明收敛后使用，不能反过来当作收敛证明。\n\n## 例题/题型规则\n- (0.2)^n 与 (-0.2)^n 训练绝对值小于 1 时即使交错也趋 0。\n- (-1)^n/n、sin n/n 训练振荡因子被 1/n 夹住。\n- sqrt(2+a_n) 递归例题训练证明递增、有上界，再用 L=sqrt(2+L) 求极限并排除负根。\n\n## 检查点\n这是显式通项还是递归定义？振荡项的幅度是否趋 0？递归数列是否已经证明单调和有界？设 L 前是否已经有收敛依据？候选根是否符合数列范围？",
+      "reason": "本讲的课程私有价值在于显式数列与递归数列的不同证明路线，尤其单调有界定理的答题格式。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_mat136_queue_improper_integrals_public_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "title": "MAT136 反常积分公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 08《反常积分：从极限定义到比较判别》。\n\n## 记忆边界\n不记录 improper integral 或 comparison test 的通用定义。共有记忆只保留本讲先找危险点、拆区间、设极限，再按比较方向判断的操作流程。\n\n## 知识路径\n1. 每题先找危险点：无限端点、0 附近的爆点、分母为 0 的内部点、或 integrand 没有极限的位置。\n2. 无限上限用 t 截断；端点爆点用单侧极限；区间内部有爆点时必须拆成多段。\n3. 只有每一段都收敛，整个反常积分才收敛。\n4. p-integral 要分清无穷远和 0 附近的相反结论：同一个 p 在两类端点的结果不同。\n5. 比较判别按目标选方向：证明收敛找更大的已知收敛上界，证明发散找更小的已知发散下界。\n\n## 格式规则\n- 写比较前先确认 integrand 在目标区间非负，或者明确处理绝对值/正负问题。\n- 内部奇点不能被一个整体极限盖过去，要先拆区间再分别判定。\n- 有理函数反常积分可配合 partial fractions，但分母为 0 的点仍先作为危险点处理。\n- 振荡项若没有极限，可能直接导致发散；不能只凭函数大小感觉判断。\n\n## 例题/题型规则\n- ∫_1^∞ 1/x^p dx 与 ∫_0^1 1/x^p dx 训练 p 规则的两套方向。\n- sin x/x^2、sec^2 x/(x sqrt x)、sin^2 x/sqrt x、1/(sqrt x(1+x)) 训练先拆危险点再比较。\n- 含 rational function 的题训练先因式分解分母、检查内部奇点，再选择部分分式或比较。\n\n## 检查点\n危险点在哪里？是否需要拆区间？每一段是否都收敛？比较方向是否服务于要证明的结论？p-integral 用的是无穷远版本还是 0 附近版本？",
+      "reason": "本讲的课程私有价值在于反常积分先定位危险点、拆区间，再按比较方向判断的格式。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_queue_mat136_09_series_public_cover_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-09-series",
+      "title": "MAT136 级数公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 09《级数：从部分和到判别法》。\n\n## 记忆边界\n不记录 series、geometric series、p-series 或各判别法的通用定义。共有记忆只保留本讲判别法选择顺序、Divergence Test fail 的用语，以及不同题型进入不同测试的格式。\n\n## 知识路径\n1. 先把 series 理解成 partial sums 的 sequence，收敛是部分和有有限极限。\n2. 做题先用 Divergence Test 看通项极限：不为 0 或不存在则发散；等于 0 只说明 Divergence Test Fail，需要换方法。\n3. 可识别 telescoping、geometric 或 p-series 时先用结构性方法。\n4. Integral Test 前检查对应函数 continuous、positive、decreasing。\n5. Comparison Test 和 Limit Comparison Test 处理非负项；Ratio Test 优先处理 factorial、指数、n 次幂混合的相邻项。\n\n## 格式规则\n- 写 Divergence Test 时要区分 fail 和 diverge：lim a_n=0 不是收敛结论。\n- Comparison Test 证明收敛找更大的已知收敛对象，证明发散找更小的已知发散对象。\n- Ratio Test 写 |a_{n+1}/a_n| 的极限 L：L<1 收敛，L>1 发散，L=1 没结论。\n- sequence 的收敛和 series 的收敛分开判断；a_n 有极限不代表 ∑a_n 收敛。\n\n## 例题/题型规则\n- a_n=1/(n(n+1)) 训练 partial sums/telescoping。\n- ∑(-1)^{n+1} 与 ∑2/(n+1) 训练 Divergence Test 的两种结果。\n- 含 factorial、指数和 n 的式子训练 Ratio Test 中 a_{n+1}/a_n 的化简。\n- A_n 可收敛到 1 但 ∑A_n 因通项不趋 0 而发散，用来区分 sequence 和 series。\n\n## 检查点\n通项极限是否先检查？lim a_n=0 时是否改用别的判别法？Integral Test 的三个条件是否满足？比较法方向是否正确？Ratio Test 的 L=1 是否被当作没有结论？",
+      "reason": "本讲的课程私有价值在于判别法选择顺序，以及 Divergence Test fail 与真正发散的区分。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_queue_mat136_10_power_series_public_cover_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-10-power-series",
+      "title": "MAT136 幂级数公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 10《幂级数：收敛半径与可靠区间》。\n\n## 记忆边界\n不记录 power series 的通用定义。共有记忆只保留本讲把幂级数解释成中心附近的可靠近似，以及用 Ratio Test 找半径、区间和端点的格式。\n\n## 知识路径\n1. 先用 e^x、sin x、ln(1+x) 的近似直觉说明：幂级数是在中心附近用无限多层小多项式逼近函数。\n2. 可靠性随距离中心变化：靠近中心更准，远离中心可能失效。\n3. 对 ∑C_n(x-c)^n，优先用 Ratio Test 计算 |a_{n+1}/a_n| 的极限。\n4. 解 L<1 得开区间和半径；若极限为 0，则任意 x 可靠；若为 infinity，则只有中心点可用。\n5. 开区间端点必须代回原级数单独判定，不能由半径自动推出。\n\n## 格式规则\n- 先读中心 c，再读变量块 x-c；例如 x+2 对应中心 -2。\n- Ratio Test 中把含 x 的部分留到最后解不等式，避免先把中心读错。\n- 形如 (x-1)/3 的题可先令 z=(x-1)/3，再把 |z|<1 转回 x 区间。\n- 写 convergence interval 时要分别说明开区间、半径 R 和端点结果。\n\n## 例题/题型规则\n- e^x 和 sin x 的前几项用来建立近似越来越贴近的直觉。\n- ln(1+x) 用来说明靠近中心更可靠，远离中心可能不准。\n- 一般 ∑C_n(x-c)^n 训练从 Ratio Test 得到 radius of convergence。\n- 端点代回常变成 p-series、alternating series 或 divergence test 题。\n\n## 检查点\n中心 c 是否读对？Ratio Test 的 L<1 是否解成关于 x 的区间？端点是否代回原级数单独判断？R 是半径还是区间长度？",
+      "reason": "本讲的课程私有价值在于幂级数可靠区间的直觉和 Ratio Test 解收敛半径的书写格式。",
+      "sourceReferences": []
+    },
+    {
+      "id": "memory_queue_mat136_11_taylor_series_public_cover_20260602",
+      "targetType": "notebook",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "title": "MAT136 泰勒级数公共记忆",
+      "kind": "notebook_course_constraint",
+      "source": "manual_queue_rewrite",
+      "text": "## 适用范围\nMAT136 notebook 11《泰勒级数：从导数拼出函数》。\n\n## 记忆边界\n不记录 Taylor series 或 Maclaurin series 的通用定义表。共有记忆只保留本讲用中心点导数拼函数的书写模板，以及用已知级数做替换、求导、积分和乘法的操作格式。\n\n## 知识路径\n1. 主线是用函数在某点的导数拼出函数本身；a=0 时才称为 Maclaurin series。\n2. 直接展开题先列 f、f'、f'' 等在中心点的值，再代入 Taylor formula。\n3. 误差项按函数值 = Taylor 多项式 + remainder 理解；项数增加通常更贴近原函数，但仍受收敛区间限制。\n4. 常用模板作为工具使用：e^x、sin x、cos x、1/(1-x)、1/(1+x)、ln(1+x)。\n5. 后半讲用已知级数做运算：替换变量、逐项求导、逐项积分、级数乘法。\n\n## 格式规则\n- 直接展开不能只背结果；要展示中心点处导数值如何进入系数。\n- 替换题把模板里的变量整体替换，例如 sin(x^2) 是把 x 整体换成 x^2。\n- 逐项求导/积分后要更新幂次、系数和常数项，并重新考虑收敛区间。\n- 级数乘法按系数卷积 c_n=sum a_k b_{n-k} 找前几项，保留到题目指定阶数即可。\n\n## 例题/题型规则\n- e^x 和 cos x 的 Maclaurin 展开训练列导数表。\n- 1/(1-x)、1/(1+x)、ln(1+x) 训练把几何级数作为模板。\n- e^x cos x 训练级数乘法前几项，而不是无限展开后逐项硬乘。\n- sin(x^2) 训练整体替换变量；求半径时回到 Ratio Test。\n\n## 检查点\n中心 a 是否正确？是否列出了中心点导数值？这是直接展开还是套模板变形？替换是否替换了整个变量块？只要求前几项时是否截到正确阶数？收敛区间是否仍需检查？",
+      "reason": "本讲的课程私有价值在于 Taylor 展开的书写模板，以及用已知级数做替换、求导、积分和乘法的操作格式。",
+      "sourceReferences": []
+    }
+  ]
+}

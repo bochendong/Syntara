@@ -28,7 +28,6 @@ const createStudyMemorySchema = z.object({
   reason: z.string().trim().max(1000).optional(),
   question: z.string().trim().max(1000).optional(),
   sourceReferences: z.unknown().optional(),
-  confidence: z.number().min(0).max(1).optional(),
 });
 
 function unavailableResponse() {
@@ -78,7 +77,6 @@ async function seedDefaultCoursePublicMemories(args: {
       title: memory.title,
       text: memory.text,
       sourceReferences: memory.sourceReferences,
-      confidence: memory.confidence,
     });
     existingPublicTitles.add(titleKey);
     created.push(record);
@@ -168,7 +166,6 @@ export async function POST(request: Request) {
       reason: payload.data.reason,
       question: payload.data.question,
       sourceReferences: payload.data.sourceReferences,
-      confidence: payload.data.confidence,
     });
     return NextResponse.json({ memory, storage: 'database' }, { status: 201 });
   });

@@ -1047,7 +1047,6 @@ async function seedDatabase() {
             { label: 'queue PDF', source: SOURCE_PDF },
             { label: 'generated notebook', source: PUBLIC_URL },
           ],
-          confidence: 0.92,
         },
         create: {
           id: 'memory_mat102_induction_i_public_20260601',
@@ -1067,7 +1066,6 @@ async function seedDatabase() {
             { label: 'queue PDF', source: SOURCE_PDF },
             { label: 'generated notebook', source: PUBLIC_URL },
           ],
-          confidence: 0.92,
         },
       });
     });

@@ -80,10 +80,12 @@ function scoreNotebookMeta(tokens: string[], notebook: StageListItem): number {
 function scorePrivateMemory(tokens: string[], memory: NotebookMemoryItem): number {
   const text = [memory.title, memory.text, memory.reason || '', memory.question || ''].join(' ');
   const relevance = scoreCourseChatText(tokens, text);
-  const recencyAgeDays = Math.max(0, (Date.now() - (memory.updatedAt || memory.createdAt)) / 86_400_000);
+  const recencyAgeDays = Math.max(
+    0,
+    (Date.now() - (memory.updatedAt || memory.createdAt)) / 86_400_000,
+  );
   const recency = Math.max(0, 3 - recencyAgeDays / 14);
-  const confidence = typeof memory.confidence === 'number' ? memory.confidence * 2 : 1;
-  return relevance + recency + confidence;
+  return relevance + recency;
 }
 
 async function getCourseForChatContext(courseId: string) {

@@ -8,7 +8,6 @@ type DefaultPublicMemoryItem = {
   title: string;
   text: string;
   sourceReferences: [];
-  confidence: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -1427,7 +1426,6 @@ export function getDefaultNotebookPublicMemories(stageId: string): DefaultPublic
       title: definition.title,
       text: definition.text,
       sourceReferences: [],
-      confidence: 1,
       createdAt:
         mat102PublicMemories[stageId] !== undefined
           ? MAT102_PUBLIC_MEMORY_UPDATED_AT
@@ -1457,7 +1455,6 @@ export function getDefaultCoursePublicMemories(
       title: definition.title,
       text: definition.text,
       sourceReferences: [],
-      confidence: 1,
       createdAt: MAT136_PUBLIC_MEMORY_UPDATED_AT,
       updatedAt: MAT136_PUBLIC_MEMORY_UPDATED_AT,
     },
