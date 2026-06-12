@@ -25,6 +25,7 @@ import type {
 } from '@/lib/store/orchestrator-notebook-generation';
 import type { PdfSourceSelection } from '@/lib/pdf/page-selection';
 import { backendFetch } from '@/lib/utils/backend-api';
+import { writeMemoryWithActivity } from '@/lib/utils/memory-write-api';
 import { writePersistedStageOutlines } from '@/lib/utils/stage-outline-storage';
 import { getApiHeaders } from './generation-headers';
 import {
@@ -507,29 +508,28 @@ async function persistNotebookPublicMemoryToDatabase(args: {
 }): Promise<void> {
   if (!args.text.trim()) return;
   try {
-    const response = await backendFetch('/api/study-memory', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    await writeMemoryWithActivity({
+      candidate: {
+        trigger: 'source_import',
+        contentType: 'notebook_requirement',
         targetType: 'notebook',
         targetId: args.stageId,
-        scope: 'public',
-        kind: 'manual',
+        privacy: 'public',
         source: 'notebook_generation',
         title: args.title,
         text: args.text,
-        reason: args.reason,
-        sourceReferences: args.sourceReferences,
-      }),
+        studyMemory: {
+          targetType: 'notebook',
+          targetId: args.stageId,
+          scope: 'public',
+          kind: 'manual',
+          title: args.title,
+          text: args.text,
+          reason: args.reason,
+          sourceReferences: args.sourceReferences,
+        },
+      },
     });
-    if (!response.ok) {
-      const message = await response.text().catch(() => '');
-      console.warn('[NotebookGeneration] Failed to persist database public memory', {
-        stageId: args.stageId,
-        status: response.status,
-        message: message.slice(0, 240),
-      });
-    }
   } catch (memoryError) {
     console.warn('[NotebookGeneration] Failed to persist database public memory', {
       stageId: args.stageId,

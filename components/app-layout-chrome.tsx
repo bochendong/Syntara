@@ -89,7 +89,12 @@ function MainShellNoRail({
   showHeader?: boolean;
 }) {
   return (
-    <div className={cn('box-border min-h-dvh px-4', balancedInset ? 'py-4' : 'pt-4 pb-0')}>
+    <div
+      className={cn(
+        'fixed inset-0 box-border overflow-hidden px-4',
+        balancedInset ? 'py-4' : 'pt-4 pb-0',
+      )}
+    >
       <div
         className={cn(
           'flex min-h-0 w-full min-w-0 flex-col gap-3',

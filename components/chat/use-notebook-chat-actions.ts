@@ -18,6 +18,7 @@ import {
   deleteNotebookPrivateMemory,
   recordNotebookPrivateMemory,
 } from '@/lib/learning/study-memory';
+import { writeMemoryWithActivity } from '@/lib/utils/memory-write-api';
 import { useNotificationStore } from '@/lib/store/notifications';
 import { toast } from '@/lib/notifications/client-toast';
 import {
@@ -128,67 +129,108 @@ export function useNotebookChatActions({
       if (!draftMemory || draftMemory.text.length < 40) return;
 
       window.setTimeout(() => {
-        try {
-          const result = recordNotebookPrivateMemory({
-            stageId: args.notebook.id,
-            title: draftMemory.title,
-            text: draftMemory.text,
-            question: args.question,
-            reason: '笔记本问答识别到可长期保留的知识补充点。',
-            kind: 'knowledge_gap',
-            sourceReferences: (args.plan.references || []).slice(0, 4).map((reference) => ({
-              notebookId: args.notebook.id,
-              notebookName: args.notebook.name,
-              order: reference.order,
-              title: reference.title,
-              why: reference.why,
-            })),
-            source: 'chat',
-          });
-          if (!result.created || !result.item) return;
-          const createdMemory = result.item;
-          toast.success('已写入私有记忆', {
-            description: `《${args.notebook.name}》：${createdMemory.title}`,
-            duration: 6500,
-            action: {
-              label: '查看',
-              onClick: () => {
-                router.push(`/classroom/${encodeURIComponent(args.notebook.id)}/memory`);
-              },
-            },
-            cancel: {
-              label: '撤销',
-              onClick: () => {
-                deleteNotebookPrivateMemory({
-                  stageId: args.notebook.id,
-                  memoryId: createdMemory.id,
-                });
-              },
-            },
-          });
-
-          enqueueBanner(
-            buildStudyCompanionNotification({
-              id: `private-memory-${createdMemory.id}`,
-              sourceKind: 'question_memory',
-              title: '已写入私有记忆',
-              body: `《${args.notebook.name}》：${createdMemory.title}`,
-              amountLabel: '私有记忆',
-              sourceLabel: args.notebook.name,
-              details: args.question
-                ? [
-                    {
-                      key: 'question',
-                      label: '来自问题',
-                      value: args.question.slice(0, 80),
+        void (async () => {
+          try {
+            await writeMemoryWithActivity({
+              candidate: {
+                trigger: 'chat_turn_end',
+                contentType: 'weakness',
+                targetType: 'notebook',
+                targetId: args.notebook.id,
+                privacy: 'private',
+                source: 'chat_gap_inference',
+                title: `AI 观察到的学习卡点：${draftMemory.title}`,
+                text: draftMemory.text,
+                studyMemory: {
+                  targetType: 'notebook',
+                  targetId: args.notebook.id,
+                  scope: 'private',
+                  kind: 'knowledge_gap',
+                  title: `AI 观察到的学习卡点：${draftMemory.title}`,
+                  text: draftMemory.text,
+                  question: args.question,
+                  reason: 'AI 根据本轮提问、回答和引用证据推断出的学习补充点，不是用户自述。',
+                  sourceReferences: {
+                    sourceType: 'student_message',
+                    notebookId: args.notebook.id,
+                    notebookName: args.notebook.name,
+                    question: args.question,
+                    references: (args.plan.references || []).slice(0, 4),
+                    operationCounts: {
+                      insert: args.plan.operations.insert?.length || 0,
+                      update: args.plan.operations.update?.length || 0,
                     },
-                  ]
-                : [],
-            }),
-          );
-        } catch {
-          // Background memory should never disturb the chat answer.
-        }
+                  },
+                },
+              },
+            });
+            return;
+          } catch {
+            // Fall back to local-first memory below; chat answers should never be disturbed.
+          }
+
+          try {
+            const result = recordNotebookPrivateMemory({
+              stageId: args.notebook.id,
+              title: `AI 观察到的学习卡点：${draftMemory.title}`,
+              text: draftMemory.text,
+              question: args.question,
+              reason: 'AI 根据本轮提问、回答和引用证据推断出的学习补充点，不是用户自述。',
+              kind: 'knowledge_gap',
+              sourceReferences: (args.plan.references || []).slice(0, 4).map((reference) => ({
+                notebookId: args.notebook.id,
+                notebookName: args.notebook.name,
+                order: reference.order,
+                title: reference.title,
+                why: reference.why,
+              })),
+              source: 'chat',
+            });
+            if (!result.created || !result.item) return;
+            const createdMemory = result.item;
+            toast.success('已写入私有记忆', {
+              description: `《${args.notebook.name}》：${createdMemory.title}`,
+              duration: 6500,
+              action: {
+                label: '查看',
+                onClick: () => {
+                  router.push(`/classroom/${encodeURIComponent(args.notebook.id)}/memory`);
+                },
+              },
+              cancel: {
+                label: '撤销',
+                onClick: () => {
+                  deleteNotebookPrivateMemory({
+                    stageId: args.notebook.id,
+                    memoryId: createdMemory.id,
+                  });
+                },
+              },
+            });
+
+            enqueueBanner(
+              buildStudyCompanionNotification({
+                id: `private-memory-${createdMemory.id}`,
+                sourceKind: 'question_memory',
+                title: '已写入私有记忆',
+                body: `《${args.notebook.name}》：${createdMemory.title}`,
+                amountLabel: '私有记忆',
+                sourceLabel: args.notebook.name,
+                details: args.question
+                  ? [
+                      {
+                        key: 'question',
+                        label: '来自问题',
+                        value: args.question.slice(0, 80),
+                      },
+                    ]
+                  : [],
+              }),
+            );
+          } catch {
+            // Background memory should never disturb the chat answer.
+          }
+        })();
       }, 0);
     },
     [enqueueBanner, router],

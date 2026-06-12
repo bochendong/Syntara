@@ -7,13 +7,21 @@ import {
   AlertCircle,
   BookOpen,
   Brain,
+  CalendarCheck,
   ChevronLeft,
   ChevronRight,
+  Flame,
   HardDrive,
   Loader2,
+  MessageCircle,
   Pencil,
   Plus,
+  Search,
+  SquareUserRound,
   Store,
+  Target,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import {
   CourseGalleryCard,
@@ -100,6 +108,7 @@ const notebookNameCollator = new Intl.Collator(['zh-CN', 'en-US'], {
 });
 
 const NOTEBOOKS_PER_PAGE = 6;
+const CLASSMATES_PER_PAGE = 9;
 
 type PublishState = 'idle' | 'publishing' | 'published';
 type PublishProgressStep = 'prepare' | 'load' | 'save' | 'course' | 'refresh';
@@ -288,7 +297,282 @@ function getNotebookPracticeProgress(
   }, {});
 }
 
-type CourseWorkspaceTab = 'notebooks' | 'materials';
+type CourseWorkspaceTab = 'notebooks' | 'classmates' | 'materials';
+
+type CourseClassmateProfile = {
+  id: string;
+  name: string;
+  initials: string;
+  status: string;
+  topic: string;
+  weeklyCompleted: number;
+  accuracy: number;
+  streakDays: number;
+  rhythmLabel: string;
+  rhythmCaption: string;
+  activeBars: number[];
+  avatarTone: string;
+};
+
+const classmateNamePool = [
+  '陈知行',
+  '林若初',
+  '周见微',
+  '许临川',
+  '沈亦然',
+  '吴知夏',
+  '梁思予',
+  '赵云起',
+  '顾清越',
+  '叶安然',
+  '何以宁',
+  '宋知予',
+  '韩若白',
+  '唐予安',
+  '陆景和',
+  '孟星河',
+  '程见山',
+  '苏以南',
+  '白若宁',
+];
+
+const classmateAvatarTones = [
+  'from-sky-100 via-blue-50 to-indigo-100 text-sky-700 ring-sky-100',
+  'from-emerald-100 via-teal-50 to-sky-100 text-emerald-700 ring-emerald-100',
+  'from-amber-100 via-orange-50 to-rose-100 text-amber-700 ring-amber-100',
+  'from-cyan-100 via-sky-50 to-blue-100 text-cyan-700 ring-cyan-100',
+  'from-rose-100 via-pink-50 to-orange-100 text-rose-700 ring-rose-100',
+  'from-lime-100 via-emerald-50 to-teal-100 text-lime-700 ring-lime-100',
+] as const;
+
+const classmateRhythmBars = [
+  [20, 28, 34, 40, 30, 24, 22, 28, 38, 44, 36, 42],
+  [18, 22, 28, 32, 26, 30, 34, 42, 46, 40, 32, 24],
+  [26, 34, 42, 46, 36, 28, 22, 24, 30, 36, 32, 26],
+  [16, 20, 24, 30, 34, 38, 44, 48, 42, 36, 28, 22],
+] as const;
+
+function makeClassmateInitials(name: string): string {
+  return name.trim().slice(-2) || '课友';
+}
+
+function buildCourseClassmateProfiles(args: {
+  course: CourseRecord | null | undefined;
+  notebooks: StageListItem[];
+  courseProblemStats: {
+    total: number;
+    attempted: number;
+    masteryPercent: number;
+    weakTopics: Array<{ topic: string }>;
+  };
+  currentUserName: string;
+}): CourseClassmateProfile[] {
+  const topicCandidates = [
+    ...args.notebooks.map((item) => item.name.trim()).filter(Boolean),
+    ...args.courseProblemStats.weakTopics.map((item) => item.topic.trim()).filter(Boolean),
+    args.course?.name.trim() || '',
+    '积分技巧与换元法',
+    '反向链式法则',
+    '曲线面积与体积',
+  ].filter(Boolean);
+  const uniqueTopics = Array.from(new Set(topicCandidates));
+
+  return classmateNamePool.map((name, index) => {
+    const topic = uniqueTopics[index % uniqueTopics.length] || '积分技巧与换元法';
+    const attemptedBase = Math.max(18, args.courseProblemStats.attempted || 24);
+    const weeklyCompleted = Math.max(12, Math.round(attemptedBase * (1.35 - index * 0.08)));
+    const accuracy = Math.min(
+      96,
+      Math.max(78, args.courseProblemStats.masteryPercent + 11 - index * 2),
+    );
+    const streakDays = Math.max(2, 6 - (index % 5));
+    return {
+      id: `classmate-${index}`,
+      name: name === args.currentUserName.trim() ? `${name}（你）` : name,
+      initials: makeClassmateInitials(name),
+      status: index < 3 ? '同频学习中' : index < 6 ? '近期活跃' : '可一起讨论',
+      topic,
+      weeklyCompleted,
+      accuracy,
+      streakDays,
+      rhythmLabel: index % 3 === 0 ? '节奏合拍' : index % 3 === 1 ? '晚间活跃' : '章节相近',
+      rhythmCaption: index % 2 === 0 ? '傍晚活跃 · 适合一起讨论' : '最近同章节 · 适合向他提问',
+      activeBars: [...classmateRhythmBars[index % classmateRhythmBars.length]],
+      avatarTone: classmateAvatarTones[index % classmateAvatarTones.length],
+    };
+  });
+}
+
+function CourseClassmateCard({
+  profile,
+  onAdd,
+  onAsk,
+  onSchedule,
+  onOpenSpace,
+}: {
+  profile: CourseClassmateProfile;
+  onAdd: (profile: CourseClassmateProfile) => void;
+  onAsk: (profile: CourseClassmateProfile) => void;
+  onSchedule: (profile: CourseClassmateProfile) => void;
+  onOpenSpace: (profile: CourseClassmateProfile) => void;
+}) {
+  return (
+    <article className="group flex h-full min-w-0 flex-col rounded-3xl border border-slate-200/80 bg-white/94 p-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_24px_54px_rgba(37,99,235,0.12)] dark:border-white/10 dark:bg-slate-950/62 dark:hover:border-sky-400/30">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="relative shrink-0">
+          <div
+            className={cn(
+              'grid size-16 place-items-center rounded-full bg-gradient-to-br text-lg font-bold shadow-inner ring-6',
+              profile.avatarTone,
+            )}
+          >
+            {profile.initials}
+          </div>
+          <span className="absolute bottom-0.5 right-0 size-3.5 rounded-full border-[3px] border-white bg-emerald-500 dark:border-slate-950" />
+        </div>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <h3 className="min-w-0 truncate text-xl font-bold text-slate-950 dark:text-white">
+                {profile.name}
+              </h3>
+              <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
+                <Users className="size-4" strokeWidth={1.9} />
+                <span>{profile.status}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label={`添加 ${profile.name}`}
+              title="添加课友"
+              onClick={() => onAdd(profile)}
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-600 transition hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200 dark:hover:bg-sky-400/15"
+            >
+              <Plus className="size-4" strokeWidth={2.2} />
+            </button>
+          </div>
+          <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/8">
+              Calculus II
+            </span>
+            <span className="size-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+            <span className="max-w-full truncate rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/8">
+              微积分进阶探索
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onOpenSpace(profile)}
+        className="mt-4 flex min-w-0 items-center gap-3 rounded-2xl border border-blue-200/80 bg-blue-50/55 px-4 py-3 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-sky-400/20 dark:bg-sky-400/8 dark:hover:bg-sky-400/12"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">最近在学</p>
+          <p
+            className="mt-0.5 truncate text-base font-bold leading-snug text-slate-950 sm:text-lg dark:text-white"
+            title={profile.topic}
+          >
+            {profile.topic}
+          </p>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-slate-500 dark:text-slate-400" />
+      </button>
+
+      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
+        {[
+          {
+            icon: Target,
+            label: '本周完成',
+            value: `${profile.weeklyCompleted} 题`,
+            tone: 'text-emerald-600 dark:text-emerald-300',
+          },
+          {
+            icon: TrendingUp,
+            label: '正确率',
+            value: `${profile.accuracy}%`,
+            tone: 'text-emerald-600 dark:text-emerald-300',
+          },
+          {
+            icon: Flame,
+            label: '连续学习',
+            value: `${profile.streakDays} 天`,
+            tone: 'text-amber-500 dark:text-amber-300',
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="min-w-0 border-r border-slate-100 px-2.5 py-3 text-center last:border-r-0 dark:border-white/10"
+          >
+            <item.icon className={cn('mx-auto size-5', item.tone)} strokeWidth={2.1} />
+            <p className="mt-2 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {item.label}
+            </p>
+            <p className={cn('mt-0.5 truncate text-lg font-bold', item.tone)}>{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 dark:border-white/10 dark:bg-white/[0.035]">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-base font-bold text-slate-950 dark:text-white">
+              学习节奏匹配
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-500 dark:text-slate-400">
+              {profile.rhythmCaption}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-600 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200">
+            {profile.rhythmLabel}
+          </span>
+        </div>
+        <div className="mt-3 grid h-12 grid-cols-12 items-end gap-2 overflow-hidden">
+          {profile.activeBars.map((height, index) => (
+            <span
+              key={`${profile.id}-bar-${index}`}
+              className={cn(
+                'w-full max-w-[10px] justify-self-center rounded-full',
+                index >= 7 && index <= 10
+                  ? 'bg-blue-500 dark:bg-sky-300'
+                  : 'bg-blue-100 dark:bg-sky-400/18',
+              )}
+              style={{ height }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => onSchedule(profile)}
+          className="col-span-2 inline-flex min-w-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white shadow-[0_14px_28px_rgba(37,99,235,0.22)] transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-400"
+        >
+          <CalendarCheck className="size-4 shrink-0" strokeWidth={2} />
+          <span className="truncate">可约自习</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAsk(profile)}
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-sky-400/10"
+        >
+          <MessageCircle className="size-4 shrink-0" strokeWidth={2} />
+          <span className="truncate">向他提问</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenSpace(profile)}
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-sky-400/10"
+        >
+          <SquareUserRound className="size-4 shrink-0" strokeWidth={2} />
+          <span className="truncate">查看空间</span>
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export default function CourseDetailPageClient() {
   const params = useParams();
@@ -296,6 +580,7 @@ export default function CourseDetailPageClient() {
   const id = typeof params.id === 'string' ? params.id : '';
   const authHydrated = usePersistHydrated(useAuthStore);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const authName = useAuthStore((s) => s.name);
   const creatorDisplay = useAuthStore(() => '你');
 
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
@@ -308,6 +593,8 @@ export default function CourseDetailPageClient() {
   const [loading, setLoading] = useState(true);
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>('notebooks');
   const [notebookPage, setNotebookPage] = useState(0);
+  const [classmateQuery, setClassmateQuery] = useState('');
+  const [classmatePage, setClassmatePage] = useState(0);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [editingNotebook, setEditingNotebook] = useState<StageListItem | null>(null);
   const [publishTarget, setPublishTarget] = useState<
@@ -467,6 +754,38 @@ export default function CourseDetailPageClient() {
       (problem) => problem.notebookId === publishTarget.notebook.id,
     ).length;
   }, [activeCourseProblems, publishTarget]);
+  const classmateProfiles = useMemo(
+    () =>
+      buildCourseClassmateProfiles({
+        course,
+        notebooks: sortedNotebooks,
+        courseProblemStats,
+        currentUserName: authName,
+      }),
+    [authName, course, courseProblemStats, sortedNotebooks],
+  );
+  const normalizedClassmateQuery = classmateQuery.trim().toLowerCase();
+  const filteredClassmateProfiles = useMemo(() => {
+    if (!normalizedClassmateQuery) return classmateProfiles;
+    return classmateProfiles.filter((profile) =>
+      profile.name.toLowerCase().includes(normalizedClassmateQuery),
+    );
+  }, [classmateProfiles, normalizedClassmateQuery]);
+  const classmatePageCount = Math.max(
+    1,
+    Math.ceil(filteredClassmateProfiles.length / CLASSMATES_PER_PAGE),
+  );
+  const normalizedClassmatePage = Math.min(classmatePage, classmatePageCount - 1);
+  const pagedClassmateProfiles = useMemo(() => {
+    const start = normalizedClassmatePage * CLASSMATES_PER_PAGE;
+    return filteredClassmateProfiles.slice(start, start + CLASSMATES_PER_PAGE);
+  }, [filteredClassmateProfiles, normalizedClassmatePage]);
+  const classmatePageStart =
+    filteredClassmateProfiles.length > 0 ? normalizedClassmatePage * CLASSMATES_PER_PAGE + 1 : 0;
+  const classmatePageEnd = Math.min(
+    filteredClassmateProfiles.length,
+    (normalizedClassmatePage + 1) * CLASSMATES_PER_PAGE,
+  );
   const publishProgressPercent = getPublishProgressPercent(publishProgress, publishState);
   const activePublishStepIndex = publishProgress ? getPublishStepIndex(publishProgress.step) : -1;
 
@@ -556,6 +875,19 @@ export default function CourseDetailPageClient() {
       Math.min(page, Math.max(0, Math.ceil(sortedNotebooks.length / NOTEBOOKS_PER_PAGE) - 1)),
     );
   }, [sortedNotebooks.length]);
+
+  useEffect(() => {
+    setClassmatePage(0);
+  }, [id, normalizedClassmateQuery]);
+
+  useEffect(() => {
+    setClassmatePage((page) =>
+      Math.min(
+        page,
+        Math.max(0, Math.ceil(filteredClassmateProfiles.length / CLASSMATES_PER_PAGE) - 1),
+      ),
+    );
+  }, [filteredClassmateProfiles.length]);
 
   useEffect(() => {
     if (loading || !id) return;
@@ -953,7 +1285,7 @@ export default function CourseDetailPageClient() {
           <CourseWorkspaceLoadingContent />
         ) : (
           <>
-            <section className="relative mb-4 h-[18.5rem] overflow-hidden rounded-[24px] border border-white/75 bg-slate-100 shadow-[0_18px_54px_rgba(15,23,42,0.11)] ring-1 ring-slate-900/[0.035] dark:border-white/10 dark:bg-slate-950 dark:shadow-[0_22px_60px_rgba(0,0,0,0.32)] sm:h-[17rem] md:mb-5 md:h-[15.5rem] lg:h-[14rem]">
+            <section className="relative mb-4 h-[18.5rem] overflow-hidden rounded-[24px] border border-white/75 bg-slate-100 shadow-[0_18px_54px_rgba(15,23,42,0.11)] ring-1 ring-slate-900/[0.035] dark:border-white/10 dark:bg-slate-950 dark:shadow-[0_22px_60px_rgba(0,0,0,0.32)] sm:h-[17rem] md:mb-5 md:h-[15.5rem] lg:h-[15.75rem] xl:h-[15rem]">
               <img
                 src={courseBackgroundUrl}
                 alt=""
@@ -1126,7 +1458,7 @@ export default function CourseDetailPageClient() {
                   )}
                 </div>
                 {course.description ? (
-                  <p className="line-clamp-4 max-w-[68rem] text-[13px] leading-5 text-white/90 drop-shadow-[0_1px_2px_rgba(15,23,42,0.42)] sm:line-clamp-3 md:text-[13.5px] lg:line-clamp-2">
+                  <p className="line-clamp-4 max-w-[68rem] text-[13px] leading-5 text-white/90 drop-shadow-[0_1px_2px_rgba(15,23,42,0.42)] sm:line-clamp-4 md:text-[13.5px]">
                     {course.description}
                   </p>
                 ) : null}
@@ -1158,6 +1490,17 @@ export default function CourseDetailPageClient() {
                     笔记本
                     <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs leading-none text-blue-600 dark:bg-blue-500/10 dark:text-blue-200">
                       {notebooks.length}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="classmates"
+                    onClick={() => setWorkspaceTab('classmates')}
+                    className="h-12 flex-none gap-2 rounded-none px-0 text-base font-semibold data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none data-[state=active]:after:bg-blue-600 data-[state=active]:after:opacity-100 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-blue-300"
+                  >
+                    <Users className="size-4" strokeWidth={1.8} />
+                    课友
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs leading-none text-blue-600 dark:bg-blue-500/10 dark:text-blue-200">
+                      {classmateProfiles.length}
                     </span>
                   </TabsTrigger>
                   <TabsTrigger
@@ -1490,6 +1833,124 @@ export default function CourseDetailPageClient() {
                     </div>
                   </aside>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="classmates" className="mt-0">
+                <section
+                  aria-labelledby="course-classmates-heading"
+                  className="mx-auto min-w-0 max-w-[1082px]"
+                >
+                  <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-slate-200/80 bg-white/82 px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.04)] lg:flex-row lg:items-center lg:justify-between dark:border-white/10 dark:bg-white/[0.055]">
+                    <div className="min-w-0">
+                      <h2
+                        id="course-classmates-heading"
+                        className="text-lg font-semibold text-slate-950 dark:text-white"
+                      >
+                        同频课友
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        按最近学习章节、活跃时间和讨论状态整理，方便找到适合一起自习或提问的同学。
+                      </p>
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-3 lg:w-[380px]">
+                      <label className="relative block min-w-0">
+                        <span className="sr-only">搜索课友姓名</span>
+                        <Search
+                          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                          strokeWidth={1.9}
+                        />
+                        <input
+                          value={classmateQuery}
+                          onChange={(event) => setClassmateQuery(event.target.value)}
+                          placeholder="按名字搜索课友"
+                          className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-sky-400/40 dark:focus:ring-sky-400/10"
+                        />
+                      </label>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
+                          <p className="font-bold text-slate-900 dark:text-slate-100">
+                            {classmateProfiles.length}
+                          </p>
+                          <p className="mt-0.5 text-slate-400">课友</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
+                          <p className="font-bold text-emerald-600 dark:text-emerald-300">
+                            {
+                              classmateProfiles.filter((item) => item.status === '同频学习中')
+                                .length
+                            }
+                          </p>
+                          <p className="mt-0.5 text-slate-400">同频</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
+                          <p className="font-bold text-blue-600 dark:text-blue-300">
+                            {
+                              classmateProfiles.filter((item) => item.rhythmLabel === '节奏合拍')
+                                .length
+                            }
+                          </p>
+                          <p className="mt-0.5 text-slate-400">合拍</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {filteredClassmateProfiles.length > 0 ? (
+                    <>
+                      <div
+                        className="grid justify-start gap-4"
+                        style={{
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 350px))',
+                        }}
+                      >
+                        {pagedClassmateProfiles.map((profile) => (
+                          <CourseClassmateCard
+                            key={profile.id}
+                            profile={profile}
+                            onAdd={(item) => toast.info(`已发送添加 ${item.name} 的请求`)}
+                            onSchedule={(item) => toast.info(`已记录和 ${item.name} 约自习的意向`)}
+                            onAsk={(item) => toast.info(`已打开向 ${item.name} 提问的入口`)}
+                            onOpenSpace={(item) => toast.info(`${item.name} 的学习空间即将开放`)}
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/78 px-4 py-3 text-sm text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.04)] sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-white/[0.045] dark:text-slate-400">
+                        <span>
+                          显示 {classmatePageStart}-{classmatePageEnd} /{' '}
+                          {filteredClassmateProfiles.length} 位课友
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            aria-label="上一页课友"
+                            disabled={normalizedClassmatePage <= 0}
+                            onClick={() => setClassmatePage((page) => Math.max(0, page - 1))}
+                            className="grid size-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-sky-200"
+                          >
+                            <ChevronLeft className="size-4" strokeWidth={2} />
+                          </button>
+                          <span className="min-w-14 text-center font-semibold text-slate-700 dark:text-slate-200">
+                            {normalizedClassmatePage + 1} / {classmatePageCount}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="下一页课友"
+                            disabled={normalizedClassmatePage >= classmatePageCount - 1}
+                            onClick={() =>
+                              setClassmatePage((page) => Math.min(classmatePageCount - 1, page + 1))
+                            }
+                            className="grid size-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-sky-200"
+                          >
+                            <ChevronRight className="size-4" strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 px-5 py-10 text-center text-sm font-medium text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
+                      没有找到这个名字的课友
+                    </div>
+                  )}
+                </section>
               </TabsContent>
 
               <TabsContent value="materials" className="mt-0">
