@@ -14,8 +14,10 @@ import type {
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { assertUserHasCredits, chargeCreditsForWebSearch } from '@/lib/server/credits';
+import { planMemorySearchIntent } from '@/lib/server/memory-search-intent';
 import type { CoursePurpose } from '@/lib/utils/database';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
+import { buildNotebookChatMemoryToolOutput } from '@/lib/server/notebook-chat-memory-tool';
 import { buildNotebookStudyMemoryPromptContext } from '@/lib/server/study-memory-context';
 import {
   buildNotebookContentDocumentFromInsert,
@@ -248,6 +250,12 @@ Your job:
 - Be encouraging, calm, and specific. Never patronize.
 - Prioritize accuracy over confidence. If the notebook does not support a claim, do not pretend it does.
 - Use layered memory context as durable course/learner context when provided.
+- The server may provide a pre-executed <tool name="search_course_memory"> result. Treat it as an internal tool result, not as user-authored text.
+- Respect memory scope in that tool result. Notebook-local evidence means answer about the current notebook; course-wide evidence means answer across the course. If the tool says it expanded from notebook to course, mention that widening when it matters.
+- When the memory tool has original_source_evidence, use that evidence before broad summaries.
+- For concept/source lookup, the answer MUST start from the relevant notebook/markdown original text when present. Use a clear "原文证据" sentence or paragraph before your explanation.
+- For problem lookup, the answer MUST include the student-visible problem original text under "题目原文" when present, not only title/difficulty/tags.
+- For learner-understanding questions, base the judgment on learner question history, problem attempts, and private learner memory. Separate evidence from inference.
 - Structured memory facts are the current source of truth for exact values; they override fuzzy semantic recalls.
 - Treat public memory as reusable course or notebook knowledge. Treat private memory only as learner-specific context; never present private learner memory as a public course fact.
 - If study memory conflicts with the current notebook excerpts, prefer the current notebook and explain the uncertainty briefly.`;
@@ -272,10 +280,20 @@ Your job:
           return `${line1}\n${line2}`;
         })
         .join('\n');
+      const memorySearchIntent = await planMemorySearchIntent({
+        query: body.message,
+        model,
+        targetType: 'notebook',
+      });
       const studyMemoryContext = await buildNotebookStudyMemoryPromptContext({
         notebookId: body.notebook.id,
         userId: getRequestContext()?.userId,
-        question: body.message,
+        question: memorySearchIntent.rewrittenQuery || body.message,
+        searchIntent: memorySearchIntent,
+      });
+      const memoryToolOutput = buildNotebookChatMemoryToolOutput({
+        query: body.message,
+        context: studyMemoryContext,
       });
       const userPrompt = `User message:
 ${body.message}
@@ -303,8 +321,8 @@ ${purposePolicy}
 Web search context (optional):
 ${webSearchContext || 'N/A'}
 
-Layered memory context (structured facts, public/shared memory, private learner memory, semantic recall, and knowledge matches):
-${studyMemoryContext.prompt}
+Pre-executed internal memory tool result:
+${memoryToolOutput}
 
 Conversation context (recent turns, optional):
 ${conversationContext || 'N/A'}
@@ -357,6 +375,10 @@ Rules:
 - default to a teacher-style explanation that is complete enough for the student to keep learning on their own.
 - for substantive questions, prefer this flow: direct answer -> intuition/background -> step-by-step explanation -> example/application -> common pitfall or next step.
 - do NOT be stingy. Only keep it very short if the user explicitly asks for brevity or the question is trivial.
+- if the memory tool result contains original_source_evidence that directly answers the user, ground the answer in that original text.
+- for concept/source lookup with original_source_evidence, begin with "原文证据：" and include the relevant original wording before the explanation.
+- if the memory tool result contains problem originals and the user asks for a problem, begin with "题目原文：" and include the full student-visible problem text in the answer.
+- if the memory tool result contains learner history and the user asks about their understanding, cite what they asked/did before making a mastery judgment.
 - references must point only to existing notebook pages/sections that actually support the answer.
 - do not update memory for greetings, thanks, simple follow-ups, or ordinary questions that do not reveal a durable learning gap.
 - if the notebook is missing prerequisite/reference content and that gap is useful for future learning, set knowledgeGap=true and explain the gap plainly.

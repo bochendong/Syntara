@@ -21,6 +21,11 @@ export type ReplaceMarkdownNotebookSectionData = Omit<
   'notebookId' | 'courseId'
 >;
 
+type ReplaceMarkdownNotebookSectionOptions = {
+  preserveScenes?: boolean;
+  notebookKind?: 'image' | 'markdown';
+};
+
 type NotebookSceneMetadataInput = Pick<ReplaceNotebookSceneData, 'content' | 'actions' | 'order'>;
 
 type NotebookSceneMetadataSummary = {
@@ -411,7 +416,6 @@ export async function replaceOwnedNotebookScenes(
   const summary = summarizeNotebookScenesForMetadata(scenes);
 
   await db.$transaction(async (tx) => {
-    await tx.markdownNotebookSection.deleteMany({ where: { notebookId } });
     await tx.scene.deleteMany({ where: { notebookId } });
     await tx.scene.createMany({
       data: scenes.map((scene) => ({
@@ -424,7 +428,6 @@ export async function replaceOwnedNotebookScenes(
       data: {
         notebookKind: 'image',
         sceneCount: summary.sceneCount,
-        sectionCount: 0,
         speechReadyCount: summary.speechReadyCount,
         speechTotalCount: summary.speechTotalCount,
         speechStatus: summary.speechStatus,
@@ -447,12 +450,15 @@ export async function replaceOwnedMarkdownNotebookSections(
   userId: string,
   notebookId: string,
   sections: ReplaceMarkdownNotebookSectionData[],
+  options: ReplaceMarkdownNotebookSectionOptions = {},
 ) {
   const notebook = await findOwnedNotebookId(db, userId, notebookId);
   if (!notebook) return null;
 
   await db.$transaction(async (tx) => {
-    await tx.scene.deleteMany({ where: { notebookId } });
+    if (!options.preserveScenes) {
+      await tx.scene.deleteMany({ where: { notebookId } });
+    }
     await tx.markdownNotebookSection.deleteMany({ where: { notebookId } });
     if (sections.length > 0) {
       await tx.markdownNotebookSection.createMany({
@@ -466,14 +472,18 @@ export async function replaceOwnedMarkdownNotebookSections(
     await tx.notebook.update({
       where: { id: notebookId },
       data: {
-        notebookKind: 'markdown',
-        sceneCount: sections.length,
+        notebookKind: options.notebookKind ?? 'markdown',
+        ...(options.preserveScenes ? {} : { sceneCount: sections.length }),
         sectionCount: sections.length,
-        speechReadyCount: 0,
-        speechTotalCount: 0,
-        speechStatus: 'no_speech',
-        coverSlideJson: Prisma.DbNull,
-        coverImagePath: null,
+        ...(options.preserveScenes
+          ? {}
+          : {
+              speechReadyCount: 0,
+              speechTotalCount: 0,
+              speechStatus: 'no_speech',
+              coverSlideJson: Prisma.DbNull,
+              coverImagePath: null,
+            }),
         contentVersion: { increment: 1 },
         updatedAt: new Date(),
       },

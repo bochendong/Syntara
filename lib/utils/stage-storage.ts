@@ -21,6 +21,7 @@ const log = createLogger('StageStorage');
 export interface StageStoreData {
   stage: Stage;
   scenes: Scene[];
+  markdownScenes?: Scene[];
   currentSceneId: string | null;
   chats: ChatSession[];
 }
@@ -516,12 +517,15 @@ function normalizeStageStoreData(data: StageStoreData): StageStoreData {
   const scenes = Array.isArray(data.scenes)
     ? data.scenes.map((scene) => refreshSemanticSlideScene(scene))
     : [];
+  const markdownScenes = Array.isArray(data.markdownScenes)
+    ? data.markdownScenes.map((scene) => refreshSemanticSlideScene(scene))
+    : [];
   const chats = Array.isArray(data.chats) ? data.chats : [];
   let currentSceneId = data.currentSceneId;
   if (currentSceneId && !scenes.some((s) => s.id === currentSceneId)) {
     currentSceneId = scenes[0]?.id ?? null;
   }
-  return { ...data, scenes, chats, currentSceneId };
+  return { ...data, scenes, markdownScenes, chats, currentSceneId };
 }
 
 async function withFallbackTimeout<T>(
@@ -556,15 +560,15 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
     }>(`/api/notebooks/${encodeURIComponent(stageId)}`);
 
     const isMarkdownNotebook = (notebook.notebookKind ?? 'image') === 'markdown';
-    const scenes = isMarkdownNotebook
-      ? (notebook.markdownSections || [])
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((section) => mapMarkdownSection(stageId, section))
-      : (notebook.scenes || [])
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
+    const slideScenes = (notebook.scenes || [])
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((s) => refreshSemanticSlideScene(mapScene(stageId, s)));
+    const markdownScenes = (notebook.markdownSections || [])
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((section) => mapMarkdownSection(stageId, section));
+    const scenes = isMarkdownNotebook && slideScenes.length === 0 ? markdownScenes : slideScenes;
     const chats = await withFallbackTimeout(
       loadContactMessages<ChatSession>(notebook.courseId || '', 'notebook', stageId, {
         expectedTargetName: notebook.name,
@@ -585,12 +589,13 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       language: notebook.language || undefined,
       style: notebook.style || undefined,
       notebookKind: notebook.notebookKind ?? (isMarkdownNotebook ? 'markdown' : 'image'),
-      sectionCount: notebook.sectionCount ?? (isMarkdownNotebook ? scenes.length : 0),
+      sectionCount: notebook.sectionCount ?? markdownScenes.length,
     };
 
     const remoteData: StageStoreData = {
       stage,
       scenes,
+      markdownScenes,
       currentSceneId: scenes[0]?.id || null,
       chats,
     };
@@ -612,7 +617,15 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       (latest, scene) => Math.max(latest, scene.updatedAt || 0),
       0,
     );
-    const remoteFreshness = Math.max(remoteData.stage.updatedAt, remoteSceneUpdatedAt);
+    const remoteMarkdownUpdatedAt = markdownScenes.reduce(
+      (latest, scene) => Math.max(latest, scene.updatedAt || 0),
+      0,
+    );
+    const remoteFreshness = Math.max(
+      remoteData.stage.updatedAt,
+      remoteSceneUpdatedAt,
+      remoteMarkdownUpdatedAt,
+    );
 
     if (draftSnapshot?.remoteSynced === false) {
       const draftScenes = Array.isArray(draftSnapshot.scenes) ? draftSnapshot.scenes : [];
@@ -663,6 +676,7 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       return normalizeStageStoreData({
         stage: draftSnapshot.stage,
         scenes: draftScenes,
+        markdownScenes: remoteData.markdownScenes,
         currentSceneId: draftSnapshot.currentSceneId ?? draftScenes[0]?.id ?? null,
         chats,
       });
@@ -709,6 +723,7 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
       return normalizeStageStoreData({
         stage: draftSnapshot.stage,
         scenes: draftScenes,
+        markdownScenes: remoteData.markdownScenes,
         currentSceneId: draftSnapshot.currentSceneId ?? draftScenes[0]?.id ?? null,
         chats,
       });

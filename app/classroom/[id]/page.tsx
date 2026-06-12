@@ -182,6 +182,7 @@ export default function ClassroomDetailPage() {
   const { loadFromStorage } = useStageStore();
   const stage = useStageStore((s) => s.stage);
   const scenes = useStageStore((s) => s.scenes);
+  const markdownScenes = useStageStore((s) => s.markdownScenes);
   const outlines = useStageStore((s) => s.outlines);
   const generatingOutlines = useStageStore((s) => s.generatingOutlines);
   const generationStatus = useStageStore((s) => s.generationStatus);
@@ -199,6 +200,8 @@ export default function ClassroomDetailPage() {
   const [generateMediaBusy, setGenerateMediaBusy] = useState(false);
   const [syncFromSourceBusy, setSyncFromSourceBusy] = useState(false);
   const [sourceNotebookId, setSourceNotebookId] = useState<string | null>(null);
+  const [showMarkdownReader, setShowMarkdownReader] = useState(false);
+  const [currentMarkdownSceneId, setCurrentMarkdownSceneId] = useState<string | null>(null);
 
   const { generateRemaining, retrySingleOutline, stop } = useSceneGenerator({
     onComplete: () => {
@@ -358,6 +361,8 @@ export default function ClassroomDetailPage() {
   const loadClassroom = useCallback(async () => {
     try {
       setSourceNotebookId(null);
+      setShowMarkdownReader(false);
+      setCurrentMarkdownSceneId(null);
       const notebookMetaResponse = await backendFetch(
         `/api/notebooks/${encodeURIComponent(classroomId)}`,
         {
@@ -378,6 +383,7 @@ export default function ClassroomDetailPage() {
         const loadedState = useStageStore.getState();
         const loadedOutlines = loadedState.outlines;
         const loadedScenes = loadedState.scenes;
+        const loadedMarkdownScenes = loadedState.markdownScenes;
         const loadedGeneratingOutlines = loadedState.generatingOutlines;
         const { speechReadyCount, speechMissingCount } = summarizeSpeechProgress(loadedScenes);
         log.info('[Classroom] Load summary after storage restore', {
@@ -385,6 +391,7 @@ export default function ClassroomDetailPage() {
           stageId: loadedState.stage?.id ?? null,
           outlineCount: loadedOutlines.length,
           displayedSceneCount: loadedScenes.length,
+          markdownSectionCount: loadedMarkdownScenes.length,
           displayedSceneOrders: loadedScenes.map((scene) => scene.order),
           pendingOutlineCount: loadedGeneratingOutlines.length,
           pageGenerationCompleted:
@@ -414,6 +421,7 @@ export default function ClassroomDetailPage() {
               useStageStore.getState().setStage(stage);
               useStageStore.setState({
                 scenes,
+                markdownScenes: [],
                 currentSceneId: scenes[0]?.id ?? null,
               });
               log.info('Loaded from server-side storage:', classroomId);
@@ -592,6 +600,38 @@ export default function ClassroomDetailPage() {
     };
   }, [loading, error, stage?.courseId]);
 
+  const mixedMarkdownScenes = useMemo(
+    () => markdownScenes.filter((scene) => scene.content.type === 'markdown'),
+    [markdownScenes],
+  );
+  const isPureMarkdownNotebook = stage?.notebookKind === 'markdown';
+  const hasMixedMarkdown = !isPureMarkdownNotebook && mixedMarkdownScenes.length > 0;
+  const markdownReaderScenes = isPureMarkdownNotebook ? scenes : mixedMarkdownScenes;
+  const shouldShowMarkdownReader =
+    Boolean(isPureMarkdownNotebook) || (hasMixedMarkdown && showMarkdownReader);
+  const markdownReaderCurrentSceneId = isPureMarkdownNotebook
+    ? currentSceneId
+    : currentMarkdownSceneId;
+  const handleSelectMarkdownScene = isPureMarkdownNotebook
+    ? setCurrentSceneId
+    : setCurrentMarkdownSceneId;
+
+  useEffect(() => {
+    if (!hasMixedMarkdown) {
+      setShowMarkdownReader(false);
+      setCurrentMarkdownSceneId(null);
+      return;
+    }
+
+    if (
+      currentMarkdownSceneId &&
+      mixedMarkdownScenes.some((scene) => scene.id === currentMarkdownSceneId)
+    ) {
+      return;
+    }
+    setCurrentMarkdownSceneId(mixedMarkdownScenes[0]?.id ?? null);
+  }, [currentMarkdownSceneId, hasMixedMarkdown, mixedMarkdownScenes]);
+
   const manualGenerationActions =
     sourceNotebookId ||
     pendingOutlineCount > 0 ||
@@ -664,6 +704,27 @@ export default function ClassroomDetailPage() {
         ) : null}
       </>
     ) : null;
+  const markdownToggleAction = hasMixedMarkdown ? (
+    <button
+      type="button"
+      onClick={() => setShowMarkdownReader((value) => !value)}
+      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:border-blue-400/40 dark:hover:bg-blue-400/10 dark:hover:text-blue-100"
+    >
+      <FileText className="size-3.5" />
+      {showMarkdownReader
+        ? locale === 'zh-CN'
+          ? '返回幻灯片'
+          : 'Back to slides'
+        : `Markdown ${mixedMarkdownScenes.length}`}
+    </button>
+  ) : null;
+  const classroomHeaderActions =
+    markdownToggleAction || manualGenerationActions ? (
+      <>
+        {markdownToggleAction}
+        {manualGenerationActions}
+      </>
+    ) : null;
 
   return (
     <ThemeProvider>
@@ -688,16 +749,16 @@ export default function ClassroomDetailPage() {
                 </button>
               </div>
             </div>
-          ) : stage?.notebookKind === 'markdown' ? (
+          ) : stage && shouldShowMarkdownReader ? (
             <MarkdownNotebookReader
               stage={stage}
-              scenes={scenes}
-              currentSceneId={currentSceneId}
-              onSelectScene={setCurrentSceneId}
-              headerActions={manualGenerationActions}
+              scenes={markdownReaderScenes}
+              currentSceneId={markdownReaderCurrentSceneId}
+              onSelectScene={handleSelectMarkdownScene}
+              headerActions={classroomHeaderActions}
             />
           ) : (
-            <Stage onRetryOutline={retrySingleOutline} headerActions={manualGenerationActions} />
+            <Stage onRetryOutline={retrySingleOutline} headerActions={classroomHeaderActions} />
           )}
         </div>
       </MediaStageProvider>

@@ -13,6 +13,23 @@ import {
   type MemoryKnowledgeMatch,
 } from '@/lib/server/memory-knowledge-search';
 import {
+  buildLearnerAnalytics,
+  type LearnerAnalytics,
+} from '@/lib/server/memory-learner-analytics';
+import {
+  mergeEvidencePackets,
+  searchMarkdownSourceEvidence,
+  searchProblemAttemptEvidence,
+  searchProblemSourceEvidence,
+  searchStudentMessageEvidence,
+  type MemoryEvidencePacket,
+} from '@/lib/server/memory-source-evidence';
+import {
+  inferMemorySearchIntent,
+  type MemorySearchIntent,
+  type MemorySearchScopeMode,
+} from '@/lib/server/memory-search-intent';
+import {
   indexStudyMemoryRecords,
   semanticSearchStudyMemoryChunks,
   type StudyMemorySemanticMatch,
@@ -34,22 +51,57 @@ type MemorySection = {
 
 export type MemoryContextTargetType = Extract<StudyMemoryTargetType, 'course' | 'notebook'>;
 
+export type MemoryRecallScope = {
+  requestedMode: MemorySearchScopeMode;
+  effectiveMode: Exclude<MemorySearchScopeMode, 'auto_expand'>;
+  expanded: boolean;
+  reason: string;
+  originalTargetType: MemoryContextTargetType;
+  originalTargetId: string;
+  effectiveTargetType: MemoryContextTargetType;
+  effectiveTargetId: string;
+  courseId: string | null;
+  notebookId: string | null;
+  localEvidenceCount: number;
+  courseEvidenceCount: number;
+};
+
 export type MemoryRecallContext = {
   prompt: string;
+  scope: MemoryRecallScope;
   staticFacts: MemoryFactRecord[];
   directMemories: StudyMemoryRecord[];
   semanticMatches: StudyMemoryRecord[];
   knowledgeMatches: MemoryKnowledgeMatch[];
+  sourceEvidence: MemoryEvidencePacket[];
+  learnerAnalytics: LearnerAnalytics | null;
   conflicts: MemoryFactConflict[];
   filteredStaleMemoryIds: string[];
+  searchIntent: MemorySearchIntent;
   directCount: number;
   semanticCount: number;
   knowledgeCount: number;
+  sourceEvidenceCount: number;
+  learnerAnalyticsCount: number;
   vectorUsed: boolean;
   storage: 'database' | 'unavailable';
 };
 
 export type NotebookStudyMemoryPromptContext = MemoryRecallContext;
+
+type MemoryRecallPass = {
+  recallTarget: ReadableStudyMemoryTarget;
+  directCourse: StudyMemoryRecord[];
+  directTarget: StudyMemoryRecord[];
+  directMemories: StudyMemoryRecord[];
+  semanticMemories: StudyMemoryRecord[];
+  knowledgeMatches: MemoryKnowledgeMatch[];
+  sourceEvidence: MemoryEvidencePacket[];
+  learnerAnalytics: LearnerAnalytics | null;
+  filteredStaleMemoryIds: string[];
+  vectorUsed: boolean;
+  evidenceCount: number;
+};
 
 function compact(input: string | null | undefined, maxChars: number): string {
   const text = String(input || '')
@@ -132,6 +184,18 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return result;
 }
 
+function uniqueStrings(items: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of items) {
+    const text = item?.trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    result.push(text);
+  }
+  return result;
+}
+
 async function getCourseTarget(
   prisma: PrismaClient,
   userId: string,
@@ -139,6 +203,92 @@ async function getCourseTarget(
 ): Promise<ReadableStudyMemoryTarget | null> {
   if (!notebookTarget.courseId) return null;
   return resolveReadableStudyMemoryTarget(prisma, userId, 'course', notebookTarget.courseId);
+}
+
+function resolveRecallScope(args: {
+  target: ReadableStudyMemoryTarget;
+  courseTarget: ReadableStudyMemoryTarget | null;
+  searchIntent: MemorySearchIntent;
+}): {
+  factTarget: ReadableStudyMemoryTarget;
+  recallTarget: ReadableStudyMemoryTarget;
+  scope: MemoryRecallScope;
+} {
+  const requestedMode: MemorySearchScopeMode =
+    args.target.targetType === 'course' ? 'course_wide' : args.searchIntent.scopeMode;
+  const canUseCourse = Boolean(args.courseTarget);
+  const shouldUseCourse =
+    args.target.targetType === 'course' ||
+    (canUseCourse && (requestedMode === 'course_wide' || requestedMode === 'auto_expand'));
+  const recallTarget = shouldUseCourse && args.courseTarget ? args.courseTarget : args.target;
+  const effectiveMode: Exclude<MemorySearchScopeMode, 'auto_expand'> =
+    recallTarget.targetType === 'course' ? 'course_wide' : 'notebook_local';
+  const expanded =
+    args.target.targetType === 'notebook' &&
+    recallTarget.targetType === 'course' &&
+    args.target.targetId !== recallTarget.targetId;
+
+  return {
+    factTarget: recallTarget,
+    recallTarget,
+    scope: {
+      requestedMode,
+      effectiveMode,
+      expanded,
+      reason: args.searchIntent.scopeReason,
+      originalTargetType: args.target.targetType,
+      originalTargetId: args.target.targetId,
+      effectiveTargetType: recallTarget.targetType,
+      effectiveTargetId: recallTarget.targetId,
+      courseId: recallTarget.courseId,
+      notebookId: recallTarget.notebookId,
+      localEvidenceCount: 0,
+      courseEvidenceCount: 0,
+    },
+  };
+}
+
+function evidenceCount(args: {
+  directMemories: StudyMemoryRecord[];
+  semanticMemories: StudyMemoryRecord[];
+  knowledgeMatches: MemoryKnowledgeMatch[];
+  sourceEvidence: MemoryEvidencePacket[];
+  learnerAnalytics: LearnerAnalytics | null;
+}): number {
+  return (
+    args.directMemories.length +
+    args.semanticMemories.length +
+    args.knowledgeMatches.length +
+    args.sourceEvidence.length +
+    learnerAnalyticsEvidenceCount(args.learnerAnalytics)
+  );
+}
+
+function learnerAnalyticsEvidenceCount(analytics: LearnerAnalytics | null): number {
+  if (!analytics) return 0;
+  return (
+    analytics.summary.questionCount +
+    analytics.summary.attemptCount +
+    analytics.summary.privateMemoryCount
+  );
+}
+
+function formatRecallScope(scope: MemoryRecallScope): string {
+  const range =
+    scope.effectiveMode === 'course_wide'
+      ? `course:${scope.courseId || scope.effectiveTargetId}`
+      : `notebook:${scope.notebookId || scope.effectiveTargetId}`;
+  return [
+    '## Memory recall scope',
+    `requestedMode: ${scope.requestedMode}`,
+    `effectiveMode: ${scope.effectiveMode}`,
+    `expandedFromNotebookToCourse: ${scope.expanded ? 'yes' : 'no'}`,
+    `effectiveTarget: ${range}`,
+    `localEvidenceCount: ${scope.localEvidenceCount}`,
+    `courseEvidenceCount: ${scope.courseEvidenceCount}`,
+    `reason: ${scope.reason}`,
+    'Use local notebook evidence as the classroom floor. If expandedFromNotebookToCourse=yes, say that the search was widened to the course when the answer depends on cross-notebook evidence.',
+  ].join('\n');
 }
 
 function factValueText(value: unknown): string {
@@ -193,14 +343,111 @@ function formatKnowledgeMatches(matches: MemoryKnowledgeMatch[]): string {
     'These are discovered from course/notebook knowledge sources after target filtering.',
     ...matches.slice(0, 8).map((match, index) => {
       const tags = match.metadata.tags.length ? ` tags=${match.metadata.tags.join(', ')}` : '';
+      const progress =
+        match.metadata.attemptedCount > 0
+          ? ` progress=${match.metadata.attemptStatus || 'attempted'}`
+          : ' progress=unattempted';
       return `${index + 1}. [${match.sourceType}] ${match.title} (score=${match.score.toFixed(
         1,
-      )}; ${match.metadata.problemType}/${match.metadata.difficulty}${tags})\n   - ${compact(
+      )}; ${match.metadata.problemType}/${match.metadata.difficulty}${tags}${progress})\n   - ${compact(
         match.text,
         520,
       )}`;
     }),
   ].join('\n');
+}
+
+function sourceEvidenceLabel(sourceType: MemoryEvidencePacket['sourceType']): string {
+  if (sourceType === 'markdown_section') return 'notebook markdown original';
+  if (sourceType === 'problem') return 'problem original';
+  if (sourceType === 'student_message') return 'learner question history';
+  return 'learner problem attempt';
+}
+
+function formatSourceEvidence(matches: MemoryEvidencePacket[]): string {
+  if (matches.length === 0) return '';
+  return [
+    '## Original source evidence',
+    'These packets contain original text expanded from the indexed source. Prefer this over summaries when answering source lookup questions.',
+    ...matches.slice(0, 10).map((match, index) => {
+      const notebookName =
+        typeof match.metadata.notebookName === 'string' ? match.metadata.notebookName : '';
+      const meta = [
+        sourceEvidenceLabel(match.sourceType),
+        notebookName,
+        `score=${match.score.toFixed(1)}`,
+      ].filter(Boolean);
+      return `${index + 1}. ${match.title} (${meta.join('; ')})\n   - ${compact(
+        match.renderedText || match.originalText,
+        900,
+      )}`;
+    }),
+  ].join('\n');
+}
+
+function timeScopeLabel(scope: LearnerAnalytics['timeScope']): string {
+  if (scope === 'week') return '最近 7 天';
+  if (scope === 'month') return '最近 30 天';
+  if (scope === 'term') return '本课程周期';
+  return '全部记录';
+}
+
+function formatLearnerAnalytics(analytics: LearnerAnalytics | null): string {
+  if (!analytics) return '';
+  const lines = [
+    '## Learner analytics evidence',
+    `Time window: ${timeScopeLabel(analytics.timeScope)}${
+      analytics.since ? ` (${analytics.since} to ${analytics.until})` : ''
+    }`,
+    `Summary: questions=${analytics.summary.questionCount}; attempts=${analytics.summary.attemptCount}; attemptedProblems=${analytics.summary.attemptedProblemCount}; passed=${analytics.summary.passedCount}; failed=${analytics.summary.failedCount}; partial=${analytics.summary.partialCount}; privateMemories=${analytics.summary.privateMemoryCount}; activeNotebooks=${analytics.summary.activeNotebookCount}`,
+  ];
+
+  if (analytics.activeNotebooks.length > 0) {
+    lines.push(
+      'Active notebooks:',
+      ...analytics.activeNotebooks
+        .slice(0, 6)
+        .map((item) => `- ${item.notebookName} (${item.count} signals)`),
+    );
+  }
+  if (analytics.messages.length > 0) {
+    lines.push(
+      'Recent learner questions:',
+      ...analytics.messages
+        .slice(0, 6)
+        .map(
+          (item) =>
+            `- ${item.createdAt} / ${item.notebookName || 'course'}: ${compact(item.text, 240)}`,
+        ),
+    );
+  }
+  if (analytics.attempts.length > 0) {
+    lines.push(
+      'Recent problem attempts:',
+      ...analytics.attempts.slice(0, 6).map((item) => {
+        const tags = item.tags.slice(0, 4).join(', ');
+        return `- ${item.createdAt} / ${item.status}${
+          item.score == null ? '' : ` / score=${item.score}`
+        }: ${item.problemTitle}${tags ? ` (${tags})` : ''}`;
+      }),
+    );
+  }
+  if (analytics.weakTags.length > 0) {
+    lines.push(
+      'Weak tags from wrong/partial attempts:',
+      ...analytics.weakTags.map((item) => `- ${item.tag}: ${item.count}`),
+    );
+  }
+  if (analytics.privateMemories.length > 0) {
+    lines.push(
+      'Private learner memories:',
+      ...analytics.privateMemories
+        .slice(0, 5)
+        .map((item) => `- ${item.title}: ${compact(item.text, 240)}`),
+    );
+  }
+
+  return lines.join('\n');
 }
 
 function staleNeedlesFromValue(value: unknown): string[] {
@@ -288,18 +535,281 @@ async function buildFactScopes(args: {
   return scopes;
 }
 
+async function buildRecallPass(args: {
+  prisma: PrismaClient;
+  userId: string;
+  recallTarget: ReadableStudyMemoryTarget;
+  courseTarget: ReadableStudyMemoryTarget | null;
+  searchIntent: MemorySearchIntent;
+  recallQuery: string;
+  sourceEvidenceQuery: string;
+  staleNeedles: string[];
+  currentNeedles: string[];
+}): Promise<MemoryRecallPass> {
+  const [targetMemories, courseMemories] = await Promise.all([
+    listStudyMemoriesForViewer(args.prisma, args.userId, args.recallTarget),
+    args.recallTarget.targetType === 'notebook' && args.courseTarget
+      ? listStudyMemoriesForViewer(args.prisma, args.userId, args.courseTarget)
+      : [],
+  ]);
+
+  const directCourse =
+    args.recallTarget.targetType === 'course'
+      ? targetMemories.slice(0, 8)
+      : courseMemories.slice(0, 4);
+  const directTarget = args.recallTarget.targetType === 'course' ? [] : targetMemories.slice(0, 8);
+  const directFilter = filterStaleMemories({
+    memories: uniqueById([...directCourse, ...directTarget]),
+    staleNeedles: args.staleNeedles,
+    currentNeedles: args.currentNeedles,
+  });
+  const directMemories = directFilter.memories;
+
+  try {
+    await indexStudyMemoryRecords(args.prisma, directMemories);
+  } catch (error) {
+    log.warn('Lazy study memory indexing failed:', error);
+  }
+
+  let semanticMemories: StudyMemoryRecord[] = [];
+  let vectorUsed = false;
+  let semanticFilteredIds: string[] = [];
+  const shouldSearchSemanticMemory = args.searchIntent.knowledgeTypes.some(
+    (type) => type === 'study_memory' || type === 'knowledge_sources',
+  );
+  if (shouldSearchSemanticMemory && args.recallQuery) {
+    try {
+      const matches = await semanticSearchStudyMemoryChunks({
+        prisma: args.prisma,
+        query: args.recallQuery,
+        viewerUserId: args.userId,
+        publicOwnerId: args.recallTarget.targetOwnerId,
+        notebookId: args.recallTarget.notebookId,
+        courseId: args.recallTarget.courseId,
+        limit: 8,
+      });
+      vectorUsed = matches.length > 0;
+      const rawSemantic = uniqueById(matches.map(semanticMatchToMemory));
+      const semanticFilter = filterStaleMemories({
+        memories: rawSemantic,
+        staleNeedles: args.staleNeedles,
+        currentNeedles: args.currentNeedles,
+      });
+      semanticMemories = semanticFilter.memories;
+      semanticFilteredIds = semanticFilter.filteredIds;
+    } catch (error) {
+      log.warn('Semantic study memory recall failed:', error);
+    }
+  }
+
+  let knowledgeMatches: MemoryKnowledgeMatch[] = [];
+  const shouldSearchProblemBank =
+    Boolean(args.searchIntent.progressFilter) ||
+    args.searchIntent.knowledgeTypes.includes('problem_bank');
+  if (shouldSearchProblemBank && args.recallQuery) {
+    try {
+      knowledgeMatches = await searchProblemBankKnowledge({
+        prisma: args.prisma,
+        query: args.recallQuery,
+        notebookId: args.recallTarget.notebookId,
+        courseId: args.recallTarget.courseId,
+        viewerUserId: args.userId,
+        progressFilter: args.searchIntent.progressFilter,
+        limit: 6,
+      });
+    } catch (error) {
+      log.warn('Problem-bank knowledge recall failed:', error);
+    }
+  }
+
+  let sourceEvidence: MemoryEvidencePacket[] = [];
+  if (args.sourceEvidenceQuery) {
+    const shouldSearchMarkdownEvidence =
+      args.searchIntent.knowledgeTypes.includes('knowledge_sources') ||
+      args.searchIntent.plan.primarySources.includes('knowledge_sources') ||
+      args.searchIntent.plan.secondarySources.includes('knowledge_sources');
+    const shouldSearchProblemEvidence =
+      shouldSearchProblemBank ||
+      args.searchIntent.plan.primarySources.includes('problem_bank') ||
+      args.searchIntent.plan.secondarySources.includes('problem_bank');
+    const shouldSearchLearnerHistory =
+      args.searchIntent.knowledgeTypes.includes('learner_history') ||
+      args.searchIntent.plan.primarySources.includes('learner_history') ||
+      args.searchIntent.plan.secondarySources.includes('learner_history') ||
+      args.searchIntent.kind === 'learner_understanding' ||
+      args.searchIntent.kind === 'learning_status' ||
+      args.searchIntent.kind === 'learner_questions';
+
+    try {
+      const [markdownEvidence, problemEvidence, studentMessages, attemptEvidence] =
+        await Promise.all([
+          shouldSearchMarkdownEvidence
+            ? searchMarkdownSourceEvidence({
+                prisma: args.prisma,
+                query: args.sourceEvidenceQuery,
+                notebookId: args.recallTarget.notebookId,
+                courseId: args.recallTarget.courseId,
+                limit: 5,
+              })
+            : [],
+          shouldSearchProblemEvidence
+            ? searchProblemSourceEvidence({
+                prisma: args.prisma,
+                query: args.sourceEvidenceQuery,
+                notebookId: args.recallTarget.notebookId,
+                courseId: args.recallTarget.courseId,
+                viewerUserId: args.userId,
+                progressFilter: args.searchIntent.progressFilter,
+                limit: 5,
+              })
+            : [],
+          shouldSearchLearnerHistory
+            ? searchStudentMessageEvidence({
+                prisma: args.prisma,
+                query: args.sourceEvidenceQuery,
+                userId: args.userId,
+                notebookId: args.recallTarget.notebookId,
+                courseId: args.recallTarget.courseId,
+                limit: 5,
+              })
+            : [],
+          shouldSearchLearnerHistory
+            ? searchProblemAttemptEvidence({
+                prisma: args.prisma,
+                query: args.sourceEvidenceQuery,
+                userId: args.userId,
+                notebookId: args.recallTarget.notebookId,
+                courseId: args.recallTarget.courseId,
+                progressFilter: args.searchIntent.progressFilter,
+                limit: 5,
+              })
+            : [],
+        ]);
+      sourceEvidence = mergeEvidencePackets(
+        markdownEvidence,
+        problemEvidence,
+        studentMessages,
+        attemptEvidence,
+      ).slice(0, 12);
+    } catch (error) {
+      log.warn('Original source evidence recall failed:', error);
+    }
+  }
+
+  let learnerAnalytics: LearnerAnalytics | null = null;
+  try {
+    learnerAnalytics = await buildLearnerAnalytics({
+      prisma: args.prisma,
+      userId: args.userId,
+      target: {
+        targetType: args.recallTarget.targetType,
+        targetId: args.recallTarget.targetId,
+        courseId: args.recallTarget.courseId,
+        notebookId: args.recallTarget.notebookId,
+      },
+      query: args.searchIntent.originalQuery,
+      searchIntent: args.searchIntent,
+    });
+  } catch (error) {
+    log.warn('Learner analytics recall failed:', error);
+  }
+
+  return {
+    recallTarget: args.recallTarget,
+    directCourse,
+    directTarget,
+    directMemories,
+    semanticMemories,
+    knowledgeMatches,
+    sourceEvidence,
+    learnerAnalytics,
+    filteredStaleMemoryIds: [...directFilter.filteredIds, ...semanticFilteredIds],
+    vectorUsed,
+    evidenceCount: evidenceCount({
+      directMemories,
+      semanticMemories,
+      knowledgeMatches,
+      sourceEvidence,
+      learnerAnalytics,
+    }),
+  };
+}
+
+function mergeRecallPasses(
+  localPass: MemoryRecallPass,
+  coursePass: MemoryRecallPass,
+): MemoryRecallPass {
+  const directCourse = uniqueById([...coursePass.directCourse, ...localPass.directCourse]);
+  const directTarget = localPass.directTarget;
+  const directMemories = uniqueById([...directCourse, ...directTarget]);
+  const semanticMemories = uniqueById([
+    ...localPass.semanticMemories,
+    ...coursePass.semanticMemories,
+  ]).slice(0, 8);
+  const knowledgeMatches = uniqueById([
+    ...localPass.knowledgeMatches,
+    ...coursePass.knowledgeMatches,
+  ]).slice(0, 8);
+  const sourceEvidence = mergeEvidencePackets(
+    localPass.sourceEvidence,
+    coursePass.sourceEvidence,
+  ).slice(0, 12);
+  const learnerAnalytics = coursePass.learnerAnalytics || localPass.learnerAnalytics;
+
+  return {
+    recallTarget: coursePass.recallTarget,
+    directCourse,
+    directTarget,
+    directMemories,
+    semanticMemories,
+    knowledgeMatches,
+    sourceEvidence,
+    learnerAnalytics,
+    filteredStaleMemoryIds: [
+      ...new Set([...localPass.filteredStaleMemoryIds, ...coursePass.filteredStaleMemoryIds]),
+    ],
+    vectorUsed: localPass.vectorUsed || coursePass.vectorUsed,
+    evidenceCount: evidenceCount({
+      directMemories,
+      semanticMemories,
+      knowledgeMatches,
+      sourceEvidence,
+      learnerAnalytics,
+    }),
+  };
+}
+
 function emptyContext(storage: 'database' | 'unavailable'): MemoryRecallContext {
   return {
     prompt: 'N/A',
+    scope: {
+      requestedMode: 'course_wide',
+      effectiveMode: 'course_wide',
+      expanded: false,
+      reason: 'No memory target was available.',
+      originalTargetType: 'course',
+      originalTargetId: '',
+      effectiveTargetType: 'course',
+      effectiveTargetId: '',
+      courseId: null,
+      notebookId: null,
+      localEvidenceCount: 0,
+      courseEvidenceCount: 0,
+    },
     staticFacts: [],
     directMemories: [],
     semanticMatches: [],
     knowledgeMatches: [],
+    sourceEvidence: [],
+    learnerAnalytics: null,
     conflicts: [],
     filteredStaleMemoryIds: [],
+    searchIntent: inferMemorySearchIntent(''),
     directCount: 0,
     semanticCount: 0,
     knowledgeCount: 0,
+    sourceEvidenceCount: 0,
+    learnerAnalyticsCount: 0,
     vectorUsed: false,
     storage,
   };
@@ -311,11 +821,22 @@ export async function buildMemoryRecallContext(args: {
   userId?: string;
   question: string;
   conversationId?: string | null;
+  searchIntent?: MemorySearchIntent;
 }): Promise<MemoryRecallContext> {
   const prisma = getOptionalPrisma();
   if (!prisma || !args.userId) return emptyContext('unavailable');
 
   try {
+    const searchIntent =
+      args.searchIntent ?? inferMemorySearchIntent(args.question, args.targetType);
+    const recallQuery =
+      searchIntent.rewrittenQuery || (searchIntent.progressFilter ? '' : args.question);
+    const sourceEvidenceQuery = uniqueStrings([
+      searchIntent.originalQuery,
+      args.question,
+      searchIntent.rewrittenQuery,
+      ...searchIntent.plan.searchQueries,
+    ]).join('\n');
     const target = await resolveReadableStudyMemoryTarget(
       prisma,
       args.userId,
@@ -326,15 +847,18 @@ export async function buildMemoryRecallContext(args: {
 
     const courseTarget =
       target.targetType === 'notebook' ? await getCourseTarget(prisma, args.userId, target) : null;
-    const [targetMemories, courseMemories] = await Promise.all([
-      listStudyMemoriesForViewer(prisma, args.userId, target),
-      courseTarget ? listStudyMemoriesForViewer(prisma, args.userId, courseTarget) : [],
-    ]);
+    const scopeResolution = resolveRecallScope({
+      target,
+      courseTarget,
+      searchIntent,
+    });
+    const recallTarget = scopeResolution.recallTarget;
+    const factTarget = scopeResolution.factTarget;
 
     const factScopes = await buildFactScopes({
       userId: args.userId,
-      target,
-      courseTarget,
+      target: factTarget,
+      courseTarget: factTarget.targetType === 'notebook' ? courseTarget : null,
       conversationId: args.conversationId,
     });
     const factResolution = await resolveEffectiveMemoryFacts({
@@ -358,65 +882,58 @@ export async function buildMemoryRecallContext(args: {
       staleNeedlesFromValue(fact.valueJson),
     );
 
-    const directCourse =
-      target.targetType === 'course' ? targetMemories.slice(0, 8) : courseMemories.slice(0, 4);
-    const directTarget = target.targetType === 'course' ? [] : targetMemories.slice(0, 8);
-    const directFilter = filterStaleMemories({
-      memories: uniqueById([...directCourse, ...directTarget]),
-      staleNeedles,
-      currentNeedles,
-    });
-    const directMemories = directFilter.memories;
-
-    try {
-      await indexStudyMemoryRecords(prisma, directMemories);
-    } catch (error) {
-      log.warn('Lazy study memory indexing failed:', error);
-    }
-
-    let semanticMemories: StudyMemoryRecord[] = [];
-    let vectorUsed = false;
-    let semanticFilteredIds: string[] = [];
-    try {
-      const matches = await semanticSearchStudyMemoryChunks({
+    const shouldRunLocalExpansionPass =
+      searchIntent.scopeMode === 'auto_expand' &&
+      target.targetType === 'notebook' &&
+      recallTarget.targetType === 'course';
+    const [localPass, recallPass] = await Promise.all([
+      shouldRunLocalExpansionPass
+        ? buildRecallPass({
+            prisma,
+            userId: args.userId,
+            recallTarget: target,
+            courseTarget,
+            searchIntent,
+            recallQuery,
+            sourceEvidenceQuery,
+            staleNeedles,
+            currentNeedles,
+          })
+        : Promise.resolve<MemoryRecallPass | null>(null),
+      buildRecallPass({
         prisma,
-        query: args.question,
-        viewerUserId: args.userId,
-        publicOwnerId: target.targetOwnerId,
-        notebookId: target.notebookId,
-        courseId: target.courseId,
-        limit: 8,
-      });
-      vectorUsed = matches.length > 0;
-      const directIds = new Set(directMemories.map((memory) => memory.id));
-      const rawSemantic = uniqueById(matches.map(semanticMatchToMemory)).filter(
-        (memory) => !directIds.has(memory.id),
-      );
-      const semanticFilter = filterStaleMemories({
-        memories: rawSemantic,
+        userId: args.userId,
+        recallTarget,
+        courseTarget,
+        searchIntent,
+        recallQuery,
+        sourceEvidenceQuery,
         staleNeedles,
         currentNeedles,
-      });
-      semanticMemories = semanticFilter.memories;
-      semanticFilteredIds = semanticFilter.filteredIds;
-    } catch (error) {
-      log.warn('Semantic study memory recall failed:', error);
-    }
+      }),
+    ]);
+    const finalPass = localPass ? mergeRecallPasses(localPass, recallPass) : recallPass;
+    const directCourse = finalPass.directCourse;
+    const directTarget = finalPass.directTarget;
+    const directMemories = finalPass.directMemories;
+    const semanticMemories = finalPass.semanticMemories;
+    const knowledgeMatches = finalPass.knowledgeMatches;
+    const sourceEvidence = finalPass.sourceEvidence;
+    const learnerAnalytics = finalPass.learnerAnalytics;
+    const vectorUsed = finalPass.vectorUsed;
 
-    let knowledgeMatches: MemoryKnowledgeMatch[] = [];
-    try {
-      knowledgeMatches = await searchProblemBankKnowledge({
-        prisma,
-        query: args.question,
-        notebookId: target.notebookId,
-        courseId: target.courseId,
-        limit: 6,
-      });
-    } catch (error) {
-      log.warn('Problem-bank knowledge recall failed:', error);
-    }
+    const scope = {
+      ...scopeResolution.scope,
+      localEvidenceCount: localPass
+        ? localPass.evidenceCount
+        : recallTarget.targetType === 'notebook'
+          ? recallPass.evidenceCount
+          : 0,
+      courseEvidenceCount: recallTarget.targetType === 'course' ? recallPass.evidenceCount : 0,
+    };
 
     const sections = [
+      formatRecallScope(scope),
       formatFacts(factResolution.facts),
       formatConflicts(factResolution.conflicts),
       formatSection({
@@ -435,6 +952,8 @@ export async function buildMemoryRecallContext(args: {
         title: 'Semantically recalled study memory from the same course/notebook',
         memories: semanticMemories.slice(0, 6),
       }),
+      formatSourceEvidence(sourceEvidence),
+      formatLearnerAnalytics(learnerAnalytics),
       formatKnowledgeMatches(knowledgeMatches),
     ].filter(Boolean);
 
@@ -442,6 +961,7 @@ export async function buildMemoryRecallContext(args: {
       sections.length > 0
         ? [
             'Use this layered memory context as durable context for the answer.',
+            'Memory recall scope tells whether this answer is grounded in the current notebook or the whole course.',
             'Structured memory facts are exact current values and override any fuzzy or semantic memory.',
             'Public study memory describes course/notebook facts, teacher requirements, and reusable teaching constraints.',
             'Private study memory describes only this learner; use it for personalization or weak points, not as public course fact.',
@@ -454,15 +974,25 @@ export async function buildMemoryRecallContext(args: {
 
     return {
       prompt: compact(prompt, 10000),
+      scope,
       staticFacts: factResolution.facts,
       directMemories,
       semanticMatches: semanticMemories,
       knowledgeMatches,
+      sourceEvidence,
+      learnerAnalytics,
       conflicts: factResolution.conflicts,
-      filteredStaleMemoryIds: [...directFilter.filteredIds, ...semanticFilteredIds],
+      filteredStaleMemoryIds: finalPass.filteredStaleMemoryIds,
+      searchIntent,
       directCount: directMemories.length,
       semanticCount: semanticMemories.length,
       knowledgeCount: knowledgeMatches.length,
+      sourceEvidenceCount: sourceEvidence.length,
+      learnerAnalyticsCount: learnerAnalytics
+        ? learnerAnalytics.summary.questionCount +
+          learnerAnalytics.summary.attemptCount +
+          learnerAnalytics.summary.privateMemoryCount
+        : 0,
       vectorUsed,
       storage: 'database',
     };
@@ -477,6 +1007,7 @@ export async function buildNotebookStudyMemoryPromptContext(args: {
   userId?: string;
   question: string;
   conversationId?: string | null;
+  searchIntent?: MemorySearchIntent;
 }): Promise<NotebookStudyMemoryPromptContext> {
   return buildMemoryRecallContext({
     targetType: 'notebook',
@@ -484,5 +1015,6 @@ export async function buildNotebookStudyMemoryPromptContext(args: {
     userId: args.userId,
     question: args.question,
     conversationId: args.conversationId,
+    searchIntent: args.searchIntent,
   });
 }

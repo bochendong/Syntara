@@ -59,7 +59,8 @@ export async function POST(request: Request) {
     if ('response' in auth) return auth.response;
     const { userId } = auth;
 
-    const payload = createNotebookSchema.safeParse(await request.json());
+    const rawBody = await request.json();
+    const payload = createNotebookSchema.safeParse(rawBody);
     if (!payload.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: payload.error.flatten() },
@@ -68,7 +69,13 @@ export async function POST(request: Request) {
     }
 
     const { id: clientId, markdownSections, ...rest } = payload.data;
-    const notebookKind = markdownSections?.length ? 'markdown' : rest.notebookKind;
+    const hasExplicitNotebookKind =
+      Boolean(rawBody) &&
+      typeof rawBody === 'object' &&
+      !Array.isArray(rawBody) &&
+      Object.prototype.hasOwnProperty.call(rawBody, 'notebookKind');
+    const notebookKind =
+      !hasExplicitNotebookKind && markdownSections?.length ? 'markdown' : rest.notebookKind;
 
     if (rest.courseId) {
       const ownCourse = await findOwnedCourse(prisma, userId, rest.courseId);
@@ -90,7 +97,7 @@ export async function POST(request: Request) {
         if (!notebook) {
           return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
         }
-        if (notebookKind === 'markdown' && markdownSections) {
+        if (markdownSections) {
           const sections = await replaceOwnedMarkdownNotebookSections(
             prisma,
             userId,
@@ -103,6 +110,10 @@ export async function POST(request: Request) {
               summary: section.summary,
               sourceMeta: toPrismaNullableJson(section.sourceMeta),
             })),
+            {
+              preserveScenes: notebookKind !== 'markdown',
+              notebookKind,
+            },
           );
           if (!sections) {
             return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
@@ -118,12 +129,12 @@ export async function POST(request: Request) {
       ...rest,
       notebookKind,
     });
-    if (notebookKind === 'markdown') {
+    if (markdownSections) {
       const sections = await replaceOwnedMarkdownNotebookSections(
         prisma,
         userId,
         notebook.id,
-        (markdownSections || []).map((section) => ({
+        markdownSections.map((section) => ({
           id: section.id,
           title: section.title,
           order: section.order,
@@ -131,6 +142,10 @@ export async function POST(request: Request) {
           summary: section.summary,
           sourceMeta: toPrismaNullableJson(section.sourceMeta),
         })),
+        {
+          preserveScenes: notebookKind !== 'markdown',
+          notebookKind,
+        },
       );
       if (!sections) {
         return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });

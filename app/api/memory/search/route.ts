@@ -2,55 +2,64 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
+import { generateMemorySearchAnswer } from '@/lib/server/memory-search-answer';
 import { planMemorySearchIntent } from '@/lib/server/memory-search-intent';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
 import { buildMemoryRecallContext } from '@/lib/server/study-memory-context';
 
-const targetTypeSchema = z.enum(['course', 'notebook']);
+const searchBodySchema = z.object({
+  targetType: z.enum(['course', 'notebook']),
+  targetId: z.string().min(1),
+  query: z.string().min(1).max(2000),
+  conversationId: z.string().optional().nullable(),
+});
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   return runWithRequestContext(
     request,
-    '/api/memory/context',
+    '/api/memory/search',
     () =>
       safeRoute(async () => {
         const auth = await requireUserId();
         if ('response' in auth) return auth.response;
 
-        const url = new URL(request.url);
-        const targetType = targetTypeSchema.safeParse(url.searchParams.get('targetType'));
-        const targetId = url.searchParams.get('targetId')?.trim();
-        const message = url.searchParams.get('message')?.trim() || '';
-        const conversationId = url.searchParams.get('conversationId')?.trim() || null;
-
-        if (!targetType.success || !targetId) {
-          return NextResponse.json({ error: 'Invalid memory context target' }, { status: 400 });
+        const payload = searchBodySchema.safeParse(await request.json());
+        if (!payload.success) {
+          return NextResponse.json(
+            { error: 'Invalid memory search request', details: payload.error.flatten() },
+            { status: 400 },
+          );
         }
 
-        const resolvedModel = message
-          ? await resolveModelFromHeaders(request, { allowOpenAIModelOverride: true })
-          : null;
-        const intent = resolvedModel
-          ? await planMemorySearchIntent({
-              query: message,
-              model: resolvedModel.model,
-              targetType: targetType.data,
-            })
-          : undefined;
+        const { model } = await resolveModelFromHeaders(request, {
+          allowOpenAIModelOverride: true,
+        });
+        const intent = await planMemorySearchIntent({
+          query: payload.data.query,
+          model,
+          targetType: payload.data.targetType,
+        });
         const context = await buildMemoryRecallContext({
-          targetType: targetType.data,
-          targetId,
+          targetType: payload.data.targetType,
+          targetId: payload.data.targetId,
           userId: auth.userId,
-          question: intent?.rewrittenQuery || message,
-          conversationId,
+          question: intent.rewrittenQuery || payload.data.query,
+          conversationId: payload.data.conversationId ?? null,
           searchIntent: intent,
+        });
+        const answer = await generateMemorySearchAnswer({
+          query: payload.data.query,
+          context,
+          model,
         });
 
         return NextResponse.json({
           storage: context.storage,
-          prompt: context.prompt,
+          answer,
           scope: context.scope,
+          intent: context.searchIntent,
+          prompt: context.prompt,
           staticFacts: context.staticFacts,
           directMemories: context.directMemories,
           semanticMatches: context.semanticMatches,
@@ -59,7 +68,6 @@ export async function GET(request: NextRequest) {
           learnerAnalytics: context.learnerAnalytics,
           conflicts: context.conflicts,
           filteredStaleMemoryIds: context.filteredStaleMemoryIds,
-          searchIntent: context.searchIntent,
           counts: {
             direct: context.directCount,
             semantic: context.semanticCount,
@@ -71,8 +79,8 @@ export async function GET(request: NextRequest) {
         });
       }),
     {
-      operationCode: 'memory_context',
-      chargeReason: '聊天记忆上下文搜索',
+      operationCode: 'memory_search',
+      chargeReason: '课程记忆 AI 搜索',
     },
   );
 }

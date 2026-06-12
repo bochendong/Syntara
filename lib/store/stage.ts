@@ -392,6 +392,7 @@ interface StageState {
 
   // Scenes
   scenes: Scene[];
+  markdownScenes: Scene[];
   currentSceneId: string | null;
 
   // Chats
@@ -462,6 +463,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   // Initial state
   stage: null,
   scenes: [],
+  markdownScenes: [],
   currentSceneId: null,
   chats: [],
   mode: 'playback',
@@ -483,6 +485,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     set((s) => ({
       stage,
       scenes: [],
+      markdownScenes: [],
       currentSceneId: null,
       chats: [],
       generationEpoch: s.generationEpoch + 1,
@@ -859,6 +862,9 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
       if (data) {
         const loadedScenes = Array.isArray(data.scenes) ? normalizeSceneStructure(data.scenes) : [];
+        const loadedMarkdownScenes = Array.isArray(data.markdownScenes)
+          ? orderScenes(data.markdownScenes)
+          : [];
         const loadedChats = Array.isArray(data.chats) ? data.chats : [];
         const pendingOutlines = getPendingOutlines(outlines, loadedScenes);
         const failedOutlines = getFailedPendingOutlines(data.stage, pendingOutlines);
@@ -869,6 +875,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
         set({
           stage: data.stage,
           scenes: loadedScenes,
+          markdownScenes: loadedMarkdownScenes,
           currentSceneId: resolvedCurrentSceneId,
           chats: loadedChats,
           outlines,
@@ -895,6 +902,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     set((s) => ({
       stage: null,
       scenes: [],
+      markdownScenes: [],
       currentSceneId: null,
       chats: [],
       outlines: [],
