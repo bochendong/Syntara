@@ -84,9 +84,14 @@ export async function ensureStudyMemoryTable(prisma: PrismaClient): Promise<void
           "reason" TEXT,
           "question" TEXT,
           "sourceReferences" JSONB,
+          "confidence" DOUBLE PRECISION DEFAULT 1,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "StudyMemory"
+        ADD COLUMN IF NOT EXISTS "confidence" DOUBLE PRECISION DEFAULT 1
       `);
       await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS "StudyMemory_owner_target_course_updated_idx"

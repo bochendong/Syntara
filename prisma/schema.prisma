@@ -193,6 +193,7 @@ model User {
   missionProgress         UserMissionProgress[]
   testResults             TestResult[]
   studyMemories           StudyMemory[]
+  studyMemoryChunks       StudyMemoryChunk[]
   memoryFacts             MemoryFact[]
   memoryFactEvents        MemoryFactEvent[]
   speechAudios            UserSpeechAudio[]
@@ -266,19 +267,20 @@ model Course {
   speechReadyCount      Int           @default(0)
   speechTotalCount      Int           @default(0)
 
-  owner            User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  notebooks        Notebook[]
-  notebookPages    NotebookPage[]
-  markdownSections MarkdownNotebookSection[]
-  problems         NotebookProblem[]
-  conversations    Conversation[]
-  agentTasks       AgentTask[]
-  sourcePurchases  CoursePurchase[]          @relation("CoursePurchaseSource")
-  clonePurchase    CoursePurchase?           @relation("CoursePurchaseClone")
-  enrollments      CourseEnrollment[]
-  reviews          CourseReview[]
-  studyMemories    StudyMemory[]
-  problemImports   ProblemImportBatch[]
+  owner             User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  notebooks         Notebook[]
+  notebookPages     NotebookPage[]
+  markdownSections  MarkdownNotebookSection[]
+  problems          NotebookProblem[]
+  conversations     Conversation[]
+  agentTasks        AgentTask[]
+  sourcePurchases   CoursePurchase[]          @relation("CoursePurchaseSource")
+  clonePurchase     CoursePurchase?           @relation("CoursePurchaseClone")
+  enrollments       CourseEnrollment[]
+  reviews           CourseReview[]
+  studyMemories     StudyMemory[]
+  studyMemoryChunks StudyMemoryChunk[]
+  problemImports    ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -313,19 +315,20 @@ model Notebook {
   coverImagePath        String?
   contentVersion        Int          @default(1)
 
-  owner            User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  course           Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  scenes           Scene[]
-  markdownSections MarkdownNotebookSection[]
-  pages            NotebookPage[]
-  problems         NotebookProblem[]
-  conversations    Conversation[]
-  agentTasks       AgentTask[]
-  sourcePurchases  NotebookPurchase[]        @relation("NotebookPurchaseSource")
-  clonePurchase    NotebookPurchase?         @relation("NotebookPurchaseClone")
-  reviews          NotebookReview[]
-  studyMemories    StudyMemory[]
-  problemImports   ProblemImportBatch[]
+  owner             User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course            Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  scenes            Scene[]
+  markdownSections  MarkdownNotebookSection[]
+  pages             NotebookPage[]
+  problems          NotebookProblem[]
+  conversations     Conversation[]
+  agentTasks        AgentTask[]
+  sourcePurchases   NotebookPurchase[]        @relation("NotebookPurchaseSource")
+  clonePurchase     NotebookPurchase?         @relation("NotebookPurchaseClone")
+  reviews           NotebookReview[]
+  studyMemories     StudyMemory[]
+  studyMemoryChunks StudyMemoryChunk[]
+  problemImports    ProblemImportBatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -757,10 +760,12 @@ model StudyMemory {
   reason           String? @db.Text
   question         String? @db.Text
   sourceReferences Json?
+  confidence       Float?
 
-  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  notebook Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  owner    User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course   Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notebook Notebook?          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  chunks   StudyMemoryChunk[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -768,6 +773,33 @@ model StudyMemory {
   @@index([ownerId, targetType, courseId, updatedAt(sort: Desc)])
   @@index([ownerId, targetType, notebookId, updatedAt(sort: Desc)])
   @@index([ownerId, scope, status, updatedAt(sort: Desc)])
+}
+
+model StudyMemoryChunk {
+  id                  String                @id
+  memoryId            String
+  ownerId             String
+  courseId            String?
+  notebookId          String?
+  targetType          String
+  scope               String
+  chunkIndex          Int
+  chunkText           String                @db.Text
+  contentHash         String
+  embeddingModel      String
+  embeddingDimensions Int
+  embedding           Unsupported("vector")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now())
+
+  memory   StudyMemory @relation(fields: [memoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course   Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notebook Notebook?   @relation(fields: [notebookId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([memoryId, chunkIndex, embeddingModel, embeddingDimensions], map: "StudyMemoryChunk_memory_chunk_model_idx")
+  @@index([ownerId, scope, targetType, courseId, notebookId], map: "StudyMemoryChunk_owner_scope_target_idx")
+  @@index([embedding], map: "StudyMemoryChunk_embedding_hnsw_idx")
 }
 
 model MemoryFact {
