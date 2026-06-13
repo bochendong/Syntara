@@ -25,7 +25,10 @@ const updateProblemSchema = z.object({
   secretJudge: z.unknown().nullable().optional(),
 });
 
-function toClientProblem(problem: Awaited<ReturnType<typeof getCourseProblemForUser>>['problem']) {
+function toClientProblem(
+  problem: Awaited<ReturnType<typeof getCourseProblemForUser>>['problem'],
+  secretJudge?: Awaited<ReturnType<typeof getCourseProblemForUser>>['secretJudge'],
+) {
   return {
     id: problem.id,
     courseId: problem.courseId ?? null,
@@ -45,6 +48,7 @@ function toClientProblem(problem: Awaited<ReturnType<typeof getCourseProblemForU
     sourceMeta: problem.sourceMeta,
     createdAt: problem.createdAt,
     updatedAt: problem.updatedAt,
+    ...(secretJudge ? { secretJudge } : {}),
   };
 }
 
@@ -56,8 +60,8 @@ export async function GET(
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id, problemId } = await context.params;
-    const { problem } = await getCourseProblemForUser(auth.userId, id, problemId);
-    return NextResponse.json({ problem: toClientProblem(problem) });
+    const { problem, secretJudge } = await getCourseProblemForUser(auth.userId, id, problemId);
+    return NextResponse.json({ problem: toClientProblem(problem, secretJudge) });
   });
 }
 
@@ -84,7 +88,7 @@ export async function PATCH(
       problemId,
       patch: payload.data,
     });
-    return NextResponse.json({ problem: toClientProblem(problem) });
+    return NextResponse.json({ problem: toClientProblem(problem, problem.secretJudge) });
   });
 }
 

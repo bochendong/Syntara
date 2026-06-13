@@ -33,6 +33,7 @@ function toClientProblem(problem: Awaited<ReturnType<typeof listNotebookProblems
     createdAt: problem.createdAt,
     updatedAt: problem.updatedAt,
     latestAttempt: problem.latestAttempt ?? null,
+    ...(problem.secretJudge ? { secretJudge: problem.secretJudge } : {}),
   };
 }
 

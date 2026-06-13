@@ -9,6 +9,7 @@ import type {
   NotebookProblemImportDraft,
   NotebookProblemGrading,
   NotebookProblemPublicContent,
+  NotebookProblemSecretJudge,
 } from '@/lib/problem-bank';
 import type { ReviewProblemInsertInput } from '@/lib/problem-bank/review-problem-insert';
 
@@ -28,6 +29,7 @@ export type NotebookProblemClientRecord = {
   difficulty: 'easy' | 'medium' | 'hard';
   publicContent: NotebookProblemPublicContent;
   grading: NotebookProblemGrading;
+  secretJudge?: NotebookProblemSecretJudge;
   sourceMeta: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;

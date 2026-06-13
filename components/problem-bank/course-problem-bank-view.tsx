@@ -7,8 +7,10 @@ import {
   BookOpen,
   CheckCircle2,
   CheckSquare,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Code2,
   Ellipsis,
   ExternalLink,
   FileUp,
@@ -16,6 +18,7 @@ import {
   Globe2,
   ImagePlus,
   Loader2,
+  Maximize2,
   Save,
   Search,
   Sparkles,
@@ -23,10 +26,15 @@ import {
   Trash2,
   Type,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 import { cn } from '@/lib/utils';
-import { getLocalizedProblemContent, getLocalizedProblemTitle } from '@/lib/problem-bank';
+import {
+  getLocalizedProblemContent,
+  getLocalizedProblemTitle,
+  type NotebookProblemPublicContent,
+} from '@/lib/problem-bank';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -44,6 +52,7 @@ import {
 import { AnswerComposer, AnswerComposerToolbar } from '@/components/problem-bank/answer-composer';
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
 import { ProblemLanguageToggle } from '@/components/problem-bank/problem-language-toggle';
+import { CodeAnswerEditor, highlightPython } from '@/components/problem-bank/code-answer-editor';
 import {
   ProblemImageAssets,
   ProblemRichText,
@@ -51,7 +60,6 @@ import {
 } from '@/components/problem-bank/problem-rich-text';
 import { problemDraftToPatch } from '@/lib/problem-bank/editor';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   AnswerFeedbackSummaryBadge,
   AnswerPreviewPanel,
@@ -93,24 +101,438 @@ import { CourseProblemImportDialog } from '@/components/problem-bank/course-prob
 import { ProblemAiHelpButton } from '@/components/problem-bank/problem-ai-help-drawer';
 
 type PracticePaneId = 'left' | 'right';
-type PracticePanelTab = ProblemInfoTab | AnswerPanelTab;
+type CodePracticeTab = 'testcase' | 'secret' | 'code';
+type PracticePanelTab = ProblemInfoTab | AnswerPanelTab | CodePracticeTab;
 type PracticePaneTabs = Record<PracticePaneId, PracticePanelTab[]>;
 type PracticePaneActive = Record<PracticePaneId, PracticePanelTab>;
+type CodeProblemPublicContent = Extract<NotebookProblemPublicContent, { type: 'code' }>;
+type CodeProblemTestCase = CodeProblemPublicContent['publicTests'][number];
+type CodeTestFile = {
+  fileName: string;
+  code: string;
+};
 
+const FORMULA_PRACTICE_TAB = 'formula' satisfies PracticePanelTab;
 const PROBLEM_INFO_TABS = [
   'description',
-  'formula',
+  FORMULA_PRACTICE_TAB,
   'edit',
 ] as const satisfies readonly ProblemInfoTab[];
+const ANSWER_PANE_TABS = [
+  'answer',
+  'preview',
+  'solution',
+  'history',
+] as const satisfies readonly AnswerPanelTab[];
+const CODE_PRACTICE_TABS: CodePracticeTab[] = ['testcase', 'secret', 'code'];
 const PRACTICE_TAB_DRAG_TYPE = 'application/x-openmaic-practice-tab';
 const DEFAULT_PRACTICE_PANE_TABS: PracticePaneTabs = {
-  left: ['description', 'formula', 'edit'],
+  left: ['description', FORMULA_PRACTICE_TAB, 'edit'],
   right: ['answer', 'preview', 'solution', 'history'],
 };
 
 function isProblemInfoPracticeTab(tab: PracticePanelTab): tab is ProblemInfoTab {
   return (PROBLEM_INFO_TABS as readonly string[]).includes(tab);
 }
+
+function isAnswerPracticeTab(tab: PracticePanelTab): tab is AnswerPanelTab {
+  return (ANSWER_PANE_TABS as readonly string[]).includes(tab);
+}
+
+function isCodePracticeTab(tab: PracticePanelTab): tab is CodePracticeTab {
+  return (CODE_PRACTICE_TABS as readonly string[]).includes(tab);
+}
+
+function normalizePracticePaneTabs(
+  tabs: PracticePaneTabs,
+  supportsFormulaTab: boolean,
+  canEditProblems: boolean,
+  supportsPreviewTab: boolean,
+  codeTabs: CodePracticeTab[],
+): PracticePaneTabs {
+  const nextTabs: PracticePaneTabs = {
+    left: [...tabs.left],
+    right: [...tabs.right],
+  };
+
+  const removeTab = (tab: PracticePanelTab) => {
+    nextTabs.left = nextTabs.left.filter((item) => item !== tab);
+    nextTabs.right = nextTabs.right.filter((item) => item !== tab);
+  };
+
+  const hasTab = (tab: PracticePanelTab) =>
+    nextTabs.left.includes(tab) || nextTabs.right.includes(tab);
+
+  const ensureLeftTabAfter = (tab: PracticePanelTab, anchor: PracticePanelTab) => {
+    if (hasTab(tab)) return;
+    const anchorIndex = nextTabs.left.indexOf(anchor);
+    nextTabs.left =
+      anchorIndex >= 0
+        ? [...nextTabs.left.slice(0, anchorIndex + 1), tab, ...nextTabs.left.slice(anchorIndex + 1)]
+        : [...nextTabs.left, tab];
+  };
+
+  const ensureRightTabAfter = (tab: PracticePanelTab, anchor: PracticePanelTab) => {
+    if (hasTab(tab)) return;
+    const anchorIndex = nextTabs.right.indexOf(anchor);
+    nextTabs.right =
+      anchorIndex >= 0
+        ? [
+            ...nextTabs.right.slice(0, anchorIndex + 1),
+            tab,
+            ...nextTabs.right.slice(anchorIndex + 1),
+          ]
+        : [...nextTabs.right, tab];
+  };
+
+  if (supportsFormulaTab) {
+    ensureLeftTabAfter(FORMULA_PRACTICE_TAB, 'description');
+  } else {
+    removeTab(FORMULA_PRACTICE_TAB);
+  }
+
+  if (canEditProblems) {
+    ensureLeftTabAfter('edit', hasTab(FORMULA_PRACTICE_TAB) ? FORMULA_PRACTICE_TAB : 'description');
+  } else {
+    removeTab('edit');
+  }
+
+  if (supportsPreviewTab) {
+    ensureRightTabAfter('preview', 'answer');
+  } else {
+    removeTab('preview');
+  }
+
+  if (codeTabs.length > 0) {
+    removeTab('answer');
+    CODE_PRACTICE_TABS.forEach((tab) => {
+      if (!codeTabs.includes(tab)) removeTab(tab);
+    });
+    const missingCodeTestTabs = codeTabs.filter((tab) => tab !== 'code' && !hasTab(tab));
+    missingCodeTestTabs.forEach((tab) => {
+      ensureLeftTabAfter(tab, tab === 'secret' ? 'testcase' : 'description');
+    });
+    if (codeTabs.includes('code') && !hasTab('code')) {
+      nextTabs.right = ['code', ...nextTabs.right];
+    }
+  } else {
+    CODE_PRACTICE_TABS.forEach(removeTab);
+    if (!hasTab('answer')) {
+      nextTabs.right = ['answer', ...nextTabs.right];
+    }
+  }
+
+  if (nextTabs.left.length === 0) {
+    nextTabs.left = ['description'];
+    nextTabs.right = nextTabs.right.filter((tab) => tab !== 'description');
+  }
+  if (nextTabs.right.length === 0) {
+    nextTabs.right = ['answer'];
+    nextTabs.left = nextTabs.left.filter((tab) => tab !== 'answer');
+  }
+  return nextTabs;
+}
+
+function normalizePracticePaneActive(active: PracticePaneActive, tabs: PracticePaneTabs) {
+  return {
+    left: tabs.left.includes(active.left) ? active.left : (tabs.left[0] ?? 'description'),
+    right: tabs.right.includes(active.right) ? active.right : (tabs.right[0] ?? 'answer'),
+  };
+}
+
+function extractExecBody(expression: string) {
+  const match = expression.match(/exec\(("(?:(?:\\.)|[^"\\])*")\s*,/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]) as string;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizePythonIdentifier(value: string | undefined, fallback: string) {
+  const normalized = (value || fallback)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const safe = normalized || fallback;
+  const prefixed = /^[a-z_]/.test(safe) ? safe : `case_${safe}`;
+  return prefixed.startsWith('test_') ? prefixed : `test_${prefixed}`;
+}
+
+function pythonLiteral(value: unknown): string {
+  if (value === null) return 'None';
+  if (typeof value === 'boolean') return value ? 'True' : 'False';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'None';
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(pythonLiteral).join(', ')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .map(([key, item]) => `${pythonLiteral(key)}: ${pythonLiteral(item)}`)
+      .join(', ')}}`;
+  }
+  return 'None';
+}
+
+function formatExpectedForPython(expected: string) {
+  try {
+    return pythonLiteral(JSON.parse(expected));
+  } catch {
+    return expected.trim() || 'None';
+  }
+}
+
+function indentPythonBlock(source: string, spaces = 8) {
+  const prefix = ' '.repeat(spaces);
+  return source
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? `${prefix}${line}` : ''))
+    .join('\n');
+}
+
+function codeTestMethodSource(testCase: CodeProblemTestCase, index: number) {
+  const methodName = sanitizePythonIdentifier(
+    testCase.id || testCase.description,
+    `case_${index + 1}`,
+  );
+  const recoveredBody = extractExecBody(testCase.expression);
+  const body =
+    recoveredBody?.trim() ||
+    `self.assertEqual(${testCase.expression.trim()}, ${formatExpectedForPython(testCase.expected)})`;
+
+  return [`    def ${methodName}(self):`, indentPythonBlock(body)].join('\n');
+}
+
+function buildCodeTestFile(
+  testCases: CodeProblemTestCase[],
+  fileName: string,
+  className: 'PublicTests' | 'SecretTests',
+) {
+  if (testCases.length === 0) {
+    return [`# ${fileName}`, '', '# No tests available.'].join('\n');
+  }
+
+  return [
+    `# ${fileName}`,
+    'import unittest',
+    'from submission import *',
+    '',
+    '',
+    `class ${className}(unittest.TestCase):`,
+    testCases.map(codeTestMethodSource).join('\n\n'),
+    '',
+    '',
+    'if __name__ == "__main__":',
+    '    unittest.main()',
+  ].join('\n');
+}
+
+function buildCodeTestFiles(
+  content: CodeProblemPublicContent,
+  secretTests?: CodeProblemTestCase[],
+) {
+  return {
+    publicFile: {
+      fileName: 'public_tests.py',
+      code: buildCodeTestFile(content.publicTests, 'public_tests.py', 'PublicTests'),
+    },
+    secretFile: secretTests?.length
+      ? {
+          fileName: 'secret_tests.py',
+          code: buildCodeTestFile(secretTests, 'secret_tests.py', 'SecretTests'),
+        }
+      : undefined,
+  };
+}
+
+const CODE_STATEMENT_SECTION_STYLES = {
+  description: {
+    icon: 'bg-blue-50 text-blue-600 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/70',
+    line: 'bg-blue-100 dark:bg-blue-900/60',
+  },
+  examples: {
+    icon: 'bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/70',
+    line: 'bg-amber-100 dark:bg-amber-900/60',
+  },
+  constraints: {
+    icon: 'bg-emerald-50 text-emerald-600 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900/70',
+    line: 'bg-emerald-100 dark:bg-emerald-900/60',
+  },
+} as const;
+
+function CodeProblemStatementHeading({
+  icon: Icon,
+  label,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone: keyof typeof CODE_STATEMENT_SECTION_STYLES;
+}) {
+  const styles = CODE_STATEMENT_SECTION_STYLES[tone];
+
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={cn(
+          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-1',
+          styles.icon,
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <h2 className="shrink-0 text-sm font-semibold text-slate-950 dark:text-white">{label}</h2>
+      <span className={cn('h-px min-w-8 flex-1', styles.line)} />
+    </div>
+  );
+}
+
+function CodeProblemStatement({
+  content,
+  locale,
+}: {
+  content: CodeProblemPublicContent;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  const samples = content.sampleIO ?? [];
+  const constraints = content.constraints ?? [];
+
+  return (
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <CodeProblemStatementHeading
+          icon={Type}
+          label={locale === 'zh-CN' ? '描述' : 'Description'}
+          tone="description"
+        />
+        <div className="border-l border-blue-100 pl-4 text-[15px] leading-7 dark:border-blue-900/60">
+          <ProblemRichText content={content.stem} />
+        </div>
+      </section>
+
+      {samples.length > 0 ? (
+        <section className="space-y-4">
+          <CodeProblemStatementHeading icon={Code2} label="Examples" tone="examples" />
+          <div className="space-y-4">
+            {samples.map((sample, index) => (
+              <div key={`${sample.input}-${index}`} className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-amber-50 px-2 font-mono text-xs font-semibold text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/70">
+                    {index + 1}
+                  </span>
+                  <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Example {index + 1}:
+                  </h3>
+                </div>
+                <pre className="overflow-x-auto rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-[13px] leading-7 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
+                  <code>
+                    <span className="font-semibold text-blue-700 dark:text-blue-300">Input:</span>{' '}
+                    <span>{sample.input}</span>
+                    {'\n'}
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                      Output:
+                    </span>{' '}
+                    <span>{sample.output}</span>
+                    {sample.explanation ? (
+                      <>
+                        {'\n'}
+                        <span className="font-semibold text-amber-700 dark:text-amber-300">
+                          Explanation:
+                        </span>{' '}
+                        <span>{sample.explanation}</span>
+                      </>
+                    ) : null}
+                  </code>
+                </pre>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {constraints.length > 0 ? (
+        <section className="space-y-4">
+          <CodeProblemStatementHeading icon={CheckSquare} label="Constraints:" tone="constraints" />
+          <ul className="space-y-2 text-sm leading-7 text-slate-700 dark:text-slate-200">
+            {constraints.map((constraint, index) => (
+              <li key={`${constraint}-${index}`} className="flex items-start gap-3">
+                <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                <code className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[13px] leading-6 text-slate-800 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100">
+                  {constraint}
+                </code>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function CodeTestcasePanel({ file, locale }: { file?: CodeTestFile; locale: 'zh-CN' | 'en-US' }) {
+  const lineNumbers = file
+    ? Array.from({ length: Math.max(1, file.code.split('\n').length) }, (_, index) => index + 1)
+    : [];
+
+  return (
+    <div className="h-full min-h-[320px] flex-1 overflow-hidden bg-white dark:bg-slate-950">
+      {file ? (
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex h-10 shrink-0 items-center border-b border-slate-100 px-3 dark:border-slate-800">
+            <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-300">
+              {file.fileName}
+            </span>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-cols-[3.25rem_minmax(0,1fr)] overflow-auto bg-white font-mono text-[13px] leading-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+            <pre className="select-none border-r border-slate-200 bg-slate-50 px-3 py-4 text-right text-slate-400 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-500">
+              {lineNumbers.join('\n')}
+            </pre>
+            <pre className="min-w-max whitespace-pre px-4 py-4">
+              <code>{highlightPython(file.code)}</code>
+            </pre>
+          </div>
+        </div>
+      ) : (
+        <div className="flex min-h-[220px] items-center justify-center px-4 text-center text-sm text-slate-400">
+          {locale === 'zh-CN' ? '暂无测试用例。' : 'No test cases yet.'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CodeAnswerWorkspace({
+  value,
+  onChange,
+  disabled,
+  locale,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  return (
+    <div className="flex min-h-full flex-1 flex-col overflow-hidden bg-white dark:bg-slate-950">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <CodeAnswerEditor
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          locale={locale}
+          className="h-full min-h-0 rounded-none border-0 shadow-none focus-within:ring-0"
+          placeholder={
+            locale === 'zh-CN' ? '在这里编写代码并提交。' : 'Write code here and submit.'
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
 export function CourseProblemBankView({
   courseId,
   initialNotebookId,
@@ -141,6 +563,7 @@ export function CourseProblemBankView({
     activeBankFilterCount,
     bankStats,
     blankAnswers,
+    canEditProblems,
     choiceAnswers,
     codeAnswers,
     courseHasTranslations,
@@ -240,8 +663,44 @@ export function CourseProblemBankView({
     right: 'answer',
   });
   const [draggingPracticeTab, setDraggingPracticeTab] = useState<PracticePanelTab | null>(null);
+  const selectedProblemSupportsFormulaTab =
+    !selectedProblem || supportsPhotoAnswer(selectedProblem);
+  const editingProblemPaneSelected =
+    canEditProblems && (practicePaneActive.left === 'edit' || practicePaneActive.right === 'edit');
+  const selectedProblemSupportsPreviewTab =
+    editingProblemPaneSelected ||
+    !selectedProblem ||
+    (selectedProblem.type !== 'choice' &&
+      selectedProblem.type !== 'fill_blank' &&
+      selectedProblem.type !== 'code');
+  const selectedProblemCodeTabs: CodePracticeTab[] =
+    selectedProblem?.type === 'code' && selectedProblemContent?.type === 'code'
+      ? canEditProblems && (selectedProblem.secretJudge?.secretTests?.length ?? 0) > 0
+        ? ['testcase', 'secret', 'code']
+        : ['testcase', 'code']
+      : [];
+  const visiblePracticePaneTabs = normalizePracticePaneTabs(
+    practicePaneTabs,
+    selectedProblemSupportsFormulaTab,
+    canEditProblems,
+    selectedProblemSupportsPreviewTab,
+    selectedProblemCodeTabs,
+  );
+  const visiblePracticePaneActive = normalizePracticePaneActive(
+    practicePaneActive,
+    visiblePracticePaneTabs,
+  );
+  const visiblePracticePanelTabs = new Set([
+    ...visiblePracticePaneTabs.left,
+    ...visiblePracticePaneTabs.right,
+  ]);
+  const visibleDraggingPracticeTab =
+    draggingPracticeTab && visiblePracticePanelTabs.has(draggingPracticeTab)
+      ? draggingPracticeTab
+      : null;
   const problemEditPaneActive =
-    practicePaneActive.left === 'edit' || practicePaneActive.right === 'edit';
+    canEditProblems &&
+    (visiblePracticePaneActive.left === 'edit' || visiblePracticePaneActive.right === 'edit');
   const reviewPracticeProblemIds = Array.from(new Set(practiceProblemIds ?? []));
   const isReviewPracticeMode = isPracticeMode && reviewPracticeProblemIds.length > 0;
   const reviewPracticeProblems = isReviewPracticeMode
@@ -280,6 +739,12 @@ export function CourseProblemBankView({
         return locale === 'zh-CN' ? '公式表' : 'Formula';
       case 'edit':
         return locale === 'zh-CN' ? '编辑题目' : 'Edit';
+      case 'testcase':
+        return 'Testcase';
+      case 'secret':
+        return 'Secret Test';
+      case 'code':
+        return 'Code';
       case 'answer':
         return locale === 'zh-CN' ? '作答' : 'Answer';
       case 'preview':
@@ -298,13 +763,87 @@ export function CourseProblemBankView({
         return tab;
     }
   };
+  const practiceTabMeta = (tab: PracticePanelTab) => {
+    const label = practiceTabLabel(tab);
+    switch (tab) {
+      case 'description':
+        return {
+          label,
+          Icon: Type,
+          iconClassName: 'text-sky-600 dark:text-sky-300',
+        };
+      case 'formula':
+        return {
+          label,
+          Icon: BookOpen,
+          iconClassName: 'text-sky-500 dark:text-sky-300',
+        };
+      case 'edit':
+        return {
+          label,
+          Icon: SlidersHorizontal,
+          iconClassName: 'text-sky-500 dark:text-sky-300',
+        };
+      case 'testcase':
+        return {
+          label,
+          Icon: CheckSquare,
+          iconClassName: 'text-emerald-600 dark:text-emerald-300',
+        };
+      case 'secret':
+        return {
+          label,
+          Icon: CheckSquare,
+          iconClassName: 'text-amber-500 dark:text-amber-300',
+        };
+      case 'code':
+        return {
+          label,
+          Icon: Code2,
+          iconClassName: 'text-emerald-300',
+        };
+      case 'answer':
+        return {
+          label,
+          Icon: CheckSquare,
+          iconClassName: 'text-emerald-600 dark:text-emerald-300',
+        };
+      case 'preview':
+        return {
+          label,
+          Icon: Maximize2,
+          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+        };
+      case 'solution':
+        return {
+          label,
+          Icon: Sparkles,
+          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+        };
+      case 'history':
+        return {
+          label,
+          Icon: ChevronUp,
+          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+        };
+      default:
+        return {
+          label,
+          Icon: Type,
+          iconClassName: 'text-slate-400',
+        };
+    }
+  };
   const handlePracticePaneTabSelect = (pane: PracticePaneId, tab: PracticePanelTab) => {
+    if (!visiblePracticePanelTabs.has(tab)) return;
     setPracticePaneActive((prev) => ({ ...prev, [pane]: tab }));
     if (isProblemInfoPracticeTab(tab)) {
       handleProblemInfoTabChange(tab);
       return;
     }
-    setAnswerPanelTab(tab);
+    if (isAnswerPracticeTab(tab)) {
+      setAnswerPanelTab(tab);
+    }
   };
   const handlePracticeTabDragStart =
     (tab: PracticePanelTab) => (event: DragEvent<HTMLButtonElement>) => {
@@ -316,15 +855,15 @@ export function CourseProblemBankView({
     (targetPane: PracticePaneId) => (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       const tab = event.dataTransfer.getData(PRACTICE_TAB_DRAG_TYPE) as PracticePanelTab;
-      if (!tab) return;
-      const sourcePane = practicePaneTabs.left.includes(tab) ? 'left' : 'right';
-      if (sourcePane !== targetPane && practicePaneTabs[sourcePane].length <= 1) {
+      if (!tab || !visiblePracticePanelTabs.has(tab)) return;
+      const sourcePane = visiblePracticePaneTabs.left.includes(tab) ? 'left' : 'right';
+      if (sourcePane !== targetPane && visiblePracticePaneTabs[sourcePane].length <= 1) {
         setDraggingPracticeTab(null);
         return;
       }
       const nextTabs: PracticePaneTabs = {
-        left: practicePaneTabs.left.filter((item) => item !== tab),
-        right: practicePaneTabs.right.filter((item) => item !== tab),
+        left: visiblePracticePaneTabs.left.filter((item) => item !== tab),
+        right: visiblePracticePaneTabs.right.filter((item) => item !== tab),
       };
       nextTabs[targetPane] = [...nextTabs[targetPane], tab];
       setPracticePaneTabs(nextTabs);
@@ -335,7 +874,7 @@ export function CourseProblemBankView({
       }));
       if (isProblemInfoPracticeTab(tab)) {
         handleProblemInfoTabChange(tab);
-      } else {
+      } else if (isAnswerPracticeTab(tab)) {
         setAnswerPanelTab(tab);
       }
       setDraggingPracticeTab(null);
@@ -343,13 +882,13 @@ export function CourseProblemBankView({
   const practicePaneHeaderClassName = (pane: PracticePaneId) =>
     cn(
       'flex min-h-11 shrink-0 items-center gap-3 overflow-x-auto border-b border-slate-200 px-3 sm:gap-4 sm:px-4 dark:border-slate-800',
-      draggingPracticeTab &&
-        !practicePaneTabs[pane].includes(draggingPracticeTab) &&
+      visibleDraggingPracticeTab &&
+        !visiblePracticePaneTabs[pane].includes(visibleDraggingPracticeTab) &&
         'bg-sky-50/70 dark:bg-sky-500/10',
     );
   const practiceTabClassName = (tab: PracticePanelTab, active: boolean) =>
     cn(
-      'relative h-full cursor-grab whitespace-nowrap text-sm font-semibold transition active:cursor-grabbing',
+      'relative flex h-full cursor-grab items-center gap-2 whitespace-nowrap text-sm font-semibold transition active:cursor-grabbing',
       active
         ? cn(
             'text-slate-950 dark:text-white after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full',
@@ -358,26 +897,32 @@ export function CourseProblemBankView({
         : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100',
     );
   const renderPracticePaneHeader = (pane: PracticePaneId) => {
-    const activeTab = practicePaneActive[pane];
+    const activeTab = visiblePracticePaneActive[pane];
     return (
       <div
         className={practicePaneHeaderClassName(pane)}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handlePracticeTabDrop(pane)}
       >
-        {practicePaneTabs[pane].map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            draggable
-            onDragStart={handlePracticeTabDragStart(tab)}
-            onDragEnd={() => setDraggingPracticeTab(null)}
-            onClick={() => handlePracticePaneTabSelect(pane, tab)}
-            className={practiceTabClassName(tab, activeTab === tab)}
-          >
-            {practiceTabLabel(tab)}
-          </button>
-        ))}
+        {visiblePracticePaneTabs[pane].map((tab) =>
+          (() => {
+            const { Icon, iconClassName, label } = practiceTabMeta(tab);
+            return (
+              <button
+                key={tab}
+                type="button"
+                draggable
+                onDragStart={handlePracticeTabDragStart(tab)}
+                onDragEnd={() => setDraggingPracticeTab(null)}
+                onClick={() => handlePracticePaneTabSelect(pane, tab)}
+                className={practiceTabClassName(tab, activeTab === tab)}
+              >
+                <Icon className={cn('h-4 w-4', iconClassName)} />
+                {label}
+              </button>
+            );
+          })(),
+        )}
         {selectedProblemHasTranslation && isProblemInfoPracticeTab(activeTab) ? (
           <div className="ml-auto">
             <ProblemLanguageToggle
@@ -387,7 +932,7 @@ export function CourseProblemBankView({
             />
           </div>
         ) : null}
-        {activeTab === 'answer' ? (
+        {activeTab === 'answer' || activeTab === 'code' ? (
           <Button
             onClick={handleSubmitInlineAnswer}
             disabled={submittingAnswer}
@@ -420,7 +965,9 @@ export function CourseProblemBankView({
               >
                 <ProblemTitleText content={selectedProblemTitle} />
               </h1>
-              {selectedProblemContent && renderProblemContentStem(selectedProblemContent) ? (
+              {selectedProblemContent?.type === 'code' ? (
+                <CodeProblemStatement content={selectedProblemContent} locale={locale} />
+              ) : selectedProblemContent && renderProblemContentStem(selectedProblemContent) ? (
                 <ProblemRichText content={renderProblemContentStem(selectedProblemContent)} />
               ) : (
                 <p>{locale === 'zh-CN' ? '暂无题面。' : 'No stem available.'}</p>
@@ -443,7 +990,7 @@ export function CourseProblemBankView({
           </div>
         ) : tab === 'formula' ? (
           <FormulaReferencePanel locale={locale} onInsert={insertFormulaIntoAnswer} />
-        ) : selectedProblemEditDraft ? (
+        ) : canEditProblems && selectedProblemEditDraft ? (
           <ProblemDraftForm
             key={`${selectedProblemEditDraft.draftId}-${selectedProblem.updatedAt}`}
             draft={selectedProblemEditDraft}
@@ -461,10 +1008,19 @@ export function CourseProblemBankView({
   };
   const renderAnswerPaneContent = (tab: AnswerPanelTab) => {
     if (!selectedProblem) return null;
+    const codeAnswerActive =
+      tab === 'answer' &&
+      selectedProblem.type === 'code' &&
+      selectedProblemContent?.type === 'code';
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4">
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col',
+          codeAnswerActive ? 'overflow-hidden p-0' : 'overflow-y-auto p-3 sm:p-4',
+        )}
+      >
         {tab === 'answer' ? (
-          <div className="flex min-h-full flex-col">
+          <div className={cn('flex flex-col', codeAnswerActive ? 'min-h-0 flex-1' : 'min-h-full')}>
             {selectedProblem.type === 'choice' && selectedProblemContent?.type === 'choice' ? (
               <div className="space-y-2">
                 {selectedProblemContent.options.map((option) => {
@@ -558,18 +1114,16 @@ export function CourseProblemBankView({
                 ))}
               </div>
             ) : selectedProblem.type === 'code' && selectedProblemContent?.type === 'code' ? (
-              <Textarea
-                className="min-h-[220px] font-mono text-xs"
+              <CodeAnswerWorkspace
                 value={codeAnswers[selectedProblem.id] ?? selectedProblemContent.starterCode ?? ''}
-                onChange={(event) =>
+                onChange={(value) =>
                   setCodeAnswers((prev) => ({
                     ...prev,
-                    [selectedProblem.id]: event.target.value,
+                    [selectedProblem.id]: value,
                   }))
                 }
-                placeholder={
-                  locale === 'zh-CN' ? '在这里编写代码并提交。' : 'Write code here and submit.'
-                }
+                disabled={submittingAnswer}
+                locale={locale}
               />
             ) : supportsPhotoAnswer(selectedProblem) && selectedAnswerMode === 'photo' ? (
               <PhotoAnswerUploader
@@ -758,10 +1312,47 @@ export function CourseProblemBankView({
       </div>
     );
   };
+  const renderCodePracticePaneContent = (tab: CodePracticeTab) => {
+    if (
+      !selectedProblem ||
+      selectedProblem.type !== 'code' ||
+      selectedProblemContent?.type !== 'code'
+    ) {
+      return null;
+    }
+    if (tab === 'code') {
+      return (
+        <CodeAnswerWorkspace
+          value={codeAnswers[selectedProblem.id] ?? selectedProblemContent.starterCode ?? ''}
+          onChange={(value) =>
+            setCodeAnswers((prev) => ({
+              ...prev,
+              [selectedProblem.id]: value,
+            }))
+          }
+          disabled={submittingAnswer}
+          locale={locale}
+        />
+      );
+    }
+
+    const testFiles = buildCodeTestFiles(
+      selectedProblemContent,
+      canEditProblems ? selectedProblem.secretJudge?.secretTests : undefined,
+    );
+    return (
+      <CodeTestcasePanel
+        file={tab === 'secret' ? testFiles.secretFile : testFiles.publicFile}
+        locale={locale}
+      />
+    );
+  };
   const renderPracticePaneContent = (tab: PracticePanelTab) =>
     isProblemInfoPracticeTab(tab)
       ? renderProblemInfoPaneContent(tab)
-      : renderAnswerPaneContent(tab);
+      : isCodePracticeTab(tab)
+        ? renderCodePracticePaneContent(tab)
+        : renderAnswerPaneContent(tab);
 
   return (
     <div
@@ -904,30 +1495,32 @@ export function CourseProblemBankView({
                   </DropdownMenu>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 xl:hidden">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImportMode('pdf');
-                    setImportOpen(true);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
-                >
-                  <FileUp className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
-                  {locale === 'zh-CN' ? '导入题目' : 'Import'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImportMode('web');
-                    setImportOpen(true);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
-                >
-                  <Sparkles className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
-                  {locale === 'zh-CN' ? '智能生成' : 'Generate'}
-                </button>
-              </div>
+              {canEditProblems ? (
+                <div className="mt-3 grid grid-cols-2 gap-2 xl:hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportMode('pdf');
+                      setImportOpen(true);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                  >
+                    <FileUp className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
+                    {locale === 'zh-CN' ? '导入题目' : 'Import'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportMode('web');
+                      setImportOpen(true);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                  >
+                    <Sparkles className="mx-auto mb-1 h-4 w-4 text-sky-600 dark:text-sky-300" />
+                    {locale === 'zh-CN' ? '智能生成' : 'Generate'}
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
@@ -1417,36 +2010,38 @@ export function CourseProblemBankView({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setImportMode('pdf');
-                  setImportOpen(true);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
-              >
-                <FileUp className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
-                <span>{locale === 'zh-CN' ? '导入题目' : 'Import'}</span>
-                <span className="mt-1 block text-[10px] font-normal text-slate-400">
-                  {locale === 'zh-CN' ? 'PDF / LaTeX / 文本' : 'PDF / LaTeX / text'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setImportMode('web');
-                  setImportOpen(true);
-                }}
-                className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
-              >
-                <Sparkles className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
-                <span>{locale === 'zh-CN' ? '智能生成' : 'Generate'}</span>
-                <span className="mt-1 block text-[10px] font-normal text-slate-400">
-                  {locale === 'zh-CN' ? '按知识点出题' : 'By concepts'}
-                </span>
-              </button>
-            </div>
+            {canEditProblems ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportMode('pdf');
+                    setImportOpen(true);
+                  }}
+                  className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                >
+                  <FileUp className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
+                  <span>{locale === 'zh-CN' ? '导入题目' : 'Import'}</span>
+                  <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                    {locale === 'zh-CN' ? 'PDF / LaTeX / 文本' : 'PDF / LaTeX / text'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportMode('web');
+                    setImportOpen(true);
+                  }}
+                  className="rounded-2xl border border-slate-200 bg-white/95 p-3 text-center text-xs font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:border-sky-500/30 dark:hover:bg-sky-500/10"
+                >
+                  <Sparkles className="mx-auto mb-2 h-5 w-5 text-sky-600 dark:text-sky-300" />
+                  <span>{locale === 'zh-CN' ? '智能生成' : 'Generate'}</span>
+                  <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                    {locale === 'zh-CN' ? '按知识点出题' : 'By concepts'}
+                  </span>
+                </button>
+              </div>
+            ) : null}
           </aside>
         </>
       ) : null}
@@ -1578,46 +2173,52 @@ export function CourseProblemBankView({
                         notebookLabel={selectedProblemNotebookLabel}
                         locale={locale}
                       />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
-                            aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
-                          >
-                            <Ellipsis className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
-                            <ArrowRightLeft className="h-4 w-4" />
-                            {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
-                          </DropdownMenuItem>
-                          {selectedProblem.notebookId ? (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(`/classroom/${selectedProblem.notebookId}`)
-                              }
+                      {canEditProblems || selectedProblem.notebookId ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
+                              aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
                             >
-                              <ExternalLink className="h-4 w-4" />
-                              {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
-                            </DropdownMenuItem>
-                          ) : null}
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={handleDeleteProblem}
-                            disabled={deletingProblem}
-                          >
-                            {deletingProblem ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                            {locale === 'zh-CN' ? '删除题目' : 'Delete'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <Ellipsis className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            {canEditProblems ? (
+                              <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
+                                <ArrowRightLeft className="h-4 w-4" />
+                                {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
+                              </DropdownMenuItem>
+                            ) : null}
+                            {selectedProblem.notebookId ? (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(`/classroom/${selectedProblem.notebookId}`)
+                                }
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canEditProblems ? (
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={handleDeleteProblem}
+                                disabled={deletingProblem}
+                              >
+                                {deletingProblem ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                                {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
                     </>
                   ) : (
                     <ProblemAiHelpButton
@@ -1636,62 +2237,64 @@ export function CourseProblemBankView({
               <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(24rem,1fr)] lg:overflow-hidden">
                 <section className="flex min-h-[min(34rem,72dvh)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:min-h-0 dark:border-slate-800 dark:bg-slate-950">
                   {renderPracticePaneHeader('left')}
-                  {renderPracticePaneContent(practicePaneActive.left)}
+                  {renderPracticePaneContent(visiblePracticePaneActive.left)}
                 </section>
 
                 <section className="flex min-h-[min(34rem,72dvh)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:min-h-0 dark:border-slate-800 dark:bg-slate-950">
                   {renderPracticePaneHeader('right')}
-                  {renderPracticePaneContent(practicePaneActive.right)}
+                  {renderPracticePaneContent(visiblePracticePaneActive.right)}
                 </section>
               </div>
 
-              <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-                <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-y-auto rounded-2xl p-4 sm:w-full sm:p-6">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {locale === 'zh-CN' ? '移动题目归属' : 'Move problem'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {locale === 'zh-CN'
-                        ? '选择要将当前题目归属到的笔记本。'
-                        : 'Choose the notebook to reassign this problem.'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <select
-                      value={moveNotebookId}
-                      onChange={(event) => setMoveNotebookId(event.target.value)}
-                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                    >
-                      <option value="__unassigned__">
-                        {locale === 'zh-CN' ? '未归类题目' : 'Unassigned'}
-                      </option>
-                      {notebooks.map((notebook) => (
-                        <option key={notebook.id} value={notebook.id}>
-                          {notebook.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={handleSaveAssignment}
-                        disabled={savingAssignment}
-                        className={cn(
-                          'w-full min-[420px]:w-auto',
-                          PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
-                        )}
+              {canEditProblems ? (
+                <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+                  <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-y-auto rounded-2xl p-4 sm:w-full sm:p-6">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {locale === 'zh-CN' ? '移动题目归属' : 'Move problem'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {locale === 'zh-CN'
+                          ? '选择要将当前题目归属到的笔记本。'
+                          : 'Choose the notebook to reassign this problem.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <select
+                        value={moveNotebookId}
+                        onChange={(event) => setMoveNotebookId(event.target.value)}
+                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
                       >
-                        {savingAssignment ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="mr-2 h-4 w-4" />
-                        )}
-                        {locale === 'zh-CN' ? '确认移动' : 'Move'}
-                      </Button>
+                        <option value="__unassigned__">
+                          {locale === 'zh-CN' ? '未归类题目' : 'Unassigned'}
+                        </option>
+                        {notebooks.map((notebook) => (
+                          <option key={notebook.id} value={notebook.id}>
+                            {notebook.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSaveAssignment}
+                          disabled={savingAssignment}
+                          className={cn(
+                            'w-full min-[420px]:w-auto',
+                            PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                          )}
+                        >
+                          {savingAssignment ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                          )}
+                          {locale === 'zh-CN' ? '确认移动' : 'Move'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              ) : null}
             </>
           )}
         </div>
@@ -1711,7 +2314,7 @@ export function CourseProblemBankView({
         </div>
       ) : null}
 
-      <CourseProblemImportDialog view={view} />
+      {canEditProblems ? <CourseProblemImportDialog view={view} /> : null}
     </div>
   );
 }

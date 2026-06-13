@@ -28,6 +28,7 @@ import {
 } from '@/lib/utils/notebook-problem-api';
 import { listStagesByCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { getCourse } from '@/lib/utils/course-storage';
+import type { CourseRecord } from '@/lib/utils/database';
 import { useAnswerComposerController } from '@/components/problem-bank/answer-composer';
 import { problemRecordToDraft } from '@/lib/problem-bank/editor';
 import {
@@ -95,6 +96,7 @@ export function useCourseProblemBankController({
   const webSearchProvidersConfig = useSettingsStore((state) => state.webSearchProvidersConfig);
 
   const [courseName, setCourseName] = useState('');
+  const [courseAccessRole, setCourseAccessRole] = useState<CourseRecord['accessRole']>();
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
@@ -184,6 +186,7 @@ export function useCourseProblemBankController({
         listCourseProblems(courseId),
       ]);
       setCourseName(course?.name || '');
+      setCourseAccessRole(course?.accessRole);
       setNotebooks(courseNotebooks);
       setProblems(courseProblems);
       if (isPracticeMode) {
@@ -210,6 +213,15 @@ export function useCourseProblemBankController({
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  const canEditProblems = courseAccessRole === 'owner';
+
+  useEffect(() => {
+    if (canEditProblems) return;
+    setImportOpen(false);
+    setMoveDialogOpen(false);
+    setProblemInfoTab((current) => (current === 'edit' ? 'description' : current));
+  }, [canEditProblems]);
 
   useEffect(() => {
     setProblemLanguage(locale === 'zh-CN' ? 'zh-CN' : 'en-US');
@@ -671,10 +683,18 @@ export function useCourseProblemBankController({
     value: selectedTextAnswerValue,
     onChange: setSelectedTextAnswer,
   });
-  const handleProblemInfoTabChange = useCallback((tab: ProblemInfoTab) => {
-    setProblemInfoTab(tab);
-    if (tab === 'edit') setAnswerPanelTab('preview');
-  }, []);
+  const handleProblemInfoTabChange = useCallback(
+    (tab: ProblemInfoTab) => {
+      if (tab === 'edit' && !canEditProblems) {
+        setProblemInfoTab('description');
+        setAnswerPanelTab('answer');
+        return;
+      }
+      setProblemInfoTab(tab);
+      if (tab === 'edit') setAnswerPanelTab('preview');
+    },
+    [canEditProblems],
+  );
   const handleEditingDraftChange = useCallback((nextDraft: NotebookProblemImportDraft) => {
     setEditingPreviewDraft(nextDraft);
   }, []);
@@ -858,6 +878,12 @@ export function useCourseProblemBankController({
   );
 
   const handlePreviewImport = useCallback(async () => {
+    if (!canEditProblems) {
+      toast.error(
+        locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+      );
+      return;
+    }
     setPreviewLoading(true);
     setImportSummaryNote(null);
     setImportUsage(null);
@@ -1002,6 +1028,7 @@ export function useCourseProblemBankController({
     }
   }, [
     courseId,
+    canEditProblems,
     importFile,
     importMode,
     importText,
@@ -1045,6 +1072,12 @@ export function useCourseProblemBankController({
   );
 
   const handleCommitImport = useCallback(async () => {
+    if (!canEditProblems) {
+      toast.error(
+        locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+      );
+      return;
+    }
     const selectedDrafts = drafts.filter((draft) => includedDraftIds[draft.draftId]);
     if (selectedDrafts.length === 0) {
       toast.error(locale === 'zh-CN' ? '请至少选择一条草稿' : 'Select at least one draft');
@@ -1081,7 +1114,7 @@ export function useCourseProblemBankController({
     } finally {
       setCommitLoading(false);
     }
-  }, [courseId, drafts, importBatchId, includedDraftIds, locale]);
+  }, [canEditProblems, courseId, drafts, importBatchId, includedDraftIds, locale]);
 
   const editingDraft = drafts.find((draft) => draft.draftId === editingDraftId) || null;
   const editingDraftIsManual =
@@ -1091,6 +1124,12 @@ export function useCourseProblemBankController({
 
   const handleSaveAssignment = useCallback(async () => {
     if (!selectedProblem || savingAssignment) return;
+    if (!canEditProblems) {
+      toast.error(
+        locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+      );
+      return;
+    }
     setSavingAssignment(true);
     try {
       const updated = await updateCourseProblem({
@@ -1109,7 +1148,7 @@ export function useCourseProblemBankController({
     } finally {
       setSavingAssignment(false);
     }
-  }, [courseId, locale, moveNotebookId, savingAssignment, selectedProblem]);
+  }, [canEditProblems, courseId, locale, moveNotebookId, savingAssignment, selectedProblem]);
 
   const handleAddPhotoAnswerFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -1200,6 +1239,11 @@ export function useCourseProblemBankController({
       secretJudge?: unknown | null;
     }) => {
       if (!selectedProblem) return;
+      if (!canEditProblems) {
+        throw new Error(
+          locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+        );
+      }
       const updated = await updateCourseProblem({
         courseId,
         problemId: selectedProblem.id,
@@ -1208,11 +1252,17 @@ export function useCourseProblemBankController({
       setProblems((prev) => prev.map((problem) => (problem.id === updated.id ? updated : problem)));
       setSelectedProblemId(updated.id);
     },
-    [courseId, selectedProblem],
+    [canEditProblems, courseId, locale, selectedProblem],
   );
 
   const handleDeleteProblem = useCallback(async () => {
     if (!selectedProblem || deletingProblem) return;
+    if (!canEditProblems) {
+      toast.error(
+        locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+      );
+      return;
+    }
     const confirmed = window.confirm(
       locale === 'zh-CN'
         ? `确认删除题目「${selectedProblem.title}」吗？删除后不可恢复。`
@@ -1234,7 +1284,7 @@ export function useCourseProblemBankController({
     } finally {
       setDeletingProblem(false);
     }
-  }, [courseId, deletingProblem, locale, selectedProblem]);
+  }, [canEditProblems, courseId, deletingProblem, locale, selectedProblem]);
 
   const handleSubmitInlineAnswer = useCallback(async () => {
     if (!selectedProblem || submittingAnswer) return;
@@ -1368,9 +1418,11 @@ export function useCourseProblemBankController({
     answerPanelTab,
     bankStats,
     blankAnswers,
+    canEditProblems,
     choiceAnswers,
     codeAnswers,
     commitLoading,
+    courseAccessRole,
     courseHasTranslations,
     courseId,
     courseName,

@@ -66,6 +66,9 @@ type ProblemRow = {
     name: string;
     courseId: string | null;
   } | null;
+  secret?: {
+    secretJudgeJson: unknown;
+  } | null;
 };
 
 type ProblemAttemptRow = {
@@ -104,6 +107,14 @@ type ProblemWithSecretRow = ProblemRow & {
   secret: {
     secretJudgeJson: unknown;
   } | null;
+};
+
+type NotebookProblemSummaryForUser = NotebookProblemSummary & {
+  secretJudge?: NotebookProblemSecretJudge;
+};
+
+type NotebookProblemRecordForOwner = NotebookProblemRecord & {
+  secretJudge?: NotebookProblemSecretJudge;
 };
 
 type ProblemCourseSummaryRow = {
@@ -171,9 +182,9 @@ function mapAttemptRow(row: ProblemAttemptRow): NotebookProblemAttemptRecord {
 function mapProblemRow(
   row: ProblemRow,
   latestAttempt?: ProblemAttemptRow | null,
-): NotebookProblemSummary {
+): NotebookProblemSummaryForUser {
   const resolvedCourseId = row.courseId ?? row.notebook?.courseId ?? null;
-  return notebookProblemSummarySchema.parse({
+  const problem = notebookProblemSummarySchema.parse({
     id: row.id,
     courseId: resolvedCourseId,
     notebookId: row.notebookId,
@@ -201,6 +212,13 @@ function mapProblemRow(
         }
       : null,
   });
+
+  return row.secret?.secretJudgeJson
+    ? {
+        ...problem,
+        secretJudge: row.secret.secretJudgeJson as NotebookProblemSecretJudge,
+      }
+    : problem;
 }
 
 function buildPublishDraftFromRow(row: ProblemWithSecretRow): NotebookProblemImportDraft {
@@ -815,6 +833,7 @@ async function nextProblemNumberForScopeTx(
 
 async function loadProblemsWithNotebook(args: {
   where: Prisma.NotebookProblemWhereInput;
+  includeSecret?: boolean;
 }): Promise<ProblemRow[]> {
   return (await prismaDb.notebookProblem.findMany({
     where: args.where,
@@ -826,6 +845,7 @@ async function loadProblemsWithNotebook(args: {
           courseId: true,
         },
       },
+      ...(args.includeSecret ? { secret: true } : {}),
     },
     orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
   })) as unknown as ProblemRow[];
@@ -910,7 +930,7 @@ async function ensureProblemNumbersBackfilledForCourse(
 export async function listNotebookProblemsForUser(
   userId: string,
   notebookId: string,
-): Promise<NotebookProblemSummary[]> {
+): Promise<NotebookProblemSummaryForUser[]> {
   const notebook = await requireNotebookReadAccess(userId, notebookId);
   if (notebook.accessRole === 'owner') {
     await ensureLegacyProblemsBackfilled(userId, notebookId);
@@ -918,6 +938,7 @@ export async function listNotebookProblemsForUser(
   }
   const problems = await loadProblemsWithNotebook({
     where: { notebookId },
+    includeSecret: notebook.accessRole === 'owner',
   });
   const latestByProblemId = await listLatestAttemptsForUser(
     userId,
@@ -931,7 +952,7 @@ export async function listNotebookProblemsForUser(
 export async function listCourseProblemsForUser(
   userId: string,
   courseId: string,
-): Promise<NotebookProblemSummary[]> {
+): Promise<NotebookProblemSummaryForUser[]> {
   const accessRole = await requireCourseReadAccess(userId, courseId);
   if (accessRole === 'owner') {
     await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
@@ -947,6 +968,7 @@ export async function listCourseProblemsForUser(
             OR: [{ courseId }, { notebookId: { in: notebookIds } }],
           }
         : { courseId },
+    includeSecret: accessRole === 'owner',
   });
 
   const latestByProblemId = await listLatestAttemptsForUser(
@@ -1104,6 +1126,7 @@ export async function getNotebookProblemForUser(
   secretJudge?: NotebookProblemSecretJudge;
 }> {
   const notebookAccess = await requireNotebookReadAccess(userId, notebookId);
+  const canReadSecretJudge = notebookAccess.accessRole === 'owner';
   if (notebookAccess.accessRole === 'owner') {
     await ensureLegacyProblemsBackfilled(userId, notebookId);
     await ensureProblemNumbersBackfilledForNotebook(userId, notebookId);
@@ -1147,7 +1170,9 @@ export async function getNotebookProblemForUser(
       createdAt: row.createdAt.getTime(),
       updatedAt: row.updatedAt.getTime(),
     }),
-    secretJudge: row.secret?.secretJudgeJson as NotebookProblemSecretJudge | undefined,
+    secretJudge: canReadSecretJudge
+      ? (row.secret?.secretJudgeJson as NotebookProblemSecretJudge | undefined)
+      : undefined,
   };
 }
 
@@ -1160,6 +1185,7 @@ export async function getCourseProblemForUser(
   secretJudge?: NotebookProblemSecretJudge;
 }> {
   const accessRole = await requireCourseReadAccess(userId, courseId);
+  const canReadSecretJudge = accessRole === 'owner';
   if (accessRole === 'owner') {
     await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
     await ensureProblemNumbersBackfilledForCourse(userId, courseId);
@@ -1206,7 +1232,9 @@ export async function getCourseProblemForUser(
       createdAt: row.createdAt.getTime(),
       updatedAt: row.updatedAt.getTime(),
     }),
-    secretJudge: row.secret?.secretJudgeJson as NotebookProblemSecretJudge | undefined,
+    secretJudge: canReadSecretJudge
+      ? (row.secret?.secretJudgeJson as NotebookProblemSecretJudge | undefined)
+      : undefined,
   };
 }
 
@@ -1312,7 +1340,7 @@ export async function updateNotebookProblem(args: {
     grading?: unknown;
     secretJudge?: unknown | null;
   };
-}): Promise<NotebookProblemRecord> {
+}): Promise<NotebookProblemRecordForOwner> {
   const notebook = await requireNotebookOwnership(args.userId, args.notebookId);
   const current = await getNotebookProblemForUser(args.userId, args.notebookId, args.problemId);
 
@@ -1404,7 +1432,7 @@ export async function updateNotebookProblem(args: {
     return row;
   })) as unknown as ProblemRow;
 
-  return notebookProblemRecordSchema.parse({
+  const problem = notebookProblemRecordSchema.parse({
     id: updated.id,
     courseId: updated.courseId ?? updated.notebook?.courseId ?? notebook.courseId,
     notebookId: updated.notebookId,
@@ -1424,6 +1452,13 @@ export async function updateNotebookProblem(args: {
     createdAt: updated.createdAt.getTime(),
     updatedAt: updated.updatedAt.getTime(),
   });
+
+  return normalizedDraft.secretJudge
+    ? {
+        ...problem,
+        secretJudge: normalizedDraft.secretJudge,
+      }
+    : problem;
 }
 
 export async function updateCourseProblem(args: {
@@ -1442,7 +1477,7 @@ export async function updateCourseProblem(args: {
     grading?: unknown;
     secretJudge?: unknown | null;
   };
-}): Promise<NotebookProblemRecord> {
+}): Promise<NotebookProblemRecordForOwner> {
   await requireCourseOwnership(args.userId, args.courseId);
   const notebooks = await listOwnedCourseNotebooks(args.userId, args.courseId);
   const allowedNotebookIds = new Set(notebooks.map((notebook) => notebook.id));
@@ -1543,7 +1578,7 @@ export async function updateCourseProblem(args: {
     return row;
   })) as unknown as ProblemRow;
 
-  return notebookProblemRecordSchema.parse({
+  const problem = notebookProblemRecordSchema.parse({
     id: updated.id,
     courseId: updated.courseId ?? updated.notebook?.courseId ?? args.courseId,
     notebookId: updated.notebookId,
@@ -1563,6 +1598,13 @@ export async function updateCourseProblem(args: {
     createdAt: updated.createdAt.getTime(),
     updatedAt: updated.updatedAt.getTime(),
   });
+
+  return normalizedDraft.secretJudge
+    ? {
+        ...problem,
+        secretJudge: normalizedDraft.secretJudge,
+      }
+    : problem;
 }
 
 export async function deleteNotebookProblem(args: {
