@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { normalizeLooseMathDelimiters } from '@/lib/math-engine';
 import { ATTACHMENT_ONLY_PLACEHOLDER } from './chat-attachment-utils';
 import { actionHref } from './chat-avatars';
-import { messageText } from './chat-message-utils';
+import { getNotebookAnswerDocumentForDisplay, messageText } from './chat-message-utils';
 import type { NotebookChatMessage } from './chat-page-types';
 import { InlineLessonDeck } from './inline-lesson-deck';
 import { NotebookProblemChatCardView } from './notebook-problem-chat-card';
@@ -444,21 +444,28 @@ export function NotebookMessageThread({
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div className={assistantShellClassName}>
-                  {m.answerDocument ? (
-                    <NotebookContentView
-                      document={m.answerDocument}
-                      className={selectableMessageTextClassName}
-                    />
-                  ) : m.answer ? (
-                    <div>
-                      <MessageResponse className={assistantRichTextClassName}>
-                        {normalizeAssistantMarkdown(m.answer)}
-                      </MessageResponse>
-                      {m.streaming ? <StreamingCursor /> : null}
-                    </div>
-                  ) : (
-                    <>{m.streaming ? <EmptyStreamingIndicator /> : null}</>
-                  )}
+                  {(() => {
+                    const displayDocument = getNotebookAnswerDocumentForDisplay(m);
+                    if (displayDocument) {
+                      return (
+                        <NotebookContentView
+                          document={displayDocument}
+                          className={selectableMessageTextClassName}
+                        />
+                      );
+                    }
+                    if (m.answer) {
+                      return (
+                        <div>
+                          <MessageResponse className={assistantRichTextClassName}>
+                            {normalizeAssistantMarkdown(m.answer)}
+                          </MessageResponse>
+                          {m.streaming ? <StreamingCursor /> : null}
+                        </div>
+                      );
+                    }
+                    return <>{m.streaming ? <EmptyStreamingIndicator /> : null}</>;
+                  })()}
                   {m.statusText ? <MessageStatusLine text={m.statusText} /> : null}
                   {m.references.length > 0 ? (
                     <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-900/[0.06] pt-3 dark:border-white/[0.08]">

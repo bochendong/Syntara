@@ -125,6 +125,211 @@ export function appendNotebookAnswerCallout(args: {
   };
 }
 
+type NotebookAssistantMessage = Extract<NotebookChatMessage, { role: 'assistant' }>;
+
+function inferLegacyCodeLanguage(text: string): string {
+  if (/\(@(?:htdf|signature|template-origin)\b|\(check-expect\b|\(define\b|#reader|#lang/u.test(text)) {
+    return 'racket';
+  }
+  if (/\bdef\s+\w+\s*\(|\bclass\s+\w+|^\s*(?:from|import)\s+\w+/mu.test(text)) {
+    return 'python';
+  }
+  if (/\b(?:const|let|var|function)\s+\w+|=>|console\.log/u.test(text)) {
+    return 'typescript';
+  }
+  return 'text';
+}
+
+function normalizeLegacyAnswerText(text: string): string {
+  return text
+    .replace(/\r/g, '')
+    .replace(/\s+(\(@(?:htdf|signature|template-origin)\b)/gu, '\n$1')
+    .replace(/\s+(\(check-expect\b)/gu, '\n$1')
+    .replace(/\s+(\(define\b)/gu, '\n$1')
+    .replace(/\s+(;\s*\(define\b)/gu, '\n$1')
+    .trim();
+}
+
+function looksLikeLegacyCodeLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  return (
+    /\(@(?:htdf|signature|template-origin)\b|\(check-expect\b|\(define\b|#reader|#lang/u.test(
+      trimmed,
+    ) ||
+    /^(?:;|;;|\(|\)|\[|\]|\{|\})/u.test(trimmed) ||
+    /^(?:require|local|cond|else|lambda)\b/u.test(trimmed) ||
+    /^(?:def|class|return|print|import|from|if|elif|else|for|while|with|try|except)\b/u.test(
+      trimmed,
+    ) ||
+    /^[A-Za-z_][\w-]*\s*=/u.test(trimmed)
+  );
+}
+
+function looksLikeLegacyCodeContinuation(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  return (
+    looksLikeLegacyCodeLine(line) ||
+    /^\s{2,}\S/u.test(line) ||
+    /^[\])}]+/u.test(trimmed) ||
+    /[()[\]{}]$/.test(trimmed)
+  );
+}
+
+function pushLegacyProseBlocks(
+  blocks: NotebookContentDocument['blocks'],
+  prose: string[],
+): string[] {
+  const lines = prose.map((line) => line.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const allBullets = lines.every((line) => /^[-*•]\s+/.test(line));
+  const allNumbered = lines.every((line) => /^\d+[.)]\s+/.test(line));
+  if (allBullets || allNumbered) {
+    blocks.push({
+      type: 'bullet_list',
+      items: lines.map((line) => line.replace(/^[-*•]\s+|^\d+[.)]\s+/u, '').trim()),
+    });
+    return [];
+  }
+
+  const paragraph = lines.join('\n').trim();
+  if (paragraph) {
+    blocks.push({ type: 'paragraph', text: paragraph });
+  }
+  return [];
+}
+
+function parseLegacyProseAndCode(
+  text: string,
+  blocks: NotebookContentDocument['blocks'],
+): boolean {
+  const lines = normalizeLegacyAnswerText(text).split('\n');
+  let prose: string[] = [];
+  let code: string[] = [];
+  let sawCode = false;
+
+  const flushProse = () => {
+    prose = pushLegacyProseBlocks(blocks, prose);
+  };
+  const flushCode = () => {
+    const codeText = code.join('\n').trim();
+    if (!codeText) {
+      code = [];
+      return;
+    }
+    blocks.push({
+      type: 'code_block',
+      language: inferLegacyCodeLanguage(codeText),
+      code: codeText,
+    });
+    sawCode = true;
+    code = [];
+  };
+
+  for (const line of lines) {
+    if (code.length > 0) {
+      if (looksLikeLegacyCodeContinuation(line)) {
+        code.push(line);
+        continue;
+      }
+      flushCode();
+      prose.push(line);
+      continue;
+    }
+
+    if (looksLikeLegacyCodeLine(line)) {
+      flushProse();
+      code.push(line);
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushProse();
+      continue;
+    }
+
+    prose.push(line);
+  }
+
+  flushCode();
+  flushProse();
+  return sawCode;
+}
+
+function buildLegacyNotebookAnswerDocumentFromText(
+  answer: string,
+): NotebookContentDocument | undefined {
+  const normalized = normalizeLegacyAnswerText(answer);
+  if (!normalized) return undefined;
+
+  const hasStructuredSignal =
+    /```|\(@(?:htdf|signature|template-origin)\b|\(check-expect\b|\(define\b|#reader|#lang|\bdef\s+\w+\s*\(/u.test(
+      normalized,
+    );
+  if (!hasStructuredSignal) return undefined;
+
+  const blocks: NotebookContentDocument['blocks'] = [];
+  const fencePattern = /```([a-zA-Z0-9_+-]*)[^\n]*\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let sawCode = false;
+  let match: RegExpExecArray | null;
+
+  while ((match = fencePattern.exec(normalized)) !== null) {
+    const before = normalized.slice(lastIndex, match.index);
+    if (before.trim()) {
+      sawCode = parseLegacyProseAndCode(before, blocks) || sawCode;
+    }
+    const codeText = (match[2] || '').trim();
+    if (codeText) {
+      blocks.push({
+        type: 'code_block',
+        language: (match[1] || '').trim() || inferLegacyCodeLanguage(codeText),
+        code: codeText,
+      });
+      sawCode = true;
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  const rest = normalized.slice(lastIndex);
+  if (rest.trim()) {
+    sawCode = parseLegacyProseAndCode(rest, blocks) || sawCode;
+  }
+
+  if (!sawCode || blocks.length === 0) return undefined;
+  const profile = 'code';
+  return {
+    version: 1,
+    language: 'zh-CN',
+    profile,
+    disciplineStyle: profile === 'code' ? 'code' : 'general',
+    teachingFlow: profile === 'code' ? 'code_walkthrough' : 'concept_explain',
+    layout: { mode: 'stack' },
+    density: 'standard',
+    visualRole: 'none',
+    overflowPolicy: 'compress_first',
+    preserveFullProblemStatement: false,
+    archetype: profile === 'code' ? 'example' : 'concept',
+    blocks,
+  };
+}
+
+export function getNotebookAnswerDocumentForDisplay(
+  message: NotebookAssistantMessage,
+): NotebookContentDocument | undefined {
+  if (message.answerDocument) return message.answerDocument;
+  if (message.streaming) return undefined;
+  return buildLegacyNotebookAnswerDocumentFromText(message.answer);
+}
+
+function upgradeLegacyNotebookAnswer(message: NotebookChatMessage): NotebookChatMessage {
+  if (message.role !== 'assistant' || message.answerDocument || message.streaming) return message;
+  const answerDocument = buildLegacyNotebookAnswerDocumentFromText(message.answer);
+  return answerDocument ? { ...message, answerDocument } : message;
+}
+
 export function stripAttachmentUrlsFromAgentMessages(
   messages: UIMessage<ChatMessageMetadata>[],
 ): UIMessage<ChatMessageMetadata>[] {
@@ -166,6 +371,10 @@ export async function hydrateNotebookThread(
 ): Promise<NotebookChatMessage[]> {
   const out: NotebookChatMessage[] = [];
   for (const m of messages) {
+    if (m.role === 'assistant') {
+      out.push(upgradeLegacyNotebookAnswer(m));
+      continue;
+    }
     if (m.role !== 'user' || !m.attachments?.length) {
       out.push(m);
       continue;

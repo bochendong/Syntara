@@ -193,14 +193,19 @@ function formatMemoryTextForProgramming(memory: StudyMemoryRecord): string {
   return `   text: ${compact(text, 900)}`;
 }
 
-function formatMemory(memory: StudyMemoryRecord, index: number, isProgrammingHelp = false): string {
+function formatMemory(
+  memory: StudyMemoryRecord,
+  index: number,
+  isProgrammingHelp = false,
+  layerLabel = 'study_memory',
+): string {
   const scope = memory.scope === 'private' ? 'private_learner_memory' : 'public_course_memory';
   const text = isProgrammingHelp
     ? formatMemoryTextForProgramming(memory)
     : `   text: ${compact(memory.text || memory.reason || '', 700)}`;
   return [
     `${index + 1}. ${memory.title}`,
-    `   scope: ${scope}; kind=${memory.kind}; target=${memory.targetType}`,
+    `   layer: ${layerLabel}; scope=${scope}; kind=${memory.kind}; target=${memory.targetType}`,
     text,
   ].join('\n');
 }
@@ -214,6 +219,32 @@ function uniqueMemories(memories: StudyMemoryRecord[]): StudyMemoryRecord[] {
     result.push(memory);
   }
   return result;
+}
+
+function publicMemories(memories: StudyMemoryRecord[]): StudyMemoryRecord[] {
+  return memories.filter((memory) => memory.scope === 'public');
+}
+
+function privateMemories(memories: StudyMemoryRecord[]): StudyMemoryRecord[] {
+  return memories.filter((memory) => memory.scope === 'private');
+}
+
+function memorySection(args: {
+  heading: string;
+  memories: StudyMemoryRecord[];
+  layerLabel: string;
+  isProgrammingHelp: boolean;
+  limit: number;
+}): string[] {
+  const selected = uniqueMemories(args.memories).slice(0, args.limit);
+  if (selected.length === 0) return [];
+  return [
+    args.heading,
+    ...selected.map((memory, index) =>
+      formatMemory(memory, index, args.isProgrammingHelp, args.layerLabel),
+    ),
+    '',
+  ];
 }
 
 function formatLearnerAnalytics(context: MemoryRecallContext): string[] {
@@ -313,15 +344,71 @@ export function buildNotebookChatMemoryToolOutput(args: {
   ).map((packet, index) =>
     isProgrammingHelp ? formatProgrammingEvidence(packet, index) : formatEvidence(packet, index),
   );
-  const memories = (
-    isProgrammingHelp
-      ? uniqueMemories([...context.directMemories, ...context.semanticMatches]).filter(
-          (memory) => memory.scope !== 'private',
-        )
-      : uniqueMemories([...context.directMemories, ...context.semanticMatches])
-  )
-    .slice(0, 4)
-    .map((memory, index) => formatMemory(memory, index, isProgrammingHelp));
+  const semanticPublicMemories = publicMemories(context.specialistMemories);
+  const courseControllerMemories = publicMemories(
+    uniqueMemories([
+      ...context.courseControllerMemories,
+      ...semanticPublicMemories.filter((memory) => memory.targetType === 'course'),
+    ]),
+  );
+  const currentNotebookMemories = publicMemories(
+    uniqueMemories([
+      ...context.currentNotebookMemories,
+      ...semanticPublicMemories.filter(
+        (memory) =>
+          memory.targetType === 'notebook' && memory.notebookId === context.scope.notebookId,
+      ),
+    ]),
+  );
+  const crossNotebookSpecialistMemories = publicMemories(context.specialistMemories).filter(
+    (memory) => memory.targetType === 'notebook' && memory.notebookId !== context.scope.notebookId,
+  );
+  const fallbackPublicMemories = publicMemories(
+    uniqueMemories([...context.directMemories, ...context.semanticMatches]),
+  );
+  const privateLearnerMemories = isProgrammingHelp
+    ? []
+    : privateMemories(uniqueMemories([...context.directMemories, ...context.semanticMatches]));
+  const layeredMemoryLines = [
+    ...memorySection({
+      heading: 'course_controller_memory:',
+      memories: courseControllerMemories,
+      layerLabel: 'course_controller',
+      isProgrammingHelp,
+      limit: isProgrammingHelp ? 3 : 4,
+    }),
+    ...memorySection({
+      heading: 'current_notebook_specialist_memory:',
+      memories: currentNotebookMemories,
+      layerLabel: 'current_notebook_specialist',
+      isProgrammingHelp,
+      limit: isProgrammingHelp ? 3 : 4,
+    }),
+    ...memorySection({
+      heading: 'cross_notebook_specialist_memory:',
+      memories: crossNotebookSpecialistMemories,
+      layerLabel: 'cross_notebook_specialist',
+      isProgrammingHelp,
+      limit: isProgrammingHelp ? 3 : 4,
+    }),
+    ...memorySection({
+      heading: 'private_learner_memory:',
+      memories: privateLearnerMemories,
+      layerLabel: 'private_learner',
+      isProgrammingHelp,
+      limit: 3,
+    }),
+  ];
+  const fallbackMemoryLines =
+    layeredMemoryLines.length === 0
+      ? memorySection({
+          heading: 'study_memory_evidence:',
+          memories: fallbackPublicMemories,
+          layerLabel: 'study_memory_fallback',
+          isProgrammingHelp,
+          limit: 4,
+        })
+      : [];
   const knowledgeMatches = (isProgrammingHelp ? [] : context.knowledgeMatches.slice(0, 4)).map(
     (match, index) => {
       const tags = match.metadata.tags.length ? `tags=${match.metadata.tags.join(',')}` : '';
@@ -358,9 +445,14 @@ export function buildNotebookChatMemoryToolOutput(args: {
         'mode: programming_help',
         `input_summary: ${programmingInputSummary(args.query)}`,
         'note: full problem text is already in Student question; not repeated here.',
-        memories.length > 0 ? 'study_memory_evidence:' : '',
-        ...memories,
-        memories.length > 0 ? '' : '',
+        'memory_orchestration:',
+        '- responder: course_controller',
+        '- use course_controller_memory first for course-wide rules and template selection.',
+        '- use current_notebook_specialist_memory for this lesson’s local template and examples.',
+        '- use cross_notebook_specialist_memory only when the problem genuinely needs another lesson.',
+        '',
+        ...layeredMemoryLines,
+        ...fallbackMemoryLines,
         sourceEvidence.length > 0 ? 'prerequisite_context:' : '',
         ...sourceEvidence,
         sourceEvidence.length > 0 ? '' : '',
@@ -385,10 +477,14 @@ export function buildNotebookChatMemoryToolOutput(args: {
       `- kind: ${intent.kind}`,
       `- answerMode: ${intent.plan.answerMode}`,
       `- effectiveScope: ${recallScope.effectiveMode}`,
+      '- responder: course_controller',
       `- summary: ${intent.plan.summary}`,
       '',
       'usage:',
       '- Use only relevant context; do not expose search/planning details.',
+      '- Course controller memory decides course-level rules, template routing, and forbidden moves.',
+      '- Notebook specialist memory supplies the local chapter template, examples, and common mistakes.',
+      '- Cross-notebook specialist memory is supporting evidence, not a replacement for the current notebook.',
       '- Structured facts are exact current truth.',
       '- Prefer original source evidence when it directly answers the user.',
       '- If learner history is included, separate evidence from inference.',
@@ -401,9 +497,8 @@ export function buildNotebookChatMemoryToolOutput(args: {
       sourceEvidence.length > 0 ? sourceEvidenceHeading : '',
       ...sourceEvidence,
       sourceEvidence.length > 0 ? '' : '',
-      memories.length > 0 ? 'study_memory_evidence:' : '',
-      ...memories,
-      memories.length > 0 ? '' : '',
+      ...layeredMemoryLines,
+      ...fallbackMemoryLines,
       ...learnerAnalyticsLines,
       learnerAnalyticsLines.length > 0 ? '' : '',
       knowledgeMatches.length > 0 ? 'metadata_filtered_problem_matches:' : '',

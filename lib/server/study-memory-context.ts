@@ -70,6 +70,9 @@ export type MemoryRecallContext = {
   prompt: string;
   scope: MemoryRecallScope;
   staticFacts: MemoryFactRecord[];
+  courseControllerMemories: StudyMemoryRecord[];
+  currentNotebookMemories: StudyMemoryRecord[];
+  specialistMemories: StudyMemoryRecord[];
   directMemories: StudyMemoryRecord[];
   semanticMatches: StudyMemoryRecord[];
   knowledgeMatches: MemoryKnowledgeMatch[];
@@ -802,6 +805,9 @@ function emptyContext(storage: 'database' | 'unavailable'): MemoryRecallContext 
       courseEvidenceCount: 0,
     },
     staticFacts: [],
+    courseControllerMemories: [],
+    currentNotebookMemories: [],
+    specialistMemories: [],
     directMemories: [],
     semanticMatches: [],
     knowledgeMatches: [],
@@ -926,6 +932,16 @@ export async function buildMemoryRecallContext(args: {
     const sourceEvidence = finalPass.sourceEvidence;
     const learnerAnalytics = finalPass.learnerAnalytics;
     const vectorUsed = finalPass.vectorUsed;
+    const directMemoryIds = new Set(directMemories.map((memory) => memory.id));
+    const courseControllerMemories = directCourse.filter((memory) =>
+      directMemoryIds.has(memory.id),
+    );
+    const currentNotebookMemories = directTarget.filter((memory) => directMemoryIds.has(memory.id));
+    const directLayerIds = new Set([
+      ...courseControllerMemories.map((memory) => memory.id),
+      ...currentNotebookMemories.map((memory) => memory.id),
+    ]);
+    const specialistMemories = semanticMemories.filter((memory) => !directLayerIds.has(memory.id));
 
     const scope = {
       ...scopeResolution.scope,
@@ -942,20 +958,16 @@ export async function buildMemoryRecallContext(args: {
       formatFacts(factResolution.facts),
       formatConflicts(factResolution.conflicts),
       formatSection({
-        title: 'Course public/private memory injected directly',
-        memories: directCourse.filter((memory) =>
-          directMemories.some((item) => item.id === memory.id),
-        ),
+        title: 'Course controller memory injected directly',
+        memories: courseControllerMemories,
       }),
       formatSection({
-        title: 'Current notebook public/private memory injected directly',
-        memories: directTarget.filter((memory) =>
-          directMemories.some((item) => item.id === memory.id),
-        ),
+        title: 'Current notebook specialist memory injected directly',
+        memories: currentNotebookMemories,
       }),
       formatSection({
-        title: 'Semantically recalled study memory from the same course/notebook',
-        memories: semanticMemories.slice(0, 6),
+        title: 'Semantically recalled specialist memory from course notebooks',
+        memories: specialistMemories.slice(0, 6),
       }),
       formatSourceEvidence(sourceEvidence),
       formatLearnerAnalytics(learnerAnalytics),
@@ -966,6 +978,10 @@ export async function buildMemoryRecallContext(args: {
       sections.length > 0
         ? [
             'Use this layered memory context as durable context for the answer.',
+            'Answer as the course controller: decide the task type, choose the applicable course template/rule, then use notebook memories as specialist evidence.',
+            'Course controller memory has the highest priority for course-wide rules, allowed tools, forbidden moves, and template-routing policy.',
+            'Current notebook specialist memory explains the local lesson template, examples, and chapter-specific constraints.',
+            'Semantically recalled specialist memory can supply cross-notebook details, but only when it is relevant to the user question.',
             'Memory recall scope tells whether this answer is grounded in the current notebook or the whole course.',
             'Structured memory facts are exact current values and override any fuzzy or semantic memory.',
             'Public study memory describes course/notebook facts, teacher requirements, and reusable teaching constraints.',
@@ -981,6 +997,9 @@ export async function buildMemoryRecallContext(args: {
       prompt: compact(prompt, 10000),
       scope,
       staticFacts: factResolution.facts,
+      courseControllerMemories,
+      currentNotebookMemories,
+      specialistMemories,
       directMemories,
       semanticMatches: semanticMemories,
       knowledgeMatches,

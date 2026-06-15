@@ -306,7 +306,10 @@ Atomic distinct data：只有少数明确值，常用于枚举或特殊值，例
         markdown: md`
 # One-of 与 Itemization
 
-one-of 用来表示一个数据可能属于多个情况之一。
+one-of 用来表示一个数据可能属于多个情况之一。课程里常见两类：
+
+- Enumeration：每个 case 都是固定的 distinct value，例如 "red"、"yellow"、"green"。
+- Itemization：case 的形状可以不同，例如 false、某个 Natural 范围、某个 String 或某个 struct。
 
 例子：
 
@@ -330,6 +333,8 @@ Template：
              [(string=? tl "green") (...)])))
 
 普通 enumeration 要尽量列完整每个分支，不要随手用 else 吃掉未分析的情况。
+
+Itemization 的每个分支要问“这个值属于哪一种形状”，可能用 false?、number? + range check、string=? 或 structure predicate。
         `,
       },
       {
@@ -663,17 +668,17 @@ lookup-key 的核心分支：
 
 模板通常成对出现：
 
-    (define (fn-for-node n)
+    (define (fn-for--node n)
       (... (node-label n)
-           (fn-for-lon (node-children n))))
+           (fn-for--lon (node-children n))))
 
-    (define (fn-for-lon lon)
+    (define (fn-for--lon lon)
       (cond [(empty? lon) (...)]
             [else
-             (... (fn-for-node (first lon))
-                  (fn-for-lon (rest lon)))]))
+             (... (fn-for--node (first lon))
+                  (fn-for--lon (rest lon)))]))
 
-fn-for-node 处理单个节点；fn-for-lon 处理一串 children。
+fn-for--node 处理单个节点；fn-for--lon 处理一串 children。双连字符表示这是模板内部/封装内部的 helper 名称，不是公开 API。
         `,
       },
       {
@@ -821,20 +826,32 @@ local 允许你把只服务于当前函数的 helper 放在内部。
 
 Mutual recursion 的 helper 常常不应该暴露给外部使用。可以把它们封装在一个公开函数的 local 中。
 
+这时 \`encapsulated\` 不是一个随便加的词。它表示：公开函数的设计把课程模板 helper 封装在 local 里，外部只暴露一个入口。普通 local helper 或 07 章 abstract-function 里的短 predicate/helper，不会自动让 @template-origin 加 encapsulated。
+
 结构：
 
     (define (public-fn c)
-      (local [(define (fn-for-course c)
-                (... (fn-for-loc (course-prereqs c))))
+      (local [(define (fn-for--course c)
+                (... (fn-for--loc (course-prereqs c))))
 
-              (define (fn-for-loc loc)
+              (define (fn-for--loc loc)
                 (cond [(empty? loc) (...)]
                       [else
-                       (... (fn-for-course (first loc))
-                            (fn-for-loc (rest loc)))]))]
-        (fn-for-course c)))
+                       (... (fn-for--course (first loc))
+                            (fn-for--loc (rest loc)))]))]
+        (fn-for--course c)))
 
 公开函数负责表达任务；local helper 负责处理数据结构。
+
+提交格式上，公开函数的 \`@template-origin\` 要把“主模板来源”和 \`encapsulated\` 都写出来。例如 Course/ListOfCourse 互相递归 helper 被封装在 local 中：
+
+    (@template-origin Course ListOfCourse encapsulated)
+
+如果 source/problem 明确给了类似 Natural encapsulated 的封装模板，也要保留这个封装信息：
+
+    (@template-origin Natural encapsulated)
+
+注意：\`@htdf\`、\`@signature\`、\`check-expect\` 和 \`@template-origin\` 仍然属于公开函数的顶层设计，不要写进 local 里面。local 内部只放局部 \`define\`。
         `,
       },
       {
@@ -848,6 +865,8 @@ Mutual recursion 的 helper 常常不应该暴露给外部使用。可以把它�
 - local function 是否引用了外层变量？
 - lifting 时每个 local define 是否都被展开？
 - mutual recursion helper 是否应该被封装？
+- 这个 local 是否真的属于 source/problem 要求的 encapsulated-template 模式？
+- 公开函数的 tags/tests 是否还留在顶层，而不是塞进 local？
         `,
       },
     ],
@@ -1016,6 +1035,12 @@ lambda 适合表达局部规则；如果规则复杂、需要复用、或需要�
 Generative recursion 的特点是：下一批问题不是直接来自数据定义中的 rest，而是由当前 state 生成。
 
 检查点：如果 recursive call 的输入是“新生成的问题”，这就是 generative recursion。
+
+纯 genrec 设计还要写 Termination argument：
+
+- Base Case：什么条件会停止。
+- reduction step：每次 recursive call 怎样让问题变小或更接近停止。
+- argument：为什么反复做这个 reduction 一定会到 base case。
         `,
       },
       {

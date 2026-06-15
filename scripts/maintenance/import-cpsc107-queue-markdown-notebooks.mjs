@@ -4,39 +4,19 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Prisma, PrismaClient } from '@prisma/client';
+import {
+  CPSC107_COURSE_MEMORY_ID,
+  CPSC107_COURSE_MEMORY_TITLE,
+  CPSC107_PUBLIC_MEMORY_TEXTS,
+} from './cpsc107-public-memory-concepts.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_COURSE_ID = 'cmpc9dqgv000p8ogmrsjl5co8';
 const COURSE_ID = process.env.CPSC107_COURSE_ID || DEFAULT_COURSE_ID;
 const QUEUE_DIR = path.join(ROOT, 'queue', 'CPSC107');
-const COURSE_MEMORY_ID = 'memory_cpsc107_course_public_20260611';
-const COURSE_MEMORY_TITLE = 'CPSC107 课程共有记忆';
-const COURSE_MEMORY_TEXT = `## 适用范围
-CPSC107 整门课。
-
-## 记忆边界
-不记录 Racket、recursion、tree、search、tail recursion 等通用定义。共有记忆只保留这门课需要长期遵守的知识组织、设计 recipe、template rule 和解题格式。
-
-## 全课知识规则
-- 程序设计题的 function body 应从数据定义、signature、purpose、examples/check-expect 和 template 推出。
-- Racket 表达式要按 DrRacket 真实语法写，求值说明按最左边需要化简的表达式逐步展开。
-- API 名称本身不是记忆对象；应记录数据类型、输入输出、template rule 和求值过程。
-- API 边界是课程事实：不要把未出现在题面、源材料或已学记忆里的 Racket 函数当作可用工具。题面只说 built-in functions 时，只能使用课程记忆或源材料明确学过的 built-ins；不确定时优先使用 template/helper 设计。
-
-## 设计格式
-- HTDF 顺序固定为 Function Name、Signature、Purpose、Examples、Stub、Template、Function Body。
-- HTDD 要写数据名、interp、examples/常量、dd-template-rules 和 template body。
-- 判断 template rule 要从数据定义读：atomic、one-of、compound、ref、self-ref、mutual-ref，不能凭题目关键词猜。
-- 当答案使用 local helper 时，顶层 HtDF artifacts 仍然属于公开函数：@htdf、@signature、purpose、check-expect、stub、@template-origin 放在公开函数的顶层设计里；local 内只放局部 define 和必要的 accumulator/scope 注释。
-
-## 递归和抽象
-- List/template 题先写 empty/base case，再写 cons/recursive case；helper 来自数据边界，不是随意拆函数。
-- Tree 或 mutual-reference 题要成对写 node/list helper；公开函数可以用 local 封装 helper。
-- Local 题要区分 scope、closure、lifting；two one-of 先画交叉表再合并 case。
-- Abstract/search/tail-recursion 题先说明 predicate/transformer/combiner、state/goal/successor、accumulator 含义和初始值。
-
-## 检查点
-你现在缺的是 recipe 的哪一步？这个 recursive call 来自哪个 self-reference？这个 helper 是因为哪个 field 的类型不是 primitive？这个 accumulator 代表什么，初始值是什么，每一步如何更新？`;
+const COURSE_MEMORY_ID = CPSC107_COURSE_MEMORY_ID;
+const COURSE_MEMORY_TITLE = CPSC107_COURSE_MEMORY_TITLE;
+const COURSE_MEMORY_TEXT = CPSC107_PUBLIC_MEMORY_TEXTS[COURSE_MEMORY_ID];
 
 const PDFS = [
   {
@@ -52,21 +32,23 @@ const PDFS = [
 CPSC107 notebook 01《Racket 基础：表达式、数据与求值规则》。
 
 ## 记忆边界
-不记录 Racket primitive operators、String/Image API 或 if 的通用定义。共有记忆只保留本讲的知识路径、Racket 语法格式和求值格式。
+共有记忆要记录本讲高频 Racket 基础工具：前缀表达式、求值规则、if/cond、and/or short-circuit、Number/String/Image primitive operations、function 和 global constant。具体 require 与 starter 文件要求仍以 Course Pack 和题目给定代码为准。
 
 ## 知识路径
 1. 数学式要转成 DrRacket 前缀表达式：operator 在最前面，operands 从里到外、从左到右变成 value。
-2. Boolean、String、Image 和 primitive data 用来说明数据类型和函数输入输出，而不是记 API 清单。
-3. function、global variable、evaluation rule 和 if 要放在“表达式如何求值”的同一条线上理解。
+2. Boolean、String、Image 和 primitive data 用来说明函数消费什么、产生什么，也要保留常见操作例子，方便回答“怎么切字符串”“怎么组合图片”。
+3. function、global variable、evaluation rule、if/cond 和 and/or short-circuit 要放在“表达式如何求值”的同一条线上理解。
 
 ## 格式规则
 - 前缀表达式要写成 DrRacket 真实语法，例如 (+ (- 3 2) (/ 4 5))。
 - 求值步骤每一步只化简最左边需要化简的表达式。
+- and/or 要按短路求值判断：结果已确定后，后面的表达式不再求值。
+- String 切片使用 substring，index 从 0 开始，end 不包含。
+- Image 题要确认 starter 是否已经提供图片库，再使用 circle、rectangle、text、above、beside、overlay、rotate 等基础函数。
 - global variable 一般大写，并解释为什么共享常量比在每个函数里硬编码更清楚。
-- 函数题先确认输入输出和 check-expect，再让 function body 对应到 template 或求值规则。
 
 ## 检查点
-这一步化简的是哪一个最左边还没变成 value 的表达式？这个函数的输入、输出和 check-expect 是否先写清楚了？`,
+这一步化简的是哪一个最左边还没变成 value 的表达式？这个 if/cond/and/or 是否已经决定不需要继续求某些表达式？这个函数的输入、输出和 check-expect 是否先写清楚了？当前题需要的是 Number、String、Boolean 还是 Image 操作？`,
   },
   {
     file: '02_htdf_htdd.pdf',
@@ -93,7 +75,7 @@ HTDF 顺序固定为：Function Name、Signature、Purpose、Examples、Stub、T
 - check-expect 是判断函数行为的证据，通常要先写 3-5 个实用例子。
 
 ## HTDD 格式
-HTDD 要写数据名、interp、examples/常量、dd-template-rules 和 template body。Atomic non-distinct、atomic distinct、one-of、compound、ref、self-ref 都要从数据形状判断，不要凭题目关键词猜。
+HTDD 要写数据名、interp、examples/常量、dd-template-rules 和 template body。Atomic non-distinct、atomic distinct、one-of、compound、ref、self-ref 都要从数据形状判断，不要凭题目关键词猜。one-of 要区分 enumeration 和 itemization：enumeration 全是固定 distinct values；itemization 可以混合 false、范围、字符串或 compound 等不同形状。
 
 ## One-of 习惯
 枚举型数据要用 cond 分支穷尽列出的值；normal enumerations 不要随手用 else。Itemization 要先判断每个 subclass 的 predicate 或 distinct value。
@@ -208,13 +190,13 @@ CPSC107 notebook 06《Two One-of 与 Local：交叉模板、作用域和封装�
 local 内部可以用外层定义，外层不能直接用 local 内部定义。讲 scope 时用“总公司/外包公司”的比喻；讲 closure 时只把引用外层变量的 local function 判为 closure，普通 value 不是 closure。
 
 ## Local/HtDF 边界
-使用 local 封装 helper 时，local 内只写局部 define。公开函数的 HtDF 设计元素保留在外层顶级位置：@htdf、@signature、purpose、check-expect、stub、@template-origin 不进入 local。如果题目要求某个 helper 有完整 HtDF design，那个 helper 应该作为独立顶层函数出现，而不是把 tags/tests 塞进 local。
+使用 local 封装 helper 时，local 内只写局部 define。公开函数的 HtDF 设计元素保留在外层顶级位置：@htdf、@signature、purpose、check-expect、stub、@template-origin 不进入 local。encapsulated 不是“只要用了 local 就自动加”；它用于题目/source 明确给出或要求的封装模板，尤其是 mutual-reference helper 被藏进一个公开入口时。如果题目要求某个 helper 有完整 HtDF design，那个 helper 应该作为独立顶层函数出现，而不是把 tags/tests 塞进 local。
 
 ## Lifting/Stepper
 local stepper 要把 local definition lift 成带编号的新定义，如 b_0、bee_0、foo_0。判断 lifted definitions 数量时，先数 local 中 define 的个数，再乘实际调用次数。
 
 ## Encapsulation
-Course/ListOfCourse 这类互相递归模板要用 @template-origin Course ListOfCourse encapsulated，把两个 helper 包进一个公开函数里。
+Course/ListOfCourse 这类互相递归模板要用 @template-origin Course ListOfCourse encapsulated，把两个 helper 包进一个公开函数里。封装模板里的 helper 名称要体现隐藏的数据边界，课程示例常用 fn-for--course/fn-for--loc 或 public-name--course/public-name--loc。
 
 ## 检查点
 两个 one-of 的表格能合并成几类？这个 local function 有没有引用外层参数？公开函数是否只暴露一个入口，把互相递归 helper 封装在 local 里？`,
@@ -262,13 +244,14 @@ CPSC107 notebook 07《Abstract Functions：filter、map、build-list 与 fold》
 CPSC107 notebook 08《Search：Generative Recursion 与 Backtracking》。
 
 ## 记忆边界
-不记录 search problem 的普通定义。共有记忆记录 solve 模板、branching 解释和 next-search-problems 的设计顺序。
+不记录 search problem 的普通定义。这里的 Search 指 backtracking search；共有记忆记录 solve/solve-list 的 try-catch 模板、branching 解释和 next-search-problems 的设计顺序。Generative recursion 只作为“生成下一批问题”的机制单独理解，并且纯 genrec 答案必须写 Termination argument。
 
 ## 知识路径
-1. 先把 search problem 拆成 states、start state、goal test、successor function 和 solution path。
-2. Backtracking 例题中，每个候选项都分成“不选/选”两个分支；branch 返回新的 state list。
-3. solve-cs 先检查 solved，再检查 options empty，最后把 branches 交给 solve-locs。
-4. solve-locs 必须用 local 存 try：如果 try 不是 false 就返回，否则继续 rest。
+1. 先把 backtracking search problem 拆成 states、start state、goal test、successor function、failure result 和 solution path。
+2. 纯 genrec 模板要写 Base Case、reduction step、argument，说明为什么生成的问题最终会到 base case。
+3. Backtracking 例题中，每个候选项都分成“不选/选”两个分支；branch 返回新的 state list。
+4. solve-cs 先检查 solved，再检查 options empty，最后把 branches 交给 solve-locs。
+5. solve-locs 必须用 local 存 try：如果 try 不是 false 就返回，否则继续 rest。
 
 ## TA Assignment 格式
 先定义 SearchState，把 current assignment 和 remaining slots 放进 state。next-search-problems 是关键：先 local 取出 cur-assign、cur-slot，再写 all-criteria?，最后用 filter 找可用 TA，用 map 生成下一批 state。
@@ -300,7 +283,7 @@ CPSC107 notebook 09《Tail Recursion 与 Accumulator：从普通递归到 Workli
 ## 格式规则
 - @template-origin 要写明 accumulator。
 - 外层公开函数负责初始化 accumulator；local helper 负责递归推进。
-- 公开 wrapper 拥有顶层 @htdf、@signature、purpose、check-expect、stub、@template-origin；accumulator local helper 只作为局部 define 出现，除非题目明确要求独立顶层 helper。
+- 公开 wrapper 拥有顶层 @htdf、@signature、purpose、check-expect、stub、@template-origin；accumulator/local helper 只作为局部 define 出现，除非题目明确要求独立顶层 helper。accumulator 的主策略要写 accumulator；只有题目/source 同时给出或要求 encapsulated template 时，才额外加入 encapsulated。
 - tail recursion 判断看最后执行的是 function call 还是 operator。
 - worklist 版本处理 node 时，把 children append 到 todo，再继续处理 first todo。
 
@@ -608,6 +591,7 @@ async function upsertMarkdownNotebook(prisma, course, meta, sections) {
 }
 
 async function upsertNotebookPublicMemory(prisma, course, meta) {
+  const memoryText = CPSC107_PUBLIC_MEMORY_TEXTS[meta.memoryId] || meta.memoryText;
   await prisma.studyMemory.upsert({
     where: { id: meta.memoryId },
     create: {
@@ -617,12 +601,12 @@ async function upsertNotebookPublicMemory(prisma, course, meta) {
       notebookId: meta.notebookId,
       targetType: 'notebook',
       scope: 'public',
-      kind: 'notebook_constraint',
+      kind: 'notebook_operational_guide',
       status: 'active',
       source: 'manual_queue_rewrite',
       title: meta.memoryTitle,
-      text: meta.memoryText,
-      reason: `CPSC107 单本笔记本共有记忆：${meta.name}。`,
+      text: memoryText,
+      reason: `CPSC107 单本笔记本详细操作记忆：${meta.name}。包含指导、模板例子和检查清单。`,
       sourceReferences: Prisma.DbNull,
     },
     update: {
@@ -631,12 +615,12 @@ async function upsertNotebookPublicMemory(prisma, course, meta) {
       notebookId: meta.notebookId,
       targetType: 'notebook',
       scope: 'public',
-      kind: 'notebook_constraint',
+      kind: 'notebook_operational_guide',
       status: 'active',
       source: 'manual_queue_rewrite',
       title: meta.memoryTitle,
-      text: meta.memoryText,
-      reason: `CPSC107 单本笔记本共有记忆：${meta.name}。`,
+      text: memoryText,
+      reason: `CPSC107 单本笔记本详细操作记忆：${meta.name}。包含指导、模板例子和检查清单。`,
       sourceReferences: Prisma.DbNull,
       updatedAt: new Date(),
     },
@@ -645,6 +629,7 @@ async function upsertNotebookPublicMemory(prisma, course, meta) {
 }
 
 async function upsertCoursePublicMemory(prisma, course) {
+  const courseMemoryText = CPSC107_PUBLIC_MEMORY_TEXTS[COURSE_MEMORY_ID] || COURSE_MEMORY_TEXT;
   await prisma.studyMemory.upsert({
     where: { id: COURSE_MEMORY_ID },
     create: {
@@ -654,12 +639,12 @@ async function upsertCoursePublicMemory(prisma, course) {
       notebookId: null,
       targetType: 'course',
       scope: 'public',
-      kind: 'course_constraint',
+      kind: 'course_concept_card',
       status: 'active',
       source: 'manual_course_rewrite',
       title: COURSE_MEMORY_TITLE,
-      text: COURSE_MEMORY_TEXT,
-      reason: 'CPSC107 整门课的共有记忆，记录全课复用的设计 recipe、template rule 和解题格式。',
+      text: courseMemoryText,
+      reason: 'CPSC107 整门课 concept card；精确课程合约由 Course Pack 直接注入。',
       sourceReferences: Prisma.DbNull,
     },
     update: {
@@ -668,12 +653,12 @@ async function upsertCoursePublicMemory(prisma, course) {
       notebookId: null,
       targetType: 'course',
       scope: 'public',
-      kind: 'course_constraint',
+      kind: 'course_concept_card',
       status: 'active',
       source: 'manual_course_rewrite',
       title: COURSE_MEMORY_TITLE,
-      text: COURSE_MEMORY_TEXT,
-      reason: 'CPSC107 整门课的共有记忆，记录全课复用的设计 recipe、template rule 和解题格式。',
+      text: courseMemoryText,
+      reason: 'CPSC107 整门课 concept card；精确课程合约由 Course Pack 直接注入。',
       sourceReferences: Prisma.DbNull,
       updatedAt: new Date(),
     },

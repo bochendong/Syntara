@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   BookOpen,
   Brain,
+  ClipboardCheck,
   Database,
   FileText,
   Layers3,
@@ -18,8 +19,10 @@ import {
   Search,
   Share2,
   Target,
+  Workflow,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
+import { MemoryListDetailLayout } from '@/components/memory/memory-list-detail-layout';
 import { MemoryPageHeader } from '@/components/memory/memory-page-header';
 import { getDefaultCoursePublicMemories } from '@/lib/learning/default-public-memories';
 import {
@@ -44,7 +47,7 @@ type CourseMemoryPageClientProps = {
   courseId: string;
 };
 
-type CourseMemoryTab = 'overview' | 'public' | 'private' | 'search';
+type CourseMemoryTab = 'overview' | 'templates' | 'public' | 'private' | 'search';
 
 type PublicMemoryView = {
   id: string;
@@ -74,6 +77,20 @@ type CourseFactView = {
   label: string;
   value: string;
   scope: string;
+};
+
+type CourseTemplateView = {
+  id: string;
+  title: string;
+  category: string;
+  sourceLabel: string;
+  sourceTitle: string;
+  notebookName?: string;
+  summary: string;
+  templateText: string;
+  exampleText: string;
+  sourceMemoryId: string;
+  updatedAt?: number;
 };
 
 type NotebookMemoryRecordBundle = {
@@ -307,6 +324,913 @@ function compactText(input: string, maxLength: number): string {
     .trim();
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function splitMarkdownSections(markdown: string): Array<{ heading: string; body: string }> {
+  const headingMatches = [...markdown.matchAll(/^#{2,4}\s+(.+?)\s*$/gm)];
+  if (headingMatches.length === 0) return [{ heading: '全文', body: markdown }];
+
+  return headingMatches.map((match, index) => {
+    const start = (match.index || 0) + match[0].length;
+    const end = headingMatches[index + 1]?.index ?? markdown.length;
+    return {
+      heading: match[1].trim(),
+      body: markdown.slice(start, end).trim(),
+    };
+  });
+}
+
+function sectionBody(sections: Array<{ heading: string; body: string }>, labels: string[]): string {
+  const normalizedLabels = labels.map((label) => label.toLowerCase());
+  const section = sections.find((item) => {
+    const heading = item.heading.toLowerCase();
+    return normalizedLabels.some((label) => heading.includes(label));
+  });
+  return section?.body.trim() || '';
+}
+
+function inferTemplateCategory(memory: PublicMemoryView): string {
+  const text = `${memory.title}\n${memory.text}`.toLowerCase();
+  if (/课程|course/.test(memory.title)) return '课程总模板';
+  if (/证明|proof|induction|contradiction|lemma/.test(text)) return '证明模板';
+  if (/essay|thesis|quote|close reading|论文|短文|论点/.test(text)) return 'Essay 模板';
+  if (/计算|求值|integral|derivative|formula|substitution|simplify/.test(text)) {
+    return '计算模板';
+  }
+  if (/trace|diagram|memory model|state table|求值顺序|画图/.test(text)) {
+    return 'Trace / Diagram 模板';
+  }
+  if (
+    /@template|htdf|htdd|racket|function|helper|recursion|fold|map|filter|代码|programming|cpsc|csc/.test(
+      text,
+    )
+  ) {
+    return 'Programming / Design 模板';
+  }
+  if (/case|analysis|compare|对比|案例/.test(text)) return 'Case Analysis 模板';
+  return 'Concept Explanation 模板';
+}
+
+function cleanedMemoryTitle(title: string): string {
+  return title
+    .replace(/公共记忆/g, '')
+    .replace(/共有记忆/g, '')
+    .replace(/课程/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasBacktrackingSearchTitleSignal(text: string): boolean {
+  return /\bsearch\b|backtracking/.test(text);
+}
+
+function hasBacktrackingSearchBodySignal(text: string): boolean {
+  return /backtracking|search problem|search state|solve-list|next-search-problems|goal test|successor function|failure result|solution result/.test(
+    text,
+  );
+}
+
+function hasGenerativeRecursionSignal(text: string): boolean {
+  return /generative recursion|\bgenrec\b|generated next|generated problem|next-problems|next states/.test(
+    text,
+  );
+}
+
+function inferTemplateTitle(memory: PublicMemoryView, explicitTitle?: string): string {
+  const rawTitle = explicitTitle?.trim() || cleanedMemoryTitle(memory.title);
+  const title = memory.title.toLowerCase();
+  const text = `${memory.title}\n${memory.text}`.toLowerCase();
+  if (explicitTitle) return rawTitle;
+  if (/课程|course/.test(memory.title)) return '课程答题总模板';
+  if (/abstract functions|abstract|filter|map|build-list|fold/.test(title)) {
+    return 'Abstract Function 选择模板';
+  }
+  if (/tail recursion|accumulator|worklist/.test(title)) {
+    return 'Accumulator / Worklist 模板';
+  }
+  if (/mutual reference|trees|listofnode|tree/.test(title)) return 'Mutual Reference 模板';
+  if (/two one-of|2-one-of/.test(title)) return 'Two One-of Cross-product 模板';
+  if (/encapsulated|local/.test(title)) return 'Encapsulated Local Helper 模板';
+  if (hasBacktrackingSearchTitleSignal(title)) return 'Backtracking Search 模板';
+  if (hasGenerativeRecursionSignal(title)) return 'Generative Recursion 模板';
+  if (/recursion\/bst|bst/.test(title)) return 'BST Structural Recursion 模板';
+  if (/reference\/self-reference|self-reference/.test(title)) {
+    return 'Reference / Self-reference 模板';
+  }
+  if (/racket/.test(title)) return 'Racket 求值与表达式模板';
+  if (/htdf|htdd/.test(title) || /htdf\/htdd/.test(text)) return 'HtDF / HtDD 设计配方模板';
+  if (/abstract functions|filter|map|build-list|fold/.test(text)) {
+    return 'Abstract Function 选择模板';
+  }
+  if (/tail recursion|accumulator|worklist/.test(text)) {
+    return 'Accumulator / Worklist 模板';
+  }
+  if (/mutual reference|listofnode|tree|trees/.test(text)) return 'Mutual Reference 模板';
+  if (/two one-of|2-one-of/.test(text)) return 'Two One-of Cross-product 模板';
+  if (/encapsulated|local/.test(text)) return 'Encapsulated Local Helper 模板';
+  if (hasBacktrackingSearchBodySignal(text)) return 'Backtracking Search 模板';
+  if (hasGenerativeRecursionSignal(text)) return 'Generative Recursion 模板';
+  if (/bst/.test(text)) return 'BST Structural Recursion 模板';
+  if (/reference|self-reference/.test(text)) return 'Reference / Self-reference 模板';
+  if (/racket/.test(text)) return 'Racket 求值与表达式模板';
+  return rawTitle ? `${rawTitle} 模板` : '课程解题模板';
+}
+
+function markdownLines(lines: string[]): string {
+  return lines.join('\n');
+}
+
+function defaultTemplateText(title: string, category: string): string {
+  if (title.includes('课程答题总模板')) {
+    return markdownLines([
+      '1. 判断题型：代码设计、求值、证明、计算、essay、trace，还是概念解释。',
+      '2. 选择 1-3 个课程模板，而不是只检索相似文字。',
+      '3. 检查本课程限制：已学工具、格式、命名、禁止事项。',
+      '4. 按模板输出答案：先给可提交/可检查结果，再解释关键理由。',
+      '5. 最后用课程验收清单检查一次。',
+    ]);
+  }
+
+  if (title.includes('HtDF') || title.includes('HtDD')) {
+    return markdownLines([
+      '```racket',
+      '(@htdf function-name)',
+      '(@signature InputType -> OutputType)',
+      ';; purpose statement',
+      '(check-expect (function-name example-input) expected-output)',
+      '',
+      '; (define (function-name x) stub-value) ;stub',
+      '',
+      '(@template-origin <main-template-origin>)',
+      '',
+      '(define (function-name x)',
+      '  ...)',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Abstract Function')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin use-abstract-fn)',
+      '',
+      '(define (function-name data)',
+      '  (filter predicate data)) ; keep elements',
+      '',
+      '(define (function-name data)',
+      '  (map transformer data)) ; transform each element',
+      '',
+      '(define (function-name n)',
+      '  (build-list n builder)) ; generate from indices',
+      '',
+      '(define (function-name data)',
+      '  (foldr combiner base data)) ; combine into one result',
+      '',
+      ';; compose more than one abstract function',
+      '(@template-origin use-abstract-fn fn-composition)',
+      '',
+      '(define (function-name data)',
+      '  (foldr combiner base',
+      '         (map transformer',
+      '              (filter predicate data))))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Accumulator') || title.includes('Worklist')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin (listof X) accumulator)',
+      '',
+      '(define (function-name lox0)',
+      '  (local [(define (fn-for-lox lox acc)',
+      '            ;; acc is ...',
+      '            (cond [(empty? lox) acc]',
+      '                  [else',
+      '                   (fn-for-lox (rest lox)',
+      '                               (... (first lox) acc))]))]',
+      '    (fn-for-lox lox0 initial-acc)))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Mutual Reference')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin Node ListOfNode)',
+      '',
+      '(define (fn-for--node n)',
+      '  (... (node-label n)',
+      '       (fn-for--lon (node-children n))))',
+      '',
+      '(define (fn-for--lon lon)',
+      '  (cond [(empty? lon) (...)]',
+      '        [else',
+      '         (... (fn-for--node (first lon))',
+      '              (fn-for--lon (rest lon)))]))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Two One-of')) {
+    return markdownLines([
+      '1. 先列出两个 one-of 输入的 cross-product table。',
+      '2. 为每个格子写结果。',
+      '3. 合并结果相同的格子。',
+      '4. 把合并后的格子翻译成 cond 分支。',
+      '5. 不要在这个模板里自动加入 local 或 encapsulated。',
+      '',
+      '|        | B case 1 | B case 2 |',
+      '| ------ | -------- | -------- |',
+      '| A case 1 | result | result |',
+      '| A case 2 | result | result |',
+    ]);
+  }
+
+  if (title.includes('Encapsulated')) {
+    return markdownLines([
+      '1. 公开函数保留完整 HtDF 设计，只暴露一个入口。',
+      '2. local 中放只服务当前公开函数的 helper。',
+      '3. hidden helper 使用课程命名习惯，例如 `function-name--data` 或 `fn-for--data`。',
+      '4. 只有题目/source/template 要求封装模板时，`@template-origin` 才加 `encapsulated`。',
+      '5. 普通 short local helper 不自动等于 encapsulated template。',
+      '',
+      '```racket',
+      '(@template-origin MainTemplate encapsulated)',
+      '',
+      '(define (function-name x0)',
+      '  (local [(define (function-name--x x)',
+      '            ...)]',
+      '    (function-name--x x0)))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Backtracking Search')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin try-catch SearchState (listof SearchState))',
+      '',
+      '(define (solve s)',
+      '  (cond [(solved? s) (solution s)]',
+      '        [else',
+      '         (solve-list (next-search-problems s))]))',
+      '',
+      '(define (solve-list los)',
+      '  (cond [(empty? los) false]',
+      '        [else',
+      '         (local [(define try (solve (first los)))]',
+      '           (if (not (false? try))',
+      '               try',
+      '               (solve-list (rest los))))]))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Generative Recursion')) {
+    return markdownLines([
+      '```racket',
+      '(@htdf function-name)',
+      '',
+      '(@template-origin genrec)',
+      ';; Termination argument',
+      ';; Base Case: <condition that stops recursion>',
+      ';; reduction step: <how the recursive problem gets smaller>',
+      ';; argument: <why repeated reduction eventually reaches the base case>',
+      '',
+      '(define (function-name problem)',
+      '  (cond [(base-case? problem) (... problem)]',
+      '        [else',
+      '         (... (function-name (smaller/generated-problem problem)))]))',
+      '```',
+      '',
+      '纯 generative recursion 的重点是递归输入由规则生成，并且必须写 termination argument；backtracking search 还需要 failure / try-catch。',
+    ]);
+  }
+
+  if (title.includes('BST')) {
+    return markdownLines([
+      '```racket',
+      '(define (fn-for-bst t key)',
+      '  (cond [(false? t) (...)]',
+      '        [(= key (node-key t)) (... t)]',
+      '        [(< key (node-key t))',
+      '         (fn-for-bst (node-left t) key)]',
+      '        [else',
+      '         (fn-for-bst (node-right t) key)]))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Reference / Self-reference')) {
+    return markdownLines([
+      '先写/读取 HTDD，再从数据定义推模板：',
+      '',
+      '```racket',
+      ';; Y is ...',
+      ';; template rule: depends on Y data definition',
+      '',
+      '(define (fn-for-y y)',
+      '  ...)',
+      '',
+      '(define-struct x (primitive-field y-field))',
+      ';; X is (make-x Primitive Y)',
+      ';; template rules: compound, ref',
+      '',
+      '(define (fn-for-x x)',
+      '  (... (x-primitive-field x)',
+      '       (fn-for-y (x-y-field x))))',
+      '',
+      ';; ListOfX is one of:',
+      ';; - empty',
+      ';; - (cons X ListOfX)',
+      ';; template rules: one-of, ref, self-ref',
+      '',
+      '(define (fn-for-lox lox)',
+      '  (cond [(empty? lox) (...)]',
+      '        [else',
+      '         (... (fn-for-x (first lox))',
+      '              (fn-for-lox (rest lox)))]))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Racket')) {
+    return markdownLines([
+      '1. 找 operator。',
+      '2. 找 operands。',
+      '3. 按 DrRacket 规则先把需要求值的 operand 化成 value。',
+      '4. 应用 operator。',
+      '5. 对 if/cond，只继续被选中的 branch。',
+    ]);
+  }
+
+  if (category === '证明模板') {
+    return markdownLines([
+      '1. Claim：明确要证明什么。',
+      '2. Given：列出已知条件和定义。',
+      '3. Strategy：选择直接证明、反证、归纳或分情况。',
+      '4. Steps：每一步引用定义、定理或前一步结果。',
+      '5. Conclusion：回扣原命题。',
+    ]);
+  }
+
+  if (category === '计算模板') {
+    return markdownLines([
+      '1. Identify：识别题型和可用公式。',
+      '2. Set up：写出代入前的表达式。',
+      '3. Substitute：代入已知量。',
+      '4. Simplify：逐步化简。',
+      '5. Check：检查单位、定义域、符号或边界条件。',
+    ]);
+  }
+
+  if (category === 'Essay 模板') {
+    return markdownLines([
+      '1. Thesis：一句话回答题目。',
+      '2. Evidence：引用文本、案例或课程概念。',
+      '3. Analysis：解释证据为什么支持 thesis。',
+      '4. Counterpoint：必要时处理反例或限制。',
+      '5. Closing：回到题目，不另起新话题。',
+    ]);
+  }
+
+  return markdownLines([
+    '1. Definition：先给准确概念。',
+    '2. Intuition：用一句话解释它在解决什么问题。',
+    '3. Example：给一个短例子。',
+    '4. Non-example：指出一个容易混淆但不属于它的情况。',
+    '5. Check：给学生一个判断问题。',
+  ]);
+}
+
+function defaultExampleText(title: string, category: string): string {
+  if (title.includes('课程答题总模板')) {
+    return '学生问“这个函数怎么设计”时，先识别为代码设计题，再选择 HtDF + 对应数据模板；如果题目来自第 07 章，再检查是否应该用 `use-abstract-fn`。';
+  }
+
+  if (title.includes('HtDF') || title.includes('HtDD')) {
+    return markdownLines([
+      '```racket',
+      '(@htdf double)',
+      '(@signature Number -> Number)',
+      ';; produce n doubled',
+      '(check-expect (double 3) 6)',
+      '',
+      '; (define (double n) 0) ;stub',
+      '',
+      '(@template-origin Number)',
+      '',
+      '(define (double n)',
+      '  (* 2 n))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Abstract Function')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin use-abstract-fn)',
+      '',
+      '(define (positives lon)',
+      '  (filter positive? lon))',
+      '```',
+      '',
+      '函数组合例子：',
+      '',
+      '```racket',
+      '(@template-origin use-abstract-fn fn-composition)',
+      '',
+      '(define (sum-positive-doubles lon)',
+      '  (foldr + 0',
+      '         (map (lambda (n) (* 2 n))',
+      '              (filter positive? lon))))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Accumulator') || title.includes('Worklist')) {
+    return markdownLines([
+      '```racket',
+      '(define (sum lon0)',
+      '  (local [(define (sum--lon lon acc)',
+      '            ;; acc is the sum of numbers already seen',
+      '            (cond [(empty? lon) acc]',
+      '                  [else',
+      '                   (sum--lon (rest lon)',
+      '                              (+ (first lon) acc))]))]',
+      '    (sum--lon lon0 0)))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Mutual Reference')) {
+    return markdownLines([
+      '```racket',
+      '(define (count--node n)',
+      '  (+ 1 (count--lon (node-children n))))',
+      '',
+      '(define (count--lon lon)',
+      '  (cond [(empty? lon) 0]',
+      '        [else',
+      '         (+ (count--node (first lon))',
+      '            (count--lon (rest lon)))]))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Two One-of')) {
+    return '如果两个输入都是 one-of，先画表：行是第一个输入的 cases，列是第二个输入的 cases。比如 traffic-light + traffic-light，可以先填 3x3 表，再把结果相同的格子合并成 cond 分支。';
+  }
+
+  if (title.includes('Encapsulated')) {
+    return markdownLines([
+      '```racket',
+      '(@template-origin Node ListOfNode encapsulated)',
+      '',
+      '(define (count-nodes n0)',
+      '  (local [(define (count-nodes--node n)',
+      '            (+ 1 (count-nodes--lon (node-children n))))',
+      '',
+      '          (define (count-nodes--lon lon)',
+      '            (cond [(empty? lon) 0]',
+      '                  [else',
+      '                   (+ (count-nodes--node (first lon))',
+      '                      (count-nodes--lon (rest lon)))]))]',
+      '    (count-nodes--node n0)))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('Backtracking Search')) {
+    return markdownLines([
+      '迷宫或 TA assignment 这类题里，`solve` 尝试一个 state；`solve-list` 逐个尝试候选 state。',
+      '',
+      '```racket',
+      '(local [(define try (solve (first los)))]',
+      '  (if (not (false? try))',
+      '      try',
+      '      (solve-list (rest los))))',
+      '```',
+      '',
+      '这就是 backtracking：一个分支失败，才继续试剩余分支。',
+    ]);
+  }
+
+  if (title.includes('Generative Recursion')) {
+    return markdownLines([
+      '```racket',
+      '(@htdf escher-square)',
+      '',
+      '(@template-origin genrec)',
+      ';; Termination argument',
+      ';; Base Case: l <= CUTOFF',
+      ';; reduction step: l / 2',
+      ';; argument: since CUTOFF > 0, repeatedly dividing by 2 will',
+      ';;           eventually be <= CUTOFF',
+      '',
+      '(define (escher-square l)',
+      '  (local [(define (draw-piece l)',
+      '            (above (beside (one-quarter l)',
+      '                           (rotate 90 (one-quarter l)))',
+      '                   (beside (rotate 90 (one-quarter l))',
+      '                           (one-quarter l))))]',
+      '    (cond [(<= l CUTOFF) (draw-piece l)]',
+      '          [else',
+      '           (overlay (escher-square (/ l 2))',
+      '                    (draw-piece l))])))',
+      '```',
+    ]);
+  }
+
+  if (title.includes('BST')) {
+    return '查找 key=7 时，如果当前节点 key=10，只需要去 left subtree；不用同时搜索左右两边，因为 BST invariant 已经排除了右边。';
+  }
+
+  if (title.includes('Reference / Self-reference')) {
+    return markdownLines([
+      '来自第 03 本原文的 `Gift` / `Package` 和 `ListOfGift` 例子：',
+      '',
+      '```racket',
+      '(define-struct gift (name price))',
+      ';; Gift is (make-gift String Number)',
+      '',
+      '(define-struct package (label content))',
+      ';; Package is (make-package String Gift)',
+      '',
+      '(define (fn-for-package p)',
+      '  (... (package-label p)',
+      '       (fn-for-gift (package-content p))))',
+      '',
+      ';; ListOfGift is one of:',
+      ';; - empty',
+      ';; - (cons Gift ListOfGift)',
+      '',
+      '(define (fn-for-log log)',
+      '  (cond [(empty? log) (...)]',
+      '        [else',
+      '         (... (fn-for-gift (first log))',
+      '              (fn-for-log (rest log)))]))',
+      '```',
+      '',
+      '`Package.content` 是 `Gift`，所以是 reference/helper call；`ListOfGift.rest` 还是 `ListOfGift`，所以是 self-reference/recursive call。',
+    ]);
+  }
+
+  if (title.includes('Racket')) {
+    return '例：`(+ (* 2 3) 4)` 先算 `(* 2 3)` 得到 `6`，再算 `(+ 6 4)` 得到 `10`。';
+  }
+
+  if (category === '证明模板') {
+    return '证明“两个偶数之和是偶数”：设 `a=2m`，`b=2n`，则 `a+b=2(m+n)`，所以仍然是偶数。';
+  }
+
+  if (category === '计算模板') {
+    return '积分计算题先识别可用公式，再写 setup，例如 `∫2x dx = x^2 + C`，最后检查求导是否回到 `2x`。';
+  }
+
+  if (category === 'Essay 模板') {
+    return '题目问某段文本如何表现 alienation：先给 thesis，再引用一个短句，分析 diction 或 image 如何支持 thesis。';
+  }
+
+  return '解释 recursion 时，可以先定义“函数调用自己处理更小问题”，再用 ListOf 的 empty/cons 例子说明。';
+}
+
+function templateSectionText(
+  sections: Array<{ heading: string; body: string }>,
+  labels: string[],
+): string {
+  return sectionBody(sections, labels).trim();
+}
+
+function buildTemplateView(
+  memory: PublicMemoryView,
+  index: number,
+  explicit?: { title: string; body: string },
+): CourseTemplateView {
+  const sourceText = explicit?.body || memory.text;
+  const sections = splitMarkdownSections(sourceText);
+  const core = sectionBody(sections, ['核心概念', '解题步骤', 'steps', 'procedure', '课程主线']);
+  const summarySource = core || sourceText;
+  const title = inferTemplateTitle(memory, explicit?.title);
+  const category = inferTemplateCategory(memory);
+  const templateText =
+    templateSectionText(sections, [
+      '可套用模板',
+      '模板骨架',
+      '模板',
+      'template',
+      'output contract',
+    ]) || defaultTemplateText(title, category);
+  const exampleText =
+    templateSectionText(sections, ['例子', '示例', 'example']) ||
+    defaultExampleText(title, category);
+
+  return {
+    id: `${memory.id}:template:${index}`,
+    title,
+    category,
+    sourceLabel: memory.sourceLabel,
+    sourceTitle: memory.title,
+    notebookName: memory.notebookName,
+    summary: summarySource.trim(),
+    templateText,
+    exampleText,
+    sourceMemoryId: memory.id,
+    updatedAt: memory.updatedAt,
+  };
+}
+
+function explicitTemplateBlocks(memory: PublicMemoryView): Array<{ title: string; body: string }> {
+  return splitMarkdownSections(memory.text)
+    .map((section) => {
+      const match = section.heading.match(/^(?:template|模板)\s*[:：-]?\s*(.+)?$/i);
+      if (!match) return null;
+      return {
+        title: match[1]?.trim() || cleanedMemoryTitle(memory.title),
+        body: section.body,
+      };
+    })
+    .filter((block): block is { title: string; body: string } => Boolean(block));
+}
+
+function inferredTemplateBlocks(memory: PublicMemoryView): Array<{ title: string; body: string }> {
+  const text = `${memory.title}\n${memory.text}`.toLowerCase();
+  if (/two one-of|2-one-of/.test(text) && /encapsulated|local/.test(text)) {
+    return [
+      {
+        title: 'Two One-of Cross-product 模板',
+        body: memory.text,
+      },
+      {
+        title: 'Encapsulated Local Helper 模板',
+        body: memory.text,
+      },
+    ];
+  }
+  if (hasBacktrackingSearchBodySignal(text) && hasGenerativeRecursionSignal(text)) {
+    return [
+      {
+        title: 'Backtracking Search 模板',
+        body: memory.text,
+      },
+      {
+        title: 'Generative Recursion 模板',
+        body: memory.text,
+      },
+    ];
+  }
+  return [];
+}
+
+function collectCourseTemplates(memories: PublicMemoryView[]): CourseTemplateView[] {
+  const templates = memories.flatMap((memory) => {
+    const explicitBlocks = explicitTemplateBlocks(memory);
+    if (explicitBlocks.length > 0) {
+      return explicitBlocks.map((block, index) => buildTemplateView(memory, index, block));
+    }
+    const inferredBlocks = inferredTemplateBlocks(memory);
+    if (inferredBlocks.length > 0) {
+      return inferredBlocks.map((block, index) => buildTemplateView(memory, index, block));
+    }
+    return [buildTemplateView(memory, 0)];
+  });
+
+  return templates.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+function isCpscGraphTemplateCourse(course: CourseRecord, notebooks: StageListItem[]): boolean {
+  const haystack = [
+    course.name,
+    course.courseCode,
+    course.description,
+    ...(course.tags || []),
+    ...notebooks.flatMap((notebook) => [
+      notebook.name,
+      notebook.description,
+      ...(notebook.tags || []),
+    ]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return /\bcpsc\s*10[789]\b|\bcpsc\s*110\b|\bcpsc107\b|\bcpsc110\b|htdf|htdd|@template-origin|racket/.test(
+    haystack,
+  );
+}
+
+function manualCpscGraphTemplates(
+  course: CourseRecord | null | undefined,
+  notebooks: StageListItem[],
+): CourseTemplateView[] {
+  if (!course || !isCpscGraphTemplateCourse(course, notebooks)) return [];
+
+  const base = {
+    category: 'Programming / Design 模板',
+    sourceLabel: '课程模板库',
+    sourceTitle: 'Graph traversal 手工总结模板',
+    sourceMemoryId: 'manual:cpsc-graph-templates',
+  };
+
+  return [
+    {
+      ...base,
+      id: 'manual:cpsc-graph-normal-recursion',
+      title: 'Graph Search / No Tail Recursion 模板',
+      summary:
+        '普通递归 graph search：local 封装 node/list/edge helpers，用 genrec 表示 generate-node/get-room，path/visited 防 cycle，try-catch 处理一个分支失败后试下一个。',
+      templateText: markdownLines([
+        '什么时候这样写：题目要求 graph search，但没有要求 tail recursion；需要沿边递归找 path / answer，失败返回 false。',
+        '',
+        '```racket',
+        '(@template-origin encapsulated Node (listof Edge) Edge genrec accumulator try-catch)',
+        '',
+        ';; Termination argument',
+        ';; trivial: reach goal, no more edges, or encounter visited/path cycle',
+        ';; reduction: recursive call follows one edge to a generated next node',
+        ';; argument: graph is finite, and visited/path prevents revisiting forever',
+        '',
+        '(define (find-in-graph start target graph)',
+        '  (local [(define (fn-for-node n path)',
+        '            (cond [(member? (node-key n) path) false]',
+        '                  [(goal? n target) (produce-solution n path)]',
+        '                  [else',
+        '                   (fn-for-loe (node-edges n) path)]))',
+        '',
+        '          (define (fn-for-loe loe path)',
+        '            (cond [(empty? loe) false]',
+        '                  [else',
+        '                   (local [(define try (fn-for-edge (first loe) path))]',
+        '                     (if (not (false? try))',
+        '                         try',
+        '                         (fn-for-loe (rest loe) path)))]))',
+        '',
+        '          (define (fn-for-edge e path)',
+        '            (fn-for-node (generate-node graph (edge-to e))',
+        '                         (cons (edge-id e) path)))]',
+        '    (fn-for-node (generate-node graph start) empty)))',
+        '```',
+        '',
+        '删减规则：如果不需要 path/visited accumulator，就删 `accumulator`；如果不是 first-success/failure search，就删 `try-catch`。',
+      ]),
+      exampleText: markdownLines([
+        '例子来源像 `find-increasing-path-sr`：Room / (listof Stairs) / Stairs 三个模板被 local 封装；`get-room` 是 generative step；`path` 防 cycle；`fn-for-los` 用 local `try` 做 backtracking。',
+        '',
+        '```racket',
+        '(@template-origin encapsulated Room (listof Stairs) Stairs genrec accumulator try-catch)',
+        '',
+        '(define (find-path from to)',
+        '  (local [(define (fn-for-room rm path)',
+        '            (if (string=? (room-name rm) to)',
+        '                (map stairs-label (reverse path))',
+        '                (fn-for-los (room-los rm) path)))',
+        '',
+        '          (define (fn-for-los los path)',
+        '            (cond [(empty? los) false]',
+        '                  [else',
+        '                   (local [(define try (fn-for-stairs (first los) path))]',
+        '                     (if (not (false? try))',
+        '                         try',
+        '                         (fn-for-los (rest los) path)))]))',
+        '',
+        '          (define (fn-for-stairs s path)',
+        '            (if (member? s path)',
+        '                false',
+        '                (fn-for-room (get-room (stairs-to-room-name s))',
+        '                             (cons s path))))]',
+        '    (fn-for-room (get-room from) empty)))',
+        '```',
+      ]),
+    },
+    {
+      ...base,
+      id: 'manual:cpsc-graph-tail-recursion',
+      title: 'Graph Worklist / Tail Recursion 模板',
+      summary:
+        'Tail-recursive graph traversal：用 primary worklist 表示待处理节点，用 visited 防重复，用 rsf/path-wl 等 accumulator 保存结果或 tandem 信息。',
+      templateText: markdownLines([
+        '什么时候这样写：题目明确要求 tail recursion，或需要 worklist 遍历 graph/tree-like generated nodes。',
+        '',
+        '```racket',
+        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator)',
+        '',
+        ';; Termination argument',
+        ';; trivial: worklist is empty',
+        ';; reduction: each step removes one work item from the worklist',
+        ';; argument: graph is finite, and visited prevents adding the same node forever',
+        '',
+        '(define (traverse-graph start graph)',
+        '  ;; node-wl is (listof NodeName); primary worklist',
+        '  ;; visited is (listof NodeName); already processed nodes',
+        '  ;; rsf is Result; result so far',
+        '  (local [(define (fn-for-node n node-wl visited rsf)',
+        '            (local [(define key (node-key n))',
+        '                    (define nexts (node-nexts n))]',
+        '              (cond [(member? key visited)',
+        '                     (fn-for-wl node-wl visited rsf)]',
+        '                    [else',
+        '                     (fn-for-wl (append nexts node-wl)',
+        '                                (cons key visited)',
+        '                                (update-rsf n rsf))])))',
+        '',
+        '          (define (fn-for-wl node-wl visited rsf)',
+        '            (cond [(empty? node-wl) rsf]',
+        '                  [else',
+        '                   (fn-for-node (generate-node graph (first node-wl))',
+        '                                (rest node-wl)',
+        '                                visited',
+        '                                rsf)]))]',
+        '    (fn-for-wl (list start) empty initial-rsf)))',
+        '```',
+        '',
+        '如果还要记录 path，就加 tandem worklist：`path-wl` 必须和 primary worklist 同长度、同顺序更新。',
+      ]),
+      exampleText: markdownLines([
+        '带 tandem worklists 的常见写法：',
+        '',
+        '```racket',
+        '(@template-origin genrec Node (listof Node) Info (listof Info) accumulator)',
+        '',
+        ';; nn-wl is (listof String); primary worklist',
+        ';; path-wl is (listof (listof String)); tandem worklist',
+        ';; INVARIANT: nn-wl and path-wl always have the same length',
+        '',
+        '(define (fn-for-node n path nn-wl path-wl visited rsf)',
+        '  (local [(define name (node-name n))',
+        '          (define nexts (node-nexts n))',
+        '          (define npath (cons name path))]',
+        '    (if (member? name visited)',
+        '        (fn-for-wl nn-wl path-wl visited rsf)',
+        '        (fn-for-wl (append nexts nn-wl)',
+        '                   (append (make-list (length nexts) npath) path-wl)',
+        '                   (cons name visited)',
+        '                   (update-rsf n rsf)))))',
+        '```',
+      ]),
+    },
+    {
+      ...base,
+      id: 'manual:cpsc-graph-map',
+      title: 'Graph + map / Generated Neighbors 模板',
+      summary:
+        'Graph traversal 中用 map 批量生成邻居、边结构或 tandem worklist 元素时，主模板除了 genrec/accumulator，还要标记 use-abstract-fn。',
+      templateText: markdownLines([
+        '什么时候这样写：graph step 里用 `map` 生成 next nodes / next states / path copies，而这个 `map` 是主算法的一部分。',
+        '',
+        '```racket',
+        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator use-abstract-fn)',
+        '',
+        '(define (traverse-graph start graph)',
+        '  ;; node-wl is (listof Node)',
+        '  ;; path-wl is (listof Path), tandem with node-wl',
+        '  (local [(define (expand n path node-wl path-wl visited rsf)',
+        '            (local [(define next-names (node-nexts n))',
+        '                    (define next-nodes',
+        '                      (map (lambda (name) (generate-node graph name))',
+        '                           next-names))',
+        '                    (define next-paths',
+        '                      (map (lambda (name) (cons name path))',
+        '                           next-names))]',
+        '              (fn-for-wl (append next-nodes node-wl)',
+        '                         (append next-paths path-wl)',
+        '                         visited',
+        '                         rsf)))',
+        '',
+        '          (define (fn-for-wl node-wl path-wl visited rsf)',
+        '            (cond [(empty? node-wl) rsf]',
+        '                  [else',
+        '                   (expand (first node-wl)',
+        '                           (first path-wl)',
+        '                           (rest node-wl)',
+        '                           (rest path-wl)',
+        '                           visited',
+        '                           rsf)]))]',
+        '    (fn-for-wl (list (generate-node graph start))',
+        '               (list empty)',
+        '               empty',
+        '               initial-rsf)))',
+        '```',
+        '',
+        '如果 `map` 只藏在老师给的 primitive/helper 里，比如 `get-room` 内部把 raw edge data 变成 Stairs，通常不把 `use-abstract-fn` 写进你主函数的 `@template-origin`。',
+      ]),
+      exampleText: markdownLines([
+        '典型 `map` 位置有两个：',
+        '',
+        '```racket',
+        ';; 1. primitive/generator 内部：通常不算主函数 template-origin',
+        '(make-room (first entry)',
+        '           (map (lambda (args)',
+        '                  (make-stairs ...))',
+        '                (second entry)))',
+        '',
+        ';; 2. 主 traversal 内部生成 worklist：要加 use-abstract-fn',
+        '(define next-nodes',
+        '  (map (lambda (name) (generate-node graph name)) next-names))',
+        '```',
+      ]),
+    },
+  ];
 }
 
 function sourceReferencesFromApi(record: StudyMemoryApiRecord): NotebookMemorySourceReference[] {
@@ -569,13 +1493,8 @@ function buildCoursePublicMarkdown(args: {
     }
   }
 
-  if (args.notebookMemories.length > 0) {
-    lines.push('## 笔记本记忆索引', '');
-    for (const memory of args.notebookMemories) {
-      const notebookName = memory.notebookName ? `${memory.notebookName}：` : '';
-      const summary = compactText(memory.text, 220);
-      lines.push(`- **${notebookName}${memory.title}**：${summary || '已写入公共知识点。'}`);
-    }
+  if (args.courseMemories.length === 0 && args.notebookMemories.length > 0) {
+    lines.push('## 暂无课程级公共记忆', '', '- 下方会以卡片形式显示各笔记本贡献的公共记忆入口。');
   }
 
   if (args.courseMemories.length === 0 && args.notebookMemories.length === 0) {
@@ -843,6 +1762,163 @@ function PublicMemoryList({
         </article>
       ))}
     </div>
+  );
+}
+
+function NotebookMemoryAgentDirectory({ memories }: { memories: PublicMemoryView[] }) {
+  if (memories.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="border-t border-slate-200/80 pt-4 dark:border-white/10">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-blue-200/80 bg-blue-50 text-blue-600 shadow-sm dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-200">
+          <BookOpen className="size-4" strokeWidth={1.7} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-slate-950 dark:text-white">笔记本记忆入口</h2>
+          <p className="mt-0.5 line-clamp-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+            每张卡片代表一个 notebook agent 贡献的课程公共记忆。
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+        {memories.slice(0, 12).map((memory) => {
+          const title = memory.notebookName || memory.title || 'Notebook';
+          const initial = title.trim().slice(0, 1).toUpperCase() || 'N';
+          return (
+            <article
+              key={memory.id}
+              className="rounded-2xl border border-slate-200/85 bg-white/82 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.045]"
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-sm font-bold text-slate-600 dark:bg-white/10 dark:text-slate-200">
+                  {initial}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className="max-w-full truncate rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-300/14 dark:text-emerald-100">
+                      {memory.notebookName || '笔记本'}
+                    </span>
+                    {formatTime(memory.updatedAt) ? (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                        {formatTime(memory.updatedAt)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-slate-950 dark:text-white">
+                    {memory.title}
+                  </h3>
+                  <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                    {compactText(memory.text, 180)}
+                  </p>
+                </div>
+              </div>
+              {memory.notebookId ? (
+                <Link
+                  href={`/classroom/${encodeURIComponent(memory.notebookId)}/memory`}
+                  className="mt-3 inline-flex h-8 items-center justify-center rounded-xl border border-slate-200/85 bg-slate-50 px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-200"
+                >
+                  进入记忆页
+                </Link>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TemplateMarkdownBlock({ markdown, title }: { markdown: string; title: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white/88 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.045]">
+      <p className="text-[11px] font-bold uppercase tracking-normal text-blue-700 dark:text-blue-100">
+        {title}
+      </p>
+      <Streamdown
+        mode="static"
+        plugins={{ code, math: markdownMath }}
+        className={cn(
+          'mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200',
+          '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+          '[&_p]:my-2 [&_ol]:my-2 [&_ol]:grid [&_ol]:gap-1.5 [&_ol]:pl-5',
+          '[&_ul]:my-2 [&_ul]:grid [&_ul]:gap-1.5 [&_ul]:pl-5 [&_li]:pl-1',
+          '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-slate-200 [&_pre]:bg-white [&_pre]:p-3 [&_pre]:text-xs dark:[&_pre]:border-white/10 dark:[&_pre]:bg-black/22',
+          '[&_code]:font-mono [&_code]:text-[0.92em]',
+          '[&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-slate-100 [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 dark:[&_:not(pre)>code]:bg-white/10',
+        )}
+      >
+        {markdown}
+      </Streamdown>
+    </div>
+  );
+}
+
+function TemplateRegistryPanel({ templates }: { templates: CourseTemplateView[] }) {
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>();
+
+  return (
+    <MemoryListDetailLayout<CourseTemplateView>
+      emptyMessage="暂无可识别的课程模板。"
+      eyebrow="模板记忆"
+      items={templates}
+      maxItems={18}
+      onSelectItem={(templateId) => setSelectedTemplateId(templateId)}
+      selectedItemId={selectedTemplateId}
+      title="解题模板库"
+      renderItemMeta={(template) => (
+        <>
+          <span className="max-w-full truncate rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-300/14 dark:text-emerald-100">
+            {template.category}
+          </span>
+          <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+            {template.sourceTitle}
+          </span>
+          {formatTime(template.updatedAt) ? (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+              {formatTime(template.updatedAt)}
+            </span>
+          ) : null}
+        </>
+      )}
+      renderDetail={(selectedTemplate) =>
+        selectedTemplate ? (
+          <Panel
+            icon={ClipboardCheck}
+            subtitle={[selectedTemplate.sourceLabel, selectedTemplate.notebookName]
+              .filter(Boolean)
+              .join(' · ')}
+            title={selectedTemplate.title}
+          >
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-slate-200/80 bg-white/82 p-3 dark:border-white/10 dark:bg-white/[0.045]">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-300/14 dark:text-emerald-100">
+                    {selectedTemplate.category}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                    {selectedTemplate.sourceTitle}
+                  </span>
+                  {formatTime(selectedTemplate.updatedAt) ? (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                      {formatTime(selectedTemplate.updatedAt)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  {selectedTemplate.summary}
+                </div>
+              </div>
+              <TemplateMarkdownBlock markdown={selectedTemplate.templateText} title="模板" />
+              <TemplateMarkdownBlock markdown={selectedTemplate.exampleText} title="例子" />
+            </div>
+          </Panel>
+        ) : null
+      }
+    />
   );
 }
 
@@ -1507,6 +2583,13 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
       ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)),
     [dbNotebookPublicMemories, notebookProfiles],
   );
+  const courseTemplates = useMemo(
+    () => [
+      ...manualCpscGraphTemplates(course, notebooks),
+      ...collectCourseTemplates([...coursePublicMemories, ...notebookPublicMemories]),
+    ],
+    [course, coursePublicMemories, notebookPublicMemories, notebooks],
+  );
   const privateMemories = useMemo(() => {
     const dbPrivate = dbMemories
       .filter((memory) => memory.scope === 'private' && isActive(memory))
@@ -1625,12 +2708,12 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
       },
       {
         id: 'direct',
-        title: '直接记忆',
-        subtitle: '课程公共记忆',
-        items: coursePublicMemories.slice(0, 3).map((memory) => ({
-          id: memory.id,
-          title: memory.title,
-          text: compactText(memory.text, 120),
+        title: '解题模板',
+        subtitle: '公共记忆抽取',
+        items: courseTemplates.slice(0, 3).map((template) => ({
+          id: template.id,
+          title: template.title,
+          text: compactText(template.summary, 120),
         })),
       },
       {
@@ -1654,7 +2737,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
         })),
       },
     ],
-    [courseFacts, coursePublicMemories, notebookPublicMemories, privateMemories],
+    [courseFacts, courseTemplates, notebookPublicMemories, privateMemories],
   );
   const fixedSearchSuggestions = useMemo(() => {
     const firstNotebook = notebookIndex[0]?.notebook.name;
@@ -1671,6 +2754,9 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
       '这周学生的学习情况怎么样',
       '整学期学生问过什么问题',
       '最近学生主要卡在哪些知识点',
+      '这门课有哪些解题模板',
+      '证明题应该套哪个模板',
+      '计算题应该按什么步骤写',
       '本月错题集中在哪些标签',
       '做错的题',
       '做错的积分题目',
@@ -1751,6 +2837,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
   );
   const metrics = [
     { label: '结构事实', value: courseFacts.length, hint: 'current' },
+    { label: '解题模板', value: courseTemplates.length, hint: 'templates' },
     { label: '课程公共', value: coursePublicMemories.length, hint: 'course' },
     { label: '笔记本索引', value: notebookIndex.length, hint: 'notebooks' },
     { label: '知识来源', value: knowledgeSources.length, hint: 'sources' },
@@ -1818,6 +2905,13 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
             公共记忆
           </TabButton>
           <TabButton
+            active={activeTab === 'templates'}
+            icon={Workflow}
+            onClick={() => setActiveTab('templates')}
+          >
+            模板库
+          </TabButton>
+          <TabButton
             active={activeTab === 'private'}
             icon={Lock}
             onClick={() => setActiveTab('private')}
@@ -1838,6 +2932,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
             <div className="grid content-start gap-4">
               <CourseFactsPanel facts={courseFacts} />
               <RecallPreviewPanel sections={recallPreviewSections} />
+              <TemplateRegistryPanel templates={courseTemplates} />
               <Panel icon={Share2} subtitle="课程层公共知识与老师约束。" title="课程公共记忆">
                 <PublicMemoryList memories={coursePublicMemories} />
               </Panel>
@@ -1850,20 +2945,20 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
           </div>
         ) : null}
 
+        {activeTab === 'templates' ? <TemplateRegistryPanel templates={courseTemplates} /> : null}
+
         {activeTab === 'public' ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.16fr)_minmax(24rem,0.84fr)]">
-            <Panel icon={FileText} subtitle="课程公共知识地图和笔记本索引。" title="公共 Markdown">
-              <MarkdownDocument markdown={publicMarkdown} />
+          <div className="grid gap-4">
+            <Panel icon={FileText} subtitle="课程层公共记忆与笔记本入口。" title="课程公共描述">
+              <div className="space-y-4">
+                <MarkdownDocument markdown={publicMarkdown} />
+                <NotebookMemoryAgentDirectory memories={notebookPublicMemories} />
+              </div>
             </Panel>
-            <div className="grid content-start gap-4">
-              <Panel icon={Share2} subtitle="课程级稳定公共记忆。" title="课程公共记忆">
-                <PublicMemoryList memories={coursePublicMemories} />
-              </Panel>
-              <Panel icon={BookOpen} subtitle="各笔记本贡献的公共记忆。" title="笔记本公共记忆">
-                <PublicMemoryList memories={notebookPublicMemories} />
-              </Panel>
-              <KnowledgeSourcesPanel sources={knowledgeSources} />
-            </div>
+            <Panel icon={Share2} subtitle="课程级稳定公共记忆。" title="课程公共记忆">
+              <PublicMemoryList memories={coursePublicMemories} />
+            </Panel>
+            <KnowledgeSourcesPanel sources={knowledgeSources} />
           </div>
         ) : null}
 

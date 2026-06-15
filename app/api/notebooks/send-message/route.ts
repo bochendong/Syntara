@@ -19,6 +19,7 @@ import type { CoursePurpose } from '@/lib/utils/database';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
 import { buildNotebookChatMemoryToolOutput } from '@/lib/server/notebook-chat-memory-tool';
 import { buildNotebookStudyMemoryPromptContext } from '@/lib/server/study-memory-context';
+import { buildCoursePackPromptContext } from '@/lib/server/course-pack-context';
 import { recordLLMPromptSnapshot } from '@/lib/server/llm-prompt-log';
 import { buildReplyContextBundle } from '@/lib/chat/reply-context-loader';
 import {
@@ -351,7 +352,7 @@ function defaultProgrammingRepairModelString(): string {
 }
 
 function looksLikeProgrammingQuestion(message: string): boolean {
-  return /```|\bdef\s+[A-Za-z_]\w*\s*\(|\bclass\s+[A-Za-z_]\w*|function signature|docstring|starter:|python|代码|函数|完整代码|测试|test case|wrap around/i.test(
+  return /```|\bdef\s+[A-Za-z_]\w*\s*\(|\bclass\s+[A-Za-z_]\w*|#reader|\bRacket\b|\bHtDP\b|\bcheck-expect\b|\(@htdf|\(@signature|\(@template-origin|\(define\b|function signature|docstring|starter:|python|代码|函数|完整代码|测试|test case|wrap around/i.test(
     message,
   );
 }
@@ -627,6 +628,25 @@ function buildGeneralTeachingRules(language: 'zh-CN' | 'en-US'): string {
   ].join('\n');
 }
 
+function buildMemoryOrchestrationRules(language: 'zh-CN' | 'en-US'): string {
+  if (language === 'en-US') {
+    return [
+      '- Answer as the course controller, even when the chat is opened from a notebook.',
+      '- Use course_controller_memory first to choose the task type, course-wide rule, allowed template, and forbidden moves.',
+      '- Use current_notebook_specialist_memory for this lesson’s local template, examples, chapter limits, and common mistakes.',
+      '- Use cross_notebook_specialist_memory only when the question genuinely needs another notebook; do not let it override the current lesson without saying why.',
+      '- Keep private_learner_memory separate from public course facts.',
+    ].join('\n');
+  }
+  return [
+    '- 即使聊天入口来自某个笔记本，也要以课程总控身份回答。',
+    '- 先用 course_controller_memory 判断题型、课程级规则、允许的模板和禁止事项。',
+    '- 再用 current_notebook_specialist_memory 补当前章节的局部模板、例子、阶段限制和常见错误。',
+    '- 只有问题确实跨章节时，才使用 cross_notebook_specialist_memory；不要让它无说明地覆盖当前章节。',
+    '- private_learner_memory 只能用于个性化或薄弱点，不能当作公共课程事实。',
+  ].join('\n');
+}
+
 function compactPromptText(input: string | null | undefined, maxChars: number): string {
   const text = String(input || '')
     .replace(/\r\n?/g, '\n')
@@ -749,6 +769,15 @@ export async function POST(req: NextRequest) {
         allowOpenAIModelOverride: true,
       });
       const language = body.course?.language || 'zh-CN';
+      const coursePackContext = buildCoursePackPromptContext({
+        course: body.course,
+        notebook: {
+          id: body.notebook.id,
+          name: body.notebook.name,
+        },
+      });
+      const coursePackSystemRule =
+        'If Course pack context is provided, treat it as exact course contract: obey its prior-knowledge boundary, allowed/not-yet-allowed tools, artifact specs, and derivation rules before generic model knowledge or weak RAG matches. When the current unit teaches a specific technique and the problem offers multiple valid approaches, prefer the current-unit technique unless it would require a not-yet-allowed tool.';
       const isProgrammingQuestion = looksLikeProgrammingQuestion(body.message);
       const promptMessage = isProgrammingQuestion
         ? compactProgrammingMessageForPrompt(body.message)
@@ -760,6 +789,7 @@ export async function POST(req: NextRequest) {
       const generalTeachingRules = isProgrammingQuestion
         ? 'N/A'
         : buildGeneralTeachingRules(language);
+      const memoryOrchestrationRules = buildMemoryOrchestrationRules(language);
 
       let webSearchContext = '';
       let webSearchUsed = false;
@@ -797,17 +827,25 @@ export async function POST(req: NextRequest) {
         ? `You are a programming tutor for the current course.
 Return ONLY strict JSON. No markdown fences outside JSON.
 Answer in ${language}.
+${coursePackSystemRule}
 
 Programming quality checklist:
 ${programmingRules}
+
+Memory orchestration:
+${memoryOrchestrationRules}
 
 Reply only. Keep references empty and never create notebook write operations.`
         : `You are a notebook copilot and teacher.
 Return ONLY strict JSON. No markdown fences outside JSON.
 Answer in ${language}.
+${coursePackSystemRule}
 
 Teaching quality checklist:
 ${generalTeachingRules}
+
+Memory orchestration:
+${memoryOrchestrationRules}
 
 Use the provided memory/notebook context when it directly supports the answer.
 If evidence is weak, say what was checked.
@@ -878,6 +916,9 @@ Course context:
 - scope: current course
 - language: ${language}
 
+Course pack context:
+${coursePackContext.prompt}
+
 Memory/context evidence:
 ${optionalPrerequisiteContext}
 
@@ -905,6 +946,9 @@ Course:
 
 Purpose policy:
 ${purposePolicy}
+
+Course pack context:
+${coursePackContext.prompt}
 
 Relevant context capsules:
 ${replyContextBundle.prompt}
@@ -948,11 +992,25 @@ ${compactSchema}`;
         allowWrite,
         webSearchUsed,
         memorySearchIntent: compactMemoryIntentForLog(memorySearchIntent),
+        memoryOrchestration: {
+          responder: 'course_controller',
+          courseControllerCount: studyMemoryContext.courseControllerMemories.length,
+          currentNotebookSpecialistCount: studyMemoryContext.currentNotebookMemories.length,
+          semanticSpecialistCount: studyMemoryContext.specialistMemories.length,
+          crossNotebookSpecialistCount: studyMemoryContext.specialistMemories.filter(
+            (memory) =>
+              memory.targetType === 'notebook' &&
+              memory.notebookId !== studyMemoryContext.scope.notebookId,
+          ).length,
+          directCount: studyMemoryContext.directCount,
+          semanticCount: studyMemoryContext.semanticCount,
+        },
         replyContext: {
           plan: replyContextBundle.plan,
           audit: replyContextBundle.audit,
           capsuleIds: replyContextBundle.capsules.map((capsule) => capsule.id),
         },
+        coursePack: coursePackContext.metadata,
         referenceUnitCount: body.notebook.scenes.length,
         questionPreview: promptLogQuestionPreview(body.message, isProgrammingQuestion),
       };

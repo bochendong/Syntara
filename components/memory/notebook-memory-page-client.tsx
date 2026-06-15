@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { cn } from '@/lib/utils';
+import { MemoryListDetailLayout } from '@/components/memory/memory-list-detail-layout';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
   deleteNotebookPrivateMemory,
@@ -347,6 +348,57 @@ function compactText(input: string, maxLength: number): string {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
 
+function normalizeMarkdownPreview(input: string): string {
+  return String(input || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^#{1,6}\s+/.test(line) && !/^~~~/.test(line))
+    .map((line) => line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function markdownSectionText(input: string, heading: string): string {
+  const lines = String(input || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n');
+  const section: string[] = [];
+  let collecting = false;
+
+  for (const line of lines) {
+    const title = line.match(/^#{1,6}\s+(.+?)\s*#*$/)?.[1]?.trim();
+    if (title) {
+      if (collecting) break;
+      collecting = title === heading;
+      continue;
+    }
+    if (collecting) section.push(line);
+  }
+
+  return normalizeMarkdownPreview(section.join('\n'));
+}
+
+function memoryCardPreviewText(item: MemoryListItem): string {
+  const preferredSections = [
+    '核心概念',
+    '回答检查清单',
+    '可召回例子',
+    '选择模板',
+    '解题流程',
+    '操作流程',
+    'Two one-of 操作流程',
+    'HtDF 最小骨架',
+    'ListOf 模板例子',
+  ];
+  for (const heading of preferredSections) {
+    const text = markdownSectionText(item.text, heading);
+    if (text) return compactText(text, 260);
+  }
+  return compactText(normalizeMarkdownPreview(item.text) || '暂无正文。', 260);
+}
+
 function stableNumber(input: string): number {
   let hash = 2166136261;
   for (let index = 0; index < input.length; index += 1) {
@@ -461,6 +513,23 @@ function memoryKindLabel(memory: NotebookMemoryItem): string {
   return '知识缺口';
 }
 
+function apiMemoryKindLabel(kind: string | null | undefined): string {
+  if (kind === 'notebook_operational_guide') return '操作指南';
+  if (kind === 'course_concept_card') return '课程总控';
+  if (kind === 'notebook_concept_card') return '概念卡片';
+  if (kind === 'manual') return '手动';
+  return kind || '记忆';
+}
+
+function apiMemorySourceLabel(record: StudyMemoryApiRecord): string {
+  if (record.kind === 'notebook_operational_guide') return '笔记本共有记忆';
+  if (record.kind === 'course_concept_card') return '课程共有记忆';
+  if (record.source === 'notebook_generation') return '数据库生成记忆';
+  if (record.source === 'manual_queue_rewrite') return '数据库课程重写';
+  if (record.source === 'manual') return '数据库手动记忆';
+  return '数据库记忆';
+}
+
 function sharedMemoryFromStored(memory: NotebookMemoryItem): SharedMemoryView {
   return {
     id: `stored:${memory.id}`,
@@ -501,16 +570,9 @@ function sharedMemoryFromApi(record: StudyMemoryApiRecord): SharedMemoryView {
     id: `db:${record.id}`,
     title: record.title,
     text: record.text,
-    sourceLabel:
-      record.source === 'notebook_generation'
-        ? '数据库生成记忆'
-        : record.source === 'manual_queue_rewrite'
-          ? '数据库课程重写'
-          : record.source === 'manual'
-            ? '数据库手动记忆'
-            : '数据库记忆',
+    sourceLabel: apiMemorySourceLabel(record),
     sourceReferences: sourceReferencesFromApi(record),
-    kindLabel: record.kind || 'manual',
+    kindLabel: apiMemoryKindLabel(record.kind),
     derived: false,
     updatedAt: Date.parse(record.updatedAt),
   };
@@ -568,10 +630,16 @@ function EmptyState({ children }: { children: string }) {
   );
 }
 
-function SourceChips({ sources }: { sources: NotebookMemorySourceReference[] }) {
+function SourceChips({
+  className,
+  sources,
+}: {
+  className?: string;
+  sources: NotebookMemorySourceReference[];
+}) {
   if (sources.length === 0) return null;
   return (
-    <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
+    <div className={cn('mt-3 flex min-w-0 flex-wrap gap-1.5', className)}>
       {sources.slice(0, 4).map((source, index) => (
         <span
           key={`${source.order}:${source.title}:${index}`}
@@ -657,6 +725,12 @@ function uniqueMemoryListItems(items: MemoryListItem[]): MemoryListItem[] {
     seen.add(key);
     return true;
   });
+}
+
+function memoryListDetailHref(notebookId: string, item: MemoryListItem): string {
+  return `/classroom/${encodeURIComponent(notebookId)}/memory/detail?memoryId=${encodeURIComponent(
+    item.detailId,
+  )}`;
 }
 
 function buildSharedMemoryMarkdown(args: {
@@ -918,12 +992,134 @@ const memoryListToneStyles: Record<
   },
 };
 
+function MemoryListDetailPanel({
+  item,
+  notebookId,
+  onArchive,
+  onDelete,
+}: {
+  item: MemoryListItem | null;
+  notebookId: string;
+  onArchive: (memory: NotebookMemoryItem) => void;
+  onDelete: (memory: NotebookMemoryItem) => void;
+}) {
+  if (!item) {
+    return (
+      <section className="min-w-0 rounded-2xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+        <EmptyState>请选择左侧的一条记忆。</EmptyState>
+      </section>
+    );
+  }
+
+  const tone = memoryListToneStyles[item.kind];
+  const Icon = tone.icon;
+  const detailHref = memoryListDetailHref(notebookId, item);
+  const time = formatTime(item.updatedAt);
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/85 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.045]">
+      <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={cn(
+              'flex size-10 shrink-0 items-center justify-center rounded-2xl border',
+              tone.bg,
+              tone.text,
+              tone.border,
+            )}
+          >
+            <Icon className="size-4" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', tone.chip)}>
+                {tone.label}
+              </span>
+              <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                {item.kindLabel}
+              </span>
+              {item.sourceLabel ? (
+                <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                  {item.sourceLabel}
+                </span>
+              ) : null}
+              {time ? (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                  {time}
+                </span>
+              ) : null}
+            </div>
+            <h3 className="mt-2 text-lg font-semibold leading-6 text-slate-950 dark:text-white">
+              {item.title}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {item.privateMemory ? (
+            <>
+              <button
+                type="button"
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-xl border border-slate-200/85 bg-white px-2.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.1]"
+                onClick={() => onArchive(item.privateMemory as NotebookMemoryItem)}
+              >
+                <Archive className="size-3.5" strokeWidth={1.8} />
+                归档
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-xl border border-red-100 bg-white px-2.5 text-xs font-semibold text-red-500 shadow-sm transition-colors hover:border-red-200 hover:bg-red-50 dark:border-red-300/15 dark:bg-white/[0.06] dark:text-red-200 dark:hover:bg-red-500/10"
+                onClick={() => onDelete(item.privateMemory as NotebookMemoryItem)}
+              >
+                <Trash2 className="size-3.5" strokeWidth={1.8} />
+                撤销
+              </button>
+            </>
+          ) : null}
+          <Link
+            href={detailHref}
+            className="inline-flex h-8 items-center justify-center rounded-xl border border-slate-200/85 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.1]"
+          >
+            详情页
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-h-[68dvh] overflow-y-auto px-4 py-4">
+        <Streamdown
+          mode="static"
+          plugins={{ code, math: markdownMath }}
+          className={cn(
+            'text-sm leading-7 text-slate-700 dark:text-slate-200',
+            '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+            '[&_h1]:mb-4 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-slate-950 dark:[&_h1]:text-white',
+            '[&_h2]:mb-3 [&_h2]:mt-7 [&_h2]:border-b [&_h2]:border-slate-200 [&_h2]:pb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-slate-900 dark:[&_h2]:border-white/10 dark:[&_h2]:text-white',
+            '[&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-slate-100',
+            '[&_p]:my-3 [&_p]:text-slate-600 dark:[&_p]:text-slate-300',
+            '[&_blockquote]:my-4 [&_blockquote]:rounded-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-400 [&_blockquote]:bg-emerald-50/70 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-sm [&_blockquote]:text-emerald-900 dark:[&_blockquote]:bg-emerald-500/10 dark:[&_blockquote]:text-emerald-100',
+            '[&_ul]:my-3 [&_ul]:grid [&_ul]:gap-1.5 [&_ul]:pl-5 [&_li]:pl-1 [&_strong]:font-semibold [&_strong]:text-slate-950 dark:[&_strong]:text-white',
+            '[&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:rounded-xl [&_table]:border [&_table]:border-slate-200 [&_table]:text-left dark:[&_table]:border-white/10',
+            '[&_thead]:bg-slate-50 dark:[&_thead]:bg-white/8 [&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-semibold [&_th]:text-slate-700 dark:[&_th]:border-white/10 dark:[&_th]:text-slate-200',
+            '[&_td]:border-b [&_td]:border-slate-100 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-xs [&_td]:leading-5 dark:[&_td]:border-white/8',
+            '[&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] dark:[&_code]:bg-white/10',
+          )}
+        >
+          {normalizeMarkdownBody(item.text || '暂无正文。')}
+        </Streamdown>
+        <SourceChips sources={item.sourceReferences || []} />
+      </div>
+    </section>
+  );
+}
+
 function MemoryListPanel({
   emptyMessage,
   items,
   notebookId,
   onArchive,
   onDelete,
+  onSelectItem,
+  selectedItemId,
   title,
 }: {
   emptyMessage: string;
@@ -931,121 +1127,50 @@ function MemoryListPanel({
   notebookId: string;
   onArchive: (memory: NotebookMemoryItem) => void;
   onDelete: (memory: NotebookMemoryItem) => void;
+  onSelectItem: (itemId: string) => void;
+  selectedItemId: string | null;
   title: string;
 }) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 shadow-[0_18px_58px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.06]">
-      <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-normal text-blue-700 dark:text-blue-200">
-            列表记忆
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">{title}</h2>
-        </div>
-        <span className="shrink-0 rounded-full border border-slate-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
-          {items.length} 条
-        </span>
-      </div>
-
-      <div className="max-h-[68dvh] overflow-y-auto p-3">
-        {items.length > 0 ? (
-          <div className="grid gap-2.5">
-            {items.map((item) => {
-              const tone = memoryListToneStyles[item.kind];
-              const Icon = tone.icon;
-              const detailHref = `/classroom/${encodeURIComponent(
-                notebookId,
-              )}/memory/detail?memoryId=${encodeURIComponent(item.detailId)}`;
-              const time = formatTime(item.updatedAt);
-
-              return (
-                <article
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200/85 bg-white/82 p-3 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50/35 dark:border-white/10 dark:bg-white/[0.045] dark:hover:border-blue-300/20 dark:hover:bg-blue-500/10 md:p-4"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span
-                      className={cn(
-                        'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl border',
-                        tone.bg,
-                        tone.text,
-                        tone.border,
-                      )}
-                    >
-                      <Icon className="size-4" strokeWidth={1.8} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <span
-                          className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                            tone.chip,
-                          )}
-                        >
-                          {tone.label}
-                        </span>
-                        <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-                          {item.kindLabel}
-                        </span>
-                        {item.sourceLabel ? (
-                          <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-                            {item.sourceLabel}
-                          </span>
-                        ) : null}
-                        {time ? (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-                            {time}
-                          </span>
-                        ) : null}
-                      </div>
-                      <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-slate-950 dark:text-white">
-                        {item.title}
-                      </h3>
-                      <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-                        {compactText(item.text || '暂无正文。', 260)}
-                      </p>
-                      <SourceChips sources={item.sourceReferences || []} />
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      {item.privateMemory ? (
-                        <>
-                          <button
-                            type="button"
-                            className="flex size-8 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
-                            aria-label="归档记忆"
-                            title="归档"
-                            onClick={() => onArchive(item.privateMemory as NotebookMemoryItem)}
-                          >
-                            <Archive className="size-4" strokeWidth={1.8} />
-                          </button>
-                          <button
-                            type="button"
-                            className="flex size-8 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-200"
-                            aria-label="撤销这条私有记忆"
-                            title="撤销"
-                            onClick={() => onDelete(item.privateMemory as NotebookMemoryItem)}
-                          >
-                            <Trash2 className="size-4" strokeWidth={1.8} />
-                          </button>
-                        </>
-                      ) : null}
-                      <Link
-                        href={detailHref}
-                        className="inline-flex h-8 items-center justify-center rounded-xl border border-slate-200/85 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.1]"
-                      >
-                        详情
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState>{emptyMessage}</EmptyState>
-        )}
-      </div>
-    </section>
+    <MemoryListDetailLayout
+      emptyMessage={emptyMessage}
+      items={items}
+      onSelectItem={onSelectItem}
+      selectedItemId={selectedItemId}
+      title={title}
+      renderItemMeta={(item) => {
+        const tone = memoryListToneStyles[item.kind];
+        const time = formatTime(item.updatedAt);
+        return (
+          <>
+            <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', tone.chip)}>
+              {tone.label}
+            </span>
+            <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+              {item.kindLabel}
+            </span>
+            {item.sourceLabel ? (
+              <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                {item.sourceLabel}
+              </span>
+            ) : null}
+            {time ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                {time}
+              </span>
+            ) : null}
+          </>
+        );
+      }}
+      renderDetail={(selectedItem) => (
+        <MemoryListDetailPanel
+          item={selectedItem}
+          notebookId={notebookId}
+          onArchive={onArchive}
+          onDelete={onDelete}
+        />
+      )}
+    />
   );
 }
 
@@ -1056,6 +1181,7 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
   const [loaded, setLoaded] = useState<LoadedNotebook | null>(null);
   const [tab, setTab] = useState<MemoryTab>('all');
   const [memoryDisplayMode, setMemoryDisplayMode] = useState<MemoryDisplayMode>('map');
+  const [selectedMemoryListItemId, setSelectedMemoryListItemId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [revision, setRevision] = useState(0);
   const [dbMemories, setDbMemories] = useState<StudyMemoryApiRecord[]>([]);
@@ -1719,6 +1845,8 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
             notebookId={stage.id}
             onArchive={archiveMemory}
             onDelete={deleteMemory}
+            onSelectItem={setSelectedMemoryListItemId}
+            selectedItemId={selectedMemoryListItemId}
             title={memoryListTitle}
           />
         )}
