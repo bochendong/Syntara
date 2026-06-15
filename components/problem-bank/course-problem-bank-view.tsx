@@ -19,10 +19,12 @@ import {
   ImagePlus,
   Loader2,
   Maximize2,
+  Play,
   Save,
   Search,
   Sparkles,
   SlidersHorizontal,
+  Terminal,
   Trash2,
   Type,
   X,
@@ -33,6 +35,7 @@ import { cn } from '@/lib/utils';
 import {
   getLocalizedProblemContent,
   getLocalizedProblemTitle,
+  type NotebookProblemAttemptAnswer,
   type NotebookProblemPublicContent,
 } from '@/lib/problem-bank';
 import { Button } from '@/components/ui/button';
@@ -95,13 +98,15 @@ import {
 } from '@/components/problem-bank/course-problem-bank-helpers';
 import {
   useCourseProblemBankController,
+  type CourseCodeRunResult,
+  type CourseCodeRunTarget,
   type CourseProblemPracticeAttemptResolvedEvent,
 } from '@/components/problem-bank/use-course-problem-bank-controller';
 import { CourseProblemImportDialog } from '@/components/problem-bank/course-problem-import-dialog';
 import { ProblemAiHelpButton } from '@/components/problem-bank/problem-ai-help-drawer';
 
 type PracticePaneId = 'left' | 'right';
-type CodePracticeTab = 'testcase' | 'secret' | 'code';
+type CodePracticeTab = 'testcase' | 'secret' | 'code' | 'output';
 type PracticePanelTab = ProblemInfoTab | AnswerPanelTab | CodePracticeTab;
 type PracticePaneTabs = Record<PracticePaneId, PracticePanelTab[]>;
 type PracticePaneActive = Record<PracticePaneId, PracticePanelTab>;
@@ -124,7 +129,7 @@ const ANSWER_PANE_TABS = [
   'solution',
   'history',
 ] as const satisfies readonly AnswerPanelTab[];
-const CODE_PRACTICE_TABS: CodePracticeTab[] = ['testcase', 'secret', 'code'];
+const CODE_PRACTICE_TABS: CodePracticeTab[] = ['testcase', 'secret', 'code', 'output'];
 const PRACTICE_TAB_DRAG_TYPE = 'application/x-openmaic-practice-tab';
 const DEFAULT_PRACTICE_PANE_TABS: PracticePaneTabs = {
   left: ['description', FORMULA_PRACTICE_TAB, 'edit'],
@@ -208,12 +213,17 @@ function normalizePracticePaneTabs(
     CODE_PRACTICE_TABS.forEach((tab) => {
       if (!codeTabs.includes(tab)) removeTab(tab);
     });
-    const missingCodeTestTabs = codeTabs.filter((tab) => tab !== 'code' && !hasTab(tab));
+    const missingCodeTestTabs = codeTabs.filter(
+      (tab) => tab !== 'code' && tab !== 'output' && !hasTab(tab),
+    );
     missingCodeTestTabs.forEach((tab) => {
       ensureLeftTabAfter(tab, tab === 'secret' ? 'testcase' : 'description');
     });
-    if (codeTabs.includes('code') && !hasTab('code')) {
-      nextTabs.right = ['code', ...nextTabs.right];
+    const missingCodeActionTabs = codeTabs.filter(
+      (tab) => (tab === 'code' || tab === 'output') && !hasTab(tab),
+    );
+    if (missingCodeActionTabs.length > 0) {
+      nextTabs.right = [...missingCodeActionTabs, ...nextTabs.right];
     }
   } else {
     CODE_PRACTICE_TABS.forEach(removeTab);
@@ -227,8 +237,9 @@ function normalizePracticePaneTabs(
     nextTabs.right = nextTabs.right.filter((tab) => tab !== 'description');
   }
   if (nextTabs.right.length === 0) {
-    nextTabs.right = ['answer'];
-    nextTabs.left = nextTabs.left.filter((tab) => tab !== 'answer');
+    const fallbackRightTab = codeTabs.includes('code') ? 'code' : 'answer';
+    nextTabs.right = [fallbackRightTab];
+    nextTabs.left = nextTabs.left.filter((tab) => tab !== fallbackRightTab);
   }
   return nextTabs;
 }
@@ -414,7 +425,11 @@ function CodeProblemStatement({
 
       {samples.length > 0 ? (
         <section className="space-y-4">
-          <CodeProblemStatementHeading icon={Code2} label="Examples" tone="examples" />
+          <CodeProblemStatementHeading
+            icon={Code2}
+            label={locale === 'zh-CN' ? '示例' : 'Examples'}
+            tone="examples"
+          />
           <div className="space-y-4">
             {samples.map((sample, index) => (
               <div key={`${sample.input}-${index}`} className="space-y-2.5">
@@ -423,23 +438,25 @@ function CodeProblemStatement({
                     {index + 1}
                   </span>
                   <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                    Example {index + 1}:
+                    {locale === 'zh-CN' ? `示例 ${index + 1}:` : `Example ${index + 1}:`}
                   </h3>
                 </div>
                 <pre className="overflow-x-auto rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-[13px] leading-7 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
                   <code>
-                    <span className="font-semibold text-blue-700 dark:text-blue-300">Input:</span>{' '}
+                    <span className="font-semibold text-blue-700 dark:text-blue-300">
+                      {locale === 'zh-CN' ? '输入:' : 'Input:'}
+                    </span>{' '}
                     <span>{sample.input}</span>
                     {'\n'}
                     <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                      Output:
+                      {locale === 'zh-CN' ? '输出:' : 'Output:'}
                     </span>{' '}
                     <span>{sample.output}</span>
                     {sample.explanation ? (
                       <>
                         {'\n'}
                         <span className="font-semibold text-amber-700 dark:text-amber-300">
-                          Explanation:
+                          {locale === 'zh-CN' ? '解释:' : 'Explanation:'}
                         </span>{' '}
                         <span>{sample.explanation}</span>
                       </>
@@ -454,7 +471,11 @@ function CodeProblemStatement({
 
       {constraints.length > 0 ? (
         <section className="space-y-4">
-          <CodeProblemStatementHeading icon={CheckSquare} label="Constraints:" tone="constraints" />
+          <CodeProblemStatementHeading
+            icon={CheckSquare}
+            label={locale === 'zh-CN' ? '约束:' : 'Constraints:'}
+            tone="constraints"
+          />
           <ul className="space-y-2 text-sm leading-7 text-slate-700 dark:text-slate-200">
             {constraints.map((constraint, index) => (
               <li key={`${constraint}-${index}`} className="flex items-start gap-3">
@@ -477,15 +498,9 @@ function CodeTestcasePanel({ file, locale }: { file?: CodeTestFile; locale: 'zh-
     : [];
 
   return (
-    <div className="h-full min-h-[320px] flex-1 overflow-hidden bg-white dark:bg-slate-950">
+    <div className="min-h-0 flex-1 overflow-hidden bg-white dark:bg-slate-950">
       {file ? (
         <div className="flex h-full min-h-0 flex-col">
-          <div className="flex h-10 shrink-0 items-center border-b border-slate-100 px-3 dark:border-slate-800">
-            <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-300">
-              {file.fileName}
-            </span>
-          </div>
-
           <div className="grid min-h-0 flex-1 grid-cols-[3.25rem_minmax(0,1fr)] overflow-auto bg-white font-mono text-[13px] leading-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
             <pre className="select-none border-r border-slate-200 bg-slate-50 px-3 py-4 text-right text-slate-400 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-500">
               {lineNumbers.join('\n')}
@@ -516,7 +531,7 @@ function CodeAnswerWorkspace({
   locale: 'zh-CN' | 'en-US';
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col overflow-hidden bg-white dark:bg-slate-950">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-950">
       <div className="min-h-0 flex-1 overflow-hidden">
         <CodeAnswerEditor
           value={value}
@@ -528,6 +543,233 @@ function CodeAnswerWorkspace({
             locale === 'zh-CN' ? '在这里编写代码并提交。' : 'Write code here and submit.'
           }
         />
+      </div>
+    </div>
+  );
+}
+
+function CodeRunOutputPanel({
+  result,
+  running,
+  locale,
+}: {
+  result?: CourseCodeRunResult;
+  running: boolean;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  const attempt = result?.attempt;
+  const outputResult = attempt?.result;
+  const runTarget = result?.target ?? outputResult?.runTarget ?? 'public';
+  const caseResults = outputResult?.caseResults ?? outputResult?.publicCases ?? [];
+  const testSummary =
+    runTarget === 'secret'
+      ? (outputResult?.secretSummary ?? null)
+      : (outputResult?.publicSummary ?? null);
+  const testSummaryLabel =
+    runTarget === 'secret'
+      ? locale === 'zh-CN'
+        ? '隐藏测试'
+        : 'Secret tests'
+      : locale === 'zh-CN'
+        ? '公开测试'
+        : 'Public tests';
+  const error = result?.error;
+  const status = attempt?.status ?? (error ? 'error' : null);
+  const allPassed = status === 'passed';
+  const statusLabel = running
+    ? locale === 'zh-CN'
+      ? '正在运行'
+      : 'Running'
+    : status === 'passed'
+      ? runTarget === 'code'
+        ? locale === 'zh-CN'
+          ? '运行完成'
+          : 'Finished'
+        : locale === 'zh-CN'
+          ? '测试通过'
+          : 'Passed'
+      : status
+        ? locale === 'zh-CN'
+          ? runTarget === 'code'
+            ? '运行出错'
+            : '测试未通过'
+          : 'Failed'
+        : locale === 'zh-CN'
+          ? '等待运行'
+          : 'Ready';
+  const scriptStdout = outputResult?.stdout ?? '';
+  const scriptError = outputResult?.error ?? '';
+  const hasScriptOutput = Boolean(scriptStdout || scriptError);
+  const feedback =
+    error ||
+    scriptError ||
+    (locale === 'zh-CN'
+      ? outputResult?.feedback
+          ?.replaceAll('Public tests', '公开测试')
+          .replaceAll('Secret tests', '隐藏测试')
+      : outputResult?.feedback) ||
+    (locale === 'zh-CN' ? '点击运行查看运行结果。' : 'Run code to see output.');
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto bg-white dark:bg-slate-950">
+      <div className="flex min-h-full flex-col">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+          <span
+            className={cn(
+              'inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-semibold ring-1',
+              running
+                ? 'bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20'
+                : allPassed
+                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20'
+                  : status
+                    ? 'bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20'
+                    : 'bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800',
+            )}
+          >
+            {running ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : allPassed ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : status ? (
+              <AlertCircle className="h-3.5 w-3.5" />
+            ) : (
+              <Terminal className="h-3.5 w-3.5" />
+            )}
+            {statusLabel}
+          </span>
+          {testSummary ? (
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {testSummaryLabel}: {testSummary.passed}/{testSummary.total}
+            </span>
+          ) : null}
+          {result?.ranAt ? (
+            <span className="ml-auto text-xs text-slate-400">
+              {new Date(result.ranAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="border-b border-slate-100 px-4 py-3 text-sm leading-6 text-slate-700 dark:border-slate-800 dark:text-slate-200">
+          {feedback}
+        </div>
+
+        {hasScriptOutput ? (
+          <div className="space-y-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+            {scriptStdout ? (
+              <div>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {locale === 'zh-CN' ? '标准输出' : 'stdout'}
+                </p>
+                <pre className="overflow-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs leading-5 text-slate-800 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100">
+                  {scriptStdout}
+                </pre>
+              </div>
+            ) : null}
+            {scriptError ? (
+              <div>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-rose-400">
+                  {locale === 'zh-CN' ? '错误' : 'error'}
+                </p>
+                <pre className="overflow-auto rounded-md border border-rose-100 bg-rose-50 px-3 py-2 font-mono text-xs leading-5 text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100">
+                  {scriptError}
+                </pre>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {caseResults.length > 0 ? (
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {caseResults.map((testCase, index) => {
+              const hasDetails = Boolean(testCase.stdout || testCase.error || testCase.actual);
+              return (
+                <section key={`${testCase.id}-${index}`} className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        'inline-flex size-5 items-center justify-center rounded-full',
+                        testCase.passed
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200'
+                          : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200',
+                      )}
+                    >
+                      {testCase.passed ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <X className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                    <h3 className="font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {testCase.description || testCase.id || `case_${index + 1}`}
+                    </h3>
+                  </div>
+
+                  {hasDetails ? (
+                    <div className="mt-3 space-y-2">
+                      {testCase.stdout ? (
+                        <div>
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            {locale === 'zh-CN' ? '标准输出' : 'stdout'}
+                          </p>
+                          <pre className="overflow-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs leading-5 text-slate-800 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100">
+                            {testCase.stdout}
+                          </pre>
+                        </div>
+                      ) : null}
+                      {testCase.error ? (
+                        <div>
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-rose-400">
+                            {locale === 'zh-CN' ? '错误' : 'error'}
+                          </p>
+                          <pre className="overflow-auto rounded-md border border-rose-100 bg-rose-50 px-3 py-2 font-mono text-xs leading-5 text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100">
+                            {testCase.error}
+                          </pre>
+                        </div>
+                      ) : null}
+                      {testCase.actual ? (
+                        <div>
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            {locale === 'zh-CN' ? '实际输出' : 'actual'}
+                          </p>
+                          <pre className="overflow-auto rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-xs leading-5 text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                            {testCase.actual}
+                          </pre>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-400">
+                      {locale === 'zh-CN' ? '没有额外输出。' : 'No additional output.'}
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex min-h-[220px] flex-1 items-center justify-center px-4 text-center text-sm text-slate-400">
+            {running ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {locale === 'zh-CN' ? '正在运行代码…' : 'Running code...'}
+              </>
+            ) : runTarget === 'code' && status === 'passed' ? (
+              <span>
+                {locale === 'zh-CN'
+                  ? '代码运行完成，没有标准输出。'
+                  : 'Code finished with no stdout.'}
+              </span>
+            ) : (
+              <span>
+                {locale === 'zh-CN' ? '点击运行查看运行结果。' : 'Run code to see output.'}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -566,6 +808,7 @@ export function CourseProblemBankView({
     canEditProblems,
     choiceAnswers,
     codeAnswers,
+    codeRunResults,
     courseHasTranslations,
     courseName,
     currentNotebookProblemPosition,
@@ -579,6 +822,7 @@ export function CourseProblemBankView({
     handleEditingDraftChange,
     handleProblemInfoTabChange,
     handleRemovePhotoAnswer,
+    handleRunCodeAnswer,
     handleSaveAssignment,
     handleSubmitInlineAnswer,
     handleUpdateProblem,
@@ -606,6 +850,8 @@ export function CourseProblemBankView({
     problemPageCount,
     problems,
     router,
+    runningCode,
+    runningCodeTarget,
     sameNotebookProblems,
     savingAssignment,
     searchQuery,
@@ -673,11 +919,28 @@ export function CourseProblemBankView({
     (selectedProblem.type !== 'choice' &&
       selectedProblem.type !== 'fill_blank' &&
       selectedProblem.type !== 'code');
+  const selectedProblemCurrentAnswer: NotebookProblemAttemptAnswer | null = selectedProblem
+    ? selectedProblem.type === 'choice'
+      ? { selectedOptionIds: choiceAnswers[selectedProblem.id] ?? [] }
+      : selectedProblem.type === 'fill_blank'
+        ? { blanks: blankAnswers[selectedProblem.id] ?? {} }
+        : selectedProblem.type === 'code'
+          ? {
+              code:
+                codeAnswers[selectedProblem.id] ??
+                (selectedProblemContent?.type === 'code'
+                  ? selectedProblemContent.starterCode
+                  : '') ??
+                '',
+            }
+          : { text: textAnswers[selectedProblem.id] ?? '' }
+    : null;
+  const selectedProblemLatestDetailedAttempt = selectedProblemAttempts[0] ?? null;
   const selectedProblemCodeTabs: CodePracticeTab[] =
     selectedProblem?.type === 'code' && selectedProblemContent?.type === 'code'
       ? canEditProblems && (selectedProblem.secretJudge?.secretTests?.length ?? 0) > 0
-        ? ['testcase', 'secret', 'code']
-        : ['testcase', 'code']
+        ? ['testcase', 'secret', 'code', 'output']
+        : ['testcase', 'code', 'output']
       : [];
   const visiblePracticePaneTabs = normalizePracticePaneTabs(
     practicePaneTabs,
@@ -731,6 +994,27 @@ export function CourseProblemBankView({
     }
     navigateToPracticeProblem(problem);
   };
+  const handleSubmitAndShowHistory = async () => {
+    const submitted = await handleSubmitInlineAnswer();
+    if (!submitted) return;
+    setPracticePaneActive((prev) => {
+      if (visiblePracticePaneTabs.right.includes('history')) {
+        return { ...prev, right: 'history' };
+      }
+      if (visiblePracticePaneTabs.left.includes('history')) {
+        return { ...prev, left: 'history' };
+      }
+      return prev;
+    });
+  };
+  const handleRunCodeAndShowOutput = async (pane: PracticePaneId, target: CourseCodeRunTarget) => {
+    const ran = await handleRunCodeAnswer(target);
+    if (!ran || !visiblePracticePanelTabs.has('output')) return;
+    setPracticePaneActive((prev) => ({
+      ...prev,
+      [pane]: 'output',
+    }));
+  };
   const practiceTabLabel = (tab: PracticePanelTab) => {
     switch (tab) {
       case 'description':
@@ -740,11 +1024,13 @@ export function CourseProblemBankView({
       case 'edit':
         return locale === 'zh-CN' ? '编辑题目' : 'Edit';
       case 'testcase':
-        return 'Testcase';
+        return locale === 'zh-CN' ? '测试用例' : 'Testcase';
       case 'secret':
-        return 'Secret Test';
+        return locale === 'zh-CN' ? '隐藏测试' : 'Secret Test';
       case 'code':
-        return 'Code';
+        return locale === 'zh-CN' ? '代码' : 'Code';
+      case 'output':
+        return locale === 'zh-CN' ? '运行结果' : 'Output';
       case 'answer':
         return locale === 'zh-CN' ? '作答' : 'Answer';
       case 'preview':
@@ -776,13 +1062,13 @@ export function CourseProblemBankView({
         return {
           label,
           Icon: BookOpen,
-          iconClassName: 'text-sky-500 dark:text-sky-300',
+          iconClassName: 'text-indigo-500 dark:text-indigo-300',
         };
       case 'edit':
         return {
           label,
           Icon: SlidersHorizontal,
-          iconClassName: 'text-sky-500 dark:text-sky-300',
+          iconClassName: 'text-violet-500 dark:text-violet-300',
         };
       case 'testcase':
         return {
@@ -800,7 +1086,7 @@ export function CourseProblemBankView({
         return {
           label,
           Icon: Code2,
-          iconClassName: 'text-emerald-300',
+          iconClassName: 'text-cyan-600 dark:text-cyan-300',
         };
       case 'answer':
         return {
@@ -812,19 +1098,25 @@ export function CourseProblemBankView({
         return {
           label,
           Icon: Maximize2,
-          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+          iconClassName: 'text-blue-500 dark:text-blue-300',
         };
       case 'solution':
         return {
           label,
           Icon: Sparkles,
-          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+          iconClassName: 'text-fuchsia-500 dark:text-fuchsia-300',
         };
       case 'history':
         return {
           label,
           Icon: ChevronUp,
-          iconClassName: 'text-emerald-500 dark:text-emerald-300',
+          iconClassName: 'text-slate-500 dark:text-slate-300',
+        };
+      case 'output':
+        return {
+          label,
+          Icon: Terminal,
+          iconClassName: 'text-slate-500 dark:text-slate-300',
         };
       default:
         return {
@@ -832,6 +1124,32 @@ export function CourseProblemBankView({
           Icon: Type,
           iconClassName: 'text-slate-400',
         };
+    }
+  };
+  const practiceTabUnderlineClassName = (tab: PracticePanelTab) => {
+    switch (tab) {
+      case 'description':
+        return 'after:bg-sky-500';
+      case 'formula':
+        return 'after:bg-indigo-500';
+      case 'edit':
+        return 'after:bg-violet-500';
+      case 'testcase':
+      case 'answer':
+        return 'after:bg-emerald-500';
+      case 'secret':
+        return 'after:bg-amber-500';
+      case 'code':
+        return 'after:bg-cyan-500';
+      case 'output':
+      case 'history':
+        return 'after:bg-slate-500';
+      case 'preview':
+        return 'after:bg-blue-500';
+      case 'solution':
+        return 'after:bg-fuchsia-500';
+      default:
+        return 'after:bg-slate-400';
     }
   };
   const handlePracticePaneTabSelect = (pane: PracticePaneId, tab: PracticePanelTab) => {
@@ -892,12 +1210,32 @@ export function CourseProblemBankView({
       active
         ? cn(
             'text-slate-950 dark:text-white after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full',
-            isProblemInfoPracticeTab(tab) ? 'after:bg-sky-500' : 'after:bg-emerald-500',
+            practiceTabUnderlineClassName(tab),
           )
         : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100',
     );
   const renderPracticePaneHeader = (pane: PracticePaneId) => {
     const activeTab = visiblePracticePaneActive[pane];
+    const activeCodeRunTarget: CourseCodeRunTarget | null =
+      activeTab === 'code'
+        ? 'code'
+        : activeTab === 'testcase'
+          ? 'public'
+          : activeTab === 'secret'
+            ? 'secret'
+            : null;
+    const activeCodeRunLabel =
+      activeCodeRunTarget === 'secret'
+        ? locale === 'zh-CN'
+          ? '运行隐藏测试'
+          : 'Run secret tests'
+        : activeCodeRunTarget === 'public'
+          ? locale === 'zh-CN'
+            ? '运行测试'
+            : 'Run tests'
+          : locale === 'zh-CN'
+            ? '运行'
+            : 'Run';
     return (
       <div
         className={practicePaneHeaderClassName(pane)}
@@ -932,22 +1270,44 @@ export function CourseProblemBankView({
             />
           </div>
         ) : null}
-        {activeTab === 'answer' || activeTab === 'code' ? (
-          <Button
-            onClick={handleSubmitInlineAnswer}
-            disabled={submittingAnswer}
-            className={cn(
-              'ml-auto h-8 shrink-0 rounded-md px-3 text-xs font-semibold',
-              PROBLEM_BANK_EMERALD_ACTION_BUTTON_CLASS,
-            )}
-          >
-            {submittingAnswer ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {locale === 'zh-CN' ? '提交答案' : 'Submit'}
-          </Button>
+        {activeTab === 'answer' || activeCodeRunTarget ? (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {activeCodeRunTarget ? (
+              <Button
+                type="button"
+                onClick={() => handleRunCodeAndShowOutput(pane, activeCodeRunTarget)}
+                disabled={runningCode || submittingAnswer}
+                className={cn(
+                  'h-8 shrink-0 rounded-md px-3 text-xs font-semibold',
+                  PROBLEM_BANK_EMERALD_OUTLINE_BUTTON_CLASS,
+                )}
+              >
+                {runningCode && runningCodeTarget === activeCodeRunTarget ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Play className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {activeCodeRunLabel}
+              </Button>
+            ) : null}
+            {activeTab === 'answer' || activeTab === 'code' ? (
+              <Button
+                onClick={handleSubmitAndShowHistory}
+                disabled={submittingAnswer || runningCode}
+                className={cn(
+                  'h-8 shrink-0 rounded-md px-3 text-xs font-semibold',
+                  PROBLEM_BANK_EMERALD_ACTION_BUTTON_CLASS,
+                )}
+              >
+                {submittingAnswer ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {locale === 'zh-CN' ? '提交答案' : 'Submit'}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     );
@@ -958,7 +1318,7 @@ export function CourseProblemBankView({
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 text-[15px] leading-8 text-slate-800 sm:px-5 sm:py-5 dark:text-slate-200">
         {tab === 'description' ? (
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
-            <div>
+            <div className="pb-8 sm:pb-10">
               <h1
                 className="mb-4 border-b border-slate-200 pb-3 text-base font-semibold leading-7 text-slate-950 dark:border-slate-800 dark:text-white"
                 title={selectedProblemTitle}
@@ -1071,7 +1431,7 @@ export function CourseProblemBankView({
                         }}
                       />
                       <div className="min-w-0">
-                        <span className="font-medium">{option.id}.</span>
+                        <span className="mr-1 font-medium">{option.id}.</span>
                         <ProblemRichText
                           content={option.label}
                           className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
@@ -1320,6 +1680,15 @@ export function CourseProblemBankView({
     ) {
       return null;
     }
+    if (tab === 'output') {
+      return (
+        <CodeRunOutputPanel
+          result={codeRunResults[selectedProblem.id]}
+          running={runningCode}
+          locale={locale}
+        />
+      );
+    }
     if (tab === 'code') {
       return (
         <CodeAnswerWorkspace
@@ -1330,7 +1699,7 @@ export function CourseProblemBankView({
               [selectedProblem.id]: value,
             }))
           }
-          disabled={submittingAnswer}
+          disabled={submittingAnswer || runningCode}
           locale={locale}
         />
       );
@@ -2172,6 +2541,8 @@ export function CourseProblemBankView({
                         notebook={selectedProblemNotebook}
                         notebookLabel={selectedProblemNotebookLabel}
                         locale={locale}
+                        currentAnswer={selectedProblemCurrentAnswer}
+                        latestAttempt={selectedProblemLatestDetailedAttempt}
                       />
                       {canEditProblems || selectedProblem.notebookId ? (
                         <DropdownMenu>
@@ -2229,6 +2600,8 @@ export function CourseProblemBankView({
                       notebook={selectedProblemNotebook}
                       notebookLabel={selectedProblemNotebookLabel}
                       locale={locale}
+                      currentAnswer={selectedProblemCurrentAnswer}
+                      latestAttempt={selectedProblemLatestDetailedAttempt}
                     />
                   )}
                 </div>

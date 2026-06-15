@@ -41,7 +41,7 @@ import {
   pickReusableGroup,
   updateGroupActivity,
 } from './course-chat-groups';
-import { buildCourseChatContext } from './course-chat-context';
+import { buildCourseChatContext } from '@/lib/chat/course-chat-context';
 import type {
   NotebookAttachmentInput,
   NotebookSubtaskResult,

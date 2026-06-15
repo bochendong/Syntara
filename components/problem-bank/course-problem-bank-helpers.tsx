@@ -77,7 +77,47 @@ function statusLabel(status: NotebookProblemClientRecord['status'], locale: 'zh-
   return locale === 'zh-CN' ? zh[status] : en[status];
 }
 
-function attemptStatusLabel(status: NotebookProblemAttemptStatus, locale: 'zh-CN' | 'en-US') {
+function attemptStatusLabel(
+  status: NotebookProblemAttemptStatus,
+  locale: 'zh-CN' | 'en-US',
+  kind?: NotebookProblemAttemptRecord['kind'],
+) {
+  if (kind === 'run') {
+    const zh = {
+      pending: '运行中',
+      passed: '测试通过',
+      failed: '测试未通过',
+      partial: '部分通过',
+      error: '运行失败',
+    } as const;
+    const en = {
+      pending: 'Running',
+      passed: 'Tests passed',
+      failed: 'Tests failed',
+      partial: 'Partial',
+      error: 'Run failed',
+    } as const;
+    return locale === 'zh-CN' ? zh[status] : en[status];
+  }
+
+  if (kind === 'submit') {
+    const zh = {
+      pending: '提交中',
+      passed: '提交通过',
+      failed: '提交未通过',
+      partial: '部分通过',
+      error: '提交失败',
+    } as const;
+    const en = {
+      pending: 'Submitting',
+      passed: 'Accepted',
+      failed: 'Wrong answer',
+      partial: 'Partial',
+      error: 'Submit failed',
+    } as const;
+    return locale === 'zh-CN' ? zh[status] : en[status];
+  }
+
   const zh = {
     pending: '待评估',
     passed: '正确',
@@ -1398,6 +1438,105 @@ function AttemptAnswerPreview({
   );
 }
 
+function CodeAttemptTestSummary({
+  attempt,
+  locale,
+}: {
+  attempt: NotebookProblemAttemptRecord;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  const publicSummary =
+    attempt.result?.publicSummary ??
+    (attempt.result?.publicCases?.length
+      ? {
+          total: attempt.result.publicCases.length,
+          passed: attempt.result.publicCases.filter((testCase) => testCase.passed).length,
+          failed: attempt.result.publicCases.filter((testCase) => !testCase.passed).length,
+          failureSummary: undefined,
+        }
+      : null);
+  const secretSummary = attempt.result?.secretSummary ?? null;
+  const summaries = [
+    publicSummary
+      ? {
+          key: 'public',
+          label: locale === 'zh-CN' ? '公开测试' : 'Public tests',
+          summary: publicSummary,
+        }
+      : null,
+    secretSummary
+      ? {
+          key: 'secret',
+          label: locale === 'zh-CN' ? '隐藏测试' : 'Secret tests',
+          summary: secretSummary,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    key: 'public' | 'secret';
+    label: string;
+    summary: {
+      total: number;
+      passed: number;
+      failed: number;
+      failureSummary?: string;
+    };
+  }>;
+
+  if (summaries.length === 0) return null;
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {summaries.map(({ key, label, summary }) => {
+        const allPassed = summary.total > 0 && summary.failed === 0;
+        return (
+          <div
+            key={key}
+            className={cn(
+              'rounded-md border px-3 py-2 text-xs leading-5',
+              allPassed
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100'
+                : 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100',
+            )}
+          >
+            <div className="flex items-center gap-2 font-semibold">
+              {allPassed ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <AlertCircle className="h-3.5 w-3.5" />
+              )}
+              {label}
+            </div>
+            <p className="mt-1 font-medium">
+              {locale === 'zh-CN'
+                ? `通过 ${summary.passed}/${summary.total}，未通过 ${summary.failed} 个`
+                : `${summary.passed}/${summary.total} passed, ${summary.failed} failed`}
+            </p>
+            {summary.failureSummary ? (
+              <p className="mt-1 opacity-80">
+                {locale === 'zh-CN'
+                  ? summary.failureSummary
+                      .replaceAll('Public tests', '公开测试')
+                      .replaceAll('Secret tests', '隐藏测试')
+                  : summary.failureSummary}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function shouldShowAttemptFeedback(attempt: NotebookProblemAttemptRecord): boolean {
+  if (!attempt.result?.feedback) return false;
+  const hasCodeTestSummary =
+    (attempt.kind === 'run' || attempt.kind === 'submit') &&
+    (attempt.result.publicSummary ||
+      attempt.result.secretSummary ||
+      (attempt.result.publicCases?.length ?? 0) > 0);
+  return !hasCodeTestSummary;
+}
+
 function AttemptHistoryPanel({
   attempts,
   loading,
@@ -1444,7 +1583,7 @@ function AttemptHistoryPanel({
                   answerFeedbackTone(attempt.status),
                 )}
               >
-                {attemptStatusLabel(attempt.status, locale)}
+                {attemptStatusLabel(attempt.status, locale, attempt.kind)}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 {formatAttemptTime(attempt.createdAt, locale)}
@@ -1460,12 +1599,13 @@ function AttemptHistoryPanel({
           </div>
           <div className="space-y-3 p-3">
             <AttemptAnswerPreview attempt={attempt} locale={locale} />
-            {attempt.result?.feedback ? (
+            <CodeAttemptTestSummary attempt={attempt} locale={locale} />
+            {shouldShowAttemptFeedback(attempt) ? (
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200">
                 <p className="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {locale === 'zh-CN' ? '反馈' : 'Feedback'}
                 </p>
-                <ProblemRichText content={attempt.result.feedback} />
+                <ProblemRichText content={attempt.result?.feedback ?? ''} />
               </div>
             ) : null}
           </div>
@@ -1525,7 +1665,7 @@ function ProblemDraftPreviewPanel({
             >
               <span className="mt-1 size-4 shrink-0 rounded-full border border-slate-300 dark:border-slate-600" />
               <div className="min-w-0">
-                <span className="font-medium">{option.id}.</span>
+                <span className="mr-1 font-medium">{option.id}.</span>
                 <ProblemRichText
                   content={option.label}
                   className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"

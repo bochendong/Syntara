@@ -414,6 +414,8 @@ export async function runNotebookCodeProblem(args: {
   notebookId: string;
   problemId: string;
   code: string;
+  target?: 'code' | 'public' | 'secret';
+  language?: 'zh-CN' | 'en-US';
 }) {
   return backendJson<{
     attempt: NotebookProblemAttemptRecord;
@@ -423,7 +425,7 @@ export async function runNotebookCodeProblem(args: {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: args.code }),
+      body: JSON.stringify({ code: args.code, target: args.target, language: args.language }),
     },
   );
 }

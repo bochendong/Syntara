@@ -15,11 +15,16 @@ import {
   notebookProblemAskConversationText,
 } from '@/components/chat/notebook-problem-chat-card';
 import { NOTEBOOK_CHAT_PREVIEW_EVENT } from '@/components/chat/chat-notebook-routing';
+import { askNotebook } from '@/lib/chat/ask-notebook';
+import { buildProblemExplainPrompt } from '@/lib/chat/problem-explain-prompt';
 import { cn } from '@/lib/utils';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
-import { planNotebookMessageStream } from '@/lib/notebook/send-message';
-import type { NotebookProblemPublicContent, NotebookProblemGrading } from '@/lib/problem-bank';
+import type {
+  NotebookProblemAttemptAnswer,
+  NotebookProblemAttemptRecord,
+  NotebookProblemPublicContent,
+} from '@/lib/problem-bank';
 import type { NotebookProblemClientRecord } from '@/lib/utils/notebook-problem-api';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 import { toast } from '@/lib/notifications/client-toast';
@@ -35,144 +40,34 @@ const drawerAssistantClassName = cn(
   '[&_[data-streamdown=code-block]]:my-4 [&_[data-streamdown=code-block]]:rounded-lg',
 );
 
-function cleanPromptText(input: string | undefined): string {
-  return (input || '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+function protectAngleLiteralsInPlainMarkdown(text: string): string {
+  const protectLine = (line: string) =>
+    line
+      .split(/(`[^`]*`)/g)
+      .map((part) =>
+        part.startsWith('`')
+          ? part
+          : part.replace(/<([A-Za-z][A-Za-z0-9_-]*)>([A-Za-z]{1,3})?/g, (match, ...args) => {
+              const offset = args[args.length - 2] as number;
+              const source = args[args.length - 1] as string;
+              const nextChar = source[offset + match.length] || '';
+              if (nextChar && /[A-Za-z0-9_-]/.test(nextChar)) return match;
+              return `\`${match}\``;
+            }),
+      )
+      .join('');
 
-function clipPromptText(input: string, maxLength = 6000): string {
-  if (input.length <= maxLength) return input;
-  return `${input.slice(0, maxLength)}\n...`;
-}
-
-function formatProblemContentForPrompt(content: NotebookProblemPublicContent): string {
-  const lines: string[] = [];
-  if ('stem' in content) {
-    lines.push(`题干：${cleanPromptText(content.stem)}`);
-  }
-  if (content.type === 'choice') {
-    lines.push(`选择方式：${content.selectionMode === 'multiple' ? '多选' : '单选'}`);
-    lines.push(
-      `选项：${content.options
-        .map((option) => `${option.id}. ${cleanPromptText(option.label)}`)
-        .join('\n')}`,
-    );
-  }
-  if (content.type === 'fill_blank') {
-    lines.push(`题干：${cleanPromptText(content.stemTemplate)}`);
-    lines.push(
-      `空格：${content.blanks
-        .map((blank) => `${blank.id}${blank.placeholder ? `（${blank.placeholder}）` : ''}`)
-        .join('、')}`,
-    );
-  }
-  if (content.type === 'calculation' && content.unit) {
-    lines.push(`单位：${content.unit}`);
-  }
-  if (content.type === 'code') {
-    if (content.functionSignature) lines.push(`函数签名：${content.functionSignature}`);
-    if (content.constraints.length > 0) lines.push(`约束：${content.constraints.join('；')}`);
-    if (content.sampleIO.length > 0) {
-      lines.push(
-        `样例：${content.sampleIO
-          .map((item, index) => {
-            const note = item.explanation ? `，说明：${cleanPromptText(item.explanation)}` : '';
-            return `样例${index + 1} 输入 ${item.input}，输出 ${item.output}${note}`;
-          })
-          .join('\n')}`,
-      );
-    }
-    if (content.starterCode) lines.push(`起始代码：\n${clipPromptText(content.starterCode, 3000)}`);
-  }
-  if (content.explanation) {
-    lines.push(`题目已有说明：${cleanPromptText(content.explanation)}`);
-  }
-  const images = content.assets?.images || [];
-  if (images.length > 0) {
-    lines.push(
-      `题目图片：${images
-        .map((image) => image.caption || image.alt || image.id)
-        .filter(Boolean)
-        .join('；')}`,
-    );
-  }
-  return lines.filter(Boolean).join('\n');
-}
-
-function formatGradingForPrompt(grading: NotebookProblemGrading): string {
-  switch (grading.type) {
-    case 'choice':
-      return [
-        `正确选项：${grading.correctOptionIds.join('、')}`,
-        grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    case 'fill_blank':
-      return [
-        `参考答案：${grading.blanks
-          .map((blank) => `${blank.id}: ${blank.acceptedAnswers.join(' / ')}`)
-          .join('；')}`,
-        grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    case 'calculation':
-      return [
-        grading.referenceAnswer ? `参考答案：${grading.referenceAnswer}` : '',
-        grading.acceptedForms.length > 0 ? `可接受形式：${grading.acceptedForms.join('；')}` : '',
-        grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    case 'short_answer':
-      return [
-        grading.referenceAnswer ? `参考答案：${cleanPromptText(grading.referenceAnswer)}` : '',
-        grading.rubric ? `评分标准：${cleanPromptText(grading.rubric)}` : '',
-        grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    case 'proof':
-      return [
-        grading.referenceProof ? `参考证明：${cleanPromptText(grading.referenceProof)}` : '',
-        grading.rubric ? `评分标准：${cleanPromptText(grading.rubric)}` : '',
-        grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    case 'code':
-      return grading.analysis ? `解析：${cleanPromptText(grading.analysis)}` : '';
-    default:
-      return '';
-  }
-}
-
-function buildProblemExplainPrompt(args: {
-  problem: NotebookProblemClientRecord;
-  problemTitle: string;
-  problemContent: NotebookProblemPublicContent;
-  notebookName: string;
-}): string {
-  const gradingText = formatGradingForPrompt(args.problem.grading);
-  return clipPromptText(
-    [
-      `学生正在做《${args.notebookName}》中的一道题，不会做。请作为这个章节的 AI 老师，完整讲解整道题。`,
-      '讲解要求：先解释题意和考点，再给出清晰步骤，最后给出答案；不要只给结论；语气像在旁边辅导学生。',
-      `题目标题：${args.problemTitle || args.problem.title}`,
-      `题型：${args.problem.type}`,
-      args.problem.problemNumber ? `题号：${args.problem.problemNumber}` : '',
-      formatProblemContentForPrompt(args.problemContent),
-      gradingText ? `\n可参考的标准答案或解析：\n${gradingText}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n'),
-    14000,
-  );
+  let inFence = false;
+  return text
+    .split('\n')
+    .map((line) => {
+      if (/^\s*```/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      return inFence ? line : protectLine(line);
+    })
+    .join('\n');
 }
 
 function notebookMessageToConversation(message: NotebookChatMessage) {
@@ -221,6 +116,8 @@ export function ProblemAiHelpButton({
   notebook,
   notebookLabel,
   locale,
+  currentAnswer,
+  latestAttempt,
 }: {
   courseId: string;
   problem: NotebookProblemClientRecord;
@@ -229,6 +126,8 @@ export function ProblemAiHelpButton({
   notebook: StageListItem | null;
   notebookLabel: string;
   locale: string;
+  currentAnswer?: NotebookProblemAttemptAnswer | null;
+  latestAttempt?: NotebookProblemAttemptRecord | null;
 }) {
   const [open, setOpen] = useState(false);
   const [thread, setThread] = useState<NotebookChatMessage[]>([]);
@@ -323,52 +222,50 @@ export function ProblemAiHelpButton({
           problemTitle,
           problemContent,
           notebookName: targetNotebookName,
+          currentAnswer,
+          latestAttempt,
         });
         const conversation = [...existing, userMsg]
           .slice(-12)
           .map((message) => notebookMessageToConversation(message));
-        const plan = await planNotebookMessageStream(
-          targetNotebookId,
-          prompt,
-          {
-            allowWrite: false,
-            preferWebSearch: false,
-            conversation,
+        const plan = await askNotebook({
+          notebookId: targetNotebookId,
+          question: prompt,
+          conversation,
+          onAnswerDelta: (delta) => {
+            streamedAnswer += delta;
+            setThread((current) =>
+              current.map((message) =>
+                message.role === 'assistant' && message.at === assistantAt
+                  ? {
+                      ...message,
+                      answer: streamedAnswer,
+                      streaming: true,
+                      statusText: undefined,
+                    }
+                  : message,
+              ),
+            );
           },
-          {
-            onAnswerDelta: (delta) => {
-              streamedAnswer += delta;
-              setThread((current) =>
-                current.map((message) =>
-                  message.role === 'assistant' && message.at === assistantAt
-                    ? {
-                        ...message,
-                        answer: streamedAnswer,
-                        streaming: true,
-                        statusText: undefined,
-                      }
-                    : message,
-                ),
-              );
-            },
-            onStatus: (message) => {
-              setThread((current) =>
-                current.map((item) =>
-                  item.role === 'assistant' && item.at === assistantAt
-                    ? { ...item, statusText: message, streaming: false }
-                    : item,
-                ),
-              );
-            },
+          onStatus: (message) => {
+            setThread((current) =>
+              current.map((item) =>
+                item.role === 'assistant' && item.at === assistantAt
+                  ? { ...item, statusText: message, streaming: false }
+                  : item,
+              ),
+            );
           },
-        );
+        });
+        const protectedAnswer = protectAngleLiteralsInPlainMarkdown(plan.answer);
         const assistantMsg: NotebookChatMessage = {
           role: 'assistant',
-          answer: plan.answer,
+          answer: protectedAnswer,
           answerDocument: plan.answerDocument,
           references: plan.references || [],
           knowledgeGap: plan.knowledgeGap,
           prerequisiteHints: plan.prerequisiteHints,
+          promptLogId: plan.promptLogId,
           webSearchUsed: plan.webSearchUsed,
           streaming: false,
           statusText: undefined,
@@ -409,6 +306,8 @@ export function ProblemAiHelpButton({
     },
     [
       courseId,
+      currentAnswer,
+      latestAttempt,
       locale,
       problem,
       problemCard,
@@ -497,7 +396,7 @@ export function ProblemAiHelpButton({
                     >
                       {message.answer ? (
                         <MessageResponse className={drawerAssistantClassName}>
-                          {message.answer}
+                          {protectAngleLiteralsInPlainMarkdown(message.answer)}
                         </MessageResponse>
                       ) : message.statusText ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">

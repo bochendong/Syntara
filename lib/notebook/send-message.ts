@@ -257,6 +257,7 @@ async function loadNotebookRequestPayload(
     },
     course: course
       ? {
+          id: course.id,
           name: course.name,
           purpose: course.purpose,
           language: course.language,
@@ -315,6 +316,7 @@ export async function planNotebookMessage(
         operations: data.operations || { insert: [], update: [], delete: [] },
         webSearchUsed: data.webSearchUsed,
         prerequisiteHints: data.prerequisiteHints,
+        promptLogId: data.promptLogId,
       };
     },
   );
@@ -405,6 +407,7 @@ export async function planNotebookMessageStream(
         operations: finalData.operations || { insert: [], update: [], delete: [] },
         webSearchUsed: finalData.webSearchUsed,
         prerequisiteHints: finalData.prerequisiteHints,
+        promptLogId: finalData.promptLogId,
       };
     },
   );

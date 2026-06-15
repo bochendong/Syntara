@@ -31,6 +31,7 @@ export type NotebookChatMessage =
       references: NotebookKnowledgeReference[];
       knowledgeGap: boolean;
       prerequisiteHints?: string[];
+      promptLogId?: string;
       webSearchUsed?: boolean;
       appliedLabel?: string;
       lessonSourceQuestion?: string;

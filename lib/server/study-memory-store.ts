@@ -138,7 +138,7 @@ export async function resolveOwnedStudyMemoryTarget(
 
 export async function resolveReadableStudyMemoryTarget(
   prisma: PrismaClient,
-  userId: string,
+  userId: string | null | undefined,
   targetType: StudyMemoryTargetType,
   targetId: string,
 ): Promise<ReadableStudyMemoryTarget | null> {
@@ -156,6 +156,16 @@ export async function resolveReadableStudyMemoryTarget(
         notebookId: null,
         targetOwnerId: course.ownerId,
         accessRole: 'owner',
+      };
+    }
+    if (!userId) {
+      return {
+        targetType,
+        targetId,
+        courseId: course.id,
+        notebookId: null,
+        targetOwnerId: course.ownerId,
+        accessRole: 'enrolled',
       };
     }
     const accessRole = await findCourseAccessRole(prisma, userId, course.id);
@@ -183,6 +193,16 @@ export async function resolveReadableStudyMemoryTarget(
       notebookId: notebook.id,
       targetOwnerId: notebook.ownerId,
       accessRole: 'owner',
+    };
+  }
+  if (!userId) {
+    return {
+      targetType,
+      targetId,
+      courseId: notebook.courseId,
+      notebookId: notebook.id,
+      targetOwnerId: notebook.ownerId,
+      accessRole: 'enrolled',
     };
   }
   if (!notebook.courseId) return null;
@@ -231,7 +251,7 @@ export async function listStudyMemories(
 
 export async function listStudyMemoriesForViewer(
   prisma: PrismaClient,
-  userId: string,
+  userId: string | null | undefined,
   target: ReadableStudyMemoryTarget,
 ): Promise<StudyMemoryRecord[]> {
   await ensureStudyMemoryTable(prisma);
@@ -245,7 +265,7 @@ export async function listStudyMemoriesForViewer(
             AND "status" = 'active'
             AND (
               ("ownerId" = $2 AND "scope" = 'public')
-              OR ("ownerId" = $3 AND "scope" = 'private')
+              OR ($3::text IS NOT NULL AND "ownerId" = $3 AND "scope" = 'private')
             )
           ORDER BY "updatedAt" DESC
           LIMIT 120
@@ -262,7 +282,7 @@ export async function listStudyMemoriesForViewer(
             AND "status" = 'active'
             AND (
               ("ownerId" = $2 AND "scope" = 'public')
-              OR ("ownerId" = $3 AND "scope" = 'private')
+              OR ($3::text IS NOT NULL AND "ownerId" = $3 AND "scope" = 'private')
             )
           ORDER BY "updatedAt" DESC
           LIMIT 120

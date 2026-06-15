@@ -130,6 +130,46 @@ function statusLabel(
   return locale === 'zh-CN' ? zh[status] || status : en[status] || status;
 }
 
+function attemptStatusLabel(attempt: NotebookProblemAttemptRecord, locale: 'zh-CN' | 'en-US') {
+  if (attempt.kind === 'run') {
+    const zh: Record<NotebookProblemAttemptRecord['status'], string> = {
+      pending: '运行中',
+      passed: '测试通过',
+      failed: '测试未通过',
+      partial: '部分通过',
+      error: '运行失败',
+    };
+    const en: Record<NotebookProblemAttemptRecord['status'], string> = {
+      pending: 'Running',
+      passed: 'Tests passed',
+      failed: 'Tests failed',
+      partial: 'Partial',
+      error: 'Run failed',
+    };
+    return locale === 'zh-CN' ? zh[attempt.status] : en[attempt.status];
+  }
+
+  if (attempt.kind === 'submit') {
+    const zh: Record<NotebookProblemAttemptRecord['status'], string> = {
+      pending: '提交中',
+      passed: '提交通过',
+      failed: '提交未通过',
+      partial: '部分通过',
+      error: '提交失败',
+    };
+    const en: Record<NotebookProblemAttemptRecord['status'], string> = {
+      pending: 'Submitting',
+      passed: 'Accepted',
+      failed: 'Wrong answer',
+      partial: 'Partial',
+      error: 'Submit failed',
+    };
+    return locale === 'zh-CN' ? zh[attempt.status] : en[attempt.status];
+  }
+
+  return statusLabel(attempt.status, locale);
+}
+
 function difficultyLabel(
   difficulty: NotebookProblemClientRecord['difficulty'],
   locale: 'zh-CN' | 'en-US',
@@ -149,6 +189,16 @@ function latestAttemptTone(status?: string | null) {
   return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
 }
 
+function shouldShowAttemptFeedback(attempt: NotebookProblemAttemptRecord): boolean {
+  if (!attempt.result?.feedback) return false;
+  const hasCodeTestSummary =
+    (attempt.kind === 'run' || attempt.kind === 'submit') &&
+    (attempt.result.publicSummary ||
+      attempt.result.secretSummary ||
+      (attempt.result.publicCases?.length ?? 0) > 0);
+  return !hasCodeTestSummary;
+}
+
 function AttemptSummary({
   attempt,
   locale,
@@ -162,14 +212,14 @@ function AttemptSummary({
         <span className="font-medium">
           {attempt.kind === 'run'
             ? locale === 'zh-CN'
-              ? 'Public Run'
+              ? '公开测试运行'
               : 'Public run'
             : locale === 'zh-CN'
               ? '提交'
               : 'Submit'}
         </span>
         <Badge className={cn('border-0', latestAttemptTone(attempt.status))}>
-          {statusLabel(attempt.status, locale)}
+          {attemptStatusLabel(attempt, locale)}
         </Badge>
       </div>
       {typeof attempt.score === 'number' ? (
@@ -184,9 +234,9 @@ function AttemptSummary({
           ) : null}
         </div>
       ) : null}
-      {attempt.result?.feedback ? (
+      {shouldShowAttemptFeedback(attempt) ? (
         <p className="mt-2 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
-          {attempt.result.feedback}
+          {attempt.result?.feedback}
         </p>
       ) : null}
       {typeof attempt.result?.earnedPoints === 'number' ? (
@@ -195,6 +245,28 @@ function AttemptSummary({
             ? `本次作答得分：${attempt.result.earnedPoints}`
             : `Earned points: ${attempt.result.earnedPoints}`}
         </p>
+      ) : null}
+      {attempt.result?.publicSummary ? (
+        <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950/40">
+          <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {locale === 'zh-CN' ? '公开测试' : 'Public tests'}
+          </div>
+          <p className="mt-1 text-slate-500 dark:text-slate-400">
+            {locale === 'zh-CN'
+              ? `通过 ${attempt.result.publicSummary.passed}/${attempt.result.publicSummary.total}，未通过 ${attempt.result.publicSummary.failed} 个`
+              : `${attempt.result.publicSummary.passed}/${attempt.result.publicSummary.total} passed, ${attempt.result.publicSummary.failed} failed`}
+          </p>
+          {attempt.result.publicSummary.failureSummary ? (
+            <p className="mt-1 text-slate-500 dark:text-slate-400">
+              {locale === 'zh-CN'
+                ? attempt.result.publicSummary.failureSummary
+                    .replaceAll('Public tests', '公开测试')
+                    .replaceAll('Secret tests', '隐藏测试')
+                : attempt.result.publicSummary.failureSummary}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {attempt.result?.publicCases?.length ? (
         <div className="mt-3 space-y-2">
@@ -238,7 +310,7 @@ function AttemptSummary({
         <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950/40">
           <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
             <ShieldCheck className="h-3.5 w-3.5" />
-            {locale === 'zh-CN' ? 'Secret tests' : 'Secret tests'}
+            {locale === 'zh-CN' ? '隐藏测试' : 'Secret tests'}
           </div>
           <p className="mt-1 text-slate-500 dark:text-slate-400">
             {attempt.result.secretSummary.passed}/{attempt.result.secretSummary.total}{' '}
@@ -246,7 +318,11 @@ function AttemptSummary({
           </p>
           {attempt.result.secretSummary.failureSummary ? (
             <p className="mt-1 text-slate-500 dark:text-slate-400">
-              {attempt.result.secretSummary.failureSummary}
+              {locale === 'zh-CN'
+                ? attempt.result.secretSummary.failureSummary
+                    .replaceAll('Public tests', '公开测试')
+                    .replaceAll('Secret tests', '隐藏测试')
+                : attempt.result.secretSummary.failureSummary}
             </p>
           ) : null}
         </div>
@@ -523,12 +599,10 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     ? getLocalizedProblemTitle(selectedProblem, problemLanguage)
     : '';
   const selectedProblemHasTranslation = hasProblemTranslation(selectedProblem);
-  const choiceContent =
-    selectedProblemContent?.type === 'choice' ? selectedProblemContent : null;
+  const choiceContent = selectedProblemContent?.type === 'choice' ? selectedProblemContent : null;
   const fillBlankContent =
     selectedProblemContent?.type === 'fill_blank' ? selectedProblemContent : null;
-  const codeContent =
-    selectedProblemContent?.type === 'code' ? selectedProblemContent : null;
+  const codeContent = selectedProblemContent?.type === 'code' ? selectedProblemContent : null;
   const textLikeContent =
     selectedProblemContent && !choiceContent && !fillBlankContent && !codeContent
       ? selectedProblemContent
@@ -597,7 +671,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
               : {
                   text: textAnswer[selectedProblem.id] || '',
                 };
-      const { attempt } = await submitNotebookProblem({
+      const { attempt, result } = await submitNotebookProblem({
         notebookId,
         problemId: selectedProblem.id,
         language: locale,
@@ -611,7 +685,13 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
           attempt,
         }),
       );
-      toast.success(locale === 'zh-CN' ? '已提交答案' : 'Answer submitted');
+      if (selectedProblem.type === 'code' && attempt.status !== 'passed') {
+        toast.error(
+          result?.feedback || (locale === 'zh-CN' ? '代码未通过测试' : 'Code failed tests'),
+        );
+      } else {
+        toast.success(locale === 'zh-CN' ? '已提交答案' : 'Answer submitted');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Submit failed');
     } finally {
@@ -634,13 +714,25 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
     if (!selectedProblem || selectedProblem.type !== 'code' || runningCode) return;
     setRunningCode(true);
     try {
-      const { attempt } = await runNotebookCodeProblem({
+      const { attempt, result } = await runNotebookCodeProblem({
         notebookId,
         problemId: selectedProblem.id,
         code: codeAnswer[selectedProblem.id] || '',
+        language: locale,
       });
       await refreshAfterAttempt(attempt);
-      toast.success(locale === 'zh-CN' ? 'Public tests 已运行' : 'Public tests finished');
+      if (attempt.status === 'passed') {
+        toast.success(locale === 'zh-CN' ? '公开测试全部通过' : 'All public tests passed');
+      } else {
+        toast.error(
+          (locale === 'zh-CN'
+            ? result?.feedback
+                ?.replaceAll('Public tests', '公开测试')
+                .replaceAll('Secret tests', '隐藏测试')
+            : result?.feedback) ||
+            (locale === 'zh-CN' ? '公开测试未全部通过' : 'Public tests failed'),
+        );
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Run failed');
     } finally {
@@ -1030,62 +1122,65 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
               {filteredProblems.map((problem) => {
                 const listTitle = getLocalizedProblemTitle(problem, problemLanguage);
                 return (
-                <div
-                  key={problem.id}
-                  className={cn(
-                    'w-full rounded-xl border p-3 text-left transition-colors',
-                    selectedProblemId === problem.id
-                      ? 'border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30'
-                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-slate-700',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedProblemId(problem.id)}
-                        className="block w-full min-w-0 text-left"
-                      >
-                        <ProblemTitleText
-                          content={listTitle}
-                          className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100"
-                        />
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {typeLabel(problem.type, locale)} ·{' '}
-                          {difficultyLabel(problem.difficulty, locale)} ·{' '}
-                          {sourceLabel(problem.source, locale)}
-                        </p>
-                      </button>
+                  <div
+                    key={problem.id}
+                    className={cn(
+                      'w-full rounded-xl border p-3 text-left transition-colors',
+                      selectedProblemId === problem.id
+                        ? 'border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30'
+                        : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-slate-700',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProblemId(problem.id)}
+                          className="block w-full min-w-0 text-left"
+                        >
+                          <ProblemTitleText
+                            content={listTitle}
+                            className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100"
+                          />
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {typeLabel(problem.type, locale)} ·{' '}
+                            {difficultyLabel(problem.difficulty, locale)} ·{' '}
+                            {sourceLabel(problem.source, locale)}
+                          </p>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => setSelectedProblemId(problem.id)}>
+                          <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => setSelectedProblemId(problem.id)}>
-                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                      </button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {statusLabel(problem.status, locale)}
+                      </Badge>
+                      <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {problem.points} {locale === 'zh-CN' ? '分' : 'pts'}
+                      </Badge>
+                      {problem.latestAttempt ? (
+                        <Badge
+                          className={cn(
+                            'border-0',
+                            latestAttemptTone(problem.latestAttempt.status),
+                          )}
+                        >
+                          {statusLabel(problem.latestAttempt.status, locale)}
+                        </Badge>
+                      ) : null}
+                      {typeof problem.latestAttempt?.score === 'number' ? (
+                        <Badge className="border-0 bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
+                          {locale === 'zh-CN'
+                            ? `最近 ${problem.latestAttempt.score}/${problem.points} 分`
+                            : `Latest ${problem.latestAttempt.score}/${problem.points}`}
+                        </Badge>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                      {statusLabel(problem.status, locale)}
-                    </Badge>
-                    <Badge className="border-0 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                      {problem.points} {locale === 'zh-CN' ? '分' : 'pts'}
-                    </Badge>
-                    {problem.latestAttempt ? (
-                      <Badge
-                        className={cn('border-0', latestAttemptTone(problem.latestAttempt.status))}
-                      >
-                        {statusLabel(problem.latestAttempt.status, locale)}
-                      </Badge>
-                    ) : null}
-                    {typeof problem.latestAttempt?.score === 'number' ? (
-                      <Badge className="border-0 bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
-                        {locale === 'zh-CN'
-                          ? `最近 ${problem.latestAttempt.score}/${problem.points} 分`
-                          : `Latest ${problem.latestAttempt.score}/${problem.points}`}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
                 );
               })}
             </div>
@@ -1105,10 +1200,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <CardTitle className="text-xl" title={selectedProblemTitle}>
-                      <ProblemTitleText
-                        content={selectedProblemTitle}
-                        className="block truncate"
-                      />
+                      <ProblemTitleText content={selectedProblemTitle} className="block truncate" />
                     </CardTitle>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="secondary">{typeLabel(selectedProblem.type, locale)}</Badge>
@@ -1169,7 +1261,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                         ) : (
                           <Play className="mr-2 h-4 w-4" />
                         )}
-                        {locale === 'zh-CN' ? '运行 Public Tests' : 'Run public tests'}
+                        {locale === 'zh-CN' ? '运行公开测试' : 'Run public tests'}
                       </Button>
                       <Button onClick={handleSubmit} disabled={submitting}>
                         {submitting ? (
@@ -1261,7 +1353,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                             }}
                           />
                           <div className="min-w-0">
-                            <span className="font-medium">{option.id}.</span>
+                            <span className="mr-1 font-medium">{option.id}.</span>
                             <ProblemRichText
                               content={option.label}
                               className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
@@ -1311,7 +1403,7 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                     {codeContent.publicTests.length > 0 ? (
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-950/40">
                         <div className="mb-2 font-medium">
-                          {locale === 'zh-CN' ? 'Public tests' : 'Public tests'}
+                          {locale === 'zh-CN' ? '公开测试' : 'Public tests'}
                         </div>
                         <div className="space-y-2">
                           {codeContent.publicTests.map((testCase) => (

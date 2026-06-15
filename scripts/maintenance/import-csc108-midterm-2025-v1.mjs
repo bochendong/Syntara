@@ -45,8 +45,16 @@ function hashBuffer(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
+function normalizeEscapedCodeNewlines(code) {
+  const escapedNewlineToken = '\u0000CSC108_ESCAPED_NEWLINE\u0000';
+  return String(code)
+    .replace(/\\\\n/g, escapedNewlineToken)
+    .replace(/\\n/g, '\n')
+    .replaceAll(escapedNewlineToken, '\\n');
+}
+
 function block(code) {
-  return `\`\`\`python\n${code.trimEnd()}\n\`\`\``;
+  return `\`\`\`python\n${normalizeEscapedCodeNewlines(code).trimEnd()}\n\`\`\``;
 }
 
 function cleanLines(text) {
@@ -527,20 +535,6 @@ const drafts = [
     'C',
     'string replace and immutability',
   ),
-  choiceDraft(
-    22,
-    'Something You Should Know',
-    'Which of the following is not one of the instructors for CSC108H5F, 20259 (Fall 2025) at UTM?',
-    {
-      A: 'Prof. Michael Liut',
-      B: 'Prof. Joshua Jung',
-      C: 'Prof. Mai Ha Vu',
-      D: 'Prof. Mohammad Mahmoud',
-      E: 'Prof. Andrew Petersen',
-    },
-    'E',
-    'course staff',
-  ),
   fillBlankDraft(
     23,
     'Boolean Refactoring',
@@ -879,8 +873,8 @@ const drafts = [
 ];
 
 function validateDrafts() {
-  if (drafts.length !== 33) {
-    throw new Error(`Expected 33 drafts, found ${drafts.length}`);
+  if (drafts.length !== 32) {
+    throw new Error(`Expected 32 drafts, found ${drafts.length}`);
   }
   const ids = new Set();
   const numbers = new Set();

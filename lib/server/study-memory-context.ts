@@ -198,7 +198,7 @@ function uniqueStrings(items: Array<string | null | undefined>): string[] {
 
 async function getCourseTarget(
   prisma: PrismaClient,
-  userId: string,
+  userId: string | null | undefined,
   notebookTarget: ReadableStudyMemoryTarget,
 ): Promise<ReadableStudyMemoryTarget | null> {
   if (!notebookTarget.courseId) return null;
@@ -507,12 +507,14 @@ function filterStaleMemories(args: {
 }
 
 async function buildFactScopes(args: {
-  userId: string;
+  userId?: string | null;
   target: ReadableStudyMemoryTarget;
   courseTarget: ReadableStudyMemoryTarget | null;
   conversationId?: string | null;
 }): Promise<MemoryFactScopeRef[]> {
-  const scopes: MemoryFactScopeRef[] = [{ ownerId: args.userId, scopeType: 'user', scopeId: null }];
+  const scopes: MemoryFactScopeRef[] = args.userId
+    ? [{ ownerId: args.userId, scopeType: 'user', scopeId: null }]
+    : [];
   const courseId = args.courseTarget?.courseId || args.target.courseId;
   const courseOwnerId = args.courseTarget?.targetOwnerId || args.target.targetOwnerId;
   if (courseId) {
@@ -525,7 +527,7 @@ async function buildFactScopes(args: {
       scopeId: args.target.notebookId,
     });
   }
-  if (args.conversationId?.trim()) {
+  if (args.userId && args.conversationId?.trim()) {
     scopes.push({
       ownerId: args.userId,
       scopeType: 'conversation',
@@ -537,7 +539,7 @@ async function buildFactScopes(args: {
 
 async function buildRecallPass(args: {
   prisma: PrismaClient;
-  userId: string;
+  userId?: string | null;
   recallTarget: ReadableStudyMemoryTarget;
   courseTarget: ReadableStudyMemoryTarget | null;
   searchIntent: MemorySearchIntent;
@@ -582,7 +584,7 @@ async function buildRecallPass(args: {
       const matches = await semanticSearchStudyMemoryChunks({
         prisma: args.prisma,
         query: args.recallQuery,
-        viewerUserId: args.userId,
+        viewerUserId: args.userId || '',
         publicOwnerId: args.recallTarget.targetOwnerId,
         notebookId: args.recallTarget.notebookId,
         courseId: args.recallTarget.courseId,
@@ -613,7 +615,7 @@ async function buildRecallPass(args: {
         query: args.recallQuery,
         notebookId: args.recallTarget.notebookId,
         courseId: args.recallTarget.courseId,
-        viewerUserId: args.userId,
+        viewerUserId: args.userId || '',
         progressFilter: args.searchIntent.progressFilter,
         limit: 6,
       });
@@ -633,12 +635,13 @@ async function buildRecallPass(args: {
       args.searchIntent.plan.primarySources.includes('problem_bank') ||
       args.searchIntent.plan.secondarySources.includes('problem_bank');
     const shouldSearchLearnerHistory =
-      args.searchIntent.knowledgeTypes.includes('learner_history') ||
-      args.searchIntent.plan.primarySources.includes('learner_history') ||
-      args.searchIntent.plan.secondarySources.includes('learner_history') ||
-      args.searchIntent.kind === 'learner_understanding' ||
-      args.searchIntent.kind === 'learning_status' ||
-      args.searchIntent.kind === 'learner_questions';
+      Boolean(args.userId) &&
+      (args.searchIntent.knowledgeTypes.includes('learner_history') ||
+        args.searchIntent.plan.primarySources.includes('learner_history') ||
+        args.searchIntent.plan.secondarySources.includes('learner_history') ||
+        args.searchIntent.kind === 'learner_understanding' ||
+        args.searchIntent.kind === 'learning_status' ||
+        args.searchIntent.kind === 'learner_questions');
 
     try {
       const [markdownEvidence, problemEvidence, studentMessages, attemptEvidence] =
@@ -658,7 +661,7 @@ async function buildRecallPass(args: {
                 query: args.sourceEvidenceQuery,
                 notebookId: args.recallTarget.notebookId,
                 courseId: args.recallTarget.courseId,
-                viewerUserId: args.userId,
+                viewerUserId: args.userId || '',
                 progressFilter: args.searchIntent.progressFilter,
                 limit: 5,
               })
@@ -667,7 +670,7 @@ async function buildRecallPass(args: {
             ? searchStudentMessageEvidence({
                 prisma: args.prisma,
                 query: args.sourceEvidenceQuery,
-                userId: args.userId,
+                userId: args.userId || '',
                 notebookId: args.recallTarget.notebookId,
                 courseId: args.recallTarget.courseId,
                 limit: 5,
@@ -677,7 +680,7 @@ async function buildRecallPass(args: {
             ? searchProblemAttemptEvidence({
                 prisma: args.prisma,
                 query: args.sourceEvidenceQuery,
-                userId: args.userId,
+                userId: args.userId || '',
                 notebookId: args.recallTarget.notebookId,
                 courseId: args.recallTarget.courseId,
                 progressFilter: args.searchIntent.progressFilter,
@@ -697,21 +700,23 @@ async function buildRecallPass(args: {
   }
 
   let learnerAnalytics: LearnerAnalytics | null = null;
-  try {
-    learnerAnalytics = await buildLearnerAnalytics({
-      prisma: args.prisma,
-      userId: args.userId,
-      target: {
-        targetType: args.recallTarget.targetType,
-        targetId: args.recallTarget.targetId,
-        courseId: args.recallTarget.courseId,
-        notebookId: args.recallTarget.notebookId,
-      },
-      query: args.searchIntent.originalQuery,
-      searchIntent: args.searchIntent,
-    });
-  } catch (error) {
-    log.warn('Learner analytics recall failed:', error);
+  if (args.userId) {
+    try {
+      learnerAnalytics = await buildLearnerAnalytics({
+        prisma: args.prisma,
+        userId: args.userId,
+        target: {
+          targetType: args.recallTarget.targetType,
+          targetId: args.recallTarget.targetId,
+          courseId: args.recallTarget.courseId,
+          notebookId: args.recallTarget.notebookId,
+        },
+        query: args.searchIntent.originalQuery,
+        searchIntent: args.searchIntent,
+      });
+    } catch (error) {
+      log.warn('Learner analytics recall failed:', error);
+    }
   }
 
   return {
@@ -824,7 +829,7 @@ export async function buildMemoryRecallContext(args: {
   searchIntent?: MemorySearchIntent;
 }): Promise<MemoryRecallContext> {
   const prisma = getOptionalPrisma();
-  if (!prisma || !args.userId) return emptyContext('unavailable');
+  if (!prisma) return emptyContext('unavailable');
 
   try {
     const searchIntent =
@@ -1004,12 +1009,13 @@ export async function buildMemoryRecallContext(args: {
 
 export async function buildNotebookStudyMemoryPromptContext(args: {
   notebookId: string;
+  courseId?: string | null;
   userId?: string;
   question: string;
   conversationId?: string | null;
   searchIntent?: MemorySearchIntent;
 }): Promise<NotebookStudyMemoryPromptContext> {
-  return buildMemoryRecallContext({
+  const notebookContext = await buildMemoryRecallContext({
     targetType: 'notebook',
     targetId: args.notebookId,
     userId: args.userId,
@@ -1017,4 +1023,30 @@ export async function buildNotebookStudyMemoryPromptContext(args: {
     conversationId: args.conversationId,
     searchIntent: args.searchIntent,
   });
+  const hasNotebookEvidence =
+    notebookContext.directCount > 0 ||
+    notebookContext.semanticCount > 0 ||
+    notebookContext.knowledgeCount > 0 ||
+    notebookContext.sourceEvidenceCount > 0 ||
+    notebookContext.staticFacts.length > 0;
+  if (hasNotebookEvidence || !args.courseId) return notebookContext;
+
+  const courseContext = await buildMemoryRecallContext({
+    targetType: 'course',
+    targetId: args.courseId,
+    userId: args.userId,
+    question: args.question,
+    conversationId: args.conversationId,
+    searchIntent: args.searchIntent,
+  });
+  return {
+    ...courseContext,
+    scope: {
+      ...courseContext.scope,
+      expanded: true,
+      originalTargetType: 'notebook',
+      originalTargetId: args.notebookId,
+      reason: `${courseContext.scope.reason} Fallback to course-level memory because the notebook target had no readable memory evidence.`,
+    },
+  };
 }

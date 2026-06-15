@@ -17,6 +17,111 @@ function escapeHtml(text: string): string {
     .replaceAll('"', '&quot;');
 }
 
+type CodeFenceInfo = {
+  marker: string;
+  language: string;
+};
+
+function parseCodeFenceStart(line: string): CodeFenceInfo | null {
+  const match = line.match(/^\s*(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+.-]*)?.*$/);
+  if (!match) return null;
+  return {
+    marker: match[1],
+    language: match[2]?.trim() ?? '',
+  };
+}
+
+function isCodeFenceEnd(line: string, marker: string): boolean {
+  const fenceChar = marker[0];
+  const trimmed = line.trim();
+  const match = fenceChar === '`' ? trimmed.match(/^(`{3,})\s*$/) : trimmed.match(/^(~{3,})\s*$/);
+  return Boolean(match && match[1].length >= marker.length);
+}
+
+function sanitizeCodeLanguage(language: string): string {
+  return language
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '-');
+}
+
+function renderCodeBlock(lines: string[], language: string): string {
+  const normalizedLanguage = sanitizeCodeLanguage(language);
+  const className = normalizedLanguage ? ` class="language-${normalizedLanguage}"` : '';
+  return `<pre class="not-prose problem-rich-code-block"><code${className}>${escapeHtml(
+    lines.join('\n'),
+  )}</code></pre>`;
+}
+
+function renderInlineMarkdown(text: string): string {
+  let html = '';
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const tickStart = text.indexOf('`', cursor);
+    if (tickStart === -1) {
+      html += escapeHtml(text.slice(cursor)).replace(/\n/g, '<br/>');
+      break;
+    }
+
+    html += escapeHtml(text.slice(cursor, tickStart)).replace(/\n/g, '<br/>');
+    const codeStart = tickStart + 1;
+    const tickEnd = text.indexOf('`', codeStart);
+    if (tickEnd === -1) {
+      html += '&#96;';
+      cursor = codeStart;
+      continue;
+    }
+
+    html += `<code class="problem-rich-inline-code">${escapeHtml(
+      text.slice(codeStart, tickEnd),
+    )}</code>`;
+    cursor = tickEnd + 1;
+  }
+
+  return html;
+}
+
+function protectFencedCodeBlocks(text: string): { text: string; blocks: string[] } {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const output: string[] = [];
+  const blocks: string[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const fence = parseCodeFenceStart(lines[index]);
+    if (!fence) {
+      output.push(lines[index]);
+      index += 1;
+      continue;
+    }
+
+    const blockLines = [lines[index]];
+    index += 1;
+    while (index < lines.length) {
+      blockLines.push(lines[index]);
+      if (isCodeFenceEnd(lines[index], fence.marker)) {
+        index += 1;
+        break;
+      }
+      index += 1;
+    }
+
+    const token = `@@OPENMAIC_FENCED_CODE_${blocks.length}@@`;
+    blocks.push(blockLines.join('\n'));
+    output.push(token);
+  }
+
+  return { text: output.join('\n'), blocks };
+}
+
+function restoreFencedCodeBlocks(text: string, blocks: string[]): string {
+  return blocks.reduce(
+    (current, block, index) => current.replaceAll(`@@OPENMAIC_FENCED_CODE_${index}@@`, block),
+    text,
+  );
+}
+
 function tableCellCount(row: string): number {
   return row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').length;
 }
@@ -165,11 +270,11 @@ function renderTable(lines: string[]): string {
   const rows = lines.filter((line) => !isTableSeparator(line)).map(splitTableRow);
   const [header, ...bodyRows] = rows;
   if (!header || bodyRows.length === 0) {
-    return `<p>${escapeHtml(lines.join('\n')).replace(/\n/g, '<br/>')}</p>`;
+    return `<p>${renderInlineMarkdown(lines.join('\n'))}</p>`;
   }
 
   const renderCells = (cells: string[], tag: 'td' | 'th') =>
-    cells.map((cell) => `<${tag}>${escapeHtml(cell)}</${tag}>`).join('');
+    cells.map((cell) => `<${tag}>${renderInlineMarkdown(cell)}</${tag}>`).join('');
 
   return `<div class="problem-rich-table-wrap"><table><thead><tr>${renderCells(
     header,
@@ -185,7 +290,7 @@ function renderList(lines: string[], ordered: boolean): string {
   return `<${tag}>${lines
     .map((line) => {
       const item = line.match(itemPattern)?.[1] ?? line.trim();
-      return `<li>${escapeHtml(item)}</li>`;
+      return `<li>${renderInlineMarkdown(item)}</li>`;
     })
     .join('')}</${tag}>`;
 }
@@ -284,9 +389,12 @@ function renderDisplayMath(lines: string[]): string {
 }
 
 function textToHtml(text: string): string {
-  const lines = inlineSimpleDisplayMath(normalizeInlineStructuralMarkdown(text))
-    .replace(/\r\n?/g, '\n')
-    .split('\n');
+  const fencedCode = protectFencedCodeBlocks(text);
+  const normalized = restoreFencedCodeBlocks(
+    inlineSimpleDisplayMath(normalizeInlineStructuralMarkdown(fencedCode.text)),
+    fencedCode.blocks,
+  );
+  const lines = normalized.replace(/\r\n?/g, '\n').split('\n');
   const blocks: string[] = [];
   let index = 0;
 
@@ -294,6 +402,21 @@ function textToHtml(text: string): string {
     const line = lines[index];
     if (!line.trim()) {
       index += 1;
+      continue;
+    }
+
+    const codeFence = parseCodeFenceStart(line);
+    if (codeFence) {
+      const codeLines: string[] = [];
+      index += 1;
+      while (index < lines.length && !isCodeFenceEnd(lines[index], codeFence.marker)) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length && isCodeFenceEnd(lines[index], codeFence.marker)) {
+        index += 1;
+      }
+      blocks.push(renderCodeBlock(codeLines, codeFence.language));
       continue;
     }
 
@@ -364,6 +487,7 @@ function textToHtml(text: string): string {
     while (
       index < lines.length &&
       lines[index].trim() &&
+      !parseCodeFenceStart(lines[index]) &&
       lines[index].trim() !== '$$' &&
       !isBracketDisplayMathStart(lines[index]) &&
       !lines[index].includes('\\begin{cases}') &&
@@ -374,7 +498,7 @@ function textToHtml(text: string): string {
       paragraphLines.push(lines[index]);
       index += 1;
     }
-    blocks.push(`<p>${escapeHtml(paragraphLines.join('\n')).replace(/\n/g, '<br/>')}</p>`);
+    blocks.push(`<p>${renderInlineMarkdown(paragraphLines.join('\n'))}</p>`);
   }
 
   const html = blocks.join('');
@@ -406,6 +530,8 @@ export const ProblemRichText = memo(function ProblemRichText({
         '[&_.problem-rich-cases-lhs]:whitespace-nowrap [&_.problem-rich-cases-brace]:text-5xl [&_.problem-rich-cases-brace]:font-light [&_.problem-rich-cases-brace]:leading-none',
         '[&_.problem-rich-cases-rows]:grid [&_.problem-rich-cases-rows]:gap-1 [&_.problem-rich-cases-row]:grid [&_.problem-rich-cases-row]:grid-cols-[auto_auto] [&_.problem-rich-cases-row]:gap-3 [&_.problem-rich-cases-row]:whitespace-nowrap',
         '[&_.problem-rich-table-wrap]:my-3 [&_.problem-rich-table-wrap]:overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-slate-900',
+        '[&_.problem-rich-code-block]:my-3 [&_.problem-rich-code-block]:overflow-x-auto [&_.problem-rich-code-block]:rounded-lg [&_.problem-rich-code-block]:border [&_.problem-rich-code-block]:border-slate-200 [&_.problem-rich-code-block]:bg-white [&_.problem-rich-code-block]:p-4 [&_.problem-rich-code-block]:font-mono [&_.problem-rich-code-block]:text-[13px] [&_.problem-rich-code-block]:leading-6 [&_.problem-rich-code-block]:text-slate-900 [&_.problem-rich-code-block]:shadow-sm dark:[&_.problem-rich-code-block]:border-slate-700 dark:[&_.problem-rich-code-block]:bg-white dark:[&_.problem-rich-code-block]:text-slate-900',
+        '[&_.problem-rich-inline-code]:rounded [&_.problem-rich-inline-code]:border [&_.problem-rich-inline-code]:border-slate-200 [&_.problem-rich-inline-code]:bg-slate-100 [&_.problem-rich-inline-code]:px-1.5 [&_.problem-rich-inline-code]:py-0.5 [&_.problem-rich-inline-code]:font-mono [&_.problem-rich-inline-code]:text-[0.9em] [&_.problem-rich-inline-code]:font-medium [&_.problem-rich-inline-code]:text-slate-950 dark:[&_.problem-rich-inline-code]:border-slate-700 dark:[&_.problem-rich-inline-code]:bg-slate-800 dark:[&_.problem-rich-inline-code]:text-slate-100',
         '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li]:my-1 [&_li]:pl-1',
         className,
       )}

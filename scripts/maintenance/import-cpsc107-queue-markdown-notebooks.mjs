@@ -21,11 +21,13 @@ CPSC107 整门课。
 - 程序设计题的 function body 应从数据定义、signature、purpose、examples/check-expect 和 template 推出。
 - Racket 表达式要按 DrRacket 真实语法写，求值说明按最左边需要化简的表达式逐步展开。
 - API 名称本身不是记忆对象；应记录数据类型、输入输出、template rule 和求值过程。
+- API 边界是课程事实：不要把未出现在题面、源材料或已学记忆里的 Racket 函数当作可用工具。题面只说 built-in functions 时，只能使用课程记忆或源材料明确学过的 built-ins；不确定时优先使用 template/helper 设计。
 
 ## 设计格式
 - HTDF 顺序固定为 Function Name、Signature、Purpose、Examples、Stub、Template、Function Body。
 - HTDD 要写数据名、interp、examples/常量、dd-template-rules 和 template body。
 - 判断 template rule 要从数据定义读：atomic、one-of、compound、ref、self-ref、mutual-ref，不能凭题目关键词猜。
+- 当答案使用 local helper 时，顶层 HtDF artifacts 仍然属于公开函数：@htdf、@signature、purpose、check-expect、stub、@template-origin 放在公开函数的顶层设计里；local 内只放局部 define 和必要的 accumulator/scope 注释。
 
 ## 递归和抽象
 - List/template 题先写 empty/base case，再写 cons/recursive case；helper 来自数据边界，不是随意拆函数。
@@ -205,6 +207,9 @@ CPSC107 notebook 06《Two One-of 与 Local：交叉模板、作用域和封装�
 ## Local 规则
 local 内部可以用外层定义，外层不能直接用 local 内部定义。讲 scope 时用“总公司/外包公司”的比喻；讲 closure 时只把引用外层变量的 local function 判为 closure，普通 value 不是 closure。
 
+## Local/HtDF 边界
+使用 local 封装 helper 时，local 内只写局部 define。公开函数的 HtDF 设计元素保留在外层顶级位置：@htdf、@signature、purpose、check-expect、stub、@template-origin 不进入 local。如果题目要求某个 helper 有完整 HtDF design，那个 helper 应该作为独立顶层函数出现，而不是把 tags/tests 塞进 local。
+
 ## Lifting/Stepper
 local stepper 要把 local definition lift 成带编号的新定义，如 b_0、bee_0、foo_0。判断 lifted definitions 数量时，先数 local 中 define 的个数，再乘实际调用次数。
 
@@ -234,6 +239,9 @@ CPSC107 notebook 07《Abstract Functions：filter、map、build-list 与 fold》
 2. map：先问“每个元素变成什么”，对 struct list 可以直接 map selector，再和 filter 组合。
 3. build-list：先问 index 如何变成目标元素，注意 build-list 从 0 开始。
 4. foldr/foldl：先追踪 x 和 y/acc 的含义，尤其 string-append 下 foldr 和 foldl 顺序不同。
+
+## API 边界
+本讲默认可用抽象函数边界是 filter、map、build-list、foldr、foldl，以及 named helper/lambda。不要把 apply 等未在本讲出现的高阶 API 当作已学工具，除非题面或源材料明确给出。
 
 ## Abstract Fold
 推导 fold-treasure signature 时，不要背答案。先给 local 中每个 helper 的 output 起类型变量 X/Y/Z，再从 c1、c2、b1-b4 在函数体中的位置反推 signature。
@@ -292,6 +300,7 @@ CPSC107 notebook 09《Tail Recursion 与 Accumulator：从普通递归到 Workli
 ## 格式规则
 - @template-origin 要写明 accumulator。
 - 外层公开函数负责初始化 accumulator；local helper 负责递归推进。
+- 公开 wrapper 拥有顶层 @htdf、@signature、purpose、check-expect、stub、@template-origin；accumulator local helper 只作为局部 define 出现，除非题目明确要求独立顶层 helper。
 - tail recursion 判断看最后执行的是 function call 还是 operator。
 - worklist 版本处理 node 时，把 children append 到 todo，再继续处理 first todo。
 

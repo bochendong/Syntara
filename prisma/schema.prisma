@@ -178,6 +178,7 @@ model User {
   agentTasks              AgentTask[]
   agentEnvelopes          AgentEnvelope[]
   llmUsageLogs            LLMUsageLog[]
+  llmPromptLogs           LLMPromptLog[]
   creditTransactions      CreditTransaction[]
   coursePurchases         CoursePurchase[]
   courseEnrollments       CourseEnrollment[]
@@ -722,6 +723,34 @@ model LLMUsageLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([route, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+}
+
+model LLMPromptLog {
+  id           String   @id
+  userId       String?
+  userEmail    String?
+  userName     String?
+  route        String
+  source       String
+  providerId   String
+  modelId      String
+  modelString  String
+  notebookId   String?
+  notebookName String?
+  courseId     String?
+  courseName   String?
+  promptHash   String
+  systemPrompt String   @db.Text
+  userPrompt   String   @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([route, source, createdAt(sort: Desc)])
+  @@index([notebookId, createdAt(sort: Desc)])
+  @@index([promptHash])
 }
 
 model TestResult {

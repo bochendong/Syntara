@@ -60,6 +60,7 @@ export async function POST(
             secretJudge: loaded.secretJudge,
             kind: 'submit',
             userAnswer: answer,
+            language: payload.data.language,
           });
         }
 

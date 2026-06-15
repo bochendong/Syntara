@@ -36,12 +36,14 @@ const userBubbleClassName = cn(
   'text-[13px] leading-5 text-white shadow-sm dark:bg-white dark:text-black',
 );
 
+const selectableMessageTextClassName = 'select-text';
+
 const assistantShellClassName = cn(
   'w-full max-w-3xl py-1 text-[13.5px] leading-6 text-slate-950 dark:text-slate-50',
 );
 
 const assistantRichTextClassName = cn(
-  'h-auto w-full break-words text-[13.5px] leading-6 text-slate-950 dark:text-slate-50',
+  'h-auto w-full select-text break-words text-[13.5px] leading-6 text-slate-950 dark:text-slate-50',
   '[&_p]:my-2.5 [&_ul]:my-2.5 [&_ol]:my-2.5 [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5',
   '[&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold',
   '[&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold',
@@ -409,7 +411,7 @@ export function NotebookMessageThread({
                 <div className="flex min-w-0 flex-col items-end gap-2">
                   {m.problemAsk ? <NotebookProblemChatCardView card={m.problemAsk} /> : null}
                   <div className={userBubbleClassName}>
-                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                    <p className="select-text whitespace-pre-wrap break-words">{m.text}</p>
                     {m.attachments && m.attachments.length > 0 ? (
                       <div className="mt-2 space-y-2">
                         {m.attachments.map((a) => (
@@ -443,7 +445,10 @@ export function NotebookMessageThread({
               <ContextMenuTrigger asChild>
                 <div className={assistantShellClassName}>
                   {m.answerDocument ? (
-                    <NotebookContentView document={m.answerDocument} />
+                    <NotebookContentView
+                      document={m.answerDocument}
+                      className={selectableMessageTextClassName}
+                    />
                   ) : m.answer ? (
                     <div>
                       <MessageResponse className={assistantRichTextClassName}>
@@ -661,7 +666,7 @@ export function AgentMessageThread({
                     </p>
                   ) : null}
                   {!hideAttachmentOnlyText && isUser ? (
-                    <p className="whitespace-pre-wrap break-words">{text}</p>
+                    <p className="select-text whitespace-pre-wrap break-words">{text}</p>
                   ) : null}
                   {!hideAttachmentOnlyText && !isUser ? (
                     text ? (

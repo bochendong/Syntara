@@ -69,6 +69,7 @@ export type SendNotebookMessageRequest = {
     scenes: NotebookSceneBrief[];
   };
   course?: {
+    id?: string;
     name?: string;
     purpose?: CoursePurpose;
     language?: 'zh-CN' | 'en-US';
@@ -86,6 +87,7 @@ export type SendNotebookMessageRequest = {
 export type SendNotebookMessageResponse = NotebookMessagePlan & {
   webSearchUsed?: boolean;
   prerequisiteHints?: string[];
+  promptLogId?: string;
 };
 
 export type SendNotebookMessageStreamEvent =

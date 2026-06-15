@@ -10,6 +10,8 @@ import {
 
 const runSchema = z.object({
   code: z.string().trim().min(1).max(120000),
+  target: z.enum(['code', 'public', 'secret']).default('public'),
+  language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
 });
 
 export async function POST(
@@ -41,7 +43,9 @@ export async function POST(
       problem: loaded.problem,
       secretJudge: loaded.secretJudge,
       kind: 'run',
+      runTarget: payload.data.target,
       userAnswer: { code: payload.data.code },
+      language: payload.data.language,
     });
     const attempt = await createNotebookProblemAttempt({
       userId: auth.userId,

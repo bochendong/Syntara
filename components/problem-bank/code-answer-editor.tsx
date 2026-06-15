@@ -296,7 +296,7 @@ export function CodeAnswerEditor({
         </span>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[3rem_minmax(0,1fr)]">
-        <div className="overflow-hidden border-r border-slate-200 bg-slate-50 text-right dark:border-slate-200 dark:bg-slate-50">
+        <div className="min-h-0 overflow-hidden border-r border-slate-200 bg-slate-50 text-right dark:border-slate-200 dark:bg-slate-50">
           <div
             ref={lineGutterRef}
             className="px-2 py-3 font-mono text-[11px] leading-6 text-slate-400"
@@ -306,7 +306,7 @@ export function CodeAnswerEditor({
             ))}
           </div>
         </div>
-        <div className="relative min-h-[240px] overflow-hidden bg-white dark:bg-white">
+        <div className="relative h-full min-h-0 overflow-hidden bg-white dark:bg-white">
           <pre
             ref={codeLayerRef}
             aria-hidden="true"
@@ -335,7 +335,7 @@ export function CodeAnswerEditor({
             autoComplete="off"
             autoCorrect="off"
             wrap="off"
-            className="relative z-10 min-h-[240px] w-full resize-none overflow-auto border-0 bg-transparent px-4 py-3 font-mono text-[13px] leading-6 text-transparent caret-sky-600 outline-none selection:bg-sky-200/80 placeholder:text-slate-400 disabled:cursor-not-allowed"
+            className="relative z-10 h-full min-h-0 w-full resize-none overflow-auto border-0 bg-transparent px-4 py-3 font-mono text-[13px] leading-6 text-transparent caret-sky-600 outline-none selection:bg-sky-200/80 placeholder:text-slate-400 disabled:cursor-not-allowed"
             style={{ tabSize: 4 }}
           />
         </div>

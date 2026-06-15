@@ -316,7 +316,7 @@ export function useNotebookChatActions({
               notebook.id,
               question,
               {
-                allowWrite: applyNotebookWrites,
+                allowWrite: false,
                 preferWebSearch: true,
                 attachments: attachments && attachments.length > 0 ? attachments : undefined,
               },
@@ -329,15 +329,11 @@ export function useNotebookChatActions({
               },
             )
           : await planNotebookMessage(notebook.id, question, {
-              allowWrite: applyNotebookWrites,
+              allowWrite: false,
               preferWebSearch: true,
               attachments: attachments && attachments.length > 0 ? attachments : undefined,
             });
-        const shouldRecordMemory =
-          applyNotebookWrites && plan.knowledgeGap && hasPrivateMemoryCandidate(plan);
-        if (shouldRecordMemory) {
-          recordPrivateMemoryInBackground({ notebook, question, plan });
-        }
+        const shouldRecordMemory = false;
 
         const answer = plan.answer;
         const answerDocument = plan.answerDocument;
@@ -351,6 +347,7 @@ export function useNotebookChatActions({
           references: plan.references || [],
           knowledgeGap: plan.knowledgeGap,
           prerequisiteHints: plan.prerequisiteHints,
+          promptLogId: plan.promptLogId,
           webSearchUsed: plan.webSearchUsed,
         };
         if (options?.persistConversation !== false) {
@@ -673,7 +670,7 @@ export function useNotebookChatActions({
           notebookId,
           text,
           {
-            allowWrite: applyNotebookWrites,
+            allowWrite: false,
             preferWebSearch: true,
             conversation,
             attachments: attachmentsSnapshot,
@@ -696,8 +693,7 @@ export function useNotebookChatActions({
             },
           },
         );
-        const shouldRecordMemory =
-          applyNotebookWrites && plan.knowledgeGap && hasPrivateMemoryCandidate(plan);
+        const shouldRecordMemory = false;
 
         if (taskId) {
           await updateAgentTask(taskId, {
@@ -715,6 +711,7 @@ export function useNotebookChatActions({
           references: plan.references || [],
           knowledgeGap: plan.knowledgeGap,
           prerequisiteHints: plan.prerequisiteHints,
+          promptLogId: plan.promptLogId,
           webSearchUsed: plan.webSearchUsed,
           lessonSourceQuestion: shouldOfferMicroLessonButton(text) ? text : undefined,
           streaming: false,

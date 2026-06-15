@@ -22,6 +22,7 @@ import {
   listNotebookProblemAttempts,
   listCourseProblems,
   previewCourseProblemImport,
+  runNotebookCodeProblem,
   submitNotebookProblem,
   updateCourseProblem,
   type NotebookProblemClientRecord,
@@ -80,6 +81,16 @@ export type CourseProblemPracticeAttemptResolvedEvent = {
   feedback: string;
 };
 
+export type CourseCodeRunTarget = 'code' | 'public' | 'secret';
+
+export type CourseCodeRunResult = {
+  attempt?: NotebookProblemAttemptRecord;
+  error?: string;
+  code: string;
+  target: CourseCodeRunTarget;
+  ranAt: number;
+};
+
 export function useCourseProblemBankController({
   courseId,
   initialNotebookId,
@@ -119,6 +130,9 @@ export function useCourseProblemBankController({
   const [choiceAnswers, setChoiceAnswers] = useState<Record<string, string[]>>({});
   const [blankAnswers, setBlankAnswers] = useState<Record<string, Record<string, string>>>({});
   const [codeAnswers, setCodeAnswers] = useState<Record<string, string>>({});
+  const [runningCode, setRunningCode] = useState(false);
+  const [runningCodeTarget, setRunningCodeTarget] = useState<CourseCodeRunTarget | null>(null);
+  const [codeRunResults, setCodeRunResults] = useState<Record<string, CourseCodeRunResult>>({});
   const [answerFeedbackByProblemId, setAnswerFeedbackByProblemId] = useState<
     Record<string, InlineAnswerFeedback>
   >({});
@@ -770,11 +784,15 @@ export function useCourseProblemBankController({
             [problem.id]: answer.blanks ?? {},
           }));
         }
-        if (typeof answer.code === 'string') {
-          setCodeAnswers((prev) => ({
-            ...prev,
-            [problem.id]: answer.code ?? '',
-          }));
+        if (typeof answer.code === 'string' && answer.code.trim()) {
+          setCodeAnswers((prev) =>
+            Object.prototype.hasOwnProperty.call(prev, problem.id)
+              ? prev
+              : {
+                  ...prev,
+                  [problem.id]: answer.code ?? '',
+                },
+          );
         }
         if (typeof answer.text === 'string') {
           setTextAnswers((prev) => ({
@@ -1287,30 +1305,38 @@ export function useCourseProblemBankController({
   }, [canEditProblems, courseId, deletingProblem, locale, selectedProblem]);
 
   const handleSubmitInlineAnswer = useCallback(async () => {
-    if (!selectedProblem || submittingAnswer) return;
+    if (!selectedProblem || submittingAnswer) return false;
     if (!selectedProblem.notebookId) {
       toast.error(
         locale === 'zh-CN'
           ? '请先为这道题设置归属章节并保存，才能作答。'
           : 'Assign this problem to a notebook and save before submitting.',
       );
-      return;
+      return false;
     }
     const photoMode = supportsPhotoAnswer(selectedProblem) && selectedAnswerMode === 'photo';
     const selectedPhotos = photoAnswers[selectedProblem.id] ?? [];
     if (photoMode && selectedPhotos.length === 0) {
       toast.error(locale === 'zh-CN' ? '请先上传照片答案。' : 'Upload a photo answer first.');
-      return;
+      return false;
     }
     const selectedChoiceOptionIds = choiceAnswers[selectedProblem.id] ?? [];
     if (selectedProblem.type === 'choice' && selectedChoiceOptionIds.length === 0) {
       toast.error(locale === 'zh-CN' ? '请先选择一个答案。' : 'Choose an answer first.');
-      return;
+      return false;
     }
     const immediateChoiceFeedback =
       selectedProblem.type === 'choice'
         ? buildChoiceAnswerFeedback(selectedProblem, selectedChoiceOptionIds, locale)
         : null;
+    const selectedCodeAnswer =
+      selectedProblem.type === 'code' && selectedProblemContent?.type === 'code'
+        ? (codeAnswers[selectedProblem.id] ?? selectedProblemContent.starterCode ?? '')
+        : '';
+    if (selectedProblem.type === 'code' && !selectedCodeAnswer.trim()) {
+      toast.error(locale === 'zh-CN' ? '请先填写代码。' : 'Code is required.');
+      return false;
+    }
     if (immediateChoiceFeedback) {
       setAnswerFeedbackByProblemId((prev) => ({
         ...prev,
@@ -1325,7 +1351,7 @@ export function useCourseProblemBankController({
           : selectedProblem.type === 'fill_blank'
             ? { blanks: blankAnswers[selectedProblem.id] ?? {} }
             : selectedProblem.type === 'code'
-              ? { code: codeAnswers[selectedProblem.id] ?? '' }
+              ? { code: selectedCodeAnswer }
               : photoMode
                 ? { images: selectedPhotos }
                 : { text: textAnswers[selectedProblem.id] ?? '' };
@@ -1335,6 +1361,12 @@ export function useCourseProblemBankController({
         language: locale,
         ...payload,
       });
+      if (selectedProblem.type === 'code') {
+        setCodeAnswers((prev) => ({
+          ...prev,
+          [selectedProblem.id]: selectedCodeAnswer,
+        }));
+      }
       setProblems((prev) =>
         prev.map((problem) =>
           problem.id === selectedProblem.id
@@ -1368,19 +1400,14 @@ export function useCourseProblemBankController({
           saving: false,
         },
       }));
+      setAnswerPanelTab('history');
       onPracticeAttemptResolved?.({
         problemId: selectedProblem.id,
         status: attempt.status,
         score,
         feedback,
       });
-      if (attempt.status === 'passed') {
-        toast.success(locale === 'zh-CN' ? '回答正确' : 'Correct');
-      } else if (attempt.status === 'failed') {
-        toast.error(locale === 'zh-CN' ? '回答不正确' : 'Incorrect');
-      } else {
-        toast.success(locale === 'zh-CN' ? '已提交答案' : 'Answer submitted');
-      }
+      return true;
     } catch (error) {
       setAnswerFeedbackByProblemId((prev) => ({
         ...prev,
@@ -1397,6 +1424,7 @@ export function useCourseProblemBankController({
         },
       }));
       toast.error(error instanceof Error ? error.message : 'Submit failed');
+      return false;
     } finally {
       setSubmittingAnswer(false);
     }
@@ -1407,11 +1435,135 @@ export function useCourseProblemBankController({
     locale,
     photoAnswers,
     selectedProblem,
+    selectedProblemContent,
     selectedAnswerMode,
     onPracticeAttemptResolved,
     submittingAnswer,
     textAnswers,
   ]);
+
+  const handleRunCodeAnswer = useCallback(
+    async (target: CourseCodeRunTarget = 'public') => {
+      if (!selectedProblem || runningCode) return false;
+      if (selectedProblem.type !== 'code' || selectedProblemContent?.type !== 'code') return false;
+      if (!selectedProblem.notebookId) {
+        toast.error(
+          locale === 'zh-CN'
+            ? '请先为这道题设置归属章节并保存，才能运行代码。'
+            : 'Assign this problem to a notebook and save before running code.',
+        );
+        return false;
+      }
+      if (target === 'secret' && (selectedProblem.secretJudge?.secretTests?.length ?? 0) === 0) {
+        toast.error(locale === 'zh-CN' ? '暂无隐藏测试。' : 'No secret tests available.');
+        return false;
+      }
+
+      const selectedCodeAnswer =
+        codeAnswers[selectedProblem.id] ?? selectedProblemContent.starterCode ?? '';
+      if (!selectedCodeAnswer.trim()) {
+        toast.error(locale === 'zh-CN' ? '请先填写代码。' : 'Code is required.');
+        return false;
+      }
+
+      setRunningCode(true);
+      setRunningCodeTarget(target);
+      try {
+        const { attempt, result } = await runNotebookCodeProblem({
+          notebookId: selectedProblem.notebookId,
+          problemId: selectedProblem.id,
+          code: selectedCodeAnswer,
+          target,
+          language: locale,
+        });
+        setCodeAnswers((prev) => ({
+          ...prev,
+          [selectedProblem.id]: selectedCodeAnswer,
+        }));
+        setCodeRunResults((prev) => ({
+          ...prev,
+          [selectedProblem.id]: {
+            attempt,
+            code: selectedCodeAnswer,
+            target,
+            ranAt: Date.now(),
+          },
+        }));
+        setProblems((prev) =>
+          prev.map((problem) =>
+            problem.id === selectedProblem.id
+              ? {
+                  ...problem,
+                  latestAttempt: latestAttemptFromRecord(attempt),
+                }
+              : problem,
+          ),
+        );
+        setAttemptsByProblemId((prev) => ({
+          ...prev,
+          [selectedProblem.id]: [
+            attempt,
+            ...(prev[selectedProblem.id] ?? []).filter((item) => item.id !== attempt.id),
+          ],
+        }));
+
+        if (target === 'code') {
+          if (attempt.status === 'passed') {
+            toast.success(locale === 'zh-CN' ? '代码运行完成' : 'Code ran successfully');
+          } else {
+            toast.error(
+              result?.error ||
+                result?.feedback ||
+                (locale === 'zh-CN' ? '代码运行出错' : 'Code failed'),
+            );
+          }
+        } else if (attempt.status === 'passed') {
+          toast.success(
+            target === 'secret'
+              ? locale === 'zh-CN'
+                ? '隐藏测试全部通过'
+                : 'All secret tests passed'
+              : locale === 'zh-CN'
+                ? '公开测试全部通过'
+                : 'All public tests passed',
+          );
+        } else {
+          toast.error(
+            (locale === 'zh-CN'
+              ? result?.feedback
+                  ?.replaceAll('Public tests', '公开测试')
+                  .replaceAll('Secret tests', '隐藏测试')
+              : result?.feedback) ||
+              (target === 'secret'
+                ? locale === 'zh-CN'
+                  ? '隐藏测试未全部通过'
+                  : 'Secret tests failed'
+                : locale === 'zh-CN'
+                  ? '公开测试未全部通过'
+                  : 'Public tests failed'),
+          );
+        }
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Run failed';
+        setCodeRunResults((prev) => ({
+          ...prev,
+          [selectedProblem.id]: {
+            error: message,
+            code: selectedCodeAnswer,
+            target,
+            ranAt: Date.now(),
+          },
+        }));
+        toast.error(message);
+        return true;
+      } finally {
+        setRunningCode(false);
+        setRunningCodeTarget(null);
+      }
+    },
+    [codeAnswers, locale, runningCode, selectedProblem, selectedProblemContent],
+  );
 
   return {
     activeBankFilterCount,
@@ -1421,6 +1573,7 @@ export function useCourseProblemBankController({
     canEditProblems,
     choiceAnswers,
     codeAnswers,
+    codeRunResults,
     commitLoading,
     courseAccessRole,
     courseHasTranslations,
@@ -1443,6 +1596,7 @@ export function useCourseProblemBankController({
     handlePreviewImport,
     handleProblemInfoTabChange,
     handleRemovePhotoAnswer,
+    handleRunCodeAnswer,
     handleSaveAssignment,
     handleSaveDraftEditor,
     handleSaveManualDraft,
@@ -1488,6 +1642,8 @@ export function useCourseProblemBankController({
     problemPageCount,
     problems,
     router,
+    runningCode,
+    runningCodeTarget,
     sameNotebookProblems,
     savingAssignment,
     searchQuery,

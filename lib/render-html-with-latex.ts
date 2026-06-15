@@ -66,6 +66,15 @@ function repairSplitMathAcrossParagraphs(html: string): string {
   return output;
 }
 
+function isInsideLatexIgnoredElement(node: Text): boolean {
+  let element = node.parentElement;
+  while (element) {
+    if (['CODE', 'PRE', 'SCRIPT', 'STYLE'].includes(element.tagName)) return true;
+    element = element.parentElement;
+  }
+  return false;
+}
+
 /**
  * 顶栏/标题等纯文本中若含 \(...\)、\[...\]、$...$，渲染为 KaTeX HTML；否则整段转义为安全纯文本 HTML。
  */
@@ -113,9 +122,7 @@ function normalizeTitleMathRest(rest: string): string {
   const chineseSuffixMatch = rest.match(/^(.+?)(（[^）]*）)$/u);
   if (chineseSuffixMatch) {
     const expression = wrapTitleMathSegment(chineseSuffixMatch[1]);
-    return expression === chineseSuffixMatch[1]
-      ? rest
-      : `${expression}${chineseSuffixMatch[2]}`;
+    return expression === chineseSuffixMatch[1] ? rest : `${expression}${chineseSuffixMatch[2]}`;
   }
 
   const onIntervalMatch = rest.match(/^(.+?)\s+(on)\s+(\[[^\]]+\])$/i);
@@ -191,6 +198,7 @@ export function renderHtmlWithLatex(html: string): string {
     const node = walker.currentNode as Text;
     if (
       node.nodeValue &&
+      !isInsideLatexIgnoredElement(node) &&
       (containsMathSyntax(node.nodeValue) || /\\(?!text\b)[a-zA-Z]+/.test(node.nodeValue))
     ) {
       textNodes.push(node);

@@ -9,6 +9,28 @@ const ROOT = process.cwd();
 const DEFAULT_COURSE_ID = 'cmpnueg4p001d8o017jee1mjq';
 const DEFAULT_SOURCE_PATH = 'queue/production-csc108-questions.json';
 const SOURCE_FILE_NAME = 'production-csc108-questions.json';
+const CATEGORY_NOTEBOOK_IDS = {
+  Basic: 'queue-csc108-02-control',
+  Dictionary: 'queue-csc108-07-dictionary',
+  List: 'queue-csc108-04-list',
+  Loop: 'queue-csc108-03-loop',
+  OOP: 'queue-csc108-11-class',
+  Regex: 'queue-csc108-09-regex',
+  StringMethod: 'queue-csc108-02-control',
+  Ticket: 'queue-csc108-02-control',
+};
+
+const FUNCTION_NOTEBOOK_IDS = {
+  swap_values: 'queue-csc108-04-list',
+  my_find: 'queue-csc108-10-running-time',
+  my_split: 'queue-csc108-04-list',
+  has_3_consecutive_letters: 'queue-csc108-03-loop',
+  find_first_uppercase: 'queue-csc108-03-loop',
+  letters_first_digits_last: 'queue-csc108-03-loop',
+  time_on_task: 'queue-csc108-10-running-time',
+  find_palindrome_words: 'queue-csc108-04-list',
+  word_pattern: 'queue-csc108-07-dictionary',
+};
 
 function loadEnvLocal() {
   const envPath = path.join(ROOT, '.env.local');
@@ -161,6 +183,12 @@ function normalizeDifficulty(value) {
   return ['easy', 'medium', 'hard'].includes(value) ? value : 'medium';
 }
 
+function notebookIdForQuestion(question) {
+  return (
+    FUNCTION_NOTEBOOK_IDS[question.functionName] ?? CATEGORY_NOTEBOOK_IDS[question.category] ?? null
+  );
+}
+
 function buildDrafts(sourceData) {
   const templateExport = sourceData.templateExports?.[0];
   const questions = Array.isArray(templateExport?.questions) ? templateExport.questions : [];
@@ -183,6 +211,7 @@ function buildDrafts(sourceData) {
 
     return {
       draftId: `production-csc108-${question.id}`,
+      notebookId: notebookIdForQuestion(question),
       title: String(
         question.title || question.functionName || `CSC108 question ${question.id}`,
       ).slice(0, 200),
@@ -229,6 +258,7 @@ function buildDrafts(sourceData) {
         sourceFunctionName: question.functionName,
         sourceCreatedAt: question.createdAt,
         sourceUpdatedAt: question.updatedAt,
+        assignedNotebookId: notebookIdForQuestion(question),
       },
       validationErrors,
     };
@@ -317,6 +347,23 @@ async function main() {
     const draftsToInsert = drafts.filter(
       (draft) => !existingSourceIds.has(String(draft.sourceMeta.sourceQuestionId)),
     );
+    const assignedNotebookIds = Array.from(
+      new Set(draftsToInsert.map((draft) => draft.notebookId).filter(Boolean)),
+    );
+    const existingAssignedNotebookIds =
+      assignedNotebookIds.length > 0
+        ? new Set(
+            (
+              await prisma.notebook.findMany({
+                where: { id: { in: assignedNotebookIds }, courseId },
+                select: { id: true },
+              })
+            ).map((notebook) => notebook.id),
+          )
+        : new Set();
+    const missingAssignedNotebookIds = assignedNotebookIds.filter(
+      (notebookId) => !existingAssignedNotebookIds.has(notebookId),
+    );
 
     const publicTestCount = draftsToInsert.reduce(
       (sum, draft) => sum + draft.publicContent.publicTests.length,
@@ -340,6 +387,7 @@ async function main() {
           publicTestCount,
           secretTestCount,
           draftProblemCount,
+          missingAssignedNotebookIds,
           categories: draftsToInsert.reduce((acc, draft) => {
             const category = draft.sourceMeta.sourceCategory || 'Unknown';
             acc[category] = (acc[category] ?? 0) + 1;
@@ -352,6 +400,9 @@ async function main() {
     );
 
     if (!write || draftsToInsert.length === 0) return;
+    if (missingAssignedNotebookIds.length > 0) {
+      throw new Error(`Missing CSC108 notebooks: ${missingAssignedNotebookIds.join(', ')}`);
+    }
 
     const notebookIds = (
       await prisma.notebook.findMany({
@@ -393,7 +444,7 @@ async function main() {
           const created = await tx.notebookProblem.create({
             data: {
               courseId,
-              notebookId: null,
+              notebookId: draft.notebookId,
               title: draft.title,
               type: draft.type,
               status: draft.status,

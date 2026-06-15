@@ -84,12 +84,124 @@ function formatEvidence(packet: MemoryEvidencePacket, index: number): string {
   ].join('\n');
 }
 
-function formatMemory(memory: StudyMemoryRecord, index: number): string {
+function formatProgrammingEvidence(packet: MemoryEvidencePacket, index: number): string {
+  return [
+    `${index + 1}. ${packet.title}`,
+    compact(packet.renderedText || packet.originalText, 700)
+      .split('\n')
+      .map((line) => `   ${line}`)
+      .join('\n'),
+  ].join('\n');
+}
+
+function evidenceText(packet: MemoryEvidencePacket): string {
+  return [packet.title, packet.renderedText, packet.originalText].join('\n').toLowerCase();
+}
+
+function isProgrammingPrerequisiteEvidence(packet: MemoryEvidencePacket): boolean {
+  if (packet.sourceType !== 'markdown_section') return false;
+  const text = evidenceText(packet);
+  return /索引|边界|越界|range\s*\(|len\(|length|modulo|取模|%/.test(text);
+}
+
+function programmingInputSummary(query: string): string {
+  const beforeCodeOrProblem =
+    query
+      .split(
+        /\n\s*(?:Starter|题目|Function signature|Docstring|Examples?|代码|```|#reader|def\s+\w+\s*\(|class\s+\w+)/i,
+      )[0]
+      ?.trim() || '';
+  const firstParagraph = beforeCodeOrProblem || query.split(/\n{2,}/)[0]?.trim() || '';
+  return compact(firstParagraph || 'programming question supplied in Student question', 180);
+}
+
+const EXECUTION_CONTRACT_HEADING_RE =
+  /^(?:#{1,4}\s*)?(执行合约|回答合约|触发条件|适用触发|必须输出|必须包含|禁止事项|禁止|常见错误|验收清单|检查清单|Local\/HtDF 边界|Local\/HtDF boundary|Answer contract|When to apply|Required artifacts|Required output|Forbidden mistakes|Validation checklist|Common mistakes)\s*[:：]?\s*$/i;
+
+const FALLBACK_OPERATIONAL_HEADING_RE =
+  /^(?:#{1,4}\s*)?(格式规则|格式要求|检查点|关键规则|Two One-of 格式|HTDF 格式|One-of 习惯)\s*[:：]?\s*$/i;
+
+function markdownHeadingTitle(line: string): string | null {
+  const match = line.match(/^#{1,4}\s+(.+?)\s*#*\s*$/);
+  return match?.[1]?.trim() || null;
+}
+
+function extractMemorySections(text: string, headingPattern: RegExp): string[] {
+  const lines = String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n');
+  const sections: string[] = [];
+  let current: string[] | null = null;
+  let currentLevel = 0;
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,4})\s+(.+?)\s*#*\s*$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const title = headingMatch[2].trim();
+      if (current && level <= currentLevel) {
+        sections.push(current.join('\n').trim());
+        current = null;
+        currentLevel = 0;
+      }
+      if (headingPattern.test(title)) {
+        current = [line.trim()];
+        currentLevel = level;
+      }
+      continue;
+    }
+
+    const plainTitle = markdownHeadingTitle(line) || line.trim();
+    if (!line.startsWith('#') && headingPattern.test(plainTitle)) {
+      if (current) sections.push(current.join('\n').trim());
+      current = [line.trim()];
+      currentLevel = 99;
+      continue;
+    }
+
+    if (current) current.push(line);
+  }
+
+  if (current) sections.push(current.join('\n').trim());
+  return sections.filter(Boolean);
+}
+
+function formatMemoryTextForProgramming(memory: StudyMemoryRecord): string {
+  const text = memory.text || memory.reason || '';
+  const contractSections = extractMemorySections(text, EXECUTION_CONTRACT_HEADING_RE);
+  const fallbackSections =
+    contractSections.length > 0
+      ? []
+      : extractMemorySections(text, FALLBACK_OPERATIONAL_HEADING_RE).slice(0, 3);
+  const selected = contractSections.length > 0 ? contractSections : fallbackSections;
+
+  if (selected.length > 0) {
+    return [
+      contractSections.length > 0
+        ? '   operational_contract:'
+        : '   operational_notes_from_legacy_memory:',
+      compact(selected.join('\n\n'), contractSections.length > 0 ? 1800 : 1200)
+        .split('\n')
+        .map((line) => `   ${line}`)
+        .join('\n'),
+      contractSections.length > 0 ? `   brief_context: ${compact(text, 320)}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return `   text: ${compact(text, 900)}`;
+}
+
+function formatMemory(memory: StudyMemoryRecord, index: number, isProgrammingHelp = false): string {
   const scope = memory.scope === 'private' ? 'private_learner_memory' : 'public_course_memory';
+  const text = isProgrammingHelp
+    ? formatMemoryTextForProgramming(memory)
+    : `   text: ${compact(memory.text || memory.reason || '', 700)}`;
   return [
     `${index + 1}. ${memory.title}`,
     `   scope: ${scope}; kind=${memory.kind}; target=${memory.targetType}`,
-    `   text: ${compact(memory.text || memory.reason || '', 700)}`,
+    text,
   ].join('\n');
 }
 
@@ -167,12 +279,17 @@ function formatLearnerAnalytics(context: MemoryRecallContext): string[] {
 export function buildNotebookChatMemoryToolOutput(args: {
   query: string;
   context: MemoryRecallContext;
+  mode?: 'general' | 'programming_help';
 }): string {
   const { context } = args;
+  const mode = args.mode || 'general';
+  const isProgrammingHelp = mode === 'programming_help';
   if (context.storage === 'unavailable') {
     return [
       '<tool name="search_course_memory">',
-      `input: ${args.query}`,
+      isProgrammingHelp
+        ? 'input: omitted; full problem statement is already present in User message'
+        : `input: ${args.query}`,
       'status: unavailable',
       'reason: database-backed memory is not available for this request',
       '</tool>',
@@ -181,75 +298,117 @@ export function buildNotebookChatMemoryToolOutput(args: {
 
   const intent = context.searchIntent;
   const recallScope = context.scope;
-  const facts = context.staticFacts.slice(0, 10).map((fact, index) => {
+  const facts = context.staticFacts.slice(0, 6).map((fact, index) => {
     const scope = fact.scopeId ? `${fact.scopeType}:${fact.scopeId}` : fact.scopeType;
     return `${index + 1}. ${fact.namespace}.${fact.key} = ${compact(
       factValueText(fact.valueJson),
       260,
     )} (scope=${scope}; source=${fact.source})`;
   });
-  const sourceEvidence = orderedEvidence(context).slice(0, 8).map(formatEvidence);
-  const memories = uniqueMemories([...context.directMemories, ...context.semanticMatches])
-    .slice(0, 6)
-    .map(formatMemory);
-  const knowledgeMatches = context.knowledgeMatches.slice(0, 6).map((match, index) => {
-    const tags = match.metadata.tags.length ? `tags=${match.metadata.tags.join(',')}` : '';
-    const notebook = match.metadata.notebookName ? `notebook=${match.metadata.notebookName}` : '';
-    const progress =
-      match.metadata.attemptedCount > 0
-        ? `attempt=${match.metadata.attemptStatus || 'attempted'}`
-        : 'attempt=unattempted';
-    return [
-      `${index + 1}. ${match.title}`,
-      `   source: problem_bank; ${[notebook, tags, progress].filter(Boolean).join('; ')}`,
-      `   preview: ${compact(match.text, 500)}`,
-    ].join('\n');
-  });
-
+  const orderedSourceEvidence = orderedEvidence(context);
+  const sourceEvidence = (
+    isProgrammingHelp
+      ? orderedSourceEvidence.filter(isProgrammingPrerequisiteEvidence).slice(0, 3)
+      : orderedSourceEvidence.slice(0, 4)
+  ).map((packet, index) =>
+    isProgrammingHelp ? formatProgrammingEvidence(packet, index) : formatEvidence(packet, index),
+  );
+  const memories = (
+    isProgrammingHelp
+      ? uniqueMemories([...context.directMemories, ...context.semanticMatches]).filter(
+          (memory) => memory.scope !== 'private',
+        )
+      : uniqueMemories([...context.directMemories, ...context.semanticMatches])
+  )
+    .slice(0, 4)
+    .map((memory, index) => formatMemory(memory, index, isProgrammingHelp));
+  const knowledgeMatches = (isProgrammingHelp ? [] : context.knowledgeMatches.slice(0, 4)).map(
+    (match, index) => {
+      const tags = match.metadata.tags.length ? `tags=${match.metadata.tags.join(',')}` : '';
+      const notebook = match.metadata.notebookName ? `notebook=${match.metadata.notebookName}` : '';
+      const progress =
+        match.metadata.attemptedCount > 0
+          ? `attempt=${match.metadata.attemptStatus || 'attempted'}`
+          : 'attempt=unattempted';
+      return [
+        `${index + 1}. ${match.title}`,
+        `   source: problem_bank; ${[notebook, tags, progress].filter(Boolean).join('; ')}`,
+        `   preview: ${compact(match.text, 500)}`,
+      ].join('\n');
+    },
+  );
+  const learnerAnalyticsLines = isProgrammingHelp ? [] : formatLearnerAnalytics(context);
+  const sourceEvidenceHeading = isProgrammingHelp
+    ? 'supporting_prerequisite_evidence:'
+    : 'original_source_evidence:';
+  const weakProgrammingEvidence =
+    isProgrammingHelp && sourceEvidence.length === 0
+      ? [
+          'evidence_quality: weak',
+          'missing_notebook_evidence:',
+          '- No notebook section directly explains this exact programming pattern.',
+          '- Use the supplied problem statement as the primary source.',
+        ]
+      : [];
+  if (isProgrammingHelp) {
+    return compact(
+      [
+        '<tool name="search_course_memory">',
+        'status: completed',
+        'mode: programming_help',
+        `input_summary: ${programmingInputSummary(args.query)}`,
+        'note: full problem text is already in Student question; not repeated here.',
+        memories.length > 0 ? 'study_memory_evidence:' : '',
+        ...memories,
+        memories.length > 0 ? '' : '',
+        sourceEvidence.length > 0 ? 'prerequisite_context:' : '',
+        ...sourceEvidence,
+        sourceEvidence.length > 0 ? '' : '',
+        ...weakProgrammingEvidence,
+        '</tool>',
+      ]
+        .filter((line) => line !== '')
+        .join('\n'),
+      5600,
+    );
+  }
   return compact(
     [
       '<tool name="search_course_memory">',
-      `input: ${args.query}`,
+      isProgrammingHelp
+        ? 'input: omitted; full problem statement is already present in User message'
+        : `input: ${args.query}`,
+      isProgrammingHelp ? `input_summary: ${programmingInputSummary(args.query)}` : '',
       'status: completed',
       '',
-      'plan:',
+      'context_summary:',
       `- kind: ${intent.kind}`,
-      `- rewrittenQuery: ${intent.rewrittenQuery}`,
-      `- progressFilter: ${intent.progressFilter || 'none'}`,
       `- answerMode: ${intent.plan.answerMode}`,
-      `- scopeMode: ${intent.scopeMode}`,
-      `- scopeReason: ${intent.scopeReason}`,
       `- effectiveScope: ${recallScope.effectiveMode}`,
-      `- expandedFromNotebookToCourse: ${recallScope.expanded ? 'yes' : 'no'}`,
-      `- effectiveTarget: ${recallScope.effectiveTargetType}:${recallScope.effectiveTargetId}`,
       `- summary: ${intent.plan.summary}`,
-      `- primarySources: ${intent.plan.primarySources.join(', ') || 'none'}`,
-      `- secondarySources: ${intent.plan.secondarySources.join(', ') || 'none'}`,
       '',
-      'tool_usage_policy:',
-      '- Structured facts are exact current truth and override fuzzy memories.',
-      '- Original source evidence is the preferred material for source lookup.',
-      '- For concept/source questions, answer with markdown_section original text before summaries when present.',
-      '- For problem questions, answer with the problem original text before metadata.',
-      '- For learner-understanding/status/questions, use learner analytics plus learner question/attempt history before judging mastery.',
-      '- Respect effectiveScope. If effectiveScope=notebook_local, answer about this notebook unless the user explicitly asks to widen. If expandedFromNotebookToCourse=yes, say the search was widened to the course before using cross-notebook evidence.',
-      '- If evidence is weak or missing, say exactly what was checked.',
+      'usage:',
+      '- Use only relevant context; do not expose search/planning details.',
+      '- Structured facts are exact current truth.',
+      '- Prefer original source evidence when it directly answers the user.',
+      '- If learner history is included, separate evidence from inference.',
       '',
+      ...weakProgrammingEvidence,
+      weakProgrammingEvidence.length > 0 ? '' : '',
       facts.length > 0 ? 'structured_facts:' : '',
       ...facts,
       facts.length > 0 ? '' : '',
-      sourceEvidence.length > 0 ? 'original_source_evidence:' : '',
+      sourceEvidence.length > 0 ? sourceEvidenceHeading : '',
       ...sourceEvidence,
       sourceEvidence.length > 0 ? '' : '',
       memories.length > 0 ? 'study_memory_evidence:' : '',
       ...memories,
       memories.length > 0 ? '' : '',
-      ...formatLearnerAnalytics(context),
-      context.learnerAnalytics ? '' : '',
+      ...learnerAnalyticsLines,
+      learnerAnalyticsLines.length > 0 ? '' : '',
       knowledgeMatches.length > 0 ? 'metadata_filtered_problem_matches:' : '',
       ...knowledgeMatches,
       '',
-      `counts: facts=${context.staticFacts.length}; originalSources=${context.sourceEvidenceCount}; learnerAnalytics=${context.learnerAnalyticsCount}; memories=${context.directCount + context.semanticCount}; problemMatches=${context.knowledgeCount}; localEvidence=${recallScope.localEvidenceCount}; courseEvidence=${recallScope.courseEvidenceCount}; vectorUsed=${context.vectorUsed}`,
       '</tool>',
     ]
       .filter((line) => line !== '')

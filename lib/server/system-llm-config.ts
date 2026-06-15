@@ -3,7 +3,7 @@ import { getPrismaOrNull } from '@/lib/server/prisma-safe';
 
 const log = createLogger('SystemLLMConfig');
 
-export const DEFAULT_OPENAI_MODEL = process.env.DEFAULT_MODEL?.trim() || 'gpt-4o-mini';
+export const DEFAULT_OPENAI_MODEL = process.env.DEFAULT_MODEL?.trim() || 'gpt-5.4';
 export const DEFAULT_OPENAI_BASE_URL =
   process.env.OPENAI_BASE_URL?.trim() || 'https://api.openai.com/v1';
 
