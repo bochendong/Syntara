@@ -29,6 +29,7 @@ import {
 } from '@/lib/utils/notebook-problem-api';
 import { listStagesByCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { getCourse } from '@/lib/utils/course-storage';
+import { queueProblemAttemptWorkingMemoryUpdate } from '@/lib/learning/working-memory-tasks';
 import type { CourseRecord } from '@/lib/utils/database';
 import { useAnswerComposerController } from '@/components/problem-bank/answer-composer';
 import { problemRecordToDraft } from '@/lib/problem-bank/editor';
@@ -70,6 +71,7 @@ type CourseProblemBankControllerArgs = {
   courseId: string;
   initialNotebookId?: string;
   initialProblemId?: string;
+  initialFilters?: CourseProblemBankInitialFilters;
   mode?: 'bank' | 'practice';
   onPracticeAttemptResolved?: (event: CourseProblemPracticeAttemptResolvedEvent) => void;
 };
@@ -91,10 +93,78 @@ export type CourseCodeRunResult = {
   ranAt: number;
 };
 
+export type CourseProblemBankInitialFilters = {
+  searchQuery?: string;
+  practiceFilter?: string;
+  typeFilter?: string;
+  difficultyFilter?: string;
+  notebookFilter?: string;
+  statusFilter?: string;
+};
+
+const PRACTICE_FILTER_VALUES = ['all', 'review', 'wrong', 'unattempted', 'mastered'] as const;
+const PROBLEM_TYPE_FILTER_VALUES = [
+  'all',
+  'short_answer',
+  'choice',
+  'proof',
+  'calculation',
+  'fill_blank',
+  'code',
+] as const;
+const DIFFICULTY_FILTER_VALUES = ['all', 'easy', 'medium', 'hard'] as const;
+const STATUS_FILTER_VALUES = ['all', 'draft', 'published', 'archived'] as const;
+
+function hasStringValue<const T extends readonly string[]>(
+  values: T,
+  value: string,
+): value is T[number] {
+  return (values as readonly string[]).includes(value);
+}
+
+function normalizeInitialFilterValue(value: string | undefined): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeInitialSearchQuery(value: string | undefined): string {
+  return normalizeInitialFilterValue(value);
+}
+
+function normalizeInitialPracticeFilter(value: string | undefined): PracticeFilter {
+  const next = normalizeInitialFilterValue(value);
+  return hasStringValue(PRACTICE_FILTER_VALUES, next) ? next : 'all';
+}
+
+function normalizeInitialTypeFilter(
+  value: string | undefined,
+): 'all' | NotebookProblemClientRecord['type'] {
+  const next = normalizeInitialFilterValue(value);
+  return hasStringValue(PROBLEM_TYPE_FILTER_VALUES, next) ? next : 'all';
+}
+
+function normalizeInitialDifficultyFilter(
+  value: string | undefined,
+): 'all' | NotebookProblemClientRecord['difficulty'] {
+  const next = normalizeInitialFilterValue(value);
+  return hasStringValue(DIFFICULTY_FILTER_VALUES, next) ? next : 'all';
+}
+
+function normalizeInitialNotebookFilter(value: string | undefined): string {
+  return normalizeInitialFilterValue(value) || 'all';
+}
+
+function normalizeInitialStatusFilter(
+  value: string | undefined,
+): 'all' | NotebookProblemClientRecord['status'] {
+  const next = normalizeInitialFilterValue(value);
+  return hasStringValue(STATUS_FILTER_VALUES, next) ? next : 'all';
+}
+
 export function useCourseProblemBankController({
   courseId,
   initialNotebookId,
   initialProblemId,
+  initialFilters,
   mode = 'bank',
   onPracticeAttemptResolved,
 }: CourseProblemBankControllerArgs) {
@@ -143,16 +213,24 @@ export function useCourseProblemBankController({
     string | null
   >(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() =>
+    normalizeInitialSearchQuery(initialFilters?.searchQuery),
+  );
   const [problemPage, setProblemPage] = useState(1);
-  const [practiceFilter, setPracticeFilter] = useState<PracticeFilter>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | NotebookProblemClientRecord['type']>('all');
+  const [practiceFilter, setPracticeFilter] = useState<PracticeFilter>(() =>
+    normalizeInitialPracticeFilter(initialFilters?.practiceFilter),
+  );
+  const [typeFilter, setTypeFilter] = useState<'all' | NotebookProblemClientRecord['type']>(() =>
+    normalizeInitialTypeFilter(initialFilters?.typeFilter),
+  );
   const [difficultyFilter, setDifficultyFilter] = useState<
     'all' | NotebookProblemClientRecord['difficulty']
-  >('all');
-  const [notebookFilter, setNotebookFilter] = useState('all');
+  >(() => normalizeInitialDifficultyFilter(initialFilters?.difficultyFilter));
+  const [notebookFilter, setNotebookFilter] = useState(() =>
+    normalizeInitialNotebookFilter(initialFilters?.notebookFilter || initialNotebookId),
+  );
   const [statusFilter, setStatusFilter] = useState<'all' | NotebookProblemClientRecord['status']>(
-    'all',
+    () => normalizeInitialStatusFilter(initialFilters?.statusFilter),
   );
 
   const [importOpen, setImportOpen] = useState(false);
@@ -334,6 +412,45 @@ export function useCourseProblemBankController({
     [filteredProblems, pageStartIndex],
   );
   const pageEndIndex = Math.min(pageStartIndex + paginatedProblems.length, filteredProblems.length);
+  const buildProblemBankFilterSearchParams = useCallback(() => {
+    const params = new URLSearchParams();
+    const query = searchQuery.trim();
+    const scopedNotebookId = normalizeInitialFilterValue(initialNotebookId);
+    const normalizedNotebookFilter = normalizeInitialNotebookFilter(notebookFilter);
+
+    if (query) params.set('q', query);
+    if (practiceFilter !== 'all') params.set('practice', practiceFilter);
+    if (typeFilter !== 'all') params.set('type', typeFilter);
+    if (difficultyFilter !== 'all') params.set('difficulty', difficultyFilter);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    if (scopedNotebookId) params.set('notebookId', scopedNotebookId);
+    if (normalizedNotebookFilter !== 'all' && normalizedNotebookFilter !== scopedNotebookId) {
+      params.set('notebookFilter', normalizedNotebookFilter);
+    }
+
+    return params.toString();
+  }, [
+    difficultyFilter,
+    initialNotebookId,
+    notebookFilter,
+    practiceFilter,
+    searchQuery,
+    statusFilter,
+    typeFilter,
+  ]);
+  const getProblemBankHref = useCallback(() => {
+    const query = buildProblemBankFilterSearchParams();
+    const path = `/course/${encodeURIComponent(courseId)}/problem-bank`;
+    return query ? `${path}?${query}` : path;
+  }, [buildProblemBankFilterSearchParams, courseId]);
+  const getPracticeProblemHref = useCallback(
+    (problem: NotebookProblemClientRecord) => {
+      const query = buildProblemBankFilterSearchParams();
+      const path = `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`;
+      return query ? `${path}?${query}` : path;
+    },
+    [buildProblemBankFilterSearchParams, courseId],
+  );
 
   const activeProblems = useMemo(
     () => problems.filter((problem) => problem.status !== 'archived'),
@@ -608,6 +725,39 @@ export function useCourseProblemBankController({
       )
       .sort(compareProblemSequence);
   }, [problems, selectedProblem?.notebookId]);
+  const hasActivePracticeNavigationFilters = useMemo(
+    () =>
+      Boolean(searchQuery.trim()) ||
+      Boolean(normalizeInitialFilterValue(initialNotebookId)) ||
+      practiceFilter !== 'all' ||
+      typeFilter !== 'all' ||
+      difficultyFilter !== 'all' ||
+      notebookFilter !== 'all' ||
+      statusFilter !== 'all',
+    [
+      difficultyFilter,
+      initialNotebookId,
+      notebookFilter,
+      practiceFilter,
+      searchQuery,
+      statusFilter,
+      typeFilter,
+    ],
+  );
+  const filteredPracticeProblemIndex = useMemo(() => {
+    if (!selectedProblem) return -1;
+    return filteredProblems.findIndex((problem) => problem.id === selectedProblem.id);
+  }, [filteredProblems, selectedProblem]);
+  const hasFilteredPracticeNavigation =
+    hasActivePracticeNavigationFilters && filteredPracticeProblemIndex >= 0;
+  const previousFilteredPracticeProblem =
+    hasFilteredPracticeNavigation && filteredPracticeProblemIndex > 0
+      ? filteredProblems[filteredPracticeProblemIndex - 1]
+      : null;
+  const nextFilteredPracticeProblem =
+    hasFilteredPracticeNavigation && filteredPracticeProblemIndex >= 0
+      ? (filteredProblems[filteredPracticeProblemIndex + 1] ?? null)
+      : null;
   const nextNotebookProblem = useMemo(() => {
     if (!selectedProblem || sameNotebookProblems.length === 0) return null;
     const currentIndex = sameNotebookProblems.findIndex(
@@ -645,17 +795,37 @@ export function useCourseProblemBankController({
     }
     return null;
   }, [notebookProblemGroups, previousNotebookProblem, selectedProblem?.notebookId]);
-  const previousPracticeTarget = previousNotebookProblem ?? previousChapterProblem;
-  const nextPracticeTarget = nextNotebookProblem ?? nextChapterProblem;
-  const previousPracticeIsChapterJump = !previousNotebookProblem && Boolean(previousChapterProblem);
-  const nextPracticeIsChapterJump = !nextNotebookProblem && Boolean(nextChapterProblem);
+  const previousPracticeTarget = hasFilteredPracticeNavigation
+    ? previousFilteredPracticeProblem
+    : (previousNotebookProblem ?? previousChapterProblem);
+  const nextPracticeTarget = hasFilteredPracticeNavigation
+    ? nextFilteredPracticeProblem
+    : (nextNotebookProblem ?? nextChapterProblem);
+  const previousPracticeIsChapterJump = hasFilteredPracticeNavigation
+    ? false
+    : !previousNotebookProblem && Boolean(previousChapterProblem);
+  const nextPracticeIsChapterJump = hasFilteredPracticeNavigation
+    ? false
+    : !nextNotebookProblem && Boolean(nextChapterProblem);
   const currentNotebookProblemPosition = useMemo(() => {
+    if (hasFilteredPracticeNavigation) return filteredPracticeProblemIndex + 1;
     if (!selectedProblem || sameNotebookProblems.length === 0) return 0;
     const currentIndex = sameNotebookProblems.findIndex(
       (problem) => problem.id === selectedProblem.id,
     );
     return currentIndex >= 0 ? currentIndex + 1 : 0;
-  }, [sameNotebookProblems, selectedProblem]);
+  }, [
+    filteredPracticeProblemIndex,
+    hasFilteredPracticeNavigation,
+    sameNotebookProblems,
+    selectedProblem,
+  ]);
+  const practiceNavigationProblemCount = hasFilteredPracticeNavigation
+    ? filteredProblems.length
+    : sameNotebookProblems.length;
+  const deleteReplacementPracticeTarget = hasFilteredPracticeNavigation
+    ? (nextFilteredPracticeProblem ?? previousFilteredPracticeProblem)
+    : (nextPracticeTarget ?? previousPracticeTarget);
   const selectedProblemEditDraft = useMemo(
     () => (selectedProblem ? problemRecordToDraft(selectedProblem) : null),
     [selectedProblem],
@@ -840,19 +1010,18 @@ export function useCourseProblemBankController({
   ]);
   const navigateToPracticeProblem = useCallback(
     (problem: NotebookProblemClientRecord) => {
+      const nextPath = getPracticeProblemHref(problem);
       if (!isPracticeMode) {
-        router.push(
-          `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-        );
+        router.push(nextPath);
         return;
       }
       setSelectedProblemId(problem.id);
-      const nextPath = `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`;
-      if (window.location.pathname !== nextPath) {
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (currentPath !== nextPath) {
         window.history.pushState(null, '', nextPath);
       }
     },
-    [courseId, isPracticeMode, router],
+    [getPracticeProblemHref, isPracticeMode, router],
   );
   const showSidebarAnswerTools = false;
   const activeBankFilterCount = [
@@ -1273,36 +1442,66 @@ export function useCourseProblemBankController({
     [canEditProblems, courseId, locale, selectedProblem],
   );
 
-  const handleDeleteProblem = useCallback(async () => {
-    if (!selectedProblem || deletingProblem) return;
-    if (!canEditProblems) {
-      toast.error(
-        locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+  const handleDeleteProblem = useCallback(
+    async (problemToDelete?: NotebookProblemClientRecord) => {
+      const targetProblem = problemToDelete ?? selectedProblem;
+      if (!targetProblem || deletingProblem) return;
+      if (!canEditProblems) {
+        toast.error(
+          locale === 'zh-CN' ? '只有课程作者可以编辑题目。' : 'Only the author can edit problems.',
+        );
+        return;
+      }
+      const confirmed = window.confirm(
+        locale === 'zh-CN'
+          ? `确认删除题目「${targetProblem.title}」吗？删除后不可恢复。`
+          : `Delete "${targetProblem.title}"? This cannot be undone.`,
       );
-      return;
-    }
-    const confirmed = window.confirm(
-      locale === 'zh-CN'
-        ? `确认删除题目「${selectedProblem.title}」吗？删除后不可恢复。`
-        : `Delete "${selectedProblem.title}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
+      if (!confirmed) return;
 
-    setDeletingProblem(true);
-    try {
-      await deleteCourseProblem({
-        courseId,
-        problemId: selectedProblem.id,
-      });
-      setProblems((prev) => prev.filter((problem) => problem.id !== selectedProblem.id));
-      setSelectedProblemId((current) => (current === selectedProblem.id ? null : current));
-      toast.success(locale === 'zh-CN' ? '题目已删除' : 'Problem deleted');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
-    } finally {
-      setDeletingProblem(false);
-    }
-  }, [canEditProblems, courseId, deletingProblem, locale, selectedProblem]);
+      setDeletingProblem(true);
+      try {
+        await deleteCourseProblem({
+          courseId,
+          problemId: targetProblem.id,
+        });
+        const deletedSelectedProblem = selectedProblem?.id === targetProblem.id;
+        const replacementProblem = deletedSelectedProblem ? deleteReplacementPracticeTarget : null;
+        setProblems((prev) => prev.filter((problem) => problem.id !== targetProblem.id));
+        setSelectedProblemId((current) =>
+          current === targetProblem.id ? (replacementProblem?.id ?? null) : current,
+        );
+        if (deletedSelectedProblem && isPracticeMode) {
+          if (replacementProblem) {
+            const nextPath = getPracticeProblemHref(replacementProblem);
+            const currentPath = `${window.location.pathname}${window.location.search}`;
+            if (currentPath !== nextPath) {
+              window.history.replaceState(null, '', nextPath);
+            }
+          } else {
+            router.replace(getProblemBankHref());
+          }
+        }
+        toast.success(locale === 'zh-CN' ? '题目已删除' : 'Problem deleted');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Delete failed');
+      } finally {
+        setDeletingProblem(false);
+      }
+    },
+    [
+      canEditProblems,
+      courseId,
+      deleteReplacementPracticeTarget,
+      deletingProblem,
+      getPracticeProblemHref,
+      getProblemBankHref,
+      isPracticeMode,
+      locale,
+      router,
+      selectedProblem,
+    ],
+  );
 
   const handleSubmitInlineAnswer = useCallback(async () => {
     if (!selectedProblem || submittingAnswer) return false;
@@ -1406,6 +1605,12 @@ export function useCourseProblemBankController({
         status: attempt.status,
         score,
         feedback,
+      });
+      queueProblemAttemptWorkingMemoryUpdate({
+        notebookId: selectedProblem.notebookId,
+        notebookName: selectedProblem.notebookName,
+        problem: selectedProblem,
+        attempt,
       });
       return true;
     } catch (error) {
@@ -1634,6 +1839,7 @@ export function useCourseProblemBankController({
     photoAnswers,
     practiceFilter,
     practiceFilterOptions,
+    practiceNavigationProblemCount,
     previewLoading,
     previousPracticeIsChapterJump,
     previousPracticeTarget,

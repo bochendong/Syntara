@@ -7,7 +7,7 @@ import { useStageStore } from '@/lib/store';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { getCourse } from '@/lib/utils/course-storage';
 import { loadImageMapping } from '@/lib/utils/image-storage';
-import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -63,20 +63,107 @@ function MarkdownNotebookReader({
   onSelectScene: (sceneId: string) => void;
   headerActions?: ReactNode;
 }) {
-  const sections = scenes.filter((scene) => scene.content.type === 'markdown');
-  const activeSectionId =
+  const sections = useMemo(
+    () => scenes.filter((scene) => scene.content.type === 'markdown'),
+    [scenes],
+  );
+  const fallbackActiveSectionId =
     currentSceneId && sections.some((scene) => scene.id === currentSceneId)
       ? currentSceneId
       : sections[0]?.id || null;
+  const [scrollActiveSectionId, setScrollActiveSectionId] = useState<string | null>(
+    fallbackActiveSectionId,
+  );
+  const activeSectionId =
+    scrollActiveSectionId && sections.some((section) => section.id === scrollActiveSectionId)
+      ? scrollActiveSectionId
+      : fallbackActiveSectionId;
+  const activeSectionIdRef = useRef<string | null>(activeSectionId);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const navItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  const scrollRafRef = useRef<number | null>(null);
   const courseHref = stage.courseId
     ? `/course/${encodeURIComponent(stage.courseId)}`
     : '/my-courses';
-  const sectionAnchors = sections.map((section, index) => ({
-    sceneId: section.id,
-    domId: `markdown-${String(section.id || index).replace(/[^a-zA-Z0-9_-]/g, '-')}`,
-    title: section.title || `Markdown ${index + 1}`,
-    summary: section.content.type === 'markdown' ? section.content.summary : undefined,
-  }));
+  const sectionAnchors = useMemo(
+    () =>
+      sections.map((section, index) => ({
+        sceneId: section.id,
+        domId: `markdown-${String(section.id || index).replace(/[^a-zA-Z0-9_-]/g, '-')}`,
+        title: section.title || `Markdown ${index + 1}`,
+        summary: section.content.type === 'markdown' ? section.content.summary : undefined,
+      })),
+    [sections],
+  );
+
+  const setActiveSection = useCallback(
+    (sceneId: string | null) => {
+      if (!sceneId || activeSectionIdRef.current === sceneId) return;
+      activeSectionIdRef.current = sceneId;
+      setScrollActiveSectionId(sceneId);
+      onSelectScene(sceneId);
+    },
+    [onSelectScene],
+  );
+
+  const syncActiveSectionFromScroll = useCallback(() => {
+    const scrollRoot = scrollContainerRef.current;
+    if (!scrollRoot || sections.length === 0) return;
+
+    const rootRect = scrollRoot.getBoundingClientRect();
+    const probeY = rootRect.top + Math.min(152, rootRect.height * 0.24);
+    let nextSectionId = sections[0]?.id ?? null;
+
+    for (const section of sections) {
+      const sectionNode = sectionRefs.current.get(section.id);
+      if (!sectionNode) continue;
+      const sectionRect = sectionNode.getBoundingClientRect();
+      if (sectionRect.top <= probeY) {
+        nextSectionId = section.id;
+      } else {
+        break;
+      }
+    }
+
+    setActiveSection(nextSectionId);
+  }, [sections, setActiveSection]);
+
+  const scheduleScrollSync = useCallback(() => {
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      syncActiveSectionFromScroll();
+    });
+  }, [syncActiveSectionFromScroll]);
+
+  useEffect(() => {
+    activeSectionIdRef.current = activeSectionId;
+  }, [activeSectionId]);
+
+  useEffect(() => {
+    const scrollRoot = scrollContainerRef.current;
+    if (!scrollRoot) return;
+
+    scrollRoot.addEventListener('scroll', scheduleScrollSync, { passive: true });
+    window.addEventListener('resize', scheduleScrollSync);
+    const initialSyncTimer = window.setTimeout(scheduleScrollSync, 0);
+
+    return () => {
+      scrollRoot.removeEventListener('scroll', scheduleScrollSync);
+      window.removeEventListener('resize', scheduleScrollSync);
+      window.clearTimeout(initialSyncTimer);
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, [scheduleScrollSync]);
+
+  useEffect(() => {
+    const activeNavItem = activeSectionId ? navItemRefs.current.get(activeSectionId) : null;
+    activeNavItem?.scrollIntoView({ block: 'nearest' });
+  }, [activeSectionId]);
 
   return (
     <div className="flex min-h-0 flex-1 bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
@@ -99,22 +186,50 @@ function MarkdownNotebookReader({
             </p>
           ) : null}
         </div>
-        <div className="mt-5 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+        <nav
+          aria-label="Markdown 章节目录"
+          className="mt-5 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
+        >
           {sectionAnchors.map((section, index) => {
             const active = section.sceneId === activeSectionId;
             return (
               <a
                 key={section.sceneId}
+                ref={(node) => {
+                  if (node) {
+                    navItemRefs.current.set(section.sceneId, node);
+                  } else {
+                    navItemRefs.current.delete(section.sceneId);
+                  }
+                }}
                 href={`#${section.domId}`}
-                onClick={() => onSelectScene(section.sceneId)}
+                aria-current={active ? 'location' : undefined}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setActiveSection(section.sceneId);
+                  sectionRefs.current
+                    .get(section.sceneId)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  window.history.replaceState(null, '', `#${section.domId}`);
+                }}
                 className={[
-                  'flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                  'relative flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-all',
                   active
-                    ? 'border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-400/40 dark:bg-blue-400/12 dark:text-blue-50'
+                    ? 'border-blue-300 bg-blue-50 text-blue-950 shadow-sm ring-1 ring-blue-200/70 dark:border-blue-400/50 dark:bg-blue-400/12 dark:text-blue-50 dark:ring-blue-400/20'
                     : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:hover:border-white/10 dark:hover:bg-white/[0.06]',
                 ].join(' ')}
               >
-                <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-white text-[11px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-900/[0.06] dark:bg-black/20 dark:text-slate-300 dark:ring-white/10">
+                {active ? (
+                  <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-blue-600 dark:bg-blue-300" />
+                ) : null}
+                <span
+                  className={[
+                    'mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold shadow-sm ring-1',
+                    active
+                      ? 'bg-blue-600 text-white ring-blue-600 dark:bg-blue-300 dark:text-slate-950 dark:ring-blue-300'
+                      : 'bg-white text-slate-500 ring-slate-900/[0.06] dark:bg-black/20 dark:text-slate-300 dark:ring-white/10',
+                  ].join(' ')}
+                >
                   {index + 1}
                 </span>
                 <span className="min-w-0">
@@ -128,7 +243,7 @@ function MarkdownNotebookReader({
               </a>
             );
           })}
-        </div>
+        </nav>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -141,9 +256,12 @@ function MarkdownNotebookReader({
           </div>
           <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
         </div>
-        <div className="min-h-0 flex-1 scroll-smooth overflow-auto px-4 py-6 sm:px-8 lg:px-12">
+        <div
+          ref={scrollContainerRef}
+          className="min-h-0 flex-1 scroll-smooth overflow-auto bg-slate-100/60 px-4 py-6 sm:px-8 lg:px-12 dark:bg-slate-950"
+        >
           {sections.length > 0 ? (
-            <article className="mx-auto max-w-4xl">
+            <article className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
               {sections.map((section, index) => {
                 if (section.content.type !== 'markdown') return null;
                 const anchor = sectionAnchors[index];
@@ -151,11 +269,40 @@ function MarkdownNotebookReader({
                   <section
                     key={section.id}
                     id={anchor.domId}
-                    className="scroll-mt-6 border-b border-slate-200/70 py-7 first:pt-0 last:border-b-0 dark:border-white/10"
+                    ref={(node) => {
+                      if (node) {
+                        sectionRefs.current.set(section.id, node);
+                      } else {
+                        sectionRefs.current.delete(section.id);
+                      }
+                    }}
+                    className="scroll-mt-6 overflow-hidden rounded-lg border border-slate-300/85 border-t-4 border-t-blue-500/80 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.04] dark:border-white/12 dark:border-t-blue-300/80 dark:bg-white/[0.045] dark:ring-white/[0.05]"
                   >
-                    <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100 [&_a]:text-blue-600 [&_a]:underline-offset-4 hover:[&_a]:underline dark:[&_a]:text-blue-300">
-                      {section.content.markdown}
-                    </MessageResponse>
+                    <header className="border-b border-slate-200 bg-slate-100/80 px-5 py-4 dark:border-white/10 dark:bg-white/[0.05] sm:px-7">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-slate-950 px-2 text-xs font-bold text-white dark:bg-white dark:text-slate-950">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">
+                            章节
+                          </p>
+                          <h3 className="mt-1 text-lg font-semibold leading-7 text-slate-950 dark:text-white">
+                            {anchor.title}
+                          </h3>
+                          {anchor.summary ? (
+                            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                              {anchor.summary}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </header>
+                    <div className="px-5 py-6 sm:px-7 sm:py-7">
+                      <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100 [&_a]:text-blue-600 [&_a]:underline-offset-4 hover:[&_a]:underline dark:[&_a]:text-blue-300 [&_[data-streamdown=image-wrapper]]:my-7 [&_[data-streamdown=image-wrapper]]:block [&_[data-streamdown=image-wrapper]]:w-full [&_[data-streamdown=image]]:mx-auto [&_[data-streamdown=image]]:max-h-[520px] [&_[data-streamdown=image]]:w-full [&_[data-streamdown=image]]:max-w-3xl [&_[data-streamdown=image]]:border [&_[data-streamdown=image]]:border-slate-200 [&_[data-streamdown=image]]:bg-white [&_[data-streamdown=image]]:object-contain [&_[data-streamdown=image]]:shadow-sm dark:[&_[data-streamdown=image]]:border-white/10 dark:[&_[data-streamdown=image]]:bg-slate-900">
+                        {section.content.markdown}
+                      </MessageResponse>
+                    </div>
                   </section>
                 );
               })}

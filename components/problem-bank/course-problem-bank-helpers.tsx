@@ -210,11 +210,19 @@ function renderDraftStem(draft: NotebookProblemImportDraft): string {
   return '';
 }
 
+type ProblemSolutionSection = {
+  title: string;
+  content: string;
+  contentKind?: 'rich-text' | 'code' | 'choice-options';
+  language?: string;
+  options?: Array<{ id: string; label: string }>;
+};
+
 function problemSolutionSections(
   problem: NotebookProblemClientRecord,
   locale: 'zh-CN' | 'en-US',
-): Array<{ title: string; content: string }> {
-  const sections: Array<{ title: string; content: string }> = [];
+): ProblemSolutionSection[] {
+  const sections: ProblemSolutionSection[] = [];
   const publicContent = problem.publicContent;
   const grading = problem.grading as Record<string, unknown>;
 
@@ -223,23 +231,38 @@ function problemSolutionSections(
       ? grading.correctOptionIds.filter((id): id is string => typeof id === 'string')
       : [];
     if (ids.length > 0) {
-      const optionText = ids
-        .map((id) => {
-          const option = publicContent.options.find((item) => item.id === id);
-          return option ? `${id}. ${option.label}` : id;
-        })
-        .join('\n');
+      const options = ids.map((id) => {
+        const option = publicContent.options.find((item) => item.id === id);
+        return { id, label: option?.label ?? id };
+      });
+      const optionText = options.map((option) => `${option.id}. ${option.label}`).join('\n');
       sections.push({
         title: locale === 'zh-CN' ? '正确答案' : 'Correct answer',
         content: optionText,
+        contentKind: 'choice-options',
+        options,
       });
     }
   }
 
-  if (typeof grading.referenceAnswer === 'string' && grading.referenceAnswer.trim()) {
+  const referenceAnswer =
+    typeof grading.referenceAnswer === 'string' && grading.referenceAnswer.trim()
+      ? grading.referenceAnswer.trim()
+      : publicContent.type === 'code' &&
+          typeof grading.solutionCode === 'string' &&
+          grading.solutionCode.trim()
+        ? grading.solutionCode.trim()
+        : '';
+  if (referenceAnswer) {
     sections.push({
       title: locale === 'zh-CN' ? '参考答案' : 'Reference answer',
-      content: grading.referenceAnswer,
+      content: referenceAnswer,
+      ...(publicContent.type === 'code'
+        ? {
+            contentKind: 'code' as const,
+            language: publicContent.language,
+          }
+        : {}),
     });
   }
   if (typeof grading.referenceProof === 'string' && grading.referenceProof.trim()) {
@@ -328,7 +351,7 @@ const PROBLEM_BANK_EMERALD_ACTION_BUTTON_CLASS =
 const PROBLEM_BANK_EMERALD_OUTLINE_BUTTON_CLASS =
   'border border-emerald-200 bg-white text-emerald-700 shadow-none hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-500/30 dark:bg-slate-950 dark:text-emerald-200 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-100';
 const PROBLEM_BANK_LIST_GRID_CLASS =
-  'grid grid-cols-[4rem_5.25rem_minmax(14rem,1.7fr)_7rem_6.5rem_4rem_4.75rem_4.25rem]';
+  'grid grid-cols-[4rem_5.25rem_minmax(14rem,1.7fr)_7rem_6.5rem_4rem_4.75rem_7.5rem]';
 const PROBLEM_BANK_PAGE_SIZE = 10;
 
 function supportsPhotoAnswer(problem: NotebookProblemClientRecord | null): boolean {
@@ -1333,7 +1356,7 @@ function ChoiceAnswerPreviewPanel({
                 <div className="min-w-0 flex-1">
                   <ProblemRichText
                     content={option.label}
-                    className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
+                    className="min-w-0 [&_.problem-rich-code-block]:my-0 [&_.problem-rich-code-block]:max-w-full"
                   />
                 </div>
                 {hasFeedback && isCorrect ? (
@@ -1664,11 +1687,11 @@ function ProblemDraftPreviewPanel({
               className="flex items-start gap-3 rounded-md border border-slate-200 bg-white px-3 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
             >
               <span className="mt-1 size-4 shrink-0 rounded-full border border-slate-300 dark:border-slate-600" />
-              <div className="min-w-0">
-                <span className="mr-1 font-medium">{option.id}.</span>
+              <div className="flex min-w-0 flex-1 items-start gap-1.5">
+                <span className="mt-0.5 shrink-0 font-medium">{option.id}.</span>
                 <ProblemRichText
                   content={option.label}
-                  className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
+                  className="min-w-0 flex-1 [&_.problem-rich-code-block]:my-0 [&_.problem-rich-code-block]:max-w-full"
                 />
               </div>
             </div>

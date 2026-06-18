@@ -1,3 +1,4 @@
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import type { CourseChatContext } from '@/lib/types/chat';
 import type { Scene } from '@/lib/types/stage';
@@ -200,22 +201,31 @@ export async function pickInsertIndexWithAI(args: {
   if (args.currentScenes.length === 0) return { insertAt: 0, reason: 'empty notebook' };
   try {
     const mc = getCurrentModelConfig();
-    const resp = await fetch('/api/notebooks/micro-lesson/insert-position', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-model': mc.modelString,
-        'x-api-key': mc.apiKey,
-        'x-base-url': mc.baseUrl,
-        'x-provider-type': mc.providerType || '',
-        'x-requires-api-key': mc.requiresApiKey ? 'true' : 'false',
+    const resp = await runQueuedAiTask(
+      {
+        kind: 'micro-lesson',
+        title: '临时PPT插入位置判断',
+        description: '正在判断临时PPT应该插入到笔记本哪里',
       },
-      body: JSON.stringify({
-        notebookTitle: args.notebookTitle || '',
-        currentPages: args.currentScenes.map(toPageSummary),
-        lessonPages: args.lessonScenes.map(toPageSummary),
-      }),
-    });
+      ({ signal }) =>
+        fetch('/api/notebooks/micro-lesson/insert-position', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-model': mc.modelString,
+            'x-api-key': mc.apiKey,
+            'x-base-url': mc.baseUrl,
+            'x-provider-type': mc.providerType || '',
+            'x-requires-api-key': mc.requiresApiKey ? 'true' : 'false',
+          },
+          body: JSON.stringify({
+            notebookTitle: args.notebookTitle || '',
+            currentPages: args.currentScenes.map(toPageSummary),
+            lessonPages: args.lessonScenes.map(toPageSummary),
+          }),
+          signal,
+        }),
+    );
     const data = (await resp.json()) as {
       success?: boolean;
       insertAfterOrder?: number;

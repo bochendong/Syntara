@@ -45,12 +45,142 @@ function sanitizeCodeLanguage(language: string): string {
     .replace(/[^a-z0-9_-]/g, '-');
 }
 
+const PYTHON_KEYWORDS = new Set([
+  'and',
+  'as',
+  'assert',
+  'async',
+  'await',
+  'break',
+  'class',
+  'continue',
+  'def',
+  'del',
+  'elif',
+  'else',
+  'except',
+  'finally',
+  'for',
+  'from',
+  'global',
+  'if',
+  'import',
+  'in',
+  'is',
+  'lambda',
+  'nonlocal',
+  'not',
+  'or',
+  'pass',
+  'raise',
+  'return',
+  'try',
+  'while',
+  'with',
+  'yield',
+]);
+
+const PYTHON_BUILTINS = new Set([
+  'bool',
+  'dict',
+  'float',
+  'id',
+  'int',
+  'len',
+  'list',
+  'print',
+  'range',
+  'set',
+  'str',
+  'tuple',
+  'type',
+]);
+
+const PYTHON_LITERALS = new Set(['False', 'None', 'True']);
+
+function renderCodeToken(kind: string, text: string): string {
+  return `<span class="problem-rich-code-token-${kind}">${escapeHtml(text)}</span>`;
+}
+
+function renderHighlightedPythonCode(code: string): string {
+  let html = '';
+  let cursor = 0;
+
+  while (cursor < code.length) {
+    const char = code[cursor];
+    const nextTwo = code.slice(cursor, cursor + 2);
+    const nextThree = code.slice(cursor, cursor + 3);
+
+    if (char === '#') {
+      const end = code.indexOf('\n', cursor);
+      const comment = end === -1 ? code.slice(cursor) : code.slice(cursor, end);
+      html += renderCodeToken('comment', comment);
+      cursor += comment.length;
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      const quote = nextThree === char.repeat(3) ? char.repeat(3) : char;
+      let index = cursor + quote.length;
+      while (index < code.length) {
+        if (code[index] === '\\') {
+          index += 2;
+          continue;
+        }
+        if (code.slice(index, index + quote.length) === quote) {
+          index += quote.length;
+          break;
+        }
+        index += 1;
+      }
+      html += renderCodeToken('string', code.slice(cursor, index));
+      cursor = index;
+      continue;
+    }
+
+    if (/\d/.test(char) || nextTwo === '-0' || /^-\d$/.test(nextTwo)) {
+      const match = code.slice(cursor).match(/^-?\d+(?:\.\d+)?/);
+      if (match) {
+        html += renderCodeToken('number', match[0]);
+        cursor += match[0].length;
+        continue;
+      }
+    }
+
+    if (/[A-Za-z_]/.test(char)) {
+      const match = code.slice(cursor).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+      if (match) {
+        const word = match[0];
+        if (PYTHON_KEYWORDS.has(word)) {
+          html += renderCodeToken('keyword', word);
+        } else if (PYTHON_LITERALS.has(word)) {
+          html += renderCodeToken('literal', word);
+        } else if (PYTHON_BUILTINS.has(word)) {
+          html += renderCodeToken('builtin', word);
+        } else {
+          html += escapeHtml(word);
+        }
+        cursor += word.length;
+        continue;
+      }
+    }
+
+    html += escapeHtml(char);
+    cursor += 1;
+  }
+
+  return html;
+}
+
 function renderCodeBlock(lines: string[], language: string): string {
   const normalizedLanguage = sanitizeCodeLanguage(language);
   const className = normalizedLanguage ? ` class="language-${normalizedLanguage}"` : '';
-  return `<pre class="not-prose problem-rich-code-block"><code${className}>${escapeHtml(
-    lines.join('\n'),
-  )}</code></pre>`;
+  const code = lines.join('\n');
+  const renderedCode =
+    normalizedLanguage === 'python' || normalizedLanguage === 'py'
+      ? renderHighlightedPythonCode(code)
+      : escapeHtml(code);
+  return `<pre class="not-prose problem-rich-code-block"><code${className}>${renderedCode}</code></pre>`;
 }
 
 function renderInlineMarkdown(text: string): string {
@@ -531,6 +661,7 @@ export const ProblemRichText = memo(function ProblemRichText({
         '[&_.problem-rich-cases-rows]:grid [&_.problem-rich-cases-rows]:gap-1 [&_.problem-rich-cases-row]:grid [&_.problem-rich-cases-row]:grid-cols-[auto_auto] [&_.problem-rich-cases-row]:gap-3 [&_.problem-rich-cases-row]:whitespace-nowrap',
         '[&_.problem-rich-table-wrap]:my-3 [&_.problem-rich-table-wrap]:overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-slate-900',
         '[&_.problem-rich-code-block]:my-3 [&_.problem-rich-code-block]:overflow-x-auto [&_.problem-rich-code-block]:rounded-lg [&_.problem-rich-code-block]:border [&_.problem-rich-code-block]:border-slate-200 [&_.problem-rich-code-block]:bg-white [&_.problem-rich-code-block]:p-4 [&_.problem-rich-code-block]:font-mono [&_.problem-rich-code-block]:text-[13px] [&_.problem-rich-code-block]:leading-6 [&_.problem-rich-code-block]:text-slate-900 [&_.problem-rich-code-block]:shadow-sm dark:[&_.problem-rich-code-block]:border-slate-700 dark:[&_.problem-rich-code-block]:bg-white dark:[&_.problem-rich-code-block]:text-slate-900',
+        '[&_.problem-rich-code-token-builtin]:text-sky-700 [&_.problem-rich-code-token-comment]:text-slate-500 [&_.problem-rich-code-token-keyword]:font-semibold [&_.problem-rich-code-token-keyword]:text-violet-700 [&_.problem-rich-code-token-literal]:font-semibold [&_.problem-rich-code-token-literal]:text-rose-700 [&_.problem-rich-code-token-number]:text-amber-700 [&_.problem-rich-code-token-string]:text-emerald-700',
         '[&_.problem-rich-inline-code]:rounded [&_.problem-rich-inline-code]:border [&_.problem-rich-inline-code]:border-slate-200 [&_.problem-rich-inline-code]:bg-slate-100 [&_.problem-rich-inline-code]:px-1.5 [&_.problem-rich-inline-code]:py-0.5 [&_.problem-rich-inline-code]:font-mono [&_.problem-rich-inline-code]:text-[0.9em] [&_.problem-rich-inline-code]:font-medium [&_.problem-rich-inline-code]:text-slate-950 dark:[&_.problem-rich-inline-code]:border-slate-700 dark:[&_.problem-rich-inline-code]:bg-slate-800 dark:[&_.problem-rich-inline-code]:text-slate-100',
         '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_li]:my-1 [&_li]:pl-1',
         className,

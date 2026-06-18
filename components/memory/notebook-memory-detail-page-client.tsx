@@ -15,12 +15,14 @@ import {
   Target,
 } from 'lucide-react';
 import { MemoryPageHeader } from '@/components/memory/memory-page-header';
+import { findNotebookConversationTurn } from '@/components/memory/notebook-conversation-turns';
 import { cn } from '@/lib/utils';
 import {
   getLocalStudyMemoryUserId,
   loadStudyMemory,
   type NotebookMemoryItem,
   type NotebookMemorySourceReference,
+  type NotebookWorkingMemory,
   type StudyMemoryProfile,
   type WeakPointMemory,
 } from '@/lib/learning/study-memory';
@@ -405,6 +407,9 @@ function detailFromWeakPoint(point: WeakPointMemory, scenes: Scene[]): DetailRec
 
 function detailFromConversation(messages: NotebookChatMessage[]): DetailRecord {
   const recent = messages.slice(-10);
+  const userCount = recent.filter((message) => message.role === 'user').length;
+  const assistantCount = recent.filter((message) => message.role === 'assistant').length;
+  const turnCount = Math.max(userCount, assistantCount);
   const sourceReferences = recent
     .flatMap((message) => (message.role === 'assistant' ? message.references || [] : []))
     .slice(-8)
@@ -422,16 +427,74 @@ function detailFromConversation(messages: NotebookChatMessage[]): DetailRecord {
       message.knowledgeGap ? '学习缺口：本轮出现了可长期记住的学习缺口。' : '',
     ].filter(Boolean);
   });
+  const intro = recent.length
+    ? [
+        `摘要说明：这是最近互动的短期摘要，不是长期私有记忆；这里展示最近 ${recent.length} 条消息，约 ${turnCount} 轮互动。`,
+        '长期私有记忆会单独出现在“私有长期记忆”，通常来自明确学习断点、错题弱点或手动记录。',
+      ]
+    : [];
 
   return {
     id: 'recent:conversation',
     kind: 'recent',
-    kindLabel: '最近互动',
-    title: '私有短期记忆',
-    text: normalizeBody(lines.join('\n\n') || '暂无最近聊天内容。'),
+    kindLabel: '短期摘要',
+    title: '最近互动摘要',
+    text: normalizeBody([...intro, ...lines].join('\n\n') || '暂无最近聊天内容。'),
     sourceLabel: '最近互动',
     sourceReferences,
     updatedAt: recent.at(-1)?.at,
+  };
+}
+
+function detailFromConversationTurn(
+  messages: NotebookChatMessage[],
+  turnId: string,
+): DetailRecord | null {
+  const turn = findNotebookConversationTurn(messages, turnId);
+  if (!turn) return null;
+  return {
+    id: `recent:turn:${turn.id}`,
+    kind: 'recent',
+    kindLabel: '互动原文',
+    title: turn.title,
+    text: normalizeBody(turn.text),
+    sourceLabel: '最近互动',
+    sourceReferences: turn.sourceReferences,
+    updatedAt: turn.updatedAt,
+  };
+}
+
+function workingMemoryText(memory: NotebookWorkingMemory): string {
+  const lines = [`# ${memory.title || '短期学习状态'}`, '', memory.summary];
+  if (memory.currentTask) lines.push('', `- 当前任务：${memory.currentTask}`);
+  if (memory.stuckPoint) lines.push(`- 当前卡点：${memory.stuckPoint}`);
+  if (memory.masteredSignal) lines.push(`- 掌握信号：${memory.masteredSignal}`);
+  if (memory.nextTeachingMove) lines.push(`- 下一步教学动作：${memory.nextTeachingMove}`);
+  if (memory.recentAttempt) {
+    const score = memory.recentAttempt.score != null ? `，得分 ${memory.recentAttempt.score}` : '';
+    lines.push(
+      '',
+      '## 最近做题结果',
+      '',
+      `- 题目：${memory.recentAttempt.problemTitle}`,
+      `- 状态：${memory.recentAttempt.status}${score}`,
+      memory.recentAttempt.feedback ? `- 反馈：${memory.recentAttempt.feedback}` : '',
+    );
+  }
+  return normalizeBody(lines.join('\n'));
+}
+
+function detailFromWorkingMemory(memory?: NotebookWorkingMemory): DetailRecord | null {
+  if (!memory) return null;
+  return {
+    id: 'working:local',
+    kind: 'recent',
+    kindLabel: '短期状态',
+    title: memory.title || '短期学习状态',
+    text: workingMemoryText(memory),
+    sourceLabel: memory.source === 'problem_attempt' ? '做题后更新' : '回复后更新',
+    sourceReferences: [],
+    updatedAt: memory.updatedAt,
   };
 }
 
@@ -566,7 +629,11 @@ function resolveDetailRecord(args: {
   messages: NotebookChatMessage[];
 }): DetailRecord | null {
   const { memoryId, dbMemories, profile, scenes, messages } = args;
+  if (memoryId === 'working:local') return detailFromWorkingMemory(profile.workingMemory);
   if (memoryId === 'recent:conversation') return detailFromConversation(messages);
+  if (memoryId.startsWith('recent:turn:')) {
+    return detailFromConversationTurn(messages, memoryId.slice('recent:turn:'.length));
+  }
 
   if (memoryId.startsWith('db:')) {
     const id = memoryId.slice('db:'.length);

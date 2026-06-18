@@ -23,7 +23,11 @@ import {
 import { spliceGeneratedOutlines } from '@/lib/generation/continuation-pages';
 import { backendFetch, backendJson } from '@/lib/utils/backend-api';
 import { buildShortFailureReason } from '@/lib/create/api-errors';
-import { AI_TASK_QUEUE_MAX_ACTIVE, runQueuedAiTask } from '@/lib/store/ai-task-queue';
+import {
+  AI_TASK_QUEUE_MAX_ACTIVE,
+  runQueuedAiTask,
+  updateQueuedAiTask,
+} from '@/lib/store/ai-task-queue';
 
 const log = createLogger('SceneGenerator');
 const MAX_TTS_PARALLELISM = AI_TASK_QUEUE_MAX_ACTIVE;
@@ -34,6 +38,16 @@ export interface SpeechAudioProgress {
   total: number;
   active: number;
   parallelism: number;
+}
+
+function describeSpeechAudioProgress(progress: SpeechAudioProgress) {
+  if (progress.done >= progress.total) {
+    return `讲解语音已生成 ${progress.total}/${progress.total} 段`;
+  }
+  if (progress.active > 0) {
+    return `正在生成讲解语音 ${progress.done}/${progress.total} 段，并行 ${progress.active}/${progress.parallelism} 路`;
+  }
+  return `正在准备讲解语音 ${progress.done}/${progress.total} 段`;
 }
 
 interface SceneContentResult {
@@ -413,10 +427,18 @@ export async function ensureSpeechActionsHaveAudio(
       description: `正在生成 ${total} 段讲解语音`,
       signal,
     },
-    async ({ signal: queueSignal }) => {
+    async ({ taskId, signal: queueSignal }) => {
       const parallelism = Math.min(MAX_TTS_PARALLELISM, total);
       let active = 0;
-      onProgress?.({ done: 0, total, active, parallelism });
+
+      const reportProgress = (progress: SpeechAudioProgress) => {
+        onProgress?.(progress);
+        updateQueuedAiTask(taskId, {
+          description: describeSpeechAudioProgress(progress),
+        });
+      };
+
+      reportProgress({ done: 0, total, active, parallelism });
 
       let nextIndex = 0;
       let done = 0;
@@ -436,7 +458,7 @@ export async function ensureSpeechActionsHaveAudio(
           const audioId = action.audioId || `tts_${action.id}`;
           action.audioId = audioId;
           active += 1;
-          onProgress?.({ done, total, active, parallelism });
+          reportProgress({ done, total, active, parallelism });
 
           try {
             const { audioUrl, visemes, mouthCues } = await generateAndStoreTTS(
@@ -451,14 +473,14 @@ export async function ensureSpeechActionsHaveAudio(
           } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
               active = Math.max(0, active - 1);
-              onProgress?.({ done, total, active, parallelism });
+              reportProgress({ done, total, active, parallelism });
               throw error;
             }
             firstError =
               error instanceof Error ? error.message : `TTS failed for speech action ${action.id}`;
           } finally {
             active = Math.max(0, active - 1);
-            onProgress?.({ done, total, active, parallelism });
+            reportProgress({ done, total, active, parallelism });
           }
         }
       };

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScenePreviewDialog } from '@/components/slide-renderer/components/scene-preview-dialog';
 import { useSettingsStore } from '@/lib/store/settings';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import type { Scene } from '@/lib/types/stage';
 import { base64ToObjectUrl, getSceneNarration } from './chat-notebook-routing';
 import { backendFetch } from '@/lib/utils/backend-api';
@@ -126,20 +127,31 @@ export function InlineLessonDeck({
       const providerConfig = ttsProvidersConfig[ttsProviderId];
       void (async () => {
         try {
-          const response = await backendFetch('/api/generate/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text,
-              audioId: `inline_lesson_${Date.now()}_${idx}`,
-              ttsProviderId,
-              ttsVoice,
-              ttsSpeed,
-              ttsApiKey: providerConfig?.apiKey || undefined,
-              ttsBaseUrl: providerConfig?.baseUrl || undefined,
-              persist: false,
-            }),
-          });
+          const response = await runQueuedAiTask(
+            {
+              kind: 'speech-generation',
+              title: '临时PPT语音生成',
+              description: scene.title
+                ? `正在生成「${compactTaskText(scene.title)}」讲解语音`
+                : '正在生成临时PPT讲解语音',
+            },
+            ({ signal }) =>
+              backendFetch('/api/generate/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  text,
+                  audioId: `inline_lesson_${Date.now()}_${idx}`,
+                  ttsProviderId,
+                  ttsVoice,
+                  ttsSpeed,
+                  ttsApiKey: providerConfig?.apiKey || undefined,
+                  ttsBaseUrl: providerConfig?.baseUrl || undefined,
+                  persist: false,
+                }),
+                signal,
+              }),
+          );
           const data = (await response.json().catch(() => ({}))) as {
             base64?: string;
             format?: string;
@@ -337,4 +349,10 @@ export function InlineLessonDeck({
       ) : null}
     </div>
   );
+}
+
+function compactTaskText(input: string) {
+  const text = input.replace(/\s+/g, ' ').trim();
+  if (!text) return '当前页';
+  return text.length > 36 ? `${text.slice(0, 33)}...` : text;
 }

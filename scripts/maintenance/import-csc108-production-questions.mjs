@@ -198,6 +198,7 @@ function buildDrafts(sourceData) {
 
   return questions.map((question) => {
     const functionSignature = extractFunctionSignature(question.templateCode);
+    const solutionCode = String(question.solutionCode || '').trim();
     const publicTests = buildCodeTests(question.publicTestCode, 'public');
     const secretTests = buildCodeTests(question.secretTestCode, 'secret');
     const publishable = Boolean(
@@ -235,6 +236,12 @@ function buildDrafts(sourceData) {
       grading: {
         type: 'code',
         publishRequirementsMet: publishable,
+        ...(solutionCode
+          ? {
+              referenceAnswer: solutionCode,
+              solutionCode,
+            }
+          : {}),
       },
       secretJudge:
         secretTests.length > 0

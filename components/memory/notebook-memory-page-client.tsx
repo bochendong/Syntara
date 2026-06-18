@@ -23,6 +23,10 @@ import {
 import { Streamdown } from 'streamdown';
 import { cn } from '@/lib/utils';
 import { MemoryListDetailLayout } from '@/components/memory/memory-list-detail-layout';
+import {
+  buildNotebookConversationTurns,
+  type NotebookConversationTurn,
+} from '@/components/memory/notebook-conversation-turns';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import {
   deleteNotebookPrivateMemory,
@@ -32,6 +36,7 @@ import {
   updateNotebookPrivateMemoryStatus,
   type NotebookMemoryItem,
   type NotebookMemorySourceReference,
+  type NotebookWorkingMemory,
   type WeakPointMemory,
 } from '@/lib/learning/study-memory';
 import { loadContactMessages } from '@/lib/utils/contact-chat-storage';
@@ -47,7 +52,7 @@ import {
   type MemoryBubbleMapRecord,
 } from '@/components/memory/memory-bubble-map';
 
-type MemoryTab = 'all' | 'public' | 'private' | 'sources';
+type MemoryTab = 'all' | 'working' | 'recent' | 'private' | 'public' | 'sources';
 type MemoryDisplayMode = 'map' | 'list';
 
 type NotebookMemoryPageClientProps = {
@@ -77,6 +82,10 @@ type ConversationMemory = {
   title: string;
   lines: string[];
   sources: NotebookMemorySourceReference[];
+  turns: NotebookConversationTurn[];
+  messageCount: number;
+  turnCount: number;
+  updatedAt?: number;
 };
 
 type MemoryListItem = {
@@ -348,57 +357,6 @@ function compactText(input: string, maxLength: number): string {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
 
-function normalizeMarkdownPreview(input: string): string {
-  return String(input || '')
-    .replace(/\r\n?/g, '\n')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !/^#{1,6}\s+/.test(line) && !/^~~~/.test(line))
-    .map((line) => line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, ''))
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function markdownSectionText(input: string, heading: string): string {
-  const lines = String(input || '')
-    .replace(/\r\n?/g, '\n')
-    .split('\n');
-  const section: string[] = [];
-  let collecting = false;
-
-  for (const line of lines) {
-    const title = line.match(/^#{1,6}\s+(.+?)\s*#*$/)?.[1]?.trim();
-    if (title) {
-      if (collecting) break;
-      collecting = title === heading;
-      continue;
-    }
-    if (collecting) section.push(line);
-  }
-
-  return normalizeMarkdownPreview(section.join('\n'));
-}
-
-function memoryCardPreviewText(item: MemoryListItem): string {
-  const preferredSections = [
-    '核心概念',
-    '回答检查清单',
-    '可召回例子',
-    '选择模板',
-    '解题流程',
-    '操作流程',
-    'Two one-of 操作流程',
-    'HtDF 最小骨架',
-    'ListOf 模板例子',
-  ];
-  for (const heading of preferredSections) {
-    const text = markdownSectionText(item.text, heading);
-    if (text) return compactText(text, 260);
-  }
-  return compactText(normalizeMarkdownPreview(item.text) || '暂无正文。', 260);
-}
-
 function stableNumber(input: string): number {
   let hash = 2166136261;
   for (let index = 0; index < input.length; index += 1) {
@@ -595,10 +553,11 @@ function sharedMemoryFromScene(scene: Scene): SharedMemoryView {
 
 function deriveConversationMemory(messages: NotebookChatMessage[]): ConversationMemory {
   const recent = messages.slice(-10);
-  const lastUser = [...recent].reverse().find((message) => message.role === 'user');
-  const lastAssistant = [...recent].reverse().find((message) => message.role === 'assistant');
-  const sources = recent
-    .flatMap((message) => (message.role === 'assistant' ? message.references || [] : []))
+  const turns = buildNotebookConversationTurns(messages);
+  const messageCount = recent.length;
+  const turnCount = turns.length;
+  const sources = turns
+    .flatMap((turn) => turn.sourceReferences)
     .slice(-5)
     .map((reference) => ({
       order: reference.order,
@@ -607,13 +566,16 @@ function deriveConversationMemory(messages: NotebookChatMessage[]): Conversation
     }));
 
   return {
-    title: '私有短期记忆',
+    title: '最近互动原文',
     lines: [
-      lastUser ? `最近问题：${lastUser.text.replace(/\s+/g, ' ').slice(0, 96)}` : '',
-      lastAssistant?.knowledgeGap ? '本轮出现了可长期记住的学习缺口。' : '',
-      lastAssistant ? `最近回答：${lastAssistant.answer.replace(/\s+/g, ' ').slice(0, 120)}` : '',
+      messageCount ? `最近 ${messageCount} 条消息已拆成 ${turnCount} 条互动原文。` : '',
+      turnCount ? '列表中每条最近互动可单独查看完整问答。' : '',
     ].filter(Boolean),
     sources,
+    turns,
+    messageCount,
+    turnCount,
+    updatedAt: recent[recent.length - 1]?.at,
   };
 }
 
@@ -727,6 +689,12 @@ function uniqueMemoryListItems(items: MemoryListItem[]): MemoryListItem[] {
   });
 }
 
+function conversationTurnSearchText(turn: NotebookConversationTurn): string {
+  return `${turn.title} ${turn.preview} ${turn.text} ${turn.sourceReferences
+    .map((source) => `${source.title} ${source.why || ''}`)
+    .join(' ')}`;
+}
+
 function memoryListDetailHref(notebookId: string, item: MemoryListItem): string {
   return `/classroom/${encodeURIComponent(notebookId)}/memory/detail?memoryId=${encodeURIComponent(
     item.detailId,
@@ -829,6 +797,55 @@ function SharedMemoryMarkdownDocument({ markdown }: { markdown: string }) {
         {markdown}
       </Streamdown>
     </div>
+  );
+}
+
+function workingMemoryMarkdown(memory: NotebookWorkingMemory): string {
+  const lines = [`# ${memory.title || '短期学习状态'}`, '', memory.summary];
+  if (memory.currentTask) lines.push('', `- 当前任务：${memory.currentTask}`);
+  if (memory.stuckPoint) lines.push(`- 当前卡点：${memory.stuckPoint}`);
+  if (memory.masteredSignal) lines.push(`- 掌握信号：${memory.masteredSignal}`);
+  if (memory.nextTeachingMove) lines.push(`- 下一步教学动作：${memory.nextTeachingMove}`);
+  if (memory.recentAttempt) {
+    const score = memory.recentAttempt.score != null ? `，得分 ${memory.recentAttempt.score}` : '';
+    lines.push(
+      '',
+      `## 最近做题结果`,
+      '',
+      `- 题目：${memory.recentAttempt.problemTitle}`,
+      `- 状态：${memory.recentAttempt.status}${score}`,
+      memory.recentAttempt.feedback ? `- 反馈：${memory.recentAttempt.feedback}` : '',
+    );
+  }
+  return lines.filter((line) => line !== '').join('\n');
+}
+
+function WorkingMemoryCard({ memory }: { memory: NotebookWorkingMemory }) {
+  return (
+    <article className="rounded-2xl border border-sky-200/80 bg-sky-50/78 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+      <div className="flex items-start gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 dark:text-sky-200">
+          <Clock3 className="size-4" strokeWidth={1.8} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-sky-800 dark:text-sky-100">短期学习状态</p>
+          <h3 className="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
+            {memory.currentTask || memory.title}
+          </h3>
+          <p className="mt-2 line-clamp-4 text-xs leading-5 text-sky-900/80 dark:text-sky-100/80">
+            {memory.stuckPoint || memory.masteredSignal || memory.summary}
+          </p>
+          {memory.nextTeachingMove ? (
+            <p className="mt-2 text-xs leading-5 text-sky-900/75 dark:text-sky-100/75">
+              下一步：{memory.nextTeachingMove}
+            </p>
+          ) : null}
+          <p className="mt-2 text-[10px] font-medium text-sky-800/70 dark:text-sky-100/65">
+            {formatTime(memory.updatedAt) || '刚刚更新'}
+          </p>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -1285,6 +1302,7 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
     if (!notebookId) return null;
     return loadStudyMemory(getLocalStudyMemoryUserId(), notebookId);
   }, [notebookId, revision]);
+  const workingMemory = profile?.workingMemory || null;
 
   const publicMemories = useMemo(
     () => (profile?.publicMemories || []).filter((memory) => memory.status !== 'archived'),
@@ -1398,7 +1416,7 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
             {
               id: 'recent:conversation',
               kind: 'recent',
-              title: conversationMemory?.title || '私有短期记忆',
+              title: conversationMemory?.title || '最近互动摘要',
               text: recentText,
               accessCount: estimatedAccessCount(`${notebookId || 'notebook'}:recent`, 38, 96),
             },
@@ -1474,38 +1492,78 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
   };
 
   const showShared = tab === 'public' || tab === 'sources';
-  const showPrivate = tab === 'private';
+  const showPrivate = tab === 'working' || tab === 'recent' || tab === 'private';
+  const showWorkingMemorySection = tab === 'working' || tab === 'private';
+  const showRecentInteractionSection = tab === 'recent' || tab === 'private';
+  const showLongPrivateSection = tab === 'private';
   const isSingleColumn = showShared !== showPrivate;
   const hasConversationMemory = Boolean(
     conversationMemory &&
-    (conversationMemory.lines.length > 0 || conversationMemory.sources.length > 0),
+    (conversationMemory.turns.length > 0 || conversationMemory.sources.length > 0),
   );
+  const filteredWorkingMemoryCount =
+    workingMemory && matchesSearch(workingMemoryMarkdown(workingMemory), query) ? 1 : 0;
+  const filteredRecentTurnCount =
+    conversationMemory?.turns.filter((turn) =>
+      matchesSearch(conversationTurnSearchText(turn), query),
+    ).length || 0;
+  const filteredLongPrivateCount = filteredWeakPoints.length + filteredPrivate.length;
+  const privatePanelTitle =
+    tab === 'working' ? '短期学习状态' : tab === 'recent' ? '最近互动原文' : '长期私有记忆';
+  const privatePanelSubtitle =
+    tab === 'working'
+      ? '后台任务写入的当前学习状态，会被新任务覆盖。'
+      : tab === 'recent'
+        ? '最近几轮用户和助手的完整原文，只用于查看上下文。'
+        : '稳定的个人学习习惯、待复习弱点和长期私有记录。';
+  const privatePanelCount =
+    tab === 'working'
+      ? filteredWorkingMemoryCount
+      : tab === 'recent'
+        ? filteredRecentTurnCount
+        : filteredLongPrivateCount;
   const memoryListItems = useMemo<MemoryListItem[]>(() => {
     const items: MemoryListItem[] = [];
     const includeShared = tab === 'all' || tab === 'public' || tab === 'sources';
+    const includeWorking = tab === 'all' || tab === 'working';
+    const includeRecent = tab === 'all' || tab === 'recent';
     const includePrivate = tab === 'all' || tab === 'private';
 
     if (
-      includePrivate &&
-      hasConversationMemory &&
-      conversationMemory &&
-      matchesSearch(
-        `${conversationMemory.title} ${conversationMemory.lines.join(' ')} ${conversationMemory.sources
-          .map((source) => `${source.title} ${source.why || ''}`)
-          .join(' ')}`,
-        query,
-      )
+      includeWorking &&
+      workingMemory &&
+      matchesSearch(workingMemoryMarkdown(workingMemory), query)
     ) {
       items.push({
-        id: 'recent:conversation',
-        detailId: 'recent:conversation',
+        id: 'working-memory',
+        detailId: 'working:local',
         kind: 'recent',
-        kindLabel: '短期记忆',
-        title: conversationMemory.title,
-        text: conversationMemory.lines.join('\n') || '最近互动会汇总到这里。',
-        sourceLabel: '最近互动',
-        sourceReferences: conversationMemory.sources,
+        kindLabel: '短期状态',
+        title: workingMemory.title || '短期学习状态',
+        text: workingMemoryMarkdown(workingMemory),
+        sourceLabel: workingMemory.source === 'problem_attempt' ? '做题后更新' : '回复后更新',
+        updatedAt: workingMemory.updatedAt,
       });
+    }
+
+    if (includeRecent && hasConversationMemory && conversationMemory) {
+      for (const turn of conversationMemory.turns) {
+        if (!matchesSearch(conversationTurnSearchText(turn), query)) {
+          continue;
+        }
+
+        items.push({
+          id: `recent-turn:${turn.id}`,
+          detailId: `recent:turn:${turn.id}`,
+          kind: 'recent',
+          kindLabel: '互动原文',
+          title: turn.title,
+          text: turn.text,
+          sourceLabel: '最近互动',
+          sourceReferences: turn.sourceReferences,
+          updatedAt: turn.updatedAt,
+        });
+      }
     }
 
     if (includeShared) {
@@ -1608,66 +1666,152 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
     hasConversationMemory,
     query,
     tab,
+    workingMemory,
   ]);
 
   const memoryListTitle =
-    tab === 'public'
-      ? '共有记忆列表'
-      : tab === 'private'
-        ? '私有记忆列表'
-        : tab === 'sources'
-          ? '来源页面列表'
-          : '全部记忆列表';
+    tab === 'working'
+      ? '短期学习状态'
+      : tab === 'recent'
+        ? '最近互动原文'
+        : tab === 'private'
+          ? '长期私有记忆'
+          : tab === 'public'
+            ? '共有记忆列表'
+            : tab === 'sources'
+              ? '来源页面列表'
+              : '全部记忆与上下文';
+  const memoryListSubtitle =
+    tab === 'working'
+      ? '只显示异步写入的当前学习状态，不混入聊天原文。'
+      : tab === 'recent'
+        ? '只显示最近几轮完整问答原文，方便回看上下文。'
+        : tab === 'private'
+          ? '只显示长期私有记录和待复习弱点。'
+          : tab === 'public'
+            ? '只显示这本笔记本已经沉淀的共有知识。'
+            : tab === 'sources'
+              ? '只显示共有记忆背后的来源页面。'
+              : '按分类和搜索结果查看这本笔记本的短期状态、原文互动和长期记忆。';
+  const memoryScopeTabs: Array<{
+    value: MemoryTab;
+    label: string;
+    count: number;
+    icon: typeof Brain;
+  }> = [
+    {
+      value: 'all',
+      label: '全部',
+      count:
+        filteredWorkingMemoryCount +
+        filteredRecentTurnCount +
+        filteredLongPrivateCount +
+        filteredShared.length,
+      icon: Brain,
+    },
+    { value: 'working', label: '短期状态', count: filteredWorkingMemoryCount, icon: Clock3 },
+    { value: 'recent', label: '最近互动', count: filteredRecentTurnCount, icon: Clock3 },
+    { value: 'private', label: '长期私有', count: filteredLongPrivateCount, icon: Lock },
+    { value: 'public', label: '共有', count: filteredShared.length, icon: Share2 },
+    { value: 'sources', label: '来源', count: filteredShared.length, icon: FileText },
+  ];
   const memoryViewControls = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div
-        role="group"
-        aria-label="显示方式"
-        className="grid h-9 w-fit grid-cols-2 rounded-xl border border-slate-200/85 bg-slate-50/75 p-1 shadow-sm dark:border-white/10 dark:bg-black/20"
-      >
-        {[
-          { value: 'map' as const, label: '忆泡', icon: CircleDot },
-          { value: 'list' as const, label: '列表', icon: List },
-        ].map((item) => {
-          const Icon = item.icon;
-          const active = memoryDisplayMode === item.value;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => {
-                setTab('all');
-                if (item.value === 'map') {
-                  setQuery('');
-                } else {
-                  setShowMemoryDemo(false);
-                }
-                setMemoryDisplayMode(item.value);
-              }}
-              className={cn(
-                'inline-flex min-w-[4.5rem] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors',
-                active
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-white hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
-              )}
-            >
-              <Icon className="size-3.5" strokeWidth={1.9} />
-              {item.label}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="group"
+          aria-label="显示方式"
+          className="grid h-9 w-fit grid-cols-2 rounded-xl border border-slate-200/85 bg-slate-50/75 p-1 shadow-sm dark:border-white/10 dark:bg-black/20"
+        >
+          {[
+            { value: 'map' as const, label: '忆泡', icon: CircleDot },
+            { value: 'list' as const, label: '列表', icon: List },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = memoryDisplayMode === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  setTab('all');
+                  setSelectedMemoryListItemId(null);
+                  if (item.value === 'map') {
+                    setQuery('');
+                  } else {
+                    setShowMemoryDemo(false);
+                  }
+                  setMemoryDisplayMode(item.value);
+                }}
+                className={cn(
+                  'inline-flex min-w-[4.5rem] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors',
+                  active
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-white hover:text-blue-700 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                )}
+              >
+                <Icon className="size-3.5" strokeWidth={1.9} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        {memoryDisplayMode === 'list' ? (
+          <label className="flex h-9 min-w-0 items-center gap-2 rounded-xl border border-slate-200/85 bg-slate-50/75 px-3 text-xs font-semibold text-slate-500 shadow-sm dark:border-white/10 dark:bg-black/20 dark:text-slate-400 md:w-72">
+            <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+              placeholder="搜索短期状态、互动原文、知识点…"
+            />
+          </label>
+        ) : null}
       </div>
       {memoryDisplayMode === 'list' ? (
-        <label className="flex h-9 min-w-0 items-center gap-2 rounded-xl border border-slate-200/85 bg-slate-50/75 px-3 text-xs font-semibold text-slate-500 shadow-sm dark:border-white/10 dark:bg-black/20 dark:text-slate-400 md:w-72">
-          <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-            placeholder="搜索知识点、页面、私有记忆…"
-          />
-        </label>
+        <div
+          role="tablist"
+          aria-label="记忆分类"
+          className="flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-slate-200/85 bg-slate-50/75 p-1 shadow-sm dark:border-white/10 dark:bg-black/20"
+        >
+          {memoryScopeTabs.map((item) => {
+            const Icon = item.icon;
+            const active = tab === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setTab(item.value);
+                  setShowMemoryDemo(false);
+                  setSelectedMemoryListItemId(null);
+                }}
+                className={cn(
+                  'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-bold transition-colors',
+                  active
+                    ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-100 dark:bg-white/12 dark:text-white dark:ring-white/10'
+                    : 'text-slate-500 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                )}
+              >
+                <Icon className="size-3.5" strokeWidth={1.9} />
+                <span>{item.label}</span>
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] tabular-nums',
+                    active
+                      ? 'bg-blue-50 text-blue-700 dark:bg-white/15 dark:text-white'
+                      : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300',
+                  )}
+                >
+                  {item.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       ) : null}
     </div>
   );
@@ -1697,7 +1841,7 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
                 请选择笔记本
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                进入某一本笔记本后，即可查看它的共有记忆和私有记忆。
+                进入某一本笔记本后，即可查看它的共有记忆、短期状态和私有记忆。
               </p>
               <Link
                 href="/my-courses"
@@ -1772,10 +1916,10 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
               </h1>
               <p className="mt-1 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
                 {memoryDisplayMode === 'list'
-                  ? '按分类和搜索结果查看这本笔记本的记忆条目。'
+                  ? memoryListSubtitle
                   : showMemoryDemo
                     ? `正在用 ${demoBubbleRecords.length} 个分层 mock 忆泡预览图谱效果，不写入真实数据。`
-                    : '按分层记忆组织共有记忆、知识来源、私有记忆和待复习弱点。'}
+                    : '按分层记忆组织短期状态、共有记忆、知识来源和长期私有记忆。'}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 md:justify-end">
@@ -1909,52 +2053,62 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
                     </span>
                     <div className="min-w-0">
                       <h2 className="text-base font-semibold text-slate-950 dark:text-white">
-                        私有记忆
+                        {privatePanelTitle}
                       </h2>
                       <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                        当前用户在这本笔记本里的学习习惯、卡点、错题和最近互动。
+                        {privatePanelSubtitle}
                       </p>
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full border border-violet-200/80 bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/12 dark:text-violet-200">
-                    仅自己可见
+                    {privatePanelCount} 条
                   </span>
                 </div>
                 <div className="grid gap-3 p-3">
-                  {conversationMemory &&
-                  (conversationMemory.lines.length > 0 || conversationMemory.sources.length > 0) ? (
-                    <article className="rounded-2xl border border-blue-200/80 bg-blue-50/78 p-4 dark:border-blue-400/20 dark:bg-blue-500/10">
-                      <div className="flex items-start gap-3">
+                  {showWorkingMemorySection && workingMemory ? (
+                    <WorkingMemoryCard memory={workingMemory} />
+                  ) : null}
+
+                  {showRecentInteractionSection && conversationMemory?.turns.length ? (
+                    <div className="grid gap-2 rounded-2xl border border-blue-200/80 bg-blue-50/78 p-3 dark:border-blue-400/20 dark:bg-blue-500/10">
+                      <div className="flex items-center gap-2 px-1">
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-700 dark:text-blue-200">
                           <Clock3 className="size-4" strokeWidth={1.8} />
                         </span>
                         <div className="min-w-0">
                           <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                            {conversationMemory.title}
+                            最近互动原文
                           </h3>
-                          <div className="mt-2 grid gap-1">
-                            {conversationMemory.lines.map((line) => (
-                              <p
-                                key={line}
-                                className="text-xs leading-5 text-blue-900/80 dark:text-blue-100/80"
-                              >
-                                {line}
-                              </p>
-                            ))}
-                          </div>
-                          <SourceChips sources={conversationMemory.sources} />
+                          <p className="mt-0.5 text-xs text-blue-900/70 dark:text-blue-100/70">
+                            最近 {conversationMemory.messageCount} 条消息拆成{' '}
+                            {conversationMemory.turnCount} 条互动。
+                          </p>
                         </div>
                       </div>
-                    </article>
+                      {conversationMemory.turns.map((turn) => (
+                        <article
+                          key={turn.id}
+                          className="rounded-xl border border-blue-100/85 bg-white/74 p-3 dark:border-blue-300/15 dark:bg-black/18"
+                        >
+                          <p className="text-xs font-semibold leading-5 text-slate-950 dark:text-white">
+                            {turn.title}
+                          </p>
+                          <p className="mt-1 line-clamp-3 text-xs leading-5 text-blue-900/80 dark:text-blue-100/80">
+                            {turn.preview}
+                          </p>
+                          <SourceChips sources={turn.sourceReferences} />
+                        </article>
+                      ))}
+                    </div>
                   ) : null}
 
-                  {filteredWeakPoints.length > 0
+                  {showLongPrivateSection && filteredWeakPoints.length > 0
                     ? filteredWeakPoints.map((point) => (
                         <WeakPointCard key={point.id} point={point} />
                       ))
                     : null}
 
-                  {filteredPrivate.length > 0 ? (
+                  {showLongPrivateSection && filteredPrivate.length > 0 ? (
                     filteredPrivate.map((memory) => (
                       <PrivateMemoryCard
                         key={memory.id}
@@ -1963,14 +2117,20 @@ export function NotebookMemoryPageClient({ notebookId, backHref }: NotebookMemor
                         onDelete={deleteMemory}
                       />
                     ))
-                  ) : filteredWeakPoints.length === 0 ? (
+                  ) : privatePanelCount === 0 ? (
                     <EmptyState>
-                      暂无私有长期记忆。明显学习断点、错题弱点或你明确要求记住时，会写入这里。
+                      {tab === 'working'
+                        ? '暂无短期学习状态。回复或做题结果出现后，会由后台任务写入这里。'
+                        : tab === 'recent'
+                          ? '暂无最近互动原文。开始聊天后，这里会按轮次展示完整问答。'
+                          : '暂无长期私有记忆。明显学习断点、错题弱点或你明确要求记住时，会写入这里。'}
                     </EmptyState>
                   ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 px-4 py-3 text-[11px] text-slate-500 dark:border-white/10 dark:text-slate-400">
-                  <span>私有记忆沿用 privateMemories / weakPoints，不会自动改写页面内容。</span>
+                  <span>
+                    短期状态、最近互动原文和长期私有记忆分开展示，避免把原文摘要当成记忆写入。
+                  </span>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">
                     设置控制后台写入
                   </span>

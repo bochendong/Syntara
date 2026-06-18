@@ -124,6 +124,30 @@ export const notebookCodeSampleIoSchema = z.object({
   explanation: z.string().trim().min(1).max(2000).optional(),
 });
 
+export const notebookCodeStatementSectionSchema = z
+  .object({
+    id: z.string().trim().min(1).max(64),
+    title: z.string().trim().min(1).max(120),
+    kind: z
+      .enum([
+        'overview',
+        'requirements',
+        'interface',
+        'invariants',
+        'examples',
+        'constraints',
+        'notes',
+      ])
+      .default('overview'),
+    body: z.string().trim().min(1).max(8000).optional(),
+    items: z.array(z.string().trim().min(1).max(1000)).max(20).default([]),
+    code: z.string().max(24000).optional(),
+    codeLanguage: z.string().trim().min(1).max(40).optional(),
+  })
+  .refine((section) => section.body || section.items.length > 0 || section.code, {
+    message: 'Code statement sections need body, items, or code.',
+  });
+
 export const notebookProblemPublicCodeSchema = notebookProblemPublicBaseSchema.extend({
   type: z.literal('code'),
   stem: z.string().trim().min(1).max(16000),
@@ -133,6 +157,8 @@ export const notebookProblemPublicCodeSchema = notebookProblemPublicBaseSchema.e
   constraints: z.array(z.string().trim().min(1).max(500)).max(16).default([]),
   publicTests: z.array(notebookCodeTestSchema).max(24).default([]),
   sampleIO: z.array(notebookCodeSampleIoSchema).max(12).default([]),
+  statementSections: z.array(notebookCodeStatementSectionSchema).max(10).optional(),
+  starterCodeDescription: z.string().trim().min(1).max(1000).optional(),
   secretConfigPresent: z.boolean().default(false),
 });
 
@@ -191,6 +217,8 @@ export const notebookProblemGradingFillBlankSchema = z.object({
 
 export const notebookProblemGradingCodeSchema = z.object({
   type: z.literal('code'),
+  referenceAnswer: z.string().trim().min(1).max(40000).optional(),
+  solutionCode: z.string().trim().min(1).max(40000).optional(),
   analysis: z.string().trim().min(1).max(12000).optional(),
   publishRequirementsMet: z.boolean().default(false),
 });

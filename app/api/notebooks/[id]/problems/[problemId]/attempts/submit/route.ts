@@ -4,15 +4,12 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { getOptionalPrisma } from '@/lib/server/prisma-safe';
-import { maybeWriteProblemAttemptMemorySignal } from '@/lib/server/problem-attempt-memory-signals';
 import { evaluateNotebookNonCodeProblem } from '@/features/problems/server/evaluate';
 import { judgeNotebookCodeProblem } from '@/features/problems/server/judge';
 import { notebookProblemAttemptImageSchema } from '@/features/problems';
 import {
   createNotebookProblemAttempt,
   getNotebookProblemForUser,
-  listNotebookProblemAttempts,
 } from '@/features/problems/server/service';
 
 const submitSchema = z.object({
@@ -101,31 +98,6 @@ export async function POST(
       answer,
       result: evaluated.result,
     });
-
-    try {
-      const prisma = getOptionalPrisma();
-      if (prisma) {
-        const recentAttempts = await listNotebookProblemAttempts({
-          userId: auth.userId,
-          notebookId: id,
-          problemId,
-        });
-        await maybeWriteProblemAttemptMemorySignal({
-          prisma,
-          userId: auth.userId,
-          notebookId: id,
-          problem: loaded.problem,
-          attempt,
-          recentAttempts,
-        });
-      }
-    } catch (memoryError) {
-      console.warn('[problem-attempt-memory] failed to write inferred memory signal', {
-        notebookId: id,
-        problemId,
-        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
-      });
-    }
 
     return NextResponse.json({
       attempt,

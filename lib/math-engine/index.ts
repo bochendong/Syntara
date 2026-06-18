@@ -493,6 +493,22 @@ function looksLikeCodeLiteral(text: string): boolean {
   return false;
 }
 
+const BARE_MATH_PROSE_WORD_PATTERN =
+  /\b(?:assume|because|bijective|converse|define|every|first|follow|follows|for|hence|if|immediate|injective|let|may|now|only|preimage|proof|prove|since|so|suppose|surjective|that|then|therefore|thus|we|write)\b/i;
+
+function hasBareMathProseLeak(text: string): boolean {
+  const normalized = text
+    .replace(/\\[a-zA-Z]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!BARE_MATH_PROSE_WORD_PATTERN.test(normalized)) return false;
+
+  const wordCount = normalized.match(/\b[A-Za-z]{2,}\b/g)?.length || 0;
+  if (wordCount < 2) return false;
+
+  return /[=^]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|\bmod\b/i.test(normalized);
+}
+
 function isBareMathCandidate(value: string): boolean {
   const text = value.trim();
   if (text.length < 2 || text.length > 160) return false;
@@ -500,6 +516,7 @@ function isBareMathCandidate(value: string): boolean {
   if (/https?:\/\//i.test(text)) return false;
   if (isPlainSlashWordPhrase(text)) return false;
   if (looksLikeCodeLiteral(text)) return false;
+  if (hasBareMathProseLeak(text)) return false;
   if (!/[A-Za-z\\ℕℤℚℝℂ]/.test(text) && !/\d+\s*\^/.test(text)) return false;
   if (/^[A-Za-z\s]+$/.test(text)) return false;
 

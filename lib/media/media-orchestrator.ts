@@ -9,6 +9,7 @@
  */
 
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { useSettingsStore } from '@/lib/store/settings';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
@@ -69,7 +70,11 @@ export async function generateMediaRequests(
   // Process requests serially — image/video APIs have limited concurrency
   for (const req of allRequests) {
     if (abortSignal?.aborted) break;
-    await generateSingleMedia(req, stageId, notebookName, abortSignal);
+    try {
+      await generateSingleMedia(req, stageId, notebookName, abortSignal);
+    } catch {
+      if (abortSignal?.aborted) break;
+    }
   }
 }
 
@@ -103,7 +108,7 @@ export async function retryMediaTask(elementId: string): Promise<void> {
     },
     task.stageId,
     undefined,
-  );
+  ).catch(() => undefined);
 }
 
 // ==================== Internal ====================
@@ -114,42 +119,78 @@ async function generateSingleMedia(
   notebookName?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const store = useMediaGenerationStore.getState();
-  store.markGenerating(req.elementId);
+  return runQueuedAiTask(
+    {
+      kind: req.type === 'image' ? 'image-generation' : 'video-generation',
+      title: req.type === 'image' ? '图片生成' : '视频生成',
+      description: describeMediaTask(req, notebookName),
+      signal: abortSignal,
+    },
+    async ({ signal }) => {
+      const store = useMediaGenerationStore.getState();
+      store.markGenerating(req.elementId);
 
-  try {
-    let resultUrl: string;
-    let posterUrl: string | undefined;
+      try {
+        let resultUrl: string;
+        let posterUrl: string | undefined;
 
-    if (req.type === 'image') {
-      const result = await callImageApi(req, stageId, notebookName, abortSignal);
-      resultUrl = result.url;
-    } else {
-      const result = await callVideoApi(req, abortSignal);
-      resultUrl = result.url;
-      posterUrl = result.poster;
-    }
+        if (req.type === 'image') {
+          const result = await callImageApi(req, stageId, notebookName, signal);
+          resultUrl = result.url;
+        } else {
+          const result = await callVideoApi(req, signal);
+          resultUrl = result.url;
+          posterUrl = result.poster;
+        }
 
-    if (abortSignal?.aborted) return;
+        throwIfAborted(signal);
 
-    // Fetch blob from URL
-    const blob = await fetchAsBlob(resultUrl);
-    const posterBlob = posterUrl ? await fetchAsBlob(posterUrl).catch(() => undefined) : undefined;
+        // Fetch blob from URL
+        const blob = await fetchAsBlob(resultUrl, signal);
+        const posterBlob = posterUrl
+          ? await fetchAsBlob(posterUrl, signal).catch(() => undefined)
+          : undefined;
+        throwIfAborted(signal);
 
-    // Update store with object URL
-    const objectUrl = URL.createObjectURL(blob);
-    const posterObjectUrl = posterBlob ? URL.createObjectURL(posterBlob) : undefined;
-    useMediaGenerationStore.getState().markDone(req.elementId, objectUrl, posterObjectUrl);
-  } catch (err) {
-    if (abortSignal?.aborted) return;
-    const message = err instanceof Error ? err.message : String(err);
-    const errorCode = err instanceof MediaApiError ? err.errorCode : undefined;
-    log.error(`Failed ${req.elementId}:`, message);
-    useMediaGenerationStore.getState().markFailed(req.elementId, message, errorCode);
+        // Update store with object URL
+        const objectUrl = URL.createObjectURL(blob);
+        const posterObjectUrl = posterBlob ? URL.createObjectURL(posterBlob) : undefined;
+        useMediaGenerationStore.getState().markDone(req.elementId, objectUrl, posterObjectUrl);
+      } catch (err) {
+        const aborted =
+          signal.aborted || (err instanceof DOMException && err.name === 'AbortError');
+        const message = aborted ? '已取消' : err instanceof Error ? err.message : String(err);
+        const errorCode = aborted
+          ? 'CANCELLED'
+          : err instanceof MediaApiError
+            ? err.errorCode
+            : undefined;
+        if (!aborted) log.error(`Failed ${req.elementId}:`, message);
+        useMediaGenerationStore.getState().markFailed(req.elementId, message, errorCode);
+        if (aborted) {
+          throw new DOMException('Media generation was cancelled', 'AbortError');
+        }
+        throw err;
+      }
+    },
+  );
+}
 
-    void errorCode;
-    void stageId;
-  }
+function throwIfAborted(signal: AbortSignal) {
+  if (signal.aborted) throw new DOMException('Media generation was cancelled', 'AbortError');
+}
+
+function describeMediaTask(req: MediaGenerationRequest, notebookName?: string) {
+  const kindLabel = req.type === 'image' ? '图片' : '视频';
+  const prompt = compactPrompt(req.prompt);
+  if (notebookName) return `正在为「${notebookName}」生成${kindLabel}：${prompt}`;
+  return `正在生成${kindLabel}：${prompt}`;
+}
+
+function compactPrompt(prompt: string) {
+  const text = prompt.replace(/\s+/g, ' ').trim();
+  if (!text) return '未命名内容';
+  return text.length > 48 ? `${text.slice(0, 45)}...` : text;
 }
 
 async function callImageApi(
@@ -235,10 +276,10 @@ async function callVideoApi(
   return { url, poster: data.result?.poster };
 }
 
-async function fetchAsBlob(url: string): Promise<Blob> {
+async function fetchAsBlob(url: string, abortSignal?: AbortSignal): Promise<Blob> {
   // For data URLs, convert directly
   if (url.startsWith('data:')) {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: abortSignal });
     return res.blob();
   }
   // For remote URLs, proxy through our server to bypass CORS restrictions
@@ -247,6 +288,7 @@ async function fetchAsBlob(url: string): Promise<Blob> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
+      signal: abortSignal,
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -255,7 +297,7 @@ async function fetchAsBlob(url: string): Promise<Blob> {
     return res.blob();
   }
   // Relative URLs (shouldn't happen, but handle gracefully)
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: abortSignal });
   if (!res.ok) throw new Error(`Failed to fetch blob: ${res.status}`);
   return res.blob();
 }

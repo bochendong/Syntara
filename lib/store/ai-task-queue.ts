@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
+import { recordTaskHistory, type TaskHistoryStatus } from '@/lib/store/task-history';
 
 export const AI_TASK_QUEUE_MAX_ACTIVE = 5;
 const FINISHED_TASK_RETENTION_MS = 2 * 60 * 1000;
@@ -9,6 +10,11 @@ const MAX_FINISHED_TASKS = 8;
 
 export type AiTaskKind =
   | 'course-generation'
+  | 'image-generation'
+  | 'video-generation'
+  | 'micro-lesson'
+  | 'slide-repair'
+  | 'pbl-chat'
   | 'problem-evaluation'
   | 'review-route'
   | 'chat-reply'
@@ -30,6 +36,31 @@ export type AiTaskRecord = {
   finishedAt?: number;
   error?: string;
 };
+
+function aiTaskHistoryStatus(status: AiTaskStatus): TaskHistoryStatus {
+  if (status === 'queued') return 'queued';
+  if (status === 'running') return 'running';
+  if (status === 'completed') return 'completed';
+  if (status === 'failed') return 'failed';
+  return 'cancelled';
+}
+
+function recordAiTask(task: AiTaskRecord) {
+  recordTaskHistory({
+    source: 'ai_task',
+    sourceId: task.id,
+    kind: task.kind,
+    title: task.title,
+    description: task.description,
+    status: aiTaskHistoryStatus(task.status),
+    chips: [task.kind],
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    startedAt: task.startedAt,
+    finishedAt: task.finishedAt,
+    error: task.error,
+  });
+}
 
 type AiTaskQueueState = {
   tasks: AiTaskRecord[];
@@ -79,36 +110,37 @@ export const useAiTaskQueueStore = create<AiTaskQueueState>()((set) => ({
   enqueueTask: (input) => {
     const now = Date.now();
     const id = nanoid();
+    const task: AiTaskRecord = {
+      ...input,
+      id,
+      status: 'queued',
+      createdAt: now,
+      updatedAt: now,
+    };
     set((state) => ({
-      tasks: pruneTasks([
-        ...state.tasks,
-        {
-          ...input,
-          id,
-          status: 'queued',
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]),
+      tasks: pruneTasks([...state.tasks, task]),
     }));
+    recordAiTask(task);
     scheduleRunner();
     return id;
   },
   updateTask: (taskId, patch) => {
     const now = Date.now();
+    let nextTask: AiTaskRecord | null = null;
     set((state) => ({
       tasks: pruneTasks(
-        state.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                ...patch,
-                updatedAt: now,
-              }
-            : task,
-        ),
+        state.tasks.map((task) => {
+          if (task.id !== taskId) return task;
+          nextTask = {
+            ...task,
+            ...patch,
+            updatedAt: now,
+          };
+          return nextTask;
+        }),
       ),
     }));
+    if (nextTask) recordAiTask(nextTask);
   },
   clearFinished: () => {
     set((state) => ({

@@ -2,6 +2,7 @@
 
 import { nanoid } from 'nanoid';
 import { create } from 'zustand';
+import { recordTaskHistory, type TaskHistoryStatus } from '@/lib/store/task-history';
 
 export const MEMORY_ACTIVITY_EVENT = 'synatra-memory-activity';
 
@@ -38,6 +39,31 @@ export type MemoryActivityRecord = {
   detailHref?: string;
   error?: string;
 };
+
+function memoryActivityHistoryStatus(status: MemoryActivityStatus): TaskHistoryStatus {
+  if (status === 'needs_confirmation') return 'needs_attention';
+  if (status === 'completed') return 'completed';
+  if (status === 'failed') return 'failed';
+  if (status === 'skipped') return 'skipped';
+  return 'running';
+}
+
+function recordMemoryActivity(activity: MemoryActivityRecord) {
+  recordTaskHistory({
+    source: 'memory_activity',
+    sourceId: activity.id,
+    kind: activity.layer,
+    title: activity.title,
+    description: activity.description,
+    status: memoryActivityHistoryStatus(activity.status),
+    chips: activity.chips,
+    detailHref: activity.detailHref,
+    createdAt: activity.createdAt,
+    updatedAt: activity.updatedAt,
+    finishedAt: activity.finishedAt,
+    error: activity.error,
+  });
+}
 
 export type MemoryActivityInput = {
   id?: string;
@@ -117,22 +143,28 @@ export const useMemoryActivityStore = create<MemoryActivityState>()((set) => ({
   activities: [],
   addActivity: (input) => {
     const id = input.id || nanoid();
+    const activity = normalizeActivity({ ...input, id });
     set((state) => ({
       activities: pruneActivities([
-        normalizeActivity({ ...input, id }),
+        activity,
         ...state.activities.filter((activity) => activity.id !== id),
       ]),
     }));
+    recordMemoryActivity(activity);
     return id;
   },
   updateActivity: (id, patch) => {
+    let nextActivity: MemoryActivityRecord | null = null;
     set((state) => ({
       activities: pruneActivities(
-        state.activities.map((activity) =>
-          activity.id === id ? normalizeActivity({ ...patch, id }, activity) : activity,
-        ),
+        state.activities.map((activity) => {
+          if (activity.id !== id) return activity;
+          nextActivity = normalizeActivity({ ...patch, id }, activity);
+          return nextActivity;
+        }),
       ),
     }));
+    if (nextActivity) recordMemoryActivity(nextActivity);
   },
   dismissActivity: (id) => {
     set((state) => ({

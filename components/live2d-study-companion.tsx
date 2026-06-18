@@ -1,20 +1,27 @@
 'use client';
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   BrainCircuit,
   CheckCircle2,
+  ClipboardCheck,
   Clock3,
   Database,
+  FileSearch,
+  History,
+  ImageIcon,
   ListChecks,
   Loader2,
-  X,
+  MessagesSquare,
+  Presentation,
+  Video,
+  Volume2,
+  Wrench,
 } from 'lucide-react';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
-import type { AiTaskRecord } from '@/lib/store/ai-task-queue';
-import { useAiTaskQueueStore } from '@/lib/store/ai-task-queue';
+import { useAiTaskQueueStore, type AiTaskRecord } from '@/lib/store/ai-task-queue';
 import {
   MEMORY_ACTIVITY_EVENT,
   isActiveMemoryActivityStatus,
@@ -24,8 +31,18 @@ import {
 } from '@/lib/store/memory-activity';
 import { useSettingsStore } from '@/lib/store/settings';
 import { cn } from '@/lib/utils';
+import { ClassroomTaskHistoryPopup } from '@/components/task-history/classroom-task-history-page-client';
 
 const STORAGE_KEY = 'syntara-live2d-study-companion-position-v2';
+const MEMORY_STATUS_MOCK_QUERY_PARAM = 'memoryStatusMock';
+const MEMORY_STATUS_MOCK_ACTIVITY_IDS = [
+  'live2d-memory-status-mock-reply',
+  'live2d-memory-status-mock-grade',
+  'live2d-memory-status-mock-working-memory',
+  'live2d-memory-status-mock-source-index',
+  'live2d-memory-status-mock-confirmation',
+  'live2d-memory-status-mock-private-memory',
+] as const;
 const EDGE_PADDING = 12;
 const DESKTOP_SIZE = { width: 190, height: 270 };
 const MOBILE_SIZE = { width: 112, height: 168 };
@@ -47,6 +64,10 @@ type DragState = {
   startY: number;
 };
 
+type MemoryStatusMockMode = 'off' | 'running' | 'flow';
+type StatusTone = 'running' | 'queued' | 'attention' | 'completed' | 'failed' | 'skipped';
+type QueueTone = 'idle' | 'running' | 'attention' | 'completed';
+
 export function Live2DStudyCompanion() {
   const modelId = useSettingsStore((state) => state.live2dPresenterModelId);
   const tasks = useAiTaskQueueStore((state) => state.tasks);
@@ -59,8 +80,19 @@ export function Live2DStudyCompanion() {
   const latestPositionRef = useRef<CompanionPosition | null>(null);
   const latestModeRef = useRef<CompanionMode | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
+  const memoryStatusMockTimersRef = useRef<number[]>([]);
+  const appliedMemoryStatusMockModeRef = useRef<MemoryStatusMockMode>('off');
   const [dragging, setDragging] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
+  const [memoryStatusMockMode, setMemoryStatusMockMode] = useState<MemoryStatusMockMode>(() =>
+    readMemoryStatusMockModeFromLocation(),
+  );
+  const locationMemoryStatusMockMode = readMemoryStatusMockModeFromLocation();
+  const effectiveMemoryStatusMockMode =
+    memoryStatusMockMode === 'off' && locationMemoryStatusMockMode !== 'off'
+      ? locationMemoryStatusMockMode
+      : memoryStatusMockMode;
 
   const queueTasks = useMemo(
     () =>
@@ -106,6 +138,187 @@ export function Live2DStudyCompanion() {
   const attentionCount = runningCount + writingMemoryCount;
   const secondaryCount = queuedCount + needsMemoryConfirmationCount;
   const hasPanelItems = queueTasks.length > 0 || visibleMemoryActivities.length > 0;
+  const queueTone = resolveQueueTone({
+    runningCount,
+    writingMemoryCount,
+    needsMemoryConfirmationCount,
+    activeMemoryCount,
+    recentCompletedMemoryCount,
+  });
+
+  const clearMemoryStatusMockTimers = useCallback(() => {
+    for (const timerId of memoryStatusMockTimersRef.current) {
+      window.clearTimeout(timerId);
+    }
+    memoryStatusMockTimersRef.current = [];
+  }, []);
+
+  const openTaskHistory = useCallback(() => {
+    setQueueOpen(false);
+    setTaskHistoryOpen(true);
+  }, []);
+
+  const dismissMemoryStatusMockActivities = useCallback(() => {
+    for (const id of MEMORY_STATUS_MOCK_ACTIVITY_IDS) {
+      dismissMemoryActivity(id);
+    }
+  }, [dismissMemoryActivity]);
+
+  const showRunningMemoryStatusMock = useCallback(() => {
+    clearMemoryStatusMockTimers();
+    dismissMemoryStatusMockActivities();
+
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-reply',
+      title: '回复已展示',
+      description: '用户先看到答案，后台继续处理判断、写入和索引。',
+      status: 'completed',
+      layer: 'none',
+      chips: ['conversation'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-grade',
+      title: 'AI 正误判断',
+      description: '正在独立判断这次提交是正确、部分正确还是错误。',
+      status: 'detecting',
+      layer: 'none',
+      chips: ['notebook'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-working-memory',
+      title: '短期状态写入',
+      description: '正在覆盖当前任务、卡点和下一步教学动作。',
+      status: 'writing_study_memory',
+      layer: 'study_memory',
+      chips: ['notebook', 'conversation'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-source-index',
+      title: '来源索引同步',
+      description: '把这次题目和讲解来源放进可检索上下文。',
+      status: 'indexing_source',
+      layer: 'knowledge_index',
+      chips: ['course', 'notebook'],
+    });
+    setQueueOpen(true);
+  }, [addMemoryActivity, clearMemoryStatusMockTimers, dismissMemoryStatusMockActivities]);
+
+  const replayMemoryStatusMock = useCallback(() => {
+    clearMemoryStatusMockTimers();
+    dismissMemoryStatusMockActivities();
+
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-reply',
+      title: '回复已展示',
+      description: '用户先看到讲解，后台任务再处理判断和记忆写入。',
+      status: 'completed',
+      layer: 'none',
+      chips: ['conversation'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-grade',
+      title: 'AI 正误判断',
+      description: '独立任务：只判断这次提交是正确、部分正确还是错误。',
+      status: 'detecting',
+      layer: 'none',
+      chips: ['notebook'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-working-memory',
+      title: '短期状态写入',
+      description: '独立任务：覆盖当前任务、卡点和下一步教学动作。',
+      status: 'writing_study_memory',
+      layer: 'study_memory',
+      chips: ['notebook', 'conversation'],
+    });
+    setQueueOpen(true);
+
+    const timers = [
+      window.setTimeout(() => {
+        updateMemoryActivity('live2d-memory-status-mock-grade', {
+          status: 'completed',
+          description: '正误判断完成：部分正确，记忆写入任务读取这个结果。',
+        });
+      }, 1200),
+      window.setTimeout(() => {
+        updateMemoryActivity('live2d-memory-status-mock-working-memory', {
+          description: '正在写入 currentTask、stuckPoint 和 nextTeachingMove。',
+        });
+      }, 1900),
+      window.setTimeout(() => {
+        updateMemoryActivity('live2d-memory-status-mock-working-memory', {
+          status: 'completed',
+          description: '短期学习状态已更新，下一次回复会优先读取。',
+          detailHref: resolveWorkingMemoryMockDetailHref(),
+        });
+      }, 3400),
+      window.setTimeout(() => {
+        addMemoryActivity({
+          id: 'live2d-memory-status-mock-private-memory',
+          title: '长期私有记忆',
+          description: '本轮只是短期状态变化，没有沉淀成长期私有记忆。',
+          status: 'skipped',
+          layer: 'study_memory',
+          chips: ['private'],
+        });
+      }, 4200),
+    ];
+    memoryStatusMockTimersRef.current = timers;
+  }, [
+    addMemoryActivity,
+    clearMemoryStatusMockTimers,
+    dismissMemoryStatusMockActivities,
+    updateMemoryActivity,
+  ]);
+
+  useEffect(() => {
+    const syncMemoryStatusMock = () => {
+      setMemoryStatusMockMode(readMemoryStatusMockModeFromLocation());
+    };
+
+    syncMemoryStatusMock();
+    window.addEventListener('popstate', syncMemoryStatusMock);
+    return () => window.removeEventListener('popstate', syncMemoryStatusMock);
+  }, []);
+
+  useEffect(() => {
+    if (effectiveMemoryStatusMockMode === 'off') {
+      clearMemoryStatusMockTimers();
+      dismissMemoryStatusMockActivities();
+      appliedMemoryStatusMockModeRef.current = 'off';
+      return undefined;
+    }
+
+    if (appliedMemoryStatusMockModeRef.current === effectiveMemoryStatusMockMode) {
+      return undefined;
+    }
+
+    const mode = effectiveMemoryStatusMockMode;
+    const timerId = window.setTimeout(() => {
+      appliedMemoryStatusMockModeRef.current = mode;
+      if (mode === 'flow') {
+        replayMemoryStatusMock();
+        return;
+      }
+      showRunningMemoryStatusMock();
+    }, 0);
+    return () => window.clearTimeout(timerId);
+  }, [
+    clearMemoryStatusMockTimers,
+    dismissMemoryStatusMockActivities,
+    effectiveMemoryStatusMockMode,
+    replayMemoryStatusMock,
+    showRunningMemoryStatusMock,
+  ]);
+
+  useEffect(
+    () => () => {
+      clearMemoryStatusMockTimers();
+      dismissMemoryStatusMockActivities();
+      appliedMemoryStatusMockModeRef.current = 'off';
+    },
+    [clearMemoryStatusMockTimers, dismissMemoryStatusMockActivities],
+  );
 
   useEffect(() => {
     const handleMemoryActivity = (event: Event) => {
@@ -247,18 +460,24 @@ export function Live2DStudyCompanion() {
 
       <div
         data-study-companion-action
-        className="absolute right-1.5 top-1.5 z-20 flex items-center gap-1"
+        className="absolute bottom-full right-0 z-20 mb-2 flex items-center gap-1"
       >
+        <button
+          type="button"
+          onClick={openTaskHistory}
+          aria-label="打开任务历史"
+          title="任务历史"
+          className="inline-flex size-8 items-center justify-center rounded-full border border-white/[0.65] bg-white/82 text-slate-700 shadow-[0_8px_22px_rgba(15,23,42,0.18)] backdrop-blur-md transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 dark:bg-slate-950/72 dark:text-slate-100 dark:hover:bg-slate-900"
+        >
+          <History className="size-3.5" strokeWidth={2.1} />
+        </button>
         <button
           type="button"
           aria-label={queueOpen ? '关闭任务队列' : '打开任务队列'}
           title="任务队列"
           className={cn(
-            'relative inline-flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-white/[0.65] bg-black/38 px-2 text-white shadow-[0_8px_22px_rgba(15,23,42,0.24)] backdrop-blur-md transition hover:bg-black/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
-            (runningCount > 0 || writingMemoryCount > 0) && 'bg-sky-600/82 hover:bg-sky-600/92',
-            activeMemoryCount > 0 &&
-              runningCount === 0 &&
-              'bg-emerald-600/82 hover:bg-emerald-600/92',
+            'relative inline-flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-white/[0.65] px-2 text-white shadow-[0_8px_22px_rgba(15,23,42,0.24)] backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80',
+            queueButtonToneClass(queueTone),
           )}
           onClick={() => setQueueOpen((open) => !open)}
         >
@@ -289,95 +508,37 @@ export function Live2DStudyCompanion() {
       {queueOpen ? (
         <div
           data-study-companion-action
-          className="absolute bottom-full right-0 z-20 mb-2 flex w-[min(292px,calc(100vw-2rem))] flex-col items-end gap-2 text-slate-900 dark:text-slate-50"
+          className="absolute bottom-full right-0 z-20 mb-12 flex w-[min(292px,calc(100vw-2rem))] flex-col items-end gap-2 text-slate-900 dark:text-slate-50"
         >
           {hasPanelItems ? (
-            <ul className="flex max-h-60 w-full flex-col items-end gap-2 overflow-y-auto pr-1">
+            <ul className="flex max-h-48 w-full flex-col items-end gap-1.5 overflow-y-auto pr-1">
               {visibleMemoryActivities.map((activity) => (
                 <li
                   key={activity.id}
                   className={cn(
-                    'relative w-full max-w-[272px] rounded-2xl border px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.18)] backdrop-blur-xl',
+                    'relative w-full max-w-[278px] rounded-xl border px-2.5 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.15)] backdrop-blur-xl',
                     memoryActivityBubbleClass(activity),
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
-                      'absolute -bottom-1 right-7 size-3 rotate-45 border-b border-r',
+                      'absolute -bottom-1 right-6 size-2.5 rotate-45 border-b border-r',
                       memoryActivityTailClass(activity),
                     )}
                   />
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={cn(
-                        'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full',
-                        memoryActivityIconClass(activity),
-                      )}
+                  <div className="flex items-center gap-2">
+                    <TaskLogoBadge
+                      logo={memoryActivityLogo(activity)}
+                      logoClassName={memoryActivityLogoClass(activity)}
+                      tone={memoryActivityTone(activity)}
                     >
-                      {memoryActivityIcon(activity)}
-                    </span>
+                      {memoryActivityStatusIcon(activity)}
+                    </TaskLogoBadge>
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <span className="truncate text-[12px] font-semibold">{activity.title}</span>
-                        <span
-                          className={cn(
-                            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px]',
-                            memoryActivityStatusClass(activity),
-                          )}
-                        >
-                          {memoryActivityStatusLabel(activity)}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 max-h-10 overflow-hidden text-[11px] leading-5 text-slate-600 dark:text-slate-300">
-                        {compactTaskDescription(activity.description || '记忆活动已同步')}
+                      <p className="truncate text-[12px] font-medium leading-5 text-slate-700 dark:text-slate-200">
+                        {activity.description || activity.title}
                       </p>
-                      {activity.chips.length > 0 ? (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {activity.chips.slice(0, 4).map((chip) => (
-                            <span
-                              key={chip}
-                              className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300"
-                            >
-                              {memoryActivityChipLabel(chip)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                      {memoryActivityHasActions(activity) ? (
-                        <div className="mt-2 flex items-center gap-1.5">
-                          {activity.detailHref ? (
-                            <a
-                              href={activity.detailHref}
-                              className="rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                            >
-                              查看
-                            </a>
-                          ) : null}
-                          {activity.status === 'needs_confirmation' ? (
-                            <button
-                              type="button"
-                              className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/15"
-                              onClick={() => dismissMemoryActivity(activity.id)}
-                            >
-                              稍后
-                            </button>
-                          ) : null}
-                          {activity.status === 'failed' ||
-                          activity.status === 'completed' ||
-                          activity.status === 'skipped' ? (
-                            <button
-                              type="button"
-                              title="关闭"
-                              aria-label={`关闭${activity.title}`}
-                              className="inline-flex size-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-200"
-                              onClick={() => dismissMemoryActivity(activity.id)}
-                            >
-                              <X className="size-3.5" strokeWidth={2.1} />
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 </li>
@@ -385,41 +546,29 @@ export function Live2DStudyCompanion() {
               {queueTasks.map((task) => (
                 <li
                   key={task.id}
-                  className="relative w-full max-w-[272px] rounded-2xl border border-white/75 bg-white/[0.92] px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/15 dark:bg-slate-950/[0.86]"
+                  className={cn(
+                    'relative w-full max-w-[278px] rounded-xl border px-2.5 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.15)] backdrop-blur-xl',
+                    taskBubbleClass(task.status === 'running' ? 'running' : 'queued'),
+                  )}
                 >
                   <span
                     aria-hidden="true"
-                    className="absolute -bottom-1 right-7 size-3 rotate-45 border-b border-r border-white/75 bg-white/[0.92] dark:border-white/15 dark:bg-slate-950/[0.86]"
+                    className={cn(
+                      'absolute -bottom-1 right-6 size-2.5 rotate-45 border-b border-r',
+                      taskTailClass(task.status === 'running' ? 'running' : 'queued'),
+                    )}
                   />
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={cn(
-                        'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full',
-                        task.status === 'running'
-                          ? 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200'
-                          : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300',
-                      )}
+                  <div className="flex items-center gap-2">
+                    <TaskLogoBadge
+                      logo={aiTaskLogo(task)}
+                      logoClassName={aiTaskLogoClass(task)}
+                      tone={task.status === 'running' ? 'running' : 'queued'}
                     >
-                      {task.status === 'running' ? (
-                        <Loader2 className="size-3 animate-spin" strokeWidth={2.2} />
-                      ) : (
-                        <Clock3 className="size-3" strokeWidth={2.2} />
-                      )}
-                    </span>
+                      {aiTaskStatusIcon(task)}
+                    </TaskLogoBadge>
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <span className="truncate text-[12px] font-semibold">{task.title}</span>
-                        <span
-                          className={cn(
-                            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px]',
-                            taskStatusClass(task),
-                          )}
-                        >
-                          {taskStatusLabel(task)}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 max-h-10 overflow-hidden text-[11px] leading-5 text-slate-600 dark:text-slate-300">
-                        {compactTaskDescription(task.description)}
+                      <p className="truncate text-[12px] font-medium leading-5 text-slate-700 dark:text-slate-200">
+                        {task.description || task.title}
                       </p>
                     </div>
                   </div>
@@ -437,24 +586,43 @@ export function Live2DStudyCompanion() {
           )}
         </div>
       ) : null}
+      <ClassroomTaskHistoryPopup open={taskHistoryOpen} onOpenChange={setTaskHistoryOpen} />
     </div>
   );
 }
 
-function taskStatusLabel(task: AiTaskRecord) {
-  if (task.status === 'running') return '运行中';
-  if (task.status === 'queued') return '排队中';
-  return '已结束';
+function TaskLogoBadge({
+  logo,
+  logoClassName,
+  tone,
+  children,
+}: {
+  logo: ReactNode;
+  logoClassName: string;
+  tone: StatusTone;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        'relative inline-flex size-7 shrink-0 items-center justify-center rounded-lg border shadow-sm',
+        logoClassName,
+      )}
+    >
+      {logo}
+      <span
+        className={cn(
+          'absolute -bottom-0.5 -right-0.5 inline-flex size-4 items-center justify-center rounded-full border border-white dark:border-slate-950',
+          statusBadgeClass(tone),
+        )}
+      >
+        {children}
+      </span>
+    </span>
+  );
 }
 
-function taskStatusClass(task: AiTaskRecord) {
-  if (task.status === 'running') {
-    return 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200';
-  }
-  return 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300';
-}
-
-function memoryActivityIcon(activity: MemoryActivityRecord) {
+function memoryActivityStatusIcon(activity: MemoryActivityRecord) {
   if (
     activity.status === 'detecting' ||
     activity.status === 'writing_fact' ||
@@ -469,104 +637,224 @@ function memoryActivityIcon(activity: MemoryActivityRecord) {
   if (activity.status === 'failed') {
     return <AlertCircle className="size-3" strokeWidth={2.2} />;
   }
+  if (activity.status === 'needs_confirmation') {
+    return <AlertCircle className="size-3" strokeWidth={2.2} />;
+  }
+  if (activity.status === 'skipped') {
+    return <Clock3 className="size-3" strokeWidth={2.2} />;
+  }
   if (activity.layer === 'knowledge_index') {
     return <Database className="size-3" strokeWidth={2.2} />;
   }
   return <BrainCircuit className="size-3" strokeWidth={2.2} />;
 }
 
-function memoryActivityStatusLabel(activity: MemoryActivityRecord) {
-  if (activity.status === 'detecting') return '判断中';
-  if (activity.status === 'writing_fact') return '更新中';
-  if (activity.status === 'writing_study_memory') return '写入中';
-  if (activity.status === 'indexing_source') return '索引中';
-  if (activity.status === 'needs_confirmation') return '待确认';
-  if (activity.status === 'completed') return '已写入';
-  if (activity.status === 'failed') return '失败';
-  return '已跳过';
+function memoryActivityLogo(activity: MemoryActivityRecord) {
+  const kind = memoryActivityVisualKind(activity);
+  if (kind === 'source_index') return <Database className="size-4" strokeWidth={2} />;
+  if (kind === 'study_memory') return <BrainCircuit className="size-4" strokeWidth={2} />;
+  if (kind === 'evaluation') return <ClipboardCheck className="size-4" strokeWidth={2} />;
+  if (kind === 'reply') return <MessagesSquare className="size-4" strokeWidth={2} />;
+  if (kind === 'fact') return <FileSearch className="size-4" strokeWidth={2} />;
+  return <History className="size-4" strokeWidth={2} />;
 }
 
-function memoryActivityStatusClass(activity: MemoryActivityRecord) {
-  if (activity.status === 'completed') {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200';
+function memoryActivityLogoClass(activity: MemoryActivityRecord) {
+  const kind = memoryActivityVisualKind(activity);
+  if (kind === 'source_index') {
+    return 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-300/20 dark:bg-indigo-400/10 dark:text-indigo-100';
   }
-  if (activity.status === 'failed') {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200';
+  if (kind === 'study_memory') {
+    return 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-400/10 dark:text-violet-100';
   }
-  if (activity.status === 'needs_confirmation') {
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200';
+  if (kind === 'evaluation') {
+    return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100';
   }
-  if (activity.status === 'skipped') {
-    return 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300';
+  if (kind === 'reply') {
+    return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-100';
   }
-  return 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200';
+  if (kind === 'fact') {
+    return 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-300/20 dark:bg-cyan-400/10 dark:text-cyan-100';
+  }
+  return 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/12 dark:bg-white/10 dark:text-slate-200';
 }
 
-function memoryActivityIconClass(activity: MemoryActivityRecord) {
-  if (activity.status === 'completed') {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200';
+function memoryActivityVisualKind(activity: MemoryActivityRecord) {
+  const text = `${activity.title} ${activity.description}`.toLowerCase();
+  if (activity.layer === 'knowledge_index' || activity.status === 'indexing_source') {
+    return 'source_index';
   }
-  if (activity.status === 'failed') {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200';
+  if (activity.layer === 'study_memory' || activity.status === 'writing_study_memory') {
+    return 'study_memory';
   }
-  if (activity.status === 'needs_confirmation') {
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200';
+  if (activity.layer === 'structured_fact' || activity.status === 'writing_fact') {
+    return 'fact';
   }
-  if (activity.layer === 'knowledge_index') {
-    return 'bg-violet-100 text-violet-700 dark:bg-violet-400/15 dark:text-violet-200';
+  if (text.includes('回复') || text.includes('答案') || activity.chips.includes('conversation')) {
+    return 'reply';
   }
-  return 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200';
+  if (text.includes('判断') || text.includes('正误') || text.includes('提交')) {
+    return 'evaluation';
+  }
+  return 'memory';
+}
+
+function aiTaskStatusIcon(task: AiTaskRecord) {
+  if (task.status === 'running') {
+    return <Loader2 className="size-3 animate-spin" strokeWidth={2.2} />;
+  }
+  return <Clock3 className="size-3" strokeWidth={2.2} />;
+}
+
+function aiTaskLogo(task: AiTaskRecord) {
+  if (task.kind === 'speech-generation') return <Volume2 className="size-4" strokeWidth={2} />;
+  if (task.kind === 'image-generation') return <ImageIcon className="size-4" strokeWidth={2} />;
+  if (task.kind === 'video-generation') return <Video className="size-4" strokeWidth={2} />;
+  if (task.kind === 'micro-lesson') return <Presentation className="size-4" strokeWidth={2} />;
+  if (task.kind === 'slide-repair') return <Wrench className="size-4" strokeWidth={2} />;
+  if (task.kind === 'chat-reply' || task.kind === 'pbl-chat') {
+    return <MessagesSquare className="size-4" strokeWidth={2} />;
+  }
+  if (task.kind === 'problem-evaluation' || task.kind === 'quiz-grading') {
+    return <ClipboardCheck className="size-4" strokeWidth={2} />;
+  }
+  if (task.kind === 'review-route') return <ListChecks className="size-4" strokeWidth={2} />;
+  if (task.kind === 'course-generation') return <FileSearch className="size-4" strokeWidth={2} />;
+  return <BrainCircuit className="size-4" strokeWidth={2} />;
+}
+
+function aiTaskLogoClass(task: AiTaskRecord) {
+  if (task.kind === 'speech-generation') {
+    return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-300/20 dark:bg-teal-400/10 dark:text-teal-100';
+  }
+  if (task.kind === 'image-generation') {
+    return 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 dark:border-fuchsia-300/20 dark:bg-fuchsia-400/10 dark:text-fuchsia-100';
+  }
+  if (task.kind === 'video-generation') {
+    return 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-300/20 dark:bg-purple-400/10 dark:text-purple-100';
+  }
+  if (task.kind === 'micro-lesson') {
+    return 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-300/20 dark:bg-blue-400/10 dark:text-blue-100';
+  }
+  if (task.kind === 'slide-repair') {
+    return 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-300/20 dark:bg-orange-400/10 dark:text-orange-100';
+  }
+  if (task.kind === 'chat-reply' || task.kind === 'pbl-chat') {
+    return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-100';
+  }
+  if (task.kind === 'problem-evaluation' || task.kind === 'quiz-grading') {
+    return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100';
+  }
+  if (task.kind === 'review-route') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-100';
+  }
+  if (task.kind === 'course-generation') {
+    return 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-300/20 dark:bg-cyan-400/10 dark:text-cyan-100';
+  }
+  return 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/12 dark:bg-white/10 dark:text-slate-200';
 }
 
 function memoryActivityBubbleClass(activity: MemoryActivityRecord) {
-  if (activity.status === 'completed') {
-    return 'border-emerald-200/80 bg-emerald-50/[0.94] dark:border-emerald-300/20 dark:bg-emerald-950/[0.74]';
-  }
-  if (activity.status === 'failed') {
-    return 'border-rose-200/80 bg-rose-50/[0.94] dark:border-rose-300/20 dark:bg-rose-950/[0.74]';
-  }
-  if (activity.status === 'needs_confirmation') {
-    return 'border-amber-200/80 bg-amber-50/[0.94] dark:border-amber-300/20 dark:bg-amber-950/[0.74]';
-  }
-  return 'border-white/75 bg-white/[0.92] dark:border-white/15 dark:bg-slate-950/[0.86]';
+  return taskBubbleClass(memoryActivityTone(activity));
 }
 
 function memoryActivityTailClass(activity: MemoryActivityRecord) {
-  if (activity.status === 'completed') {
-    return 'border-emerald-200/80 bg-emerald-50/[0.94] dark:border-emerald-300/20 dark:bg-emerald-950/[0.74]';
-  }
-  if (activity.status === 'failed') {
-    return 'border-rose-200/80 bg-rose-50/[0.94] dark:border-rose-300/20 dark:bg-rose-950/[0.74]';
-  }
-  if (activity.status === 'needs_confirmation') {
-    return 'border-amber-200/80 bg-amber-50/[0.94] dark:border-amber-300/20 dark:bg-amber-950/[0.74]';
-  }
-  return 'border-white/75 bg-white/[0.92] dark:border-white/15 dark:bg-slate-950/[0.86]';
+  return taskTailClass(memoryActivityTone(activity));
 }
 
-function memoryActivityHasActions(activity: MemoryActivityRecord) {
-  return (
-    Boolean(activity.detailHref) ||
-    activity.status === 'needs_confirmation' ||
-    activity.status === 'failed' ||
-    activity.status === 'completed' ||
-    activity.status === 'skipped'
-  );
+function memoryActivityTone(activity: MemoryActivityRecord): StatusTone {
+  if (activity.status === 'completed') return 'completed';
+  if (activity.status === 'failed') return 'failed';
+  if (activity.status === 'needs_confirmation') return 'attention';
+  if (activity.status === 'skipped') return 'skipped';
+  return 'running';
 }
 
-function memoryActivityChipLabel(chip: string) {
-  if (chip === 'public') return '公共';
-  if (chip === 'private') return '私有';
-  if (chip === 'course') return '课程';
-  if (chip === 'notebook') return '笔记本';
-  if (chip === 'user') return '全局';
-  if (chip === 'conversation') return '当前对话';
-  return chip;
+function statusBadgeClass(tone: StatusTone) {
+  if (tone === 'running') {
+    return 'bg-blue-600 text-white shadow-[0_0_0_2px_rgba(37,99,235,0.12)]';
+  }
+  if (tone === 'completed') {
+    return 'bg-emerald-600 text-white shadow-[0_0_0_2px_rgba(5,150,105,0.12)]';
+  }
+  if (tone === 'failed') {
+    return 'bg-rose-600 text-white shadow-[0_0_0_2px_rgba(225,29,72,0.12)]';
+  }
+  if (tone === 'attention') {
+    return 'bg-amber-500 text-white shadow-[0_0_0_2px_rgba(245,158,11,0.14)]';
+  }
+  return 'bg-slate-500 text-white shadow-[0_0_0_2px_rgba(100,116,139,0.12)]';
 }
 
-function compactTaskDescription(description: string) {
-  const text = description.replace(/\s+/g, ' ').trim();
-  return text.length > 96 ? `${text.slice(0, 96)}...` : text;
+function taskBubbleClass(tone: StatusTone) {
+  if (tone === 'running') {
+    return 'border-blue-200/80 bg-white/[0.94] dark:border-blue-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'completed') {
+    return 'border-emerald-200/80 bg-white/[0.94] dark:border-emerald-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'failed') {
+    return 'border-rose-200/80 bg-white/[0.94] dark:border-rose-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'attention') {
+    return 'border-amber-200/80 bg-white/[0.94] dark:border-amber-300/20 dark:bg-slate-950/[0.88]';
+  }
+  return 'border-slate-200/80 bg-white/[0.94] dark:border-white/15 dark:bg-slate-950/[0.88]';
+}
+
+function taskTailClass(tone: StatusTone) {
+  if (tone === 'running') {
+    return 'border-blue-200/80 bg-white/[0.94] dark:border-blue-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'completed') {
+    return 'border-emerald-200/80 bg-white/[0.94] dark:border-emerald-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'failed') {
+    return 'border-rose-200/80 bg-white/[0.94] dark:border-rose-300/20 dark:bg-slate-950/[0.88]';
+  }
+  if (tone === 'attention') {
+    return 'border-amber-200/80 bg-white/[0.94] dark:border-amber-300/20 dark:bg-slate-950/[0.88]';
+  }
+  return 'border-slate-200/80 bg-white/[0.94] dark:border-white/15 dark:bg-slate-950/[0.88]';
+}
+
+function resolveQueueTone(args: {
+  runningCount: number;
+  writingMemoryCount: number;
+  needsMemoryConfirmationCount: number;
+  activeMemoryCount: number;
+  recentCompletedMemoryCount: number;
+}): QueueTone {
+  if (args.runningCount > 0 || args.writingMemoryCount > 0) return 'running';
+  if (args.needsMemoryConfirmationCount > 0) return 'attention';
+  if (args.activeMemoryCount > 0 || args.recentCompletedMemoryCount > 0) return 'completed';
+  return 'idle';
+}
+
+function queueButtonToneClass(tone: QueueTone) {
+  if (tone === 'running') return 'bg-blue-600/86 hover:bg-blue-600/95';
+  if (tone === 'attention') return 'bg-amber-500/90 hover:bg-amber-500';
+  if (tone === 'completed') return 'bg-emerald-600/84 hover:bg-emerald-600/94';
+  return 'bg-slate-950/48 hover:bg-slate-950/64 dark:bg-slate-900/74 dark:hover:bg-slate-800/86';
+}
+
+function resolveWorkingMemoryMockDetailHref() {
+  if (typeof window === 'undefined') return undefined;
+  const pathname = window.location.pathname.replace(/\/$/, '');
+  if (!pathname.endsWith('/memory')) return undefined;
+  return `${pathname}/detail?memoryId=working%3Alocal`;
+}
+
+function memoryStatusMockModeFromQuery(value: string | null): MemoryStatusMockMode {
+  if (value === 'flow' || value === 'play') return 'flow';
+  if (value === '1' || value === 'running' || value === 'active') return 'running';
+  return 'off';
+}
+
+function readMemoryStatusMockModeFromLocation(): MemoryStatusMockMode {
+  if (typeof window === 'undefined') return 'off';
+  const value = new URLSearchParams(window.location.search).get(MEMORY_STATUS_MOCK_QUERY_PARAM);
+  return memoryStatusMockModeFromQuery(value);
 }
 
 function resolveCompanionSize(): CompanionSize {

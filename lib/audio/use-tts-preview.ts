@@ -7,6 +7,7 @@ import {
   playBrowserTTSPreview,
 } from '@/lib/audio/browser-tts-preview';
 import { verbalizeNarrationText } from '@/lib/audio/spoken-text';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { backendFetch } from '@/lib/utils/backend-api';
 
 export interface TTSPreviewOptions {
@@ -105,11 +106,20 @@ export function useTTSPreview() {
         if (options.apiKey?.trim()) body.ttsApiKey = options.apiKey;
         if (options.baseUrl?.trim()) body.ttsBaseUrl = options.baseUrl;
 
-        const res = await backendFetch('/api/generate/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+        const res = await runQueuedAiTask(
+          {
+            kind: 'speech-generation',
+            title: '语音试听生成',
+            description: '正在生成设置试听语音',
+          },
+          ({ signal }) =>
+            backendFetch('/api/generate/tts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal,
+            }),
+        );
         if (isStale()) return;
 
         const data = await res.json().catch(() => ({ error: res.statusText }));

@@ -28,6 +28,9 @@ type ConversationMemory = {
   title: string;
   lines: string[];
   sources: Array<{ notebookName?: string; order: number; title: string }>;
+  messageCount?: number;
+  turnCount?: number;
+  updatedAt?: number;
 };
 
 function formatTime(value?: number): string {
@@ -44,10 +47,22 @@ function notebookMessageText(message: NotebookChatMessage): string {
   return message.role === 'user' ? message.text : message.answer;
 }
 
+function compactConversationText(input: string, maxLength: number): string {
+  const text = String(input || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
 function deriveNotebookConversationMemory(messages: NotebookChatMessage[]): ConversationMemory {
   const recent = messages.slice(-10);
-  const lastUser = [...recent].reverse().find((message) => message.role === 'user');
-  const lastAssistant = [...recent].reverse().find((message) => message.role === 'assistant');
+  const userMessages = recent.filter((message) => message.role === 'user');
+  const assistantMessages = recent.filter((message) => message.role === 'assistant');
+  const lastUser = userMessages[userMessages.length - 1];
+  const lastAssistant = assistantMessages[assistantMessages.length - 1];
+  const messageCount = recent.length;
+  const turnCount = Math.max(userMessages.length, assistantMessages.length);
   const references = recent
     .flatMap((message) => (message.role === 'assistant' ? message.references || [] : []))
     .slice(-5)
@@ -56,18 +71,24 @@ function deriveNotebookConversationMemory(messages: NotebookChatMessage[]): Conv
       title: reference.title,
     }));
   const lines = [
-    lastUser ? `最近问题：${notebookMessageText(lastUser).replace(/\s+/g, ' ').slice(0, 96)}` : '',
+    messageCount
+      ? `摘要范围：最近 ${messageCount} 条消息，约 ${turnCount} 轮互动；这里只显示摘录。`
+      : '',
+    lastUser ? `最近问题：${compactConversationText(notebookMessageText(lastUser), 140)}` : '',
     lastAssistant?.role === 'assistant' && lastAssistant.knowledgeGap
       ? '本轮出现了可长期记住的学习缺口。'
       : '',
     lastAssistant
-      ? `最近回答：${notebookMessageText(lastAssistant).replace(/\s+/g, ' ').slice(0, 120)}`
+      ? `最近回答摘录：${compactConversationText(notebookMessageText(lastAssistant), 180)}`
       : '',
   ].filter(Boolean);
   return {
-    title: '私有短期记忆',
+    title: '最近互动摘要',
     lines,
     sources: references,
+    messageCount,
+    turnCount,
+    updatedAt: recent[recent.length - 1]?.at,
   };
 }
 
@@ -125,12 +146,17 @@ export function ChatMemoryDrawer({
     memory: ConversationMemory;
   } | null>(null);
 
-  const { privateMemories, weakPoints } = useMemo(() => {
+  const { privateMemories, weakPoints, workingMemory } = useMemo(() => {
     void memoryRevision;
     if (targets.length === 0) {
-      return { privateMemories: [] as NotebookMemoryItem[], weakPoints: [] as WeakPointMemory[] };
+      return {
+        privateMemories: [] as NotebookMemoryItem[],
+        weakPoints: [] as WeakPointMemory[],
+        workingMemory: null as ReturnType<typeof loadStudyMemory>['workingMemory'] | null,
+      };
     }
     const userId = getLocalStudyMemoryUserId();
+    const profiles = targets.map((target) => loadStudyMemory(userId, target.id));
     return {
       privateMemories: targets
         .flatMap((target) =>
@@ -142,9 +168,14 @@ export function ChatMemoryDrawer({
         .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
         .slice(0, 12),
       weakPoints: targets
-        .flatMap((target) => loadStudyMemory(userId, target.id).weakPoints)
+        .flatMap((target, index) => profiles[index]?.weakPoints || [])
         .filter((item) => item.status === 'open')
         .slice(0, 8),
+      workingMemory:
+        profiles
+          .map((profile) => profile.workingMemory)
+          .filter(Boolean)
+          .sort((a, b) => (b?.updatedAt || 0) - (a?.updatedAt || 0))[0] || null,
     };
   }, [memoryRevision, targets]);
 
@@ -211,6 +242,28 @@ export function ChatMemoryDrawer({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-0.5 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-900/15 dark:[&::-webkit-scrollbar-thumb]:bg-white/20">
+      {workingMemory ? (
+        <section className="rounded-[14px] border border-sky-200/80 bg-sky-50/70 p-3 dark:border-sky-300/20 dark:bg-sky-500/10">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-200">
+              <Clock3 className="size-4" strokeWidth={1.8} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-foreground">短期学习状态</p>
+              <p className="text-[10px] text-muted-foreground">回复或做题结束后后台覆盖更新</p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-1.5 text-[11px] leading-5 text-sky-900 dark:text-sky-100">
+            <p>{workingMemory.currentTask || workingMemory.summary}</p>
+            {workingMemory.stuckPoint ? <p>卡点：{workingMemory.stuckPoint}</p> : null}
+            {workingMemory.masteredSignal ? <p>掌握：{workingMemory.masteredSignal}</p> : null}
+            {workingMemory.nextTeachingMove ? (
+              <p>下一步：{workingMemory.nextTeachingMove}</p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-[14px] border border-slate-900/[0.06] bg-white/60 p-3 dark:border-white/[0.08] dark:bg-white/[0.04]">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-200">
@@ -218,10 +271,10 @@ export function ChatMemoryDrawer({
           </span>
           <div>
             <p className="text-xs font-semibold text-foreground">
-              {conversationMemory?.title || '私有短期记忆'}
+              {conversationMemory?.title || '最近互动摘要'}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              聊天框、做题与最近互动，会随会话恢复
+              短期摘要会随会话恢复，长期私有记忆在下方单独保存
             </p>
           </div>
         </div>
@@ -344,13 +397,15 @@ export function deriveAgentConversationMemory(
   const lastUser = [...recent].reverse().find((message) => message.role === 'user');
   const lastAssistant = [...recent].reverse().find((message) => message.role !== 'user');
   return {
-    title: '私有短期记忆',
+    title: '最近互动摘要',
     lines: [
-      lastUser ? `最近问题：${messageText(lastUser).replace(/\s+/g, ' ').slice(0, 96)}` : '',
+      recent.length ? `摘要范围：最近 ${recent.length} 条消息；这里只显示摘录。` : '',
+      lastUser ? `最近问题：${compactConversationText(messageText(lastUser), 140)}` : '',
       lastAssistant
-        ? `最近回答：${messageText(lastAssistant).replace(/\s+/g, ' ').slice(0, 120)}`
+        ? `最近回答摘录：${compactConversationText(messageText(lastAssistant), 180)}`
         : '',
     ].filter(Boolean),
     sources: [],
+    messageCount: recent.length,
   };
 }

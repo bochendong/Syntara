@@ -9,10 +9,13 @@ export type MemoryListDetailLayoutItem = {
 };
 
 type MemoryListDetailLayoutProps<TItem extends MemoryListDetailLayoutItem> = {
+  detailClassName?: string;
   countLabel?: string;
   emptyMessage: ReactNode;
   eyebrow?: string;
   items: TItem[];
+  layoutClassName?: string;
+  listClassName?: string;
   maxItems?: number;
   onSelectItem: (itemId: string) => void;
   renderDetail: (item: TItem | null) => ReactNode;
@@ -23,9 +26,12 @@ type MemoryListDetailLayoutProps<TItem extends MemoryListDetailLayoutItem> = {
 
 export function MemoryListDetailLayout<TItem extends MemoryListDetailLayoutItem>({
   countLabel,
+  detailClassName,
   emptyMessage,
   eyebrow = '列表记忆',
   items,
+  layoutClassName,
+  listClassName,
   maxItems,
   onSelectItem,
   renderDetail,
@@ -52,8 +58,18 @@ export function MemoryListDetailLayout<TItem extends MemoryListDetailLayoutItem>
       </div>
 
       {items.length > 0 ? (
-        <div className="grid min-h-0 gap-3 p-3 xl:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)]">
-          <div className="max-h-[68dvh] min-w-0 overflow-y-auto rounded-2xl border border-slate-200/75 bg-slate-50/55 p-2 dark:border-white/10 dark:bg-black/15">
+        <div
+          className={cn(
+            'grid min-h-0 gap-3 p-3 xl:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)]',
+            layoutClassName,
+          )}
+        >
+          <div
+            className={cn(
+              'max-h-[68dvh] min-w-0 overflow-y-auto rounded-2xl border border-slate-200/75 bg-slate-50/55 p-2 dark:border-white/10 dark:bg-black/15',
+              listClassName,
+            )}
+          >
             <div className="grid gap-2">
               {visibleItems.map((item) => {
                 const active = item.id === selectedItem?.id;
@@ -89,7 +105,7 @@ export function MemoryListDetailLayout<TItem extends MemoryListDetailLayoutItem>
             </div>
           </div>
 
-          {renderDetail(selectedItem)}
+          <div className={cn('min-w-0', detailClassName)}>{renderDetail(selectedItem)}</div>
         </div>
       ) : (
         <div className="p-3">

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Loader2, MessageCircle, RefreshCw, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MessageResponse } from '@/components/ai-elements/message';
 import type {
   NotebookChatMessage,
@@ -14,6 +14,8 @@ import {
   NotebookProblemChatCardView,
   notebookProblemAskConversationText,
 } from '@/components/chat/notebook-problem-chat-card';
+import { getNotebookAnswerDocumentForDisplay } from '@/components/chat/chat-message-utils';
+import { NotebookContentView } from '@/components/notebook-content/notebook-content-view';
 import { NOTEBOOK_CHAT_PREVIEW_EVENT } from '@/components/chat/chat-notebook-routing';
 import { askNotebook } from '@/lib/chat/ask-notebook';
 import { buildProblemExplainPrompt } from '@/lib/chat/problem-explain-prompt';
@@ -32,12 +34,12 @@ import { toast } from '@/lib/notifications/client-toast';
 const USER_PROBLEM_HELP_TEXT = '我不会这道题，请完整讲解一下。';
 
 const drawerAssistantClassName = cn(
-  'text-[13px] leading-6 text-slate-900 dark:text-slate-50',
-  '[&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5',
+  'min-w-0 max-w-full overflow-hidden text-[13px] leading-6 text-slate-900 dark:text-slate-50',
+  '[&_p]:my-2 [&_p]:break-words [&_ul]:my-2 [&_ol]:my-2 [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5 [&_li]:break-words',
   '[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-semibold',
   '[&_h2]:mt-4 [&_h2]:mb-1.5 [&_h2]:text-sm [&_h2]:font-semibold',
   '[&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold',
-  '[&_[data-streamdown=code-block]]:my-4 [&_[data-streamdown=code-block]]:rounded-lg',
+  '[&_.katex-display]:overflow-x-auto [&_[data-streamdown=code-block]]:my-4 [&_[data-streamdown=code-block]]:max-w-full [&_[data-streamdown=code-block]]:overflow-x-auto [&_[data-streamdown=code-block]]:rounded-lg',
 );
 
 function protectAngleLiteralsInPlainMarkdown(text: string): string {
@@ -339,113 +341,122 @@ export function ProblemAiHelpButton({
         {locale === 'zh-CN' ? 'AI 讲题' : 'Explain'}
       </Button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-slate-950/25 backdrop-blur-[1px]"
-          role="dialog"
-          aria-modal="true"
-          aria-label={locale === 'zh-CN' ? 'AI 讲题' : 'AI explanation'}
-          onClick={() => setOpen(false)}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="flex h-[min(52rem,calc(100dvh-1.5rem))] w-[min(64rem,calc(100vw-1.5rem))] max-w-none min-w-0 flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
         >
-          <aside
-            className="flex h-full w-full max-w-[440px] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-              <AgentAvatar avatarUrl={notebook?.avatarUrl} label={targetNotebookName} />
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 dark:text-white">
-                  <Sparkles className="size-4 text-sky-600 dark:text-sky-300" />
-                  {locale === 'zh-CN' ? '本章 AI 讲题' : 'Chapter AI'}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">{targetNotebookName}</p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-md"
-                onClick={() => setOpen(false)}
-                aria-label={locale === 'zh-CN' ? '关闭' : 'Close'}
-              >
-                <X className="size-4" />
-              </Button>
+          <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+            <AgentAvatar avatarUrl={notebook?.avatarUrl} label={targetNotebookName} />
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 dark:text-white">
+                <Sparkles className="size-4 text-sky-600 dark:text-sky-300" />
+                {locale === 'zh-CN' ? '本章 AI 讲题' : 'Chapter AI'}
+              </DialogTitle>
+              <p className="truncate text-xs text-muted-foreground">{targetNotebookName}</p>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-md"
+              onClick={() => setOpen(false)}
+              aria-label={locale === 'zh-CN' ? '关闭' : 'Close'}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
 
-            <ScrollArea className="min-h-0 flex-1">
-              <div className="space-y-4 px-4 py-4">
-                {problemCard ? <NotebookProblemChatCardView card={problemCard} /> : null}
-                {thread.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-900/40">
-                    {locale === 'zh-CN'
-                      ? '点击按钮后，我会讲完整道题。'
-                      : 'Tap the button to explain the full problem.'}
-                  </div>
-                ) : null}
-                {thread.map((message, index) =>
-                  message.role === 'user' ? (
-                    <div key={`${message.at}-${index}`} className="flex justify-end">
-                      <div className="max-w-[82%] rounded-lg bg-black px-3 py-2 text-[13px] leading-5 text-white dark:bg-white dark:text-black">
-                        {message.text}
-                      </div>
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+            <div className="min-w-0 max-w-full space-y-4 px-4 py-4">
+              {problemCard ? <NotebookProblemChatCardView card={problemCard} /> : null}
+              {thread.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-900/40">
+                  {locale === 'zh-CN'
+                    ? '点击按钮后，我会讲完整道题。'
+                    : 'Tap the button to explain the full problem.'}
+                </div>
+              ) : null}
+              {thread.map((message, index) =>
+                message.role === 'user' ? (
+                  <div key={`${message.at}-${index}`} className="flex justify-end">
+                    <div className="max-w-[82%] rounded-lg bg-black px-3 py-2 text-[13px] leading-5 text-white dark:bg-white dark:text-black">
+                      {message.text}
                     </div>
-                  ) : (
-                    <div
-                      key={`${message.at}-${index}`}
-                      className="rounded-lg bg-slate-50 px-3 py-3 dark:bg-white/[0.04]"
-                    >
-                      {message.answer ? (
-                        <MessageResponse className={drawerAssistantClassName}>
-                          {protectAngleLiteralsInPlainMarkdown(message.answer)}
-                        </MessageResponse>
-                      ) : message.statusText ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin" />
-                          <span>{message.statusText}</span>
-                        </div>
-                      ) : (
+                  </div>
+                ) : (
+                  <div
+                    key={`${message.at}-${index}`}
+                    className="min-w-0 max-w-full overflow-hidden rounded-lg bg-slate-50 px-3 py-3 dark:bg-white/[0.04]"
+                  >
+                    {(() => {
+                      const displayDocument = getNotebookAnswerDocumentForDisplay(message);
+                      if (displayDocument) {
+                        return (
+                          <NotebookContentView
+                            document={displayDocument}
+                            className="min-w-0 max-w-full select-text overflow-hidden text-[13px] leading-6 [&_.katex-display]:overflow-x-auto [&_li]:break-words [&_p]:break-words"
+                          />
+                        );
+                      }
+                      if (message.answer) {
+                        return (
+                          <MessageResponse className={drawerAssistantClassName}>
+                            {protectAngleLiteralsInPlainMarkdown(message.answer)}
+                          </MessageResponse>
+                        );
+                      }
+                      if (message.statusText) {
+                        return (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>{message.statusText}</span>
+                          </div>
+                        );
+                      }
+                      return (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="size-4 animate-spin" />
                           <span>{locale === 'zh-CN' ? '正在讲解…' : 'Explaining...'}</span>
                         </div>
-                      )}
-                    </div>
-                  ),
-                )}
-              </div>
-            </ScrollArea>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-md text-xs"
-                onClick={() => void startExplanation({ force: true })}
-                disabled={sending}
-              >
-                {sending ? (
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-1.5 size-3.5" />
-                )}
-                {locale === 'zh-CN' ? '重新讲一遍' : 'Explain again'}
-              </Button>
-              <Button
-                asChild
-                size="sm"
-                className="h-8 rounded-md bg-sky-600 px-3 text-xs text-white hover:bg-sky-500"
-              >
-                <Link href={chatHref}>
-                  <MessageCircle className="mr-1.5 size-3.5" />
-                  {locale === 'zh-CN' ? '去聊天页继续问' : 'Open chat'}
-                  <ExternalLink className="ml-1.5 size-3.5" />
-                </Link>
-              </Button>
+                      );
+                    })()}
+                  </div>
+                ),
+              )}
             </div>
-          </aside>
-        </div>
-      ) : null}
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-md text-xs"
+              onClick={() => void startExplanation({ force: true })}
+              disabled={sending}
+            >
+              {sending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-1.5 size-3.5" />
+              )}
+              {locale === 'zh-CN' ? '重新讲一遍' : 'Explain again'}
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="h-8 rounded-md bg-sky-600 px-3 text-xs text-white hover:bg-sky-500"
+            >
+              <Link href={chatHref}>
+                <MessageCircle className="mr-1.5 size-3.5" />
+                {locale === 'zh-CN' ? '去聊天页继续问' : 'Open chat'}
+                <ExternalLink className="ml-1.5 size-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

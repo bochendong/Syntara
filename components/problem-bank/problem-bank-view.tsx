@@ -22,6 +22,7 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import type { AppNotification } from '@/lib/notifications/types';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useNotificationStore } from '@/lib/store/notifications';
+import { queueProblemAttemptWorkingMemoryUpdate } from '@/lib/learning/working-memory-tasks';
 import { parsePdfForGeneration } from '@/lib/pdf/parse-for-generation';
 import {
   getLocalizedProblemContent,
@@ -678,6 +679,11 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
         ...payload,
       });
       await refreshAfterAttempt(attempt);
+      queueProblemAttemptWorkingMemoryUpdate({
+        notebookId,
+        problem: selectedProblem,
+        attempt,
+      });
       enqueueBanner(
         buildPracticeNotification({
           locale,
@@ -1352,11 +1358,11 @@ export function ProblemBankView({ notebookId }: { notebookId: string }) {
                               });
                             }}
                           />
-                          <div className="min-w-0">
-                            <span className="mr-1 font-medium">{option.id}.</span>
+                          <div className="flex min-w-0 flex-1 items-start gap-1.5">
+                            <span className="mt-0.5 shrink-0 font-medium">{option.id}.</span>
                             <ProblemRichText
                               content={option.label}
-                              className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
+                              className="min-w-0 flex-1 [&_.problem-rich-code-block]:my-0 [&_.problem-rich-code-block]:max-w-full"
                             />
                           </div>
                         </label>

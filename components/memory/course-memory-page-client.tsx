@@ -380,16 +380,6 @@ function cleanedMemoryTitle(title: string): string {
     .trim();
 }
 
-function hasBacktrackingSearchTitleSignal(text: string): boolean {
-  return /\bsearch\b|backtracking/.test(text);
-}
-
-function hasBacktrackingSearchBodySignal(text: string): boolean {
-  return /backtracking|search problem|search state|solve-list|next-search-problems|goal test|successor function|failure result|solution result/.test(
-    text,
-  );
-}
-
 function hasGenerativeRecursionSignal(text: string): boolean {
   return /generative recursion|\bgenrec\b|generated next|generated problem|next-problems|next states/.test(
     text,
@@ -411,7 +401,6 @@ function inferTemplateTitle(memory: PublicMemoryView, explicitTitle?: string): s
   if (/mutual reference|trees|listofnode|tree/.test(title)) return 'Mutual Reference 模板';
   if (/two one-of|2-one-of/.test(title)) return 'Two One-of Cross-product 模板';
   if (/encapsulated|local/.test(title)) return 'Encapsulated Local Helper 模板';
-  if (hasBacktrackingSearchTitleSignal(title)) return 'Backtracking Search 模板';
   if (hasGenerativeRecursionSignal(title)) return 'Generative Recursion 模板';
   if (/recursion\/bst|bst/.test(title)) return 'BST Structural Recursion 模板';
   if (/reference\/self-reference|self-reference/.test(title)) {
@@ -428,7 +417,6 @@ function inferTemplateTitle(memory: PublicMemoryView, explicitTitle?: string): s
   if (/mutual reference|listofnode|tree|trees/.test(text)) return 'Mutual Reference 模板';
   if (/two one-of|2-one-of/.test(text)) return 'Two One-of Cross-product 模板';
   if (/encapsulated|local/.test(text)) return 'Encapsulated Local Helper 模板';
-  if (hasBacktrackingSearchBodySignal(text)) return 'Backtracking Search 模板';
   if (hasGenerativeRecursionSignal(text)) return 'Generative Recursion 模板';
   if (/bst/.test(text)) return 'BST Structural Recursion 模板';
   if (/reference|self-reference/.test(text)) return 'Reference / Self-reference 模板';
@@ -566,27 +554,6 @@ function defaultTemplateText(title: string, category: string): string {
     ]);
   }
 
-  if (title.includes('Backtracking Search')) {
-    return markdownLines([
-      '```racket',
-      '(@template-origin try-catch SearchState (listof SearchState))',
-      '',
-      '(define (solve s)',
-      '  (cond [(solved? s) (solution s)]',
-      '        [else',
-      '         (solve-list (next-search-problems s))]))',
-      '',
-      '(define (solve-list los)',
-      '  (cond [(empty? los) false]',
-      '        [else',
-      '         (local [(define try (solve (first los)))]',
-      '           (if (not (false? try))',
-      '               try',
-      '               (solve-list (rest los))))]))',
-      '```',
-    ]);
-  }
-
   if (title.includes('Generative Recursion')) {
     return markdownLines([
       '```racket',
@@ -604,7 +571,7 @@ function defaultTemplateText(title: string, category: string): string {
       '         (... (function-name (smaller/generated-problem problem)))]))',
       '```',
       '',
-      '纯 generative recursion 的重点是递归输入由规则生成，并且必须写 termination argument；backtracking search 还需要 failure / try-catch。',
+      '纯 generative recursion 的重点是递归输入由规则生成，并且必须写 termination argument；failure-result search 还需要 try-catch local result pattern。',
     ]);
   }
 
@@ -802,21 +769,6 @@ function defaultExampleText(title: string, category: string): string {
     ]);
   }
 
-  if (title.includes('Backtracking Search')) {
-    return markdownLines([
-      '迷宫或 TA assignment 这类题里，`solve` 尝试一个 state；`solve-list` 逐个尝试候选 state。',
-      '',
-      '```racket',
-      '(local [(define try (solve (first los)))]',
-      '  (if (not (false? try))',
-      '      try',
-      '      (solve-list (rest los))))',
-      '```',
-      '',
-      '这就是 backtracking：一个分支失败，才继续试剩余分支。',
-    ]);
-  }
-
   if (title.includes('Generative Recursion')) {
     return markdownLines([
       '```racket',
@@ -968,12 +920,8 @@ function inferredTemplateBlocks(memory: PublicMemoryView): Array<{ title: string
       },
     ];
   }
-  if (hasBacktrackingSearchBodySignal(text) && hasGenerativeRecursionSignal(text)) {
+  if (hasGenerativeRecursionSignal(text)) {
     return [
-      {
-        title: 'Backtracking Search 模板',
-        body: memory.text,
-      },
       {
         title: 'Generative Recursion 模板',
         body: memory.text,
@@ -997,6 +945,65 @@ function collectCourseTemplates(memories: PublicMemoryView[]): CourseTemplateVie
   });
 
   return templates.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+function courseTemplateDedupeKey(template: CourseTemplateView): string {
+  return `${template.category.trim().toLowerCase()}::${template.title.trim().toLowerCase()}`;
+}
+
+function courseTemplateMergeScore(template: CourseTemplateView): number {
+  const sourceText = `${template.sourceTitle} ${template.notebookName || ''}`.toLowerCase();
+  let score = template.templateText.length + template.exampleText.length;
+
+  if (template.sourceLabel === '课程模板库') score += 20_000;
+  if (template.sourceTitle.includes('手工总结模板')) score += 10_000;
+
+  if (template.title.includes('Generative Recursion')) {
+    if (/search|generative recursion|backtracking/.test(sourceText)) score += 4_000;
+    if (/htdf|htdd/.test(sourceText)) score -= 1_000;
+  }
+
+  return score;
+}
+
+function mergeDuplicateCourseTemplates(templates: CourseTemplateView[]): CourseTemplateView[] {
+  const groups = new Map<string, CourseTemplateView[]>();
+  const orderedKeys: string[] = [];
+
+  for (const template of templates) {
+    const key = courseTemplateDedupeKey(template);
+    const group = groups.get(key);
+    if (group) {
+      group.push(template);
+    } else {
+      groups.set(key, [template]);
+      orderedKeys.push(key);
+    }
+  }
+
+  return orderedKeys.map((key) => {
+    const group = groups.get(key) || [];
+    if (group.length <= 1) return group[0];
+
+    const sortedGroup = [...group].sort((a, b) => {
+      const scoreDelta = courseTemplateMergeScore(b) - courseTemplateMergeScore(a);
+      if (scoreDelta !== 0) return scoreDelta;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    const primary = sortedGroup[0];
+    const sourceTitles = Array.from(new Set(group.map((item) => item.sourceTitle).filter(Boolean)));
+    const sourceNote = sourceTitles.length > 1 ? `合并来源：${sourceTitles.join('、')}` : undefined;
+
+    return {
+      ...primary,
+      sourceTitle: sourceTitles.length > 1 ? '多个来源' : primary.sourceTitle,
+      summary:
+        sourceNote && !primary.summary.includes(sourceNote)
+          ? `${primary.summary.trim()}\n\n${sourceNote}`
+          : primary.summary,
+      updatedAt: Math.max(...group.map((item) => item.updatedAt || 0)) || primary.updatedAt,
+    };
+  });
 }
 
 function isCpscGraphTemplateCourse(course: CourseRecord, notebooks: StageListItem[]): boolean {
@@ -1036,71 +1043,105 @@ function manualCpscGraphTemplates(
   return [
     {
       ...base,
-      id: 'manual:cpsc-graph-normal-recursion',
-      title: 'Graph Search / No Tail Recursion 模板',
+      id: 'manual:cpsc-structural-try-catch-encapsulated',
+      title: 'Structural Try-Catch / Encapsulated 模板',
+      sourceTitle: 'Local/Encapsulated try-catch 手工总结模板',
       summary:
-        '普通递归 graph search：local 封装 node/list/edge helpers，用 genrec 表示 generate-node/get-room，path/visited 防 cycle，try-catch 处理一个分支失败后试下一个。',
+        '结构化互递归 search：公开函数封装 Person/ListOfPerson helper；单个节点失败后进入 children list；list helper 用 local try 保存第一次尝试，失败才继续 rest。',
       templateText: markdownLines([
-        '什么时候这样写：题目要求 graph search，但没有要求 tail recursion；需要沿边递归找 path / answer，失败返回 false。',
+        '什么时候这样写：题目给的是 structural tree / family / nested data，不是 graph genrec；函数要返回一个真实答案或 `false`，并且 list-of helper 要一个个尝试，某个分支成功就立刻返回。',
+        '',
+        '这不是 JS/Python 的 exception try/catch；`try` 只是 local variable，用来保存第一次 recursive attempt 的结果。',
         '',
         '```racket',
-        '(@template-origin encapsulated Node (listof Edge) Edge genrec accumulator try-catch)',
+        '(@template-origin Person ListOfPerson try-catch encapsulated)',
         '',
-        ';; Termination argument',
-        ';; trivial: reach goal, no more edges, or encounter visited/path cycle',
-        ';; reduction: recursive call follows one edge to a generated next node',
-        ';; argument: graph is finite, and visited/path prevents revisiting forever',
+        '(define (find n0 p0)',
+        '  (local [(define (find--person n p)',
+        '            (if (string=? (person-name p) n)',
+        '                (person-age p)',
+        '                (find--lop n (person-kids p))))',
         '',
-        '(define (find-in-graph start target graph)',
-        '  (local [(define (fn-for-node n path)',
-        '            (cond [(member? (node-key n) path) false]',
-        '                  [(goal? n target) (produce-solution n path)]',
+        '          (define (find--lop n lop)',
+        '            (cond [(empty? lop) false]',
         '                  [else',
-        '                   (fn-for-loe (node-edges n) path)]))',
-        '',
-        '          (define (fn-for-loe loe path)',
-        '            (cond [(empty? loe) false]',
-        '                  [else',
-        '                   (local [(define try (fn-for-edge (first loe) path))]',
+        '                   (local [(define try',
+        '                             (find--person n (first lop)))]',
         '                     (if (not (false? try))',
         '                         try',
-        '                         (fn-for-loe (rest loe) path)))]))',
-        '',
-        '          (define (fn-for-edge e path)',
-        '            (fn-for-node (generate-node graph (edge-to e))',
-        '                         (cons (edge-id e) path)))]',
-        '    (fn-for-node (generate-node graph start) empty)))',
+        '                         (find--lop n (rest lop))))]))]',
+        '    (find--person n0 p0)))',
         '```',
         '',
-        '删减规则：如果不需要 path/visited accumulator，就删 `accumulator`；如果不是 first-success/failure search，就删 `try-catch`。',
+        '删减规则：如果失败结果不是 `false`，就把 `false?` 和 empty case 改成题面指定的 failure value；如果 helper 不被封装在一个公开入口里，就不要写 `encapsulated`。',
       ]),
       exampleText: markdownLines([
-        '例子来源像 `find-increasing-path-sr`：Room / (listof Stairs) / Stairs 三个模板被 local 封装；`get-room` 是 generative step；`path` 防 cycle；`fn-for-los` 用 local `try` 做 backtracking。',
+        '例子：在 family tree 里按名字找年龄。',
         '',
         '```racket',
-        '(@template-origin encapsulated Room (listof Stairs) Stairs genrec accumulator try-catch)',
+        ';; Person has name, age, and kids',
+        ';; ListOfPerson is one of:',
+        ';; - empty',
+        ';; - (cons Person ListOfPerson)',
         '',
-        '(define (find-path from to)',
-        '  (local [(define (fn-for-room rm path)',
-        '            (if (string=? (room-name rm) to)',
-        '                (map stairs-label (reverse path))',
-        '                (fn-for-los (room-los rm) path)))',
+        ';; find--person : String Person -> Natural or false',
+        ';; find--lop    : String ListOfPerson -> Natural or false',
         '',
-        '          (define (fn-for-los los path)',
-        '            (cond [(empty? los) false]',
-        '                  [else',
-        '                   (local [(define try (fn-for-stairs (first los) path))]',
-        '                     (if (not (false? try))',
-        '                         try',
-        '                         (fn-for-los (rest los) path)))]))',
-        '',
-        '          (define (fn-for-stairs s path)',
-        '            (if (member? s path)',
-        '                false',
-        '                (fn-for-room (get-room (stairs-to-room-name s))',
-        '                             (cons s path))))]',
-        '    (fn-for-room (get-room from) empty)))',
+        ';; find--person 先检查当前 person。',
+        ';; 如果当前 person 不是目标，就交给 find--lop 搜索 kids。',
+        ';; find--lop 对 first child 做一次 try。',
+        ';; try 成功就返回；try 是 false 才继续 rest。',
         '```',
+        '',
+        '检查 `@template-origin`：`Person ListOfPerson` 来自互相递归数据模板；`try-catch` 来自 first-success/failure-result 搜索；`encapsulated` 来自 helper pair 被藏在公开 `find` 里面。',
+      ]),
+    },
+    {
+      ...base,
+      id: 'manual:cpsc-graph-normal-recursion',
+      title: 'Graph Natural Recursion / No Worklist 模板',
+      summary:
+        'Graph natural recursion：用课程源模板的 fn-for-node / fn-for-lonn；generate-node 把 node number 生成 Node，递归不是 tail position。',
+      templateText: markdownLines([
+        '什么时候这样写：题目给 Map / Node / generate-node 这类 opaque graph 数据，并要求使用 normal/natural recursion 模板，而不是 tail-recursive worklist。',
+        '',
+        '```racket',
+        '(@template-origin genrec arb-tree accumulator)',
+        '',
+        '#;',
+        '(define (fn-for-graph/nr map num0)',
+        '  (local [(define (fn-for-node n)',
+        '            (local [(define num (node-number n))',
+        '                    (define nexts (node-nexts n))]',
+        '              (cond [(...) (...)] ;stop cycles',
+        '                  [else',
+        '                   (fn-for-lonn nexts)])))',
+        '',
+        '          (define (fn-for-lonn lonn)',
+        '            (cond [(empty? lonn) (...)]',
+        '                  [else',
+        '                   (... (first lonn)',
+        '                        (fn-for-node (generate-node map (first lonn)))',
+        '                        (fn-for-lonn (rest lonn)))]))]',
+        '',
+        '    (fn-for-? ...num0)))',
+        '```',
+        '',
+        '课程约束：如果题目给了这个模板，不要改 local function 名 `fn-for-node` / `fn-for-lonn`，也不要改参数名；可以按题意加额外参数，例如 visited、path、ans。',
+      ]),
+      exampleText: markdownLines([
+        '普通递归版本常见用途：对当前 node 递归处理 nexts，recursive result 回来后还要 combine，所以不是 tail recursion。',
+        '',
+        '```racket',
+        '(define (fn-for-lonn lonn visited ans)',
+        '  (cond [(empty? lonn) ans]',
+        '        [else',
+        '         (... (first lonn)',
+        '              (fn-for-node (generate-node map (first lonn)) visited ans)',
+        '              (fn-for-lonn (rest lonn) visited ans))]))',
+        '```',
+        '',
+        '如果题目要求 tail recursion 或 worklist，就不要用这个 nr 模板，改用 `fn-for-graph/tr`。',
       ]),
     },
     {
@@ -1108,65 +1149,58 @@ function manualCpscGraphTemplates(
       id: 'manual:cpsc-graph-tail-recursion',
       title: 'Graph Worklist / Tail Recursion 模板',
       summary:
-        'Tail-recursive graph traversal：用 primary worklist 表示待处理节点，用 visited 防重复，用 rsf/path-wl 等 accumulator 保存结果或 tandem 信息。',
+        'Tail-recursive graph traversal：课程源模板用 nn-wl 表示 node number worklist；需要 path 时加 path-wl 这类 tandem worklist。',
       templateText: markdownLines([
-        '什么时候这样写：题目明确要求 tail recursion，或需要 worklist 遍历 graph/tree-like generated nodes。',
+        '什么时候这样写：题目明确要求 tail recursion，或要求使用 source 中的 `fn-for-graph/tr` 模板。worklist 命名按课程源材料写成 `nn-wl`、`path-wl`、`state-wl` 这类 `-wl` 名字。',
         '',
         '```racket',
-        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator)',
+        '(@template-origin genrec arb-tree accumulator)',
         '',
-        ';; Termination argument',
-        ';; trivial: worklist is empty',
-        ';; reduction: each step removes one work item from the worklist',
-        ';; argument: graph is finite, and visited prevents adding the same node forever',
-        '',
-        '(define (traverse-graph start graph)',
-        '  ;; node-wl is (listof NodeName); primary worklist',
-        '  ;; visited is (listof NodeName); already processed nodes',
-        '  ;; rsf is Result; result so far',
-        '  (local [(define (fn-for-node n node-wl visited rsf)',
-        '            (local [(define key (node-key n))',
+        '#;',
+        '(define (fn-for-graph/tr map num0)',
+        '  ;; nn-wl is (listof Natural); node number worklist',
+        '  ;; fn-for-node adds the unvisited direct subs of n',
+        '  ;; fn-for-lonn takes node numbers off one at a time to call fn-for-node',
+        '  (local [(define (fn-for-node n nn-wl)',
+        '            (local [(define num (node-number n))',
         '                    (define nexts (node-nexts n))]',
-        '              (cond [(member? key visited)',
-        '                     (fn-for-wl node-wl visited rsf)]',
+        '              (cond [(...) (...)] ;stop cycles',
         '                    [else',
-        '                     (fn-for-wl (append nexts node-wl)',
-        '                                (cons key visited)',
-        '                                (update-rsf n rsf))])))',
+        '                     (fn-for-lonn (append nexts nn-wl))])))',
         '',
-        '          (define (fn-for-wl node-wl visited rsf)',
-        '            (cond [(empty? node-wl) rsf]',
+        '          (define (fn-for-lonn nn-wl visited)',
+        '            (cond [(empty? nn-wl) (...)]',
         '                  [else',
-        '                   (fn-for-node (generate-node graph (first node-wl))',
-        '                                (rest node-wl)',
-        '                                visited',
-        '                                rsf)]))]',
-        '    (fn-for-wl (list start) empty initial-rsf)))',
+        '                   (fn-for-node (generate-node map (first nn-wl))',
+        '                                (rest nn-wl))]))]',
+        '',
+        '    (fn-for-? ...num0)))',
         '```',
         '',
-        '如果还要记录 path，就加 tandem worklist：`path-wl` 必须和 primary worklist 同长度、同顺序更新。',
+        '课程约束：必须保留 local function 名 `fn-for-node` / `fn-for-lonn` 和原参数名；可以加参数，例如 `visited`、`path-wl`、`ans`。如果加 tandem worklist，名字写 `path-wl` 这类 `-wl`。',
       ]),
       exampleText: markdownLines([
-        '带 tandem worklists 的常见写法：',
+        '带 tandem worklists 的常见写法，注意全都用 `-wl` 命名：',
         '',
         '```racket',
-        '(@template-origin genrec Node (listof Node) Info (listof Info) accumulator)',
+        '(@template-origin genrec arb-tree accumulator)',
         '',
-        ';; nn-wl is (listof String); primary worklist',
+        ';; state-wl is (listof Natural); primary worklist',
         ';; path-wl is (listof (listof String)); tandem worklist',
-        ';; INVARIANT: nn-wl and path-wl always have the same length',
+        ';; INVARIANT: state-wl and path-wl always have the same length',
         '',
-        '(define (fn-for-node n path nn-wl path-wl visited rsf)',
-        '  (local [(define name (node-name n))',
-        '          (define nexts (node-nexts n))',
-        '          (define npath (cons name path))]',
-        '    (if (member? name visited)',
-        '        (fn-for-wl nn-wl path-wl visited rsf)',
-        '        (fn-for-wl (append nexts nn-wl)',
-        '                   (append (make-list (length nexts) npath) path-wl)',
-        '                   (cons name visited)',
-        '                   (update-rsf n rsf)))))',
+        '(define (fn-for-state state path visited state-wl path-wl ans)',
+        '  (local [(define neighbours (node-nexts (generate-node map state)))',
+        '          (define npath (append path (list state)))]',
+        '    (if (member? state visited)',
+        '        (fn-for-lonn state-wl path-wl visited ans)',
+        '        (fn-for-lonn (append neighbours state-wl)',
+        '                     (append (make-list (length neighbours) npath) path-wl)',
+        '                     (cons state visited)',
+        '                     (update-ans state ans)))))',
         '```',
+        '',
+        '如果题目规定 helper 必须叫 `fn-for-node` / `fn-for-lonn`，示例里的 `fn-for-state` 要改回题面模板名。',
       ]),
     },
     {
@@ -1179,37 +1213,34 @@ function manualCpscGraphTemplates(
         '什么时候这样写：graph step 里用 `map` 生成 next nodes / next states / path copies，而这个 `map` 是主算法的一部分。',
         '',
         '```racket',
-        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator use-abstract-fn)',
+        '(@template-origin genrec arb-tree accumulator use-abstract-fn)',
         '',
         '(define (traverse-graph start graph)',
-        '  ;; node-wl is (listof Node)',
-        '  ;; path-wl is (listof Path), tandem with node-wl',
-        '  (local [(define (expand n path node-wl path-wl visited rsf)',
+        '  ;; nn-wl is (listof Natural); node number worklist',
+        '  ;; path-wl is (listof Path), tandem with nn-wl',
+        '  (local [(define (fn-for-node n path nn-wl path-wl visited rsf)',
         '            (local [(define next-names (node-nexts n))',
-        '                    (define next-nodes',
-        '                      (map (lambda (name) (generate-node graph name))',
-        '                           next-names))',
         '                    (define next-paths',
         '                      (map (lambda (name) (cons name path))',
         '                           next-names))]',
-        '              (fn-for-wl (append next-nodes node-wl)',
-        '                         (append next-paths path-wl)',
-        '                         visited',
-        '                         rsf)))',
-        '',
-        '          (define (fn-for-wl node-wl path-wl visited rsf)',
-        '            (cond [(empty? node-wl) rsf]',
-        '                  [else',
-        '                   (expand (first node-wl)',
-        '                           (first path-wl)',
-        '                           (rest node-wl)',
-        '                           (rest path-wl)',
+        '              (fn-for-lonn (append next-names nn-wl)',
+        '                           (append next-paths path-wl)',
         '                           visited',
-        '                           rsf)]))]',
-        '    (fn-for-wl (list (generate-node graph start))',
-        '               (list empty)',
-        '               empty',
-        '               initial-rsf)))',
+        '                           rsf)))',
+        '',
+        '          (define (fn-for-lonn nn-wl path-wl visited rsf)',
+        '            (cond [(empty? nn-wl) rsf]',
+        '                  [else',
+        '                   (fn-for-node (generate-node graph (first nn-wl))',
+        '                                (first path-wl)',
+        '                                (rest nn-wl)',
+        '                                (rest path-wl)',
+        '                                visited',
+        '                                rsf)]))]',
+        '    (fn-for-lonn (list start)',
+        '                 (list empty)',
+        '                 empty',
+        '                 initial-rsf)))',
         '```',
         '',
         '如果 `map` 只藏在老师给的 primitive/helper 里，比如 `get-room` 内部把 raw edge data 变成 Stairs，通常不把 `use-abstract-fn` 写进你主函数的 `@template-origin`。',
@@ -1224,9 +1255,9 @@ function manualCpscGraphTemplates(
         '                  (make-stairs ...))',
         '                (second entry)))',
         '',
-        ';; 2. 主 traversal 内部生成 worklist：要加 use-abstract-fn',
-        '(define next-nodes',
-        '  (map (lambda (name) (generate-node graph name)) next-names))',
+        ';; 2. 主 traversal 内部生成 tandem path-wl：要加 use-abstract-fn',
+        '(define next-paths',
+        '  (map (lambda (name) (cons name path)) next-names))',
         '```',
       ]),
     },
@@ -1862,9 +1893,12 @@ function TemplateRegistryPanel({ templates }: { templates: CourseTemplateView[] 
 
   return (
     <MemoryListDetailLayout<CourseTemplateView>
+      detailClassName="min-h-0 overflow-y-auto pr-1 lg:h-full"
       emptyMessage="暂无可识别的课程模板。"
       eyebrow="模板记忆"
       items={templates}
+      layoutClassName="lg:h-[calc(100dvh-7rem)] lg:max-h-[calc(100dvh-7rem)] xl:!grid-cols-[minmax(18rem,0.56fr)_minmax(0,1.44fr)]"
+      listClassName="lg:h-full lg:!max-h-none"
       maxItems={18}
       onSelectItem={(templateId) => setSelectedTemplateId(templateId)}
       selectedItemId={selectedTemplateId}
@@ -2584,10 +2618,11 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
     [dbNotebookPublicMemories, notebookProfiles],
   );
   const courseTemplates = useMemo(
-    () => [
-      ...manualCpscGraphTemplates(course, notebooks),
-      ...collectCourseTemplates([...coursePublicMemories, ...notebookPublicMemories]),
-    ],
+    () =>
+      mergeDuplicateCourseTemplates([
+        ...manualCpscGraphTemplates(course, notebooks),
+        ...collectCourseTemplates([...coursePublicMemories, ...notebookPublicMemories]),
+      ]),
     [course, coursePublicMemories, notebookPublicMemories, notebooks],
   );
   const privateMemories = useMemo(() => {

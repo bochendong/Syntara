@@ -166,6 +166,7 @@ const CPSC107_PACK: CoursePack = {
         'local',
         'closure/lifting reasoning',
         'encapsulated template-origin',
+        'try-catch local result pattern',
       ],
     },
     {
@@ -314,6 +315,16 @@ const CPSC107_PACK: CoursePack = {
       ],
     },
     {
+      name: 'structural try-catch encapsulated template',
+      origins: ['(@template-origin Person ListOfPerson try-catch encapsulated)'],
+      contract: [
+        'Use this when a structural mutual-reference search returns either a real answer or false, and the list helper must try one child before falling through to the rest.',
+        'This is not exception handling; try is a local binding that stores the first recursive attempt result.',
+        'The single-item helper searches the item first, then delegates to the list-of helper; the list-of helper returns false on empty and otherwise uses local try / false? to decide whether to continue.',
+        'Use encapsulated because the public function hides the Person/ListOfPerson helper pair inside local.',
+      ],
+    },
+    {
       name: 'two one-of',
       origins: ['(@template-origin 2-one-of)'],
       contract: [
@@ -341,11 +352,12 @@ const CPSC107_PACK: CoursePack = {
       ],
     },
     {
-      name: 'backtracking search',
-      origins: ['(@template-origin try-catch ...)', '(@template-origin genrec ... try-catch)'],
+      name: 'try-catch local result pattern',
+      origins: ['(@template-origin ... try-catch)', '(@template-origin genrec ... try-catch)'],
       contract: [
-        'Identify state, start, goal test, successor generation, failure result, and solution result.',
-        'Use a solve/solve-list shape where a local try result returns immediately unless it is false, then continues with the remaining candidates.',
+        'Use this only when a candidate branch can fail with false and the list helper should continue with the remaining candidates.',
+        'Do not default to a generic state-search skeleton; follow the local helper names provided by the source template, such as fn-for-node and fn-for-lonn.',
+        'Use local try to store one recursive attempt result; return try when it is not false, otherwise recur on the rest of the list.',
       ],
     },
     {
@@ -361,32 +373,29 @@ const CPSC107_PACK: CoursePack = {
     },
     {
       name: 'graph search no tail recursion',
-      origins: [
-        '(@template-origin encapsulated Node (listof Edge) Edge genrec accumulator try-catch)',
-      ],
+      origins: ['(@template-origin genrec arb-tree accumulator)'],
       contract: [
-        'Use local helpers for node/list-of-edge/edge templates; use genrec because generate-node/get-room creates the next node from the graph map.',
-        'Use accumulator when carrying path/visited information to prevent cycles; use try-catch when failed branches should fall through to remaining edges.',
+        'Use the source normal-recursion template fn-for-graph/nr with local fn-for-node and fn-for-lonn.',
+        'Use generate-node to turn a node number into a Node; stop cycles with visited/path accumulator when needed.',
+        'Do not rename local functions or existing parameters when the problem says the template is provided.',
       ],
     },
     {
       name: 'graph worklist tail recursion',
-      origins: [
-        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator)',
-        '(@template-origin genrec Node (listof Node) Info (listof Info) accumulator)',
-      ],
+      origins: ['(@template-origin genrec arb-tree accumulator)'],
       contract: [
-        'Use a primary worklist for remaining node names/nodes and visited to prevent repeated traversal.',
+        'Use the source tail-recursion template fn-for-graph/tr with nn-wl as the primary node-number worklist.',
+        'Name worklists with the -wl suffix, such as nn-wl, state-wl, or path-wl.',
         'For paths or parallel facts, use tandem worklists and state the same-length/same-order invariant.',
+        'Do not rename local functions or existing parameters when the problem says the template is provided; add parameters only as allowed.',
       ],
     },
     {
       name: 'graph with abstract map expansion',
-      origins: [
-        '(@template-origin encapsulated Node (listof NodeName) genrec accumulator use-abstract-fn)',
-      ],
+      origins: ['(@template-origin genrec arb-tree accumulator use-abstract-fn)'],
       contract: [
-        'Add use-abstract-fn when map/filter/fold is part of the main graph traversal step, such as generating next nodes or tandem path entries.',
+        'Add use-abstract-fn when map/filter/fold is part of the main graph traversal step, such as generating tandem path-wl entries.',
+        'Keep worklist naming aligned with the source template, such as nn-wl, state-wl, and path-wl.',
         'Do not add use-abstract-fn merely because a provided primitive like get-room internally uses map.',
       ],
     },
@@ -438,7 +447,7 @@ const CPSC107_PACK: CoursePack = {
       'Do not use apply as a learned abstraction unless the problem/source explicitly introduces it.',
     ],
     8: [
-      'For backtracking search questions, identify state, start, goal test, successor generation, failure result, and solution result.',
+      'For try-catch search questions, identify state, start, goal test, successor generation, failure result, and solution result.',
       'Do not collapse search into generic generative recursion: search needs the try-catch/backtracking step when failed branches should fall through to remaining candidates.',
       'Generative recursion is still separate: recursive calls are on generated next problems, not direct structural subparts.',
     ],
@@ -451,7 +460,195 @@ const CPSC107_PACK: CoursePack = {
   },
 };
 
-const COURSE_PACKS: CoursePack[] = [CPSC107_PACK];
+const CSC108_PACK: CoursePack = {
+  id: 'csc108-python-course-pack-v1',
+  courseCode: 'CSC108',
+  title: 'CSC108 Python function-design course pack',
+  capabilityLevel: 'level_3_artifact_specs',
+  matcher: ({ course, notebook }) =>
+    /\bcsc\s*108\b|csc108|queue-csc108|introduction to computer programming/i.test(
+      identityText(course, notebook),
+    ),
+  units: [
+    {
+      order: 1,
+      title: 'Python basics',
+      learned: ['expressions', 'variables', 'strings', 'basic operators'],
+      tools: ['arithmetic operators', 'string operations', 'variables', 'type conversion basics'],
+    },
+    {
+      order: 2,
+      title: 'Functions, docstrings, and control flow',
+      learned: [
+        'function header',
+        'type annotations',
+        'docstring contract',
+        'return',
+        'if/elif/else',
+      ],
+      tools: ['def', 'type annotations', 'triple-quoted docstring', 'doctest examples', 'return'],
+    },
+    {
+      order: 3,
+      title: 'Loops',
+      learned: ['range', 'for loops', 'while loops', 'nested loops', 'accumulators'],
+      tools: ['range', 'for', 'while', 'accumulator variables', 'nested loop tracing'],
+    },
+    {
+      order: 4,
+      title: 'Lists',
+      learned: ['indexing', 'slicing', 'mutation', 'aliasing', 'list methods'],
+      tools: ['list indexing', 'list slicing', 'append', 'mutation checks', 'aliasing reasoning'],
+    },
+    {
+      order: 5,
+      title: 'Input and output',
+      learned: ['input', 'print', 'formatted strings', 'type conversion'],
+      tools: ['input', 'print', 'f-strings', 'int/float/str conversion'],
+    },
+    {
+      order: 6,
+      title: 'File IO',
+      learned: ['TextIO', 'open', 'read', 'readline', 'readlines', 'write', 'with'],
+      tools: ['open', 'with', 'read', 'readline', 'readlines', 'for line in file', 'write'],
+    },
+    {
+      order: 7,
+      title: 'Dictionaries',
+      learned: ['keys', 'values', 'items', 'dictionary traversal', 'counting patterns'],
+      tools: [
+        'dict lookup',
+        'dict assignment',
+        'in',
+        'for key in dict',
+        'items',
+        'accumulator dict',
+      ],
+    },
+    {
+      order: 8,
+      title: 'CSV and table files',
+      learned: ['TextIO tables', 'CSV rows', 'headers', 'nested list/dict records'],
+      tools: ['csv reader/writer when source allows it', 'split lines', 'row accumulation'],
+    },
+    {
+      order: 9,
+      title: 'Regex',
+      learned: ['DFA intuition', 'regular expressions', 'groups', 'Python re'],
+      tools: [
+        're.search',
+        're.fullmatch when whole-string match is required',
+        'groups',
+        'raw strings',
+      ],
+    },
+    {
+      order: 10,
+      title: 'Running time',
+      learned: ['binary search', 'sorting', 'Big-O', 'nested-loop counting'],
+      tools: [
+        'step counting',
+        'loop nesting analysis',
+        'binary search reasoning',
+        'Big-O comparison',
+      ],
+    },
+    {
+      order: 11,
+      title: 'Classes',
+      learned: ['objects', 'attributes', 'methods', 'encapsulation'],
+      tools: ['class', '__init__', 'self', 'instance attributes', 'method calls'],
+    },
+  ],
+  globalContract: [
+    'Treat the visible problem statement, starter code, sample I/O, public tests, and course pack as acceptance criteria.',
+    'For function-design questions, preserve the provided function header, type annotations, parameter names, and starter docstring before writing the implementation.',
+    'Use only tools introduced by the current or prior unit unless the visible problem explicitly requires more.',
+    'Functions normally return results; do not print inside a function unless the problem asks for printed output.',
+  ],
+  highLevelToolBoundary: [
+    'Core Python tools are def, annotations, docstrings, conditionals, loops, lists, dictionaries, files, regex, and classes as introduced by unit order.',
+    'Prefer plain loops and accumulators in early units; only use higher-level helpers when they are already introduced or visible in the starter/source.',
+    'Use the starter imports exactly when a problem provides them, especially re for regex and csv/TextIO for file questions.',
+  ],
+  notAllowedUnlessExplicit: [
+    'pandas',
+    'numpy',
+    'dataclasses',
+    'pathlib',
+    'lambda',
+    'list/dict comprehensions in early units',
+    'try/except for ordinary control flow',
+    'printing debug output in submitted functions',
+  ],
+  artifactSpecs: [
+    {
+      name: 'CSC108 Python function answer',
+      contract: [
+        'Start the code block with the exact provided function header when one is given.',
+        'Keep the starter docstring as the first statement inside the function body; do not replace it with a short summary.',
+        'Put implementation statements after the docstring and return the requested value.',
+        'Do not place tests, sample calls, or print debugging inside the function body.',
+      ],
+    },
+  ],
+  templateContracts: [
+    {
+      name: 'function design with docstring contract',
+      origins: ['Python def starter', 'CSC108 function design', 'starter docstring'],
+      contract: [
+        'Solution shape is exact header, exact starter docstring, implementation, then return result.',
+        'The docstring is part of the contract: it states purpose, preconditions, and examples; explain it before changing code.',
+        'When a starter docstring exists, preserve its wording and examples unless the visible problem explicitly asks to write a new docstring.',
+      ],
+    },
+    {
+      name: 'example-driven dry run',
+      origins: ['sampleIO', 'public tests', 'doctest examples'],
+      contract: [
+        'Use visible examples to verify behavior, but keep tests outside the submitted function body.',
+        'Cover at least one ordinary case and one boundary case when explaining the docstring or examples.',
+      ],
+    },
+    {
+      name: 'dictionary update/counting',
+      origins: ['dict traversal', 'merge dictionaries', 'count keys'],
+      contract: [
+        'Create a fresh dictionary when the problem says not to mutate inputs.',
+        'Explain whether assignment adds a new key or overwrites an existing key.',
+      ],
+    },
+    {
+      name: 'regex extraction',
+      origins: ['re.search', 'regular expression', 'pattern matching'],
+      contract: [
+        'Translate each rule into one regex segment before presenting the full pattern.',
+        'State whether the task needs substring search, full-string match, or boundary checks.',
+        'Use raw string patterns and preserve starter imports such as import re.',
+      ],
+    },
+  ],
+  derivationRules: [
+    'Choose the function-design template first for code problems, then specialize with the chapter tool such as loop, list, dict, file, regex, or class.',
+    'If starter code provides a docstring, treat it as source-of-truth specification before public tests and before generic model style.',
+    'If the student has a failed attempt, compare their code against the template order: header, docstring, implementation, return.',
+    'When using regex, derive the pattern from named pieces such as name, domain, and suffix instead of giving a pattern without explanation.',
+  ],
+  unitContracts: {
+    2: [
+      'Function design answers must discuss header, type annotations, docstring contract/examples, body, and return.',
+      'Do not use loops or list-heavy solutions unless the problem or prior unit has introduced them.',
+    ],
+    7: [
+      'Dictionary answers should identify key cases: only in first dict, only in second dict, in both dicts, and no input mutation when required.',
+    ],
+    9: [
+      'Regex answers should explain search vs fullmatch, raw string escaping, grouping, and boundary/longest-match consequences when relevant.',
+    ],
+  },
+};
+
+const COURSE_PACKS: CoursePack[] = [CSC108_PACK, CPSC107_PACK];
 
 function formatList(title: string, lines: string[], maxLines: number): string[] {
   const compact = compactLines(lines, maxLines);

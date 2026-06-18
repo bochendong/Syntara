@@ -34,6 +34,7 @@ import { hydrateSpeechAudioFromUserAssets } from '@/lib/utils/tts-audio-assets';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import { buildSceneSidebarAskThreadFromMessages } from '@/lib/utils/scene-sidebar-ask-thread';
 import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { backendFetch } from '@/lib/utils/backend-api';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import { toast } from '@/lib/notifications/client-toast';
@@ -729,11 +730,20 @@ export function Stage({
         if (providerConfig?.apiKey?.trim()) body.ttsApiKey = providerConfig.apiKey;
         if (providerConfig?.baseUrl?.trim()) body.ttsBaseUrl = providerConfig.baseUrl;
 
-        const response = await backendFetch('/api/generate/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+        const response = await runQueuedAiTask(
+          {
+            kind: 'speech-generation',
+            title: '课堂语音回复',
+            description: '正在生成右侧回答语音',
+          },
+          ({ signal }) =>
+            backendFetch('/api/generate/tts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal,
+            }),
+        );
         const data = await response.json().catch(() => ({ error: response.statusText }));
         if (!response.ok || !data.base64) {
           throw new Error(data.error || 'TTS 生成失败');

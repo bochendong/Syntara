@@ -1,26 +1,13 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
-import { useRouter } from 'next/navigation';
 import type { UIMessage } from 'ai';
-import {
-  planNotebookMessage,
-  planNotebookMessageStream,
-  type NotebookPlanResult,
-} from '@/lib/notebook/send-message';
-import { renderNotebookContentToMarkdown } from '@/lib/notebook-content';
+import { planNotebookMessage, planNotebookMessageStream } from '@/lib/notebook/send-message';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
 import type { StageListItem } from '@/lib/utils/stage-storage';
 import { storeChatAttachmentBlob } from '@/lib/utils/chat-attachment-blobs';
 import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
 import { createAgentTask, updateAgentTask } from '@/lib/utils/agent-task-storage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import {
-  buildStudyCompanionNotification,
-  deleteNotebookPrivateMemory,
-  recordNotebookPrivateMemory,
-} from '@/lib/learning/study-memory';
-import { writeMemoryWithActivity } from '@/lib/utils/memory-write-api';
-import { useNotificationStore } from '@/lib/store/notifications';
-import { toast } from '@/lib/notifications/client-toast';
+import { queueChatTurnWorkingMemoryUpdate } from '@/lib/learning/working-memory-tasks';
 import {
   commitNotebookProblemImport,
   previewNotebookProblemImport,
@@ -40,47 +27,6 @@ import type {
   NotebookSubtaskResult,
 } from './chat-page-types';
 
-function hasPrivateMemoryCandidate(plan: NotebookPlanResult): boolean {
-  return (plan.operations.insert?.length || 0) > 0 || (plan.operations.update?.length || 0) > 0;
-}
-
-function isTrivialNotebookQuestion(question: string): boolean {
-  const text = question.trim();
-  return text.length < 8 && /^(你好|hi|hello|hey|在吗|谢谢|thanks)$/i.test(text);
-}
-
-function formatOperationMemory(plan: NotebookPlanResult): { title: string; text: string } | null {
-  const chunks: string[] = [];
-  const firstInsert = plan.operations.insert?.[0];
-  const firstUpdate = plan.operations.update?.[0];
-  const title = firstInsert?.title || firstUpdate?.title || '聊天里发现的学习补充点';
-
-  for (const insert of plan.operations.insert || []) {
-    const lines = [
-      `## ${insert.title}`,
-      insert.description,
-      ...(insert.keyPoints || []).map((point) => `- ${point}`),
-      insert.contentDocument ? renderNotebookContentToMarkdown(insert.contentDocument) : '',
-    ].filter(Boolean);
-    chunks.push(lines.join('\n'));
-  }
-
-  for (const update of plan.operations.update || []) {
-    const lines = [
-      `## 第 ${update.order} 页${update.title ? `：${update.title}` : ''}`,
-      update.appendKnowledge || '',
-    ].filter(Boolean);
-    chunks.push(lines.join('\n'));
-  }
-
-  const text = chunks
-    .join('\n\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  return text ? { title, text } : null;
-}
-
 export function useNotebookChatActions({
   courseId,
   notebookId,
@@ -89,8 +35,6 @@ export function useNotebookChatActions({
   sending,
   nbThread,
   notebookName,
-  notebookAvatarUrl,
-  applyNotebookWrites,
   reloadNotebookScenes,
   setNbThread,
   setDraft,
@@ -114,128 +58,6 @@ export function useNotebookChatActions({
   setNotebookPendingAction: Dispatch<SetStateAction<'chat' | 'import' | null>>;
   setPendingAttachments: Dispatch<SetStateAction<NotebookAttachmentInput[]>>;
 }) {
-  const router = useRouter();
-  const enqueueBanner = useNotificationStore((s) => s.enqueueBanner);
-
-  const recordPrivateMemoryInBackground = useCallback(
-    (args: {
-      notebook: Pick<StageListItem, 'id' | 'name' | 'avatarUrl'>;
-      question: string;
-      plan: NotebookPlanResult;
-    }) => {
-      if (!args.plan.knowledgeGap || !hasPrivateMemoryCandidate(args.plan)) return;
-      if (isTrivialNotebookQuestion(args.question)) return;
-      const draftMemory = formatOperationMemory(args.plan);
-      if (!draftMemory || draftMemory.text.length < 40) return;
-
-      window.setTimeout(() => {
-        void (async () => {
-          try {
-            await writeMemoryWithActivity({
-              candidate: {
-                trigger: 'chat_turn_end',
-                contentType: 'weakness',
-                targetType: 'notebook',
-                targetId: args.notebook.id,
-                privacy: 'private',
-                source: 'chat_gap_inference',
-                title: `AI 观察到的学习卡点：${draftMemory.title}`,
-                text: draftMemory.text,
-                studyMemory: {
-                  targetType: 'notebook',
-                  targetId: args.notebook.id,
-                  scope: 'private',
-                  kind: 'knowledge_gap',
-                  title: `AI 观察到的学习卡点：${draftMemory.title}`,
-                  text: draftMemory.text,
-                  question: args.question,
-                  reason: 'AI 根据本轮提问、回答和引用证据推断出的学习补充点，不是用户自述。',
-                  sourceReferences: {
-                    sourceType: 'student_message',
-                    notebookId: args.notebook.id,
-                    notebookName: args.notebook.name,
-                    question: args.question,
-                    references: (args.plan.references || []).slice(0, 4),
-                    operationCounts: {
-                      insert: args.plan.operations.insert?.length || 0,
-                      update: args.plan.operations.update?.length || 0,
-                    },
-                  },
-                },
-              },
-            });
-            return;
-          } catch {
-            // Fall back to local-first memory below; chat answers should never be disturbed.
-          }
-
-          try {
-            const result = recordNotebookPrivateMemory({
-              stageId: args.notebook.id,
-              title: `AI 观察到的学习卡点：${draftMemory.title}`,
-              text: draftMemory.text,
-              question: args.question,
-              reason: 'AI 根据本轮提问、回答和引用证据推断出的学习补充点，不是用户自述。',
-              kind: 'knowledge_gap',
-              sourceReferences: (args.plan.references || []).slice(0, 4).map((reference) => ({
-                notebookId: args.notebook.id,
-                notebookName: args.notebook.name,
-                order: reference.order,
-                title: reference.title,
-                why: reference.why,
-              })),
-              source: 'chat',
-            });
-            if (!result.created || !result.item) return;
-            const createdMemory = result.item;
-            toast.success('已写入私有记忆', {
-              description: `《${args.notebook.name}》：${createdMemory.title}`,
-              duration: 6500,
-              action: {
-                label: '查看',
-                onClick: () => {
-                  router.push(`/classroom/${encodeURIComponent(args.notebook.id)}/memory`);
-                },
-              },
-              cancel: {
-                label: '撤销',
-                onClick: () => {
-                  deleteNotebookPrivateMemory({
-                    stageId: args.notebook.id,
-                    memoryId: createdMemory.id,
-                  });
-                },
-              },
-            });
-
-            enqueueBanner(
-              buildStudyCompanionNotification({
-                id: `private-memory-${createdMemory.id}`,
-                sourceKind: 'question_memory',
-                title: '已写入私有记忆',
-                body: `《${args.notebook.name}》：${createdMemory.title}`,
-                amountLabel: '私有记忆',
-                sourceLabel: args.notebook.name,
-                details: args.question
-                  ? [
-                      {
-                        key: 'question',
-                        label: '来自问题',
-                        value: args.question.slice(0, 80),
-                      },
-                    ]
-                  : [],
-              }),
-            );
-          } catch {
-            // Background memory should never disturb the chat answer.
-          }
-        })();
-      }, 0);
-    },
-    [enqueueBanner, router],
-  );
-
   const persistNotebookConversation = useCallback(
     async (
       notebook: StageListItem,
@@ -333,8 +155,6 @@ export function useNotebookChatActions({
               preferWebSearch: true,
               attachments: attachments && attachments.length > 0 ? attachments : undefined,
             });
-        const shouldRecordMemory = false;
-
         const answer = plan.answer;
         const answerDocument = plan.answerDocument;
 
@@ -356,7 +176,7 @@ export function useNotebookChatActions({
 
         if (childTaskId) {
           await updateAgentTask(childTaskId, {
-            detail: shouldRecordMemory ? '已完成回答，私有记忆在后台整理' : '已完成现有内容解答',
+            detail: '已完成现有内容解答',
             status: 'done',
           });
         }
@@ -384,7 +204,7 @@ export function useNotebookChatActions({
         throw error;
       }
     },
-    [applyNotebookWrites, courseId, persistNotebookConversation, recordPrivateMemoryInBackground],
+    [courseId, persistNotebookConversation],
   );
 
   const handleImportNotebookProblemBank = useCallback(
@@ -693,8 +513,6 @@ export function useNotebookChatActions({
             },
           },
         );
-        const shouldRecordMemory = false;
-
         if (taskId) {
           await updateAgentTask(taskId, {
             detail: '正在整理现有内容回答…',
@@ -724,23 +542,18 @@ export function useNotebookChatActions({
           ),
         );
         setPendingAttachments([]);
-        if (shouldRecordMemory) {
-          recordPrivateMemoryInBackground({
-            notebook: {
-              id: notebookId,
-              name: notebookName || '当前笔记本',
-              avatarUrl: notebookAvatarUrl || undefined,
-            },
-            question: text,
-            plan,
-          });
-        }
         if (taskId) {
           await updateAgentTask(taskId, {
             status: 'done',
-            detail: shouldRecordMemory ? '已完成回答，私有记忆在后台整理' : '已完成',
+            detail: '已完成',
           });
         }
+        queueChatTurnWorkingMemoryUpdate({
+          notebookId,
+          notebookName,
+          question: text,
+          plan,
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const errorMessage: NotebookChatMessage = {
@@ -768,15 +581,12 @@ export function useNotebookChatActions({
       }
     },
     [
-      applyNotebookWrites,
       courseId,
       draft,
       nbThread,
       notebookId,
-      notebookAvatarUrl,
       notebookName,
       pendingAttachments,
-      recordPrivateMemoryInBackground,
       reloadNotebookScenes,
       sending,
       setDraft,

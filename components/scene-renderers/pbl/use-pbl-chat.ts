@@ -9,6 +9,7 @@ import type { PBLProjectConfig, PBLChatMessage, PBLAgent, PBLIssue } from '@/lib
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { createLogger } from '@/lib/logger';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 
 const log = createLogger('PBLChat');
 
@@ -71,21 +72,30 @@ export function usePBLChat({ projectConfig, userRole, onConfigUpdate }: UsePBLCh
 
         const isJudgeAgent = currentIssue && targetAgent.name === currentIssue.judge_agent_name;
 
-        const response = await fetch('/api/pbl/chat', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            message: cleanMessage,
-            agent: targetAgent,
-            currentIssue,
-            recentMessages: updatedConfig.chat.messages.slice(-10).map((m) => ({
-              agent_name: m.agent_name,
-              message: m.message,
-            })),
-            userRole,
-            agentType: isJudgeAgent ? 'judge' : 'question',
-          }),
-        });
+        const response = await runQueuedAiTask(
+          {
+            kind: 'pbl-chat',
+            title: 'PBL 对话',
+            description: `${targetAgent.name} 正在回复：${compactTaskText(cleanMessage)}`,
+          },
+          ({ signal }) =>
+            fetch('/api/pbl/chat', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                message: cleanMessage,
+                agent: targetAgent,
+                currentIssue,
+                recentMessages: updatedConfig.chat.messages.slice(-10).map((m) => ({
+                  agent_name: m.agent_name,
+                  message: m.message,
+                })),
+                userRole,
+                agentType: isJudgeAgent ? 'judge' : 'question',
+              }),
+              signal,
+            }),
+        );
 
         const data = await response.json();
 
@@ -206,17 +216,26 @@ async function handleIssueComplete(
           .filter(Boolean)
           .join('\n');
 
-        const resp = await fetch('/api/pbl/chat', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            message: questionPrompt,
-            agent: questionAgent,
-            currentIssue: nextIssue,
-            recentMessages: [],
-            userRole: '',
-          }),
-        });
+        const resp = await runQueuedAiTask(
+          {
+            kind: 'pbl-chat',
+            title: 'PBL 下一步问题生成',
+            description: `正在为「${compactTaskText(nextIssue.title)}」生成引导问题`,
+          },
+          ({ signal }) =>
+            fetch('/api/pbl/chat', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                message: questionPrompt,
+                agent: questionAgent,
+                currentIssue: nextIssue,
+                recentMessages: [],
+                userRole: '',
+              }),
+              signal,
+            }),
+        );
 
         const data = await resp.json();
         if (data.success && data.message) {
@@ -269,4 +288,10 @@ async function handleIssueComplete(
       read_by: [],
     });
   }
+}
+
+function compactTaskText(input: string) {
+  const text = input.replace(/\s+/g, ' ').trim();
+  if (!text) return '当前内容';
+  return text.length > 42 ? `${text.slice(0, 39)}...` : text;
 }

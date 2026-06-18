@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/notifications/client-toast';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { backendFetch } from '@/lib/utils/backend-api';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import type { Action } from '@/lib/types/action';
@@ -155,26 +156,35 @@ export function useSlideRepair({
           : repairProfile === 'math'
             ? '/api/classroom/repair-slide-math'
             : '/api/classroom/repair-slide-general';
-      const repairResp = await backendFetch(repairRoute, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-model': modelConfig.modelString,
-          'x-provider-type': modelConfig.providerType,
-          'x-requires-api-key': modelConfig.requiresApiKey ? 'true' : 'false',
+      const repairResp = await runQueuedAiTask(
+        {
+          kind: 'slide-repair',
+          title: '页面修复',
+          description: `正在修复第 ${currentScene.order + 1} 页：${compactTaskText(userMessageContent)}`,
         },
-        body: JSON.stringify({
-          notebookId: stage.id,
-          notebookName: stage.name,
-          sceneId: currentScene.id,
-          sceneOrder: currentScene.order + 1,
-          sceneTitle: currentScene.title,
-          language: rewriteLanguage,
-          content: currentScene.content,
-          repairInstructions: userMessageContent,
-          repairConversation: [{ role: 'user' as const, content: userMessageContent }],
-        }),
-      });
+        ({ signal }) =>
+          backendFetch(repairRoute, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-model': modelConfig.modelString,
+              'x-provider-type': modelConfig.providerType,
+              'x-requires-api-key': modelConfig.requiresApiKey ? 'true' : 'false',
+            },
+            body: JSON.stringify({
+              notebookId: stage.id,
+              notebookName: stage.name,
+              sceneId: currentScene.id,
+              sceneOrder: currentScene.order + 1,
+              sceneTitle: currentScene.title,
+              language: rewriteLanguage,
+              content: currentScene.content,
+              repairInstructions: userMessageContent,
+              repairConversation: [{ role: 'user' as const, content: userMessageContent }],
+            }),
+            signal,
+          }),
+      );
 
       const repairData = (await repairResp.json().catch(() => ({}))) as {
         success?: boolean;
@@ -311,4 +321,10 @@ export function useSlideRepair({
     setCurrentSlideRepairDraft,
     slideRepairPending,
   };
+}
+
+function compactTaskText(input: string) {
+  const text = input.replace(/\s+/g, ' ').trim();
+  if (!text) return '当前页面';
+  return text.length > 42 ? `${text.slice(0, 39)}...` : text;
 }

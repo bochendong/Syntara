@@ -17,7 +17,7 @@ export const CPSC107_NOTEBOOK_DESCRIPTIONS = {
   'queue-cpsc107-07-abstract-functions':
     'Filter/map/build-list/foldr/foldl 选择；重点是 use-abstract-fn、lambda 参数含义与 fn-composition。',
   'queue-cpsc107-08-search':
-    'Backtracking search 与 genrec 分开；重点是 state、goal test、successors、failure result、try-catch 和 termination argument。',
+    'try-catch search 与 genrec 分开；重点是 state、goal test、successors、failure result、local try 和 termination argument。',
   'queue-cpsc107-09-tail-recursion':
     'Accumulator、tail position、worklist/visited；重点是说明 acc 不变量、初始值、更新规则和 local helper 边界。',
 };
@@ -31,7 +31,7 @@ CPSC107 的答案重点不是“能跑”，而是按设计配方从数据定义
 2. 再判断主函数采用的模板策略：ordinary template、2-one-of cross product、encapsulated local helpers、use-abstract-fn、genrec、try-catch、accumulator/worklist。
 3. template-origin 只记录主解法实际使用的模板来源。输入类型、题目关键词、helper 的内部实现，都不能自动变成 template-origin。
 4. 如果题目来自 abstract functions 章节，优先考虑 filter、map、build-list、foldr、foldl；多个 abstract functions 组合时写 fn-composition。
-5. 如果题目是 search / graph，先分清：普通 genrec、backtracking search、tail-recursive worklist graph，还是 graph step 里用 map 生成 next work。
+5. 如果题目是 search / graph，先分清：普通 genrec、graph natural recursion、tail-recursive worklist graph，还是 graph step 里用 map 生成 next work。
 
 ## 提交前检查
 - HtDF tags、signature、purpose、tests、commented stub、template-origin、definition 是否都在顶层正确位置。
@@ -629,6 +629,35 @@ a = Number missing         combine numbers
 
 如果 helper 被要求是完整 HtDF design，就放在顶层；不要把 '@htdf'、'@signature'、'check-expect' 写进 local。
 
+## Structural try-catch / encapsulated 模板
+当题目是 structural mutual-reference tree search，而且结果类型是“真实答案或 false”时，list helper 常用 try-catch 形状：先搜索 first 分支，如果返回不是 false 就立刻返回，否则继续 rest。这里的 try-catch 不是异常处理；'try' 只是 local value，保存第一次 recursive attempt 的结果。
+
+~~~racket
+(@template-origin Person ListOfPerson try-catch encapsulated)
+
+(define (find n0 p0)
+  (local [(define (find--person n p)
+            (if (string=? (person-name p) n)
+                (person-age p)
+                (find--lop n (person-kids p))))
+
+          (define (find--lop n lop)
+            (cond [(empty? lop) false]
+                  [else
+                   (local [(define try
+                             (find--person n (first lop)))]
+                     (if (not (false? try))
+                         try
+                         (find--lop n (rest lop))))]))]
+    (find--person n0 p0)))
+~~~
+
+这个 template-origin 的含义：
+- 'Person ListOfPerson' 来自互相递归的数据模板。
+- 'try-catch' 来自 first-success / failure-result 搜索。
+- 'encapsulated' 来自公开函数把两个 helper 封装进 local。
+- 这类 structural tree search 不自动写 'genrec'；只有 recursive problem 是生成出来的新 state/problem 时才用 genrec。
+
 ## scope / closure / lifting 例子
 local 内部可以看见外层变量；外层不能看见 local 里面的名字。
 
@@ -646,6 +675,7 @@ Stepper/lifting 题中，每次执行 local，local definitions 会被 lift 成�
 ## 回答检查清单
 - 'local' 是否只是封装实现细节。
 - 'encapsulated' 是否来自课程模板/题面要求，而不是因为出现了 local。
+- structural try-catch 是否在 list helper 里先保存 try，失败才递归处理 rest。
 - two one-of 是否先画 cross-product table，再合并格子。
 - closure 判断是否看 local function 有没有使用外层变量。
 - stepper/lifting 题是否数清每次调用生成的 lifted definitions。`,
@@ -744,19 +774,19 @@ fold 的 base value 必须和最终结果类型一致；combiner 的结果也必
 - 如果题目来自本章，优先给 abstract-function 解法，而不是退回普通递归。`,
 
   memory_cpsc107_queue_08_search_public_20260611: `## 记忆角色
-Notebook 08 的内部共有记忆。它不是列表页 concept card，而是 backtracking search / genrec 的操作指导、模板骨架和 termination argument 例子。Search 在这里指 backtracking search；generative recursion 是生成下一批问题的机制，二者不要合并成一个泛泛标签。
+Notebook 08 的内部共有记忆。它不是列表页 concept card，而是 try-catch search / genrec 的操作指导、模板骨架和 termination argument 例子。Search 在这里指 failure-result search；generative recursion 是生成下一批问题的机制，二者不要合并成一个泛泛标签。
 
 ## 核心概念
-- Backtracking search 题先抽象 state，再定义 start、goal test、successors、failure result 和 solution result。
+- try-catch search 题先抽象 state，再定义 start、goal test、successors、failure result 和 solution result。
 - Generative recursion 的下一步不是直接 subpart，而是生成出来的新 search problems。
 - 纯 genrec 模板必须写 Termination argument：Base Case、reduction step、argument 三件事都要出现。
-- Backtracking 表示 solve-list 用 local 保存 try：如果 try 不是 false 就返回，否则继续尝试剩余候选。
+- try-catch 表示 list helper 用 local 保存 try：如果 try 不是 false 就返回，否则继续尝试 rest。
 - visited/worklist 用来控制状态空间，避免重复处理或丢失待处理状态。
 
 ## 常见学生困惑
 - 把 generative recursion 说成普通 structural recursion。
 - 写了 @template-origin genrec 但没有 termination argument。
-- 把 backtracking search 和 generic generative recursion 混成一类模板。
+- 把 try-catch failure-result pattern 和 generic generative recursion 混成一类模板。
 - 只给 final path，不解释 state 和 successor。
 - 没有 failure/base case。
 - 有环或重复状态时忘记 visited。
@@ -766,9 +796,9 @@ Notebook 08 的内部共有记忆。它不是列表页 concept card，而是 bac
 
 ## Search / genrec / graph 区分
 - Pure genrec：题目只要求生成下一个问题并递归解决；'@template-origin genrec'，必须写 termination argument。
-- Backtracking search：某条路可能失败，失败后要试下一条；常见 '@template-origin genrec try-catch'。
+- try-catch search：某条路可能失败，失败后要试下一条；常见 '@template-origin genrec try-catch'，但 helper 名称要跟题面模板走。
 - Graph search：successors 来自 graph edges / get-neighbors；如果可能有 cycle，需要 path、visited 或 worklist 防重复。
-- Tail-recursive graph traversal 通常属于 Notebook 09；Notebook 08 更关注 backtracking search 和 genrec 生成下一批问题。
+- Tail-recursive graph traversal 通常属于 Notebook 09；Notebook 08 更关注 try-catch search 和 genrec 生成下一批问题。
 
 ## State 设计清单
 设计 SearchState 时先问：
@@ -797,24 +827,24 @@ Notebook 08 的内部共有记忆。它不是列表页 concept card，而是 bac
 
 纯 genrec 的关键是：recursive problem 不是数据结构 subpart，而是函数生成出来的新问题，所以必须写 termination argument。
 
-## backtracking search 骨架
+## try-catch local result pattern
 
 ~~~racket
 (@template-origin genrec try-catch)
 
-(define (solve s)
+(define (fn-for-state s)
   (cond [(solved? s) (solution s)]
         [(empty? (next-states s)) false]
         [else
-         (solve-list (next-states s))]))
+         (fn-for-los (next-states s))]))
 
-(define (solve-list los)
+(define (fn-for-los los)
   (cond [(empty? los) false]
         [else
-         (local [(define try (solve (first los)))]
+         (local [(define try (fn-for-state (first los)))]
            (if (not (false? try))
                try
-               (solve-list (rest los))))]))
+               (fn-for-los (rest los))))]))
 ~~~
 
 ## successor 生成例子
@@ -833,13 +863,13 @@ Notebook 08 的内部共有记忆。它不是列表页 concept card，而是 bac
 非 tail-recursive graph search 常见结构是：
 - 当前 node 是 goal，返回 path/solution。
 - 当前 node 已在 path/visited 中，返回 false。
-- 否则生成 neighbors，交给 solve-list 一个个 try。
+- 否则生成 neighbors，交给 list helper 一个个 try。
 
 如果 local helper 只服务公开函数，可以封装；但公开函数的 HtDF artifacts 仍在顶层。graph 的精确 template-origin 要按题目/课程 source：通常会包含 graph 数据定义、genrec、try-catch；如果 path/visited 作为参数推进，也要体现 accumulator。
 
 ## 回答检查清单
 - 先定义 state / start / goal / successors / failure result。
-- 'solve-list' 是否用 try-catch 尝试第一条路，失败才试 rest。
+- list helper 是否用 try-catch 尝试第一条路，失败才试 rest。
 - 纯 genrec 是否写 termination argument。
 - successor 是否说明由什么生成；如果用了 filter/map，是否能解释 predicate/transformer。
 - graph/search 有 cycle 时是否说明 path、visited 或 worklist 防重复。`,
@@ -888,7 +918,7 @@ Notebook 09 的内部共有记忆。它不是列表页 concept card，而是 acc
 这里 'acc' 的初始值是 0，因为还没看任何元素时 seen-so-far 的和是 0。recursive call 是分支最后一步，所以是 tail position。
 
 ## worklist / graph 提醒
-worklist 保存尚未处理的任务，visited 保存已经见过的节点。若有 tandem accumulators，例如 path 和 todo，必须说明它们如何同步更新。
+worklist 保存尚未处理的任务，visited 保存已经见过的节点。若有 tandem accumulators，例如 nn-wl 和 path-wl，必须说明它们如何同步更新。课程 graph 模板通常写 '-wl' 命名。
 
 ## tail position 判断
 看 recursive call 是否是当前分支的最后一个动作：
@@ -910,37 +940,73 @@ worklist 保存尚未处理的任务，visited 保存已经见过的节点。若
 多个 accumulator 要分别说明 invariant，并说明它们同步关系。
 
 ~~~racket
-(define (walk todo seen)
-  ;; todo is (listof Node); nodes still to process
-  ;; seen is (listof Node); nodes already discovered
-  (cond [(empty? todo) seen]
-        [(seen? (first todo) seen)
-         (walk (rest todo) seen)]
+(define (walk nn-wl visited)
+  ;; nn-wl is (listof Natural); node number worklist
+  ;; visited is (listof Natural); node numbers already processed
+  (cond [(empty? nn-wl) visited]
+        [(member? (first nn-wl) visited)
+         (walk (rest nn-wl) visited)]
         [else
-         (walk (append (neighbors (first todo))
-                       (rest todo))
-               (cons (first todo) seen))]))
+         (walk (append (neighbors (first nn-wl))
+                       (rest nn-wl))
+               (cons (first nn-wl) visited))]))
 ~~~
 
-## Graph worklist 模板
-Tail-recursive graph traversal 通常把 recursion 放在 local helper 里：
+## Graph natural recursion 模板
+普通 graph recursion 不使用 worklist；课程源模板叫 fn-for-graph/nr：
 
 ~~~racket
-(@template-origin genrec accumulator)
+(@template-origin genrec arb-tree accumulator)
 
-(define (reachable start)
-  (local [(define (fn-for-worklist todo visited)
-            (cond [(empty? todo) visited]
-                  [(seen? (first todo) visited)
-                   (fn-for-worklist (rest todo) visited)]
+#;
+(define (fn-for-graph/nr map num0)
+  (local [(define (fn-for-node n)
+            (local [(define num (node-number n))
+                    (define nexts (node-nexts n))]
+              (cond [(...) (...)] ;stop cycles
+                    [else
+                     (fn-for-lonn nexts)])))
+
+          (define (fn-for-lonn lonn)
+            (cond [(empty? lonn) (...)]
                   [else
-                   (fn-for-worklist
-                    (append (neighbors (first todo)) (rest todo))
-                    (cons (first todo) visited))]))]
-    (fn-for-worklist (list start) empty)))
+                   (... (first lonn)
+                        (fn-for-node (generate-node map (first lonn)))
+                        (fn-for-lonn (rest lonn)))]))]
+
+    (fn-for-? ...num0)))
 ~~~
 
-如果 next work 用 'map' 或 'filter' 从 edges 生成 neighbors，template-origin 在 graph/genrec/accumulator 基础上还要考虑 'use-abstract-fn'。如果题目要求保留 path 与 todo 的对应关系，要说明 tandem worklists 长度和顺序如何保持一致。
+如果题面说 MUST NOT rename local functions，那么 fn-for-node / fn-for-lonn 和原参数名都要保留；只按题目允许 add additional parameters。
+
+## Graph worklist / tail recursion 模板
+Tail-recursive graph traversal 按课程源材料使用 nn-wl 这类 worklist 名：
+
+~~~racket
+(@template-origin genrec arb-tree accumulator)
+
+#;
+(define (fn-for-graph/tr map num0)
+  ;; nn-wl is (listof Natural); node number worklist
+  ;; fn-for-node adds the unvisited direct subs of n
+  ;; fn-for-lonn takes node numbers off one at a time to call fn-for-node
+  (local [(define (fn-for-node n nn-wl)
+            (local [(define num (node-number n))
+                    (define nexts (node-nexts n))]
+              (cond [(...) (...)] ;stop cycles
+                    [else
+                     (fn-for-lonn (append nexts nn-wl))])))
+
+          (define (fn-for-lonn nn-wl visited)
+            (cond [(empty? nn-wl) (...)]
+                  [else
+                   (fn-for-node (generate-node map (first nn-wl))
+                                (rest nn-wl))]))]
+
+    (fn-for-? ...num0)))
+~~~
+
+如果 next work 用 'map' 或 'filter' 从 edges 生成 neighbors，template-origin 在 graph/genrec/accumulator 基础上还要考虑 'use-abstract-fn'。如果题目要求保留 path 与 state work 的对应关系，要用 'state-wl' / 'path-wl' 这类 tandem worklists，并说明长度和顺序如何保持一致。
 
 ## 回答检查清单
 - 每个 accumulator 是否有一句 invariant 注释。

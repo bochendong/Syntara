@@ -160,7 +160,7 @@ try {
   await ensureNotebookImageAssetTable(prisma);
   const notebooks = await prisma.notebook.findMany({
     ...(notebookId ? { where: { id: notebookId } } : {}),
-    include: { scenes: true },
+    include: { scenes: true, markdownSections: true },
   });
   const references = new Map();
   for (const notebook of notebooks) {
@@ -178,6 +178,21 @@ try {
         };
         entry.notebookIds.add(notebook.id);
         entry.sceneIds.add(scene.id);
+        references.set(publicPath, entry);
+      }
+    }
+    for (const section of notebook.markdownSections) {
+      const paths = collectGeneratedNotebookPathsFromJson({
+        markdown: section.markdown,
+        sourceMeta: section.sourceMeta,
+      });
+      for (const publicPath of paths) {
+        const entry = references.get(publicPath) ?? {
+          path: publicPath,
+          notebookIds: new Set(),
+          sceneIds: new Set(),
+        };
+        entry.notebookIds.add(notebook.id);
         references.set(publicPath, entry);
       }
     }

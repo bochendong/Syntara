@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import type { ChatMessageMetadata, MessageAction } from '@/lib/types/chat';
 import {
   buildNotebookContentDocumentFromText,
+  type NotebookContentBlock,
   type NotebookContentDocument,
 } from '@/lib/notebook-content';
 import type { NotebookPlanResult } from '@/lib/notebook/send-message';
@@ -127,8 +128,246 @@ export function appendNotebookAnswerCallout(args: {
 
 type NotebookAssistantMessage = Extract<NotebookChatMessage, { role: 'assistant' }>;
 
+function looksLikeExecutableCode(text: string): boolean {
+  return (
+    /(^|\n)\s*(?:def|class|import|from|return|for|while|try|except|elif)\b/u.test(text) ||
+    /(^|\n)\s*(?:const|let|var|function|export|import)\b|\)\s*=>\s*(?:[A-Za-z_$({])|console\.log/u.test(
+      text,
+    ) ||
+    /(^|\n)\s*(?:#lang|\(require\b|\(@(?:htdf|signature|template-origin)\b|\(define\b|\(check-expect\b)/u.test(
+      text,
+    )
+  );
+}
+
+function looksLikeProofText(text: string): boolean {
+  const normalized = text.trim();
+  if (!normalized || looksLikeExecutableCode(normalized)) return false;
+
+  const hasProofLanguage =
+    /\b(?:Proof|Assume|Suppose|Then|Therefore|Hence|Conversely|Since|First note|We prove|if and only if|iff|prime|mod)\b/iu.test(
+      normalized,
+    ) || /证明|反过来|所以|因此|因为|若|当且仅当|同余|素数/u.test(normalized);
+  const hasMath =
+    /\[[^\]\n]{1,80}\]|\\(?:equiv|pmod|in|mathbb|cdot|frac|Rightarrow|Leftarrow)|[A-Za-z]\s*\^\s*\{?-?\d|≡|∈|≤|≥|⇒|⇔|\bmod\b|[A-Za-z]\s*=\s*/u.test(
+      normalized,
+    );
+
+  return hasProofLanguage && hasMath;
+}
+
+const PROTECTED_INLINE_PATTERN = /(\$\$[\s\S]*?\$\$|\$[^$\n]+\$|`[^`\n]+`)/g;
+const GROUP_TERM_SOURCE = String.raw`(?:\([a-z]{1,16}\)|[a-z]{1,16})(?:\^\{?-?\d+\}?)?`;
+const GROUP_PRODUCT_SOURCE = String.raw`${GROUP_TERM_SOURCE}(?:${GROUP_TERM_SOURCE})*`;
+const GROUP_EQUATION_PATTERN = new RegExp(
+  String.raw`(${GROUP_PRODUCT_SOURCE}\s*(?:=|≡|\\equiv)\s*${GROUP_PRODUCT_SOURCE}(?:\s*(?:=|≡|\\equiv)\s*${GROUP_PRODUCT_SOURCE})*)`,
+  'g',
+);
+
+function transformOutsideInlineMath(text: string, transform: (segment: string) => string): string {
+  return text
+    .split(PROTECTED_INLINE_PATTERN)
+    .map((segment) => {
+      if (
+        (segment.startsWith('$') && segment.endsWith('$')) ||
+        (segment.startsWith('`') && segment.endsWith('`'))
+      ) {
+        return segment;
+      }
+      return transform(segment);
+    })
+    .join('');
+}
+
+function normalizeProofLatexExpression(text: string): string {
+  return stripProofFormulaPunctuation(text)
+    .replace(/\b([a-z](?:\s*,\s*[a-z])*)\s+in\s+([A-Z][A-Za-z0-9_]*)\b/g, '$1 \\in $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function wrapOutsideInlineMath(
+  text: string,
+  pattern: RegExp,
+  replacement: string | ((substring: string, ...args: string[]) => string),
+): string {
+  return transformOutsideInlineMath(text, (segment) =>
+    segment.replace(pattern, replacement as Parameters<string['replace']>[1]),
+  );
+}
+
+function stripProofFormulaPunctuation(text: string): string {
+  return text
+    .trim()
+    .replace(/[.。]\s*$/u, '')
+    .trim();
+}
+
+function isStandaloneProofFormulaLine(line: string): boolean {
+  const trimmed = stripProofFormulaPunctuation(line);
+  if (!trimmed) return false;
+  const hasMathTrigger =
+    /\\(?:equiv|pmod|mid|in|mathbb|quad|text|circ)|[=^]|≡|∈|∣|≤|≥|∘|\[[^\]]+\]/u.test(trimmed);
+  if (!hasMathTrigger) return false;
+
+  const withoutLatexText = trimmed
+    .replace(/\\text\{[^{}]*\}/g, '')
+    .replace(/\\(?:equiv|pmod|mid|in|mathbb|quad|circ)\b/g, '')
+    .replace(/\[[^\]]+\]/g, 'x')
+    .replace(/\b[a-z](?:\s*,\s*[a-z])*\s+in\s+[A-Z][A-Za-z0-9_]*\b/g, '')
+    .replace(/\b[a-z]{2,16}\b/g, '')
+    .replace(/\b[A-Za-z]\b/g, '')
+    .replace(/\^\{?-?\d+\}?/g, '')
+    .replace(/\b(?:mod|or|and)\b/gi, '');
+  return !/\b[A-Za-z]{3,}\b/u.test(withoutLatexText);
+}
+
+function wrapProofInlineMath(text: string): string {
+  let line = text;
+
+  line = wrapOutsideInlineMath(
+    line,
+    /(\[[^\]\n]{1,40}\](?:\^\{?[-A-Za-z0-9]+\}?)?(?:\s*=\s*\[[^\]\n]{1,40}\](?:\^\{?[-A-Za-z0-9]+\}?)?)*)/g,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  line = wrapOutsideInlineMath(
+    line,
+    /\b([a-z](?:\s*,\s*[a-z])*)\s+in\s+([A-Z][A-Za-z0-9_]*)\b/g,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  line = wrapOutsideInlineMath(
+    line,
+    GROUP_EQUATION_PATTERN,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  line = wrapOutsideInlineMath(
+    line,
+    /\b([a-zA-Z]\s*(?:=|\\equiv|≡)\s*[^.。；;\n]*?(?:\\[a-zA-Z]+|[\^≡∈∣∘]|\\mathbb)[^.。；;\n]*)/g,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  line = wrapOutsideInlineMath(
+    line,
+    /\b([a-zA-Z]\s*\\(?:in|mid)\s*[^.。；;\n]+)/g,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  line = wrapOutsideInlineMath(
+    line,
+    /((?:\([a-z]{1,16}\)|[a-z]{1,16})\^\{?-?\d+\}?)/g,
+    (match) => `$${normalizeProofLatexExpression(match)}$`,
+  );
+
+  return line;
+}
+
+function proofTextToBlocks(text: string): NotebookContentBlock[] {
+  const blocks: NotebookContentBlock[] = [];
+  let prose: string[] = [];
+
+  const flushProse = () => {
+    const paragraph = prose
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n');
+    prose = [];
+    if (paragraph) {
+      blocks.push({ type: 'paragraph', text: paragraph.slice(0, 6000) });
+    }
+  };
+
+  for (const rawLine of text.replace(/\r/g, '').trim().split('\n')) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushProse();
+      continue;
+    }
+    if (/^proof\.?$/iu.test(line)) {
+      flushProse();
+      blocks.push({ type: 'heading', level: 3, text: 'Proof' });
+      continue;
+    }
+    if (/^(易错点|Common pitfalls?)$/iu.test(line)) {
+      flushProse();
+      blocks.push({ type: 'heading', level: 3, text: line });
+      continue;
+    }
+    if (isStandaloneProofFormulaLine(line)) {
+      flushProse();
+      blocks.push({
+        type: 'equation',
+        latex: normalizeProofLatexExpression(line),
+        display: true,
+      });
+      continue;
+    }
+    prose.push(wrapProofInlineMath(line));
+  }
+
+  flushProse();
+  return blocks;
+}
+
+function shouldNormalizeProofParagraph(text: string, document: NotebookContentDocument): boolean {
+  if (document.profile === 'math' || document.teachingFlow === 'proof_walkthrough') {
+    return /(?:\[[^\]\n]{1,80}\]|[a-z](?:\s*,\s*[a-z])*\s+in\s+[A-Z]|\([a-z]{1,16}\)\^\{?-?\d+\}?|[a-z]{1,16}\^\{?-?\d+\}?|[a-z]{1,16}\s*=\s*[a-z]{1,16}|\\(?:equiv|pmod|in|mid|mathbb)|≡|∈|∣|≤|≥|∘)/u.test(
+      text,
+    );
+  }
+  return looksLikeProofText(text);
+}
+
+function normalizeAnswerDocumentForDisplay(
+  document: NotebookContentDocument,
+): NotebookContentDocument {
+  let changed = false;
+  const blocks = document.blocks.flatMap((block): NotebookContentBlock[] => {
+    if (block.type === 'paragraph' && shouldNormalizeProofParagraph(block.text, document)) {
+      const text = wrapProofInlineMath(block.text);
+      if (text !== block.text) {
+        changed = true;
+        return [{ ...block, text }];
+      }
+      return [block];
+    }
+
+    if (block.type === 'equation') {
+      const latex = normalizeProofLatexExpression(block.latex);
+      if (latex !== block.latex) {
+        changed = true;
+        return [{ ...block, latex }];
+      }
+      return [block];
+    }
+
+    if (block.type !== 'code_block' || !looksLikeProofText(block.code)) {
+      return [block];
+    }
+
+    const proofBlocks = proofTextToBlocks(block.code);
+    if (proofBlocks.length === 0) return [block];
+    changed = true;
+    return proofBlocks;
+  });
+
+  if (!changed) return document;
+  return {
+    ...document,
+    profile: document.profile === 'code' ? 'math' : document.profile,
+    disciplineStyle: document.disciplineStyle === 'code' ? 'math' : document.disciplineStyle,
+    teachingFlow:
+      document.teachingFlow === 'code_walkthrough' ? 'proof_walkthrough' : document.teachingFlow,
+    blocks,
+  };
+}
+
 function inferLegacyCodeLanguage(text: string): string {
-  if (/\(@(?:htdf|signature|template-origin)\b|\(check-expect\b|\(define\b|#reader|#lang/u.test(text)) {
+  if (
+    /\(@(?:htdf|signature|template-origin)\b|\(check-expect\b|\(define\b|#reader|#lang/u.test(text)
+  ) {
     return 'racket';
   }
   if (/\bdef\s+\w+\s*\(|\bclass\s+\w+|^\s*(?:from|import)\s+\w+/mu.test(text)) {
@@ -201,10 +440,7 @@ function pushLegacyProseBlocks(
   return [];
 }
 
-function parseLegacyProseAndCode(
-  text: string,
-  blocks: NotebookContentDocument['blocks'],
-): boolean {
+function parseLegacyProseAndCode(text: string, blocks: NotebookContentDocument['blocks']): boolean {
   const lines = normalizeLegacyAnswerText(text).split('\n');
   let prose: string[] = [];
   let code: string[] = [];
@@ -273,39 +509,45 @@ function buildLegacyNotebookAnswerDocumentFromText(
   const blocks: NotebookContentDocument['blocks'] = [];
   const fencePattern = /```([a-zA-Z0-9_+-]*)[^\n]*\n?([\s\S]*?)```/g;
   let lastIndex = 0;
-  let sawCode = false;
+  let sawStructuredContent = false;
   let match: RegExpExecArray | null;
 
   while ((match = fencePattern.exec(normalized)) !== null) {
     const before = normalized.slice(lastIndex, match.index);
     if (before.trim()) {
-      sawCode = parseLegacyProseAndCode(before, blocks) || sawCode;
+      sawStructuredContent = parseLegacyProseAndCode(before, blocks) || sawStructuredContent;
     }
     const codeText = (match[2] || '').trim();
     if (codeText) {
-      blocks.push({
-        type: 'code_block',
-        language: (match[1] || '').trim() || inferLegacyCodeLanguage(codeText),
-        code: codeText,
-      });
-      sawCode = true;
+      const language = (match[1] || '').trim();
+      if (looksLikeProofText(codeText)) {
+        blocks.push(...proofTextToBlocks(codeText));
+      } else {
+        blocks.push({
+          type: 'code_block',
+          language: language || inferLegacyCodeLanguage(codeText),
+          code: codeText,
+        });
+      }
+      sawStructuredContent = true;
     }
     lastIndex = match.index + match[0].length;
   }
 
   const rest = normalized.slice(lastIndex);
   if (rest.trim()) {
-    sawCode = parseLegacyProseAndCode(rest, blocks) || sawCode;
+    sawStructuredContent = parseLegacyProseAndCode(rest, blocks) || sawStructuredContent;
   }
 
-  if (!sawCode || blocks.length === 0) return undefined;
-  const profile = 'code';
+  if (!sawStructuredContent || blocks.length === 0) return undefined;
+  const hasCodeBlock = blocks.some((block) => block.type === 'code_block');
+  const profile = hasCodeBlock ? 'code' : 'math';
   return {
     version: 1,
     language: 'zh-CN',
     profile,
-    disciplineStyle: profile === 'code' ? 'code' : 'general',
-    teachingFlow: profile === 'code' ? 'code_walkthrough' : 'concept_explain',
+    disciplineStyle: profile === 'code' ? 'code' : 'math',
+    teachingFlow: profile === 'code' ? 'code_walkthrough' : 'proof_walkthrough',
     layout: { mode: 'stack' },
     density: 'standard',
     visualRole: 'none',
@@ -319,9 +561,10 @@ function buildLegacyNotebookAnswerDocumentFromText(
 export function getNotebookAnswerDocumentForDisplay(
   message: NotebookAssistantMessage,
 ): NotebookContentDocument | undefined {
-  if (message.answerDocument) return message.answerDocument;
+  if (message.answerDocument) return normalizeAnswerDocumentForDisplay(message.answerDocument);
   if (message.streaming) return undefined;
-  return buildLegacyNotebookAnswerDocumentFromText(message.answer);
+  const legacyDocument = buildLegacyNotebookAnswerDocumentFromText(message.answer);
+  return legacyDocument ? normalizeAnswerDocumentForDisplay(legacyDocument) : undefined;
 }
 
 function upgradeLegacyNotebookAnswer(message: NotebookChatMessage): NotebookChatMessage {

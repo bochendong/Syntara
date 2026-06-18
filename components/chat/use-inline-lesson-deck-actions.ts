@@ -1,5 +1,12 @@
-import { useCallback, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import {
+  useCallback,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from 'react';
 import { createAgentTask, updateAgentTask } from '@/lib/utils/agent-task-storage';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { loadStageData, saveStageData } from '@/lib/utils/stage-storage';
 import type { Scene } from '@/lib/types/stage';
@@ -49,21 +56,30 @@ export function useInlineLessonDeckActions({
       setLessonGeneratingAt(targetAt);
       try {
         const mc = getCurrentModelConfig();
-        const resp = await fetch('/api/notebooks/micro-lesson', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-model': mc.modelString,
-            'x-api-key': mc.apiKey,
-            'x-base-url': mc.baseUrl,
-            'x-provider-type': mc.providerType || '',
-            'x-requires-api-key': mc.requiresApiKey ? 'true' : 'false',
+        const resp = await runQueuedAiTask(
+          {
+            kind: 'micro-lesson',
+            title: '临时PPT生成',
+            description: `正在生成临时PPT：${compactTaskText(msg.lessonSourceQuestion)}`,
           },
-          body: JSON.stringify({
-            question: msg.lessonSourceQuestion,
-            language: 'zh-CN',
-          }),
-        });
+          ({ signal }) =>
+            fetch('/api/notebooks/micro-lesson', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-model': mc.modelString,
+                'x-api-key': mc.apiKey,
+                'x-base-url': mc.baseUrl,
+                'x-provider-type': mc.providerType || '',
+                'x-requires-api-key': mc.requiresApiKey ? 'true' : 'false',
+              },
+              body: JSON.stringify({
+                question: msg.lessonSourceQuestion,
+                language: 'zh-CN',
+              }),
+              signal,
+            }),
+        );
         const data = (await resp.json()) as {
           success?: boolean;
           scenes?: Scene[];
@@ -220,4 +236,10 @@ export function useInlineLessonDeckActions({
     lessonSavingAt,
     saveInlineLessonDeckToNotebook,
   };
+}
+
+function compactTaskText(input?: string) {
+  const text = (input || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '当前题目';
+  return text.length > 42 ? `${text.slice(0, 39)}...` : text;
 }

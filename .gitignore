@@ -87,6 +87,8 @@ next-env.d.ts
 !/docs/lecture-narration-guidelines.md
 !/docs/notebook-generation-sidebar-options.md
 !/docs/repository-structure.md
+!/docs/text-notebook-generation/
+!/docs/text-notebook-generation/**
 
 # OS / 杂项
 Thumbs.db

@@ -28,7 +28,6 @@ import {
   Trash2,
   Type,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import { toast } from '@/lib/notifications/client-toast';
 import { cn } from '@/lib/utils';
@@ -56,6 +55,7 @@ import { AnswerComposer, AnswerComposerToolbar } from '@/components/problem-bank
 import { ProblemDraftForm } from '@/components/problem-bank/problem-draft-form';
 import { ProblemLanguageToggle } from '@/components/problem-bank/problem-language-toggle';
 import { CodeAnswerEditor, highlightPython } from '@/components/problem-bank/code-answer-editor';
+import { CodeProblemStatement } from '@/components/problem-bank/code-problem-statement';
 import {
   ProblemImageAssets,
   ProblemRichText,
@@ -100,6 +100,7 @@ import {
   useCourseProblemBankController,
   type CourseCodeRunResult,
   type CourseCodeRunTarget,
+  type CourseProblemBankInitialFilters,
   type CourseProblemPracticeAttemptResolvedEvent,
 } from '@/components/problem-bank/use-course-problem-bank-controller';
 import { CourseProblemImportDialog } from '@/components/problem-bank/course-problem-import-dialog';
@@ -358,140 +359,6 @@ function buildCodeTestFiles(
   };
 }
 
-const CODE_STATEMENT_SECTION_STYLES = {
-  description: {
-    icon: 'bg-blue-50 text-blue-600 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/70',
-    line: 'bg-blue-100 dark:bg-blue-900/60',
-  },
-  examples: {
-    icon: 'bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/70',
-    line: 'bg-amber-100 dark:bg-amber-900/60',
-  },
-  constraints: {
-    icon: 'bg-emerald-50 text-emerald-600 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900/70',
-    line: 'bg-emerald-100 dark:bg-emerald-900/60',
-  },
-} as const;
-
-function CodeProblemStatementHeading({
-  icon: Icon,
-  label,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  tone: keyof typeof CODE_STATEMENT_SECTION_STYLES;
-}) {
-  const styles = CODE_STATEMENT_SECTION_STYLES[tone];
-
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        className={cn(
-          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-1',
-          styles.icon,
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
-      <h2 className="shrink-0 text-sm font-semibold text-slate-950 dark:text-white">{label}</h2>
-      <span className={cn('h-px min-w-8 flex-1', styles.line)} />
-    </div>
-  );
-}
-
-function CodeProblemStatement({
-  content,
-  locale,
-}: {
-  content: CodeProblemPublicContent;
-  locale: 'zh-CN' | 'en-US';
-}) {
-  const samples = content.sampleIO ?? [];
-  const constraints = content.constraints ?? [];
-
-  return (
-    <div className="space-y-8">
-      <section className="space-y-4">
-        <CodeProblemStatementHeading
-          icon={Type}
-          label={locale === 'zh-CN' ? '描述' : 'Description'}
-          tone="description"
-        />
-        <div className="border-l border-blue-100 pl-4 text-[15px] leading-7 dark:border-blue-900/60">
-          <ProblemRichText content={content.stem} />
-        </div>
-      </section>
-
-      {samples.length > 0 ? (
-        <section className="space-y-4">
-          <CodeProblemStatementHeading
-            icon={Code2}
-            label={locale === 'zh-CN' ? '示例' : 'Examples'}
-            tone="examples"
-          />
-          <div className="space-y-4">
-            {samples.map((sample, index) => (
-              <div key={`${sample.input}-${index}`} className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-amber-50 px-2 font-mono text-xs font-semibold text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/70">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                    {locale === 'zh-CN' ? `示例 ${index + 1}:` : `Example ${index + 1}:`}
-                  </h3>
-                </div>
-                <pre className="overflow-x-auto rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-[13px] leading-7 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
-                  <code>
-                    <span className="font-semibold text-blue-700 dark:text-blue-300">
-                      {locale === 'zh-CN' ? '输入:' : 'Input:'}
-                    </span>{' '}
-                    <span>{sample.input}</span>
-                    {'\n'}
-                    <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                      {locale === 'zh-CN' ? '输出:' : 'Output:'}
-                    </span>{' '}
-                    <span>{sample.output}</span>
-                    {sample.explanation ? (
-                      <>
-                        {'\n'}
-                        <span className="font-semibold text-amber-700 dark:text-amber-300">
-                          {locale === 'zh-CN' ? '解释:' : 'Explanation:'}
-                        </span>{' '}
-                        <span>{sample.explanation}</span>
-                      </>
-                    ) : null}
-                  </code>
-                </pre>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {constraints.length > 0 ? (
-        <section className="space-y-4">
-          <CodeProblemStatementHeading
-            icon={CheckSquare}
-            label={locale === 'zh-CN' ? '约束:' : 'Constraints:'}
-            tone="constraints"
-          />
-          <ul className="space-y-2 text-sm leading-7 text-slate-700 dark:text-slate-200">
-            {constraints.map((constraint, index) => (
-              <li key={`${constraint}-${index}`} className="flex items-start gap-3">
-                <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                <code className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[13px] leading-6 text-slate-800 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100">
-                  {constraint}
-                </code>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </div>
-  );
-}
-
 function CodeTestcasePanel({ file, locale }: { file?: CodeTestFile; locale: 'zh-CN' | 'en-US' }) {
   const lineNumbers = file
     ? Array.from({ length: Math.max(1, file.code.split('\n').length) }, (_, index) => index + 1)
@@ -515,6 +382,120 @@ function CodeTestcasePanel({ file, locale }: { file?: CodeTestFile; locale: 'zh-
           {locale === 'zh-CN' ? '暂无测试用例。' : 'No test cases yet.'}
         </div>
       )}
+    </div>
+  );
+}
+
+function SolutionCodeBlock({ code, language }: { code: string; language?: string }) {
+  const isPython = !language || language.toLowerCase() === 'python';
+
+  return (
+    <pre
+      className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-[13px] leading-6 text-slate-900 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100"
+      style={{ tabSize: 4 }}
+    >
+      <code className="block min-w-max whitespace-pre">
+        {isPython ? highlightPython(code) : code}
+      </code>
+    </pre>
+  );
+}
+
+const CODE_OPTION_LANGUAGE_ALIASES: Record<string, string> = {
+  c: 'c',
+  'c++': 'cpp',
+  cpp: 'cpp',
+  css: 'css',
+  html: 'html',
+  java: 'java',
+  javascript: 'javascript',
+  js: 'javascript',
+  py: 'python',
+  python: 'python',
+  racket: 'racket',
+  scheme: 'scheme',
+  sql: 'sql',
+  ts: 'typescript',
+  typescript: 'typescript',
+};
+
+function looksLikeCodeLine(line: string): boolean {
+  return /^(?:class|def|elif|else|for|from|if|import|return|while)\b|[=(){}\[\]:;]|^\s{2,}\S/.test(
+    line,
+  );
+}
+
+function parseCodeChoiceLabel(label: string): { code: string; language?: string } | null {
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+
+  const fenced = trimmed.match(/^```([A-Za-z0-9+#-]*)\s*\n([\s\S]*?)\n?```$/);
+  if (fenced) {
+    return {
+      language: CODE_OPTION_LANGUAGE_ALIASES[fenced[1]?.toLowerCase() ?? ''] ?? fenced[1],
+      code: fenced[2].trim(),
+    };
+  }
+
+  const lines = trimmed.split(/\r?\n/).map((line) => line.replace(/\s+$/g, ''));
+  const firstLine = lines[0]?.trim().replace(/:$/, '').toLowerCase() ?? '';
+  const language = CODE_OPTION_LANGUAGE_ALIASES[firstLine];
+  if (language && lines.length > 1) {
+    const code = lines.slice(1).join('\n').trim();
+    return code ? { language, code } : null;
+  }
+
+  if (lines.length > 1 && lines.some(looksLikeCodeLine)) {
+    return { code: trimmed };
+  }
+
+  return null;
+}
+
+function SolutionChoiceOptions({
+  options,
+  locale,
+}: {
+  options: Array<{ id: string; label: string }>;
+  locale: 'zh-CN' | 'en-US';
+}) {
+  return (
+    <div className="space-y-2">
+      {options.map((option) => {
+        const parsedCode = parseCodeChoiceLabel(option.label);
+
+        return (
+          <div
+            key={option.id}
+            className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-sm shadow-sm dark:border-emerald-500/30 dark:bg-emerald-500/10"
+          >
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-100">
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-emerald-600 px-2 font-mono text-xs font-bold text-white shadow-sm shadow-emerald-950/10">
+                {option.id}
+              </span>
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span className="text-xs font-semibold">
+                {locale === 'zh-CN' ? '正确选项' : 'Correct option'}
+              </span>
+            </div>
+            {parsedCode ? (
+              <div className="mt-3 space-y-2">
+                {parsedCode.language ? (
+                  <span className="inline-flex rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                    {parsedCode.language}
+                  </span>
+                ) : null}
+                <SolutionCodeBlock code={parsedCode.code} language={parsedCode.language} />
+              </div>
+            ) : (
+              <ProblemRichText
+                content={option.label}
+                className="mt-3 text-slate-800 dark:text-slate-100 [&_.problem-rich-code-block]:my-0 [&_.problem-rich-code-block]:max-w-full"
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -779,6 +760,7 @@ export function CourseProblemBankView({
   courseId,
   initialNotebookId,
   initialProblemId,
+  initialFilters,
   mode = 'bank',
   practiceBackLabel,
   practiceProblemIds,
@@ -788,6 +770,7 @@ export function CourseProblemBankView({
   courseId: string;
   initialNotebookId?: string;
   initialProblemId?: string;
+  initialFilters?: CourseProblemBankInitialFilters;
   mode?: 'bank' | 'practice';
   practiceBackLabel?: string;
   practiceProblemIds?: string[];
@@ -798,6 +781,7 @@ export function CourseProblemBankView({
     courseId,
     initialNotebookId,
     initialProblemId,
+    initialFilters,
     mode,
     onPracticeAttemptResolved,
   });
@@ -844,6 +828,7 @@ export function CourseProblemBankView({
     photoAnswers,
     practiceFilter,
     practiceFilterOptions,
+    practiceNavigationProblemCount,
     previousPracticeIsChapterJump,
     previousPracticeTarget,
     problemLanguage,
@@ -852,7 +837,6 @@ export function CourseProblemBankView({
     router,
     runningCode,
     runningCodeTarget,
-    sameNotebookProblems,
     savingAssignment,
     searchQuery,
     selectedAnswerMode,
@@ -1430,11 +1414,11 @@ export function CourseProblemBankView({
                           });
                         }}
                       />
-                      <div className="min-w-0">
-                        <span className="mr-1 font-medium">{option.id}.</span>
+                      <div className="flex min-w-0 flex-1 items-start gap-1.5">
+                        <span className="mt-0.5 shrink-0 font-medium">{option.id}.</span>
                         <ProblemRichText
                           content={option.label}
-                          className="inline-block align-middle [&_p]:inline [&_.katex-display]:inline-block"
+                          className="min-w-0 flex-1 [&_.problem-rich-code-block]:my-0 [&_.problem-rich-code-block]:max-w-full"
                         />
                       </div>
                       {hasAnswerFeedback && isCorrectOption ? (
@@ -1653,14 +1637,20 @@ export function CourseProblemBankView({
           />
         ) : selectedProblemSolutionSections.length > 0 ? (
           <div className="space-y-4">
-            {selectedProblemSolutionSections.map((section) => (
-              <section key={section.title}>
+            {selectedProblemSolutionSections.map((section, index) => (
+              <section key={`${section.title}-${index}`}>
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   {section.title}
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm leading-6 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-                  <ProblemRichText content={section.content} />
-                </div>
+                {section.contentKind === 'choice-options' && section.options?.length ? (
+                  <SolutionChoiceOptions options={section.options} locale={locale} />
+                ) : section.contentKind === 'code' ? (
+                  <SolutionCodeBlock code={section.content} language={section.language} />
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm leading-6 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
+                    <ProblemRichText content={section.content} />
+                  </div>
+                )}
               </section>
             ))}
           </div>
@@ -1919,17 +1909,11 @@ export function CourseProblemBankView({
                           key={problem.id}
                           role="button"
                           tabIndex={0}
-                          onClick={() =>
-                            router.push(
-                              `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                            )
-                          }
+                          onClick={() => navigateToPracticeProblem(problem)}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
-                              router.push(
-                                `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                              );
+                              navigateToPracticeProblem(problem);
                             }
                           }}
                           className={cn(
@@ -1977,22 +1961,46 @@ export function CourseProblemBankView({
                                 />
                               </p>
                             </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className={cn(
-                                'h-8 shrink-0 px-2.5 text-xs',
-                                PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
-                              )}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                router.push(
-                                  `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                                );
-                              }}
-                            >
-                              {locale === 'zh-CN' ? '练习' : 'Practice'}
-                            </Button>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className={cn(
+                                  'h-8 px-2.5 text-xs',
+                                  PROBLEM_BANK_PRIMARY_BUTTON_CLASS,
+                                )}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  navigateToPracticeProblem(problem);
+                                }}
+                              >
+                                {locale === 'zh-CN' ? '练习' : 'Practice'}
+                              </Button>
+                              {canEditProblems ? (
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon-sm"
+                                  disabled={deletingProblem}
+                                  aria-label={
+                                    locale === 'zh-CN'
+                                      ? `删除题目「${localizedTitle}」`
+                                      : `Delete "${localizedTitle}"`
+                                  }
+                                  title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void handleDeleteProblem(problem);
+                                  }}
+                                >
+                                  {deletingProblem ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
 
                           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
@@ -2086,17 +2094,11 @@ export function CourseProblemBankView({
                           key={problem.id}
                           role="button"
                           tabIndex={0}
-                          onClick={() =>
-                            router.push(
-                              `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                            )
-                          }
+                          onClick={() => navigateToPracticeProblem(problem)}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
-                              router.push(
-                                `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                              );
+                              navigateToPracticeProblem(problem);
                             }
                           }}
                           className={cn(
@@ -2176,7 +2178,7 @@ export function CourseProblemBankView({
                           <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
                             {latestScoreLabel(problem, locale)}
                           </div>
-                          <div>
+                          <div className="flex items-center gap-1.5">
                             <Button
                               type="button"
                               size="sm"
@@ -2186,13 +2188,35 @@ export function CourseProblemBankView({
                               )}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                router.push(
-                                  `/course/${encodeURIComponent(courseId)}/problem-bank/${encodeURIComponent(problem.id)}`,
-                                );
+                                navigateToPracticeProblem(problem);
                               }}
                             >
                               {locale === 'zh-CN' ? '练习' : 'Practice'}
                             </Button>
+                            {canEditProblems ? (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon-sm"
+                                disabled={deletingProblem}
+                                aria-label={
+                                  locale === 'zh-CN'
+                                    ? `删除题目「${localizedTitle}」`
+                                    : `Delete "${localizedTitle}"`
+                                }
+                                title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleDeleteProblem(problem);
+                                }}
+                              >
+                                {deletingProblem ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
                       );
@@ -2452,7 +2476,7 @@ export function CourseProblemBankView({
                     {isReviewPracticeMode && reviewPracticeIndex >= 0
                       ? `${reviewPracticeIndex + 1}/${reviewPracticeProblems.length}`
                       : currentNotebookProblemPosition > 0
-                        ? `${currentNotebookProblemPosition}/${sameNotebookProblems.length}`
+                        ? `${currentNotebookProblemPosition}/${practiceNavigationProblemCount}`
                         : locale === 'zh-CN'
                           ? '未归类'
                           : 'Unassigned'}
@@ -2573,20 +2597,6 @@ export function CourseProblemBankView({
                                 {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
                               </DropdownMenuItem>
                             ) : null}
-                            {canEditProblems ? (
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={handleDeleteProblem}
-                                disabled={deletingProblem}
-                              >
-                                {deletingProblem ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                                {locale === 'zh-CN' ? '删除题目' : 'Delete'}
-                              </DropdownMenuItem>
-                            ) : null}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : null}
@@ -2604,6 +2614,29 @@ export function CourseProblemBankView({
                       latestAttempt={selectedProblemLatestDetailedAttempt}
                     />
                   )}
+                  {canEditProblems ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 rounded-md px-2 text-xs font-semibold"
+                      title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                      aria-label={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                      disabled={deletingProblem}
+                      onClick={() => {
+                        void handleDeleteProblem();
+                      }}
+                    >
+                      {deletingProblem ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {locale === 'zh-CN' ? '删除题目' : 'Delete'}
+                      </span>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 

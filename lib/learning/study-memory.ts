@@ -51,6 +51,31 @@ export interface WeakPointMemory {
   reviewedAt?: number;
 }
 
+export interface NotebookWorkingMemory {
+  source: 'chat_turn' | 'problem_attempt' | 'manual';
+  title: string;
+  summary: string;
+  currentTask?: string;
+  stuckPoint?: string;
+  masteredSignal?: string;
+  nextTeachingMove?: string;
+  recentAttempt?: {
+    problemId: string;
+    problemTitle: string;
+    status: string;
+    score?: number | null;
+    feedback?: string;
+  };
+  evidence?: Array<{
+    type: 'student_message' | 'assistant_reply' | 'problem_attempt';
+    label: string;
+    text?: string;
+  }>;
+  updatedAt: number;
+}
+
+type NotebookWorkingMemoryEvidence = NonNullable<NotebookWorkingMemory['evidence']>[number];
+
 export interface StudyMemoryProfile {
   userId: string;
   stageId: string;
@@ -59,6 +84,7 @@ export interface StudyMemoryProfile {
   reviewCount: number;
   lastTouchedAt: number;
   lastStuckPoint?: string;
+  workingMemory?: NotebookWorkingMemory;
   weakPoints: WeakPointMemory[];
   rememberedQuestions: Array<{ id: string; text: string; createdAt: number }>;
   publicMemories: NotebookMemoryItem[];
@@ -114,6 +140,75 @@ function withDefaultPublicMemories(profile: StudyMemoryProfile): StudyMemoryProf
   };
 }
 
+function normalizeWorkingMemory(input: unknown): NotebookWorkingMemory | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const record = input as Partial<NotebookWorkingMemory>;
+  const source =
+    record.source === 'chat_turn' ||
+    record.source === 'problem_attempt' ||
+    record.source === 'manual'
+      ? record.source
+      : 'manual';
+  const title = normalizeMemoryText(String(record.title || ''), 120);
+  const summary = normalizeMemoryText(String(record.summary || ''), 1200);
+  const updatedAt = Number(record.updatedAt);
+  if (!title || !summary || !Number.isFinite(updatedAt)) return undefined;
+  const recentAttempt =
+    record.recentAttempt &&
+    typeof record.recentAttempt === 'object' &&
+    typeof record.recentAttempt.problemId === 'string' &&
+    typeof record.recentAttempt.problemTitle === 'string' &&
+    typeof record.recentAttempt.status === 'string'
+      ? {
+          problemId: record.recentAttempt.problemId,
+          problemTitle: normalizeMemoryText(record.recentAttempt.problemTitle, 160),
+          status: record.recentAttempt.status,
+          score: record.recentAttempt.score ?? null,
+          feedback: record.recentAttempt.feedback
+            ? normalizeMemoryText(record.recentAttempt.feedback, 600)
+            : undefined,
+        }
+      : undefined;
+  const evidence = Array.isArray(record.evidence)
+    ? record.evidence
+        .map((item) => {
+          const typed = item as NotebookWorkingMemoryEvidence;
+          const type =
+            typed?.type === 'assistant_reply' ||
+            typed?.type === 'problem_attempt' ||
+            typed?.type === 'student_message'
+              ? typed.type
+              : 'student_message';
+          const label = normalizeMemoryText(String(typed?.label || ''), 80);
+          if (!label) return null;
+          return {
+            type,
+            label,
+            text: typed?.text ? normalizeMemoryText(typed.text, 600) : undefined,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .slice(0, 6)
+    : undefined;
+
+  return {
+    source,
+    title,
+    summary,
+    currentTask: record.currentTask ? normalizeMemoryText(record.currentTask, 200) : undefined,
+    stuckPoint: record.stuckPoint ? normalizeMemoryText(record.stuckPoint, 300) : undefined,
+    masteredSignal: record.masteredSignal
+      ? normalizeMemoryText(record.masteredSignal, 300)
+      : undefined,
+    nextTeachingMove: record.nextTeachingMove
+      ? normalizeMemoryText(record.nextTeachingMove, 300)
+      : undefined,
+    recentAttempt,
+    evidence,
+    updatedAt,
+  };
+}
+
 export function loadStudyMemory(userId: string, stageId: string): StudyMemoryProfile {
   if (typeof window === 'undefined' || !userId || !stageId) {
     return withDefaultPublicMemories(emptyProfile(userId, stageId));
@@ -128,6 +223,7 @@ export function loadStudyMemory(userId: string, stageId: string): StudyMemoryPro
     return withDefaultPublicMemories({
       ...emptyProfile(userId, stageId),
       ...parsed,
+      workingMemory: normalizeWorkingMemory(parsed.workingMemory),
       weakPoints: Array.isArray(parsed.weakPoints) ? parsed.weakPoints.slice(0, MAX_ITEMS) : [],
       rememberedQuestions: Array.isArray(parsed.rememberedQuestions)
         ? parsed.rememberedQuestions.slice(0, MAX_ITEMS)
@@ -151,6 +247,7 @@ export function saveStudyMemory(profile: StudyMemoryProfile): void {
       storageKey(profile.userId, profile.stageId),
       JSON.stringify({
         ...profile,
+        workingMemory: profile.workingMemory,
         weakPoints: profile.weakPoints.slice(0, MAX_ITEMS),
         rememberedQuestions: profile.rememberedQuestions.slice(0, MAX_ITEMS),
         publicMemories: profile.publicMemories.slice(0, MAX_ITEMS),
@@ -160,6 +257,40 @@ export function saveStudyMemory(profile: StudyMemoryProfile): void {
   } catch {
     // local-first memory should never block studying
   }
+}
+
+export function updateNotebookWorkingMemory(args: {
+  userId?: string;
+  stageId: string;
+  memory: Omit<NotebookWorkingMemory, 'updatedAt'> & { updatedAt?: number };
+}): { profile: StudyMemoryProfile; memory: NotebookWorkingMemory } {
+  const userId = args.userId?.trim() || getLocalStudyMemoryUserId();
+  const previous = loadStudyMemory(userId, args.stageId);
+  const now = args.memory.updatedAt || Date.now();
+  const memory = normalizeWorkingMemory({
+    ...args.memory,
+    updatedAt: now,
+  });
+  if (!memory) {
+    return {
+      profile: previous,
+      memory: previous.workingMemory || {
+        source: 'manual',
+        title: '短期学习状态',
+        summary: '暂无可写入的短期学习状态。',
+        updatedAt: now,
+      },
+    };
+  }
+  const profile: StudyMemoryProfile = {
+    ...previous,
+    lastTouchedAt: now,
+    lastStuckPoint: memory.stuckPoint || previous.lastStuckPoint,
+    workingMemory: memory,
+  };
+  saveStudyMemory(profile);
+  emitStudyMemoryUpdated(args.stageId);
+  return { profile, memory };
 }
 
 export function clearStudyMemory(stageId: string, userId = getLocalStudyMemoryUserId()): void {

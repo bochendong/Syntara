@@ -31,6 +31,7 @@ import {
   isBrowserTTSAbortError,
   playBrowserTTSPreview,
 } from '@/lib/audio/browser-tts-preview';
+import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
 import { backendFetch } from '@/lib/utils/backend-api';
 
 const log = createLogger('AudioSettings');
@@ -356,11 +357,20 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
         requestBody.ttsBaseUrl = baseUrlValue;
       }
 
-      const response = await backendFetch('/api/generate/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await runQueuedAiTask(
+        {
+          kind: 'speech-generation',
+          title: '语音测试生成',
+          description: '正在生成设置测试语音',
+        },
+        ({ signal }) =>
+          backendFetch('/api/generate/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal,
+          }),
+      );
 
       const data = await response
         .json()
