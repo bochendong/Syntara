@@ -214,9 +214,10 @@ export default function CourseStorePage() {
         description: `${summaryCopy(item)} ${item.description || ''}`.trim(),
         eyebrow: featuredReason(item),
         badge: purposeLabel(item.purpose),
+        courseCode: item.courseCode?.trim() || undefined,
         artworkUrl: resolveCourseAvatarDisplayUrl(item.id, item.avatarUrl),
         metadata: [
-          item.university?.trim() || item.courseCode?.trim() || purposeLabel(item.purpose),
+          item.university?.trim() || purposeLabel(item.purpose),
           `${item.notebookCount} 个笔记本`,
           `★ ${(item.averageRating ?? 0).toFixed(1)} · ${item.reviewCount ?? 0} 条`,
           speechStatusLabel(item),
@@ -255,13 +256,12 @@ export default function CourseStorePage() {
             : '你可以继续扩充笔记本、组织课堂与发布内容。'),
         eyebrow: joined ? 'Joined Course' : 'Your Library',
         badge: purposeLabel(course.purpose),
+        courseCode: course.courseCode?.trim() || undefined,
         artworkUrl: resolveCourseAvatarDisplayUrl(course.id, course.avatarUrl),
         metadata: [
           `创作者 · ${joined ? course.sourceOwnerName?.trim() || '创作者' : creatorDisplay}`,
           `${notebookCount} 个笔记本`,
-          course.university?.trim() ||
-            course.courseCode?.trim() ||
-            `更新于 ${formatDate(course.updatedAt)}`,
+          course.university?.trim() || `更新于 ${formatDate(course.updatedAt)}`,
         ].filter(Boolean) as string[],
         primaryActionLabel: '打开',
         onPrimaryAction: () => router.push(`/course/${course.id}`),

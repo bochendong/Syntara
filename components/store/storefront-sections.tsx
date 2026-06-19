@@ -10,6 +10,7 @@ export interface StorefrontItem {
   description?: string;
   eyebrow?: string;
   badge?: string;
+  courseCode?: string;
   artworkUrl?: string;
   metadata?: string[];
   openLabel?: string;
@@ -98,6 +99,7 @@ export function StoreFeatureCard({
   className?: string;
 }) {
   const open = item.onOpen ?? item.onPrimaryAction;
+  const courseCode = item.courseCode?.trim();
 
   return (
     <article
@@ -112,9 +114,16 @@ export function StoreFeatureCard({
         </button>
         <div className="flex min-w-0 flex-1 flex-col self-stretch">
           <button type="button" onClick={open} className="min-w-0 text-left">
-            <p className="text-sm font-semibold text-slate-500 uppercase dark:text-slate-400">
-              {item.eyebrow ?? item.badge ?? '精选'}
-            </p>
+            <span className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-slate-500 uppercase dark:text-slate-400">
+                {item.eyebrow ?? item.badge ?? '精选'}
+              </span>
+              {courseCode ? (
+                <span className="inline-flex max-w-full shrink-0 items-center rounded-full border border-sky-200/85 bg-sky-50/80 px-2 py-0.5 font-mono text-[11px] font-semibold text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-200">
+                  {courseCode}
+                </span>
+              ) : null}
+            </span>
             <h3 className="mt-2 line-clamp-2 text-xl font-semibold text-slate-950 sm:text-2xl dark:text-white">
               {item.title}
             </h3>
@@ -193,6 +202,7 @@ export function StoreFeatureStrip({
 function StoreListItem({ item }: { item: StorefrontItem }) {
   const open = item.onOpen ?? item.onPrimaryAction;
   const metadata = item.metadata?.filter(Boolean).slice(0, 3).join(' · ');
+  const courseCode = item.courseCode?.trim();
 
   return (
     <article className="flex min-h-[6.25rem] min-w-0 flex-col gap-3 border-t border-slate-200/75 py-3.5 sm:flex-row sm:items-center dark:border-white/10">
@@ -203,9 +213,18 @@ function StoreListItem({ item }: { item: StorefrontItem }) {
       >
         <StoreArtwork item={item} size="row" />
         <span className="min-w-0 flex-1">
-          {item.badge ? (
-            <span className="mb-0.5 block truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {item.badge}
+          {item.badge || courseCode ? (
+            <span className="mb-0.5 flex min-w-0 items-center gap-1.5">
+              {item.badge ? (
+                <span className="min-w-0 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {item.badge}
+                </span>
+              ) : null}
+              {courseCode ? (
+                <span className="inline-flex max-w-full shrink-0 items-center rounded-full border border-sky-200/85 bg-sky-50/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-200">
+                  {courseCode}
+                </span>
+              ) : null}
             </span>
           ) : null}
           <span className="block truncate text-base font-semibold text-slate-950 dark:text-white">

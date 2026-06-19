@@ -72,7 +72,7 @@ export const CSC148_NOTEBOOK_MEMORY_SPECS = [
 export const CSC148_PUBLIC_MEMORY_TEXTS = {
   [CSC148_COURSE_MEMORY_ID]: m`
 ## 记忆角色
-CSC148 的课程级公共记忆。它不是普通课程简介，而是后续答疑、题库讲解、批改提示、notebook 续写和模板库选择时使用的课程合约。CSC148 的答案优先按课程 recipe 和数据结构模板组织：Function Design Recipe、Class Design Recipe、Linked List Template、Tree Template、BST Template。
+CSC148 的课程级公共记忆。它不是普通课程简介，而是后续答疑、题库讲解、批改提示、notebook 续写和模板库选择时使用的课程合约。CSC148 的答案优先按课程 recipe 和数据结构模板组织：Function Design Recipe、Class Design Recipe、ADT/Stack/Queue Template、Linked List Template、Tree Template、BST Template。
 
 ## 执行合约
 1. 先判题型：function design、class design、testing、ADT/interface、linked list、tree、BST、exception、runtime，还是 recursive sorting。
@@ -80,6 +80,7 @@ CSC148 的课程级公共记忆。它不是普通课程简介，而是后续答�
 3. Python 记忆模型是底层规则：变量绑定、aliasing、mutation、object identity 会影响所有 class、list、linked list 和 tree trace，但它不是模板库主分类。
 4. 答案要保留课程口径：type annotation、docstring、precondition、representation invariant、public interface、test boundary、runtime tradeoff。
 5. 不要把通用 Python 技巧顶替课程模板。能用简单循环、递归、helper 和明确状态解释时，不要引入 dataclass、pandas、decorator-heavy 写法或未学库。
+6. 模板库边界：不要把 CPSC107/HtDF 的数据定义模板迁移成 CSC148 模板；CSC148 的递归和引用结构应落到 Python function、class design、linked list、tree 或 BST 模板里。
 
 ## 模板：Function Design Recipe
 ### 使用条件
@@ -503,26 +504,110 @@ Notebook 06 的操作记忆。它把 Stack、Queue 和 ADT 题从“怎么存”
 - Exception behavior 也是 interface 的一部分：empty pop/dequeue 应该如何失败要一致。
 - 同一个 ADT 可以有多种实现，例如 Python list、linked nodes、two-stack queue。
 
-## 操作模板
-1. 先写 ADT operations 和每个 operation 的 contract。
-2. 再选择 representation。
-3. 每个 method 都要维护 representation invariant。
-4. 对 failure case，按 interface 规定 raise exception 或返回指定值。
-5. 复杂度分析针对 chosen implementation，不针对 ADT 名字本身。
+## 执行合约
+回答 ADT / Stack / Queue 题时必须按这个顺序输出：
+1. **Interface contract**：列 public operations；Stack 用 push/pop/is_empty，Queue 用 enqueue/dequeue/is_empty，并写 empty failure behavior。
+2. **Representation choice**：说明 chosen implementation，例如 Python list、linked nodes 或 two-stack queue。
+3. **Representation Invariants**：必须写 RI，例如 Stack 的 self._items 只通过 public methods 修改；Queue 的 self._items[0] 是下一次 dequeue 的 front。
+4. **Complete code**：给完整 python code block，必须包含 imports、custom exception class、class docstring、Instance Attributes、Representation Invariants、__init__、is_empty 和核心 methods。
+5. **Complexity note**：复杂度针对 chosen representation，不针对 ADT 名字本身。
+
+核心 Stack 骨架：
+~~~python
+from typing import Any
+
+class EmptyStackError(Exception):
+    """Raised when calling pop on an empty stack."""
+
+class Stack:
+    """A last-in-first-out stack.
+
+    Instance Attributes:
+        - _items: the items in this stack, with the top at the end
+
+    Representation Invariants:
+        - self._items stores only items added through push
+    """
+    _items: list[Any]
+~~~
 
 ## 例子
 ~~~python
+from typing import Any
+
+
+class EmptyStackError(Exception):
+    """Raised when calling pop on an empty stack."""
+
+
 class Stack:
+    """A last-in-first-out stack.
+
+    Instance Attributes:
+        - _items: the items in this stack, with the top at the end
+
+    Representation Invariants:
+        - self._items stores the stack items from bottom to top
+    """
+    _items: list[Any]
+
     def __init__(self) -> None:
+        """Initialize an empty stack."""
         self._items = []
 
+    def is_empty(self) -> bool:
+        """Return whether this stack is empty."""
+        return self._items == []
+
     def push(self, item: Any) -> None:
+        """Add item to the top of this stack."""
         self._items.append(item)
 
     def pop(self) -> Any:
+        """Remove and return the top item of this stack.
+
+        Raise EmptyStackError if this stack is empty.
+        """
         if self.is_empty():
-            raise EmptyStackError
+            raise EmptyStackError()
         return self._items.pop()
+
+
+class EmptyQueueError(Exception):
+    """Raised when calling dequeue on an empty queue."""
+
+
+class Queue:
+    """A first-in-first-out queue.
+
+    Instance Attributes:
+        - _items: the items in this queue, with the front at index 0
+
+    Representation Invariants:
+        - self._items[0] is the next item returned by dequeue when non-empty
+    """
+    _items: list[Any]
+
+    def __init__(self) -> None:
+        """Initialize an empty queue."""
+        self._items = []
+
+    def is_empty(self) -> bool:
+        """Return whether this queue is empty."""
+        return self._items == []
+
+    def enqueue(self, item: Any) -> None:
+        """Add item to the back of this queue."""
+        self._items.append(item)
+
+    def dequeue(self) -> Any:
+        """Remove and return the front item of this queue.
+
+        Raise EmptyQueueError if this queue is empty.
+        """
+        if self.is_empty():
+            raise EmptyQueueError()
+        return self._items.pop(0)
 ~~~
 
 ## 常见误区
@@ -531,7 +616,7 @@ class Stack:
 - 说 Stack 一定 O(1)，但没有说明当前实现为什么。
 
 ## 回答检查清单
-ADT 题要区分 interface、implementation、representation invariant、exception behavior 和 operation runtime。
+ADT 题要区分 interface、implementation、representation invariant、exception behavior 和 operation runtime。代码例子必须能独立解释 imports、exception、RI 和 public methods。
 `,
 
   memory_csc148_queue_07_linked_list_public_20260618: m`
@@ -549,23 +634,38 @@ Notebook 07 的操作记忆。它是 CSC148 模板库的核心之一：Linked Li
 回答 Linked List Template 题时必须按这个顺序输出：
 1. **Cases**：先列 empty list、head node、middle/end node、target absent。
 2. **Pointer plan**：说明使用 prev 和 curr 保存前驱与当前节点；删除节点靠改 self._first 或 prev.next。
-3. **Code**：给完整 python code block，默认使用 CSC148 表示：self._first、_Node.item、_Node.next。除非题目 starter 明确用 head，否则不要改成 self.head。
-4. **Link check**：说明不会断链、不会跳过节点、没找到时返回 failure value。
+3. **Representation Invariants**：必须写 _Node.next is None or another _Node；LinkedList._first is None or the first node in the list。
+4. **Code**：给完整 python code block，必须包含 imports、_Node、LinkedList、Instance Attributes、Representation Invariants、__init__、目标 method。默认使用 self._first、_Node.item、_Node.next；除非 starter 明确用 head，否则不要改成 self.head。
+5. **Link check**：说明不会断链、不会跳过节点、没找到时返回 failure value。
 
 核心 mutation 骨架：
 ~~~python
-prev = None
-curr = self._first
-while curr is not None and curr.item != target:
-    prev = curr
-    curr = curr.next
+from __future__ import annotations
+from typing import Any
 
-if curr is None:
-    ...
-elif prev is None:
-    self._first = curr.next
-else:
-    prev.next = curr.next
+class _Node:
+    """A node in a linked list.
+
+    Instance Attributes:
+        - item: the data stored in this node
+        - next: the next node in the list, or None
+
+    Representation Invariants:
+        - self.next is None or isinstance(self.next, _Node)
+    """
+    item: Any
+    next: _Node | None
+
+class LinkedList:
+    """A linked list.
+
+    Instance Attributes:
+        - _first: the first node in this list, or None if this list is empty
+
+    Representation Invariants:
+        - self._first is None or isinstance(self._first, _Node)
+    """
+    _first: _Node | None
 ~~~
 
 ## 模板：Linked List Template
@@ -595,6 +695,64 @@ elif prev is None:
     self._first = curr.next
 else:
     prev.next = curr.next
+~~~
+
+### 例子
+~~~python
+from __future__ import annotations
+from typing import Any
+
+
+class _Node:
+    """A node in a linked list.
+
+    Instance Attributes:
+        - item: the data stored in this node
+        - next: the next node in the list, or None
+
+    Representation Invariants:
+        - self.next is None or isinstance(self.next, _Node)
+    """
+    item: Any
+    next: _Node | None
+
+    def __init__(self, item: Any, next_: _Node | None = None) -> None:
+        self.item = item
+        self.next = next_
+
+
+class LinkedList:
+    """A linked list.
+
+    Instance Attributes:
+        - _first: the first node in this list, or None if this list is empty
+
+    Representation Invariants:
+        - self._first is None or isinstance(self._first, _Node)
+    """
+    _first: _Node | None
+
+    def __init__(self) -> None:
+        """Initialize an empty linked list."""
+        self._first = None
+
+    def remove_first(self, item: Any) -> bool:
+        """Remove the first node containing item, and return whether one was removed."""
+        prev = None
+        curr = self._first
+
+        while curr is not None and curr.item != item:
+            prev = curr
+            curr = curr.next
+
+        if curr is None:
+            return False
+        elif prev is None:
+            self._first = curr.next
+        else:
+            prev.next = curr.next
+
+        return True
 ~~~
 
 ### 检查清单
@@ -666,22 +824,30 @@ Notebook 09 的操作记忆。它是 CSC148 模板库的核心之一：BST Templ
 ## 执行合约
 回答 BST Template 题时必须按这个顺序输出：
 1. **Invariant first**：先写出 BST invariant，并说明它如何决定控制流。
-2. **Cases**：empty tree、equal root、less than root、greater than root。
-3. **Code**：给完整 python code block，必须包含 self.is_empty()、item == self._root、item < self._root、self._left.find(item)、self._right.find(item) 这类结构。
-4. **Why one side**：明确说不是搜索左右两边；因为 invariant 已经排除了另一边。
-5. **Runtime note**：如果问复杂度，必须用 height 说明 balanced/worst-case。
+2. **Representation Invariants**：必须写 empty BST 的表示；非空 BST 的 _left 和 _right 必须是 BinarySearchTree，并满足 left < root < right。
+3. **Cases**：empty tree、equal root、less than root、greater than root。
+4. **Code**：给完整 python code block，必须包含 imports、class docstring、Instance Attributes、Representation Invariants、__init__、is_empty 和目标 method。
+5. **Why one side**：明确说不是搜索左右两边；因为 invariant 已经排除了另一边。
+6. **Runtime note**：如果问复杂度，必须用 height 说明 balanced/worst-case。
 
-核心 find 骨架：
+核心完整骨架：
 ~~~python
-def find(self, item: Any) -> bool:
-    if self.is_empty():
-        return False
-    elif item == self._root:
-        return True
-    elif item < self._root:
-        return self._left.find(item)
-    else:
-        return self._right.find(item)
+from __future__ import annotations
+from typing import Any
+
+class BinarySearchTree:
+    """A binary search tree.
+
+    Instance Attributes:
+        - _root: the item stored at the root, or None if this tree is empty
+        - _left: the left subtree, or None if this tree is empty
+        - _right: the right subtree, or None if this tree is empty
+
+    Representation Invariants:
+        - If self._root is None, then self._left is None and self._right is None.
+        - If self._root is not None, then self._left and self._right are BinarySearchTree objects.
+        - Every item in self._left is < self._root, and every item in self._right is > self._root.
+    """
 ~~~
 
 ## 模板：BST Template
@@ -704,6 +870,57 @@ def find(self, item: Any) -> bool:
 Insert 的判断顺序相同：empty 就放在 root；小于 root 去 left；大于 root 去 right；相等时按题目约定处理 duplicate。
 
 Delete two-child case 通常选择 predecessor 或 successor 替换 root，再递归删除被提升的值。
+
+### 例子
+~~~python
+from __future__ import annotations
+from typing import Any
+
+
+class BinarySearchTree:
+    """A binary search tree.
+
+    Instance Attributes:
+        - _root: the item stored at the root, or None if this tree is empty
+        - _left: the left subtree, or None if this tree is empty
+        - _right: the right subtree, or None if this tree is empty
+
+    Representation Invariants:
+        - If self._root is None, then self._left is None and self._right is None.
+        - If self._root is not None, then self._left and self._right are BinarySearchTree objects.
+        - If self._root is not None, every item in self._left is < self._root.
+        - If self._root is not None, every item in self._right is > self._root.
+    """
+    _root: Any | None
+    _left: BinarySearchTree | None
+    _right: BinarySearchTree | None
+
+    def __init__(self, root: Any | None) -> None:
+        """Initialize this BST with root, or as empty if root is None."""
+        if root is None:
+            self._root = None
+            self._left = None
+            self._right = None
+        else:
+            self._root = root
+            self._left = BinarySearchTree(None)
+            self._right = BinarySearchTree(None)
+
+    def is_empty(self) -> bool:
+        """Return whether this BST is empty."""
+        return self._root is None
+
+    def find(self, item: Any) -> bool:
+        """Return whether item is in this BST."""
+        if self.is_empty():
+            return False
+        elif item == self._root:
+            return True
+        elif item < self._root:
+            return self._left.find(item)
+        else:
+            return self._right.find(item)
+~~~
 
 ### 检查清单
 - 是否每一步只保留一边。
@@ -733,22 +950,27 @@ Notebook 10 的操作记忆。它是 CSC148 模板库的核心之一：Tree Temp
 ## 执行合约
 回答 Tree Template 题时必须按这个顺序输出：
 1. **Cases**：先列 empty tree、leaf tree、internal node。只要题目问 leaves，必须显式处理 leaf case：self._subtrees == [] 返回 1。
-2. **Recursive reason**：说明每棵 subtree 仍然是 Tree，所以递归调用写在 subtree.method(...) 上。
-3. **Code**：给完整 python code block，必须包含 self.is_empty()，需要 leaf 时必须包含 elif self._subtrees == []。
-4. **Combine**：说明 recursive results 如何相加、拼接、取 max/min 或 short-circuit。
+2. **Representation Invariants**：必须写 empty tree 的表示：如果 self._root is None，那么 self._subtrees == []；每个 subtree 也是 Tree。不要写成 iff，因为非空 leaf 也有 self._subtrees == []。
+3. **Recursive reason**：说明每棵 subtree 仍然是 Tree，所以递归调用写在 subtree.method(...) 上。
+4. **Code**：给完整 python code block，必须包含 imports、class docstring、Instance Attributes、Representation Invariants、__init__、is_empty 和目标 method。
+5. **Combine**：说明 recursive results 如何相加、拼接、取 max/min 或 short-circuit。
 
-核心 leaves 骨架：
+核心完整骨架：
 ~~~python
-def num_leaves(self) -> int:
-    if self.is_empty():
-        return 0
-    elif self._subtrees == []:
-        return 1
-    else:
-        total = 0
-        for subtree in self._subtrees:
-            total += subtree.num_leaves()
-        return total
+from __future__ import annotations
+from typing import Any
+
+class Tree:
+    """A recursive tree.
+
+    Instance Attributes:
+        - _root: the item stored at this tree's root, or None if empty
+        - _subtrees: the subtrees of this tree
+
+    Representation Invariants:
+        - If self._root is None, then self._subtrees == []
+        - all(isinstance(subtree, Tree) for subtree in self._subtrees)
+    """
 ~~~
 
 ## 模板：Tree Template
@@ -776,6 +998,55 @@ def preorder(self) -> list:
     for subtree in self._subtrees:
         items.extend(subtree.preorder())
     return items
+~~~
+
+### 例子
+~~~python
+from __future__ import annotations
+from typing import Any
+
+
+class Tree:
+    """A recursive tree.
+
+    Instance Attributes:
+        - _root: the item stored at this tree's root, or None if empty
+        - _subtrees: the subtrees of this tree
+
+    Representation Invariants:
+        - If self._root is None, then self._subtrees == []
+        - all(isinstance(subtree, Tree) for subtree in self._subtrees)
+    """
+    _root: Any | None
+    _subtrees: list[Tree]
+
+    def __init__(self, root: Any | None, subtrees: list[Tree]) -> None:
+        """Initialize this tree with root and subtrees.
+
+        If root is None, this tree is empty and subtrees must be empty.
+        """
+        if root is None:
+            self._root = None
+            self._subtrees = []
+        else:
+            self._root = root
+            self._subtrees = subtrees
+
+    def is_empty(self) -> bool:
+        """Return whether this tree is empty."""
+        return self._root is None
+
+    def num_leaves(self) -> int:
+        """Return the number of leaves in this tree."""
+        if self.is_empty():
+            return 0
+        elif self._subtrees == []:
+            return 1
+        else:
+            total = 0
+            for subtree in self._subtrees:
+                total += subtree.num_leaves()
+            return total
 ~~~
 
 ### 检查清单
