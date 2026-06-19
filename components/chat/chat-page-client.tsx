@@ -37,7 +37,13 @@ import {
   resolveCourseOrchestratorAvatar,
 } from '@/lib/constants/course-chat';
 import type { NotebookGenerationProgress } from '@/lib/create/run-notebook-generation-task';
-import { buildStudyCompanionNotification } from '@/lib/learning/study-memory';
+import {
+  buildStudyCompanionNotification,
+  getLocalStudyMemoryUserId,
+  loadStudyMemory,
+  STUDY_MEMORY_UPDATED_EVENT,
+  type NotebookWorkingMemory,
+} from '@/lib/learning/study-memory';
 import { PdfPageSelectionDialog } from '@/components/create/pdf-page-selection-dialog';
 import {
   OrchestratorNotebookProgressPanel,
@@ -106,6 +112,65 @@ function isNotebookCreationTaskLike(task: { title: string; detail?: string; note
   );
 }
 
+function compactStatusLine(input: string | undefined, maxLength = 180): string | null {
+  const text = input?.replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}…` : text;
+}
+
+function appendWorkingMemoryLine(lines: string[], label: string, value: string | undefined) {
+  const text = compactStatusLine(value);
+  if (text) lines.push(`- ${label}：${text}`);
+}
+
+function buildRecentStatusSummaryQuickInput(args: {
+  notebookId: string | null;
+  notebookName?: string | null;
+}): string | null {
+  if (!args.notebookId) return null;
+
+  let workingMemory: NotebookWorkingMemory | undefined;
+  let weakPoints: string[] = [];
+  try {
+    const profile = loadStudyMemory(getLocalStudyMemoryUserId(), args.notebookId);
+    workingMemory = profile.workingMemory;
+    weakPoints = profile.weakPoints
+      .filter((item) => item.status === 'open')
+      .slice(0, 3)
+      .map((item) => item.title)
+      .filter(Boolean);
+  } catch {
+    workingMemory = undefined;
+    weakPoints = [];
+  }
+
+  const target = args.notebookName ? `《${args.notebookName}》` : '这个笔记本';
+  const lines = [
+    `请帮我总结一下我在${target}里的最近学习状态。`,
+    '请用三小段回答：已经比较稳的地方、还卡住或容易错的地方、下一步最该做什么。',
+  ];
+
+  const clueLines: string[] = [];
+  if (workingMemory) {
+    appendWorkingMemoryLine(clueLines, '当前任务', workingMemory.currentTask);
+    appendWorkingMemoryLine(clueLines, '卡点', workingMemory.stuckPoint);
+    appendWorkingMemoryLine(clueLines, '掌握信号', workingMemory.masteredSignal);
+    appendWorkingMemoryLine(clueLines, '下一步', workingMemory.nextTeachingMove);
+    appendWorkingMemoryLine(clueLines, '短期摘要', workingMemory.summary);
+  }
+  if (weakPoints.length > 0) {
+    clueLines.push(`- 待复习弱点：${weakPoints.map((point) => `「${point}」`).join('、')}`);
+  }
+
+  if (clueLines.length > 0) {
+    lines.push('', '我这边记录到的线索：', ...clueLines);
+  } else {
+    lines.push('如果最近状态线索不足，请先根据当前对话和笔记本内容判断，并告诉我还需要补充什么。');
+  }
+
+  return lines.join('\n');
+}
+
 export function ChatPageClient() {
   const router = useRouter();
   const openSettings = (section?: SettingsSection) => {
@@ -151,6 +216,7 @@ export function ChatPageClient() {
     null,
   );
   const [applyNotebookWrites, setApplyNotebookWrites] = useState(true);
+  const [, refreshStudyMemorySnapshot] = useState(0);
   useEffect(() => {
     setApplyNotebookWrites(getStoredApplyNotebookWrites());
     return subscribeApplyNotebookWrites(() => {
@@ -259,6 +325,22 @@ export function ChatPageClient() {
       ? ('agent' as const)
       : ('none' as const);
   const supportsComposerAttachments = mode === 'notebook';
+  const recentStatusQuickInput = buildRecentStatusSummaryQuickInput({
+    notebookId,
+    notebookName: stageMeta?.name,
+  });
+
+  useEffect(() => {
+    if (!notebookId) return;
+    const onMemoryUpdated = (event: Event) => {
+      const stageId = (event as CustomEvent<{ stageId?: string }>).detail?.stageId;
+      if (stageId && stageId !== notebookId) return;
+      refreshStudyMemorySnapshot((revision) => revision + 1);
+    };
+    window.addEventListener(STUDY_MEMORY_UPDATED_EVENT, onMemoryUpdated as EventListener);
+    return () =>
+      window.removeEventListener(STUDY_MEMORY_UPDATED_EVENT, onMemoryUpdated as EventListener);
+  }, [notebookId]);
 
   const {
     fileInputRef,
@@ -1074,8 +1156,16 @@ export function ChatPageClient() {
     return '选择联系人';
   }, [courseId, currentGroupMeta?.name, mode, stageMeta, selectedAgent, orchestratorViewMode]);
   const notebookEmptyPrompts = useMemo(
-    () => ['帮我总结这个笔记本的核心概念', '根据 slides 出 3 道练习题', '我想复习最容易混淆的地方'],
-    [],
+    () => [
+      {
+        label: '总结我的最近学习状态',
+        text: recentStatusQuickInput || '请帮我总结一下我在这个笔记本里的最近学习状态。',
+      },
+      { label: '帮我总结这个笔记本的核心概念', text: '帮我总结这个笔记本的核心概念' },
+      { label: '根据 slides 出 3 道练习题', text: '根据 slides 出 3 道练习题' },
+      { label: '我想复习最容易混淆的地方', text: '我想复习最容易混淆的地方' },
+    ],
+    [recentStatusQuickInput],
   );
 
   if (!courseId) {
@@ -1141,13 +1231,13 @@ export function ChatPageClient() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {notebookEmptyPrompts.map((prompt) => (
                       <button
-                        key={prompt}
+                        key={prompt.label}
                         type="button"
-                        onClick={() => setDraft(prompt)}
+                        onClick={() => setDraft(prompt.text)}
                         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#007AFF]/20 bg-[#007AFF]/5 px-3 text-xs font-medium text-[#0B5CAD] transition-colors hover:bg-[#007AFF]/10 hover:text-[#004A99] dark:border-[#0A84FF]/25 dark:bg-[#0A84FF]/10 dark:text-[#9DCCFF] dark:hover:bg-[#0A84FF]/15"
                       >
                         <Sparkles className="size-3.5" strokeWidth={1.7} />
-                        {prompt}
+                        {prompt.label}
                       </button>
                     ))}
                   </div>
