@@ -4,13 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ClipboardList,
   Coins,
   Cpu,
   Ellipsis,
   GraduationCap,
   House,
-  LayoutDashboard,
   MessagesSquare,
   Plus,
   Settings,
@@ -124,10 +122,12 @@ export function AppGlobalHeader() {
   const courseId = routeCourseId || storedCourseId;
   const encodedCourseId = courseId ? encodeURIComponent(courseId) : null;
   const courseHomeHref = encodedCourseId ? `/course/${encodedCourseId}` : '/my-courses';
-  const problemBankHref = encodedCourseId
-    ? `/course/${encodedCourseId}/problem-bank`
-    : '/my-courses';
   const createNotebookUrl = encodedCourseId ? createNotebookHref(courseId) : '/my-courses';
+  const storeHref = encodedCourseId ? '/store' : '/store/courses';
+  const storeActive =
+    pathname === '/store' ||
+    pathname === '/store/courses' ||
+    Boolean(pathname?.startsWith('/store/'));
   const courseTitle = courseId ? courseName || '课程工作区' : '选择课程';
   const creditItems =
     isLoggedIn && creditBalances
@@ -249,23 +249,12 @@ export function AppGlobalHeader() {
 
       <nav className="ml-auto flex min-w-0 items-center justify-end gap-1">
         <HeaderLink
-          href={courseHomeHref}
-          active={Boolean(encodedCourseId && pathname === courseHomeHref)}
-          icon={LayoutDashboard}
-          label="课程主页"
-        />
-        <HeaderLink
-          href={problemBankHref}
-          active={Boolean(pathname?.startsWith(problemBankHref))}
-          icon={ClipboardList}
-          label="题库"
-        />
-        <HeaderLink
           href="/chat"
           active={pathname === '/chat' || Boolean(pathname?.startsWith('/chat/'))}
           icon={MessagesSquare}
           label="聊天"
         />
+        <HeaderLink href={storeHref} active={storeActive} icon={ShoppingBag} label="商城" />
 
         {creditItems.length > 0 ? (
           <>
@@ -306,7 +295,6 @@ export function AppGlobalHeader() {
             <MoreMenuLink href={createNotebookUrl} icon={Plus} label="新建笔记本" />
             <MoreMenuLink href="/my-courses" icon={GraduationCap} label="所有课程" />
             <DropdownMenuSeparator />
-            <MoreMenuLink href="/store" icon={ShoppingBag} label="笔记本商城" />
             <MoreMenuLink href="/credits-market" icon={Coins} label="积分中心" />
             <MoreMenuLink href="/settings" icon={Settings} label="设置" />
           </DropdownMenuContent>

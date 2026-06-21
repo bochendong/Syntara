@@ -38,9 +38,20 @@ export const AGENT_MCP_RESOURCES = [
     namespace: 'openmaic.memory',
     title: 'OpenMAIC memory MCP',
     description:
-      'Structured memory facts, public course memory, private learner memory, and local-first fallback memory.',
-    owns: ['MemoryFact', 'MemoryFactEvent', 'StudyMemory', 'StudyMemoryProfile'],
-    readToolIds: ['list_memory_facts', 'get_layered_memory_context', 'list_study_memory'],
+      'Layered memory: control facts, short-term state, long-term text memory, knowledge-base RAG, and local-first fallback memory.',
+    owns: [
+      'MemoryFact',
+      'MemoryFactEvent',
+      'StudyMemory',
+      'StudyMemoryProfile',
+      'SourceMemoryIngestionPlan',
+    ],
+    readToolIds: [
+      'list_memory_facts',
+      'get_layered_memory_context',
+      'list_study_memory',
+      'plan_memory_source_ingestion',
+    ],
     writeToolIds: [
       'upsert_memory_fact',
       'create_study_memory',

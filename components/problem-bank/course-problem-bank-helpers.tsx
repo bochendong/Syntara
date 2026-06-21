@@ -37,6 +37,7 @@ import {
   type NotebookProblemImportDraft,
   type NotebookProblemPublicContent,
 } from '@/lib/problem-bank';
+import { problemConceptTopics } from '@/lib/problem-bank/concept-tags.mjs';
 import { renderHtmlWithLatex } from '@/lib/render-html-with-latex';
 import { cn } from '@/lib/utils';
 import type { NotebookProblemClientRecord } from '@/lib/utils/notebook-problem-api';
@@ -672,7 +673,7 @@ function normalizeProblemTopic(value: string): string {
 }
 
 function problemTopics(problem: NotebookProblemClientRecord): string[] {
-  const tags = problem.tags.map(normalizeProblemTopic).filter(Boolean);
+  const tags = problemConceptTopics(problem).map(normalizeProblemTopic).filter(Boolean);
   if (tags.length > 0) return Array.from(new Set(tags)).slice(0, 6);
   return ['未标注'];
 }

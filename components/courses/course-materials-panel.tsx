@@ -198,6 +198,18 @@ export function CourseMaterialsPanel({
                     {formatBytes(material.size)} · {formatMaterialDate(material.createdAt)}
                     {material.mimeType ? ` · ${material.mimeType}` : ''}
                   </p>
+                  {material.tags.length > 0 ? (
+                    <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                      {material.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex max-w-full items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-500/10 dark:text-emerald-100"
+                        >
+                          <span className="truncate">{tag}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button

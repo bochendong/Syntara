@@ -247,6 +247,32 @@ function memorySection(args: {
   ];
 }
 
+function formatLayeredReadPlan(context: MemoryRecallContext): string[] {
+  const layered = context as MemoryRecallContext & {
+    readPlan?: {
+      purpose?: string;
+      staticInjection?: Array<{ title?: string; layer?: string }>;
+      dynamicDiscovery?: Array<{ title?: string; layer?: string }>;
+    };
+  };
+  const plan = layered.readPlan;
+  if (!plan) return [];
+  const staticLayers = (plan.staticInjection || [])
+    .map((item) => `${item.layer || 'memory'}:${item.title || 'untitled'}`)
+    .join(' -> ');
+  const dynamicLayers = (plan.dynamicDiscovery || [])
+    .map((item) => `${item.layer || 'memory'}:${item.title || 'untitled'}`)
+    .join(' -> ');
+  return [
+    'layered_read_plan:',
+    `- purpose: ${plan.purpose || 'general'}`,
+    `- staticInjection: ${staticLayers || 'none'}`,
+    `- dynamicDiscovery: ${dynamicLayers || 'none'}`,
+    '- readOrder: structured facts -> short-term learner state -> course/notebook teaching control -> knowledge cache -> RAG/source evidence',
+    '',
+  ];
+}
+
 function formatLearnerAnalytics(context: MemoryRecallContext): string[] {
   const analytics = context.learnerAnalytics;
   if (!analytics) return [];
@@ -305,6 +331,27 @@ function formatLearnerAnalytics(context: MemoryRecallContext): string[] {
     );
   }
   return lines;
+}
+
+function formatKnowledgeCache(context: MemoryRecallContext): string[] {
+  return context.knowledgeCache.slice(0, 5).map((entry, index) => {
+    const metadata = entry.metadata && typeof entry.metadata === 'object' ? entry.metadata : {};
+    const notebookName =
+      typeof (metadata as Record<string, unknown>).notebookName === 'string'
+        ? String((metadata as Record<string, unknown>).notebookName)
+        : '';
+    const meta = [
+      `source=${entry.sourceType}`,
+      notebookName ? `notebook=${notebookName}` : '',
+      `hits=${entry.hitCount}`,
+      `last=${entry.lastAccessedAt.slice(0, 10)}`,
+    ].filter(Boolean);
+    return [
+      `${index + 1}. ${entry.title}`,
+      `   ${meta.join('; ')}`,
+      `   preview: ${compact(entry.previewText, 500)}`,
+    ].join('\n');
+  });
 }
 
 export function buildNotebookChatMemoryToolOutput(args: {
@@ -425,6 +472,7 @@ export function buildNotebookChatMemoryToolOutput(args: {
     },
   );
   const learnerAnalyticsLines = isProgrammingHelp ? [] : formatLearnerAnalytics(context);
+  const knowledgeCacheLines = isProgrammingHelp ? [] : formatKnowledgeCache(context);
   const sourceEvidenceHeading = isProgrammingHelp
     ? 'supporting_prerequisite_evidence:'
     : 'original_source_evidence:';
@@ -437,6 +485,7 @@ export function buildNotebookChatMemoryToolOutput(args: {
           '- Use the supplied problem statement as the primary source.',
         ]
       : [];
+  const layeredReadPlan = formatLayeredReadPlan(context);
   if (isProgrammingHelp) {
     return compact(
       [
@@ -451,6 +500,7 @@ export function buildNotebookChatMemoryToolOutput(args: {
         '- use current_notebook_specialist_memory for this lesson’s local template and examples.',
         '- use cross_notebook_specialist_memory only when the problem genuinely needs another lesson.',
         '',
+        ...layeredReadPlan,
         ...layeredMemoryLines,
         ...fallbackMemoryLines,
         sourceEvidence.length > 0 ? 'prerequisite_context:' : '',
@@ -489,6 +539,7 @@ export function buildNotebookChatMemoryToolOutput(args: {
       '- Prefer original source evidence when it directly answers the user.',
       '- If learner history is included, separate evidence from inference.',
       '',
+      ...layeredReadPlan,
       ...weakProgrammingEvidence,
       weakProgrammingEvidence.length > 0 ? '' : '',
       facts.length > 0 ? 'structured_facts:' : '',
@@ -501,6 +552,9 @@ export function buildNotebookChatMemoryToolOutput(args: {
       ...fallbackMemoryLines,
       ...learnerAnalyticsLines,
       learnerAnalyticsLines.length > 0 ? '' : '',
+      knowledgeCacheLines.length > 0 ? 'cached_knowledge_hits:' : '',
+      ...knowledgeCacheLines,
+      knowledgeCacheLines.length > 0 ? '' : '',
       knowledgeMatches.length > 0 ? 'metadata_filtered_problem_matches:' : '',
       ...knowledgeMatches,
       '',

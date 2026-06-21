@@ -110,7 +110,7 @@ export default function CourseStorePage() {
       if (userId) markCourseOwnedByUser(userId, course.id);
       toast.success(`已加入课程「${course.name}」`);
       await load();
-      router.push(`/course/${course.id}`);
+      router.push(`/learn?courseId=${encodeURIComponent(course.id)}`);
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '加入失败');
@@ -263,8 +263,13 @@ export default function CourseStorePage() {
           `${notebookCount} 个笔记本`,
           course.university?.trim() || `更新于 ${formatDate(course.updatedAt)}`,
         ].filter(Boolean) as string[],
-        primaryActionLabel: '打开',
-        onPrimaryAction: () => router.push(`/course/${course.id}`),
+        primaryActionLabel: joined ? '进入学习' : '课程 Studio',
+        onPrimaryAction: () =>
+          router.push(
+            joined
+              ? `/learn?courseId=${encodeURIComponent(course.id)}`
+              : `/creator/courses/${encodeURIComponent(course.id)}`,
+          ),
       };
     },
     [creatorDisplay, router],

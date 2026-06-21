@@ -230,7 +230,15 @@ export async function listStudyMemories(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'course' AND "courseId" = $2
-          ORDER BY "updatedAt" DESC
+          ORDER BY
+            CASE
+              WHEN "kind" = 'course_teaching_control' THEN 0
+              WHEN "kind" = 'notebook_teaching_control' THEN 1
+              WHEN "source" = 'manual_teaching_control_memory' THEN 2
+              ELSE 3
+            END ASC,
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
           LIMIT 120
         `,
           userId,
@@ -240,7 +248,15 @@ export async function listStudyMemories(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'notebook' AND "notebookId" = $2
-          ORDER BY "updatedAt" DESC
+          ORDER BY
+            CASE
+              WHEN "kind" = 'course_teaching_control' THEN 0
+              WHEN "kind" = 'notebook_teaching_control' THEN 1
+              WHEN "source" = 'manual_teaching_control_memory' THEN 2
+              ELSE 3
+            END ASC,
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
           LIMIT 120
         `,
           userId,
@@ -267,7 +283,15 @@ export async function listStudyMemoriesForViewer(
               ("ownerId" = $2 AND "scope" = 'public')
               OR ($3::text IS NOT NULL AND "ownerId" = $3 AND "scope" = 'private')
             )
-          ORDER BY "updatedAt" DESC
+          ORDER BY
+            CASE
+              WHEN "kind" = 'course_teaching_control' THEN 0
+              WHEN "kind" = 'notebook_teaching_control' THEN 1
+              WHEN "source" = 'manual_teaching_control_memory' THEN 2
+              ELSE 3
+            END ASC,
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
           LIMIT 120
         `,
           target.courseId,
@@ -284,7 +308,15 @@ export async function listStudyMemoriesForViewer(
               ("ownerId" = $2 AND "scope" = 'public')
               OR ($3::text IS NOT NULL AND "ownerId" = $3 AND "scope" = 'private')
             )
-          ORDER BY "updatedAt" DESC
+          ORDER BY
+            CASE
+              WHEN "kind" = 'course_teaching_control' THEN 0
+              WHEN "kind" = 'notebook_teaching_control' THEN 1
+              WHEN "source" = 'manual_teaching_control_memory' THEN 2
+              ELSE 3
+            END ASC,
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
           LIMIT 120
         `,
           target.notebookId,

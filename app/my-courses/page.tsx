@@ -116,8 +116,8 @@ export default function MyCoursesPage() {
       return;
     }
     if (!course.listedInCourseStore) {
-      toast.info('请先进入课程页确认共享内容与题库后再发布。');
-      router.push(`/course/${course.id}`);
+      toast.info('请先进入课程 Studio 确认共享内容与题库后再发布。');
+      router.push(`/creator/courses/${encodeURIComponent(course.id)}`);
       return;
     }
     try {
@@ -301,8 +301,18 @@ export default function MyCoursesPage() {
                         priceLabel={formatPurchaseCreditsLabel(
                           creditsFromPriceCents(course.coursePriceCents),
                         )}
-                        actionLabel="进入课程"
-                        onAction={() => router.push(`/course/${course.id}`)}
+                        actionLabel={
+                          course.accessRole === 'enrolled' || course.sourceCourseId
+                            ? '进入学习'
+                            : '课程 Studio'
+                        }
+                        onAction={() =>
+                          router.push(
+                            course.accessRole === 'enrolled' || course.sourceCourseId
+                              ? `/learn?courseId=${encodeURIComponent(course.id)}`
+                              : `/creator/courses/${encodeURIComponent(course.id)}`,
+                          )
+                        }
                         secondaryActionLabel={
                           course.accessRole === 'enrolled' || course.sourceCourseId
                             ? undefined
@@ -363,7 +373,7 @@ export default function MyCoursesPage() {
               setLoading(true);
               await loadMyCourses();
               setLoading(false);
-              router.push(`/course/${courseId}`);
+              router.push(`/creator/courses/${encodeURIComponent(courseId)}`);
             }}
           />
         </DialogContent>

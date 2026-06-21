@@ -25,7 +25,7 @@ export default function NewCoursePage() {
       <main className="mx-auto w-full max-w-lg px-4 pb-16 pt-8 md:px-8 md:pt-10">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="sm" className="rounded-lg" asChild>
-            <Link href="/my-courses">返回</Link>
+            <Link href="/creator">返回</Link>
           </Button>
         </div>
 
@@ -39,7 +39,9 @@ export default function NewCoursePage() {
 
           <CreateCourseForm
             className="mt-8"
-            onSuccess={(courseId) => router.push(`/course/${courseId}`)}
+            onSuccess={(courseId) =>
+              router.push(`/creator/courses/${encodeURIComponent(courseId)}`)
+            }
           />
         </section>
       </main>

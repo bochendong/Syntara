@@ -51,6 +51,16 @@ export const AGENT_SKILL_DOCUMENTS = [
     parentSkillIds: [],
   },
   {
+    id: 'ingest_source_memory',
+    title: 'Ingest source memory skill',
+    description:
+      'Project-local workflow for turning uploaded files into long-term memory, knowledge-base RAG, or ignored generic source text.',
+    kind: 'primary',
+    path: 'features/agent/skills/ingest-source-memory/SKILL.md',
+    resourceUri: 'openmaic://skills/ingest_source_memory',
+    parentSkillIds: [],
+  },
+  {
     id: 'write_fact_memory',
     title: 'Write structured fact memory skill',
     description: 'Project-local workflow for writing exact, overwriteable memory facts.',

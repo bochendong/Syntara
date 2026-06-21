@@ -136,6 +136,7 @@ export async function buildCourseChatContext(args: {
   courseName?: string;
   question: string;
   target: CourseChatContext['target'];
+  learner?: CourseChatContext['learner'];
 }): Promise<CourseChatContext> {
   const [course, notebooks] = await Promise.all([
     getCourseForChatContext(args.courseId),
@@ -230,6 +231,7 @@ export async function buildCourseChatContext(args: {
       university: course?.university,
       courseCode: course?.courseCode,
     },
+    learner: args.learner,
     target: args.target,
     notebooks: selectedNotebooks,
   };

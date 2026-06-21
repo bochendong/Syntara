@@ -193,6 +193,7 @@ export function ChatPageClient() {
   const agentId = searchParams.get('agent');
   const chatView = searchParams.get('view');
   const groupId = searchParams.get('group');
+  const sessionId = searchParams.get('session')?.trim() || '';
 
   const nickname = useUserProfileStore((s) => s.nickname);
   const userAvatar = useUserProfileStore((s) => s.avatar);
@@ -318,6 +319,12 @@ export function ChatPageClient() {
           ? `${agentId}::group`
           : `${agentId}::private`
         : agentId;
+  const agentConversationStorageTargetId =
+    agentConversationTargetId && sessionId && !groupId
+      ? `${agentConversationTargetId}::session:${sessionId}`
+      : agentConversationTargetId;
+  const notebookConversationStorageTargetId =
+    notebookId && sessionId ? `${notebookId}::session:${sessionId}` : notebookId;
 
   const mode = notebookId
     ? ('notebook' as const)
@@ -518,7 +525,7 @@ export function ChatPageClient() {
     nbThreadOwnerIdRef.current = null;
     setNbThread([]);
     setNbThreadHydrated(false);
-  }, [notebookId]);
+  }, [notebookConversationStorageTargetId]);
 
   useEffect(() => {
     if (!notebookId || !courseId) {
@@ -574,7 +581,7 @@ export function ChatPageClient() {
   }, [reloadNotebookScenes]);
 
   useEffect(() => {
-    if (!notebookId) {
+    if (!notebookId || !notebookConversationStorageTargetId) {
       nbThreadOwnerIdRef.current = null;
       revokeNotebookAttachmentUrls(nbThreadRef.current);
       setNbThread([]);
@@ -587,16 +594,21 @@ export function ChatPageClient() {
       return;
     }
     let cancelled = false;
-    loadContactMessages<NotebookChatMessage>(courseId, 'notebook', notebookId, {
-      ignoreCourseId: true,
-      expectedTargetName: stageMeta?.name,
-    }).then(async (messages) => {
+    loadContactMessages<NotebookChatMessage>(
+      courseId,
+      'notebook',
+      notebookConversationStorageTargetId,
+      {
+        ignoreCourseId: true,
+        expectedTargetName: stageMeta?.name,
+      },
+    ).then(async (messages) => {
       const hydrated = await hydrateNotebookThread(messages);
       if (cancelled) {
         revokeNotebookAttachmentUrls(hydrated);
         return;
       }
-      nbThreadOwnerIdRef.current = notebookId;
+      nbThreadOwnerIdRef.current = notebookConversationStorageTargetId;
       setNbThread(hydrated);
       setNbThreadHydrated(true);
     });
@@ -604,18 +616,20 @@ export function ChatPageClient() {
       cancelled = true;
       revokeNotebookAttachmentUrls(nbThreadRef.current);
     };
-  }, [notebookId, courseId, stageMeta?.id, stageMeta?.name]);
+  }, [notebookId, notebookConversationStorageTargetId, courseId, stageMeta?.id, stageMeta?.name]);
 
   useEffect(() => {
-    if (!notebookId || !courseId || !nbThreadHydrated) return;
-    if (nbThreadOwnerIdRef.current !== notebookId) return;
+    if (!notebookId || !notebookConversationStorageTargetId || !courseId || !nbThreadHydrated) {
+      return;
+    }
+    if (nbThreadOwnerIdRef.current !== notebookConversationStorageTargetId) return;
     let cancelled = false;
     void (async () => {
       try {
         await saveContactMessages<NotebookChatMessage>({
           courseId,
           kind: 'notebook',
-          targetId: notebookId,
+          targetId: notebookConversationStorageTargetId,
           targetName: stageMeta?.name || '笔记本',
           messages: stripAttachmentUrlsFromNotebookMessages(nbThread),
         });
@@ -632,10 +646,17 @@ export function ChatPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [notebookId, courseId, stageMeta?.name, nbThread, nbThreadHydrated]);
+  }, [
+    notebookId,
+    notebookConversationStorageTargetId,
+    courseId,
+    stageMeta?.name,
+    nbThread,
+    nbThreadHydrated,
+  ]);
 
   useEffect(() => {
-    if (!agentConversationTargetId || !courseId) {
+    if (!agentConversationStorageTargetId || !courseId) {
       revokeAgentAttachmentUrls(agThreadRef.current);
       setAgThread([]);
       setAgThreadHydrated(false);
@@ -647,7 +668,7 @@ export function ChatPageClient() {
     loadContactMessages<UIMessage<ChatMessageMetadata>>(
       courseId,
       'agent',
-      agentConversationTargetId,
+      agentConversationStorageTargetId,
     ).then(async (messages) => {
       const filtered = messages.filter((m) => !isMockAgentMessage(m));
       const hydrated = await hydrateAgentThread(filtered);
@@ -662,16 +683,16 @@ export function ChatPageClient() {
       cancelled = true;
       revokeAgentAttachmentUrls(agThreadRef.current);
     };
-  }, [agentConversationTargetId, courseId]);
+  }, [agentConversationStorageTargetId, courseId]);
 
   useEffect(() => {
-    if (!courseId || !groupId || !agentConversationTargetId) return;
+    if (!courseId || !groupId || !agentConversationStorageTargetId) return;
     let cancelled = false;
     const reloadGroupThread = async () => {
       const messages = await loadContactMessages<UIMessage<ChatMessageMetadata>>(
         courseId,
         'agent',
-        agentConversationTargetId,
+        agentConversationStorageTargetId,
       );
       const hydrated = await hydrateAgentThread(messages.filter((m) => !isMockAgentMessage(m)));
       if (cancelled) {
@@ -694,16 +715,18 @@ export function ChatPageClient() {
       cancelled = true;
       window.removeEventListener(COURSE_CHAT_GROUPS_UPDATED_EVENT, onGroupUpdated);
     };
-  }, [agentConversationTargetId, courseId, groupId]);
+  }, [agentConversationStorageTargetId, courseId, groupId]);
 
   useEffect(() => {
-    if (!agentConversationTargetId || !courseId || !selectedAgent || !agThreadHydrated) return;
+    if (!agentConversationStorageTargetId || !courseId || !selectedAgent || !agThreadHydrated) {
+      return;
+    }
     const groupMeta =
       groupId && currentGroupMeta ? updateGroupActivity(currentGroupMeta, agThread) : undefined;
     void saveContactMessages<UIMessage<ChatMessageMetadata>>({
       courseId,
       kind: 'agent',
-      targetId: agentConversationTargetId,
+      targetId: agentConversationStorageTargetId,
       targetName: groupMeta
         ? groupMeta.name
         : isCourseOrchestrator && orchestratorViewMode === 'group'
@@ -722,7 +745,7 @@ export function ChatPageClient() {
       );
     });
   }, [
-    agentConversationTargetId,
+    agentConversationStorageTargetId,
     courseId,
     selectedAgent,
     agThread,

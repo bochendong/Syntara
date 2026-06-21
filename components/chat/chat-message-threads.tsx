@@ -27,6 +27,7 @@ import type { NotebookChatMessage } from './chat-page-types';
 import { InlineLessonDeck } from './inline-lesson-deck';
 import { NotebookProblemChatCardView } from './notebook-problem-chat-card';
 import { NotebookReferencePreviewLi } from './notebook-reference-preview';
+import { PublicReplyProgress } from './public-reply-progress';
 
 const threadRowClassName = 'mx-auto w-full max-w-5xl';
 const groupThreadRowClassName = 'mx-auto w-full max-w-4xl';
@@ -349,7 +350,11 @@ function GroupMemberMessage({
             <EmptyStreamingIndicator />
           ) : null}
           {meta?.streaming ? <StreamingCursor /> : null}
-          {meta?.statusText ? <MessageStatusLine text={meta.statusText} /> : null}
+          {meta?.publicProgressSteps?.length ? (
+            <PublicReplyProgress statusText={meta.statusText} steps={meta.publicProgressSteps} />
+          ) : meta?.statusText ? (
+            <MessageStatusLine text={meta.statusText} />
+          ) : null}
           {isNotebook ? <GroupSourceReferences meta={meta} /> : null}
           {meta?.actions?.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -687,7 +692,12 @@ export function AgentMessageThread({
                       <EmptyStreamingIndicator />
                     ) : null
                   ) : null}
-                  {!isUser && meta?.statusText ? (
+                  {!isUser && meta?.publicProgressSteps?.length ? (
+                    <PublicReplyProgress
+                      statusText={meta.statusText}
+                      steps={meta.publicProgressSteps}
+                    />
+                  ) : !isUser && meta?.statusText ? (
                     <MessageStatusLine text={meta.statusText} />
                   ) : null}
                   {isUser && meta?.attachments && meta.attachments.length > 0 ? (

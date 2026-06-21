@@ -10,18 +10,10 @@ import type {
   NotebookChatMessage,
   NotebookProblemChatCard,
 } from '@/components/chat/chat-page-types';
-import {
-  NotebookProblemChatCardView,
-  notebookProblemAskConversationText,
-} from '@/components/chat/notebook-problem-chat-card';
-import { getNotebookAnswerDocumentForDisplay } from '@/components/chat/chat-message-utils';
-import { NotebookContentView } from '@/components/notebook-content/notebook-content-view';
-import { NOTEBOOK_CHAT_PREVIEW_EVENT } from '@/components/chat/chat-notebook-routing';
-import { askNotebook } from '@/lib/chat/ask-notebook';
+import { NotebookProblemChatCardView } from '@/components/chat/notebook-problem-chat-card';
+import { askCourseOrchestrator } from '@/lib/chat/ask-course-orchestrator';
 import { buildProblemExplainPrompt } from '@/lib/chat/problem-explain-prompt';
 import { cn } from '@/lib/utils';
-import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import { loadContactMessages, saveContactMessages } from '@/lib/utils/contact-chat-storage';
 import type {
   NotebookProblemAttemptAnswer,
   NotebookProblemAttemptRecord,
@@ -70,19 +62,6 @@ function protectAngleLiteralsInPlainMarkdown(text: string): string {
       return inFence ? line : protectLine(line);
     })
     .join('\n');
-}
-
-function notebookMessageToConversation(message: NotebookChatMessage) {
-  if (message.role === 'user') {
-    return {
-      role: 'user' as const,
-      content: `${message.text}${
-        message.problemAsk ? notebookProblemAskConversationText(message.problemAsk) : ''
-      }`,
-      at: message.at,
-    };
-  }
-  return { role: 'assistant' as const, content: message.answer, at: message.at };
 }
 
 function AgentAvatar({
@@ -137,9 +116,7 @@ export function ProblemAiHelpButton({
   const targetNotebookId = problem.notebookId || notebook?.id || '';
   const targetNotebookName =
     notebook?.name || notebookLabel || problem.notebookName || '当前笔记本';
-  const chatHref = targetNotebookId
-    ? `/chat?notebook=${encodeURIComponent(targetNotebookId)}`
-    : '/chat';
+  const chatHref = `/learn?courseId=${encodeURIComponent(courseId)}`;
 
   useEffect(() => {
     setOpen(false);
@@ -173,21 +150,10 @@ export function ProblemAiHelpButton({
       setOpen(true);
       if (sending) return;
       if (!force && thread.length > 0) return;
-      if (!targetNotebookId || !problemCard) {
-        toast.error(
-          locale === 'zh-CN' ? '这道题还没有关联章节。' : 'This problem has no notebook yet.',
-        );
-        return;
-      }
       if (!problemContent) {
         toast.error(
           locale === 'zh-CN' ? '题目内容还没加载完成。' : 'Problem content is still loading.',
         );
-        return;
-      }
-      const modelConfig = getCurrentModelConfig();
-      if (!modelConfig.isServerConfigured) {
-        window.alert('系统模型尚未配置，请联系管理员。');
         return;
       }
 
@@ -197,7 +163,7 @@ export function ProblemAiHelpButton({
         role: 'user',
         text: USER_PROBLEM_HELP_TEXT,
         at: userAt,
-        problemAsk: problemCard,
+        ...(problemCard ? { problemAsk: problemCard } : {}),
       };
       const streamingMsg: NotebookChatMessage = {
         role: 'assistant',
@@ -205,87 +171,41 @@ export function ProblemAiHelpButton({
         references: [],
         knowledgeGap: false,
         streaming: true,
-        statusText: '正在读取题目和章节内容…',
+        statusText: '正在读取课程记忆和题目上下文…',
         at: assistantAt,
       };
       setThread([userMsg, streamingMsg]);
       setSending(true);
 
-      let streamedAnswer = '';
       try {
-        const existing = await loadContactMessages<NotebookChatMessage>(
+        const prompt = [
+          buildProblemExplainPrompt({
+            problem,
+            problemTitle,
+            problemContent,
+            notebookName: targetNotebookName,
+            currentAnswer,
+            latestAttempt,
+          }),
+          '',
+          '课程级补充要求：请结合课程控制记忆、题库上下文和学生学习信号来讲解，不要只依赖单个笔记本；如果这道题没有归属章节，也继续按照课程题库题目完整讲。',
+        ].join('\n');
+        const plan = await askCourseOrchestrator({
           courseId,
-          'notebook',
-          targetNotebookId,
-          { ignoreCourseId: true, expectedTargetName: targetNotebookName },
-        );
-        const prompt = buildProblemExplainPrompt({
-          problem,
-          problemTitle,
-          problemContent,
-          notebookName: targetNotebookName,
-          currentAnswer,
-          latestAttempt,
-        });
-        const conversation = [...existing, userMsg]
-          .slice(-12)
-          .map((message) => notebookMessageToConversation(message));
-        const plan = await askNotebook({
-          notebookId: targetNotebookId,
           question: prompt,
-          conversation,
-          onAnswerDelta: (delta) => {
-            streamedAnswer += delta;
-            setThread((current) =>
-              current.map((message) =>
-                message.role === 'assistant' && message.at === assistantAt
-                  ? {
-                      ...message,
-                      answer: streamedAnswer,
-                      streaming: true,
-                      statusText: undefined,
-                    }
-                  : message,
-              ),
-            );
-          },
-          onStatus: (message) => {
-            setThread((current) =>
-              current.map((item) =>
-                item.role === 'assistant' && item.at === assistantAt
-                  ? { ...item, statusText: message, streaming: false }
-                  : item,
-              ),
-            );
-          },
         });
-        const protectedAnswer = protectAngleLiteralsInPlainMarkdown(plan.answer);
+        const protectedAnswer = protectAngleLiteralsInPlainMarkdown(
+          plan.answer.trim() || '这道题暂时没有生成讲解，请稍后再试。',
+        );
         const assistantMsg: NotebookChatMessage = {
           role: 'assistant',
           answer: protectedAnswer,
-          answerDocument: plan.answerDocument,
-          references: plan.references || [],
-          knowledgeGap: plan.knowledgeGap,
-          prerequisiteHints: plan.prerequisiteHints,
-          promptLogId: plan.promptLogId,
-          webSearchUsed: plan.webSearchUsed,
+          references: [],
+          knowledgeGap: false,
           streaming: false,
           statusText: undefined,
           at: assistantAt,
         };
-        const nextMessages = [...existing, userMsg, assistantMsg];
-        await saveContactMessages<NotebookChatMessage>({
-          courseId,
-          kind: 'notebook',
-          targetId: targetNotebookId,
-          targetName: targetNotebookName,
-          messages: nextMessages,
-        });
-        window.dispatchEvent(
-          new CustomEvent(NOTEBOOK_CHAT_PREVIEW_EVENT, {
-            detail: { courseId, notebookId: targetNotebookId },
-          }),
-        );
         setThread([userMsg, assistantMsg]);
       } catch (error) {
         const message = error instanceof Error ? error.message : '讲解生成失败';
@@ -316,7 +236,6 @@ export function ProblemAiHelpButton({
       problemContent,
       problemTitle,
       sending,
-      targetNotebookId,
       targetNotebookName,
       thread.length,
     ],
@@ -331,7 +250,7 @@ export function ProblemAiHelpButton({
         className="h-8 rounded-md border-sky-200 bg-sky-50 px-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-100 dark:hover:bg-sky-500/15"
         onClick={() => void startExplanation()}
         disabled={sending}
-        title={targetNotebookId ? targetNotebookName : '这道题还没有关联章节'}
+        title={targetNotebookName}
       >
         {sending ? (
           <Loader2 className="mr-1.5 size-3.5 animate-spin" />
@@ -351,7 +270,7 @@ export function ProblemAiHelpButton({
             <div className="min-w-0 flex-1">
               <DialogTitle className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 dark:text-white">
                 <Sparkles className="size-4 text-sky-600 dark:text-sky-300" />
-                {locale === 'zh-CN' ? '本章 AI 讲题' : 'Chapter AI'}
+                {locale === 'zh-CN' ? '课程 AI 讲题' : 'Course AI'}
               </DialogTitle>
               <p className="truncate text-xs text-muted-foreground">{targetNotebookName}</p>
             </div>
@@ -390,15 +309,6 @@ export function ProblemAiHelpButton({
                     className="min-w-0 max-w-full overflow-hidden rounded-lg bg-slate-50 px-3 py-3 dark:bg-white/[0.04]"
                   >
                     {(() => {
-                      const displayDocument = getNotebookAnswerDocumentForDisplay(message);
-                      if (displayDocument) {
-                        return (
-                          <NotebookContentView
-                            document={displayDocument}
-                            className="min-w-0 max-w-full select-text overflow-hidden text-[13px] leading-6 [&_.katex-display]:overflow-x-auto [&_li]:break-words [&_p]:break-words"
-                          />
-                        );
-                      }
                       if (message.answer) {
                         return (
                           <MessageResponse className={drawerAssistantClassName}>
@@ -450,7 +360,7 @@ export function ProblemAiHelpButton({
             >
               <Link href={chatHref}>
                 <MessageCircle className="mr-1.5 size-3.5" />
-                {locale === 'zh-CN' ? '去聊天页继续问' : 'Open chat'}
+                {locale === 'zh-CN' ? '回课程聊天继续问' : 'Open course chat'}
                 <ExternalLink className="ml-1.5 size-3.5" />
               </Link>
             </Button>

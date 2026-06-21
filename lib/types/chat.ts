@@ -11,6 +11,15 @@ import type { UIMessage } from 'ai';
 export type SessionType = 'qa' | 'discussion' | 'lecture';
 export type SessionStatus = 'idle' | 'active' | 'interrupted' | 'completed';
 
+export type PublicReplyProgressStepStatus = 'complete' | 'active' | 'pending';
+
+export interface PublicReplyProgressStep {
+  id: string;
+  label: string;
+  description?: string;
+  status: PublicReplyProgressStepStatus;
+}
+
 /**
  * Metadata attached to chat messages
  */
@@ -54,6 +63,10 @@ export interface ChatMessageMetadata {
   createdAt?: number;
   /** true while the assistant response is still receiving stream deltas */
   streaming?: boolean;
+  /** Runtime-only placeholder while a reply is preparing; not a real answer. */
+  progressOnly?: boolean;
+  /** Public, user-safe waiting progress. This must never expose hidden model reasoning. */
+  publicProgressSteps?: PublicReplyProgressStep[];
   statusText?: string;
   interrupted?: boolean;
 }
@@ -355,6 +368,49 @@ export interface CourseChatContextNotebook {
   sourceScore: number;
 }
 
+export interface CourseChatLayeredMemoryContext {
+  storage?: 'database' | 'unavailable' | string;
+  prompt?: string;
+  vectorUsed?: boolean;
+  counts?: {
+    direct?: number;
+    semantic?: number;
+    knowledgeCache?: number;
+    knowledge?: number;
+    sourceEvidence?: number;
+    learnerAnalytics?: number;
+  };
+  scope?: {
+    effectiveMode?: string;
+    expanded?: boolean;
+    reason?: string;
+  };
+  searchIntent?: {
+    kind?: string;
+    rewrittenQuery?: string;
+    progressFilter?: string | null;
+    knowledgeTypes?: string[];
+  };
+  knowledgeMatches?: Array<{
+    id: string;
+    title: string;
+    text?: string;
+    metadata?: {
+      notebookName?: string | null;
+      tags?: string[];
+      attemptStatus?: string | null;
+    };
+  }>;
+  knowledgeCache?: Array<{
+    id: string;
+    sourceType?: string;
+    title: string;
+    previewText?: string;
+    hitCount?: number;
+    lastAccessedAt?: string;
+  }>;
+}
+
 export interface CourseChatContext {
   course: {
     id: string;
@@ -366,6 +422,50 @@ export interface CourseChatContext {
     university?: string;
     courseCode?: string;
   };
+  learner?: {
+    progressKnown?: boolean;
+    progressLabel?: string;
+    progressPercent: number;
+    currentNotebookName?: string;
+    attemptedProblemCount: number;
+    totalProblemCount: number;
+    dueReviewCount: number;
+    weakConcepts: string[];
+    nextConcepts: string[];
+    recentQuestions: string[];
+    recentAttempts: Array<{
+      title: string;
+      status: 'passed' | 'partial' | 'failed';
+      concepts: string[];
+    }>;
+    activePlans: Array<{
+      title: string;
+      mode: 'practice' | 'quiz';
+      status: 'draft' | 'active' | 'completed';
+      targetConcepts: string[];
+    }>;
+    syllabus?: {
+      importedCount: number;
+      upcoming: Array<{
+        title: string;
+        kind: 'assignment' | 'exam' | 'progress' | 'tutorial' | 'holiday' | 'other';
+        date: string;
+        sourceName?: string;
+      }>;
+      nextAssignment?: {
+        title: string;
+        date: string;
+      };
+      nextExam?: {
+        title: string;
+        date: string;
+      };
+      nextSchoolProgress?: {
+        title: string;
+        date: string;
+      };
+    };
+  };
   target: {
     kind: 'orchestrator' | 'agent';
     id: string;
@@ -373,6 +473,7 @@ export interface CourseChatContext {
     role?: string;
   };
   notebooks: CourseChatContextNotebook[];
+  layeredMemory?: CourseChatLayeredMemoryContext;
 }
 
 /**

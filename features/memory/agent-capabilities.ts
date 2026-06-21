@@ -38,15 +38,32 @@ export const MEMORY_AGENT_TOOLS = [
     feature: 'memory',
     title: 'Get layered memory context',
     description:
-      'Build the chat recall context with structured facts, direct study memory, semantic memory, and knowledge matches separated.',
+      'Build the chat recall context with control facts, short-term state, long-term text memory, knowledge cache, and knowledge-base RAG separated.',
     status: 'route-backed',
     inputContract: 'targetType, targetId, message, and optional conversationId.',
     outputContract:
-      'Prompt plus staticFacts, directMemories, semanticMatches, knowledgeMatches, conflicts, and counts.',
+      'Prompt plus readPlan, layers, staticFacts, directMemories, semanticMatches, knowledgeCache, knowledgeMatches, learnerAnalytics, conflicts, and counts.',
     entrypoints: [{ kind: 'route', method: 'GET', ref: '/api/memory/context' }],
     sideEffects: ['database-read'],
     requiresAuth: true,
     requiresDatabase: true,
+  },
+  {
+    id: 'plan_memory_source_ingestion',
+    namespace: 'openmaic.memory',
+    feature: 'memory',
+    title: 'Plan source memory ingestion',
+    description:
+      'Convert an uploaded creator/learner source into memory artifacts: long-term template candidates, knowledge-base source candidates, and discarded generic concepts.',
+    status: 'route-backed',
+    inputContract:
+      'sourceTitle, text, sourceKind, audience, optional targetType, targetId, and courseCode.',
+    outputContract:
+      'SourceMemoryIngestionPlan with artifacts, writeCandidates, layer assignments, and token policy.',
+    entrypoints: [{ kind: 'route', method: 'POST', ref: '/api/memory/ingest/plan' }],
+    sideEffects: ['none'],
+    requiresAuth: true,
+    requiresDatabase: false,
   },
   {
     id: 'list_study_memory',
@@ -120,6 +137,66 @@ export const MEMORY_AGENT_TOOLS = [
     requiresDatabase: false,
   },
 ] satisfies readonly AgentToolDefinition[];
+
+export const INGEST_SOURCE_MEMORY_SKILL = {
+  id: 'ingest_source_memory',
+  title: 'Ingest source into memory',
+  primaryUserFunction: 'Import memory',
+  description:
+    'Plan how an uploaded course file, template library, or learner source becomes public long-term memory, private learner memory, and RAG knowledge.',
+  skillDocumentPath: 'features/agent/skills/ingest-source-memory/SKILL.md',
+  skillDocumentUri: 'openmaic://skills/ingest_source_memory',
+  supportingSkillDocumentIds: [],
+  mcpNamespaces: ['openmaic.content', 'openmaic.memory', 'openmaic.problem_bank'],
+  toolIds: [
+    'read_course_context',
+    'read_notebook_context',
+    'plan_memory_source_ingestion',
+    'create_study_memory',
+    'upsert_memory_fact',
+    'preview_problem_import',
+    'commit_problem_import',
+  ],
+  stages: [
+    {
+      id: 'target',
+      title: 'Resolve owner and target',
+      description:
+        'Identify course/notebook target and whether the uploader is creator or learner.',
+      toolIds: ['read_course_context', 'read_notebook_context'],
+      required: true,
+    },
+    {
+      id: 'plan',
+      title: 'Plan memory artifacts',
+      description:
+        'Classify the source into long-term text memory, knowledge-base RAG, problem bank, or ignored generic concept.',
+      toolIds: ['plan_memory_source_ingestion'],
+      required: true,
+    },
+    {
+      id: 'commit',
+      title: 'Commit approved writes',
+      description:
+        'Write approved text memories, structured facts, or problem-bank imports through their owning tools.',
+      toolIds: [
+        'create_study_memory',
+        'upsert_memory_fact',
+        'preview_problem_import',
+        'commit_problem_import',
+      ],
+      required: false,
+    },
+  ],
+  qualityGates: [
+    'Promote only course-local contracts, templates, invariants, forbidden moves, and grading checks into long-term memory.',
+    'Keep full source files and large problem sets in knowledge-base RAG instead of static memory.',
+    'Do not store generic definitions such as "what is a class" unless the teacher source changes how the answer must be written.',
+    'Creator uploads may create public course/notebook memory; learner uploads default to private memory.',
+    'Every committed artifact must keep sourceTitle/sourceKind/sourceRef for later auditing.',
+  ],
+  outputs: ['SourceMemoryIngestionPlan and approved MemoryWriteCandidate records'],
+} satisfies AgentSkillDefinition;
 
 export const WRITE_STUDY_MEMORY_SKILL = {
   id: 'write_study_memory',

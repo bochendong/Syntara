@@ -8,8 +8,16 @@ import {
   CSC148_COURSE_MEMORY_ID,
   CSC148_COURSE_MEMORY_TITLE,
   CSC148_NOTEBOOK_MEMORY_SPECS,
+  CSC148_OBSOLETE_MEMORY_IDS,
   CSC148_PUBLIC_MEMORY_TEXTS,
 } from './csc148-public-memory-concepts.mjs';
+import {
+  buildTeachingControlMemoryText,
+  teachingControlMemoryKind,
+  teachingControlMemoryReason,
+  withTeachingControlSourceReference,
+} from '../../features/memory/data/teaching-control-memory.mjs';
+import { assertSafeTeachingControlWrite } from './teaching-control-update-safety.mjs';
 
 const ROOT = process.cwd();
 const COURSE_ID = process.env.CSC148_COURSE_ID || CSC148_COURSE_ID;
@@ -101,8 +109,36 @@ async function upsertMemory(prisma, data) {
   return { id: data.id, title: data.title, chars: data.text.length, changed: !same };
 }
 
+async function archiveObsoleteMemories(prisma, courseId) {
+  if (CSC148_OBSOLETE_MEMORY_IDS.length === 0) return [];
+  const rows = await prisma.studyMemory.findMany({
+    where: {
+      id: { in: CSC148_OBSOLETE_MEMORY_IDS },
+      courseId,
+      status: 'active',
+    },
+    select: { id: true, title: true },
+  });
+  const archived = [];
+  for (const row of rows) {
+    await prisma.studyMemory.update({
+      where: { id: row.id },
+      data: {
+        status: 'archived',
+        reason:
+          'Archived by CSC148 teaching-control migration: old notebook mapping was shifted and is replaced by corrected specialist memory.',
+        updatedAt: new Date(),
+      },
+    });
+    await clearVectorChunks(prisma, row.id);
+    archived.push(row);
+  }
+  return archived;
+}
+
 async function main() {
   loadEnvLocal();
+  assertSafeTeachingControlWrite('update-csc148-public-memory-contracts');
   const prisma = new PrismaClient();
 
   try {
@@ -130,6 +166,7 @@ async function main() {
       textSource: 'scripts/maintenance/csc148-public-memory-concepts.mjs',
       courseId: course.id,
     };
+    const teachingControlSourceReferences = withTeachingControlSourceReference(sourceReferences);
 
     const updated = [];
     updated.push(
@@ -140,15 +177,19 @@ async function main() {
         notebookId: null,
         targetType: 'course',
         scope: 'public',
-        kind: 'course_concept_card',
+        kind: teachingControlMemoryKind('course'),
         status: 'active',
-        source: 'manual_course_memory_contract',
+        source: 'manual_teaching_control_memory',
         title: CSC148_COURSE_MEMORY_TITLE,
-        text: CSC148_PUBLIC_MEMORY_TEXTS[CSC148_COURSE_MEMORY_ID],
-        reason:
-          'CSC148 整门课答题协议；模板库主轴为 Function/Class/Linked List/Tree/BST 五个 recipe/template。',
+        text: buildTeachingControlMemoryText({
+          courseCode: 'CSC148',
+          level: 'course',
+          title: CSC148_COURSE_MEMORY_TITLE,
+          legacyText: CSC148_PUBLIC_MEMORY_TEXTS[CSC148_COURSE_MEMORY_ID],
+        }),
+        reason: teachingControlMemoryReason('CSC148', 'course'),
         question: null,
-        sourceReferences,
+        sourceReferences: teachingControlSourceReferences,
         confidence: 0.94,
       }),
     );
@@ -167,28 +208,36 @@ async function main() {
           notebookId: notebook.id,
           targetType: 'notebook',
           scope: 'public',
-          kind: 'notebook_operational_guide',
+          kind: teachingControlMemoryKind('notebook'),
           status: 'active',
-          source: 'manual_notebook_memory_contract',
+          source: 'manual_teaching_control_memory',
           title: spec.title,
-          text,
-          reason: `CSC148 单本笔记本详细操作记忆：${notebook.name}。包含指导、模板骨架、例子、误区和检查清单。`,
+          text: buildTeachingControlMemoryText({
+            courseCode: 'CSC148',
+            level: 'notebook',
+            title: spec.title,
+            legacyText: text,
+            notebookId: notebook.id,
+            notebookTitle: notebook.name,
+          }),
+          reason: teachingControlMemoryReason('CSC148', 'notebook'),
           question: null,
-          sourceReferences: {
-            ...sourceReferences,
+          sourceReferences: withTeachingControlSourceReference(sourceReferences, {
             notebookId: notebook.id,
             notebookName: notebook.name,
-          },
+          }),
           confidence: 0.91,
         }),
       );
     }
+    const archivedObsolete = await archiveObsoleteMemories(prisma, course.id);
 
     console.log(
       JSON.stringify(
         {
           course: { id: course.id, code: course.courseCode, name: course.name },
           updated,
+          archivedObsolete,
           changedIds: updated.filter((item) => item.changed).map((item) => item.id),
           totalPublicMemories: updated.length,
         },

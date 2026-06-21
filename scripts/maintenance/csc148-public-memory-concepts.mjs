@@ -39,34 +39,39 @@ export const CSC148_NOTEBOOK_MEMORY_SPECS = [
   },
   {
     notebookId: 'queue-csc148-07-exceptions-runtime',
+    memoryId: 'memory_csc148_queue_11_exceptions_public_20260618',
+    title: 'CSC148 Exceptions 公共记忆',
+  },
+  {
+    notebookId: 'queue-csc148-08-linked-lists',
     memoryId: 'memory_csc148_queue_07_linked_list_public_20260618',
     title: 'CSC148 Linked List Template 公共记忆',
   },
   {
-    notebookId: 'queue-csc148-08-linked-lists',
-    memoryId: 'memory_csc148_queue_08_recursion_public_20260618',
-    title: 'CSC148 Recursion Template 公共记忆',
-  },
-  {
     notebookId: 'queue-csc148-09-recursion-basics',
-    memoryId: 'memory_csc148_queue_09_bst_public_20260618',
-    title: 'CSC148 BST Template 公共记忆',
+    memoryId: 'memory_csc148_queue_08_recursion_public_20260618',
+    title: 'CSC148 Recursion Basics 公共记忆',
   },
   {
     notebookId: 'queue-csc148-10-recursion-tracing',
-    memoryId: 'memory_csc148_queue_10_tree_public_20260618',
-    title: 'CSC148 Tree Template 公共记忆',
+    memoryId: 'memory_csc148_queue_10_recursion_tracing_public_20260619',
+    title: 'CSC148 Recursion Tracing 公共记忆',
   },
   {
     notebookId: 'queue-csc148-11-trees-bsts',
-    memoryId: 'memory_csc148_queue_11_exceptions_public_20260618',
-    title: 'CSC148 Exceptions 公共记忆',
+    memoryId: 'memory_csc148_queue_11_trees_bsts_public_20260619',
+    title: 'CSC148 Tree/BST Template 公共记忆',
   },
   {
     notebookId: 'queue-csc148-12-recursive-sorting',
     memoryId: 'memory_csc148_queue_12_running_time_public_20260618',
     title: 'CSC148 Running Time 公共记忆',
   },
+];
+
+export const CSC148_OBSOLETE_MEMORY_IDS = [
+  'memory_csc148_queue_09_bst_public_20260618',
+  'memory_csc148_queue_10_tree_public_20260618',
 ];
 
 export const CSC148_PUBLIC_MEMORY_TEXTS = {
@@ -772,7 +777,7 @@ class LinkedList:
 
   memory_csc148_queue_08_recursion_public_20260618: m`
 ## 记忆角色
-Notebook 08 的操作记忆。它给 nested list、recursive helper、call stack 和 branching recursion 提供通用递归设计模板，并为 Tree/BST 模板打底。
+Notebook 09 的操作记忆。它给 nested list、recursive helper 和基础递归设计提供通用模板，并为后面的 tracing、Tree/BST 模板打底。
 
 ## 核心概念
 - Recursive function 必须有 base case 和 recursive case。
@@ -808,6 +813,59 @@ def total(obj: int | list) -> int:
 
 ## 回答检查清单
 递归题要说明 base case、recursive case、输入如何变小、recursive result 如何组合，以及至少一个边界输入。
+`,
+
+  memory_csc148_queue_10_recursion_tracing_public_20260619: m`
+## 记忆角色
+Notebook 10 的操作记忆。它服务 recursive tracing、call stack、branching recursion、accumulator 和 debugging recursion。回答这类题时，目标不是只写代码，而是让学生看见每一层调用的参数、返回值和组合方式。
+
+## 执行合约
+回答 recursion tracing 题时必须按这个顺序输出：
+1. **Base/smaller/combine**：先指出 base case、每次递归如何变小、recursive result 回来后如何组合。
+2. **Trace shape**：linear recursion 用调用栈表；branching recursion 用树状 trace，不要挤成一条线。
+3. **Frame table**：至少列出关键 frame 的 input、waiting expression、return value。
+4. **Repeated work**：如果是 branching recursion，指出是否重复计算同一个子问题。
+5. **Debugging check**：检查 recursive call 是否真的靠近 base case，是否忘记使用 recursive result。
+
+## 常见误区
+- 只写最终返回值，不解释中间 frame。
+- branching recursion 画成一条链，漏掉多个 recursive calls。
+- recursive call 参数没有变小，导致 infinite recursion。
+- base case 太窄，漏掉 empty、atomic 或单元素输入。
+- 忘记把 recursive result 合并回当前层。
+
+## 回答检查清单
+递归追踪题要包含：base case、recursive call 参数、每层等待什么、返回值如何传回、branching 是否有重复工作，以及最终结果。
+`,
+
+  memory_csc148_queue_11_trees_bsts_public_20260619: m`
+## 记忆角色
+Notebook 11 的操作记忆。它合并 Tree Template 和 BST Template：一般 Tree 题按 root/subtrees 递归；BST 题必须让 invariant 决定只走 left 或 right。
+
+## Tree 执行合约
+回答一般 Tree 题时必须按这个顺序输出：
+1. **Cases**：empty tree、leaf tree、internal node。
+2. **Representation Invariants**：如果 self._root is None，则 self._subtrees == []；每个 subtree 也是 Tree。
+3. **Recursive reason**：每棵 subtree 仍然是 Tree，所以递归调用写在 subtree.method(...) 上。
+4. **Combine**：说明 recursive results 如何相加、拼接、取 max/min 或 short-circuit。
+
+## BST 执行合约
+回答 BST 题时必须按这个顺序输出：
+1. **Invariant first**：left subtree 所有值小于 root，right subtree 所有值大于 root，左右子树也都是 BST。
+2. **Cases**：empty、equal root、less than root、greater than root。
+3. **Why one side**：不是搜索左右两边；invariant 已经排除了另一边。
+4. **Runtime note**：复杂度用 height 解释，balanced 是 O(log n)，skewed worst-case 是 O(n)。
+
+## 常见误区
+- 把一般 Tree 当成只有 left/right 的 binary tree。
+- 忘记 empty tree 和 leaf tree 不是同一种 case。
+- 对 subtree._root 直接操作，而不是递归调用 subtree method。
+- 把 BST 当普通 binary tree 搜全树。
+- 插入/删除破坏 BST invariant。
+- 复杂度永远写 O(log n)，忘记 skewed tree。
+
+## 回答检查清单
+Tree/BST 题先判结构类型。一般 Tree 写 root/subtrees 和 combine；BST 写 invariant 和单边递归。mutation 题要说明 representation invariant 如何保持，runtime 题要说明 input size 和 height。
 `,
 
   memory_csc148_queue_09_bst_public_20260618: m`

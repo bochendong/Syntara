@@ -21,6 +21,10 @@ import {
   Wrench,
 } from 'lucide-react';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
+import {
+  COURSE_REPLY_PROGRESS_EVENT,
+  type CourseReplyProgressEventDetail,
+} from '@/lib/chat/course-reply-progress';
 import { useAiTaskQueueStore, type AiTaskRecord } from '@/lib/store/ai-task-queue';
 import {
   MEMORY_ACTIVITY_EVENT,
@@ -46,6 +50,7 @@ const MEMORY_STATUS_MOCK_ACTIVITY_IDS = [
 const EDGE_PADDING = 12;
 const DESKTOP_SIZE = { width: 190, height: 270 };
 const MOBILE_SIZE = { width: 112, height: 168 };
+const LEARN_MOBILE_SIZE = { width: 76, height: 114 };
 
 type CompanionMode = 'desktop' | 'mobile';
 
@@ -81,10 +86,12 @@ export function Live2DStudyCompanion() {
   const latestModeRef = useRef<CompanionMode | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const memoryStatusMockTimersRef = useRef<number[]>([]);
+  const replyProgressClearTimerRef = useRef<number | null>(null);
   const appliedMemoryStatusMockModeRef = useRef<MemoryStatusMockMode>('off');
   const [dragging, setDragging] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
+  const [replyProgress, setReplyProgress] = useState<CourseReplyProgressEventDetail | null>(null);
   const [memoryStatusMockMode, setMemoryStatusMockMode] = useState<MemoryStatusMockMode>(() =>
     readMemoryStatusMockModeFromLocation(),
   );
@@ -341,6 +348,33 @@ export function Live2DStudyCompanion() {
   }, [addMemoryActivity, dismissMemoryActivity, updateMemoryActivity]);
 
   useEffect(() => {
+    const clearReplyProgressTimer = () => {
+      if (replyProgressClearTimerRef.current == null) return;
+      window.clearTimeout(replyProgressClearTimerRef.current);
+      replyProgressClearTimerRef.current = null;
+    };
+
+    const handleReplyProgress = (event: Event) => {
+      const detail = (event as CustomEvent<CourseReplyProgressEventDetail>).detail;
+      if (!detail || typeof detail !== 'object') return;
+      clearReplyProgressTimer();
+      setReplyProgress(detail);
+      if (detail.phase === 'completed' || detail.phase === 'failed') {
+        replyProgressClearTimerRef.current = window.setTimeout(
+          () => setReplyProgress(null),
+          detail.phase === 'failed' ? 5200 : 3000,
+        );
+      }
+    };
+
+    window.addEventListener(COURSE_REPLY_PROGRESS_EVENT, handleReplyProgress);
+    return () => {
+      clearReplyProgressTimer();
+      window.removeEventListener(COURSE_REPLY_PROGRESS_EVENT, handleReplyProgress);
+    };
+  }, []);
+
+  useEffect(() => {
     if (activeMemoryCount <= 0) return undefined;
     const frameId = window.requestAnimationFrame(() => setQueueOpen(true));
     return () => window.cancelAnimationFrame(frameId);
@@ -450,13 +484,60 @@ export function Live2DStudyCompanion() {
       <TalkingAvatarOverlay
         layout="card"
         cardFraming="stage"
-        speaking={false}
-        cadence="idle"
-        speechText={null}
+        speaking={Boolean(replyProgress)}
+        cadence={replyProgress?.phase === 'failed' ? 'pause' : replyProgress ? 'active' : 'idle'}
+        speechText={replyProgress?.line ?? null}
         modelIdOverride={modelId}
         showBadge={false}
         className="h-full min-h-0"
       />
+
+      {replyProgress ? (
+        <div
+          data-study-companion-action
+          className="absolute bottom-full right-0 z-10 mb-12 w-[min(278px,calc(100vw-2rem))] rounded-2xl border border-sky-200/80 bg-white/92 px-3 py-2.5 text-slate-700 shadow-[0_16px_34px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-sky-300/20 dark:bg-slate-950/90 dark:text-slate-100 lg:bottom-auto lg:right-full lg:top-9 lg:mb-0 lg:mr-3"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-1 right-8 size-3 rotate-45 border-b border-r border-sky-200/80 bg-white/92 dark:border-sky-300/20 dark:bg-slate-950/90 lg:bottom-auto lg:-right-1 lg:top-8 lg:border-b-0 lg:border-l-0 lg:border-r lg:border-t"
+          />
+          <div className="flex min-w-0 items-start gap-2">
+            <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-100">
+              {replyProgress.phase === 'completed' ? (
+                <CheckCircle2 className="size-4" strokeWidth={2.2} />
+              ) : replyProgress.phase === 'failed' ? (
+                <AlertCircle className="size-4" strokeWidth={2.2} />
+              ) : (
+                <Loader2 className="size-4 animate-spin" strokeWidth={2.2} />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-semibold leading-5 text-slate-900 dark:text-slate-50">
+                课程回复进度
+              </p>
+              <p className="mt-0.5 line-clamp-2 text-[12px] leading-5 text-slate-600 dark:text-slate-300">
+                {replyProgress.line}
+              </p>
+              <div className="mt-2 flex items-center gap-1.5">
+                {replyProgress.steps.map((step) => (
+                  <span
+                    key={step.id}
+                    className={cn(
+                      'h-1.5 flex-1 rounded-full',
+                      step.status === 'complete'
+                        ? 'bg-emerald-500'
+                        : step.status === 'active'
+                          ? 'bg-sky-500'
+                          : 'bg-slate-200 dark:bg-slate-700',
+                    )}
+                    title={step.label}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div
         data-study-companion-action
@@ -859,7 +940,8 @@ function readMemoryStatusMockModeFromLocation(): MemoryStatusMockMode {
 
 function resolveCompanionSize(): CompanionSize {
   if (typeof window === 'undefined') return DESKTOP_SIZE;
-  return resolveCompanionMode() === 'mobile' ? MOBILE_SIZE : DESKTOP_SIZE;
+  if (resolveCompanionMode() !== 'mobile') return DESKTOP_SIZE;
+  return isLearnPathname() ? LEARN_MOBILE_SIZE : MOBILE_SIZE;
 }
 
 function resolveCompanionMode(): CompanionMode {
@@ -869,10 +951,11 @@ function resolveCompanionMode(): CompanionMode {
 
 function getDefaultPosition(size: CompanionSize): CompanionPosition {
   if (typeof window === 'undefined') return { x: 0, y: 0 };
+  const bottomOffset = resolveCompanionMode() === 'mobile' && isLearnPathname() ? 280 : 18;
   return clampPosition(
     {
       x: window.innerWidth - size.width - 20,
-      y: window.innerHeight - size.height - 18,
+      y: window.innerHeight - size.height - bottomOffset,
     },
     size,
   );
@@ -880,13 +963,32 @@ function getDefaultPosition(size: CompanionSize): CompanionPosition {
 
 function clampPosition(position: CompanionPosition, size: CompanionSize): CompanionPosition {
   if (typeof window === 'undefined') return position;
+  const minX = minimumCompanionX(size);
+  const minY = minimumCompanionY(size);
   const maxX = Math.max(EDGE_PADDING, window.innerWidth - size.width - EDGE_PADDING);
   const maxY = Math.max(EDGE_PADDING, window.innerHeight - size.height - EDGE_PADDING);
 
   return {
-    x: Math.min(Math.max(position.x, EDGE_PADDING), maxX),
-    y: Math.min(Math.max(position.y, EDGE_PADDING), maxY),
+    x: Math.min(Math.max(position.x, minX), maxX),
+    y: Math.min(Math.max(position.y, minY), maxY),
   };
+}
+
+function minimumCompanionX(size: CompanionSize): number {
+  if (typeof window === 'undefined') return EDGE_PADDING;
+  if (resolveCompanionMode() !== 'desktop' || !isLearnPathname()) return EDGE_PADDING;
+  return Math.max(EDGE_PADDING, window.innerWidth - size.width - 72);
+}
+
+function minimumCompanionY(size: CompanionSize): number {
+  if (typeof window === 'undefined') return EDGE_PADDING;
+  if (resolveCompanionMode() !== 'desktop' || !isLearnPathname()) return EDGE_PADDING;
+  return Math.max(EDGE_PADDING, window.innerHeight - size.height - 72);
+}
+
+function isLearnPathname(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.replace(/\/$/, '') === '/learn';
 }
 
 function readStoredPosition(): CompanionPosition | null {

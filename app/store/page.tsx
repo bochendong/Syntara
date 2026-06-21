@@ -243,10 +243,12 @@ export default function StorePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push(`/course/${currentCourseId}`)}
+                  onClick={() =>
+                    router.push(`/learn?courseId=${encodeURIComponent(currentCourseId)}`)
+                  }
                   className="store-cta-secondary rounded-full px-5 py-3 text-sm font-semibold min-[420px]:w-auto"
                 >
-                  返回当前课程
+                  返回课程学习
                 </button>
               </div>
             </div>

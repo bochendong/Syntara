@@ -1,4 +1,5 @@
 import type { NotebookProblemClientRecord } from '@/lib/utils/notebook-problem-api';
+import { problemConceptTopics } from '@/lib/problem-bank/concept-tags.mjs';
 
 export type ProblemBankConceptStatus = 'mastered' | 'weak' | 'untried' | 'thin';
 
@@ -48,7 +49,7 @@ function normalizeConcept(value: string): string {
 }
 
 function getProblemConcepts(problem: NotebookProblemClientRecord): string[] {
-  const tags = problem.tags.map(normalizeConcept).filter(Boolean);
+  const tags = problemConceptTopics(problem).map(normalizeConcept).filter(Boolean);
   if (tags.length > 0) return Array.from(new Set(tags)).slice(0, 6);
   return [normalizeConcept(problem.title)];
 }

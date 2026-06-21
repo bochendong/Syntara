@@ -197,6 +197,7 @@ model User {
   studyMemoryChunks       StudyMemoryChunk[]
   memoryFacts             MemoryFact[]
   memoryFactEvents        MemoryFactEvent[]
+  knowledgeCacheEntries   MemoryKnowledgeCache[]
   speechAudios            UserSpeechAudio[]
   problemImportBatches    ProblemImportBatch[]
 
@@ -281,6 +282,7 @@ model Course {
   reviews           CourseReview[]
   studyMemories     StudyMemory[]
   studyMemoryChunks StudyMemoryChunk[]
+  knowledgeCache    MemoryKnowledgeCache[]
   problemImports    ProblemImportBatch[]
 
   createdAt DateTime @default(now())
@@ -329,6 +331,7 @@ model Notebook {
   reviews           NotebookReview[]
   studyMemories     StudyMemory[]
   studyMemoryChunks StudyMemoryChunk[]
+  knowledgeCache    MemoryKnowledgeCache[]
   problemImports    ProblemImportBatch[]
 
   createdAt DateTime @default(now())
@@ -879,6 +882,38 @@ model MemoryFactEvent {
   @@index([ownerId, scopeType, scopeId, namespace, key, createdAt(sort: Desc)])
   @@index([ownerId, eventType, createdAt(sort: Desc)])
   @@index([factId, createdAt(sort: Desc)])
+}
+
+model MemoryKnowledgeCache {
+  id              String   @id
+  cacheKey        String   @unique
+  ownerId         String
+  targetType      String
+  courseId        String?
+  notebookId      String?
+  sourceType      String
+  sourceId        String
+  title           String
+  previewText     String   @db.Text
+  metadata        Json?
+  firstQuery      String   @db.Text
+  lastQuery       String   @db.Text
+  hitCount        Int      @default(1)
+  score           Float    @default(0)
+  firstAccessedAt DateTime @default(now())
+  lastAccessedAt  DateTime @default(now())
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notebook Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, targetType, courseId, lastAccessedAt(sort: Desc)])
+  @@index([ownerId, targetType, notebookId, lastAccessedAt(sort: Desc)])
+  @@index([ownerId, sourceType, sourceId])
+  @@index([ownerId, hitCount, lastAccessedAt(sort: Desc)])
 }
 
 model CoursePurchase {

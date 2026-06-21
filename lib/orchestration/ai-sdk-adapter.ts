@@ -10,13 +10,75 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager';
 import { ChatResult } from '@langchain/core/outputs';
-import type { LanguageModel } from 'ai';
+import type { ImagePart, LanguageModel, ModelMessage, TextPart, UserContent } from 'ai';
 
 import { callLLM, streamLLM } from '@/lib/ai/llm';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AISdkAdapter');
+
+function mediaTypeFromDataUrl(value: string): string | undefined {
+  return /^data:([^;,]+)[;,]/.exec(value)?.[1];
+}
+
+function contentBlockRecord(block: unknown): Record<string, unknown> | null {
+  return block && typeof block === 'object' ? (block as Record<string, unknown>) : null;
+}
+
+function langChainContentToText(content: BaseMessage['content']): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return String(content ?? '');
+  return content
+    .map((block) => {
+      const record = contentBlockRecord(block);
+      if (!record) return '';
+      if (record.type === 'text' && typeof record.text === 'string') return record.text;
+      if (record.type === 'image' || record.type === 'image_url') return '[Image attachment]';
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function imageUrlFromBlock(record: Record<string, unknown>): string | null {
+  if (typeof record.image === 'string') return record.image;
+  const imageUrl = record.image_url;
+  if (typeof imageUrl === 'string') return imageUrl;
+  if (imageUrl && typeof imageUrl === 'object') {
+    const url = (imageUrl as Record<string, unknown>).url;
+    return typeof url === 'string' ? url : null;
+  }
+  return null;
+}
+
+function langChainContentToUserContent(content: BaseMessage['content']): UserContent {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return String(content ?? '');
+
+  const parts: Array<TextPart | ImagePart> = [];
+  for (const block of content) {
+    const record = contentBlockRecord(block);
+    if (!record) continue;
+
+    if (record.type === 'text' && typeof record.text === 'string') {
+      parts.push({ type: 'text', text: record.text });
+      continue;
+    }
+
+    if (record.type === 'image' || record.type === 'image_url') {
+      const image = imageUrlFromBlock(record);
+      if (!image) continue;
+      const mediaType =
+        (typeof record.mediaType === 'string' && record.mediaType) ||
+        (typeof record.mime_type === 'string' && record.mime_type) ||
+        mediaTypeFromDataUrl(image);
+      parts.push({ type: 'image', image, mediaType });
+    }
+  }
+
+  return parts.length > 0 ? parts : '';
+}
 
 /**
  * Stream chunk types for streaming generation
@@ -61,18 +123,16 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
   /**
    * Convert LangChain messages to AI SDK message format
    */
-  private convertMessages(
-    messages: BaseMessage[],
-  ): { role: 'system' | 'user' | 'assistant'; content: string }[] {
+  private convertMessages(messages: BaseMessage[]): ModelMessage[] {
     return messages.map((msg) => {
       if (msg instanceof HumanMessage) {
-        return { role: 'user' as const, content: msg.content as string };
+        return { role: 'user' as const, content: langChainContentToUserContent(msg.content) };
       } else if (msg instanceof AIMessage) {
-        return { role: 'assistant' as const, content: msg.content as string };
+        return { role: 'assistant' as const, content: langChainContentToText(msg.content) };
       } else if (msg instanceof SystemMessage) {
-        return { role: 'system' as const, content: msg.content as string };
+        return { role: 'system' as const, content: langChainContentToText(msg.content) };
       } else {
-        return { role: 'user' as const, content: msg.content as string };
+        return { role: 'user' as const, content: langChainContentToUserContent(msg.content) };
       }
     });
   }

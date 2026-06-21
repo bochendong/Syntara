@@ -35,6 +35,7 @@ import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import type { SceneSidebarAskBubble } from '@/lib/utils/scene-sidebar-ask-thread';
 import { buildLectureNotesFromScenes } from '@/lib/utils/build-lecture-notes-from-scenes';
 import { LectureNotesView } from '@/components/chat/lecture-notes-view';
+import { PublicReplyProgress } from '@/components/chat/public-reply-progress';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from '@/lib/notifications/client-toast';
@@ -1107,6 +1108,10 @@ export function SceneSidebar({
                   ) : (
                     askThread.map((message) => {
                       const isAssistant = message.role === 'assistant';
+                      const hasContent = message.content.trim().length > 0;
+                      const showProgress =
+                        isAssistant &&
+                        (Boolean(message.statusText) || Boolean(message.progressSteps?.length));
                       return (
                         <div
                           key={message.id}
@@ -1148,7 +1153,24 @@ export function SceneSidebar({
                                 ) : null}
                               </div>
                             ) : null}
-                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                            {hasContent ? (
+                              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                            ) : message.pending && !showProgress ? (
+                              <span className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-300">
+                                <Loader2 className="size-3.5 animate-spin" />
+                                正在组织回答
+                              </span>
+                            ) : null}
+                            {showProgress ? (
+                              <PublicReplyProgress
+                                statusText={
+                                  message.statusText || (!hasContent ? '正在组织回答' : undefined)
+                                }
+                                steps={message.progressSteps}
+                                compact
+                                className={hasContent ? undefined : 'mt-0'}
+                              />
+                            ) : null}
                           </div>
                         </div>
                       );

@@ -7,21 +7,33 @@ import { runCourseSideChatLoop } from '@/lib/chat/run-course-side-chat-loop';
 import type {
   ChatMessageMetadata,
   CourseChatContext,
+  CourseChatLayeredMemoryContext,
   StatelessChatRequest,
 } from '@/lib/types/chat';
 import type { Scene } from '@/lib/types/stage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
+import { backendJson } from '@/lib/utils/backend-api';
 
 export type AskCourseOrchestratorOptions = {
   courseId: string;
   question: string;
+  attachments?: CourseChatImageAttachment[];
   courseName?: string;
   orchestratorAvatarUrl?: string | null;
   conversation?: UIMessage<ChatMessageMetadata>[];
   courseContext?: CourseChatContext;
+  learnerContext?: CourseChatContext['learner'];
   userProfile?: { nickname?: string; bio?: string };
   signal?: AbortSignal;
   onMessages?: (messages: UIMessage<ChatMessageMetadata>[]) => void;
+};
+
+export type CourseChatImageAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
 };
 
 export type AskCourseOrchestratorResult = {
@@ -41,20 +53,38 @@ function latestAssistantAnswer(messages: UIMessage<ChatMessageMetadata>[]): stri
   const latestAssistant = messages
     .slice()
     .reverse()
-    .find((message) => message.role === 'assistant');
+    .find((message) => message.role === 'assistant' && !message.metadata?.progressOnly);
   return latestAssistant ? messageText(latestAssistant) : '';
 }
 
-function buildUserMessage(question: string): UIMessage<ChatMessageMetadata> {
+function buildUserMessage(
+  question: string,
+  attachments: CourseChatImageAttachment[] = [],
+): UIMessage<ChatMessageMetadata> {
   const now = Date.now();
+  const parts = [
+    { type: 'text' as const, text: question },
+    ...attachments.map((attachment) => ({
+      type: 'file' as const,
+      url: attachment.dataUrl,
+      mediaType: attachment.mimeType,
+      filename: attachment.name,
+    })),
+  ] as UIMessage<ChatMessageMetadata>['parts'];
   return {
     id: `course-question-${now}-${Math.random().toString(36).slice(2, 8)}`,
     role: 'user',
-    parts: [{ type: 'text', text: question }],
+    parts,
     metadata: {
       senderName: '你',
       originalRole: 'user',
       createdAt: now,
+      attachments: attachments.map((attachment) => ({
+        id: attachment.id,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+      })),
     },
   };
 }
@@ -76,6 +106,32 @@ function buildOrchestratorAgentConfig(
   };
 }
 
+async function loadLayeredMemoryForCourseChat(args: {
+  courseId: string;
+  question: string;
+}): Promise<CourseChatLayeredMemoryContext | undefined> {
+  const question = args.question.trim();
+  if (!question) return undefined;
+
+  const params = new URLSearchParams({
+    targetType: 'course',
+    targetId: args.courseId,
+    message: question,
+  });
+
+  try {
+    return await backendJson<CourseChatLayeredMemoryContext>(
+      `/api/memory/context?${params.toString()}`,
+    );
+  } catch (error) {
+    console.warn(
+      '[ask-course-orchestrator] Failed to load layered memory context:',
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
+}
+
 export async function askCourseOrchestrator(
   options: AskCourseOrchestratorOptions,
 ): Promise<AskCourseOrchestratorResult> {
@@ -84,12 +140,13 @@ export async function askCourseOrchestrator(
     throw new Error('系统模型尚未配置，请联系管理员。');
   }
 
-  const courseContext =
+  const baseCourseContext =
     options.courseContext ??
     (await buildCourseChatContext({
       courseId: options.courseId,
       courseName: options.courseName,
       question: options.question,
+      learner: options.learnerContext,
       target: {
         kind: 'orchestrator',
         id: COURSE_ORCHESTRATOR_ID,
@@ -97,8 +154,20 @@ export async function askCourseOrchestrator(
         role: 'teacher',
       },
     }));
+  const layeredMemory =
+    baseCourseContext.layeredMemory ||
+    (await loadLayeredMemoryForCourseChat({
+      courseId: options.courseId,
+      question: options.question,
+    }));
+  const courseContext = layeredMemory
+    ? { ...baseCourseContext, layeredMemory }
+    : baseCourseContext;
 
-  let messages = [...(options.conversation || []), buildUserMessage(options.question)];
+  let messages = [
+    ...(options.conversation || []),
+    buildUserMessage(options.question, options.attachments),
+  ];
   const controller = options.signal ? null : new AbortController();
 
   await runCourseSideChatLoop({

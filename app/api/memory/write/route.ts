@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { getOptionalPrisma } from '@/lib/server/prisma-safe';
-import { routeMemoryWriteCandidates } from '@/lib/server/memory-write-router';
+import { routeLayeredMemoryWriteCandidates } from '@/features/memory/server/write-routing';
 
 const triggerSchema = z.enum([
   'explicit_user',
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
 
     const candidates =
       payload.data.candidates || (payload.data.candidate ? [payload.data.candidate] : []);
-    const results = await routeMemoryWriteCandidates({
+    const results = await routeLayeredMemoryWriteCandidates({
       prisma,
       userId: auth.userId,
       candidates,

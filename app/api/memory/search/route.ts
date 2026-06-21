@@ -6,7 +6,7 @@ import { generateMemorySearchAnswer } from '@/lib/server/memory-search-answer';
 import { planMemorySearchIntent } from '@/lib/server/memory-search-intent';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { buildMemoryRecallContext } from '@/lib/server/study-memory-context';
+import { buildLayeredMemoryRecallContext } from '@/features/memory/server/layered-memory-context';
 
 const searchBodySchema = z.object({
   targetType: z.enum(['course', 'notebook']),
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
           model,
           targetType: payload.data.targetType,
         });
-        const context = await buildMemoryRecallContext({
+        const context = await buildLayeredMemoryRecallContext({
           targetType: payload.data.targetType,
           targetId: payload.data.targetId,
           userId: auth.userId,
@@ -60,9 +60,12 @@ export async function POST(request: NextRequest) {
           scope: context.scope,
           intent: context.searchIntent,
           prompt: context.prompt,
+          readPlan: context.readPlan,
+          layers: context.layers,
           staticFacts: context.staticFacts,
           directMemories: context.directMemories,
           semanticMatches: context.semanticMatches,
+          knowledgeCache: context.knowledgeCache,
           knowledgeMatches: context.knowledgeMatches,
           sourceEvidence: context.sourceEvidence,
           learnerAnalytics: context.learnerAnalytics,
@@ -71,6 +74,7 @@ export async function POST(request: NextRequest) {
           counts: {
             direct: context.directCount,
             semantic: context.semanticCount,
+            knowledgeCache: context.knowledgeCacheCount,
             knowledge: context.knowledgeCount,
             sourceEvidence: context.sourceEvidenceCount,
             learnerAnalytics: context.learnerAnalyticsCount,

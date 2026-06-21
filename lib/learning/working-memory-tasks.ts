@@ -303,6 +303,7 @@ export function queueChatTurnWorkingMemoryUpdate(args: {
       title: '短期学习状态',
       summary: derived.summary,
       currentTask: derived.currentTask,
+      masteredSignal: derived.masteredSignal,
       stuckPoint: derived.stuckPoint,
       nextTeachingMove: derived.nextTeachingMove,
       evidence: [

@@ -30,7 +30,7 @@ const Live2DStudyCompanionLauncher = dynamic(
 /** 侧栏 inset left-4 / right-4 各 16px；左侧导航略宽，右侧聊天栏保持紧凑。 */
 const SIDEBAR_GAP = 12;
 const LEFT_RAIL_EXPANDED_WIDTH = 280;
-const RIGHT_RAIL_EXPANDED_WIDTH = 270;
+const RIGHT_RAIL_EXPANDED_WIDTH = 330;
 const RAIL_COLLAPSED_WIDTH = 78;
 const GLOBAL_HEADER_OFFSET_PX = 76;
 const COMPACT_RAIL_BREAKPOINT_PX = 1024;
@@ -127,9 +127,17 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isCourseProblemBank =
     pathname != null && /^\/course\/[^/]+\/problem-bank(?:\/|$)/.test(pathname);
   const isCourseMemory = pathname != null && /^\/course\/[^/]+\/memory(?:\/|$)/.test(pathname);
+  const isCourseResources =
+    pathname != null && /^\/course\/[^/]+\/resources(?:\/|$)/.test(pathname);
   const isNotebookCreatePage =
     pathname != null && /^\/course\/[^/]+\/create-notebook(?:\/|$)/.test(pathname);
   const isReviewPage = pathname != null && /^\/review\/[^/]+(?:\/|$)/.test(pathname);
+  const isLearnV2 =
+    pathname === '/learn' ||
+    Boolean(pathname?.startsWith('/learn/')) ||
+    pathname === '/practice' ||
+    Boolean(pathname?.startsWith('/practice/'));
+  const isCreatorV2 = pathname === '/creator' || Boolean(pathname?.startsWith('/creator/'));
   const hideStudyCompanion = shouldHideStudyCompanion(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [chatRightCollapsed, setChatRightCollapsed] = useState(getInitialChatRightCollapsed);
@@ -181,6 +189,18 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     );
   }
 
+  if (isLearnV2) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isCreatorV2) {
+    return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
+  }
+
   if (isTestPage) {
     return withStudyCompanion(
       <MainShellNoRail balancedInset showHeader>
@@ -218,6 +238,14 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   }
 
   if (isCourseMemory) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isCourseResources) {
     return withStudyCompanion(
       <MainShellNoRail balancedInset showHeader>
         {children}

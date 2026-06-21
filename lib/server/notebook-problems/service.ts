@@ -1,4 +1,5 @@
 import { Prisma } from '@/lib/server/generated-prisma';
+import { normalizeProblemConceptTags } from '@/lib/problem-bank/concept-tags.mjs';
 import { prisma } from '@/lib/server/prisma';
 import { toPrismaJson, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import {
@@ -134,6 +135,7 @@ type ProblemCourseSummaryRow = {
 type PreparedPublishProblemWrite = {
   id: string;
   status: NotebookProblemImportDraft['status'];
+  tags: string[];
   publicContentJson: ReturnType<typeof toPrismaJson>;
   gradingJson: ReturnType<typeof toPrismaJson>;
   sourceMeta: ReturnType<typeof toPrismaNullableJson>;
@@ -196,7 +198,17 @@ function mapProblemRow(
     order: row.order,
     problemNumber: row.problemNumber,
     points: row.points,
-    tags: row.tags ?? [],
+    tags: normalizeProblemConceptTags({
+      courseId: resolvedCourseId,
+      notebookId: row.notebookId,
+      notebookName: row.notebook?.name,
+      title: row.title,
+      type: row.type,
+      tags: row.tags ?? [],
+      difficulty: row.difficulty,
+      publicContent: row.publicContentJson,
+      sourceMeta: row.sourceMeta ?? {},
+    }),
     difficulty: row.difficulty,
     publicContent: row.publicContentJson,
     grading: row.gradingJson,
@@ -253,6 +265,17 @@ function prepareProblemRowsForPublish(rows: ProblemWithSecretRow[]): {
 
   for (const row of rows) {
     const normalizedDraft = normalizeDraftForPersistence(buildPublishDraftFromRow(row), row.order);
+    const conceptTags = normalizeProblemConceptTags({
+      courseId: row.courseId ?? row.notebook?.courseId ?? null,
+      notebookId: row.notebookId,
+      notebookName: row.notebook?.name,
+      title: normalizedDraft.title,
+      type: normalizedDraft.type,
+      tags: normalizedDraft.tags,
+      difficulty: normalizedDraft.difficulty,
+      publicContent: normalizedDraft.publicContent,
+      sourceMeta: normalizedDraft.sourceMeta,
+    });
     if (normalizedDraft.status === 'published') {
       if (row.status !== 'published') result.publishedCount += 1;
     } else {
@@ -262,6 +285,7 @@ function prepareProblemRowsForPublish(rows: ProblemWithSecretRow[]): {
     writes.push({
       id: row.id,
       status: normalizedDraft.status,
+      tags: conceptTags,
       publicContentJson: toPrismaJson(normalizedDraft.publicContent),
       gradingJson: toPrismaJson(normalizedDraft.grading),
       sourceMeta: toPrismaNullableJson(normalizedDraft.sourceMeta),
@@ -283,6 +307,7 @@ async function writePreparedProblemPublishBatch(writes: PreparedPublishProblemWr
         where: { id: write.id },
         data: {
           status: write.status,
+          tags: write.tags,
           publicContentJson: write.publicContentJson,
           gradingJson: write.gradingJson,
           sourceMeta: write.sourceMeta,
@@ -497,6 +522,16 @@ async function createProblemFromDraftTx(args: {
   problemNumber?: number | null;
 }) {
   const normalized = normalizeDraftForPersistence(args.draft, args.order);
+  const conceptTags = normalizeProblemConceptTags({
+    courseId: args.courseId,
+    notebookId: args.notebookId,
+    title: normalized.title,
+    type: normalized.type,
+    tags: normalized.tags,
+    difficulty: normalized.difficulty,
+    publicContent: normalized.publicContent,
+    sourceMeta: normalized.sourceMeta,
+  });
   const created = await args.tx.notebookProblem.create({
     data: {
       title: normalized.title,
@@ -506,7 +541,7 @@ async function createProblemFromDraftTx(args: {
       order: args.order,
       problemNumber: args.problemNumber ?? null,
       points: normalized.points,
-      tags: normalized.tags,
+      tags: conceptTags,
       difficulty: normalized.difficulty,
       publicContentJson: toPrismaJson(normalized.publicContent),
       gradingJson: toPrismaJson(normalized.grading),
@@ -1029,7 +1064,13 @@ export async function listCourseProblemSummariesForUser(
       notebookName: problem.notebook?.name ?? undefined,
       title: problem.title,
       status: problem.status,
-      tags: problem.tags ?? [],
+      tags: normalizeProblemConceptTags({
+        courseId: problem.courseId ?? problem.notebook?.courseId ?? courseId,
+        notebookId: problem.notebookId,
+        notebookName: problem.notebook?.name,
+        title: problem.title,
+        tags: problem.tags ?? [],
+      }),
       latestAttempt: latestAttempt
         ? {
             id: latestAttempt.id,
@@ -1162,7 +1203,17 @@ export async function getNotebookProblemForUser(
       order: row.order,
       problemNumber: row.problemNumber,
       points: row.points,
-      tags: row.tags ?? [],
+      tags: normalizeProblemConceptTags({
+        courseId: row.courseId ?? row.notebook?.courseId ?? notebookAccess.courseId,
+        notebookId: row.notebookId,
+        notebookName: row.notebook?.name,
+        title: row.title,
+        type: row.type,
+        tags: row.tags ?? [],
+        difficulty: row.difficulty,
+        publicContent: row.publicContentJson,
+        sourceMeta: row.sourceMeta ?? {},
+      }),
       difficulty: row.difficulty,
       publicContent: row.publicContentJson,
       grading: row.gradingJson,
@@ -1224,7 +1275,17 @@ export async function getCourseProblemForUser(
       order: row.order,
       problemNumber: row.problemNumber,
       points: row.points,
-      tags: row.tags ?? [],
+      tags: normalizeProblemConceptTags({
+        courseId: row.courseId ?? row.notebook?.courseId ?? courseId,
+        notebookId: row.notebookId,
+        notebookName: row.notebook?.name,
+        title: row.title,
+        type: row.type,
+        tags: row.tags ?? [],
+        difficulty: row.difficulty,
+        publicContent: row.publicContentJson,
+        sourceMeta: row.sourceMeta ?? {},
+      }),
       difficulty: row.difficulty,
       publicContent: row.publicContentJson,
       grading: row.gradingJson,
@@ -1383,6 +1444,17 @@ export async function updateNotebookProblem(args: {
     }),
     args.patch.order ?? current.problem.order,
   );
+  const conceptTags = normalizeProblemConceptTags({
+    courseId: current.problem.courseId,
+    notebookId: current.problem.notebookId,
+    notebookName: current.problem.notebookName,
+    title: normalizedDraft.title,
+    type: normalizedDraft.type,
+    tags: normalizedDraft.tags,
+    difficulty: normalizedDraft.difficulty,
+    publicContent: normalizedDraft.publicContent,
+    sourceMeta: normalizedDraft.sourceMeta,
+  });
 
   const updated = (await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
     const row = await tx.notebookProblem.update({
@@ -1392,7 +1464,7 @@ export async function updateNotebookProblem(args: {
         status: normalizedDraft.status,
         order: args.patch.order ?? current.problem.order,
         points: normalizedDraft.points,
-        tags: normalizedDraft.tags,
+        tags: conceptTags,
         difficulty: normalizedDraft.difficulty,
         publicContentJson: toPrismaJson(normalizedDraft.publicContent),
         gradingJson: toPrismaJson(normalizedDraft.grading),
@@ -1527,6 +1599,17 @@ export async function updateCourseProblem(args: {
     }),
     args.patch.order ?? current.problem.order,
   );
+  const conceptTags = normalizeProblemConceptTags({
+    courseId: args.courseId,
+    notebookId: nextNotebookId,
+    notebookName: current.problem.notebookName,
+    title: normalizedDraft.title,
+    type: normalizedDraft.type,
+    tags: normalizedDraft.tags,
+    difficulty: normalizedDraft.difficulty,
+    publicContent: normalizedDraft.publicContent,
+    sourceMeta: normalizedDraft.sourceMeta,
+  });
 
   const updated = (await prismaDb.$transaction(async (tx: Prisma.TransactionClient) => {
     const row = await tx.notebookProblem.update({
@@ -1536,7 +1619,7 @@ export async function updateCourseProblem(args: {
         status: normalizedDraft.status,
         order: args.patch.order ?? current.problem.order,
         points: normalizedDraft.points,
-        tags: normalizedDraft.tags,
+        tags: conceptTags,
         difficulty: normalizedDraft.difficulty,
         publicContentJson: toPrismaJson(normalizedDraft.publicContent),
         gradingJson: toPrismaJson(normalizedDraft.grading),

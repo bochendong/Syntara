@@ -18,7 +18,7 @@ import { planMemorySearchIntent } from '@/lib/server/memory-search-intent';
 import type { CoursePurpose } from '@/lib/utils/database';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
 import { buildNotebookChatMemoryToolOutput } from '@/lib/server/notebook-chat-memory-tool';
-import { buildNotebookStudyMemoryPromptContext } from '@/lib/server/study-memory-context';
+import { buildLayeredNotebookStudyMemoryPromptContext } from '@/features/memory/server/layered-memory-context';
 import { buildCoursePackPromptContext } from '@/lib/server/course-pack-context';
 import { recordLLMPromptSnapshot } from '@/lib/server/llm-prompt-log';
 import { buildReplyContextBundle } from '@/lib/chat/reply-context-loader';
@@ -991,7 +991,7 @@ Do not create memory writes or notebook write operations.`;
         model,
         targetType: 'notebook',
       });
-      const studyMemoryContext = await buildNotebookStudyMemoryPromptContext({
+      const studyMemoryContext = await buildLayeredNotebookStudyMemoryPromptContext({
         notebookId: body.notebook.id,
         courseId: body.course?.id,
         userId: getRequestContext()?.userId,

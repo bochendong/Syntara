@@ -83,6 +83,82 @@ You are ${currentAgentName}, responding AFTER the agents above. You MUST:
 `;
 }
 
+function compactCourseContextText(input: string | undefined, maxLength: number): string {
+  const text = String(input || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function formatLayeredMemoryContext(courseContext: CourseChatContext): string {
+  const memory = courseContext.layeredMemory;
+  if (!memory) return 'No layered memory/RAG context was attached for this turn.';
+
+  const counts = memory.counts;
+  const countLine = counts
+    ? [
+        `direct=${counts.direct ?? 0}`,
+        `semantic=${counts.semantic ?? 0}`,
+        `problem_bank=${counts.knowledge ?? 0}`,
+        `source=${counts.sourceEvidence ?? 0}`,
+        `learner=${counts.learnerAnalytics ?? 0}`,
+      ].join(', ')
+    : 'not provided';
+  const intentLine = memory.searchIntent
+    ? [
+        memory.searchIntent.kind ? `kind=${memory.searchIntent.kind}` : '',
+        memory.searchIntent.progressFilter
+          ? `progressFilter=${memory.searchIntent.progressFilter}`
+          : '',
+        memory.searchIntent.knowledgeTypes?.length
+          ? `knowledgeTypes=${memory.searchIntent.knowledgeTypes.join(', ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('; ')
+    : '';
+  const scopeLine = memory.scope
+    ? [
+        memory.scope.effectiveMode ? `scope=${memory.scope.effectiveMode}` : '',
+        memory.scope.expanded ? 'expanded=true' : '',
+        memory.scope.reason ? `reason=${memory.scope.reason}` : '',
+      ]
+        .filter(Boolean)
+        .join('; ')
+    : '';
+  const problemMatches =
+    memory.knowledgeMatches && memory.knowledgeMatches.length > 0
+      ? memory.knowledgeMatches
+          .slice(0, 6)
+          .map((match, index) => {
+            const tags = match.metadata?.tags?.slice(0, 4).join(', ');
+            const notebook = match.metadata?.notebookName;
+            const progress = match.metadata?.attemptStatus || 'unattempted';
+            return `${index + 1}. ${match.title}${notebook ? ` (${notebook})` : ''}${
+              tags ? ` tags=${tags}` : ''
+            } progress=${progress}`;
+          })
+          .join('\n')
+      : '';
+
+  return [
+    `Storage: ${memory.storage || 'unknown'}`,
+    `Recall counts: ${countLine}`,
+    `Vector recall: ${memory.vectorUsed ? 'used' : 'not used or no vector hit'}`,
+    intentLine ? `Search intent: ${intentLine}` : '',
+    scopeLine ? `Recall scope: ${scopeLine}` : '',
+    problemMatches ? `Top problem-bank matches:\n${problemMatches}` : '',
+    memory.prompt
+      ? `Layered memory prompt:\n${compactCourseContextText(memory.prompt, 12000)}`
+      : 'Layered memory prompt was empty.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 function formatCourseChatContext(courseContext?: CourseChatContext): string {
   if (!courseContext) {
     return 'No course context was provided. Answer honestly and ask the student to open a course/notebook when course-specific grounding is required.';
@@ -134,6 +210,73 @@ function formatCourseChatContext(courseContext?: CourseChatContext): string {
           })
           .join('\n\n')
       : 'No notebooks are available in this course context.';
+  const learner = courseContext.learner;
+  const learnerLines = learner
+    ? [
+        learner.progressKnown === false
+          ? 'Progress is not confirmed by the student. Ask the student to choose their current course progress before giving progress-specific review plans, quizzes, or practice plans. Do not guess.'
+          : 'Progress source: student-confirmed or not provided.',
+        learner.progressLabel ? `Progress checkpoint: ${learner.progressLabel}` : '',
+        `Progress: ${learner.progressPercent}%`,
+        learner.currentNotebookName ? `Current notebook: ${learner.currentNotebookName}` : '',
+        `Problems attempted: ${learner.attemptedProblemCount}/${learner.totalProblemCount}`,
+        `Due review items: ${learner.dueReviewCount}`,
+        learner.weakConcepts.length ? `Weak concepts: ${learner.weakConcepts.join(', ')}` : '',
+        learner.nextConcepts.length ? `Next concepts: ${learner.nextConcepts.join(', ')}` : '',
+        learner.recentQuestions.length
+          ? `Recent student questions:\n${learner.recentQuestions
+              .map((question) => `- ${question}`)
+              .join('\n')}`
+          : '',
+        learner.recentAttempts.length
+          ? `Recent practice signals:\n${learner.recentAttempts
+              .map(
+                (attempt) =>
+                  `- ${attempt.title}: ${attempt.status}${
+                    attempt.concepts.length ? ` (${attempt.concepts.join(', ')})` : ''
+                  }`,
+              )
+              .join('\n')}`
+          : '',
+        learner.activePlans.length
+          ? `Active or recent plans:\n${learner.activePlans
+              .map(
+                (plan) =>
+                  `- ${plan.title}: ${plan.mode}, ${plan.status}${
+                    plan.targetConcepts.length ? ` (${plan.targetConcepts.join(', ')})` : ''
+                  }`,
+              )
+              .join('\n')}`
+          : '',
+        learner.syllabus?.upcoming.length
+          ? [
+              `Imported syllabus items: ${learner.syllabus.importedCount}`,
+              `Upcoming school schedule:\n${learner.syllabus.upcoming
+                .map(
+                  (event) =>
+                    `- ${event.date}: ${event.title} (${event.kind}${
+                      event.sourceName ? `, ${event.sourceName}` : ''
+                    })`,
+                )
+                .join('\n')}`,
+              learner.syllabus.nextAssignment
+                ? `Next assignment: ${learner.syllabus.nextAssignment.date} ${learner.syllabus.nextAssignment.title}`
+                : '',
+              learner.syllabus.nextExam
+                ? `Next exam: ${learner.syllabus.nextExam.date} ${learner.syllabus.nextExam.title}`
+                : '',
+              learner.syllabus.nextSchoolProgress
+                ? `Next school progress checkpoint: ${learner.syllabus.nextSchoolProgress.date} ${learner.syllabus.nextSchoolProgress.title}`
+                : '',
+              'Use syllabus dates as scheduling constraints only. Do not treat them as student-confirmed mastery or current progress unless the student confirms.',
+            ]
+              .filter(Boolean)
+              .join('\n')
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : 'No learner progress state was provided.';
 
   return `${courseLines.join('\n')}
 
@@ -141,6 +284,12 @@ Current chat target:
 - kind: ${courseContext.target.kind}
 - name: ${courseContext.target.name}
 - role: ${courseContext.target.role || 'N/A'}
+
+Learner progress state:
+${learnerLines}
+
+Layered memory and RAG evidence:
+${formatLayeredMemoryContext(courseContext)}
 
 Relevant notebooks and page excerpts:
 ${notebookLines}`;
@@ -192,6 +341,7 @@ No code fences around the JSON. No objects with type "action".
 - Respond in ${responseLanguage}.
 - Prioritize the course context. If a claim is grounded in context, cite it inline using this style: 《Notebook Name》第 N 页：Page Title.
 - Treat private memories as personalization hints about this learner, not as public course facts. Do not cite private memories as notebook sources unless they include a source page.
+- Treat the layered memory/RAG section as the evidence layer for this turn: structured facts and confirmed learner progress define boundaries; semantic memory, source evidence, and problem-bank matches are supporting evidence.
 - If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
 - For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
 - For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.
@@ -830,12 +980,26 @@ function buildStateContext(storeState: StatelessChatRequest['storeState']): stri
 
 // ==================== Conversation Summary ====================
 
-/**
- * OpenAI message format (used by director)
- */
+type ConvertedTextPart = { type: 'text'; text: string };
+type ConvertedImagePart = { type: 'image'; image: string; mediaType?: string };
+
+export type ConvertedMessageContent = string | Array<ConvertedTextPart | ConvertedImagePart>;
+
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: ConvertedMessageContent;
+}
+
+export function convertedMessageContentToText(content: ConvertedMessageContent): string {
+  if (typeof content === 'string') return content;
+  return content
+    .map((part) => {
+      if (part.type === 'text') return part.text;
+      if (part.type === 'image') return '[Image attachment]';
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**
@@ -861,10 +1025,8 @@ export function summarizeConversation(
   const lines = recent.map((msg) => {
     const roleLabel =
       msg.role === 'user' ? 'User' : msg.role === 'assistant' ? 'Assistant' : 'System';
-    const content =
-      msg.content.length > maxContentLength
-        ? msg.content.slice(0, maxContentLength) + '...'
-        : msg.content;
+    const text = convertedMessageContentToText(msg.content);
+    const content = text.length > maxContentLength ? text.slice(0, maxContentLength) + '...' : text;
     return `[${roleLabel}] ${content}`;
   });
 
@@ -880,7 +1042,7 @@ export function summarizeConversation(
 export function convertMessagesToOpenAI(
   messages: StatelessChatRequest['messages'],
   currentAgentId?: string,
-): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+): Array<{ role: 'system' | 'user' | 'assistant'; content: ConvertedMessageContent }> {
   return messages
     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
     .map((msg) => {
@@ -933,15 +1095,23 @@ export function convertMessagesToOpenAI(
         };
       }
 
-      // User messages: keep plain text concatenation
-      const contentParts: string[] = [];
+      // User messages preserve text plus image attachments for vision-capable models.
+      const contentParts: Array<ConvertedTextPart | ConvertedImagePart> = [];
 
       if (msg.parts) {
         for (const part of msg.parts) {
           const p = part as Record<string, unknown>;
 
           if (p.type === 'text' && p.text) {
-            contentParts.push(p.text as string);
+            contentParts.push({ type: 'text', text: p.text as string });
+          } else if (p.type === 'file') {
+            const mediaType = typeof p.mediaType === 'string' ? p.mediaType : undefined;
+            const image = typeof p.url === 'string' ? p.url : undefined;
+            if (image && mediaType?.startsWith('image/')) {
+              contentParts.push({ type: 'image', image, mediaType });
+            } else if (typeof p.filename === 'string') {
+              contentParts.push({ type: 'text', text: `[Attachment: ${p.filename}]` });
+            }
           } else if ((p.type as string)?.startsWith('action-') && p.state === 'result') {
             const actionName = (p.actionName ||
               (p.type as string).replace('action-', '')) as string;
@@ -952,17 +1122,33 @@ export function convertMessagesToOpenAI(
                 ? `result: ${JSON.stringify(output.data).slice(0, 100)}`
                 : 'success'
               : (output?.error as string) || 'failed';
-            contentParts.push(`[Action ${actionName}: ${resultSummary}]`);
+            contentParts.push({ type: 'text', text: `[Action ${actionName}: ${resultSummary}]` });
           }
         }
       }
 
       // Extract speaker name from metadata (e.g. other agents' messages in discussion)
       const senderName = msg.metadata?.senderName;
-      let content = contentParts.join('\n');
       if (senderName) {
-        content = `[${senderName}]: ${content}`;
+        const firstTextIndex = contentParts.findIndex((part) => part.type === 'text');
+        if (firstTextIndex >= 0 && contentParts[firstTextIndex].type === 'text') {
+          contentParts[firstTextIndex] = {
+            type: 'text',
+            text: `[${senderName}]: ${contentParts[firstTextIndex].text}`,
+          };
+        } else {
+          contentParts.unshift({ type: 'text', text: `[${senderName}]:` });
+        }
       }
+
+      const textOnly =
+        contentParts.length === 0 || contentParts.every((part) => part.type === 'text');
+      const content: ConvertedMessageContent = textOnly
+        ? contentParts
+            .map((part) => (part.type === 'text' ? part.text : ''))
+            .filter(Boolean)
+            .join('\n')
+        : contentParts;
 
       // Annotate interrupted messages so the LLM knows context was cut short
       const isInterrupted =
@@ -972,14 +1158,22 @@ export function convertMessagesToOpenAI(
       return {
         role: 'user' as const,
         content: isInterrupted
-          ? `${content}\n[This response was interrupted — do NOT continue it. Start a new JSON array response.]`
+          ? typeof content === 'string'
+            ? `${content}\n[This response was interrupted — do NOT continue it. Start a new JSON array response.]`
+            : [
+                ...content,
+                {
+                  type: 'text' as const,
+                  text: '[This response was interrupted — do NOT continue it. Start a new JSON array response.]',
+                },
+              ]
           : content,
       };
     })
     .filter((msg) => {
       // Drop empty messages and messages with only dots/ellipsis/whitespace
       // (produced by failed agent streams)
-      const stripped = msg.content.replace(/[.\s…]+/g, '');
+      const stripped = convertedMessageContentToText(msg.content).replace(/[.\s…]+/g, '');
       return stripped.length > 0;
     });
 }

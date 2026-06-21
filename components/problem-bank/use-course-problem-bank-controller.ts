@@ -78,6 +78,8 @@ type CourseProblemBankControllerArgs = {
 
 export type CourseProblemPracticeAttemptResolvedEvent = {
   problemId: string;
+  problemTitle: string;
+  concepts: string[];
   status: NotebookProblemAttemptStatus;
   score?: number | null;
   feedback: string;
@@ -1600,8 +1602,16 @@ export function useCourseProblemBankController({
         },
       }));
       setAnswerPanelTab('history');
+      const attemptConcepts = problemTopics(selectedProblem).filter(
+        (topic) => topic.trim() && topic !== '未标注',
+      );
       onPracticeAttemptResolved?.({
         problemId: selectedProblem.id,
+        problemTitle: selectedProblemTitle || selectedProblem.title,
+        concepts:
+          attemptConcepts.length > 0
+            ? attemptConcepts
+            : [selectedProblemTitle || selectedProblem.title],
         status: attempt.status,
         score,
         feedback,
@@ -1641,6 +1651,7 @@ export function useCourseProblemBankController({
     photoAnswers,
     selectedProblem,
     selectedProblemContent,
+    selectedProblemTitle,
     selectedAnswerMode,
     onPracticeAttemptResolved,
     submittingAnswer,

@@ -648,7 +648,187 @@ const CSC108_PACK: CoursePack = {
   },
 };
 
-const COURSE_PACKS: CoursePack[] = [CSC108_PACK, CPSC107_PACK];
+const CSC148_PACK: CoursePack = {
+  id: 'csc148-python-course-pack-v1',
+  courseCode: 'CSC148',
+  title: 'CSC148 Python design-recipe and data-structure course pack',
+  capabilityLevel: 'level_4_derivation_rules',
+  matcher: ({ course, notebook }) =>
+    /\bcsc\s*148\b|csc148|queue-csc148|introduction to computer science/i.test(
+      identityText(course, notebook),
+    ),
+  units: [
+    {
+      order: 1,
+      title: 'Python review and memory model',
+      learned: ['object identity', 'aliasing', 'mutation vs rebinding', 'list references'],
+      tools: ['id/object-reference reasoning', 'alias diagrams', 'mutation tracing'],
+    },
+    {
+      order: 2,
+      title: 'Function Design Recipe',
+      learned: ['type contract', 'docstring', 'precondition', 'examples', 'implementation'],
+      tools: ['Function Design Recipe', 'doctest-style examples', 'precondition reasoning'],
+    },
+    {
+      order: 3,
+      title: 'ADTs and interfaces',
+      learned: ['abstract data types', 'public interface', 'implementation independence'],
+      tools: ['Stack/Queue ADT operations', 'interface vs implementation distinction'],
+    },
+    {
+      order: 4,
+      title: 'Classes and representation invariants',
+      learned: ['class docstring', 'attributes', 'Representation Invariants', '__init__'],
+      tools: ['Class Design Recipe', 'public attributes', 'RI maintenance checks', 'self'],
+    },
+    {
+      order: 5,
+      title: 'Linked lists',
+      learned: ['node chains', 'empty/non-empty cases', 'current/previous pointer updates'],
+      tools: ['_Node', 'LinkedList traversal', 'mutation by relinking', 'empty/head cases'],
+    },
+    {
+      order: 6,
+      title: 'Recursion',
+      learned: ['recursive function design', 'base cases', 'recursive decomposition'],
+      tools: ['recursive tracing', 'structural recursion', 'branching recursion'],
+    },
+    {
+      order: 7,
+      title: 'Trees and BSTs',
+      learned: ['Tree recursion', 'BinarySearchTree invariant', 'empty/leaf/subtree cases'],
+      tools: ['Tree traversal', 'BST left/right branch choice', 'recursive representation'],
+    },
+    {
+      order: 8,
+      title: 'Running time and exceptions',
+      learned: ['input size', 'dominant operation', 'Big-O', 'exception control boundaries'],
+      tools: [
+        'runtime counting',
+        'worst-case reasoning',
+        'raise/except when course source allows it',
+      ],
+    },
+  ],
+  globalContract: [
+    'Treat the visible starter code, class docstrings, public attributes, representation invariants, examples, and course pack as acceptance criteria.',
+    'Do not give a generic Python answer when the task is asking for a CSC148 recipe, ADT, class invariant, linked-list, tree, or BST argument.',
+    'For code answers, preserve the provided header/class skeleton and explain the design choice before changing implementation details.',
+    'If the starter or current notebook conflicts with this pack, follow the visible source and state the uncertainty.',
+  ],
+  highLevelToolBoundary: [
+    'Core tools are plain Python, function design, class design, ADTs, recursion, linked structures, trees, BSTs, exceptions, and runtime analysis as introduced by unit order.',
+    'Prefer explicit loops or recursive templates over clever Python library shortcuts when the lesson is about data-structure mechanics.',
+    'For class questions, reason from object identity, attributes, methods, and invariants rather than from output examples alone.',
+  ],
+  notAllowedUnlessExplicit: [
+    'dataclasses',
+    'pandas',
+    'numpy',
+    'list comprehensions as a replacement for the required traversal template',
+    'sorting or flattening when the data-structure invariant is the point',
+    'changing public attributes, method names, or starter docstrings',
+  ],
+  artifactSpecs: [
+    {
+      name: 'Function Design Recipe',
+      contract: [
+        'Keep the given header, type annotations, docstring contract, examples, and preconditions aligned.',
+        'Explain the body from the input structure and examples; do not treat tests as the only specification.',
+      ],
+    },
+    {
+      name: 'Class Design Recipe',
+      contract: [
+        'Read the class docstring first: attributes describe public state and Representation Invariants constrain every valid object.',
+        'Attribute annotations document types; instance attributes are actually created in __init__ or assigned by methods.',
+        'Every mutating method must preserve the Representation Invariants.',
+      ],
+    },
+  ],
+  templateContracts: [
+    {
+      name: 'class contract with Representation Invariants',
+      origins: ['class docstring', 'Attributes section', 'Representation Invariants'],
+      contract: [
+        'List the public attributes and RI before implementing or debugging a method.',
+        'For a class such as Tweet, preserve course-local attributes and RI exactly; do not replace them with generic social-media fields.',
+      ],
+    },
+    {
+      name: 'ADT reasoning',
+      origins: ['Stack/Queue/Container ADT', 'public interface'],
+      contract: [
+        'Use the public methods promised by the ADT; do not rely on hidden representation unless the question is about implementation.',
+        'Separate client reasoning from implementer reasoning.',
+      ],
+    },
+    {
+      name: 'linked-list traversal and mutation',
+      origins: ['_Node chain', 'LinkedList head', 'current/previous pointers'],
+      contract: [
+        'Split empty list, first-node, middle-node, and end-of-list cases when mutation can differ.',
+        'Draw reference changes for relinking; distinguish rebinding a local variable from mutating the list structure.',
+      ],
+    },
+    {
+      name: 'tree recursion',
+      origins: ['Tree', 'subtrees', 'recursive representation'],
+      contract: [
+        'Handle empty tree, leaf, and internal-node cases according to the current class representation.',
+        'State what each recursive result means before combining children.',
+      ],
+    },
+    {
+      name: 'BST invariant',
+      origins: ['BinarySearchTree', 'left/right subtree ordering invariant'],
+      contract: [
+        'Use the BST invariant to choose left, right, or current node; do not search both sides unless the operation requires it.',
+        'After insertion/deletion/mutation, verify that all subtree ordering constraints still hold.',
+      ],
+    },
+    {
+      name: 'runtime analysis',
+      origins: ['running time', 'Big-O', 'input size'],
+      contract: [
+        'Define the input size first, count the dominant operation, and justify worst-case behavior.',
+        'Do not infer Big-O from line count or from one example run.',
+      ],
+    },
+  ],
+  derivationRules: [
+    'Function questions derive from the Function Design Recipe; class questions derive from the Class Design Recipe and RI.',
+    'Before implementing a method, identify whether the method is an observer, mutator, initializer, or representation helper.',
+    'For mutable objects, track aliases and object identity before deciding whether a change is visible to the caller.',
+    'For recursive data structures, choose the template from the representation: linked nodes, recursive list, Tree, or BinarySearchTree.',
+    'For BSTs, the invariant is a routing rule and a validation rule.',
+    'For runtime, input size and dominant operation are part of the answer contract.',
+  ],
+  unitContracts: {
+    2: [
+      'Use the Function Design Recipe: signature/header, docstring contract, examples, preconditions, and body.',
+      'Do not skip preconditions when the starter docstring states one.',
+    ],
+    4: [
+      'For OOP questions, read attributes and Representation Invariants before code.',
+      'Do not claim attribute annotations create instance attributes; __init__ or methods create them.',
+    ],
+    5: [
+      'For linked lists, draw node references and distinguish local-variable rebinding from structural mutation.',
+      'Check empty and one-element cases before writing the general loop.',
+    ],
+    6: [
+      'For recursion tracing, name the base case and recursive calls before giving the final value.',
+    ],
+    7: [
+      'For tree/BST questions, use recursive representation and BST invariants rather than flattening to Python lists.',
+    ],
+    8: ['For runtime answers, define input size and justify the dominant term.'],
+  },
+};
+
+const COURSE_PACKS: CoursePack[] = [CSC148_PACK, CSC108_PACK, CPSC107_PACK];
 
 function formatList(title: string, lines: string[], maxLines: number): string[] {
   const compact = compactLines(lines, maxLines);
@@ -668,7 +848,7 @@ function formatArtifactSpecs(specs: CoursePackArtifactSpec[]): string[] {
 function formatTemplateContracts(contracts: CoursePackTemplateContract[]): string[] {
   if (contracts.length === 0) return [];
   const lines = ['template_contracts:'];
-  for (const contract of contracts.slice(0, 12)) {
+  for (const contract of contracts.slice(0, 20)) {
     lines.push(
       `- ${contract.name}: origins ${contract.origins.join(' | ')}. ${contract.contract.join(' ')}`,
     );

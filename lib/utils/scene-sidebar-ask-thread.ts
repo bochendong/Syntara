@@ -1,4 +1,4 @@
-import type { ChatSession, ChatMessageMetadata } from '@/lib/types/chat';
+import type { ChatSession, ChatMessageMetadata, PublicReplyProgressStep } from '@/lib/types/chat';
 import type { UIMessage } from 'ai';
 
 export type SceneSidebarAskBubble = {
@@ -6,6 +6,8 @@ export type SceneSidebarAskBubble = {
   role: 'user' | 'assistant';
   content: string;
   pending: boolean;
+  statusText?: string;
+  progressSteps?: PublicReplyProgressStep[];
 };
 
 export function flattenUIMessageText(message: UIMessage<ChatMessageMetadata>): string {
@@ -24,16 +26,23 @@ export function buildSceneSidebarAskThreadFromMessages(
     .map((m, idx) => {
       const content = flattenUIMessageText(m);
       const isLast = idx === messages.length - 1;
+      const progressSteps = m.metadata?.publicProgressSteps;
+      const statusText = m.metadata?.statusText;
       const pending =
-        isStreaming && isLast && m.role === 'assistant' && content.trim() === '';
+        isStreaming &&
+        isLast &&
+        m.role === 'assistant' &&
+        (content.trim() === '' || Boolean(statusText) || Boolean(progressSteps?.length));
       return {
         id: m.id,
         role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
         content,
         pending,
+        statusText,
+        progressSteps,
       };
     })
-    .filter((row) => row.content.trim() || row.pending);
+    .filter((row) => row.content.trim() || row.pending || row.progressSteps?.length);
 }
 
 /**

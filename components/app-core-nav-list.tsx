@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowRightLeft,
   BookOpen,
-  ListChecks,
   Bug,
   Coins,
+  Cpu,
   LifeBuoy,
+  LibraryBig,
+  ListChecks,
   MessageCircle,
   Settings,
   ShoppingBag,
@@ -91,7 +93,9 @@ type CoreNavSection = {
 /** 聊天右侧栏扁平列表：先放当前课程内入口，再放跨课程入口，其余项按此表随后 */
 const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   'agent-teams': 0,
-  'course-problem-bank': 1,
+  'course-resource-library': 1,
+  'course-problem-bank': 2,
+  learn: 2,
   courses: 2,
   store: 3,
   'top-up': 4,
@@ -167,14 +171,19 @@ export function AppCoreNavList({
   const storeLabel = inCourseContext ? '笔记本商城' : '课程商城';
 
   const live2dActive = pathname === '/live2d' || pathname?.startsWith('/live2d/');
+  const learnActive = pathname === '/learn' || pathname?.startsWith('/learn/');
   const avatarStoreActive =
     pathname === '/store/avatars' || pathname?.startsWith('/store/avatars/');
   const courseProblemBankActive =
     Boolean(pathname?.startsWith('/course/')) &&
     (pathname?.endsWith('/problem-bank') || pathname?.includes('/problem-bank/'));
+  const courseResourceLibraryActive =
+    Boolean(pathname?.startsWith('/course/')) &&
+    (pathname?.endsWith('/resources') || pathname?.includes('/resources/'));
   const topUpActive = pathname === '/top-up' || pathname?.startsWith('/top-up/');
   const creditsMarketActive =
     pathname === '/credits-market' || pathname?.startsWith('/credits-market/');
+  const creatorActive = pathname === '/creator' || pathname?.startsWith('/creator/');
   const profileActive = pathname === '/profile' || pathname?.startsWith('/profile/');
   const settingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
 
@@ -194,6 +203,22 @@ export function AppCoreNavList({
           tooltip: '所有课程',
           icon: BookOpen,
           active: pathname === '/my-courses',
+        },
+        {
+          key: 'learn',
+          href: '/learn',
+          label: '课程学习',
+          tooltip: '课程学习',
+          icon: MessageCircle,
+          active: learnActive,
+        },
+        {
+          key: 'creator',
+          href: '/creator',
+          label: '创作者',
+          tooltip: '创作者工作台',
+          icon: Cpu,
+          active: creatorActive,
         },
         {
           key: 'live2d',
@@ -315,6 +340,14 @@ export function AppCoreNavList({
                     active: agentTeamsActive,
                   },
                   {
+                    key: 'course-resource-library',
+                    href: `/course/${encodeURIComponent(courseId ?? '')}/resources`,
+                    label: '资料库',
+                    tooltip: '课程资料库',
+                    icon: LibraryBig,
+                    active: courseResourceLibraryActive,
+                  },
+                  {
                     key: 'course-problem-bank',
                     href: `/course/${encodeURIComponent(courseId ?? '')}/problem-bank`,
                     label: '课程题库',
@@ -326,11 +359,11 @@ export function AppCoreNavList({
                     ? []
                     : ([
                         {
-                          key: 'chat',
-                          href: '/chat',
-                          label: '聊天',
+                          key: 'learn',
+                          href: `/learn?courseId=${encodeURIComponent(courseId ?? '')}`,
+                          label: '课程学习',
                           icon: MessageCircle,
-                          active: false,
+                          active: learnActive,
                         },
                       ] satisfies CoreNavItem[])),
                 ]

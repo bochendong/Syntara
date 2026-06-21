@@ -461,3 +461,57 @@ export async function submitNotebookProblem(args: {
       ),
   );
 }
+
+export async function submitCourseProblem(args: {
+  courseId: string;
+  problemId: string;
+  text?: string;
+  selectedOptionIds?: string[];
+  blanks?: Record<string, string>;
+  code?: string;
+  images?: NotebookProblemAttemptAnswer['images'];
+  language: 'zh-CN' | 'en-US';
+}) {
+  return runQueuedAiTask(
+    {
+      kind: 'problem-evaluation',
+      title: '题目判断正误',
+      description: '正在评估你的作答并更新学习进度',
+    },
+    ({ signal }) =>
+      backendJson<{
+        attempt: NotebookProblemAttemptRecord;
+        result: NotebookProblemAttemptRecord['result'];
+      }>(
+        `/api/courses/${encodeURIComponent(args.courseId)}/problems/${encodeURIComponent(args.problemId)}/attempts/submit`,
+        {
+          method: 'POST',
+          headers: withModelHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(args),
+          signal,
+        },
+      ),
+  );
+}
+
+export async function selfReportCourseProblem(args: {
+  courseId: string;
+  problemId: string;
+  status: 'passed' | 'partial' | 'failed';
+  text?: string;
+  selectedOptionIds?: string[];
+  blanks?: Record<string, string>;
+  code?: string;
+}) {
+  return backendJson<{
+    attempt: NotebookProblemAttemptRecord;
+    result: NotebookProblemAttemptRecord['result'];
+  }>(
+    `/api/courses/${encodeURIComponent(args.courseId)}/problems/${encodeURIComponent(args.problemId)}/attempts/self-report`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    },
+  );
+}

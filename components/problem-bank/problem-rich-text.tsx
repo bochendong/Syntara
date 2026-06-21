@@ -425,6 +425,13 @@ function renderList(lines: string[], ordered: boolean): string {
     .join('')}</${tag}>`;
 }
 
+function renderHeading(line: string): string | null {
+  const match = line.match(/^\s*(#{1,6})\s+(.+?)\s*#*\s*$/);
+  if (!match) return null;
+  const level = Math.min(6, match[1].length);
+  return `<h${level}>${renderInlineMarkdown(match[2])}</h${level}>`;
+}
+
 function normalizeCasesRows(body: string): string {
   return body
     .replace(/\${1,2}/g, '')
@@ -583,6 +590,13 @@ function textToHtml(text: string): string {
       continue;
     }
 
+    const heading = renderHeading(line);
+    if (heading) {
+      blocks.push(heading);
+      index += 1;
+      continue;
+    }
+
     if (isPipeTableRow(line) && lines[index + 1] && isTableSeparator(lines[index + 1])) {
       const tableLines: string[] = [];
       while (index < lines.length && lines[index].trim() && isPipeTableRow(lines[index])) {
@@ -621,6 +635,7 @@ function textToHtml(text: string): string {
       lines[index].trim() !== '$$' &&
       !isBracketDisplayMathStart(lines[index]) &&
       !lines[index].includes('\\begin{cases}') &&
+      !renderHeading(lines[index]) &&
       !(isPipeTableRow(lines[index]) && lines[index + 1] && isTableSeparator(lines[index + 1])) &&
       !/^\s*[-*]\s+/.test(lines[index]) &&
       !/^\s*\d+[\.)]\s+/.test(lines[index])

@@ -1,4 +1,5 @@
 export const COURSE_MATERIAL_SPACE_LIMIT_BYTES = 20 * 1024 * 1024;
+export const COURSE_MATERIAL_KNOWLEDGE_GRAPH_TAG = '加入知识图谱';
 
 const DB_NAME = 'synatra-course-materials';
 const DB_VERSION = 1;
@@ -10,6 +11,7 @@ export type CourseMaterialListItem = {
   name: string;
   mimeType: string;
   size: number;
+  tags: string[];
   createdAt: number;
   updatedAt: number;
 };
@@ -25,9 +27,23 @@ function createId() {
   return `course-material-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeTags(tags?: unknown): string[] {
+  const values = Array.isArray(tags)
+    ? tags
+        .filter((tag): tag is string => typeof tag === 'string')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    : [];
+  const unique = Array.from(new Set([COURSE_MATERIAL_KNOWLEDGE_GRAPH_TAG, ...values]));
+  return unique.slice(0, 8);
+}
+
 function withoutBlob(record: CourseMaterialRecord): CourseMaterialListItem {
   const { blob: _blob, ...item } = record;
-  return item;
+  return {
+    ...item,
+    tags: normalizeTags(item.tags),
+  };
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -103,6 +119,7 @@ export async function addCourseMaterials(
       name: file.name.trim() || `未命名资料 ${index + 1}`,
       mimeType: file.type || 'application/octet-stream',
       size: file.size,
+      tags: [COURSE_MATERIAL_KNOWLEDGE_GRAPH_TAG],
       createdAt: now + index,
       updatedAt: now + index,
       blob: new Blob([await file.arrayBuffer()], {

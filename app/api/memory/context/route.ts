@@ -5,7 +5,7 @@ import { safeRoute } from '@/lib/server/json-error-response';
 import { planMemorySearchIntent } from '@/lib/server/memory-search-intent';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { buildMemoryRecallContext } from '@/lib/server/study-memory-context';
+import { buildLayeredMemoryRecallContext } from '@/features/memory/server/layered-memory-context';
 
 const targetTypeSchema = z.enum(['course', 'notebook']);
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
               targetType: targetType.data,
             })
           : undefined;
-        const context = await buildMemoryRecallContext({
+        const context = await buildLayeredMemoryRecallContext({
           targetType: targetType.data,
           targetId,
           userId: auth.userId,
@@ -50,10 +50,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           storage: context.storage,
           prompt: context.prompt,
+          readPlan: context.readPlan,
+          layers: context.layers,
           scope: context.scope,
           staticFacts: context.staticFacts,
           directMemories: context.directMemories,
           semanticMatches: context.semanticMatches,
+          knowledgeCache: context.knowledgeCache,
           knowledgeMatches: context.knowledgeMatches,
           sourceEvidence: context.sourceEvidence,
           learnerAnalytics: context.learnerAnalytics,
@@ -63,6 +66,7 @@ export async function GET(request: NextRequest) {
           counts: {
             direct: context.directCount,
             semantic: context.semanticCount,
+            knowledgeCache: context.knowledgeCacheCount,
             knowledge: context.knowledgeCount,
             sourceEvidence: context.sourceEvidenceCount,
             learnerAnalytics: context.learnerAnalyticsCount,

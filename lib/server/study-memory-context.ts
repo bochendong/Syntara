@@ -35,6 +35,13 @@ import {
   type StudyMemorySemanticMatch,
 } from '@/lib/server/study-memory-vector-store';
 import {
+  knowledgeCacheWritesFromResults,
+  listKnowledgeCache,
+  refreshKnowledgeCache,
+  uniqueKnowledgeCacheEntries,
+  type KnowledgeCacheEntry,
+} from '@/features/memory/server/knowledge-cache';
+import {
   listStudyMemoriesForViewer,
   resolveReadableStudyMemoryTarget,
   type ReadableStudyMemoryTarget,
@@ -75,6 +82,7 @@ export type MemoryRecallContext = {
   specialistMemories: StudyMemoryRecord[];
   directMemories: StudyMemoryRecord[];
   semanticMatches: StudyMemoryRecord[];
+  knowledgeCache: KnowledgeCacheEntry[];
   knowledgeMatches: MemoryKnowledgeMatch[];
   sourceEvidence: MemoryEvidencePacket[];
   learnerAnalytics: LearnerAnalytics | null;
@@ -83,6 +91,7 @@ export type MemoryRecallContext = {
   searchIntent: MemorySearchIntent;
   directCount: number;
   semanticCount: number;
+  knowledgeCacheCount: number;
   knowledgeCount: number;
   sourceEvidenceCount: number;
   learnerAnalyticsCount: number;
@@ -98,6 +107,7 @@ type MemoryRecallPass = {
   directTarget: StudyMemoryRecord[];
   directMemories: StudyMemoryRecord[];
   semanticMemories: StudyMemoryRecord[];
+  knowledgeCache: KnowledgeCacheEntry[];
   knowledgeMatches: MemoryKnowledgeMatch[];
   sourceEvidence: MemoryEvidencePacket[];
   learnerAnalytics: LearnerAnalytics | null;
@@ -254,6 +264,7 @@ function resolveRecallScope(args: {
 function evidenceCount(args: {
   directMemories: StudyMemoryRecord[];
   semanticMemories: StudyMemoryRecord[];
+  knowledgeCache: KnowledgeCacheEntry[];
   knowledgeMatches: MemoryKnowledgeMatch[];
   sourceEvidence: MemoryEvidencePacket[];
   learnerAnalytics: LearnerAnalytics | null;
@@ -261,6 +272,7 @@ function evidenceCount(args: {
   return (
     args.directMemories.length +
     args.semanticMemories.length +
+    args.knowledgeCache.length +
     args.knowledgeMatches.length +
     args.sourceEvidence.length +
     learnerAnalyticsEvidenceCount(args.learnerAnalytics)
@@ -355,6 +367,32 @@ function formatKnowledgeMatches(matches: MemoryKnowledgeMatch[]): string {
       )}; ${match.metadata.problemType}/${match.metadata.difficulty}${tags}${progress})\n   - ${compact(
         match.text,
         520,
+      )}`;
+    }),
+  ].join('\n');
+}
+
+function formatKnowledgeCache(entries: KnowledgeCacheEntry[]): string {
+  if (entries.length === 0) return '';
+  return [
+    '## Knowledge access cache',
+    'These are source/problem items that were recently or frequently useful in knowledge-base searches. Treat them as warm hints, then verify with original source evidence when exact wording matters.',
+    ...entries.slice(0, 8).map((entry, index) => {
+      const notebookName =
+        entry.metadata &&
+        typeof entry.metadata === 'object' &&
+        typeof (entry.metadata as Record<string, unknown>).notebookName === 'string'
+          ? String((entry.metadata as Record<string, unknown>).notebookName)
+          : '';
+      const meta = [
+        entry.sourceType,
+        notebookName,
+        `hits=${entry.hitCount}`,
+        `last=${entry.lastAccessedAt.slice(0, 10)}`,
+      ].filter(Boolean);
+      return `${index + 1}. ${entry.title} (${meta.join('; ')})\n   - ${compact(
+        entry.previewText,
+        620,
       )}`;
     }),
   ].join('\n');
@@ -702,6 +740,34 @@ async function buildRecallPass(args: {
     }
   }
 
+  let knowledgeCache: KnowledgeCacheEntry[] = [];
+  if (args.userId) {
+    try {
+      const cacheQuery =
+        args.recallQuery || args.sourceEvidenceQuery || args.searchIntent.originalQuery;
+      await refreshKnowledgeCache({
+        prisma: args.prisma,
+        ownerId: args.userId,
+        target: args.recallTarget,
+        query: cacheQuery,
+        entries: knowledgeCacheWritesFromResults({
+          knowledgeMatches,
+          sourceEvidence,
+          limit: 10,
+        }),
+      });
+      knowledgeCache = await listKnowledgeCache({
+        prisma: args.prisma,
+        ownerId: args.userId,
+        target: args.recallTarget,
+        query: cacheQuery,
+        limit: 8,
+      });
+    } catch (error) {
+      log.warn('Knowledge cache refresh failed:', error);
+    }
+  }
+
   let learnerAnalytics: LearnerAnalytics | null = null;
   if (args.userId) {
     try {
@@ -728,6 +794,7 @@ async function buildRecallPass(args: {
     directTarget,
     directMemories,
     semanticMemories,
+    knowledgeCache,
     knowledgeMatches,
     sourceEvidence,
     learnerAnalytics,
@@ -736,6 +803,7 @@ async function buildRecallPass(args: {
     evidenceCount: evidenceCount({
       directMemories,
       semanticMemories,
+      knowledgeCache,
       knowledgeMatches,
       sourceEvidence,
       learnerAnalytics,
@@ -754,6 +822,10 @@ function mergeRecallPasses(
     ...localPass.semanticMemories,
     ...coursePass.semanticMemories,
   ]).slice(0, 8);
+  const knowledgeCache = uniqueKnowledgeCacheEntries([
+    ...localPass.knowledgeCache,
+    ...coursePass.knowledgeCache,
+  ]).slice(0, 8);
   const knowledgeMatches = uniqueById([
     ...localPass.knowledgeMatches,
     ...coursePass.knowledgeMatches,
@@ -770,6 +842,7 @@ function mergeRecallPasses(
     directTarget,
     directMemories,
     semanticMemories,
+    knowledgeCache,
     knowledgeMatches,
     sourceEvidence,
     learnerAnalytics,
@@ -780,6 +853,7 @@ function mergeRecallPasses(
     evidenceCount: evidenceCount({
       directMemories,
       semanticMemories,
+      knowledgeCache,
       knowledgeMatches,
       sourceEvidence,
       learnerAnalytics,
@@ -810,6 +884,7 @@ function emptyContext(storage: 'database' | 'unavailable'): MemoryRecallContext 
     specialistMemories: [],
     directMemories: [],
     semanticMatches: [],
+    knowledgeCache: [],
     knowledgeMatches: [],
     sourceEvidence: [],
     learnerAnalytics: null,
@@ -818,6 +893,7 @@ function emptyContext(storage: 'database' | 'unavailable'): MemoryRecallContext 
     searchIntent: inferMemorySearchIntent(''),
     directCount: 0,
     semanticCount: 0,
+    knowledgeCacheCount: 0,
     knowledgeCount: 0,
     sourceEvidenceCount: 0,
     learnerAnalyticsCount: 0,
@@ -928,6 +1004,7 @@ export async function buildMemoryRecallContext(args: {
     const directTarget = finalPass.directTarget;
     const directMemories = finalPass.directMemories;
     const semanticMemories = finalPass.semanticMemories;
+    const knowledgeCache = finalPass.knowledgeCache;
     const knowledgeMatches = finalPass.knowledgeMatches;
     const sourceEvidence = finalPass.sourceEvidence;
     const learnerAnalytics = finalPass.learnerAnalytics;
@@ -969,6 +1046,7 @@ export async function buildMemoryRecallContext(args: {
         title: 'Semantically recalled specialist memory from course notebooks',
         memories: specialistMemories.slice(0, 6),
       }),
+      formatKnowledgeCache(knowledgeCache),
       formatSourceEvidence(sourceEvidence),
       formatLearnerAnalytics(learnerAnalytics),
       formatKnowledgeMatches(knowledgeMatches),
@@ -1002,6 +1080,7 @@ export async function buildMemoryRecallContext(args: {
       specialistMemories,
       directMemories,
       semanticMatches: semanticMemories,
+      knowledgeCache,
       knowledgeMatches,
       sourceEvidence,
       learnerAnalytics,
@@ -1010,6 +1089,7 @@ export async function buildMemoryRecallContext(args: {
       searchIntent,
       directCount: directMemories.length,
       semanticCount: semanticMemories.length,
+      knowledgeCacheCount: knowledgeCache.length,
       knowledgeCount: knowledgeMatches.length,
       sourceEvidenceCount: sourceEvidence.length,
       learnerAnalyticsCount: learnerAnalytics

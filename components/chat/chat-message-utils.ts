@@ -578,8 +578,19 @@ export function stripAttachmentUrlsFromAgentMessages(
 ): UIMessage<ChatMessageMetadata>[] {
   return messages.map((m) => {
     if (!m.metadata?.attachments?.length) {
-      return m.metadata?.streaming || m.metadata?.statusText
-        ? { ...m, metadata: { ...m.metadata, streaming: false, statusText: undefined } }
+      return m.metadata?.streaming ||
+        m.metadata?.statusText ||
+        m.metadata?.publicProgressSteps?.length
+        ? {
+            ...m,
+            metadata: {
+              ...m.metadata,
+              streaming: false,
+              statusText: undefined,
+              progressOnly: undefined,
+              publicProgressSteps: undefined,
+            },
+          }
         : m;
     }
     return {
@@ -588,6 +599,8 @@ export function stripAttachmentUrlsFromAgentMessages(
         ...m.metadata,
         streaming: false,
         statusText: undefined,
+        progressOnly: undefined,
+        publicProgressSteps: undefined,
         attachments: m.metadata.attachments.map(({ objectUrl: _u, ...rest }) => rest),
       },
     };

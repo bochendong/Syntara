@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   AlertCircle,
   BookOpen,
-  Brain,
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
@@ -57,6 +56,7 @@ import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { resolveNotebookAgentAvatarDisplayUrl } from '@/lib/constants/notebook-agent-avatars';
 import { getLocalStudyMemoryUserId, loadStudyMemory } from '@/lib/learning/study-memory';
+import { problemConceptTopics } from '@/lib/problem-bank/concept-tags.mjs';
 import {
   listCourseProblemSummaries,
   type CourseProblemClientSummary,
@@ -248,7 +248,7 @@ function normalizeCourseProblemTopic(value: string): string {
 }
 
 function getCourseProblemTopics(problem: CourseProblemClientSummary): string[] {
-  const tags = problem.tags.map(normalizeCourseProblemTopic).filter(Boolean);
+  const tags = problemConceptTopics(problem).map(normalizeCourseProblemTopic).filter(Boolean);
   if (tags.length > 0) return Array.from(new Set(tags)).slice(0, 6);
   return ['未标注'];
 }
@@ -1326,13 +1326,13 @@ export default function CourseDetailPageClient() {
                               size="icon-sm"
                               variant="outline"
                               className="size-8 rounded-full border-white/15 bg-slate-950/22 text-white shadow-sm backdrop-blur-md hover:bg-slate-950/34 dark:border-white/20 dark:bg-white/8 dark:text-slate-100 dark:hover:bg-white/12"
-                              title="课程记忆"
+                              title="资料库"
                             >
                               <Link
-                                href={`/course/${encodeURIComponent(id)}/memory`}
-                                aria-label="课程记忆"
+                                href={`/course/${encodeURIComponent(id)}/resources`}
+                                aria-label="资料库"
                               >
-                                <Brain className="size-4" strokeWidth={1.85} />
+                                <HardDrive className="size-4" strokeWidth={1.85} />
                               </Link>
                             </Button>
                             <Button
@@ -1407,9 +1407,9 @@ export default function CourseDetailPageClient() {
                         variant="outline"
                         className="h-8 min-h-0 gap-1.5 rounded-full border-white/15 bg-slate-950/20 px-3 text-xs text-white shadow-sm backdrop-blur-md hover:bg-slate-950/30 dark:border-white/20 dark:bg-white/8 dark:text-slate-100 dark:hover:bg-white/12"
                       >
-                        <Link href={`/course/${encodeURIComponent(id)}/memory`}>
-                          <Brain className="size-3.5" strokeWidth={1.8} />
-                          课程记忆
+                        <Link href={`/course/${encodeURIComponent(id)}/resources`}>
+                          <HardDrive className="size-3.5" strokeWidth={1.8} />
+                          资料库
                         </Link>
                       </Button>
                       <Button
@@ -1449,9 +1449,9 @@ export default function CourseDetailPageClient() {
                         variant="outline"
                         className="h-8 gap-1.5 rounded-lg border-emerald-200 bg-white/72 px-2.5 text-xs font-semibold text-emerald-800 hover:bg-white dark:border-emerald-300/25 dark:bg-white/8 dark:text-emerald-100 dark:hover:bg-white/12"
                       >
-                        <Link href={`/course/${encodeURIComponent(id)}/memory`}>
-                          <Brain className="size-3.5" strokeWidth={1.8} />
-                          课程记忆
+                        <Link href={`/course/${encodeURIComponent(id)}/resources`}>
+                          <HardDrive className="size-3.5" strokeWidth={1.8} />
+                          资料库
                         </Link>
                       </Button>
                     </div>

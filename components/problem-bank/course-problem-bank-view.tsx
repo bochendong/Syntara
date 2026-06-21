@@ -2501,107 +2501,61 @@ export function CourseProblemBankView({
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5 sm:justify-end">
-                  {!isReviewPracticeMode ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
-                        disabled={!headerPreviousPracticeTarget}
-                        onClick={() => {
-                          if (!headerPreviousPracticeTarget) return;
-                          handlePracticeTargetChange(headerPreviousPracticeTarget);
-                        }}
-                        title={
-                          headerPreviousPracticeTarget
-                            ? headerPreviousPracticeTarget.title
-                            : locale === 'zh-CN'
-                              ? '没有上一题'
-                              : 'No previous problem'
-                        }
-                      >
-                        <ChevronLeft className="mr-1 h-4 w-4" />
-                        {previousPracticeIsChapterJump
-                          ? locale === 'zh-CN'
-                            ? '上一章'
-                            : 'Prev chapter'
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
+                      disabled={!headerPreviousPracticeTarget}
+                      onClick={() => {
+                        if (!headerPreviousPracticeTarget) return;
+                        handlePracticeTargetChange(headerPreviousPracticeTarget);
+                      }}
+                      title={
+                        headerPreviousPracticeTarget
+                          ? headerPreviousPracticeTarget.title
                           : locale === 'zh-CN'
-                            ? '上一题'
-                            : 'Prev'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
-                        disabled={!headerNextPracticeTarget}
-                        onClick={() => {
-                          if (!headerNextPracticeTarget) return;
-                          handlePracticeTargetChange(headerNextPracticeTarget);
-                        }}
-                        title={
-                          headerNextPracticeTarget
-                            ? headerNextPracticeTarget.title
-                            : locale === 'zh-CN'
-                              ? '没有下一题'
-                              : 'No next problem'
-                        }
-                      >
-                        {nextPracticeIsChapterJump
-                          ? locale === 'zh-CN'
-                            ? '下一章'
-                            : 'Next chapter'
+                            ? '没有上一题'
+                            : 'No previous problem'
+                      }
+                    >
+                      <ChevronLeft className="mr-1 h-4 w-4" />
+                      {!isReviewPracticeMode && previousPracticeIsChapterJump
+                        ? locale === 'zh-CN'
+                          ? '上一章'
+                          : 'Prev chapter'
+                        : locale === 'zh-CN'
+                          ? '上一题'
+                          : 'Prev'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
+                      disabled={!headerNextPracticeTarget}
+                      onClick={() => {
+                        if (!headerNextPracticeTarget) return;
+                        handlePracticeTargetChange(headerNextPracticeTarget);
+                      }}
+                      title={
+                        headerNextPracticeTarget
+                          ? headerNextPracticeTarget.title
                           : locale === 'zh-CN'
-                            ? '下一题'
-                            : 'Next'}
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
-                      <ProblemAiHelpButton
-                        courseId={courseId}
-                        problem={selectedProblem}
-                        problemTitle={selectedProblemTitle}
-                        problemContent={selectedProblemContent}
-                        notebook={selectedProblemNotebook}
-                        notebookLabel={selectedProblemNotebookLabel}
-                        locale={locale}
-                        currentAnswer={selectedProblemCurrentAnswer}
-                        latestAttempt={selectedProblemLatestDetailedAttempt}
-                      />
-                      {canEditProblems || selectedProblem.notebookId ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
-                              aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
-                            >
-                              <Ellipsis className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            {canEditProblems ? (
-                              <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
-                                <ArrowRightLeft className="h-4 w-4" />
-                                {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
-                              </DropdownMenuItem>
-                            ) : null}
-                            {selectedProblem.notebookId ? (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(`/classroom/${selectedProblem.notebookId}`)
-                                }
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                                {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
-                              </DropdownMenuItem>
-                            ) : null}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : null}
-                    </>
-                  ) : (
+                            ? '没有下一题'
+                            : 'No next problem'
+                      }
+                    >
+                      {!isReviewPracticeMode && nextPracticeIsChapterJump
+                        ? locale === 'zh-CN'
+                          ? '下一章'
+                          : 'Next chapter'
+                        : locale === 'zh-CN'
+                          ? '下一题'
+                          : 'Next'}
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
                     <ProblemAiHelpButton
                       courseId={courseId}
                       problem={selectedProblem}
@@ -2613,7 +2567,39 @@ export function CourseProblemBankView({
                       currentAnswer={selectedProblemCurrentAnswer}
                       latestAttempt={selectedProblemLatestDetailedAttempt}
                     />
-                  )}
+                    {canEditProblems || selectedProblem.notebookId ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
+                            aria-label={locale === 'zh-CN' ? '更多操作' : 'More actions'}
+                          >
+                            <Ellipsis className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {canEditProblems ? (
+                            <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
+                              <ArrowRightLeft className="h-4 w-4" />
+                              {locale === 'zh-CN' ? '移动到其他笔记本' : 'Move to notebook'}
+                            </DropdownMenuItem>
+                          ) : null}
+                          {selectedProblem.notebookId ? (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/classroom/${selectedProblem.notebookId}`)
+                              }
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              {locale === 'zh-CN' ? '打开对应笔记本' : 'Open notebook'}
+                            </DropdownMenuItem>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
+                  </>
                   {canEditProblems ? (
                     <Button
                       type="button"

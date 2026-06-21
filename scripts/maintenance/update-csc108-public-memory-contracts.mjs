@@ -10,6 +10,13 @@ import {
   CSC108_NOTEBOOK_MEMORY_SPECS,
   CSC108_PUBLIC_MEMORY_TEXTS,
 } from './csc108-public-memory-concepts.mjs';
+import {
+  buildTeachingControlMemoryText,
+  teachingControlMemoryKind,
+  teachingControlMemoryReason,
+  withTeachingControlSourceReference,
+} from '../../features/memory/data/teaching-control-memory.mjs';
+import { assertSafeTeachingControlWrite } from './teaching-control-update-safety.mjs';
 
 const ROOT = process.cwd();
 const COURSE_ID = process.env.CSC108_COURSE_ID || CSC108_COURSE_ID;
@@ -103,6 +110,7 @@ async function upsertMemory(prisma, data) {
 
 async function main() {
   loadEnvLocal();
+  assertSafeTeachingControlWrite('update-csc108-public-memory-contracts');
   const prisma = new PrismaClient();
 
   try {
@@ -130,6 +138,7 @@ async function main() {
       textSource: 'scripts/maintenance/csc108-public-memory-concepts.mjs',
       courseId: course.id,
     };
+    const teachingControlSourceReferences = withTeachingControlSourceReference(sourceReferences);
 
     const updated = [];
     updated.push(
@@ -140,14 +149,19 @@ async function main() {
         notebookId: null,
         targetType: 'course',
         scope: 'public',
-        kind: 'course_concept_card',
+        kind: teachingControlMemoryKind('course'),
         status: 'active',
-        source: 'manual_course_memory_contract',
+        source: 'manual_teaching_control_memory',
         title: CSC108_COURSE_MEMORY_TITLE,
-        text: CSC108_PUBLIC_MEMORY_TEXTS[CSC108_COURSE_MEMORY_ID],
-        reason: 'CSC108 整门课答题协议；notebook 公共记忆提供具体工具、模板和例子。',
+        text: buildTeachingControlMemoryText({
+          courseCode: 'CSC108',
+          level: 'course',
+          title: CSC108_COURSE_MEMORY_TITLE,
+          legacyText: CSC108_PUBLIC_MEMORY_TEXTS[CSC108_COURSE_MEMORY_ID],
+        }),
+        reason: teachingControlMemoryReason('CSC108', 'course'),
         question: null,
-        sourceReferences,
+        sourceReferences: teachingControlSourceReferences,
         confidence: 0.92,
       }),
     );
@@ -166,18 +180,24 @@ async function main() {
           notebookId: notebook.id,
           targetType: 'notebook',
           scope: 'public',
-          kind: 'notebook_operational_guide',
+          kind: teachingControlMemoryKind('notebook'),
           status: 'active',
-          source: 'manual_notebook_memory_contract',
+          source: 'manual_teaching_control_memory',
           title: spec.title,
-          text,
-          reason: `CSC108 单本笔记本详细操作记忆：${notebook.name}。包含指导、API/模板例子和检查清单。`,
+          text: buildTeachingControlMemoryText({
+            courseCode: 'CSC108',
+            level: 'notebook',
+            title: spec.title,
+            legacyText: text,
+            notebookId: notebook.id,
+            notebookTitle: notebook.name,
+          }),
+          reason: teachingControlMemoryReason('CSC108', 'notebook'),
           question: null,
-          sourceReferences: {
-            ...sourceReferences,
+          sourceReferences: withTeachingControlSourceReference(sourceReferences, {
             notebookId: notebook.id,
             notebookName: notebook.name,
-          },
+          }),
           confidence: 0.9,
         }),
       );

@@ -11,6 +11,13 @@ import {
   MAT136_COURSE_MEMORY_ID,
   MATH_COURSE_MEMORY_TEXTS,
 } from './math-public-memory-concepts.mjs';
+import {
+  buildTeachingControlMemoryText,
+  teachingControlMemoryKind,
+  teachingControlMemoryReason,
+  withTeachingControlSourceReference,
+} from '../../features/memory/data/teaching-control-memory.mjs';
+import { assertSafeTeachingControlWrite } from './teaching-control-update-safety.mjs';
 
 const ROOT = process.cwd();
 const MAT136_NOTEBOOK_MEMORY_PATH = path.join(
@@ -149,6 +156,12 @@ async function updateCourseMemories(prisma, spec) {
   }
 
   const updated = [];
+  const courseCode = spec.courseCode || course.courseCode || course.name;
+  const sourceReferences = {
+    maintainedBy: 'scripts/maintenance/update-math-public-memory-contracts.mjs',
+    textSource: spec.textSource,
+    courseId: course.id,
+  };
   updated.push(
     await upsertMemory(prisma, {
       id: spec.courseMemoryId,
@@ -157,18 +170,19 @@ async function updateCourseMemories(prisma, spec) {
       notebookId: null,
       targetType: 'course',
       scope: 'public',
-      kind: 'course_concept_card',
+      kind: teachingControlMemoryKind('course'),
       status: 'active',
-      source: 'manual_course_memory_contract',
+      source: 'manual_teaching_control_memory',
       title: spec.courseMemoryTitle,
-      text: spec.courseMemoryText,
-      reason: spec.courseReason,
+      text: buildTeachingControlMemoryText({
+        courseCode,
+        level: 'course',
+        title: spec.courseMemoryTitle,
+        legacyText: spec.courseMemoryText,
+      }),
+      reason: teachingControlMemoryReason(courseCode, 'course'),
       question: null,
-      sourceReferences: {
-        maintainedBy: 'scripts/maintenance/update-math-public-memory-contracts.mjs',
-        textSource: spec.textSource,
-        courseId: course.id,
-      },
+      sourceReferences: withTeachingControlSourceReference(sourceReferences),
       confidence: 0.92,
     }),
   );
@@ -183,20 +197,24 @@ async function updateCourseMemories(prisma, spec) {
         notebookId: notebook.id,
         targetType: 'notebook',
         scope: 'public',
-        kind: 'notebook_operational_guide',
+        kind: teachingControlMemoryKind('notebook'),
         status: 'active',
-        source: 'manual_notebook_memory_contract',
+        source: 'manual_teaching_control_memory',
         title: entry.title,
-        text: entry.text,
-        reason: `${course.courseCode || course.name} 单本笔记本详细操作记忆：${notebook.name}。包含解题模板、关键步骤和检查清单。`,
+        text: buildTeachingControlMemoryText({
+          courseCode,
+          level: 'notebook',
+          title: entry.title,
+          legacyText: entry.text,
+          notebookId: notebook.id,
+          notebookTitle: notebook.name,
+        }),
+        reason: teachingControlMemoryReason(courseCode, 'notebook'),
         question: null,
-        sourceReferences: {
-          maintainedBy: 'scripts/maintenance/update-math-public-memory-contracts.mjs',
-          textSource: spec.textSource,
-          courseId: course.id,
+        sourceReferences: withTeachingControlSourceReference(sourceReferences, {
           notebookId: notebook.id,
           notebookName: notebook.name,
-        },
+        }),
         confidence: 0.9,
       }),
     );
@@ -210,6 +228,7 @@ async function updateCourseMemories(prisma, spec) {
 
 async function main() {
   loadEnvLocal();
+  assertSafeTeachingControlWrite('update-math-public-memory-contracts');
   const prisma = new PrismaClient();
 
   try {
@@ -221,7 +240,7 @@ async function main() {
         courseMemoryId: MAT102_COURSE_MEMORY_ID,
         courseMemoryTitle: 'MAT102 课程共有记忆',
         courseMemoryText: MATH_COURSE_MEMORY_TEXTS[MAT102_COURSE_MEMORY_ID],
-        courseReason: 'MAT102 proof-first 整门课答题协议；notebook 公共记忆提供具体证明模板。',
+        courseCode: 'MAT102',
         textSource: 'scripts/maintenance/math-public-memory-concepts.mjs',
         notebookMemories: MAT102_NOTEBOOK_MEMORY_SPECS,
       }),
@@ -232,8 +251,7 @@ async function main() {
         courseMemoryId: MAT136_COURSE_MEMORY_ID,
         courseMemoryTitle: 'MAT136 课程知识地图',
         courseMemoryText: MATH_COURSE_MEMORY_TEXTS[MAT136_COURSE_MEMORY_ID],
-        courseReason:
-          'MAT136 Calculus II 整门课答题协议；notebook 公共记忆提供计算、判别和建模模板。',
+        courseCode: 'MAT136',
         textSource:
           'scripts/maintenance/math-public-memory-concepts.mjs + scripts/maintenance/mat136-notebook-public-memory.json',
         notebookMemories: mat136NotebookMemories,

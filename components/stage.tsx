@@ -876,7 +876,7 @@ export function Stage({
             finalAssistantText = answerText;
             setLiveSpeech(answerText || null);
             setSpeakingAgentId(lastAssistant?.metadata?.agentId || null);
-            if (messages.some((m) => m.role === 'assistant')) {
+            if (messages.some((m) => m.role === 'assistant' && !m.metadata?.progressOnly)) {
               hasAssistantReply = true;
               setThinkingState(null);
             }

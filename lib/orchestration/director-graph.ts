@@ -31,6 +31,8 @@ import {
   buildStructuredPrompt,
   summarizeConversation,
   convertMessagesToOpenAI,
+  convertedMessageContentToText,
+  type ConvertedMessageContent,
 } from './prompt-builder';
 import { buildDirectorPrompt, parseDirectorDecision } from './director-prompt';
 import { getEffectiveActions } from './tool-schemas';
@@ -39,6 +41,21 @@ import { parseStructuredChunk, createParserState, finalizeParser } from './state
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('DirectorGraph');
+
+function toLangChainHumanContent(content: ConvertedMessageContent) {
+  if (typeof content === 'string') return content;
+  return content.map((part) => {
+    if (part.type === 'text') return { type: 'text', text: part.text };
+    if (part.type === 'image' && typeof part.image === 'string') {
+      return {
+        type: 'image_url',
+        image_url: { url: part.image },
+        mime_type: part.mediaType,
+      };
+    }
+    return { type: 'text', text: '[Image attachment]' };
+  });
+}
 
 // ==================== State Definition ====================
 
@@ -303,7 +320,9 @@ async function runAgentGeneration(
   const lcMessages = [
     new SystemMessage(systemPrompt),
     ...openaiMessages.map((m) =>
-      m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content),
+      m.role === 'user'
+        ? new HumanMessage({ content: toLangChainHumanContent(m.content) })
+        : new AIMessage(convertedMessageContentToText(m.content)),
     ),
   ];
 

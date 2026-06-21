@@ -16,6 +16,7 @@ import {
   type NotebookProblemPublicContent,
   type NotebookProblemSecretJudge,
 } from './schema';
+import { normalizeProblemConceptTags } from './concept-tags.mjs';
 
 const optionalTextSchema = z.string().trim().min(1).optional();
 const answerSchema = z.union([z.string().trim().min(1), z.array(z.string().trim().min(1))]);
@@ -425,12 +426,27 @@ export function buildNotebookProblemDraftFromReviewProblem(
   const publicContent = buildPublicContent(problem, type, secretJudge);
   const grading = buildGrading(problem, type, publicContent, secretJudge);
   const concepts = uniqueTexts(problem.concepts, 16, 80);
-  const tags = uniqueTexts([...problem.tags, ...concepts], 16, 30);
+  const title = problemTitle(problem);
+  const tags = uniqueTexts(
+    normalizeProblemConceptTags({
+      title,
+      type,
+      tags: [...problem.tags, ...concepts],
+      difficulty: problem.difficulty,
+      publicContent,
+      sourceMeta: {
+        ...problem.sourceMeta,
+        ...(concepts.length > 0 ? { concepts } : {}),
+      },
+    }),
+    16,
+    30,
+  );
 
   return notebookProblemImportDraftSchema.parse({
     draftId: problem.draftId ?? problem.id ?? crypto.randomUUID(),
     notebookId: null,
-    title: problemTitle(problem),
+    title,
     type,
     status: problem.status,
     source: problem.source,

@@ -124,6 +124,7 @@ export default function StoreCourseDetailPage() {
   const refreshNotifications = useNotificationStore((s) => s.refreshNotifications);
   const [data, setData] = useState<StoreCourseDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [buying, setBuying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(5);
@@ -131,11 +132,19 @@ export default function StoreCourseDetailPage() {
   const [coursePurchaseOpen, setCoursePurchaseOpen] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      setLoadError('课程不存在');
+      return;
+    }
     setLoading(true);
+    setLoadError(null);
     try {
       const next = await backendJson<StoreCourseDetailResponse>(`/api/courses/store/${id}`);
       setData(next);
+    } catch (error) {
+      setData(null);
+      setLoadError(error instanceof Error ? error.message : '课程详情加载失败');
     } finally {
       setLoading(false);
     }
@@ -171,7 +180,7 @@ export default function StoreCourseDetailPage() {
       await refreshNotifications({ silent: true });
       notifyCreditsBalancesChanged();
       toast.success(`已加入课程「${response.course.name}」`);
-      router.push(`/course/${response.course.id}`);
+      router.push(`/learn?courseId=${encodeURIComponent(response.course.id)}`);
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '加入失败');
@@ -200,10 +209,33 @@ export default function StoreCourseDetailPage() {
     }
   };
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="store-shell flex min-h-full items-center justify-center text-muted-foreground">
         加载课程详情…
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="store-shell flex min-h-full items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-[28px] border border-slate-200/75 bg-white/80 p-6 text-center shadow-[0_18px_46px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/6">
+          <h1 className="text-xl font-semibold text-slate-950 dark:text-white">课程详情不可用</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {loadError || '这门课程可能未上架，或你已经拥有它。'}
+          </p>
+          <div className="mt-5 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:justify-center">
+            <Button variant="outline" onClick={() => router.push('/store/courses')}>
+              返回课程商城
+            </Button>
+            {id ? (
+              <Button onClick={() => router.push(`/learn?courseId=${encodeURIComponent(id)}`)}>
+                进入课程学习
+              </Button>
+            ) : null}
+          </div>
+        </div>
       </div>
     );
   }
@@ -282,9 +314,11 @@ export default function StoreCourseDetailPage() {
                     <button
                       type="button"
                       className="store-cta-secondary w-full rounded-full px-5 py-3 text-sm font-semibold"
-                      onClick={() => router.push(`/course/${course.id}`)}
+                      onClick={() =>
+                        router.push(`/learn?courseId=${encodeURIComponent(course.id)}`)
+                      }
                     >
-                      打开课程
+                      进入学习
                     </button>
                   ) : null}
                 </div>

@@ -4,6 +4,11 @@
  */
 
 import type { UIMessage } from 'ai';
+import {
+  buildCourseReplyProgress,
+  dispatchCourseReplyProgress,
+  type CourseReplyProgressPhase,
+} from '@/lib/chat/course-reply-progress';
 import type {
   ChatMessageMetadata,
   CourseChatContext,
@@ -13,7 +18,7 @@ import type {
 } from '@/lib/types/chat';
 import { useSettingsStore } from '@/lib/store/settings';
 import { createLogger } from '@/lib/logger';
-import { runQueuedAiTask } from '@/lib/store/ai-task-queue';
+import { runQueuedAiTask, updateQueuedAiTask } from '@/lib/store/ai-task-queue';
 
 const log = createLogger('CourseSideChat');
 
@@ -46,6 +51,8 @@ async function consumeOneResponse(
   signal: AbortSignal,
   working: UIMessage<ChatMessageMetadata>[],
   onMessages: (m: UIMessage<ChatMessageMetadata>[]) => void,
+  taskId?: string,
+  initialProgressMessageId?: string | null,
 ): Promise<{
   cueUserReceived: boolean;
   doneData: {
@@ -60,7 +67,10 @@ async function consumeOneResponse(
   const decoder = new TextDecoder();
   let sseBuffer = '';
   let currentMessageId: string | null = null;
+  let currentAgentName: string | null = null;
+  let pendingProgressMessageId: string | null = initialProgressMessageId ?? null;
   let cueUserReceived = false;
+  const streamingStartedMessageIds = new Set<string>();
   let doneData: {
     totalAgents: number;
     agentHadContent?: boolean;
@@ -69,6 +79,70 @@ async function consumeOneResponse(
 
   const findTextPartIndex = (msg: UIMessage<ChatMessageMetadata>) =>
     msg.parts.findIndex((p) => p.type === 'text');
+
+  const messageText = (msg: UIMessage<ChatMessageMetadata>) =>
+    msg.parts
+      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      .map((part) => part.text)
+      .join('');
+
+  const applyProgress = (
+    phase: CourseReplyProgressPhase,
+    targetId?: string | null,
+    agentName?: string | null,
+    options: { ensureMessage?: boolean } = {},
+  ) => {
+    const progress = buildCourseReplyProgress({ phase, messageId: targetId, agentName });
+    const ensureMessage = options.ensureMessage ?? true;
+    let resolvedTargetId = targetId || currentMessageId || pendingProgressMessageId;
+    let changedMessage = false;
+
+    if (!resolvedTargetId && ensureMessage) {
+      resolvedTargetId = `assistant-progress-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      pendingProgressMessageId = resolvedTargetId;
+      working.push({
+        id: resolvedTargetId,
+        role: 'assistant',
+        parts: [{ type: 'text', text: '' }],
+        metadata: {
+          senderName: agentName?.trim() || '课程老师',
+          originalRole: 'agent',
+          createdAt: Date.now(),
+          streaming: true,
+          progressOnly: true,
+          statusText: progress.line,
+          publicProgressSteps: progress.steps,
+        },
+      });
+      changedMessage = true;
+    } else if (resolvedTargetId) {
+      const msg = working.find((m) => m.id === resolvedTargetId);
+      if (msg) {
+        msg.metadata = {
+          ...msg.metadata,
+          senderName: msg.metadata?.senderName || agentName?.trim() || '课程老师',
+          originalRole: msg.metadata?.originalRole || 'agent',
+          createdAt: msg.metadata?.createdAt || Date.now(),
+          streaming: true,
+          progressOnly: msg.metadata?.progressOnly,
+          statusText: progress.line,
+          publicProgressSteps: progress.steps,
+        };
+        changedMessage = true;
+      }
+    }
+
+    const detail = {
+      ...progress,
+      messageId: resolvedTargetId || progress.messageId,
+    };
+    if (taskId) {
+      updateQueuedAiTask(taskId, { description: detail.line });
+    }
+    dispatchCourseReplyProgress(detail);
+    if (changedMessage) onMessages(cloneMessages(working));
+    return resolvedTargetId;
+  };
 
   try {
     while (true) {
@@ -92,23 +166,52 @@ async function consumeOneResponse(
         }
 
         switch (event.type) {
+          case 'thinking': {
+            applyProgress(
+              event.data.stage === 'director' ? 'director' : 'agent_loading',
+              currentMessageId ?? pendingProgressMessageId,
+              currentAgentName,
+            );
+            break;
+          }
           case 'agent_start': {
             const { messageId, agentId, agentName, agentAvatar, agentColor } = event.data;
             currentMessageId = messageId;
-            working.push({
-              id: messageId,
-              role: 'assistant',
-              parts: [{ type: 'text', text: '' }],
-              metadata: {
-                senderName: agentName,
-                senderAvatar: agentAvatar,
-                agentId,
-                agentColor,
-                originalRole: 'agent',
-                createdAt: Date.now(),
-                streaming: true,
-              },
+            currentAgentName = agentName;
+            const progress = buildCourseReplyProgress({
+              phase: 'agent_started',
+              messageId,
+              agentName,
             });
+            const pendingMessage = pendingProgressMessageId
+              ? working.find((m) => m.id === pendingProgressMessageId)
+              : null;
+            const pendingText = pendingMessage ? messageText(pendingMessage).trim() : '';
+            const nextMetadata: ChatMessageMetadata = {
+              senderName: agentName,
+              senderAvatar: agentAvatar,
+              agentId,
+              agentColor,
+              originalRole: 'agent',
+              createdAt: pendingMessage?.metadata?.createdAt || Date.now(),
+              streaming: true,
+              statusText: progress.line,
+              publicProgressSteps: progress.steps,
+            };
+            if (pendingMessage && !pendingText) {
+              pendingMessage.id = messageId;
+              pendingMessage.metadata = nextMetadata;
+              pendingProgressMessageId = null;
+            } else {
+              working.push({
+                id: messageId,
+                role: 'assistant',
+                parts: [{ type: 'text', text: '' }],
+                metadata: nextMetadata,
+              });
+            }
+            if (taskId) updateQueuedAiTask(taskId, { description: progress.line });
+            dispatchCourseReplyProgress(progress);
             onMessages(cloneMessages(working));
             break;
           }
@@ -117,6 +220,22 @@ async function consumeOneResponse(
             if (!targetId) break;
             const msg = working.find((m) => m.id === targetId);
             if (!msg) break;
+            if (!streamingStartedMessageIds.has(targetId)) {
+              streamingStartedMessageIds.add(targetId);
+              const progress = buildCourseReplyProgress({
+                phase: 'streaming',
+                messageId: targetId,
+                agentName: msg.metadata?.senderName || currentAgentName,
+              });
+              msg.metadata = {
+                ...msg.metadata,
+                streaming: true,
+                statusText: progress.line,
+                publicProgressSteps: progress.steps,
+              };
+              if (taskId) updateQueuedAiTask(taskId, { description: progress.line });
+              dispatchCourseReplyProgress(progress);
+            }
             const ti = findTextPartIndex(msg);
             if (ti < 0) {
               msg.parts.push({ type: 'text', text: event.data.content });
@@ -132,9 +251,16 @@ async function consumeOneResponse(
           case 'agent_end': {
             const msg = working.find((m) => m.id === event.data.messageId);
             if (msg?.metadata) {
-              msg.metadata = { ...msg.metadata, streaming: false };
+              msg.metadata = {
+                ...msg.metadata,
+                streaming: false,
+                statusText: undefined,
+                publicProgressSteps: undefined,
+              };
               onMessages(cloneMessages(working));
             }
+            currentMessageId = null;
+            currentAgentName = null;
             break;
           }
           case 'cue_user': {
@@ -147,9 +273,21 @@ async function consumeOneResponse(
               agentHadContent: event.data.agentHadContent,
               directorState: event.data.directorState,
             };
+            if (!currentMessageId && pendingProgressMessageId) {
+              const pendingIndex = working.findIndex((m) => m.id === pendingProgressMessageId);
+              if (pendingIndex >= 0 && !messageText(working[pendingIndex]).trim()) {
+                working.splice(pendingIndex, 1);
+                pendingProgressMessageId = null;
+                onMessages(cloneMessages(working));
+              }
+            }
+            applyProgress('completed', currentMessageId, currentAgentName, {
+              ensureMessage: false,
+            });
             break;
           }
           case 'error': {
+            applyProgress('failed', currentMessageId, currentAgentName, { ensureMessage: false });
             throw new Error(event.data.message);
           }
           default:
@@ -182,11 +320,14 @@ export async function runCourseSideChatLoop(params: RunCourseSideChatParams): Pr
       description: summarizeChatPrompt(params.initialMessages),
       signal: params.signal,
     },
-    () => runCourseSideChatLoopUnqueued(params),
+    ({ taskId }) => runCourseSideChatLoopUnqueued(params, taskId),
   );
 }
 
-async function runCourseSideChatLoopUnqueued(params: RunCourseSideChatParams): Promise<void> {
+async function runCourseSideChatLoopUnqueued(
+  params: RunCourseSideChatParams,
+  taskId?: string,
+): Promise<void> {
   const {
     initialMessages,
     agentIds,
@@ -213,7 +354,39 @@ async function runCourseSideChatLoopUnqueued(params: RunCourseSideChatParams): P
   const working = cloneMessages(initialMessages);
   let consecutiveEmptyTurns = 0;
 
+  const addQueuedProgressMessage = () => {
+    const progress = buildCourseReplyProgress({ phase: 'queued' });
+    const messageId = `assistant-progress-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    working.push({
+      id: messageId,
+      role: 'assistant',
+      parts: [{ type: 'text', text: '' }],
+      metadata: {
+        senderName: '课程老师',
+        originalRole: 'agent',
+        createdAt: Date.now(),
+        streaming: true,
+        progressOnly: true,
+        statusText: progress.line,
+        publicProgressSteps: progress.steps,
+      },
+    });
+    if (taskId) updateQueuedAiTask(taskId, { description: progress.line });
+    dispatchCourseReplyProgress({ ...progress, messageId });
+    onMessages(cloneMessages(working));
+    return messageId;
+  };
+
+  const removeQueuedProgressMessage = (messageId: string | null) => {
+    if (!messageId) return;
+    const index = working.findIndex((message) => message.id === messageId);
+    if (index < 0 || !working[index].metadata?.progressOnly) return;
+    working.splice(index, 1);
+    onMessages(cloneMessages(working));
+  };
+
   while (turnCount < maxTurns && !signal.aborted) {
+    const queuedProgressMessageId = addQueuedProgressMessage();
     const storeState = getStoreState();
 
     const config: StatelessChatRequest['config'] = {
@@ -225,36 +398,65 @@ async function runCourseSideChatLoopUnqueued(params: RunCourseSideChatParams): P
       config.agentConfigs = agentConfigs;
     }
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: working,
-        storeState,
-        config,
-        courseContext,
-        userProfile,
-        directorState,
-        apiKey,
-        baseUrl: baseUrl || undefined,
-        model,
-      }),
-      signal,
-    });
+    let cueUserReceived = false;
+    let doneData: {
+      totalAgents: number;
+      agentHadContent?: boolean;
+      directorState?: DirectorState;
+    } | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: working.filter((message) => !message.metadata?.progressOnly),
+          storeState,
+          config,
+          courseContext,
+          userProfile,
+          directorState,
+          apiKey,
+          baseUrl: baseUrl || undefined,
+          model,
+        }),
+        signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+
+      const consumed = await consumeOneResponse(
+        response,
+        signal,
+        working,
+        onMessages,
+        taskId,
+        queuedProgressMessageId,
+      );
+      cueUserReceived = consumed.cueUserReceived;
+      doneData = consumed.doneData;
+    } catch (error) {
+      if (signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+        removeQueuedProgressMessage(queuedProgressMessageId);
+      } else {
+        const progress = buildCourseReplyProgress({
+          phase: 'failed',
+          messageId: queuedProgressMessageId,
+        });
+        if (taskId) updateQueuedAiTask(taskId, { description: progress.line });
+        dispatchCourseReplyProgress(progress);
+        removeQueuedProgressMessage(queuedProgressMessageId);
+      }
+      throw error;
     }
 
-    const { cueUserReceived, doneData } = await consumeOneResponse(
-      response,
-      signal,
-      working,
-      onMessages,
-    );
-
-    if (signal.aborted) break;
+    if (signal.aborted) {
+      removeQueuedProgressMessage(queuedProgressMessageId);
+      break;
+    }
 
     if (doneData?.directorState) {
       directorState = doneData.directorState;
