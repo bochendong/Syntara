@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Coins,
-  Cpu,
   Ellipsis,
   GraduationCap,
   House,
@@ -13,10 +11,10 @@ import {
   Plus,
   Settings,
   ShoppingBag,
-  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,19 +25,10 @@ import {
 import { createNotebookHref } from '@/lib/constants/course-chat';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
+import { useUserProfileStore } from '@/lib/store/user-profile';
 import { cn } from '@/lib/utils';
-import { backendJson } from '@/lib/utils/backend-api';
 import { getCourse } from '@/lib/utils/course-storage';
 import { pruneCourseWorkspaceCachesForPathname } from '@/lib/utils/course-workspace-cache';
-import {
-  formatCashCreditsLabel,
-  formatComputeCreditsLabel,
-  formatPurchaseCreditsLabel,
-} from '@/lib/utils/credits';
-import {
-  subscribeCreditsBalancesChanged,
-  type CreditsBalances,
-} from '@/lib/utils/credits-balance-events';
 
 function courseIdFromPathname(pathname: string | null): string | null {
   if (!pathname) return null;
@@ -100,25 +89,16 @@ function MoreMenuLink({
   );
 }
 
-function formatHeaderCreditAmount(value: number): string {
-  return Math.max(0, Math.round(value)).toLocaleString('en-US');
-}
-
-async function fetchCreditBalances(): Promise<CreditsBalances | null> {
-  const data = await backendJson<{ balances: CreditsBalances }>('/api/profile/credits?pageSize=1')
-    .then((value) => value)
-    .catch(() => null);
-  return data?.balances ?? null;
-}
-
 export function AppGlobalHeader() {
   const pathname = usePathname();
   const routeCourseId = useMemo(() => courseIdFromPathname(pathname), [pathname]);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const authName = useAuthStore((state) => state.name);
   const storedCourseId = useCurrentCourseStore((state) => state.id);
   const courseName = useCurrentCourseStore((state) => state.name);
   const setCurrentCourse = useCurrentCourseStore((state) => state.setCurrentCourse);
-  const [creditBalances, setCreditBalances] = useState<CreditsBalances | null>(null);
+  const userAvatar = useUserProfileStore((state) => state.avatar);
+  const avatarFrameId = useUserProfileStore((state) => state.avatarFrameId);
+  const nickname = useUserProfileStore((state) => state.nickname);
   const courseId = routeCourseId || storedCourseId;
   const encodedCourseId = courseId ? encodeURIComponent(courseId) : null;
   const courseHomeHref = encodedCourseId ? `/course/${encodedCourseId}` : '/my-courses';
@@ -129,32 +109,7 @@ export function AppGlobalHeader() {
     pathname === '/store/courses' ||
     Boolean(pathname?.startsWith('/store/'));
   const courseTitle = courseId ? courseName || '课程工作区' : '选择课程';
-  const creditItems =
-    isLoggedIn && creditBalances
-      ? [
-          {
-            key: 'cash',
-            value: creditBalances.cash,
-            title: formatCashCreditsLabel(creditBalances.cash),
-            Icon: Wallet,
-            className: 'text-emerald-500',
-          },
-          {
-            key: 'compute',
-            value: creditBalances.compute,
-            title: formatComputeCreditsLabel(creditBalances.compute),
-            Icon: Cpu,
-            className: 'text-sky-500',
-          },
-          {
-            key: 'purchase',
-            value: creditBalances.purchase,
-            title: formatPurchaseCreditsLabel(creditBalances.purchase),
-            Icon: Coins,
-            className: 'text-amber-500',
-          },
-        ]
-      : [];
+  const userDisplayName = nickname.trim() || authName.trim() || '个人中心';
 
   useEffect(() => {
     pruneCourseWorkspaceCachesForPathname(pathname);
@@ -179,42 +134,6 @@ export function AppGlobalHeader() {
       cancelled = true;
     };
   }, [courseName, routeCourseId, setCurrentCourse, storedCourseId]);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    let active = true;
-
-    (async () => {
-      const balances = await fetchCreditBalances();
-      if (active && balances) setCreditBalances(balances);
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [isLoggedIn]);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    let active = true;
-    const unsubscribe = subscribeCreditsBalancesChanged((balances) => {
-      if (!active) return;
-      if (balances) {
-        setCreditBalances(balances);
-        return;
-      }
-
-      void (async () => {
-        const nextBalances = await fetchCreditBalances();
-        if (active && nextBalances) setCreditBalances(nextBalances);
-      })();
-    });
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [isLoggedIn]);
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 rounded-[18px] border border-slate-200/80 bg-white/88 px-3 shadow-[0_14px_34px_rgba(15,23,42,0.055)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/68">
@@ -256,28 +175,6 @@ export function AppGlobalHeader() {
         />
         <HeaderLink href={storeHref} active={storeActive} icon={ShoppingBag} label="商城" />
 
-        {creditItems.length > 0 ? (
-          <>
-            <div className="mx-1 hidden h-5 w-px shrink-0 bg-slate-200 lg:block dark:bg-white/10" />
-            <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
-              {creditItems.map(({ key, value, title, Icon, className }) => (
-                <Link
-                  key={key}
-                  href={key === 'cash' ? '/top-up' : '/credits-market'}
-                  title={title}
-                  aria-label={title}
-                  className="inline-flex h-8 min-w-[4rem] items-center justify-center gap-1.5 rounded-[10px] border border-slate-200/75 bg-white/64 px-2 text-xs font-semibold text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/[0.055] dark:text-slate-200 dark:hover:border-sky-400/25 dark:hover:bg-sky-400/10"
-                >
-                  <Icon className={cn('h-3.5 w-3.5', className)} strokeWidth={2} />
-                  <span className="tabular-nums text-slate-950 dark:text-white">
-                    {formatHeaderCreditAmount(value)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </>
-        ) : null}
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -295,10 +192,23 @@ export function AppGlobalHeader() {
             <MoreMenuLink href={createNotebookUrl} icon={Plus} label="新建笔记本" />
             <MoreMenuLink href="/my-courses" icon={GraduationCap} label="所有课程" />
             <DropdownMenuSeparator />
-            <MoreMenuLink href="/credits-market" icon={Coins} label="积分中心" />
             <MoreMenuLink href="/settings" icon={Settings} label="设置" />
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <Link
+          href="/profile"
+          className="ml-1 rounded-full outline-none ring-offset-2 transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-sky-300"
+          aria-label={`打开个人中心：${userDisplayName}`}
+          title={userDisplayName}
+        >
+          <UserAvatarWithFrame
+            src={userAvatar}
+            frameId={avatarFrameId}
+            className="size-8"
+            imgClassName="ring-1 ring-black/5 dark:ring-white/10"
+          />
+        </Link>
       </nav>
     </header>
   );

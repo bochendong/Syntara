@@ -14,6 +14,7 @@ export type CourseReplyProgressPhase =
 export interface CourseReplyProgressEventDetail {
   messageId?: string;
   phase: CourseReplyProgressPhase;
+  title?: string;
   line: string;
   agentName?: string;
   steps: PublicReplyProgressStep[];

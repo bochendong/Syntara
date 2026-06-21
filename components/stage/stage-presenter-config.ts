@@ -3,11 +3,11 @@ import type { TTSProviderId } from '@/lib/audio/types';
 export const CLASSROOM_LIVE2D_PRESENTER_ENABLED = false;
 
 export const LIVE2D_PRESENTER_AVATAR_BY_ID = {
-  haru: '/liv2d_poster/haru-avator.png',
-  hiyori: '/liv2d_poster/hiyori-avator.png',
-  mark: '/liv2d_poster/mark-avator.png',
-  mao: '/liv2d_poster/mao-avator.png',
-  rice: '/liv2d_poster/rice-avator.png',
+  haru: '/avatars/live2d-avators/haru-avator.png',
+  hiyori: '/avatars/live2d-avators/hiyori-avator.png',
+  mark: '/avatars/live2d-avators/mark-avator.png',
+  mao: '/avatars/live2d-avators/mao-avator.png',
+  rice: '/avatars/live2d-avators/rice-avator.png',
 } as const;
 
 export const SIDEBAR_VOICE_REPLY_PROVIDER_ORDER = [

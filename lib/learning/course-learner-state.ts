@@ -649,6 +649,15 @@ export function savePracticePlan(plan: PracticePlan): PracticePlan {
   return next;
 }
 
+export function deletePracticePlan(planId: string, userId: string): void {
+  if (!storageAvailable() || !planId) return;
+  window.localStorage.removeItem(planKey(planId));
+  writePlanIndex(
+    userId,
+    readPlanIndex(userId).filter((id) => id !== planId),
+  );
+}
+
 export function loadPracticePlan(planId: string): PracticePlan | null {
   if (!storageAvailable()) return null;
   const parsed = safeJsonParse<PracticePlan>(window.localStorage.getItem(planKey(planId)));

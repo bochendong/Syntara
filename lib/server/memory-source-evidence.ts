@@ -61,6 +61,7 @@ type StudentMessageRow = {
   courseId: string | null;
   notebookId: string | null;
   notebookName: string | null;
+  role: string;
   plainText: string;
   createdAt: Date | string;
 };
@@ -608,13 +609,14 @@ export async function searchStudentMessageEvidence(args: {
         c."courseId",
         c."notebookId",
         n."name" AS "notebookName",
+        m."role",
         m."plainText",
         m."createdAt"
       FROM "Message" m
       INNER JOIN "Conversation" c ON c."id" = m."conversationId"
       LEFT JOIN "Notebook" n ON n."id" = c."notebookId"
       WHERE m."ownerId" = $1
-        AND m."role" = 'user'
+        AND m."role" IN ('user', 'assistant')
         AND m."plainText" IS NOT NULL
         AND length(trim(m."plainText")) > 0
         AND (
@@ -654,23 +656,28 @@ export async function searchStudentMessageEvidence(args: {
   return (anchored.length > 0 ? anchored : scored)
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, limit)
-    .map(({ row, score }) => ({
-      id: `student_message:${row.id}`,
-      sourceType: 'student_message',
-      title: row.conversationTitle || row.notebookName || '学生曾经问过',
-      originalText: compact(row.plainText, 1800),
-      renderedText: compact(row.plainText, 1800),
-      score,
-      courseId: row.courseId,
-      notebookId: row.notebookId,
-      sourceId: row.id,
-      metadata: {
-        conversationId: row.conversationId,
-        conversationTitle: row.conversationTitle,
-        notebookName: row.notebookName,
-        createdAt: metadataDate(row.createdAt),
-      },
-    }));
+    .map(({ row, score }) => {
+      const roleLabel = row.role === 'assistant' ? '助手回复' : '学生消息';
+      const renderedText = `${roleLabel}: ${compact(row.plainText, 1800)}`;
+      return {
+        id: `student_message:${row.id}`,
+        sourceType: 'student_message',
+        title: `${row.conversationTitle || row.notebookName || '历史对话'} · ${roleLabel}`,
+        originalText: compact(row.plainText, 1800),
+        renderedText,
+        score,
+        courseId: row.courseId,
+        notebookId: row.notebookId,
+        sourceId: row.id,
+        metadata: {
+          conversationId: row.conversationId,
+          conversationTitle: row.conversationTitle,
+          notebookName: row.notebookName,
+          role: row.role,
+          createdAt: metadataDate(row.createdAt),
+        },
+      };
+    });
 }
 
 export async function searchProblemAttemptEvidence(args: {

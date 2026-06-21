@@ -23,6 +23,7 @@ enum ConversationKind {
   notebook
   agent
   system
+  course
 }
 
 enum AgentTaskStatus {

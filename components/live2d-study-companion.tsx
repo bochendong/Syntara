@@ -19,6 +19,7 @@ import {
   Video,
   Volume2,
   Wrench,
+  X,
 } from 'lucide-react';
 import { TalkingAvatarOverlay } from '@/components/canvas/talking-avatar-overlay';
 import {
@@ -73,8 +74,9 @@ type MemoryStatusMockMode = 'off' | 'running' | 'flow';
 type StatusTone = 'running' | 'queued' | 'attention' | 'completed' | 'failed' | 'skipped';
 type QueueTone = 'idle' | 'running' | 'attention' | 'completed';
 
-export function Live2DStudyCompanion() {
+export function Live2DStudyCompanion({ onCollapse }: { onCollapse?: () => void }) {
   const modelId = useSettingsStore((state) => state.live2dPresenterModelId);
+  const setLive2DPresenterVisible = useSettingsStore((state) => state.setLive2DPresenterVisible);
   const tasks = useAiTaskQueueStore((state) => state.tasks);
   const memoryActivities = useMemoryActivityStore((state) => state.activities);
   const addMemoryActivity = useMemoryActivityStore((state) => state.addActivity);
@@ -513,7 +515,7 @@ export function Live2DStudyCompanion() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[12px] font-semibold leading-5 text-slate-900 dark:text-slate-50">
-                课程回复进度
+                {replyProgress.title || '课程回复进度'}
               </p>
               <p className="mt-0.5 line-clamp-2 text-[12px] leading-5 text-slate-600 dark:text-slate-300">
                 {replyProgress.line}
@@ -543,6 +545,21 @@ export function Live2DStudyCompanion() {
         data-study-companion-action
         className="absolute bottom-full right-0 z-20 mb-2 flex items-center gap-1"
       >
+        <button
+          type="button"
+          onClick={() => {
+            if (onCollapse) {
+              onCollapse();
+              return;
+            }
+            setLive2DPresenterVisible(false);
+          }}
+          aria-label="关闭伴学角色"
+          title="关闭伴学角色"
+          className="inline-flex size-8 items-center justify-center rounded-full border border-white/[0.65] bg-white/82 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.18)] backdrop-blur-md transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 dark:bg-slate-950/72 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-white"
+        >
+          <X className="size-3.5" strokeWidth={2.1} />
+        </button>
         <button
           type="button"
           onClick={openTaskHistory}
