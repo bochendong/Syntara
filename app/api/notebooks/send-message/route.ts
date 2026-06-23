@@ -1108,6 +1108,7 @@ ${compactSchema}`;
         memorySearchIntent: compactMemoryIntentForLog(memorySearchIntent),
         memoryOrchestration: {
           responder: 'course_controller',
+          platformCount: studyMemoryContext.platformMemories.length,
           courseControllerCount: studyMemoryContext.courseControllerMemories.length,
           currentNotebookSpecialistCount: studyMemoryContext.currentNotebookMemories.length,
           semanticSpecialistCount: studyMemoryContext.specialistMemories.length,

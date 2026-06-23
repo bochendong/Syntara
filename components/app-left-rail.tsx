@@ -39,6 +39,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppCoreNavList } from '@/components/app-core-nav-list';
+import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
 import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
@@ -207,6 +208,7 @@ export function AppLeftRail({
 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [userAffinityLevel, setUserAffinityLevel] = useState<number | null>(null);
   const [userCreditBalances, setUserCreditBalances] = useState<CreditsBalances | null>(null);
   const chatContactsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -364,6 +366,14 @@ export function AppLeftRail({
 
   const expandIfCollapsed = () => {
     if (collapsed) onCollapsedChange(false);
+  };
+
+  const openCreateCourseDialog = () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    setCreateCourseOpen(true);
   };
 
   return (
@@ -796,8 +806,9 @@ export function AppLeftRail({
               <div className={cn('shrink-0', railDividers.t)}>
                 {!collapsed ? (
                   <div className="px-3 py-3">
-                    <Link
-                      href="/courses/new"
+                    <button
+                      type="button"
+                      onClick={openCreateCourseDialog}
                       className={cn(
                         'mb-2 flex h-9 w-full items-center justify-center gap-2 rounded-[12px] border text-xs font-semibold transition-colors',
                         newCourseActive
@@ -811,7 +822,7 @@ export function AppLeftRail({
                     >
                       <Plus className="size-4" strokeWidth={1.9} />
                       <span>新建课程</span>
-                    </Link>
+                    </button>
                     <div
                       className={cn(
                         'ml-auto flex w-fit items-center gap-0.5 rounded-full border p-1 backdrop-blur-md',
@@ -910,8 +921,9 @@ export function AppLeftRail({
                   <div className="flex flex-col items-center gap-2 px-2 py-3">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link
-                          href="/courses/new"
+                        <button
+                          type="button"
+                          onClick={openCreateCourseDialog}
                           className={cn(
                             'flex size-10 items-center justify-center rounded-[10px] shadow-none',
                             newCourseActive
@@ -923,7 +935,7 @@ export function AppLeftRail({
                           aria-label="新建课程"
                         >
                           <Plus className="size-[18px]" strokeWidth={1.9} />
-                        </Link>
+                        </button>
                       </TooltipTrigger>
                       <TooltipContent side="right">新建课程</TooltipContent>
                     </Tooltip>
@@ -1018,6 +1030,11 @@ export function AppLeftRail({
           </div>
         </div>
       </aside>
+      <CreateCourseDialog
+        open={createCourseOpen}
+        onOpenChange={setCreateCourseOpen}
+        onSuccess={() => router.refresh()}
+      />
       <Dialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen}>
         <DialogContent className="max-h-[85vh] w-[min(92vw,980px)] max-w-[980px] overflow-y-auto">
           <DialogHeader>

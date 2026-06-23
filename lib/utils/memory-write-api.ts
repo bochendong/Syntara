@@ -37,7 +37,7 @@ export type MemoryWriteCandidate = {
   id?: string | null;
   trigger: MemoryWriteTrigger;
   contentType: MemoryWriteContentType;
-  targetType?: 'course' | 'notebook' | null;
+  targetType?: 'platform' | 'course' | 'notebook' | null;
   targetId?: string | null;
   conversationId?: string | null;
   title?: string | null;
@@ -54,7 +54,7 @@ export type MemoryWriteCandidate = {
     confidence?: number | null;
   } | null;
   studyMemory?: {
-    targetType?: 'course' | 'notebook' | null;
+    targetType?: 'platform' | 'course' | 'notebook' | null;
     targetId?: string | null;
     scope?: 'public' | 'private' | null;
     kind?: string | null;
@@ -81,7 +81,7 @@ export type MemoryWriteResult = {
   scope: {
     scopeType?: 'user' | 'course' | 'notebook' | 'conversation';
     scopeId?: string | null;
-    targetType?: 'course' | 'notebook';
+    targetType?: 'platform' | 'course' | 'notebook';
     targetId?: string | null;
     privacy?: 'public' | 'private';
   };
@@ -96,7 +96,7 @@ export type MemoryWriteResult = {
     id: string;
     courseId: string | null;
     notebookId: string | null;
-    targetType: 'course' | 'notebook';
+    targetType: 'platform' | 'course' | 'notebook';
     title: string;
     scope: 'public' | 'private';
   };
@@ -312,6 +312,7 @@ function layerLabel(layer: MemoryActivityLayer) {
 
 function scopeLabelFromCandidate(candidate?: MemoryWriteCandidate) {
   if (!candidate) return '';
+  if (candidate.targetType === 'platform') return '平台';
   if (candidate.scopeType === 'user') return '全局';
   if (candidate.scopeType === 'course' || candidate.targetType === 'course') return '课程';
   if (candidate.scopeType === 'notebook' || candidate.targetType === 'notebook') return '笔记本';

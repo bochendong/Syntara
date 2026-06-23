@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
           layers: context.layers,
           scope: context.scope,
           staticFacts: context.staticFacts,
+          platformMemories: context.platformMemories,
           directMemories: context.directMemories,
           semanticMatches: context.semanticMatches,
           knowledgeCache: context.knowledgeCache,

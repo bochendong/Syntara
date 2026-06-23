@@ -418,6 +418,7 @@ export async function semanticSearchStudyMemoryChunks(args: {
         AND (
           ($6::text IS NOT NULL AND m."notebookId" = $6)
           OR ($7::text IS NOT NULL AND m."courseId" = $7)
+          OR m."targetType" = 'platform'
         )
       ORDER BY c."embedding" <=> $1::vector
       LIMIT $8

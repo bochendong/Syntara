@@ -42,6 +42,7 @@ import {
   type KnowledgeCacheEntry,
 } from '@/features/memory/server/knowledge-cache';
 import {
+  PLATFORM_STUDY_MEMORY_TARGET_ID,
   listStudyMemoriesForViewer,
   resolveReadableStudyMemoryTarget,
   type ReadableStudyMemoryTarget,
@@ -89,6 +90,7 @@ export type MemoryRecallContext = {
   conflicts: MemoryFactConflict[];
   filteredStaleMemoryIds: string[];
   searchIntent: MemorySearchIntent;
+  platformMemories: StudyMemoryRecord[];
   directCount: number;
   semanticCount: number;
   knowledgeCacheCount: number;
@@ -103,6 +105,7 @@ export type NotebookStudyMemoryPromptContext = MemoryRecallContext;
 
 type MemoryRecallPass = {
   recallTarget: ReadableStudyMemoryTarget;
+  directPlatform: StudyMemoryRecord[];
   directCourse: StudyMemoryRecord[];
   directTarget: StudyMemoryRecord[];
   directMemories: StudyMemoryRecord[];
@@ -145,7 +148,12 @@ function sourceReferencesText(sourceReferences: unknown): string {
 
 function formatMemory(memory: StudyMemoryRecord, index: number): string {
   const scopeLabel = memory.scope === 'private' ? 'private learner memory' : 'public shared memory';
-  const targetLabel = memory.targetType === 'course' ? 'course' : 'notebook';
+  const targetLabel =
+    memory.targetType === 'platform'
+      ? 'platform'
+      : memory.targetType === 'course'
+        ? 'course'
+        : 'notebook';
   const references = sourceReferencesText(memory.sourceReferences);
   return [
     `${index + 1}. ${memory.title}`,
@@ -166,12 +174,18 @@ function formatSection(section: MemorySection): string {
 }
 
 function semanticMatchToMemory(match: StudyMemorySemanticMatch): StudyMemoryRecord {
+  const targetType: StudyMemoryTargetType =
+    match.targetType === 'platform'
+      ? 'platform'
+      : match.targetType === 'course'
+        ? 'course'
+        : 'notebook';
   return {
     id: match.memoryId,
     ownerId: match.ownerId,
     courseId: match.courseId,
     notebookId: match.notebookId,
-    targetType: match.targetType === 'course' ? 'course' : 'notebook',
+    targetType,
     scope: match.scope === 'private' ? 'private' : 'public',
     kind: 'semantic_recall',
     status: 'active',
@@ -218,6 +232,24 @@ async function getCourseTarget(
   return resolveReadableStudyMemoryTarget(prisma, userId, 'course', notebookTarget.courseId);
 }
 
+function platformTargetForOwner(args: {
+  ownerId: string;
+  viewerUserId?: string | null;
+}): ReadableStudyMemoryTarget {
+  return {
+    targetType: 'platform',
+    targetId: PLATFORM_STUDY_MEMORY_TARGET_ID,
+    courseId: null,
+    notebookId: null,
+    targetOwnerId: args.ownerId,
+    accessRole: args.viewerUserId === args.ownerId ? 'owner' : 'enrolled',
+  };
+}
+
+function memoryContextTargetType(target: ReadableStudyMemoryTarget): MemoryContextTargetType {
+  return target.targetType === 'notebook' ? 'notebook' : 'course';
+}
+
 function resolveRecallScope(args: {
   target: ReadableStudyMemoryTarget;
   courseTarget: ReadableStudyMemoryTarget | null;
@@ -240,6 +272,8 @@ function resolveRecallScope(args: {
     args.target.targetType === 'notebook' &&
     recallTarget.targetType === 'course' &&
     args.target.targetId !== recallTarget.targetId;
+  const originalTargetType = memoryContextTargetType(args.target);
+  const effectiveTargetType = memoryContextTargetType(recallTarget);
 
   return {
     factTarget: recallTarget,
@@ -249,9 +283,9 @@ function resolveRecallScope(args: {
       effectiveMode,
       expanded,
       reason: args.searchIntent.scopeReason,
-      originalTargetType: args.target.targetType,
+      originalTargetType,
       originalTargetId: args.target.targetId,
-      effectiveTargetType: recallTarget.targetType,
+      effectiveTargetType,
       effectiveTargetId: recallTarget.targetId,
       courseId: recallTarget.courseId,
       notebookId: recallTarget.notebookId,
@@ -589,11 +623,19 @@ async function buildRecallPass(args: {
   staleNeedles: string[];
   currentNeedles: string[];
 }): Promise<MemoryRecallPass> {
-  const [targetMemories, courseMemories] = await Promise.all([
+  const [targetMemories, courseMemories, platformMemories] = await Promise.all([
     listStudyMemoriesForViewer(args.prisma, args.userId, args.recallTarget),
     args.recallTarget.targetType === 'notebook' && args.courseTarget
       ? listStudyMemoriesForViewer(args.prisma, args.userId, args.courseTarget)
       : [],
+    listStudyMemoriesForViewer(
+      args.prisma,
+      args.userId,
+      platformTargetForOwner({
+        ownerId: args.recallTarget.targetOwnerId,
+        viewerUserId: args.userId,
+      }),
+    ),
   ]);
 
   const directCourse =
@@ -601,8 +643,9 @@ async function buildRecallPass(args: {
       ? targetMemories.slice(0, 8)
       : courseMemories.slice(0, 4);
   const directTarget = args.recallTarget.targetType === 'course' ? [] : targetMemories.slice(0, 8);
+  const directPlatform = platformMemories.slice(0, 4);
   const directFilter = filterStaleMemories({
-    memories: uniqueById([...directCourse, ...directTarget]),
+    memories: uniqueById([...directPlatform, ...directCourse, ...directTarget]),
     staleNeedles: args.staleNeedles,
     currentNeedles: args.currentNeedles,
   });
@@ -775,7 +818,7 @@ async function buildRecallPass(args: {
         prisma: args.prisma,
         userId: args.userId,
         target: {
-          targetType: args.recallTarget.targetType,
+          targetType: memoryContextTargetType(args.recallTarget),
           targetId: args.recallTarget.targetId,
           courseId: args.recallTarget.courseId,
           notebookId: args.recallTarget.notebookId,
@@ -790,6 +833,7 @@ async function buildRecallPass(args: {
 
   return {
     recallTarget: args.recallTarget,
+    directPlatform,
     directCourse,
     directTarget,
     directMemories,
@@ -815,9 +859,13 @@ function mergeRecallPasses(
   localPass: MemoryRecallPass,
   coursePass: MemoryRecallPass,
 ): MemoryRecallPass {
+  const directPlatform = uniqueById([
+    ...coursePass.directPlatform,
+    ...localPass.directPlatform,
+  ]).slice(0, 4);
   const directCourse = uniqueById([...coursePass.directCourse, ...localPass.directCourse]);
   const directTarget = localPass.directTarget;
-  const directMemories = uniqueById([...directCourse, ...directTarget]);
+  const directMemories = uniqueById([...directPlatform, ...directCourse, ...directTarget]);
   const semanticMemories = uniqueById([
     ...localPass.semanticMemories,
     ...coursePass.semanticMemories,
@@ -838,6 +886,7 @@ function mergeRecallPasses(
 
   return {
     recallTarget: coursePass.recallTarget,
+    directPlatform,
     directCourse,
     directTarget,
     directMemories,
@@ -891,6 +940,7 @@ function emptyContext(storage: 'database' | 'unavailable'): MemoryRecallContext 
     conflicts: [],
     filteredStaleMemoryIds: [],
     searchIntent: inferMemorySearchIntent(''),
+    platformMemories: [],
     directCount: 0,
     semanticCount: 0,
     knowledgeCacheCount: 0,
@@ -1000,6 +1050,7 @@ export async function buildMemoryRecallContext(args: {
       }),
     ]);
     const finalPass = localPass ? mergeRecallPasses(localPass, recallPass) : recallPass;
+    const directPlatform = finalPass.directPlatform;
     const directCourse = finalPass.directCourse;
     const directTarget = finalPass.directTarget;
     const directMemories = finalPass.directMemories;
@@ -1010,11 +1061,13 @@ export async function buildMemoryRecallContext(args: {
     const learnerAnalytics = finalPass.learnerAnalytics;
     const vectorUsed = finalPass.vectorUsed;
     const directMemoryIds = new Set(directMemories.map((memory) => memory.id));
+    const platformMemories = directPlatform.filter((memory) => directMemoryIds.has(memory.id));
     const courseControllerMemories = directCourse.filter((memory) =>
       directMemoryIds.has(memory.id),
     );
     const currentNotebookMemories = directTarget.filter((memory) => directMemoryIds.has(memory.id));
     const directLayerIds = new Set([
+      ...platformMemories.map((memory) => memory.id),
       ...courseControllerMemories.map((memory) => memory.id),
       ...currentNotebookMemories.map((memory) => memory.id),
     ]);
@@ -1034,6 +1087,10 @@ export async function buildMemoryRecallContext(args: {
       formatRecallScope(scope),
       formatFacts(factResolution.facts),
       formatConflicts(factResolution.conflicts),
+      formatSection({
+        title: 'Platform memory injected directly',
+        memories: platformMemories,
+      }),
       formatSection({
         title: 'Course controller memory injected directly',
         memories: courseControllerMemories,
@@ -1057,6 +1114,7 @@ export async function buildMemoryRecallContext(args: {
         ? [
             'Use this layered memory context as durable context for the answer.',
             'Answer as the course controller: decide the task type, choose the applicable course template/rule, then use notebook memories as specialist evidence.',
+            'Platform memory is global user/platform context and applies before course-local and notebook-local memory when relevant.',
             'Course controller memory has the highest priority for course-wide rules, allowed tools, forbidden moves, and template-routing policy.',
             'Current notebook specialist memory explains the local lesson template, examples, and chapter-specific constraints.',
             'Semantically recalled specialist memory can supply cross-notebook details, but only when it is relevant to the user question.',
@@ -1075,6 +1133,7 @@ export async function buildMemoryRecallContext(args: {
       prompt: compact(prompt, 10000),
       scope,
       staticFacts: factResolution.facts,
+      platformMemories,
       courseControllerMemories,
       currentNotebookMemories,
       specialistMemories,

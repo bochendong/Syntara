@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserRound,
   UsersRound,
+  Workflow,
 } from 'lucide-react';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -94,7 +95,8 @@ type CoreNavSection = {
 const CHAT_RIGHT_RAIL_KEY_ORDER: Record<string, number> = {
   'agent-teams': 0,
   'course-resource-library': 1,
-  'course-problem-bank': 2,
+  'course-template-library': 2,
+  'course-problem-bank': 3,
   learn: 2,
   courses: 2,
   store: 3,
@@ -180,6 +182,9 @@ export function AppCoreNavList({
   const courseResourceLibraryActive =
     Boolean(pathname?.startsWith('/course/')) &&
     (pathname?.endsWith('/resources') || pathname?.includes('/resources/'));
+  const courseTemplateLibraryActive =
+    Boolean(pathname?.startsWith('/course/')) &&
+    (pathname?.endsWith('/memory/templates') || pathname?.includes('/memory/templates/'));
   const topUpActive = pathname === '/top-up' || pathname?.startsWith('/top-up/');
   const creditsMarketActive =
     pathname === '/credits-market' || pathname?.startsWith('/credits-market/');
@@ -346,6 +351,14 @@ export function AppCoreNavList({
                     tooltip: '课程资料库',
                     icon: LibraryBig,
                     active: courseResourceLibraryActive,
+                  },
+                  {
+                    key: 'course-template-library',
+                    href: `/course/${encodeURIComponent(courseId ?? '')}/memory/templates`,
+                    label: '模版库',
+                    tooltip: '课程模版库',
+                    icon: Workflow,
+                    active: courseTemplateLibraryActive,
                   },
                   {
                     key: 'course-problem-bank',

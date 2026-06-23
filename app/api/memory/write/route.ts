@@ -31,7 +31,7 @@ const contentTypeSchema = z.enum([
   'other',
 ]);
 
-const targetTypeSchema = z.enum(['course', 'notebook']);
+const targetTypeSchema = z.enum(['platform', 'course', 'notebook']);
 const privacySchema = z.enum(['public', 'private']);
 const factScopeSchema = z.enum(['user', 'course', 'notebook', 'conversation']);
 

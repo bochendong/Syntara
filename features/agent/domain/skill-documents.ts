@@ -79,4 +79,14 @@ export const AGENT_SKILL_DOCUMENTS = [
     resourceUri: 'openmaic://skills/write_study_memory',
     parentSkillIds: [],
   },
+  {
+    id: 'teaching_orchestrator',
+    title: 'Teaching orchestrator skill',
+    description:
+      'Project-local workflow for routing learning requests through teaching tools with explicit evidence ledgers and rationale.',
+    kind: 'primary',
+    path: 'features/agent/skills/teaching-orchestrator/SKILL.md',
+    resourceUri: 'openmaic://skills/teaching_orchestrator',
+    parentSkillIds: [],
+  },
 ] satisfies readonly AgentSkillDocumentDefinition[];

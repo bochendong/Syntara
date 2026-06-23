@@ -5,7 +5,8 @@ export type AgentFeatureDomain =
   | 'problems'
   | 'review'
   | 'memory'
-  | 'practice';
+  | 'practice'
+  | 'teaching';
 
 export type AgentCapabilityStatus = 'route-backed' | 'service-backed' | 'client-backed' | 'planned';
 

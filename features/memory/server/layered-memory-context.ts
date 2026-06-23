@@ -92,12 +92,14 @@ function summarizeMemoryLayers(
       title: 'Long-term text memory',
       readModes: ['static_injection', 'dynamic_discovery'],
       itemCount:
+        context.platformMemories.length +
         context.courseControllerMemories.length +
         context.currentNotebookMemories.length +
         context.specialistMemories.length,
       maxChars: plan.budgets.longTermStatic.maxChars + plan.budgets.longTermDynamic.maxChars,
       sources: ['StudyMemory', 'StudyMemoryChunk'],
       notes: [
+        'Platform memories capture user/platform-wide context that can apply across courses.',
         'Course controller memories decide course-wide templates and constraints.',
         'Notebook specialist memories explain local examples and unit-specific answer shape.',
       ],

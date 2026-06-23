@@ -15,7 +15,7 @@ import {
   type StudyMemoryTargetType,
 } from '@/lib/server/study-memory-store';
 
-const targetTypeSchema = z.enum(['course', 'notebook']);
+const targetTypeSchema = z.enum(['platform', 'course', 'notebook']);
 
 const createStudyMemorySchema = z.object({
   targetType: targetTypeSchema,

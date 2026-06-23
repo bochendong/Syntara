@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Code2,
   FileText,
+  ImageIcon,
   LibraryBig,
   ListChecks,
   Loader2,
@@ -20,6 +21,7 @@ import {
   Search,
   Sparkles,
   Target,
+  Trash2,
   Type,
   type LucideIcon,
 } from 'lucide-react';
@@ -35,6 +37,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProblemRichText, ProblemTitleText } from '@/components/problem-bank/problem-rich-text';
 import { problemConceptTopics } from '@/lib/problem-bank/concept-tags.mjs';
@@ -52,12 +55,19 @@ import {
   type WeakPointMemory,
 } from '@/lib/learning/study-memory';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/notifications/client-toast';
 import { backendJson } from '@/lib/utils/backend-api';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { resolveCourseBackgroundDisplayUrl } from '@/lib/constants/course-backgrounds';
 import { getCourse } from '@/lib/utils/course-storage';
 import type { CourseRecord } from '@/lib/utils/database';
 import {
+  deleteCourseSourceUpload,
+  listCourseSourceUploads,
+  type CourseSourceUploadRecord,
+} from '@/lib/utils/course-source-upload-api';
+import {
+  deleteCourseProblem,
   listCourseProblems,
   type NotebookProblemClientRecord,
 } from '@/lib/utils/notebook-problem-api';
@@ -75,7 +85,7 @@ type NotebookMemoryRecordBundle = {
 
 type ResourceFilter = 'all' | 'memory' | 'problem' | 'private';
 
-type MemoryLayerFilter = 'all' | 'course' | 'notebook' | 'private';
+type MemoryLayerFilter = 'all' | 'platform' | 'course' | 'notebook' | 'private';
 
 type PracticeState = 'mastered' | 'review' | 'wrong' | 'unattempted';
 
@@ -83,13 +93,14 @@ type LibraryMemoryItem = {
   id: string;
   title: string;
   text: string;
-  layer: 'course' | 'notebook' | 'private';
+  layer: 'platform' | 'course' | 'notebook' | 'private';
   layerLabel: string;
   scopeLabel: string;
   sourceLabel: string;
   kindLabel?: string;
   notebookId?: string;
   notebookName?: string;
+  sourceHash?: string;
   updatedAt?: number;
 };
 
@@ -155,6 +166,83 @@ type CourseResourceSearchRunState =
   | { status: 'success'; query: string; data: CourseResourceSearchResponse; error?: undefined }
   | { status: 'error'; query: string; data?: CourseResourceSearchResponse; error: string };
 
+type CourseMemoryFactRecord = {
+  id: string;
+  namespace: string;
+  key: string;
+  valueJson: unknown;
+  updatedAt: string;
+};
+
+type SourceKnowledgeGraphFact = {
+  id: string;
+  sourceHash: string;
+  sourceTitle: string;
+  topic: string;
+  documentType: string | null;
+  usageProfile: string | null;
+  nodeCount: number;
+  edgeCount: number;
+  concepts: string[];
+  methods: string[];
+  structuredNotes: SourceStructuredNotes | null;
+  coverImagePath: string | null;
+  coverStatus: string | null;
+  updatedAt: number;
+};
+
+type SourceStructuredNoteItem = {
+  label: string;
+  detail: string;
+};
+
+type SourceStructuredNotebookKnowledge = {
+  componentType: 'research_evidence_card' | 'course_learning_card' | 'daily_index_card';
+  title: string;
+  subtitle: string;
+  summary: string;
+  learningPath: string[];
+  keyTakeaways: string[];
+  answerStrategy: string[];
+  sections: Array<{
+    title: string;
+    role: string;
+    summary: string;
+    evidenceRefs: string[];
+  }>;
+  concepts: SourceStructuredNoteItem[];
+  methods: SourceStructuredNoteItem[];
+  retrievalTriggers: string[];
+};
+
+type SourceStructuredCourseControl = {
+  componentType: 'research_control_card' | 'course_control_card' | 'daily_private_card';
+  title: string;
+  summary: string;
+  placement: SourceStructuredNoteItem[];
+  useWhen: string[];
+  doNotUseWhen: string[];
+  teachingMoves: string[];
+  boundaryWarnings: string[];
+  graphLinks: Array<{
+    kind: string;
+    items: string[];
+  }>;
+};
+
+type SourceStructuredNotes = {
+  version: number;
+  usageProfile: string;
+  notebookKnowledge: SourceStructuredNotebookKnowledge;
+  courseControl: SourceStructuredCourseControl | null;
+};
+
+type SourceCoverPreview = {
+  src: string;
+  title: string;
+  subtitle: string | null;
+};
+
 type SearchResourceItem =
   | {
       id: string;
@@ -193,6 +281,764 @@ function formatDate(value?: number): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatIsoDate(value?: string | null): string {
+  const time = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(time) ? formatDate(time) : '暂无';
+}
+
+function sourceKindLabel(kind: string): string {
+  if (kind === 'pdf') return 'PDF';
+  if (kind === 'markdown') return 'Markdown';
+  if (kind === 'plain_text') return '纯文本';
+  if (kind === 'pptx') return 'PPTX';
+  if (kind === 'problem_bank') return '题库';
+  if (kind === 'manual') return '手动';
+  return '文件';
+}
+
+function sourceUsageProfileLabel(profile?: string | null): string | null {
+  if (profile === 'research') return '科研链路';
+  if (profile === 'university_course') return '大学课程链路';
+  if (profile === 'daily_use') return '日常链路';
+  return null;
+}
+
+function sourceHashLabel(sourceHash: string): string {
+  return sourceHash.length > 12 ? `${sourceHash.slice(0, 12)}…` : sourceHash;
+}
+
+type SourceUploadLayerStatus = 'written' | 'skipped' | 'available';
+
+type SourceUploadLayerRow = {
+  label: string;
+  status: SourceUploadLayerStatus;
+  countLabel: string;
+  detail: string;
+};
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function stringFromUnknown(value: unknown): string | null {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text || null;
+}
+
+function readJsonString(value: unknown, path: string[]): string | null {
+  let current = value;
+  for (const key of path) {
+    if (!isPlainRecord(current)) return null;
+    current = current[key];
+  }
+  return stringFromUnknown(current);
+}
+
+function sourceHashFromUnknown(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = sourceHashFromUnknown(item);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (!isPlainRecord(value)) return undefined;
+  const direct = stringFromUnknown(value.sourceHash) || stringFromUnknown(value.uploadSourceHash);
+  if (direct) return direct;
+  for (const nested of Object.values(value)) {
+    const found = sourceHashFromUnknown(nested);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function stringListFromUnknown(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(stringFromUnknown).filter((item): item is string => Boolean(item));
+}
+
+function structuredNoteItemsFromUnknown(value: unknown): SourceStructuredNoteItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!isPlainRecord(item)) return null;
+      const label = stringFromUnknown(item.label);
+      const detail = stringFromUnknown(item.detail);
+      return label && detail ? { label, detail } : null;
+    })
+    .filter((item): item is SourceStructuredNoteItem => Boolean(item));
+}
+
+function structuredNotebookKnowledgeFromUnknown(
+  value: unknown,
+): SourceStructuredNotebookKnowledge | null {
+  if (!isPlainRecord(value)) return null;
+  const componentType = stringFromUnknown(value.componentType);
+  if (
+    componentType !== 'research_evidence_card' &&
+    componentType !== 'course_learning_card' &&
+    componentType !== 'daily_index_card'
+  ) {
+    return null;
+  }
+  const title = stringFromUnknown(value.title);
+  const subtitle = stringFromUnknown(value.subtitle) || '';
+  const summary = stringFromUnknown(value.summary);
+  if (!title || !summary) return null;
+  const sections = Array.isArray(value.sections)
+    ? value.sections
+        .map((section) => {
+          if (!isPlainRecord(section)) return null;
+          const sectionTitle = stringFromUnknown(section.title);
+          const role = stringFromUnknown(section.role);
+          const sectionSummary = stringFromUnknown(section.summary);
+          if (!sectionTitle || !role || !sectionSummary) return null;
+          return {
+            title: sectionTitle,
+            role,
+            summary: sectionSummary,
+            evidenceRefs: stringListFromUnknown(section.evidenceRefs),
+          };
+        })
+        .filter((section): section is SourceStructuredNotebookKnowledge['sections'][number] =>
+          Boolean(section),
+        )
+    : [];
+  return {
+    componentType,
+    title,
+    subtitle,
+    summary,
+    learningPath: stringListFromUnknown(value.learningPath),
+    keyTakeaways: stringListFromUnknown(value.keyTakeaways),
+    answerStrategy: stringListFromUnknown(value.answerStrategy),
+    sections,
+    concepts: structuredNoteItemsFromUnknown(value.concepts),
+    methods: structuredNoteItemsFromUnknown(value.methods),
+    retrievalTriggers: stringListFromUnknown(value.retrievalTriggers),
+  };
+}
+
+function structuredCourseControlFromUnknown(value: unknown): SourceStructuredCourseControl | null {
+  if (!isPlainRecord(value)) return null;
+  const componentType = stringFromUnknown(value.componentType);
+  if (
+    componentType !== 'research_control_card' &&
+    componentType !== 'course_control_card' &&
+    componentType !== 'daily_private_card'
+  ) {
+    return null;
+  }
+  const title = stringFromUnknown(value.title);
+  const summary = stringFromUnknown(value.summary);
+  if (!title || !summary) return null;
+  return {
+    componentType,
+    title,
+    summary,
+    placement: structuredNoteItemsFromUnknown(value.placement),
+    useWhen: stringListFromUnknown(value.useWhen),
+    doNotUseWhen: stringListFromUnknown(value.doNotUseWhen),
+    teachingMoves: stringListFromUnknown(value.teachingMoves),
+    boundaryWarnings: stringListFromUnknown(value.boundaryWarnings),
+    graphLinks: Array.isArray(value.graphLinks)
+      ? value.graphLinks
+          .map((link) => {
+            if (!isPlainRecord(link)) return null;
+            const kind = stringFromUnknown(link.kind);
+            const items = stringListFromUnknown(link.items);
+            return kind && items.length > 0 ? { kind, items } : null;
+          })
+          .filter((link): link is SourceStructuredCourseControl['graphLinks'][number] =>
+            Boolean(link),
+          )
+      : [],
+  };
+}
+
+function structuredNotesFromUnknown(value: unknown): SourceStructuredNotes | null {
+  if (!isPlainRecord(value)) return null;
+  const notebookKnowledge = structuredNotebookKnowledgeFromUnknown(value.notebookKnowledge);
+  if (!notebookKnowledge) return null;
+  return {
+    version: typeof value.version === 'number' ? value.version : 1,
+    usageProfile: stringFromUnknown(value.usageProfile) || notebookKnowledge.componentType,
+    notebookKnowledge,
+    courseControl: structuredCourseControlFromUnknown(value.courseControl),
+  };
+}
+
+function sourceKnowledgeGraphFact(record: CourseMemoryFactRecord): SourceKnowledgeGraphFact | null {
+  if (record.namespace !== 'knowledge_graph' || !record.key.startsWith('source:')) return null;
+  if (!isPlainRecord(record.valueJson)) return null;
+
+  const source = isPlainRecord(record.valueJson.source) ? record.valueJson.source : {};
+  const nodes = Array.isArray(record.valueJson.nodes) ? record.valueJson.nodes : [];
+  const edges = Array.isArray(record.valueJson.edges) ? record.valueJson.edges : [];
+  const sourceHash =
+    stringFromUnknown(source.hash) || record.key.replace(/^source:/, '').trim() || record.id;
+  const sourceTitle = stringFromUnknown(source.title) || `上传资料 ${sourceHash.slice(0, 8)}`;
+  const topic = stringFromUnknown(record.valueJson.topic) || sourceTitle;
+  const documentType = stringFromUnknown(record.valueJson.documentType);
+  const usageProfile = stringFromUnknown(record.valueJson.usageProfile);
+  const concepts = nodes
+    .filter((node) => isPlainRecord(node) && node.type === 'concept')
+    .map((node) => (isPlainRecord(node) ? stringFromUnknown(node.label) : null))
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 12);
+  const methods = nodes
+    .filter((node) => isPlainRecord(node) && node.type === 'method')
+    .map((node) => (isPlainRecord(node) ? stringFromUnknown(node.label) : null))
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 8);
+  const fallbackConcepts = stringListFromUnknown(record.valueJson.concepts).slice(0, 12);
+  const fallbackMethods = stringListFromUnknown(record.valueJson.methods).slice(0, 8);
+
+  return {
+    id: record.id,
+    sourceHash,
+    sourceTitle,
+    topic,
+    documentType,
+    usageProfile,
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    concepts: concepts.length > 0 ? concepts : fallbackConcepts,
+    methods: methods.length > 0 ? methods : fallbackMethods,
+    structuredNotes: structuredNotesFromUnknown(record.valueJson.structuredNotes),
+    coverImagePath: readJsonString(record.valueJson, ['cover', 'imagePath']),
+    coverStatus: readJsonString(record.valueJson, ['cover', 'status']),
+    updatedAt: Date.parse(record.updatedAt),
+  };
+}
+
+function sourceUploadMemoryRecordId(memoryId: string): string {
+  const parts = memoryId.split(':');
+  return parts[parts.length - 1] || memoryId;
+}
+
+function relatedSourceUploadMemories(
+  upload: CourseSourceUploadRecord,
+  memoryItems: LibraryMemoryItem[],
+): LibraryMemoryItem[] {
+  const ids = new Set([...upload.memoryIds, ...upload.templateMemoryIds]);
+  if (ids.size === 0) return [];
+  return memoryItems.filter((memory) => ids.has(sourceUploadMemoryRecordId(memory.id)));
+}
+
+function sourceUploadLayerStatusLabel(status: SourceUploadLayerStatus): string {
+  if (status === 'written') return '已写入';
+  if (status === 'available') return '可检索';
+  return '跳过';
+}
+
+function sourceUploadLayerStatusClassName(status: SourceUploadLayerStatus): string {
+  if (status === 'written') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200';
+  }
+  if (status === 'available') {
+    return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-200';
+  }
+  return 'border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300';
+}
+
+function buildSourceUploadLayerRows(
+  upload: CourseSourceUploadRecord,
+  relatedMemories: LibraryMemoryItem[],
+  graphFact?: SourceKnowledgeGraphFact,
+): SourceUploadLayerRow[] {
+  const platformMemoryCount = relatedMemories.filter(
+    (memory) => memory.layer === 'platform' && memory.scopeLabel === '共有',
+  ).length;
+  const courseMemoryCount = relatedMemories.filter(
+    (memory) => memory.layer === 'course' && memory.scopeLabel === '共有',
+  ).length;
+  const notebookMemoryCount = relatedMemories.filter(
+    (memory) => memory.layer === 'notebook' && memory.scopeLabel === '共有',
+  ).length;
+  const privateMemoryCount = relatedMemories.filter(
+    (memory) => memory.scopeLabel === '私有',
+  ).length;
+  const notebookSectionCount = upload.stats.sectionCount;
+  const problemCount = upload.stats.problemCount;
+  const templateCount = upload.stats.templateMemoryCount;
+  const graphCount = upload.stats.knowledgeGraphFactCount;
+  const ragCount = upload.stats.ragEntryCount;
+
+  return [
+    {
+      label: '封面',
+      status: upload.coverImagePath ? 'written' : 'skipped',
+      countLabel: upload.coverImagePath ? '1 张' : '0 张',
+      detail: upload.coverImagePath
+        ? '已生成 A4 学习封面，并写入 notebook cover。'
+        : upload.coverStatus === 'failed'
+          ? '封面生成失败；资料入库已继续完成。'
+          : upload.allQuestionUpload
+            ? '全题目文件不生成 notebook 封面。'
+            : '没有生成封面，通常是未配置图片生成 provider。',
+    },
+    {
+      label: '笔记本',
+      status: notebookSectionCount > 0 ? 'written' : 'skipped',
+      countLabel: `${notebookSectionCount} 段`,
+      detail:
+        notebookSectionCount > 0
+          ? '已整理成可查询的中文 Markdown 笔记。'
+          : upload.allQuestionUpload
+            ? '全题目文件不写笔记本。'
+            : '没有生成笔记本段落。',
+    },
+    {
+      label: '平台记忆',
+      status: platformMemoryCount > 0 ? 'written' : 'skipped',
+      countLabel: `${platformMemoryCount} 条`,
+      detail:
+        platformMemoryCount > 0
+          ? '已写入跨课程平台级记忆。'
+          : '本资料没有跨课程平台规则或偏好，因此不写平台层。',
+    },
+    {
+      label: '课程记忆',
+      status: courseMemoryCount > 0 ? 'written' : 'skipped',
+      countLabel: `${courseMemoryCount} 条`,
+      detail:
+        courseMemoryCount > 0
+          ? upload.usageProfile === 'university_course'
+            ? '已写入大学课程控制记忆，同一课程的其他笔记本也可召回。'
+            : '已写入课程级公共记忆，同一课程的其他笔记本也可召回。'
+          : upload.usageProfile === 'daily_use'
+            ? '日常资料不升级为课程控制层，避免污染课程公共规则。'
+            : '没有写入课程级公共记忆。',
+    },
+    {
+      label: '笔记本记忆',
+      status: notebookMemoryCount > 0 ? 'written' : 'skipped',
+      countLabel: `${notebookMemoryCount} 条`,
+      detail:
+        notebookMemoryCount > 0
+          ? '已写入当前笔记本资料索引和 section 导航。'
+          : '没有写入笔记本级公共记忆。',
+    },
+    {
+      label: '私有记忆',
+      status: privateMemoryCount > 0 ? 'written' : 'skipped',
+      countLabel: `${privateMemoryCount} 条`,
+      detail:
+        privateMemoryCount > 0
+          ? upload.usageProfile === 'daily_use'
+            ? '已写入日常资料私有索引，供个人后续追踪。'
+            : '已写入学习者个人层记忆。'
+          : '资料上传没有学生作答、薄弱点或下一步教学动作，因此不更新私有记忆。',
+    },
+    {
+      label: '知识图谱',
+      status: graphCount > 0 ? 'written' : 'skipped',
+      countLabel: `${graphCount} 条`,
+      detail:
+        graphCount > 0
+          ? graphFact
+            ? `已写入 source knowledge_graph fact：${graphFact.nodeCount} 个节点 / ${graphFact.edgeCount} 条边。`
+            : '已写入 source knowledge_graph fact，并连接资料、主题、笔记本和概念节点。'
+          : '没有写入图谱事实。',
+    },
+    {
+      label: 'RAG',
+      status: ragCount > 0 ? 'available' : 'skipped',
+      countLabel: `${ragCount} 条`,
+      detail: ragCount > 0 ? '已进入知识库/RAG 召回入口。' : '没有写入知识库召回入口。',
+    },
+    {
+      label: '题库',
+      status: problemCount > 0 ? 'written' : 'skipped',
+      countLabel: `${problemCount} 题`,
+      detail:
+        problemCount > 0
+          ? '已完成题目抽取与去重入库。'
+          : upload.allQuestionUpload
+            ? '识别为题目文件，但没有新增题目。'
+            : '本资料不是题库，不生成题目。',
+    },
+    {
+      label: '模板库',
+      status: templateCount > 0 ? 'written' : 'skipped',
+      countLabel: `${templateCount} 条`,
+      detail: templateCount > 0 ? '已写入课程模板/答题契约。' : '未识别到课程模板或答题契约。',
+    },
+  ];
+}
+
+function sourceUploadMemoryPreview(text: string): string {
+  const compact = text.replace(/\s+/g, ' ').trim();
+  return compact.length > 360 ? `${compact.slice(0, 360)}…` : compact;
+}
+
+function structuredNoteTheme(notes: SourceStructuredNotes): {
+  icon: LucideIcon;
+  eyebrow: string;
+  accentClassName: string;
+} {
+  if (notes.notebookKnowledge.componentType === 'course_learning_card') {
+    return {
+      icon: BookOpen,
+      eyebrow: '大学课程结构化笔记',
+      accentClassName:
+        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-100',
+    };
+  }
+  if (notes.notebookKnowledge.componentType === 'daily_index_card') {
+    return {
+      icon: ListChecks,
+      eyebrow: '日常资料结构化索引',
+      accentClassName:
+        'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-100',
+    };
+  }
+  return {
+    icon: Brain,
+    eyebrow: '科研论文结构化笔记',
+    accentClassName:
+      'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-400/10 dark:text-violet-100',
+  };
+}
+
+function structuredRoleLabel(role: string): string {
+  const labels: Record<string, string> = {
+    overview: '总览',
+    background: '背景',
+    method: '方法',
+    experiment: '实验',
+    limitation: '局限',
+    learning_objectives: '目标',
+    concepts_prerequisites: '概念',
+    teaching_flow: '讲解',
+    assessment_practice: '考核',
+    review_diagnosis: '复习',
+    summary: '摘要',
+    key_information: '信息',
+    actions_decisions: '待办',
+    timeline_context: '时间线',
+    source_tracking: '追踪',
+  };
+  return labels[role] || role;
+}
+
+function StructuredSourceNotesPreview({ notes }: { notes: SourceStructuredNotes }) {
+  const theme = structuredNoteTheme(notes);
+  const Icon = theme.icon;
+  const knowledge = notes.notebookKnowledge;
+  const control = notes.courseControl;
+  const primaryItems =
+    knowledge.componentType === 'daily_index_card'
+      ? knowledge.retrievalTriggers
+      : knowledge.concepts.map((item) => item.label);
+  const secondaryItems =
+    knowledge.componentType === 'course_learning_card'
+      ? knowledge.learningPath.length > 0
+        ? knowledge.learningPath
+        : control?.teachingMoves || []
+      : knowledge.keyTakeaways.length > 0
+        ? knowledge.keyTakeaways
+        : knowledge.methods.map((item) => item.label);
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/80 bg-white/82 text-xs dark:border-white/10 dark:bg-white/[0.045]">
+      <div className="flex items-start gap-2 border-b border-slate-200/70 bg-slate-100/70 px-3 py-2 dark:border-white/10 dark:bg-white/[0.055]">
+        <span className={cn('rounded-lg border p-1.5', theme.accentClassName)}>
+          <Icon className="size-3.5" strokeWidth={1.7} />
+        </span>
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900 dark:text-white">{theme.eyebrow}</p>
+          <p className="mt-0.5 line-clamp-2 text-slate-500 dark:text-slate-400">
+            {knowledge.summary}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <LibraryChip className={theme.accentClassName}>{knowledge.subtitle}</LibraryChip>
+            <LibraryChip>{knowledge.sections.length} 节</LibraryChip>
+          </div>
+          <div className="mt-2 space-y-2">
+            {knowledge.sections.slice(0, 4).map((section) => (
+              <div
+                key={`${section.role}:${section.title}`}
+                className="rounded-lg border border-slate-200/70 bg-slate-50/80 px-2.5 py-2 dark:border-white/10 dark:bg-black/10"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="line-clamp-1 font-semibold text-slate-800 dark:text-slate-100">
+                    {section.title}
+                  </p>
+                  <span className="shrink-0 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
+                    {structuredRoleLabel(section.role)}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 leading-5 text-slate-500 dark:text-slate-300">
+                  {section.summary}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-3">
+          {control ? (
+            <div>
+              <div className="flex items-center gap-1.5">
+                <LibraryChip className={theme.accentClassName}>控制层</LibraryChip>
+                <LibraryChip>{sourceUsageProfileLabel(notes.usageProfile) || '结构化'}</LibraryChip>
+              </div>
+              <p className="mt-2 line-clamp-3 leading-5 text-slate-600 dark:text-slate-300">
+                {control.summary}
+              </p>
+              {control.useWhen.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {control.useWhen.slice(0, 4).map((item) => (
+                    <LibraryChip key={item}>{item}</LibraryChip>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {primaryItems.length > 0 ? (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                {knowledge.componentType === 'daily_index_card' ? '检索入口' : '概念入口'}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {primaryItems.slice(0, 8).map((item) => (
+                  <LibraryChip key={item}>{item}</LibraryChip>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {secondaryItems.length > 0 ? (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                {knowledge.componentType === 'course_learning_card' ? '学习脉络' : '关键要点'}
+              </p>
+              <p className="mt-1.5 line-clamp-3 leading-5 text-slate-500 dark:text-slate-300">
+                {secondaryItems.slice(0, 6).join('、')}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type StructuredMemoryTable = {
+  headers: string[];
+  rows: string[][];
+};
+
+type StructuredMemorySection = {
+  title: string;
+  text: string;
+  listItems: string[];
+  table: StructuredMemoryTable | null;
+};
+
+type StructuredMemoryDocument = {
+  title: string;
+  metaRows: Array<{ label: string; value: string }>;
+  sections: StructuredMemorySection[];
+};
+
+function markdownTableCells(line: string): string[] {
+  return line
+    .replace(/^\s*\|/, '')
+    .replace(/\|\s*$/, '')
+    .split('|')
+    .map((cell) =>
+      cell
+        .replace(/\\\|/g, '|')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .trim(),
+    );
+}
+
+function isMarkdownSeparatorRow(line: string): boolean {
+  const cells = markdownTableCells(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+}
+
+function parseMarkdownTable(lines: string[]): StructuredMemoryTable | null {
+  const tableLines = lines.filter((line) => line.trim().startsWith('|'));
+  if (tableLines.length < 2) return null;
+  const usableLines = tableLines.filter((line) => !isMarkdownSeparatorRow(line));
+  if (usableLines.length < 2) return null;
+  const headers = markdownTableCells(usableLines[0]);
+  const rows = usableLines
+    .slice(1)
+    .map(markdownTableCells)
+    .filter((row) => row.some((cell) => cell.trim()));
+  return headers.length && rows.length ? { headers, rows } : null;
+}
+
+function parseStructuredMemoryDocument(text: string): StructuredMemoryDocument | null {
+  const lines = text.split('\n').map((line) => line.trimEnd());
+  const titleIndex = lines.findIndex((line) => /^#\s+/.test(line));
+  if (titleIndex < 0) return null;
+  const title = lines[titleIndex].replace(/^#\s+/, '').trim();
+  if (!/^(课程控制层：|笔记本知识层：)/.test(title)) return null;
+
+  const sections: StructuredMemorySection[] = [];
+  let cursor = titleIndex + 1;
+  const introLines: string[] = [];
+  while (cursor < lines.length && !/^##\s+/.test(lines[cursor])) {
+    introLines.push(lines[cursor]);
+    cursor += 1;
+  }
+  const metaTable = parseMarkdownTable(introLines);
+  const metaRows =
+    metaTable?.rows
+      .map((row) => ({ label: row[0] || '', value: row[1] || '' }))
+      .filter((row) => row.label && row.value) || [];
+
+  while (cursor < lines.length) {
+    const heading = lines[cursor].match(/^##\s+(.+)$/);
+    if (!heading) {
+      cursor += 1;
+      continue;
+    }
+    cursor += 1;
+    const body: string[] = [];
+    while (cursor < lines.length && !/^##\s+/.test(lines[cursor])) {
+      body.push(lines[cursor]);
+      cursor += 1;
+    }
+    const table = parseMarkdownTable(body);
+    const tableLines = new Set(body.filter((line) => line.trim().startsWith('|')));
+    const listItems = body
+      .filter((line) => /^\s*-\s+/.test(line))
+      .map((line) => line.replace(/^\s*-\s+/, '').trim())
+      .filter(Boolean);
+    const plainText = body
+      .filter((line) => line.trim())
+      .filter((line) => !tableLines.has(line))
+      .filter((line) => !/^\s*-\s+/.test(line))
+      .join('\n')
+      .trim();
+    sections.push({
+      title: heading[1].trim(),
+      text: plainText,
+      listItems,
+      table,
+    });
+  }
+
+  return { title, metaRows, sections };
+}
+
+function StructuredMemoryTableView({ table }: { table: StructuredMemoryTable }) {
+  return (
+    <div className="mt-2 overflow-x-auto">
+      <table className="w-full min-w-[34rem] border-separate border-spacing-0 text-left text-xs">
+        <thead>
+          <tr className="text-[11px] font-semibold text-slate-400">
+            {table.headers.map((header, index) => (
+              <th
+                key={`${header}:${index}`}
+                className="border-b border-slate-200/80 px-3 py-2 first:pl-0 dark:border-white/10"
+              >
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 dark:divide-white/10">
+          {table.rows.map((row, rowIndex) => (
+            <tr key={`${row.join('|')}:${rowIndex}`}>
+              {table.headers.map((header, index) => (
+                <td
+                  key={`${header}:${index}`}
+                  className="max-w-[22rem] whitespace-pre-line px-3 py-2.5 align-top leading-5 text-slate-600 first:pl-0 dark:text-slate-300"
+                >
+                  {row[index] || '无'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StructuredMemoryDocumentView({ document }: { document: StructuredMemoryDocument }) {
+  const primarySections = document.sections.filter(
+    (section) => section.text || section.table || section.listItems.length > 0,
+  );
+
+  return (
+    <div className="mt-5 border-t border-slate-200/80 bg-slate-50/60 dark:border-white/10 dark:bg-black/15">
+      <div className="grid min-h-[20rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <aside className="border-b border-slate-200/80 px-5 py-4 dark:border-white/10 lg:border-b-0 lg:border-r">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-blue-700 dark:text-blue-200">
+            结构化原文
+          </p>
+          <h4 className="mt-2 text-base font-semibold leading-6 text-slate-950 dark:text-white">
+            {document.title}
+          </h4>
+          {document.metaRows.length > 0 ? (
+            <dl className="mt-4 space-y-3 text-xs">
+              {document.metaRows.slice(0, 8).map((row) => (
+                <div key={row.label}>
+                  <dt className="font-semibold text-slate-400">{row.label}</dt>
+                  <dd className="mt-0.5 whitespace-pre-line leading-5 text-slate-700 dark:text-slate-200">
+                    {row.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </aside>
+
+        <div className="min-w-0 divide-y divide-slate-200/70 dark:divide-white/10">
+          {primarySections.map((section) => (
+            <section key={section.title} className="px-5 py-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500/70" />
+                <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                  {section.title}
+                </h4>
+              </div>
+              {section.text ? (
+                <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  {section.text}
+                </p>
+              ) : null}
+              {section.table ? <StructuredMemoryTableView table={section.table} /> : null}
+              {section.listItems.length > 0 ? (
+                <ul className="mt-2 grid gap-1.5 text-sm leading-6 text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+                  {section.listItems.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300 dark:bg-slate-500" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function sourceGraphStructuredNotes(
+  graphFact?: SourceKnowledgeGraphFact,
+): SourceStructuredNotes | null {
+  return graphFact?.structuredNotes ?? null;
 }
 
 function apiMemorySourceLabel(record: StudyMemoryApiRecord): string {
@@ -248,6 +1094,22 @@ function coursePublicMemory(record: StudyMemoryApiRecord): LibraryMemoryItem {
     scopeLabel: '共有',
     sourceLabel: apiMemorySourceLabel(record),
     kindLabel: apiMemoryKindLabel(record),
+    sourceHash: sourceHashFromUnknown(record.sourceReferences),
+    updatedAt: Date.parse(record.updatedAt),
+  };
+}
+
+function platformMemory(record: StudyMemoryApiRecord): LibraryMemoryItem {
+  return {
+    id: `platform:${record.id}`,
+    title: record.title,
+    text: record.text,
+    layer: 'platform',
+    layerLabel: '平台记忆层',
+    scopeLabel: record.scope === 'private' ? '私有' : '共有',
+    sourceLabel: apiMemorySourceLabel(record),
+    kindLabel: apiMemoryKindLabel(record),
+    sourceHash: sourceHashFromUnknown(record.sourceReferences),
     updatedAt: Date.parse(record.updatedAt),
   };
 }
@@ -300,6 +1162,7 @@ function notebookApiPublicMemory(
     kindLabel: apiMemoryKindLabel(record),
     notebookId: notebook.id,
     notebookName: notebook.name,
+    sourceHash: sourceHashFromUnknown(record.sourceReferences),
     updatedAt: Date.parse(record.updatedAt),
   };
 }
@@ -314,6 +1177,7 @@ function coursePrivateMemory(record: StudyMemoryApiRecord): LibraryMemoryItem {
     scopeLabel: '私有',
     sourceLabel: '数据库课程私有记忆',
     kindLabel: apiMemoryKindLabel(record),
+    sourceHash: sourceHashFromUnknown(record.sourceReferences),
     updatedAt: Date.parse(record.updatedAt),
   };
 }
@@ -333,6 +1197,7 @@ function notebookApiPrivateMemory(
     kindLabel: apiMemoryKindLabel(record),
     notebookId: notebook.id,
     notebookName: notebook.name,
+    sourceHash: sourceHashFromUnknown(record.sourceReferences),
     updatedAt: Date.parse(record.updatedAt),
   };
 }
@@ -384,12 +1249,15 @@ function searchMemoryToLibraryMemory(
 ): LibraryMemoryItem {
   const notebook = memory.notebookId ? notebooksById.get(memory.notebookId) : undefined;
   const isPrivate = memory.scope === 'private';
+  const isPlatformLayer = memory.targetType === 'platform';
   const isNotebookLayer = Boolean(memory.notebookId) || memory.targetType === 'notebook';
-  const layer: LibraryMemoryItem['layer'] = isPrivate
-    ? 'private'
-    : isNotebookLayer
-      ? 'notebook'
-      : 'course';
+  const layer: LibraryMemoryItem['layer'] = isPlatformLayer
+    ? 'platform'
+    : isPrivate
+      ? 'private'
+      : isNotebookLayer
+        ? 'notebook'
+        : 'course';
 
   return {
     id: `search-memory:${memory.id}`,
@@ -397,7 +1265,13 @@ function searchMemoryToLibraryMemory(
     text: memory.text,
     layer,
     layerLabel:
-      layer === 'course' ? '课程控制层' : layer === 'notebook' ? '笔记本知识层' : '个人学习层',
+      layer === 'platform'
+        ? '平台记忆层'
+        : layer === 'course'
+          ? '课程控制层'
+          : layer === 'notebook'
+            ? '笔记本知识层'
+            : '个人学习层',
     scopeLabel: isPrivate ? '私有' : '共有',
     sourceLabel: studyMemorySourceLabel(memory.source),
     kindLabel: studyMemoryKindLabel(memory.kind),
@@ -418,7 +1292,7 @@ function practiceState(problem: NotebookProblemClientRecord): PracticeState {
 const PROBLEM_BANK_PRIMARY_BUTTON_CLASS =
   'bg-sky-600 text-white shadow-sm shadow-sky-100/70 hover:bg-sky-700 dark:bg-sky-500 dark:text-slate-950 dark:shadow-none dark:hover:bg-sky-400';
 const PROBLEM_BANK_LIST_GRID_CLASS =
-  'grid grid-cols-[4rem_5.25rem_minmax(14rem,1.7fr)_7rem_6.5rem_4rem_4.75rem_7.5rem]';
+  'grid grid-cols-[4rem_5.25rem_minmax(14rem,1.7fr)_7rem_6.5rem_4rem_4.75rem_8.75rem]';
 const PROBLEM_BANK_PAGE_SIZE = 10;
 const RESOURCE_TAB_TRIGGER_CLASS =
   'h-11 flex-none gap-2 rounded-none border-0 px-4 text-sm font-semibold text-slate-500 shadow-none hover:text-slate-950 data-active:bg-transparent data-active:text-slate-950 data-active:shadow-none dark:text-slate-400 dark:hover:text-white dark:data-active:bg-transparent dark:data-active:text-white group-data-[orientation=horizontal]/tabs:after:bottom-0 group-data-[orientation=horizontal]/tabs:after:h-0.5 group-data-[orientation=horizontal]/tabs:after:rounded-full';
@@ -2566,6 +3440,9 @@ function memoryScopeChipClassName(scopeLabel: string): string {
 }
 
 function memoryLayerChipClassName(layer: LibraryMemoryItem['layer']): string {
+  if (layer === 'platform') {
+    return 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-500/10 dark:text-violet-100';
+  }
   if (layer === 'course') {
     return 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-300/20 dark:bg-indigo-500/10 dark:text-indigo-100';
   }
@@ -2782,8 +3659,11 @@ export function CourseResourceLibraryPageClient({
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
+  const [sourceUploads, setSourceUploads] = useState<CourseSourceUploadRecord[]>([]);
+  const [dbPlatformMemories, setDbPlatformMemories] = useState<StudyMemoryApiRecord[]>([]);
   const [dbCourseMemories, setDbCourseMemories] = useState<StudyMemoryApiRecord[]>([]);
   const [dbNotebookMemories, setDbNotebookMemories] = useState<NotebookMemoryRecordBundle[]>([]);
+  const [knowledgeGraphFacts, setKnowledgeGraphFacts] = useState<CourseMemoryFactRecord[]>([]);
   const [dbAvailable, setDbAvailable] = useState(false);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
@@ -2792,11 +3672,14 @@ export function CourseResourceLibraryPageClient({
     query: '',
   });
   const [filter, setFilter] = useState<ResourceFilter>('memory');
-  const [memoryLayerFilter, setMemoryLayerFilter] = useState<MemoryLayerFilter>('private');
+  const [memoryLayerFilter, setMemoryLayerFilter] = useState<MemoryLayerFilter>('all');
   const [selectedSearchItemId, setSelectedSearchItemId] = useState<string | null>(null);
   const [selectedMemoryItemId, setSelectedMemoryItemId] = useState<string | null>(null);
   const [selectedKnowledgeNodeId, setSelectedKnowledgeNodeId] = useState<string | null>(null);
   const [problemPage, setProblemPage] = useState(1);
+  const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
+  const [deletingSourceHash, setDeletingSourceHash] = useState<string | null>(null);
+  const [sourceCoverPreview, setSourceCoverPreview] = useState<SourceCoverPreview | null>(null);
   const [memoryVersion, setMemoryVersion] = useState(0);
   const searchRequestIdRef = useRef(0);
 
@@ -2804,15 +3687,34 @@ export function CourseResourceLibraryPageClient({
     let alive = true;
 
     async function loadResourceLibrary() {
-      const [loadedCourse, loadedNotebooks, loadedProblems, loadedCourseMemories] =
-        await Promise.all([
-          getCourse(courseId),
-          listStagesByCourse(courseId).catch(() => []),
-          listCourseProblems(courseId).catch(() => []),
-          listStudyMemoryRecords({ targetType: 'course', targetId: courseId })
-            .then((memories) => ({ ok: true, memories }))
-            .catch(() => ({ ok: false, memories: [] as StudyMemoryApiRecord[] })),
-        ]);
+      const [
+        loadedCourse,
+        loadedNotebooks,
+        loadedProblems,
+        loadedPlatformMemories,
+        loadedCourseMemories,
+        loadedSourceUploads,
+        loadedKnowledgeGraphFacts,
+      ] = await Promise.all([
+        getCourse(courseId),
+        listStagesByCourse(courseId).catch(() => []),
+        listCourseProblems(courseId).catch(() => []),
+        listStudyMemoryRecords({ targetType: 'platform', targetId: 'platform' })
+          .then((memories) => ({ ok: true, memories }))
+          .catch(() => ({ ok: false, memories: [] as StudyMemoryApiRecord[] })),
+        listStudyMemoryRecords({ targetType: 'course', targetId: courseId })
+          .then((memories) => ({ ok: true, memories }))
+          .catch(() => ({ ok: false, memories: [] as StudyMemoryApiRecord[] })),
+        listCourseSourceUploads(courseId).catch(() => []),
+        backendJson<{ facts: CourseMemoryFactRecord[] }>(
+          `/api/memory/facts?${new URLSearchParams({
+            scopeType: 'course',
+            scopeId: courseId,
+            namespace: 'knowledge_graph',
+            limit: '80',
+          }).toString()}`,
+        ).catch(() => ({ facts: [] })),
+      ]);
 
       const loadedNotebookMemories =
         loadedCourseMemories.ok && loadedNotebooks.length > 0
@@ -2829,9 +3731,12 @@ export function CourseResourceLibraryPageClient({
       setCourse(loadedCourse ?? null);
       setNotebooks(loadedNotebooks);
       setProblems(loadedProblems);
+      setSourceUploads(loadedSourceUploads);
+      setDbPlatformMemories(loadedPlatformMemories.memories);
       setDbCourseMemories(loadedCourseMemories.memories);
       setDbNotebookMemories(loadedNotebookMemories);
-      setDbAvailable(loadedCourseMemories.ok);
+      setKnowledgeGraphFacts(loadedKnowledgeGraphFacts.facts);
+      setDbAvailable(loadedCourseMemories.ok || loadedPlatformMemories.ok);
     }
 
     void loadResourceLibrary();
@@ -2863,6 +3768,7 @@ export function CourseResourceLibraryPageClient({
     course?.language === 'zh-CN' ? 'zh-CN' : 'en-US';
 
   const memoryItems = useMemo<LibraryMemoryItem[]>(() => {
+    const dbPlatform = dbPlatformMemories.filter(isActive).map(platformMemory);
     const dbCoursePublic = dbCourseMemories
       .filter((memory) => memory.scope === 'public' && isActive(memory))
       .map(coursePublicMemory);
@@ -2902,6 +3808,7 @@ export function CourseResourceLibraryPageClient({
         : [];
 
     return [
+      ...dbPlatform,
       ...dbCoursePublic,
       ...fallbackCoursePublic,
       ...dbNotebookPublic,
@@ -2910,7 +3817,14 @@ export function CourseResourceLibraryPageClient({
       ...dbNotebookPrivate,
       ...localNotebookPrivate,
     ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }, [course, dbCourseMemories, dbNotebookMemories, localProfiles, notebooksById]);
+  }, [
+    course,
+    dbCourseMemories,
+    dbNotebookMemories,
+    dbPlatformMemories,
+    localProfiles,
+    notebooksById,
+  ]);
 
   const problemItems = useMemo<LibraryProblemItem[]>(
     () =>
@@ -2981,10 +3895,11 @@ export function CourseResourceLibraryPageClient({
   );
 
   const memoryStats = useMemo(() => {
+    const platformCount = memoryItems.filter((memory) => memory.layer === 'platform').length;
     const courseCount = memoryItems.filter((memory) => memory.layer === 'course').length;
     const notebookCount = memoryItems.filter((memory) => memory.layer === 'notebook').length;
     const privateCount = memoryItems.filter((memory) => memory.layer === 'private').length;
-    return { courseCount, notebookCount, privateCount };
+    return { platformCount, courseCount, notebookCount, privateCount };
   }, [memoryItems]);
 
   const filteredLayerMemoryItems = useMemo(
@@ -3008,6 +3923,89 @@ export function CourseResourceLibraryPageClient({
       problemItems.length > 0 ? Math.round((counts.mastered / problemItems.length) * 100) : 0;
     return { ...counts, attempted, mastery, total: problemItems.length };
   }, [problemItems]);
+
+  const handleDeleteProblem = useCallback(
+    async (problem: LibraryProblemItem) => {
+      if (deletingProblemId) return;
+      const localizedTitle = getLocalizedProblemTitle(problem, problemContentLanguage);
+      const confirmed = window.confirm(
+        locale === 'zh-CN'
+          ? `确认删除题目「${localizedTitle}」吗？删除后不可恢复。`
+          : `Delete "${localizedTitle}"? This cannot be undone.`,
+      );
+      if (!confirmed) return;
+
+      setDeletingProblemId(problem.id);
+      try {
+        await deleteCourseProblem({ courseId, problemId: problem.id });
+        setProblems((current) => current.filter((item) => item.id !== problem.id));
+        setProblemPage((current) =>
+          Math.min(
+            current,
+            Math.max(1, Math.ceil((problemItems.length - 1) / PROBLEM_BANK_PAGE_SIZE)),
+          ),
+        );
+        setSelectedSearchItemId((current) =>
+          current === `problem:${problem.id}` ? null : current,
+        );
+        toast.success(locale === 'zh-CN' ? '题目已删除' : 'Problem deleted');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Delete failed');
+      } finally {
+        setDeletingProblemId(null);
+      }
+    },
+    [courseId, deletingProblemId, locale, problemContentLanguage, problemItems.length],
+  );
+
+  const handleDeleteSourceUpload = useCallback(
+    async (upload: CourseSourceUploadRecord) => {
+      if (deletingSourceHash) return;
+      const confirmed = window.confirm(
+        locale === 'zh-CN'
+          ? `确认删除上传文件「${upload.title}」吗？相关题目、记忆、笔记本段落、RAG 索引、模板和知识图谱都会一起删除。`
+          : `Delete "${upload.title}" and its related problems, memories, notebook sections, RAG entries, templates, and graph data?`,
+      );
+      if (!confirmed) return;
+
+      setDeletingSourceHash(upload.sourceHash);
+      try {
+        const result = await deleteCourseSourceUpload({
+          courseId,
+          sourceHash: upload.sourceHash,
+        });
+        const deletedProblemIds = new Set(result.source.problemIds);
+        const deletedMemoryIds = new Set(result.source.memoryIds);
+        setSourceUploads((current) =>
+          current.filter((item) => item.sourceHash !== upload.sourceHash),
+        );
+        setProblems((current) => current.filter((problem) => !deletedProblemIds.has(problem.id)));
+        setDbCourseMemories((current) =>
+          current.filter((memory) => !deletedMemoryIds.has(memory.id)),
+        );
+        setDbNotebookMemories((current) =>
+          current.map((bundle) => ({
+            ...bundle,
+            memories: bundle.memories.filter((memory) => !deletedMemoryIds.has(memory.id)),
+          })),
+        );
+        setNotebooks(await listStagesByCourse(courseId).catch(() => []));
+        setSelectedSearchItemId(null);
+        setSelectedMemoryItemId(null);
+        setProblemPage(1);
+        toast.success(
+          locale === 'zh-CN'
+            ? `已删除上传文件及 ${result.deleted.problems} 道相关题目`
+            : `Source upload deleted with ${result.deleted.problems} related problems`,
+        );
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Delete failed');
+      } finally {
+        setDeletingSourceHash(null);
+      }
+    },
+    [courseId, deletingSourceHash, locale],
+  );
 
   const bankStats = useMemo(() => {
     const allTopics = new Set<string>();
@@ -3591,6 +4589,40 @@ export function CourseResourceLibraryPageClient({
   const resultCount = searchItems.length;
   const hasSubmittedSearch = submittedQuery.trim().length > 0;
   const isSearchLoading = searchRun.status === 'loading';
+  const sourceUploadStats = useMemo(
+    () =>
+      sourceUploads.reduce(
+        (acc, upload) => {
+          acc.problems += upload.stats.problemCount;
+          acc.memories += upload.stats.memoryCount;
+          acc.rag += upload.stats.ragEntryCount;
+          acc.graphFacts += upload.stats.knowledgeGraphFactCount;
+          if (upload.coverImagePath) acc.covers += 1;
+          return acc;
+        },
+        { problems: 0, memories: 0, rag: 0, graphFacts: 0, covers: 0 },
+      ),
+    [sourceUploads],
+  );
+  const sourceKnowledgeGraphFacts = useMemo(
+    () =>
+      knowledgeGraphFacts
+        .map(sourceKnowledgeGraphFact)
+        .filter((fact): fact is SourceKnowledgeGraphFact => Boolean(fact)),
+    [knowledgeGraphFacts],
+  );
+  const sourceKnowledgeGraphStats = useMemo(
+    () =>
+      sourceKnowledgeGraphFacts.reduce(
+        (acc, fact) => {
+          acc.nodes += fact.nodeCount;
+          acc.edges += fact.edgeCount;
+          return acc;
+        },
+        { nodes: 0, edges: 0 },
+      ),
+    [sourceKnowledgeGraphFacts],
+  );
 
   const submitSearch = useCallback(async () => {
     const nextQuery = query.trim();
@@ -3647,6 +4679,11 @@ export function CourseResourceLibraryPageClient({
         count: memoryItems.length,
       },
       {
+        value: 'platform',
+        label: '平台记忆层',
+        count: memoryStats.platformCount,
+      },
+      {
         value: 'course',
         label: '课程控制层',
         count: memoryStats.courseCount,
@@ -3699,12 +4736,14 @@ export function CourseResourceLibraryPageClient({
       );
     }
 
+    const structuredDocument = parseStructuredMemoryDocument(memory.text);
+
     return (
-      <article className="flex h-full min-h-[22rem] flex-col rounded-2xl border border-slate-200/80 bg-white/82 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.045]">
-        <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <article className="flex h-full min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/82 shadow-sm dark:border-white/10 dark:bg-white/[0.045]">
+        <div className="flex min-w-0 flex-col gap-3 px-5 pt-5 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-normal text-blue-700 dark:text-blue-200">
-              Memory Preview
+              {structuredDocument ? '结构化记忆原文' : '记忆原文'}
             </p>
             <h3 className="mt-2 text-xl font-semibold leading-7 text-slate-950 dark:text-white">
               {memory.title}
@@ -3714,7 +4753,7 @@ export function CourseResourceLibraryPageClient({
             {formatDate(memory.updatedAt)}
           </span>
         </div>
-        <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
+        <div className="mt-3 flex min-w-0 flex-wrap gap-1.5 px-5">
           <LibraryChip className={memoryScopeChipClassName(memory.scopeLabel)}>
             {memory.scopeLabel}
           </LibraryChip>
@@ -3729,12 +4768,29 @@ export function CourseResourceLibraryPageClient({
           ) : null}
           {memory.notebookName ? <LibraryChip>{memory.notebookName}</LibraryChip> : null}
         </div>
-        <div className="mt-5 min-h-0 flex-1 rounded-2xl border border-slate-200/80 bg-slate-50/72 p-5 text-slate-700 dark:border-white/10 dark:bg-black/15 dark:text-slate-200">
-          <ProblemRichText
-            content={memory.text}
-            className="text-[15px] leading-8 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-normal [&_h1]:text-slate-950 [&_h2]:mb-2.5 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-normal [&_h2]:text-slate-950 [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:tracking-normal [&_h3]:text-slate-950 [&_p]:my-2 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white"
-          />
-        </div>
+        {structuredDocument ? (
+          <>
+            <StructuredMemoryDocumentView document={structuredDocument} />
+            <details className="border-t border-slate-200/80 px-5 py-3 text-xs dark:border-white/10">
+              <summary className="cursor-pointer font-semibold text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200">
+                查看 Markdown 原文
+              </summary>
+              <div className="mt-3 max-h-72 overflow-auto rounded-xl border border-slate-200/80 bg-white/72 p-4 text-slate-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
+                <ProblemRichText
+                  content={memory.text}
+                  className="text-[13px] leading-6 [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:tracking-normal [&_h1]:text-slate-950 [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:tracking-normal [&_h2]:text-slate-950 dark:[&_h1]:text-white dark:[&_h2]:text-white"
+                />
+              </div>
+            </details>
+          </>
+        ) : (
+          <div className="m-5 min-h-0 flex-1 rounded-2xl border border-slate-200/80 bg-slate-50/72 p-5 text-slate-700 dark:border-white/10 dark:bg-black/15 dark:text-slate-200">
+            <ProblemRichText
+              content={memory.text}
+              className="text-[15px] leading-8 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-normal [&_h1]:text-slate-950 [&_h2]:mb-2.5 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-normal [&_h2]:text-slate-950 [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:tracking-normal [&_h3]:text-slate-950 [&_p]:my-2 dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white"
+            />
+          </div>
+        )}
       </article>
     );
   };
@@ -3764,20 +4820,40 @@ export function CourseResourceLibraryPageClient({
         <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-normal text-emerald-700 dark:text-emerald-200">
-              Problem Preview
+              题目预览
             </p>
             <ProblemTitleText
               content={localizedTitle}
               className="mt-2 block text-xl font-semibold leading-7 text-slate-950 dark:text-white"
             />
           </div>
-          <Button
-            asChild
-            size="sm"
-            className={cn('h-9 rounded-xl', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
-          >
-            <Link href={problemHref}>{locale === 'zh-CN' ? '练习' : 'Practice'}</Link>
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              asChild
+              size="sm"
+              className={cn('h-9 rounded-xl', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
+            >
+              <Link href={problemHref}>{locale === 'zh-CN' ? '练习' : 'Practice'}</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-9 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
+              disabled={deletingProblemId === problem.id}
+              title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+              aria-label={
+                locale === 'zh-CN' ? `删除题目 ${localizedTitle}` : `Delete ${localizedTitle}`
+              }
+              onClick={() => void handleDeleteProblem(problem)}
+            >
+              {deletingProblemId === problem.id ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+            </Button>
+          </div>
         </div>
         <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
           <LibraryChip>{formatProblemNumber(problem)}</LibraryChip>
@@ -3905,17 +4981,42 @@ export function CourseResourceLibraryPageClient({
                       />
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className={cn('h-8 px-2.5 text-xs', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openProblem(problem);
-                    }}
-                  >
-                    {locale === 'zh-CN' ? '练习' : 'Practice'}
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className={cn('h-8 px-2.5 text-xs', PROBLEM_BANK_PRIMARY_BUTTON_CLASS)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openProblem(problem);
+                      }}
+                    >
+                      {locale === 'zh-CN' ? '练习' : 'Practice'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-8 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                      disabled={deletingProblemId === problem.id}
+                      title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                      aria-label={
+                        locale === 'zh-CN'
+                          ? `删除题目 ${localizedTitle}`
+                          : `Delete ${localizedTitle}`
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDeleteProblem(problem);
+                      }}
+                    >
+                      {deletingProblemId === problem.id ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
@@ -4098,6 +5199,29 @@ export function CourseResourceLibraryPageClient({
                     >
                       {locale === 'zh-CN' ? '练习' : 'Practice'}
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-8 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                      disabled={deletingProblemId === problem.id}
+                      title={locale === 'zh-CN' ? '删除题目' : 'Delete problem'}
+                      aria-label={
+                        locale === 'zh-CN'
+                          ? `删除题目 ${localizedTitle}`
+                          : `Delete ${localizedTitle}`
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDeleteProblem(problem);
+                      }}
+                    >
+                      {deletingProblemId === problem.id ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               );
@@ -4276,6 +5400,253 @@ export function CourseResourceLibraryPageClient({
     </article>
   );
 
+  const renderSourceUploads = () => (
+    <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 shadow-[0_18px_58px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.055]">
+      <div className="flex flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-sky-700 dark:text-sky-200">
+            上传入库
+          </p>
+          <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">入库文件</h2>
+        </div>
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          <LibraryChip>{sourceUploads.length} 个文件</LibraryChip>
+          <LibraryChip>{sourceUploadStats.problems} 道题</LibraryChip>
+          <LibraryChip>{sourceUploadStats.memories} 条记忆</LibraryChip>
+          <LibraryChip>{sourceUploadStats.rag} 条 RAG</LibraryChip>
+          <LibraryChip>{sourceUploadStats.graphFacts} 条图谱</LibraryChip>
+          <LibraryChip>{sourceUploadStats.covers} 张封面</LibraryChip>
+        </div>
+      </div>
+
+      {sourceUploads.length === 0 ? (
+        <div className="flex min-h-[18rem] flex-col items-center justify-center px-4 py-8 text-center">
+          <LibraryBig
+            className="mb-3 size-9 text-slate-300 dark:text-slate-500"
+            strokeWidth={1.6}
+          />
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-200">
+            还没有可删除的入库文件
+          </p>
+          <p className="mt-1 max-w-md text-xs leading-5 text-slate-400 dark:text-slate-400">
+            在 /learn 上传并完成入库后，文件会显示在这里。
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
+          {sourceUploads.map((upload) => {
+            const isDeleting = deletingSourceHash === upload.sourceHash;
+            const relatedMemories = relatedSourceUploadMemories(upload, memoryItems);
+            const platformMemory = relatedMemories.find(
+              (memory) => memory.layer === 'platform' && memory.scopeLabel === '共有',
+            );
+            const courseMemory = relatedMemories.find(
+              (memory) => memory.layer === 'course' && memory.scopeLabel === '共有',
+            );
+            const notebookMemory = relatedMemories.find(
+              (memory) => memory.layer === 'notebook' && memory.scopeLabel === '共有',
+            );
+            const privateMemory = relatedMemories.find((memory) => memory.scopeLabel === '私有');
+            const graphFact = sourceKnowledgeGraphFacts.find(
+              (fact) => fact.sourceHash === upload.sourceHash,
+            );
+            const displayedUsageProfile = upload.usageProfile || graphFact?.usageProfile || null;
+            const layerRows = buildSourceUploadLayerRows(upload, relatedMemories, graphFact);
+            const structuredNotes = sourceGraphStructuredNotes(graphFact);
+            const stats = [
+              { label: '题目', value: upload.stats.problemCount },
+              { label: '笔记本段落', value: upload.stats.sectionCount },
+              { label: '记忆', value: upload.stats.memoryCount },
+              { label: '模板', value: upload.stats.templateMemoryCount },
+              { label: 'RAG', value: upload.stats.ragEntryCount },
+              { label: '图谱', value: upload.stats.knowledgeGraphFactCount },
+            ];
+            return (
+              <article
+                key={upload.sourceHash}
+                className="flex min-h-[15rem] flex-col rounded-2xl border border-slate-200/80 bg-slate-50/72 p-4 dark:border-white/10 dark:bg-black/15"
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-950 dark:text-white">
+                      {upload.title}
+                    </h3>
+                    <p className="mt-1 truncate font-mono text-[11px] font-medium text-slate-400">
+                      {sourceHashLabel(upload.sourceHash)}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-8 shrink-0 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                    disabled={Boolean(deletingSourceHash)}
+                    title="删除入库文件"
+                    aria-label={`删除入库文件 ${upload.title}`}
+                    onClick={() => void handleDeleteSourceUpload(upload)}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                  </Button>
+                </div>
+
+                <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
+                  <LibraryChip>{sourceKindLabel(upload.kind)}</LibraryChip>
+                  {sourceUsageProfileLabel(displayedUsageProfile) ? (
+                    <LibraryChip>{sourceUsageProfileLabel(displayedUsageProfile)}</LibraryChip>
+                  ) : null}
+                  {upload.allQuestionUpload === true ? (
+                    <LibraryChip className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-500/10 dark:text-amber-100">
+                      全题目
+                    </LibraryChip>
+                  ) : null}
+                  {upload.topic ? <LibraryChip>{upload.topic}</LibraryChip> : null}
+                  <LibraryChip>{formatIsoDate(upload.updatedAt)}</LibraryChip>
+                </div>
+
+                {upload.coverImagePath ? (
+                  <div className="mt-3 overflow-hidden rounded-xl border border-emerald-200/80 bg-white shadow-sm dark:border-emerald-400/20 dark:bg-white/[0.045]">
+                    <div className="flex items-center gap-1.5 border-b border-emerald-100 bg-emerald-50/80 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-400/15 dark:bg-emerald-400/10 dark:text-emerald-100">
+                      <ImageIcon className="size-3.5" strokeWidth={1.8} />
+                      Notebook 封面
+                    </div>
+                    <button
+                      type="button"
+                      className="group mx-auto block aspect-[0.707] max-h-56 bg-[#fffdf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      aria-label={`放大查看 ${upload.title} 的 notebook 封面`}
+                      title="点击放大封面"
+                      onClick={() =>
+                        setSourceCoverPreview({
+                          src: upload.coverImagePath || '',
+                          title: upload.title,
+                          subtitle: upload.topic,
+                        })
+                      }
+                    >
+                      <img
+                        src={upload.coverImagePath}
+                        alt={`${upload.title} notebook cover`}
+                        className="size-full object-cover transition duration-150 group-hover:scale-[1.015] group-hover:brightness-[0.98]"
+                        loading="lazy"
+                      />
+                    </button>
+                  </div>
+                ) : upload.coverStatus === 'failed' ? (
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-300/20 dark:bg-amber-500/10 dark:text-amber-100">
+                    <ImageIcon className="size-4 shrink-0" strokeWidth={1.8} />
+                    封面生成失败，资料入库已完成
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  {stats.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-slate-200/80 bg-white/82 px-3 py-2 dark:border-white/10 dark:bg-white/[0.045]"
+                    >
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {item.value}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200/80 bg-white/82 text-xs dark:border-white/10 dark:bg-white/[0.045]">
+                  <div className="grid grid-cols-[4.75rem_4.25rem_minmax(0,1fr)] border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[11px] font-semibold text-slate-500 dark:border-white/10 dark:bg-white/[0.055] dark:text-slate-300">
+                    <span>层</span>
+                    <span>状态</span>
+                    <span>说明</span>
+                  </div>
+                  {layerRows.map((row) => (
+                    <div
+                      key={row.label}
+                      className="grid grid-cols-[4.75rem_4.25rem_minmax(0,1fr)] gap-2 border-b border-slate-100 px-3 py-2 last:border-b-0 dark:border-white/10"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                          {row.label}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-slate-400">{row.countLabel}</div>
+                      </div>
+                      <div>
+                        <span
+                          className={cn(
+                            'inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold',
+                            sourceUploadLayerStatusClassName(row.status),
+                          )}
+                        >
+                          {sourceUploadLayerStatusLabel(row.status)}
+                        </span>
+                      </div>
+                      <p className="min-w-0 leading-5 text-slate-500 dark:text-slate-300">
+                        {row.detail}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {structuredNotes ? <StructuredSourceNotesPreview notes={structuredNotes} /> : null}
+
+                {platformMemory || courseMemory || notebookMemory || privateMemory ? (
+                  <div className="mt-3 space-y-2 rounded-xl border border-slate-200/80 bg-white/72 p-3 text-xs dark:border-white/10 dark:bg-white/[0.035]">
+                    {platformMemory ? (
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                          平台记忆原文
+                        </div>
+                        <p className="mt-1 line-clamp-5 leading-5 text-slate-500 dark:text-slate-300">
+                          {sourceUploadMemoryPreview(platformMemory.text)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {courseMemory ? (
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                          课程记忆原文
+                        </div>
+                        <p className="mt-1 line-clamp-5 leading-5 text-slate-500 dark:text-slate-300">
+                          {sourceUploadMemoryPreview(courseMemory.text)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {notebookMemory ? (
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                          笔记本记忆原文
+                        </div>
+                        <p className="mt-1 line-clamp-5 leading-5 text-slate-500 dark:text-slate-300">
+                          {sourceUploadMemoryPreview(notebookMemory.text)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {privateMemory ? (
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                          私有记忆原文
+                        </div>
+                        <p className="mt-1 line-clamp-5 leading-5 text-slate-500 dark:text-slate-300">
+                          {sourceUploadMemoryPreview(privateMemory.text)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="mt-auto pt-4 text-[11px] font-medium text-slate-400">
+                  {upload.fileMime || sourceKindLabel(upload.kind)}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+
   const renderTopicRows = ({ compact = false }: { compact?: boolean } = {}) => (
     <div
       className={cn(
@@ -4360,7 +5731,7 @@ export function CourseResourceLibraryPageClient({
         <div className="flex flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-normal text-cyan-700 dark:text-cyan-200">
-              Knowledge Graph
+              知识图谱
             </p>
             <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
               知识图谱
@@ -4368,6 +5739,10 @@ export function CourseResourceLibraryPageClient({
           </div>
           <div className="flex flex-wrap gap-1.5">
             <LibraryChip>{notebooks.length} 个笔记本</LibraryChip>
+            <LibraryChip>{sourceUploads.length} 个文件</LibraryChip>
+            <LibraryChip>{sourceKnowledgeGraphFacts.length} 条图谱事实</LibraryChip>
+            <LibraryChip>{sourceKnowledgeGraphStats.nodes} 个 source 节点</LibraryChip>
+            <LibraryChip>{sourceKnowledgeGraphStats.edges} 条 source 边</LibraryChip>
             <LibraryChip>{topicRows.length} 个专题</LibraryChip>
             <LibraryChip>{problemStats.total} 道题</LibraryChip>
             <LibraryChip>{memoryItems.length} 条记忆</LibraryChip>
@@ -4406,6 +5781,86 @@ export function CourseResourceLibraryPageClient({
               />
             </ReactFlow>
           </div>
+          {sourceKnowledgeGraphFacts.length > 0 ? (
+            <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/72 p-3 dark:border-white/10 dark:bg-black/15">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Source 图谱事实
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    这里显示上传资料实际写入的 knowledge_graph fact，不是泛化课程模板。
+                  </p>
+                </div>
+                <LibraryChip>
+                  {sourceKnowledgeGraphStats.nodes} 点 / {sourceKnowledgeGraphStats.edges} 边
+                </LibraryChip>
+              </div>
+              <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                {sourceKnowledgeGraphFacts.map((fact) => (
+                  <article
+                    key={fact.id}
+                    className="rounded-xl border border-slate-200/80 bg-white/86 p-3 text-xs dark:border-white/10 dark:bg-white/[0.045]"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        {fact.coverImagePath ? (
+                          <button
+                            type="button"
+                            className="group h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-[#fffdf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:border-white/10"
+                            aria-label={`放大查看 ${fact.sourceTitle} 的 notebook 封面`}
+                            title="点击放大封面"
+                            onClick={() =>
+                              setSourceCoverPreview({
+                                src: fact.coverImagePath || '',
+                                title: fact.sourceTitle,
+                                subtitle: fact.topic,
+                              })
+                            }
+                          >
+                            <img
+                              src={fact.coverImagePath}
+                              alt=""
+                              className="size-full object-cover transition duration-150 group-hover:scale-[1.04]"
+                              loading="lazy"
+                            />
+                          </button>
+                        ) : null}
+                        <div className="min-w-0">
+                          <h4 className="line-clamp-2 font-semibold text-slate-900 dark:text-white">
+                            {fact.sourceTitle}
+                          </h4>
+                          <p className="mt-1 line-clamp-1 text-slate-500 dark:text-slate-400">
+                            {fact.topic}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 font-semibold text-cyan-700 dark:border-cyan-400/25 dark:bg-cyan-400/10 dark:text-cyan-200">
+                        {fact.nodeCount} 点 / {fact.edgeCount} 边
+                      </span>
+                    </div>
+                    {fact.coverStatus === 'failed' ? (
+                      <p className="mt-2 text-[11px] font-medium text-amber-600 dark:text-amber-200">
+                        封面生成失败，但图谱 fact 已写入。
+                      </p>
+                    ) : null}
+                    {fact.concepts.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {fact.concepts.slice(0, 10).map((concept) => (
+                          <LibraryChip key={concept}>{concept}</LibraryChip>
+                        ))}
+                      </div>
+                    ) : null}
+                    {fact.methods.length > 0 ? (
+                      <p className="mt-3 line-clamp-2 leading-5 text-slate-500 dark:text-slate-300">
+                        方法：{fact.methods.join('、')}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
     );
@@ -4560,6 +6015,10 @@ export function CourseResourceLibraryPageClient({
                 <Search className="size-4" strokeWidth={1.8} />
                 搜索
               </TabsTrigger>
+              <TabsTrigger value="sources" className={RESOURCE_TAB_TRIGGER_CLASS}>
+                <LibraryBig className="size-4" strokeWidth={1.8} />
+                文件
+              </TabsTrigger>
               <TabsTrigger value="memory" className={RESOURCE_TAB_TRIGGER_CLASS}>
                 <Brain className="size-4" strokeWidth={1.8} />
                 记忆
@@ -4582,7 +6041,7 @@ export function CourseResourceLibraryPageClient({
           <TabsContent value="search" className="mt-0">
             <ResourceListDetailLayout<SearchResourceItem>
               key={`${filter}:${submittedQuery || 'empty'}`}
-              eyebrow="Search"
+              eyebrow="搜索"
               emptyStateClassName="min-h-[14rem]"
               hideHeader
               title="搜索结果"
@@ -4731,10 +6190,14 @@ export function CourseResourceLibraryPageClient({
             />
           </TabsContent>
 
+          <TabsContent value="sources" className="mt-0">
+            {renderSourceUploads()}
+          </TabsContent>
+
           <TabsContent value="memory" className="mt-0">
             <ResourceListDetailLayout<LibraryMemoryItem>
               key={memoryLayerFilter}
-              eyebrow="Layered Memory"
+              eyebrow="分层记忆"
               title="分层记忆"
               headerActions={renderMemoryLayerFilter()}
               items={filteredLayerMemoryItems}
@@ -4767,7 +6230,7 @@ export function CourseResourceLibraryPageClient({
               <div className="flex flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-normal text-violet-700 dark:text-violet-200">
-                    Notebooks
+                    笔记本
                   </p>
                   <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
                     笔记本索引
@@ -4784,7 +6247,7 @@ export function CourseResourceLibraryPageClient({
               <div className="flex flex-col gap-3 border-b border-slate-200/80 px-4 py-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-normal text-emerald-700 dark:text-emerald-200">
-                    Problem Bank
+                    题库
                   </p>
                   <h2 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
                     题库资料
@@ -4804,6 +6267,33 @@ export function CourseResourceLibraryPageClient({
             {renderKnowledgeGraph()}
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={Boolean(sourceCoverPreview)}
+          onOpenChange={(open) => {
+            if (!open) setSourceCoverPreview(null);
+          }}
+        >
+          <DialogContent className="max-h-[92vh] max-w-[min(92vw,58rem)] gap-4 overflow-hidden rounded-2xl bg-white p-4 dark:bg-slate-950 sm:p-5">
+            <div className="min-w-0 pr-10">
+              <DialogTitle className="line-clamp-2 text-base font-semibold text-slate-950 dark:text-white">
+                {sourceCoverPreview?.title || 'Notebook 封面'}
+              </DialogTitle>
+              <DialogDescription className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                {sourceCoverPreview?.subtitle || '点击外侧或按 ESC 关闭。'}
+              </DialogDescription>
+            </div>
+            <div className="grid max-h-[78vh] place-items-center overflow-auto rounded-xl border border-slate-200 bg-[#fffdf7] p-2 dark:border-white/10 dark:bg-white/[0.04]">
+              {sourceCoverPreview ? (
+                <img
+                  src={sourceCoverPreview.src}
+                  alt={`${sourceCoverPreview.title} notebook cover`}
+                  className="max-h-[74vh] max-w-full rounded-lg object-contain shadow-sm"
+                />
+              ) : null}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   );

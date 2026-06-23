@@ -1,42 +1,31 @@
-**Source Visual Truth**
-- Primary source: `/Users/dongpochen/.codex/generated_images/019ee5fe-9098-7710-8ca2-fe891f0f6013/ig_001a58e4b0cafebf016a36d962f10881979f128b3d5ec48178.png`
-- Secondary style source: `/Users/dongpochen/.codex/generated_images/019ee5fe-9098-7710-8ca2-fe891f0f6013/ig_001a58e4b0cafebf016a36da14b96c819798fadfa854d15b93.png`
+final result: passed
 
-**Implementation Evidence**
-- Route: `http://localhost:3000/learn`
-- Desktop screenshot: `tmp/design-qa/learn-desktop-1440x1024.png`
-- Desktop viewport: `1440x1024`
-- Mobile viewport checked: `390x844`
-- State: logged-in local course learning page, default conversation, CSC 108 selected.
+# Design QA
 
-**Full-View Comparison Evidence**
-- The implementation keeps the selected minimal-premium direction: light page shell, white center workbench, subtle slate dividers, blue active states, emerald progress, violet send CTA, and restrained shadows.
-- The final desktop browser check confirmed the learning focus strip, empty-state quiz module, four right-rail tabs, composer, and right-bottom Live2D companion all render in the intended state.
-- The final mobile structure check confirmed no horizontal overflow and no companion/footer overlap.
+Source visual target: ImageGen option 2, "Annotated Thinking" for the Syntara homepage.
 
-**Focused Region Comparison Evidence**
-- Header and course rail were checked because the first mobile pass showed metadata compression; the header now uses responsive grouping and horizontally scrollable chips on small screens.
-- Composer and companion were checked because the first mobile pass showed the companion crossing the footer; the mobile companion now uses a smaller learn-page size and elevated default position.
-- No further focused image crop was required because text, major containers, and the companion bounds were readable in full-view screenshots and structural checks.
+Implemented target: http://localhost:3000/
 
-**Findings**
-- No actionable P0/P1/P2 findings remain.
+Checks:
+- Cool blue-white background replaces the previous warm paper tone.
+- Hero uses one large serif headline with no inline image pills.
+- Education signals are visible in the first screen: equation, graph trace, definition note, derivative reminder, problem card, code trace, and key idea note.
+- Three-screen scroll states remain intact:
+  - Screen 1: hero and education layer visible.
+  - Screen 2: orbit/practice state lands in a triangular orb arrangement, with the top blue-purple orb, lower-left red-purple orb, and lower-right green-blue orb around the ring.
+  - Screen 3: laptop visible, orbit and education layer hidden.
+- Browser check at 1440x900 confirmed the second-screen terminal state has `screenTwo = 1`, `screenThree = 0`, education opacity `0`, laptop opacity `0`, and no horizontal overflow.
+- The scroll section height and motion thresholds were extended so the first-to-second transition has a longer build and the second screen holds before the laptop transition begins.
+- Scroll recording: `tmp/home-scroll-recording/home-scroll-current.mp4`, captured at the current in-app browser viewport (`1470x716`).
+- Video QA follow-up fixes:
+  - First-to-second transition now delays the second-screen text/ring reveal so it does not collide with the hero headline.
+  - Laptop final state now shifts high enough to keep the full computer visible in the shorter current browser viewport.
+- Orbit follow-up: `tmp/home-scroll-recording/home-scroll-orbit-current.mp4` confirms the three halo orbs are scroll-driven around the ring during the second-screen hold instead of staying fixed in one triangular arrangement.
+- Learning-content follow-up:
+  - Screen 2 now carries lightweight platform-specific learning state: course context, study memory, and next practice cards.
+  - The second-screen center copy now reads as a learning loop rather than a generic design-practice label.
+  - Browser QA at `1470x716` confirmed `secondContentOpacity = 1` during the second-screen hold, returns to `0` in the laptop state, and still has no horizontal overflow.
+  - Scroll recording: `tmp/home-scroll-recording/home-scroll-learning-content-current.mp4`.
 
-**Required Fidelity Surfaces**
-- Fonts and typography: Product UI uses the existing app sans stack with readable 14-16px body text, two-line course title wrapping, and no letter-spacing tweaks.
-- Spacing and layout rhythm: Three-column desktop rhythm matches the chosen mock direction; mobile header and footer avoid horizontal overflow.
-- Colors and visual tokens: White/slate base, sky accents, emerald progress, amber planning highlight, and violet send CTA match the agreed minimal-premium style.
-- Image quality and asset fidelity: Existing course avatars and Live2D assets are preserved; no fake placeholder graphics were introduced.
-- Copy and content: Existing learning copy and controls are preserved, with a real empty-state quiz entry added for the first screen.
-
-**Patches Made Since Previous QA Pass**
-- Added a real empty-state learning module so default sessions are not blank.
-- Reworked mobile header layout to prevent vertical metadata stacking.
-- Reduced and elevated the learn-page mobile Live2D companion to avoid the composer.
-- Clamped the desktop learn-page companion to the right-bottom safe area.
-
-**Follow-Up Polish**
-- P3: Once real chat history is present, tune the assistant message rhythm against a populated session screenshot.
-
-**Final Result**
-- final result: passed
+Known follow-up:
+- The laptop image is recolored to fit the new palette, but it still uses the earlier generated laptop composition. If we want maximum fidelity to Annotated Thinking, the laptop asset should be regenerated in the same cool annotated-learning style.

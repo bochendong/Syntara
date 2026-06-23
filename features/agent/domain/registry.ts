@@ -16,6 +16,10 @@ import {
   WRITE_FACT_MEMORY_SKILL,
   WRITE_STUDY_MEMORY_SKILL,
 } from '@/features/memory/agent-capabilities';
+import {
+  TEACHING_ORCHESTRATOR_AGENT_TOOLS,
+  TEACHING_ORCHESTRATOR_SKILL,
+} from '@/features/teaching-orchestrator/agent-capabilities';
 import { CORE_AGENT_TOOLS } from './core-capabilities';
 import { AGENT_MCP_RESOURCES } from './mcp-resources';
 import { AGENT_SKILL_DOCUMENTS } from './skill-documents';
@@ -26,7 +30,7 @@ import type {
   AgentToolDefinition,
 } from './types';
 
-export const AGENT_CAPABILITY_REGISTRY_VERSION = '2026-06-12';
+export const AGENT_CAPABILITY_REGISTRY_VERSION = '2026-06-22';
 
 export const AGENT_TOOLS = [
   ...CORE_AGENT_TOOLS,
@@ -34,6 +38,7 @@ export const AGENT_TOOLS = [
   ...PROBLEM_BANK_AGENT_TOOLS,
   ...REVIEW_AGENT_TOOLS,
   ...MEMORY_AGENT_TOOLS,
+  ...TEACHING_ORCHESTRATOR_AGENT_TOOLS,
 ] satisfies readonly AgentToolDefinition[];
 
 export const AGENT_SKILLS = [
@@ -43,6 +48,7 @@ export const AGENT_SKILLS = [
   INGEST_SOURCE_MEMORY_SKILL,
   WRITE_FACT_MEMORY_SKILL,
   WRITE_STUDY_MEMORY_SKILL,
+  TEACHING_ORCHESTRATOR_SKILL,
 ] satisfies readonly AgentSkillDefinition[];
 
 function indexById<T extends { id: string }>(items: readonly T[]): Readonly<Record<string, T>> {

@@ -8,6 +8,8 @@ This directory is the product-domain boundary for Syntara. New code should enter
 - `practice`: answering questions, grading, code execution, and attempt feedback.
 - `chat`: chat sessions, streaming, course side chat, and chat protocol types.
 - `review`: review routes, maps, route progress, and problem-bank readiness.
+- `teaching-orchestrator`: tool-based teaching mode routing, evidence ledgers,
+  decision rationale, and cross-domain teaching writeback.
 - `memory`: study memory, private memory, and companion nudges.
 - `notifications`: notification models, feeds, banners, and notification operations.
 - `agent`: agent-facing skill, MCP resource, and tool capability registry. This layer

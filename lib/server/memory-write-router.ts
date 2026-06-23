@@ -292,7 +292,7 @@ export function planMemoryWrite(candidate: MemoryWriteCandidate): MemoryWriteDec
         candidateId,
         action: 'needs_confirmation',
         layer: 'none',
-        reason: 'Study memory needs a course or notebook target.',
+        reason: 'Study memory needs a platform, course, or notebook target.',
         scope: {},
       };
     }
@@ -419,7 +419,7 @@ async function executeStudyMemoryWrite(args: {
 
   const scope = defaultStudyMemoryPrivacy(args.candidate);
   if (scope === 'public' && readableTarget.accessRole !== 'owner') {
-    throw new Error('Only the owner can write public course/notebook study memory');
+    throw new Error('Only the owner can write public platform/course/notebook study memory');
   }
 
   const writeTarget: StudyMemoryTarget = {

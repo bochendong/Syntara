@@ -11,6 +11,15 @@ export type PracticePlanMode = 'practice' | 'quiz';
 export type PracticePlanStatus = 'draft' | 'active' | 'completed';
 export type PracticeAttemptStatus = 'passed' | 'partial' | 'failed';
 
+export type PracticePlanEvidenceItem = {
+  id: string;
+  sourceType: string;
+  sourceId?: string;
+  title: string;
+  reason: string;
+  excerpt?: string;
+};
+
 export type ConceptMastery = {
   concept: string;
   mastery: number;
@@ -69,7 +78,7 @@ export type LearnerProgressCheckpoint = {
 };
 
 export type LearnerPlanningScope = LearnerProgressCheckpoint & {
-  purpose: 'review_plan' | 'practice_plan';
+  purpose: 'review_plan' | 'practice_plan' | 'preview_plan';
   prompt?: string;
 };
 
@@ -143,6 +152,12 @@ export type PracticePlan = {
     partial: number;
     failed: number;
     nextSuggestion: string;
+  };
+  evidence?: {
+    decisionId?: string;
+    rationale: string[];
+    gaps: string[];
+    items: PracticePlanEvidenceItem[];
   };
 };
 

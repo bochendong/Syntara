@@ -45,6 +45,9 @@ import { listStudyMemoryRecords, type StudyMemoryApiRecord } from '@/lib/utils/s
 
 type CourseMemoryPageClientProps = {
   courseId: string;
+  initialTab?: CourseMemoryTab;
+  pageTitle?: string;
+  pageEyebrow?: string;
 };
 
 type CourseMemoryTab = 'overview' | 'templates' | 'public' | 'private' | 'search';
@@ -2486,7 +2489,12 @@ function TabButton({
   );
 }
 
-export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps) {
+export function CourseMemoryPageClient({
+  courseId,
+  initialTab = 'overview',
+  pageTitle = '课程记忆',
+  pageEyebrow = '课程记忆',
+}: CourseMemoryPageClientProps) {
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [courseProblemSummaries, setCourseProblemSummaries] = useState<
@@ -2495,13 +2503,17 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
   const [dbMemories, setDbMemories] = useState<StudyMemoryApiRecord[]>([]);
   const [dbNotebookMemories, setDbNotebookMemories] = useState<NotebookMemoryRecordBundle[]>([]);
   const [dbAvailable, setDbAvailable] = useState(false);
-  const [activeTab, setActiveTab] = useState<CourseMemoryTab>('overview');
+  const [activeTab, setActiveTab] = useState<CourseMemoryTab>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestionBatchSeed] = useState(() => Date.now());
   const [searchRun, setSearchRun] = useState<MemorySearchRunState>({
     status: 'idle',
     query: '',
   });
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     let alive = true;
@@ -2814,9 +2826,9 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
       <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
         <div className="mx-auto flex w-full max-w-[92rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
           <MemoryPageHeader
-            title="课程记忆"
+            title={pageTitle}
             subtitle="正在读取课程公共记忆、笔记本索引和私有学习状态。"
-            eyebrow="课程记忆"
+            eyebrow={pageEyebrow}
             backHref="/my-courses"
             backLabel="返回我的课程"
             icon={Brain}
@@ -2837,9 +2849,9 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
       <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
         <div className="mx-auto flex w-full max-w-[86rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
           <MemoryPageHeader
-            title="课程记忆"
+            title={pageTitle}
             subtitle="该课程可能已删除，或当前环境暂时无法加载它。"
-            eyebrow="课程记忆"
+            eyebrow={pageEyebrow}
             backHref="/my-courses"
             backLabel="返回我的课程"
             icon={Brain}
@@ -2884,17 +2896,30 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
     <main className="min-h-full bg-[#f3f6fb] text-slate-950 dark:bg-[#0e1117] dark:text-white">
       <div className="mx-auto flex w-full max-w-[92rem] flex-col gap-4 px-3 py-4 md:px-5 lg:px-6">
         <MemoryPageHeader
-          title="课程记忆"
+          title={pageTitle}
           subtitle={[course.name, course.courseCode].filter(Boolean).join(' · ')}
-          eyebrow="课程记忆"
+          eyebrow={pageEyebrow}
           backHref={`/course/${encodeURIComponent(course.id)}`}
           backLabel="返回课程"
           icon={Brain}
           actions={
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/85 bg-white/82 px-3 text-xs font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200">
-              <Database className="size-3.5" strokeWidth={1.8} />
-              {dbAvailable ? '数据库已连接' : '本地默认记忆'}
-            </span>
+            <>
+              <Link
+                href={
+                  pageTitle === '模版库'
+                    ? `/course/${encodeURIComponent(course.id)}/memory`
+                    : `/course/${encodeURIComponent(course.id)}/memory/templates`
+                }
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/85 bg-white/82 px-3 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.1]"
+              >
+                <Workflow className="size-3.5" strokeWidth={1.8} />
+                {pageTitle === '模版库' ? '课程记忆' : '模版库'}
+              </Link>
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/85 bg-white/82 px-3 text-xs font-semibold text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200">
+                <Database className="size-3.5" strokeWidth={1.8} />
+                {dbAvailable ? '数据库已连接' : '本地默认记忆'}
+              </span>
+            </>
           }
         />
 
@@ -2911,7 +2936,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
                   <span>{purposeLabel(course.purpose)}</span>
                 </div>
                 <h1 className="mt-2 line-clamp-2 text-2xl font-semibold leading-tight tracking-normal text-slate-950 dark:text-white md:text-3xl">
-                  {course.name} 记忆控制台
+                  {pageTitle === '模版库' ? `${course.name} 模版库` : `${course.name} 记忆控制台`}
                 </h1>
                 {course.description ? (
                   <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -2944,7 +2969,7 @@ export function CourseMemoryPageClient({ courseId }: CourseMemoryPageClientProps
             icon={Workflow}
             onClick={() => setActiveTab('templates')}
           >
-            模板库
+            模版库
           </TabButton>
           <TabButton
             active={activeTab === 'private'}

@@ -6,7 +6,7 @@ import {
 } from '@/lib/server/repositories/course-enrollment-repository';
 import { indexStudyMemoryRecord } from '@/lib/server/study-memory-vector-store';
 
-export type StudyMemoryTargetType = 'course' | 'notebook';
+export type StudyMemoryTargetType = 'platform' | 'course' | 'notebook';
 export type StudyMemoryScopeValue = 'public' | 'private';
 export type StudyMemoryStatusValue = 'active' | 'archived';
 
@@ -33,6 +33,8 @@ type RawStudyMemoryRow = Omit<StudyMemoryRecord, 'createdAt' | 'updatedAt'> & {
   createdAt: Date | string;
   updatedAt: Date | string;
 };
+
+export const PLATFORM_STUDY_MEMORY_TARGET_ID = 'platform';
 
 const STUDY_MEMORY_COLUMNS = `
   "id", "ownerId", "courseId", "notebookId", "targetType", "scope", "kind", "status",
@@ -102,6 +104,10 @@ export async function ensureStudyMemoryTable(prisma: PrismaClient): Promise<void
         ON "StudyMemory" ("ownerId", "targetType", "notebookId", "updatedAt" DESC)
       `);
       await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "StudyMemory_owner_target_platform_updated_idx"
+        ON "StudyMemory" ("ownerId", "targetType", "updatedAt" DESC)
+      `);
+      await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS "StudyMemory_owner_scope_status_updated_idx"
         ON "StudyMemory" ("ownerId", "scope", "status", "updatedAt" DESC)
       `);
@@ -119,6 +125,16 @@ export async function resolveOwnedStudyMemoryTarget(
   targetType: StudyMemoryTargetType,
   targetId: string,
 ): Promise<StudyMemoryTarget | null> {
+  if (targetType === 'platform') {
+    if (targetId !== PLATFORM_STUDY_MEMORY_TARGET_ID && targetId !== userId) return null;
+    return {
+      targetType,
+      targetId: PLATFORM_STUDY_MEMORY_TARGET_ID,
+      courseId: null,
+      notebookId: null,
+    };
+  }
+
   if (targetType === 'course') {
     const course = await prisma.course.findFirst({
       where: { id: targetId, ownerId: userId },
@@ -142,6 +158,19 @@ export async function resolveReadableStudyMemoryTarget(
   targetType: StudyMemoryTargetType,
   targetId: string,
 ): Promise<ReadableStudyMemoryTarget | null> {
+  if (targetType === 'platform') {
+    if (!userId) return null;
+    if (targetId !== PLATFORM_STUDY_MEMORY_TARGET_ID && targetId !== userId) return null;
+    return {
+      targetType,
+      targetId: PLATFORM_STUDY_MEMORY_TARGET_ID,
+      courseId: null,
+      notebookId: null,
+      targetOwnerId: userId,
+      accessRole: 'owner',
+    };
+  }
+
   if (targetType === 'course') {
     const course = await prisma.course.findUnique({
       where: { id: targetId },
@@ -224,9 +253,21 @@ export async function listStudyMemories(
   target: StudyMemoryTarget,
 ): Promise<StudyMemoryRecord[]> {
   await ensureStudyMemoryTable(prisma);
-  const rows =
-    target.targetType === 'course'
-      ? await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+  let rows: RawStudyMemoryRow[];
+  if (target.targetType === 'platform') {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+      `
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
+          WHERE "ownerId" = $1 AND "targetType" = 'platform'
+          ORDER BY
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
+          LIMIT 120
+        `,
+      userId,
+    );
+  } else if (target.targetType === 'course') {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'course' AND "courseId" = $2
@@ -241,10 +282,11 @@ export async function listStudyMemories(
             "updatedAt" DESC
           LIMIT 120
         `,
-          userId,
-          target.courseId,
-        )
-      : await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+      userId,
+      target.courseId,
+    );
+  } else {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "ownerId" = $1 AND "targetType" = 'notebook' AND "notebookId" = $2
@@ -259,9 +301,10 @@ export async function listStudyMemories(
             "updatedAt" DESC
           LIMIT 120
         `,
-          userId,
-          target.notebookId,
-        );
+      userId,
+      target.notebookId,
+    );
+  }
   return rows.map(serializeRow);
 }
 
@@ -271,9 +314,27 @@ export async function listStudyMemoriesForViewer(
   target: ReadableStudyMemoryTarget,
 ): Promise<StudyMemoryRecord[]> {
   await ensureStudyMemoryTable(prisma);
-  const rows =
-    target.targetType === 'course'
-      ? await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+  let rows: RawStudyMemoryRow[];
+  if (target.targetType === 'platform') {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+      `
+          SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
+          WHERE "targetType" = 'platform'
+            AND "status" = 'active'
+            AND (
+              ("ownerId" = $1 AND "scope" = 'public')
+              OR ($2::text IS NOT NULL AND "ownerId" = $2 AND "scope" = 'private')
+            )
+          ORDER BY
+            CASE WHEN "scope" = 'public' THEN 0 ELSE 1 END ASC,
+            "updatedAt" DESC
+          LIMIT 120
+        `,
+      target.targetOwnerId,
+      userId,
+    );
+  } else if (target.targetType === 'course') {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "targetType" = 'course'
@@ -294,11 +355,12 @@ export async function listStudyMemoriesForViewer(
             "updatedAt" DESC
           LIMIT 120
         `,
-          target.courseId,
-          target.targetOwnerId,
-          userId,
-        )
-      : await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
+      target.courseId,
+      target.targetOwnerId,
+      userId,
+    );
+  } else {
+    rows = await prisma.$queryRawUnsafe<RawStudyMemoryRow[]>(
           `
           SELECT ${STUDY_MEMORY_COLUMNS} FROM "StudyMemory"
           WHERE "targetType" = 'notebook'
@@ -319,10 +381,11 @@ export async function listStudyMemoriesForViewer(
             "updatedAt" DESC
           LIMIT 120
         `,
-          target.notebookId,
-          target.targetOwnerId,
-          userId,
-        );
+      target.notebookId,
+      target.targetOwnerId,
+      userId,
+    );
+  }
   return rows.map(serializeRow);
 }
 

@@ -21,7 +21,6 @@ import {
   Pin,
   Play,
   Plus,
-  RefreshCcw,
   SendHorizontal,
   ShoppingBag,
   Target,
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react';
 import type { UIMessage } from 'ai';
 import { MessageResponse } from '@/components/ai-elements/message';
+import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { CourseMaterialsPanel } from '@/components/courses/course-materials-panel';
 import { Button } from '@/components/ui/button';
 import {
@@ -86,9 +86,10 @@ import {
 import type { ProviderId } from '@/lib/ai/providers';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/notifications/client-toast';
 import type { CourseRecord } from '@/lib/utils/database';
 import { backendJson } from '@/lib/utils/backend-api';
-import { listCourses } from '@/lib/utils/course-storage';
+import { deleteCourseAndNotebooks, listCourses } from '@/lib/utils/course-storage';
 import {
   listCourseProblemSummaries,
   type CourseProblemClientSummary,
@@ -119,6 +120,8 @@ type LearnMessage = {
   plan?: PracticePlan;
   progressProposal?: ProgressProposal;
   pendingAction?: PendingCourseAction;
+  lecturePrompt?: MiniLecturePrompt;
+  lectureDeck?: MiniLectureDeck;
 };
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -147,6 +150,10 @@ type PendingCourseAction =
   | {
       kind: 'review_plan';
       prompt: string;
+    }
+  | {
+      kind: 'preview_plan';
+      prompt: string;
     };
 
 type PlanningIntent =
@@ -156,6 +163,9 @@ type PlanningIntent =
     }
   | {
       kind: 'review_plan';
+    }
+  | {
+      kind: 'preview_plan';
     };
 
 type ProgressProposal = {
@@ -179,16 +189,23 @@ type CourseSourceIngestResponse = {
     source: {
       title: string;
       kind: CourseSourceUploadKind;
+      hash: string;
+      rawFileHash: string | null;
+      openaiFileId: string | null;
+      parser: string;
       textChars: number;
       processedChars: number;
       truncated: boolean;
       courseCode: string | null;
     };
     classification: {
+      documentType: string;
       allQuestionUpload: boolean;
       topic: string;
       problemSignalCount: number;
       templateSignalCount: number;
+      confidence: number;
+      reasons: string[];
     };
     knowledgeGraph: {
       factId: string | null;
@@ -210,8 +227,16 @@ type CourseSourceIngestResponse = {
     memory: {
       writtenCount: number;
       templateCount: number;
+      publicPlatformMemoryCount?: number;
+      publicCourseMemoryCount?: number;
       publicNotebookMemoryCount: number;
+      privateMemoryCount: number;
       skippedPublicNotebookMemory: boolean;
+      layers?: Array<{
+        layer: string;
+        status: 'written' | 'skipped' | 'available';
+        summary: string;
+      }>;
     };
     notebook: {
       id: string;
@@ -219,6 +244,7 @@ type CourseSourceIngestResponse = {
       created: boolean;
       sectionId: string | null;
       sectionTitle: string | null;
+      sections?: Array<{ id: string; title: string; summary: string | null }>;
     } | null;
   };
 };
@@ -236,11 +262,17 @@ type LearnSourceUploadItem = {
   error?: string;
 };
 
-const quickPrompts = [
+const learningQuickPrompts = [
   '我现在学到哪里了？',
   '帮我安排今天复习',
   '给我开一个小测',
   '我最近哪里最薄弱？',
+];
+const researchQuickPrompts = [
+  '帮我梳理今天的研究任务',
+  '把下一步实验拆清楚',
+  '整理这篇论文的贡献',
+  '制定一下研究计划',
 ];
 const calendarWeekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -285,8 +317,139 @@ type SyllabusCalendarEvent = {
   confidence?: number | null;
 };
 
+type MiniLecturePrompt = {
+  id: string;
+  title: string;
+  question: string;
+  answer: string;
+  courseName: string;
+  createdAt: number;
+};
+
+type MiniLectureRegion = {
+  id: string;
+  label: string;
+  script: string;
+  markerColorHex: string;
+  bbox: [number, number, number, number];
+  markerPoints: Array<{
+    x: number;
+    y: number;
+    corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  }>;
+};
+
+type MiniLectureAction =
+  | {
+      id: string;
+      type: 'spotlight';
+      elementId: string;
+      title: string;
+      dimOpacity: number;
+    }
+  | {
+      id: string;
+      type: 'speech';
+      title: string;
+      text: string;
+    };
+
+type MiniLecturePage = {
+  id: string;
+  title: string;
+  imageDataUrl: string;
+  regions: MiniLectureRegion[];
+  actions: MiniLectureAction[];
+};
+
+type MiniLectureDeck = {
+  id: string;
+  title: string;
+  sourceQuestion: string;
+  sourceAnswer: string;
+  pages: MiniLecturePage[];
+  markerProtocol: {
+    type: 'corner-square-markers';
+    markerSizePx: number;
+    markerCountPerComponent: 4;
+    recoveredFrom: 'client-mini-lecture';
+  };
+  createdAt: number;
+};
+
+type TeachingReviewPlanEvidenceItem = {
+  id: string;
+  sourceType: string;
+  sourceId?: string;
+  title: string;
+  excerpt?: string;
+  reason: string;
+  target?: { type: string; id: string };
+  conceptTags?: string[];
+};
+
+type TeachingReviewQuestionCandidate = {
+  problemId: string;
+  title: string;
+  type: string;
+  difficulty: string;
+  tags: string[];
+  latestAttempt?: { status?: string } | null;
+  reason: string;
+  evidenceIds: string[];
+};
+
+type TeachingReviewPlanTask = {
+  id: string;
+  title: string;
+  concepts: string[];
+  minutes: number;
+  reason: string;
+  evidenceIds: string[];
+  problemIds: string[];
+};
+
+type TeachingReviewPlanOutput = {
+  summary: string;
+  scheduleSummary: string | null;
+  estimatedMinutes: number;
+  tasks: TeachingReviewPlanTask[];
+  questionCandidates: TeachingReviewQuestionCandidate[];
+  rationale: string[];
+  evidenceGaps: string[];
+};
+
+type TeachingReviewPlanResponse = {
+  decision: {
+    id: string;
+    targetConcepts: string[];
+    output: TeachingReviewPlanOutput;
+    evidence: {
+      items: TeachingReviewPlanEvidenceItem[];
+      gaps: Array<{ reason: string; fallback: string }>;
+    };
+    userFacingRationale: string[];
+  };
+};
+
 type SyllabusImportMode = 'file' | 'plan';
 type SyllabusCommitMode = 'merge' | 'replace';
+const SYLLABUS_EVENT_KIND_OPTIONS: Array<{ value: SyllabusEventKind; label: string }> = [
+  { value: 'assignment', label: '作业' },
+  { value: 'exam', label: '考试' },
+  { value: 'progress', label: '进度' },
+  { value: 'tutorial', label: 'Tutorial' },
+  { value: 'holiday', label: '假期' },
+  { value: 'other', label: '事项' },
+];
+const RESEARCH_EVENT_KIND_OPTIONS: Array<{ value: SyllabusEventKind; label: string }> = [
+  { value: 'assignment', label: 'DDL' },
+  { value: 'exam', label: '会议' },
+  { value: 'progress', label: '进展' },
+  { value: 'tutorial', label: '论文阅读' },
+  { value: 'holiday', label: '暂停' },
+  { value: 'other', label: '事项' },
+];
 type StatusCalendarActivity = {
   id: string;
   source: 'plan' | 'syllabus';
@@ -476,6 +639,9 @@ function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage 
       message.progressProposal == null ? undefined : (message.progressProposal as ProgressProposal),
     pendingAction:
       message.pendingAction == null ? undefined : (message.pendingAction as PendingCourseAction),
+    lecturePrompt:
+      message.lecturePrompt == null ? undefined : (message.lecturePrompt as MiniLecturePrompt),
+    lectureDeck: message.lectureDeck == null ? undefined : (message.lectureDeck as MiniLectureDeck),
   };
 }
 
@@ -488,6 +654,8 @@ function learnMessageToRemotePayload(message: LearnMessage): RemoteLearnMessageP
     plan: message.plan,
     progressProposal: message.progressProposal,
     pendingAction: message.pendingAction,
+    lecturePrompt: message.lecturePrompt,
+    lectureDeck: message.lectureDeck,
     attachments: message.attachments?.map((attachment) => ({
       id: attachment.id,
       name: attachment.name,
@@ -504,6 +672,7 @@ function copyableLearnMessageText(message: LearnMessage): string {
     message.text.trim(),
     message.plan?.title ? `计划：${message.plan.title}` : '',
     message.progressProposal?.label ? `学习范围：${message.progressProposal.label}` : '',
+    message.lectureDeck?.title ? `课堂讲解：${message.lectureDeck.title}` : '',
     message.attachments?.length ? `[附件 ${message.attachments.length} 个]` : '',
   ].filter(Boolean);
   return parts.join('\n').trim();
@@ -713,41 +882,54 @@ async function readSyllabusFileText(
   return text;
 }
 
-async function readLearnSourceFileText(
-  file: File,
-  options: {
-    pdfProviderId: string;
-    pdfProviderConfig?: { apiKey?: string; baseUrl?: string };
-  },
-) {
-  if (isPptxSourceFile(file)) {
-    const formData = new FormData();
-    formData.append('pptx', file);
-    const response = await fetch('/api/parse-pptx', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-      success?: boolean;
-      data?: { text?: string };
-      error?: string;
-    };
-    if (!response.ok || data.success === false || !data.data) {
-      throw new Error(pdfParseApiError(data, `PPTX 读取失败：HTTP ${response.status}`));
-    }
-    const text = (data.data.text || '').trim();
-    if (!text) throw new Error('PPTX 读取完成，但没有提取到可用文字。');
-    return text;
+function sourceLayerLabel(layer: string): string {
+  switch (layer) {
+    case 'notebook_text':
+      return '笔记本';
+    case 'long_term_public_memory':
+      return '公共记忆';
+    case 'long_term_platform_memory':
+      return '平台记忆';
+    case 'long_term_course_memory':
+      return '课程记忆';
+    case 'long_term_notebook_memory':
+      return '笔记本记忆';
+    case 'long_term_private_memory':
+      return '私有记忆';
+    case 'knowledge_graph':
+      return '知识图谱';
+    case 'knowledge_base_rag':
+      return 'RAG';
+    case 'problem_bank':
+      return '题库';
+    case 'template_library':
+      return '模板库';
+    default:
+      return layer;
   }
+}
 
-  return readSyllabusFileText(file, options);
+function formatSourceLayerSummary(result: CourseSourceIngestResponse['ingest']) {
+  const layers = result.memory.layers || [];
+  if (!layers.length) {
+    return `分层记忆：平台 ${result.memory.publicPlatformMemoryCount || 0}，课程 ${result.memory.publicCourseMemoryCount || 0}，笔记本 ${result.memory.publicNotebookMemoryCount}，私有 ${result.memory.privateMemoryCount || 0}，模板 ${result.memory.templateCount}。`;
+  }
+  return [
+    '分层写入：',
+    ...layers.map((layer) => {
+      const status =
+        layer.status === 'written' ? '已写' : layer.status === 'available' ? '可检索' : '跳过';
+      return `- ${sourceLayerLabel(layer.layer)}：${status}，${layer.summary}`;
+    }),
+  ].join('\n');
 }
 
 function formatSourceIngestMessage(fileName: string, result: CourseSourceIngestResponse['ingest']) {
+  const sectionCount = result.notebook?.sections?.length ?? (result.notebook?.sectionId ? 1 : 0);
   const allQuestionLine = result.classification.allQuestionUpload
     ? '判定为全题目文件，已跳过公共记忆补充和纯文本笔记本整理。'
     : result.notebook
-      ? `${result.notebook.created ? '创建' : '更新'}笔记本「${result.notebook.name}」，写入 section「${result.notebook.sectionTitle || '上传资料'}」。`
+      ? `${result.notebook.created ? '创建' : '更新'}笔记本「${result.notebook.name}」，写入 ${sectionCount} 个 section。`
       : '没有写入笔记本 section。';
   const tokenLine = result.problems.usage
     ? `题库抽取用量：input ${result.problems.usage.inputTokens}，output ${result.problems.usage.outputTokens}。`
@@ -755,9 +937,10 @@ function formatSourceIngestMessage(fileName: string, result: CourseSourceIngestR
   return [
     `已读取并处理《${fileName}》。`,
     `主题：${result.classification.topic}。`,
+    `资料类型：${result.classification.documentType}，置信度 ${result.classification.confidence.toFixed(2)}。`,
     `知识图谱：${result.knowledgeGraph.nodeCount} 个节点，${result.knowledgeGraph.edgeCount} 条关系。`,
     `题库：识别 ${result.problems.extractedCount} 题，新增 ${result.problems.insertedCount} 题，跳过重复 ${result.problems.duplicateCount} 题。`,
-    `模板库/公共记忆：写入 ${result.memory.writtenCount} 条，其中模板 ${result.memory.templateCount} 条，笔记本公共记忆 ${result.memory.publicNotebookMemoryCount} 条。`,
+    formatSourceLayerSummary(result),
     allQuestionLine,
     result.source.truncated ? '原文较长，已按摄取预算截断后处理。' : '',
     tokenLine,
@@ -767,15 +950,17 @@ function formatSourceIngestMessage(fileName: string, result: CourseSourceIngestR
 }
 
 function formatSourceUploadStatusSummary(result: CourseSourceIngestResponse['ingest']) {
+  const sectionCount = result.notebook?.sections?.length ?? (result.notebook?.sectionId ? 1 : 0);
   const notebookLine = result.classification.allQuestionUpload
     ? '全题目文件，已跳过公共记忆和笔记本整理'
     : result.notebook
-      ? `${result.notebook.created ? '新建' : '更新'}笔记本「${result.notebook.name}」`
+      ? `${result.notebook.created ? '新建' : '更新'}笔记本「${result.notebook.name}」${sectionCount ? `，${sectionCount} sections` : ''}`
       : '未写入笔记本';
   return [
-    `${result.classification.topic}`,
+    `${result.classification.topic} (${result.classification.documentType})`,
     `新增 ${result.problems.insertedCount} 题，重复 ${result.problems.duplicateCount} 题`,
     `知识图谱 ${result.knowledgeGraph.nodeCount} 点 / ${result.knowledgeGraph.edgeCount} 边`,
+    `平台 ${result.memory.publicPlatformMemoryCount || 0} · 课程 ${result.memory.publicCourseMemoryCount || 0} · 笔记本 ${result.memory.publicNotebookMemoryCount} · 私有 ${result.memory.privateMemoryCount || 0}`,
     notebookLine,
   ].join(' · ');
 }
@@ -785,7 +970,7 @@ function sourceUploadLive2DLine(fileName: string, result: CourseSourceIngestResp
     return `《${fileName}》题目入库完成：新增 ${result.problems.insertedCount} 题，跳过 ${result.problems.duplicateCount} 个重复。`;
   }
   const notebook = result.notebook
-    ? `${result.notebook.created ? '新建' : '更新'}了「${result.notebook.name}」`
+    ? `${result.notebook.created ? '新建' : '更新'}了「${result.notebook.name}」${result.notebook.sections?.length ? `，写入 ${result.notebook.sections.length} 个 section` : ''}`
     : '已更新可检索资料';
   return `《${fileName}》已入库，${notebook}，并同步了题库和知识图谱。`;
 }
@@ -818,6 +1003,40 @@ function sourceUploadStatusLabel(status: LearnSourceUploadStatus) {
   if (status === 'ingesting') return '入库中';
   if (status === 'stored') return '已入库';
   return '入库失败';
+}
+
+function SourceUploadBadge({
+  uploading,
+  completedCount,
+  compact = false,
+}: {
+  uploading: boolean;
+  completedCount: number;
+  compact?: boolean;
+}) {
+  if (!uploading && completedCount <= 0) return null;
+  const label = uploading
+    ? compact
+      ? '中'
+      : '入库中'
+    : completedCount > 9
+      ? '9+'
+      : String(completedCount);
+  const srLabel = uploading ? '课程资料正在入库' : `有 ${completedCount} 个新文件已入库`;
+
+  return (
+    <span
+      className={cn(
+        'absolute z-10 grid place-items-center rounded-full border border-white px-1 text-[10px] font-bold leading-4 text-white shadow-sm dark:border-slate-950',
+        compact ? '-right-0.5 -top-0.5 min-w-4' : '-right-1.5 -top-1.5 min-w-4',
+        uploading ? 'bg-sky-500' : 'bg-emerald-500',
+        !compact && uploading ? 'min-w-[2.5rem] px-1.5' : null,
+      )}
+      aria-label={srLabel}
+    >
+      {label}
+    </span>
+  );
 }
 
 function mergeSyllabusEvents(
@@ -954,13 +1173,13 @@ function buildLearnModelOptions(
 }
 
 const courseMarkdownClassName = cn(
-  'w-full max-w-none select-text break-words text-[15.5px] leading-7 text-foreground',
+  'w-full max-w-none select-text break-words text-[15px] leading-7 text-foreground',
   '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   '[&_p]:my-3',
   '[&_strong]:font-semibold [&_strong]:text-foreground',
-  '[&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-tight',
-  '[&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:border-b [&_h2]:border-border [&_h2]:pb-3 [&_h2]:text-xl [&_h2]:font-semibold',
-  '[&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold',
+  '[&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-[1.35rem] [&_h1]:font-semibold [&_h1]:leading-tight',
+  '[&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:border-b [&_h2]:border-border [&_h2]:pb-3 [&_h2]:text-lg [&_h2]:font-semibold',
+  '[&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-[1.05rem] [&_h3]:font-semibold',
   '[&_ul]:my-4 [&_ol]:my-4 [&_ul]:space-y-1.5 [&_ol]:space-y-1.5 [&_ul]:pl-6 [&_ol]:pl-6',
   '[&_li]:pl-1',
   '[&_blockquote]:my-5 [&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground/25 [&_blockquote]:pl-4 [&_blockquote]:font-medium',
@@ -987,7 +1206,9 @@ function learnMessageHasContent(message: LearnMessage): boolean {
     message.attachments?.length ||
     message.plan ||
     message.progressProposal ||
-    message.pendingAction,
+    message.pendingAction ||
+    message.lecturePrompt ||
+    message.lectureDeck,
   );
 }
 
@@ -1059,6 +1280,11 @@ function detectPlanningIntent(text: string): PlanningIntent | null {
   if (practiceMode) return { kind: 'practice_plan', mode: practiceMode };
   const normalized = text.toLowerCase();
   if (
+    /(预习|提前学|提前看|先学|先看.*提纲|preview plan|pre[-\s]?study|study ahead)/i.test(normalized)
+  ) {
+    return { kind: 'preview_plan' };
+  }
+  if (
     /(安排.*复习|今天.*复习|复习安排|复习计划|学习计划|制定.*计划|制定.*复习|怎么复习|下一步.*学|下一步.*复习|review plan|study plan)/i.test(
       normalized,
     )
@@ -1069,7 +1295,7 @@ function detectPlanningIntent(text: string): PlanningIntent | null {
 }
 
 function needsProgressConfirmation(text: string): boolean {
-  return /(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里|复习|学习计划|下一步|刷题|做题|练习|小测|测验|quiz|test|掌握度|薄弱|不足|短板|弱点)/i.test(
+  return /(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里|预习|复习|学习计划|下一步|刷题|做题|练习|小测|测验|quiz|test|掌握度|薄弱|不足|短板|弱点)/i.test(
     text,
   );
 }
@@ -1203,6 +1429,9 @@ function pendingActionFromPlanningIntent(
   if (intent.kind === 'practice_plan') {
     return { kind: 'practice_plan', mode: intent.mode, prompt };
   }
+  if (intent.kind === 'preview_plan') {
+    return { kind: 'preview_plan', prompt };
+  }
   return { kind: 'review_plan', prompt };
 }
 
@@ -1245,6 +1474,15 @@ function progressRequestText(args: {
       : '好的，但是我还不知道你的学习进度。先选择这次复习要覆盖到哪里，确认后我再安排计划。';
   }
 
+  if (args.intent?.kind === 'preview_plan') {
+    if (args.hasDetectedProgress) {
+      return '好的，我捕捉到了这次预习范围的线索。先确认一下，确认后我再给你安排预习计划和提纲。';
+    }
+    return args.progressKnown
+      ? '好的。先选这次预习要从哪里开始或覆盖到哪里；确认后我再生成预习计划和提纲。'
+      : '好的，但是我还不知道你现在学到哪里。先确认当前位置，我再把预习计划接在合适的起点上。';
+  }
+
   if (args.intent?.kind === 'practice_plan') {
     if (args.hasDetectedProgress) {
       return '好的，我捕捉到了你这次题目范围的线索。先确认一下，确认后我再开出题目计划。';
@@ -1274,6 +1512,11 @@ function progressRequestReason(args: {
     return args.progressKnown
       ? '请选择这次复习覆盖到哪里。确认后，我会按这个范围更新学习记忆并生成复习安排。'
       : '请选择你现在在这门课里的位置，或者这次复习想覆盖到哪里。确认后，我会写入学习记忆并生成复习安排。';
+  }
+  if (args.intent?.kind === 'preview_plan') {
+    return args.progressKnown
+      ? '请选择这次预习从哪里开始或覆盖到哪里。确认后，我会按这个范围生成预习安排和提纲。'
+      : '请选择你现在在这门课里的位置。确认后，我会把预习计划接在这个起点之后。';
   }
   if (args.intent?.kind === 'practice_plan') {
     return args.progressKnown
@@ -1327,7 +1570,10 @@ function planIntro(plan: PracticePlan): string {
   const noun = plan.mode === 'quiz' ? '测验' : '刷题计划';
   const concepts = plan.targetConcepts.slice(0, 3).join('、') || '当前课程重点';
   const count = plan.problemIds.length > 0 ? `${plan.problemIds.length} 题` : '待补充题目';
-  return `我根据你当前的学习状态开了一个${noun}：聚焦 ${concepts}，预计 ${plan.estimatedMinutes} 分钟，${count}。`;
+  const base = `我根据你当前的学习状态开了一个${noun}：聚焦 ${concepts}，预计 ${plan.estimatedMinutes} 分钟，${count}。`;
+  const rationale = plan.evidence?.rationale?.slice(0, 2) || [];
+  if (!rationale.length) return base;
+  return `${base}\n\n为什么这样排：\n${rationale.map((line, index) => `${index + 1}. ${line}`).join('\n')}`;
 }
 
 function conceptSentence(concepts: string[], fallback: string): string {
@@ -1358,6 +1604,10 @@ function buildLocalLearningAnswer(args: {
   const reviewTarget = currentNotebook
     ? `《${currentNotebook}》的定义和例子`
     : `${args.course.courseCode || args.course.name} 的入门目标和第一组核心概念`;
+  const previewTopics = conceptSentence(
+    args.snapshot.nextConcepts.length ? args.snapshot.nextConcepts : weakConcepts,
+    args.course.courseCode || args.course.name,
+  );
 
   if (/(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里)/.test(normalized)) {
     return `${progressLine}\n\n下一步不要全量重刷，先围绕 ${conceptSentence(
@@ -1378,6 +1628,10 @@ function buildLocalLearningAnswer(args: {
           ? '目前做题证据还不多，所以先按当前笔记本、题库标签和学习进度判断。'
           : '目前做题证据还不多，所以先按课程标签、入门范围和学习进度判断。';
     return `目前最需要补的是：${weakCopy}。\n\n${evidence}\n\n建议先做小范围复习：把这些概念各用一句话解释清楚，再做少量对应题。如果做题结果继续显示不稳，我会把它们加入待复习队列。`;
+  }
+
+  if (/(预习|提前学|提前看|先学|先看.*提纲|preview|pre[-\s]?study|study ahead)/i.test(normalized)) {
+    return `${progressLine}\n\n预习可以这样排：\n1. 先用 10 分钟扫一遍 ${previewTopics} 的标题、定义和例子，只标出看不懂的词。\n2. 再用 20 分钟按“概念 → 例子 → 小练习”的顺序做提纲，不急着完整刷题。\n3. 最后用 10 分钟写下 2-3 个问题，下次正式学习时优先解决这些卡点。`;
   }
 
   if (
@@ -1482,6 +1736,527 @@ function localDayKey(value: number | Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+const MINI_LECTURE_CANVAS_WIDTH = 1000;
+const MINI_LECTURE_CANVAS_HEIGHT = 562.5;
+const MINI_LECTURE_MARKER_SIZE = 14;
+const MINI_LECTURE_MARKER_COLORS = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b'] as const;
+
+function compactLectureText(value: string, maxChars: number): string {
+  const text = value
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*]\([^)]*\)/g, (match) => match.replace(/^\[|\]\([^)]*\)$/g, ''))
+    .replace(/[#>*_~|-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function wrapLectureLine(text: string, maxChars: number, maxLines: number): string[] {
+  const normalized = compactLectureText(text, maxChars * maxLines * 2);
+  const lines: string[] = [];
+  let current = '';
+  for (const char of normalized) {
+    current += char;
+    if (current.length >= maxChars) {
+      lines.push(current.trim());
+      current = '';
+      if (lines.length >= maxLines) break;
+    }
+  }
+  if (current.trim() && lines.length < maxLines) lines.push(current.trim());
+  return lines.length ? lines : ['这一步先抓住核心关系。'];
+}
+
+function lectureSentences(text: string): string[] {
+  return compactLectureText(text, 1600)
+    .split(/(?<=[。！？!?；;])|\n+/)
+    .map((item) => item.replace(/^\d+[.、)]\s*/, '').trim())
+    .filter((item) => item.length >= 8)
+    .slice(0, 8);
+}
+
+function miniLectureMarkerPoints(
+  bbox: [number, number, number, number],
+): MiniLectureRegion['markerPoints'] {
+  const [x0, y0, x1, y1] = bbox;
+  const half = MINI_LECTURE_MARKER_SIZE / 2;
+  return [
+    { x: x0 + half, y: y0 + half, corner: 'top-left' },
+    { x: x1 - half, y: y0 + half, corner: 'top-right' },
+    { x: x0 + half, y: y1 - half, corner: 'bottom-left' },
+    { x: x1 - half, y: y1 - half, corner: 'bottom-right' },
+  ];
+}
+
+function miniLectureRegion(args: {
+  pageIndex: number;
+  index: number;
+  label: string;
+  script: string;
+  bbox: [number, number, number, number];
+}): MiniLectureRegion {
+  const color =
+    MINI_LECTURE_MARKER_COLORS[args.index % MINI_LECTURE_MARKER_COLORS.length] ||
+    MINI_LECTURE_MARKER_COLORS[0];
+  return {
+    id: `mini-lecture-p${args.pageIndex + 1}-focus-${args.index + 1}`,
+    label: compactLectureText(args.label, 36),
+    script: compactLectureText(args.script, 240),
+    markerColorHex: color,
+    bbox: args.bbox,
+    markerPoints: miniLectureMarkerPoints(args.bbox),
+  };
+}
+
+function miniLectureActions(page: MiniLecturePage): MiniLectureAction[] {
+  return page.regions.flatMap((region) => [
+    {
+      id: `${region.id}-spotlight`,
+      type: 'spotlight' as const,
+      elementId: region.id,
+      title: `聚焦：${region.label}`,
+      dimOpacity: 0.62,
+    },
+    {
+      id: `${region.id}-speech`,
+      type: 'speech' as const,
+      title: region.label,
+      text: region.script,
+    },
+  ]);
+}
+
+function svgTextBlock(args: {
+  text: string;
+  x: number;
+  y: number;
+  maxChars: number;
+  maxLines: number;
+  fontSize: number;
+  color?: string;
+  weight?: number;
+}) {
+  const lines = wrapLectureLine(args.text, args.maxChars, args.maxLines);
+  return `<text x="${args.x}" y="${args.y}" font-family="Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="${args.fontSize}" font-weight="${args.weight || 500}" fill="${args.color || '#0f172a'}">${lines
+    .map(
+      (line, index) =>
+        `<tspan x="${args.x}" dy="${index === 0 ? 0 : args.fontSize * 1.45}">${xmlEscape(line)}</tspan>`,
+    )
+    .join('')}</text>`;
+}
+
+function miniLectureSlideDataUrl(args: {
+  title: string;
+  subtitle: string;
+  regions: MiniLectureRegion[];
+}) {
+  const regionMarkup = args.regions
+    .map((region, index) => {
+      const [x0, y0, x1, y1] = region.bbox;
+      const textX = x0 + 22;
+      const textY = y0 + 42;
+      const markerRects = region.markerPoints
+        .map(
+          (point) =>
+            `<rect x="${point.x - MINI_LECTURE_MARKER_SIZE / 2}" y="${point.y - MINI_LECTURE_MARKER_SIZE / 2}" width="${MINI_LECTURE_MARKER_SIZE}" height="${MINI_LECTURE_MARKER_SIZE}" rx="2" fill="${region.markerColorHex}" opacity="0.95" />`,
+        )
+        .join('');
+      return `
+        <rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" rx="20" fill="${index % 2 === 0 ? '#f8fafc' : '#f0fdfa'}" stroke="${region.markerColorHex}" stroke-opacity="0.18" />
+        ${markerRects}
+        ${svgTextBlock({
+          text: region.label,
+          x: textX,
+          y: textY,
+          maxChars: 22,
+          maxLines: 1,
+          fontSize: 24,
+          color: '#0f172a',
+          weight: 700,
+        })}
+        ${svgTextBlock({
+          text: region.script,
+          x: textX,
+          y: textY + 38,
+          maxChars: 34,
+          maxLines: 3,
+          fontSize: 18,
+          color: '#334155',
+          weight: 450,
+        })}
+      `;
+    })
+    .join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${MINI_LECTURE_CANVAS_WIDTH}" height="${MINI_LECTURE_CANVAS_HEIGHT}" viewBox="0 0 ${MINI_LECTURE_CANVAS_WIDTH} ${MINI_LECTURE_CANVAS_HEIGHT}">
+    <defs>
+      <pattern id="miniGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+        <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.45" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="#fffdf8" />
+    <rect width="100%" height="100%" fill="url(#miniGrid)" />
+    <rect x="34" y="28" width="932" height="506" rx="28" fill="#ffffff" opacity="0.72" />
+    ${svgTextBlock({
+      text: args.title,
+      x: 70,
+      y: 72,
+      maxChars: 24,
+      maxLines: 1,
+      fontSize: 30,
+      color: '#0f172a',
+      weight: 800,
+    })}
+    ${svgTextBlock({
+      text: args.subtitle,
+      x: 72,
+      y: 108,
+      maxChars: 42,
+      maxLines: 1,
+      fontSize: 15,
+      color: '#64748b',
+      weight: 500,
+    })}
+    ${regionMarkup}
+  </svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function miniLecturePage(args: {
+  deckId: string;
+  pageIndex: number;
+  title: string;
+  subtitle: string;
+  regions: MiniLectureRegion[];
+}): MiniLecturePage {
+  const page: MiniLecturePage = {
+    id: `${args.deckId}-page-${args.pageIndex + 1}`,
+    title: args.title,
+    imageDataUrl: miniLectureSlideDataUrl({
+      title: args.title,
+      subtitle: args.subtitle,
+      regions: args.regions,
+    }),
+    regions: args.regions,
+    actions: [],
+  };
+  return { ...page, actions: miniLectureActions(page) };
+}
+
+function isMiniLectureCandidate(question: string, answer: string): boolean {
+  if (answer.trim().length < 120) return false;
+  if (detectPlanningIntent(question)) return false;
+  if (
+    /(学到哪里|学习状态|当前状态|进度|复习计划|学习计划|刷题计划|小测|quiz|test)/i.test(question)
+  ) {
+    return false;
+  }
+  return /(讲解|解释|说明|为什么|怎么理解|怎么做|如何做|题目|这道题|证明|推导|公式|概念|知识点|错在哪|哪里错|step|explain|why|prove|problem)/i.test(
+    question,
+  );
+}
+
+function buildMiniLecturePrompt(args: {
+  question: string;
+  answer: string;
+  course: CourseRecord;
+}): MiniLecturePrompt | undefined {
+  if (!isMiniLectureCandidate(args.question, args.answer)) return undefined;
+  const titleSource = compactLectureText(args.question, 42) || '课堂讲解';
+  return {
+    id: makeClientId('mini-lecture-prompt'),
+    title: titleSource,
+    question: compactLectureText(args.question, 900),
+    answer: compactLectureText(args.answer, 2200),
+    courseName: args.course.name,
+    createdAt: Date.now(),
+  };
+}
+
+function buildMiniLectureDeck(prompt: MiniLecturePrompt): MiniLectureDeck {
+  const deckId = makeClientId('mini-lecture');
+  const sentences = lectureSentences(prompt.answer);
+  const first = sentences[0] || '先把题目的目标翻译成一句可以操作的话。';
+  const second = sentences[1] || '再找出关键条件，决定先用定义、公式还是例子。';
+  const third = sentences[2] || '最后把推理链条补完整，检查每一步是否回应题目。';
+  const fourth = sentences[3] || sentences[2] || '讲完后做一个小检查，确认自己能复述方法。';
+  const title = compactLectureText(prompt.title, 28) || '课堂讲解';
+  const pageOneRegions = [
+    miniLectureRegion({
+      pageIndex: 0,
+      index: 0,
+      label: '题目抓手',
+      script: `先看题目在问什么：${compactLectureText(prompt.question, 120)}`,
+      bbox: [70, 130, 930, 220],
+    }),
+    miniLectureRegion({
+      pageIndex: 0,
+      index: 1,
+      label: '核心思路',
+      script: first,
+      bbox: [70, 244, 930, 346],
+    }),
+    miniLectureRegion({
+      pageIndex: 0,
+      index: 2,
+      label: '第一步怎么落地',
+      script: second,
+      bbox: [70, 370, 930, 484],
+    }),
+  ];
+  const pages: MiniLecturePage[] = [
+    miniLecturePage({
+      deckId,
+      pageIndex: 0,
+      title,
+      subtitle: `${prompt.courseName} · 迷你课堂讲解`,
+      regions: pageOneRegions,
+    }),
+  ];
+
+  if (sentences.length >= 3 || prompt.answer.length > 520) {
+    const pageTwoRegions = [
+      miniLectureRegion({
+        pageIndex: 1,
+        index: 0,
+        label: '容易卡住的地方',
+        script: third,
+        bbox: [70, 140, 930, 258],
+      }),
+      miniLectureRegion({
+        pageIndex: 1,
+        index: 1,
+        label: '检查答案',
+        script: fourth,
+        bbox: [70, 290, 930, 410],
+      }),
+    ];
+    pages.push(
+      miniLecturePage({
+        deckId,
+        pageIndex: 1,
+        title: '把讲解收束成检查清单',
+        subtitle: `${prompt.courseName} · 最后一页`,
+        regions: pageTwoRegions,
+      }),
+    );
+  }
+
+  return {
+    id: deckId,
+    title,
+    sourceQuestion: prompt.question,
+    sourceAnswer: prompt.answer,
+    pages,
+    markerProtocol: {
+      type: 'corner-square-markers',
+      markerSizePx: MINI_LECTURE_MARKER_SIZE,
+      markerCountPerComponent: 4,
+      recoveredFrom: 'client-mini-lecture',
+    },
+    createdAt: Date.now(),
+  };
+}
+
+function uniquePlanStrings(values: Array<string | undefined | null>, limit = 12): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    const normalized = (value || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(normalized.slice(0, 80));
+    if (output.length >= limit) break;
+  }
+  return output;
+}
+
+function reviewPlanScheduleEvents(syllabusEvents: SyllabusCalendarEvent[]): Array<{
+  id: string;
+  title: string;
+  date: string;
+  kind: SyllabusEventKind;
+  sourceName: string;
+  notes?: string;
+}> {
+  return syllabusEvents.map((event) => {
+    const notes = [event.week, event.sourceColumn, event.rawText]
+      .filter((item): item is string => Boolean(item?.trim()))
+      .join('\n');
+    return {
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      kind: event.kind,
+      sourceName: event.sourceName,
+      notes: notes || undefined,
+    };
+  });
+}
+
+function reviewQuestionDifficultyBucket(difficulty: string): keyof PracticePlan['difficultyMix'] {
+  const normalized = difficulty.toLowerCase();
+  if (/hard|advanced|challenge|difficult|困难|挑战|高/.test(normalized)) return 'hard';
+  if (/easy|beginner|basic|基础|简单|入门|低/.test(normalized)) return 'easy';
+  return 'medium';
+}
+
+function difficultyMixFromReviewQuestions(
+  questions: TeachingReviewQuestionCandidate[],
+  fallbackCount: number,
+): PracticePlan['difficultyMix'] {
+  const mix = { easy: 0, medium: 0, hard: 0 };
+  for (const question of questions) {
+    mix[reviewQuestionDifficultyBucket(question.difficulty)] += 1;
+  }
+  const selectedCount = mix.easy + mix.medium + mix.hard;
+  if (selectedCount > 0) return mix;
+  const count = Math.max(1, fallbackCount);
+  const easy = Math.max(1, Math.round(count * 0.35));
+  const hard = count >= 4 ? Math.max(1, Math.round(count * 0.15)) : 0;
+  return { easy, medium: Math.max(0, count - easy - hard), hard };
+}
+
+async function requestTeachingReviewPlan(args: {
+  courseId: string;
+  prompt: string;
+  conversationId: string;
+  syllabusEvents: SyllabusCalendarEvent[];
+  mode: PracticePlanMode;
+  questionCount?: number;
+}): Promise<TeachingReviewPlanResponse> {
+  const questionCount = Math.max(
+    1,
+    Math.min(args.questionCount ?? (args.mode === 'quiz' ? 10 : 8), 20),
+  );
+  return backendJson<TeachingReviewPlanResponse>('/api/teaching/review-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      targetType: 'course',
+      targetId: args.courseId,
+      query: args.prompt,
+      conversationId: args.conversationId,
+      scheduleEvents: reviewPlanScheduleEvents(args.syllabusEvents),
+      constraints: {
+        today: localDayKey(new Date()),
+        questionCount,
+        totalMinutes: args.mode === 'quiz' ? Math.max(25, questionCount * 3) : 45,
+        maxTasks: 4,
+      },
+    }),
+  });
+}
+
+function practicePlanFromTeachingReviewDecision(args: {
+  response: TeachingReviewPlanResponse;
+  userId: string;
+  course: CourseRecord;
+  mode: PracticePlanMode;
+  prompt: string;
+  state: LearnerCourseState;
+  snapshot: LearnerCourseSnapshot;
+  targetCount?: number;
+}): PracticePlan {
+  const { decision } = args.response;
+  const output = decision.output;
+  const problemIds = uniquePlanStrings(
+    [
+      ...output.questionCandidates.map((question) => question.problemId),
+      ...output.tasks.flatMap((task) => task.problemIds),
+    ],
+    args.targetCount ?? (args.mode === 'quiz' ? 10 : 8),
+  );
+  const targetConcepts = uniquePlanStrings(
+    [
+      ...decision.targetConcepts,
+      ...output.tasks.flatMap((task) => task.concepts),
+      ...output.questionCandidates.flatMap((question) => question.tags),
+      ...args.snapshot.weakConcepts,
+      ...args.snapshot.nextConcepts,
+    ],
+    6,
+  );
+  const evidenceIdSet = new Set(
+    [
+      ...output.tasks.flatMap((task) => task.evidenceIds),
+      ...output.questionCandidates.flatMap((question) => question.evidenceIds),
+    ].filter(Boolean),
+  );
+  const evidenceItems = decision.evidence.items
+    .filter((item) => evidenceIdSet.size === 0 || evidenceIdSet.has(item.id))
+    .slice(0, 14)
+    .map((item) => ({
+      id: item.id,
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      title: item.title,
+      reason: item.reason,
+      excerpt: item.excerpt,
+    }));
+  const now = Date.now();
+  const concepts = targetConcepts.length ? targetConcepts : ['课程综合复习'];
+  const title =
+    args.mode === 'quiz'
+      ? `${args.course.courseCode || args.course.name} 证据化小测`
+      : `${concepts.slice(0, 2).join(' + ')} 复习计划`;
+
+  return savePracticePlan({
+    version: 1,
+    id: makeClientId(args.mode === 'quiz' ? 'quiz' : 'practice'),
+    userId: args.userId || 'anonymous',
+    courseId: args.course.id,
+    courseName: args.course.name,
+    mode: args.mode,
+    title,
+    targetConcepts: concepts,
+    problemIds,
+    estimatedMinutes:
+      output.estimatedMinutes || (args.mode === 'quiz' ? Math.max(15, problemIds.length * 3) : 45),
+    difficultyMix: difficultyMixFromReviewQuestions(output.questionCandidates, problemIds.length),
+    createdFrom: {
+      currentNotebookId: args.snapshot.currentNotebook?.id || args.state.currentNotebookId,
+      currentNotebookName: args.snapshot.currentNotebook?.name || args.state.currentSectionLabel,
+      weakPoints: args.snapshot.weakConcepts,
+      recentAttemptProblemIds: uniquePlanStrings(
+        args.state.recentProblemAttempts.map((attempt) => attempt.problemId),
+        8,
+      ),
+      prompt: args.prompt.trim().slice(0, 600),
+    },
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    evidence: {
+      decisionId: decision.id,
+      rationale: uniquePlanStrings(
+        [...decision.userFacingRationale, ...output.rationale, output.summary],
+        8,
+      ),
+      gaps: uniquePlanStrings(
+        [
+          ...output.evidenceGaps,
+          ...decision.evidence.gaps.map((gap) => `${gap.reason} ${gap.fallback}`),
+        ],
+        4,
+      ),
+      items: evidenceItems,
+    },
+  });
+}
+
 function syllabusEventTone(kind: SyllabusEventKind): string {
   if (kind === 'assignment') return 'bg-sky-500';
   if (kind === 'exam') return 'bg-rose-500';
@@ -1510,6 +2285,11 @@ function syllabusEventLabel(kind: SyllabusEventKind): string {
   if (kind === 'tutorial') return 'Tutorial';
   if (kind === 'holiday') return '假期';
   return '事项';
+}
+
+function scheduleEventLabel(kind: SyllabusEventKind, isResearchCourse: boolean): string {
+  const options = isResearchCourse ? RESEARCH_EVENT_KIND_OPTIONS : SYLLABUS_EVENT_KIND_OPTIONS;
+  return options.find((option) => option.value === kind)?.label || syllabusEventLabel(kind);
 }
 
 function inferSyllabusEventKind(line: string): SyllabusEventKind {
@@ -1812,109 +2592,503 @@ function CourseAvatar({ course, className }: { course: CourseRecord; className?:
   );
 }
 
-const learnConfirmationSciFiImages = {
-  progress: '/images/learn-confirmations/card-progress-sci-fi.png',
-  scope: '/images/learn-confirmations/card-scope-sci-fi.png',
-  quiz: '/images/learn-confirmations/card-quiz-sci-fi.png',
-  practice: '/images/learn-confirmations/card-practice-sci-fi.png',
+const learnAssistantActionCardWidthClassName = 'w-full max-w-none';
+const learnHomeGlowCardBaseClassName =
+  'relative overflow-hidden border border-[#A9E7FF]/45 bg-[#f7fbfd]/90 shadow-[0_22px_64px_rgba(47,143,201,0.14),0_2px_14px_rgba(16,56,50,0.06)] ring-1 ring-white/55 dark:border-white/10 dark:bg-slate-950 dark:ring-white/5';
+const learnHomeGlowSheenClassName =
+  'absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.42),rgba(255,255,255,0.2)_54%,rgba(255,255,255,0.04))] dark:bg-[linear-gradient(115deg,rgba(2,6,23,0.42),rgba(15,23,42,0.34)_54%,rgba(15,23,42,0.18))]';
+const learnHomeGlowSurfaceClassNames = {
+  lecture:
+    'bg-[radial-gradient(circle_at_18%_18%,rgba(169,231,255,0.58),transparent_34%),radial-gradient(circle_at_86%_22%,rgba(169,240,220,0.5),transparent_32%),radial-gradient(circle_at_76%_82%,rgba(206,198,255,0.3),transparent_36%),#f7fbfd] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(169,231,255,0.18),transparent_36%),radial-gradient(circle_at_86%_22%,rgba(169,240,220,0.16),transparent_34%),radial-gradient(circle_at_76%_82%,rgba(206,198,255,0.14),transparent_36%),#020617]',
+  quiz: 'bg-[radial-gradient(circle_at_18%_18%,rgba(169,231,255,0.66),transparent_34%),radial-gradient(circle_at_84%_18%,rgba(206,198,255,0.52),transparent_32%),radial-gradient(circle_at_76%_84%,rgba(169,240,220,0.28),transparent_35%),#f7fbfd] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(169,231,255,0.2),transparent_36%),radial-gradient(circle_at_84%_18%,rgba(206,198,255,0.19),transparent_34%),radial-gradient(circle_at_76%_84%,rgba(169,240,220,0.12),transparent_36%),#020617]',
+  practice:
+    'bg-[radial-gradient(circle_at_22%_20%,rgba(169,240,220,0.62),transparent_34%),radial-gradient(circle_at_82%_18%,rgba(169,231,255,0.48),transparent_32%),radial-gradient(circle_at_72%_82%,rgba(206,198,255,0.26),transparent_36%),#f7fbfd] dark:bg-[radial-gradient(circle_at_22%_20%,rgba(169,240,220,0.19),transparent_36%),radial-gradient(circle_at_82%_18%,rgba(169,231,255,0.16),transparent_34%),radial-gradient(circle_at_72%_82%,rgba(206,198,255,0.12),transparent_36%),#020617]',
+  progress:
+    'bg-[radial-gradient(circle_at_18%_24%,rgba(255,154,154,0.34),transparent_34%),radial-gradient(circle_at_84%_18%,rgba(206,198,255,0.5),transparent_32%),radial-gradient(circle_at_72%_78%,rgba(169,231,255,0.34),transparent_36%),#f7fbfd] dark:bg-[radial-gradient(circle_at_18%_24%,rgba(255,154,154,0.16),transparent_36%),radial-gradient(circle_at_84%_18%,rgba(206,198,255,0.18),transparent_34%),radial-gradient(circle_at_72%_78%,rgba(169,231,255,0.14),transparent_36%),#020617]',
 } as const;
+const learnHomeGlowBloomClassNames = {
+  lecture:
+    'bg-[radial-gradient(circle_at_16%_8%,rgba(169,231,255,0.94),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(169,240,220,0.78),transparent_32%),radial-gradient(circle_at_78%_88%,rgba(206,198,255,0.5),transparent_38%)] dark:bg-[radial-gradient(circle_at_16%_8%,rgba(169,231,255,0.34),transparent_36%),radial-gradient(circle_at_88%_10%,rgba(169,240,220,0.26),transparent_34%),radial-gradient(circle_at_78%_88%,rgba(206,198,255,0.2),transparent_40%)]',
+  quiz: 'bg-[radial-gradient(circle_at_14%_6%,rgba(169,231,255,0.98),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(206,198,255,0.84),transparent_34%),radial-gradient(circle_at_78%_88%,rgba(169,240,220,0.42),transparent_40%)] dark:bg-[radial-gradient(circle_at_14%_6%,rgba(169,231,255,0.36),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(206,198,255,0.3),transparent_36%),radial-gradient(circle_at_78%_88%,rgba(169,240,220,0.16),transparent_42%)]',
+  practice:
+    'bg-[radial-gradient(circle_at_16%_8%,rgba(169,240,220,0.98),transparent_34%),radial-gradient(circle_at_86%_10%,rgba(169,231,255,0.78),transparent_34%),radial-gradient(circle_at_76%_88%,rgba(206,198,255,0.42),transparent_40%)] dark:bg-[radial-gradient(circle_at_16%_8%,rgba(169,240,220,0.34),transparent_36%),radial-gradient(circle_at_86%_10%,rgba(169,231,255,0.26),transparent_36%),radial-gradient(circle_at_76%_88%,rgba(206,198,255,0.16),transparent_42%)]',
+  progress:
+    'bg-[radial-gradient(circle_at_14%_12%,rgba(255,154,154,0.82),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(206,198,255,0.9),transparent_34%),radial-gradient(circle_at_74%_86%,rgba(169,231,255,0.52),transparent_40%)] dark:bg-[radial-gradient(circle_at_14%_12%,rgba(255,154,154,0.28),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(206,198,255,0.32),transparent_36%),radial-gradient(circle_at_74%_86%,rgba(169,231,255,0.2),transparent_42%)]',
+} as const;
+
+function LearnHomeGlowLayers({
+  variant,
+}: {
+  variant: keyof typeof learnHomeGlowSurfaceClassNames;
+}) {
+  return (
+    <>
+      <div
+        className={cn('absolute inset-0', learnHomeGlowSurfaceClassNames[variant])}
+        aria-hidden
+      />
+      <div
+        className={cn(
+          'absolute -inset-12 opacity-90 blur-2xl saturate-150',
+          learnHomeGlowBloomClassNames[variant],
+        )}
+        aria-hidden
+      />
+      <div className={learnHomeGlowSheenClassName} aria-hidden />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/80 dark:bg-white/15" aria-hidden />
+    </>
+  );
+}
+
+function miniLectureRegionStyle(region: MiniLectureRegion) {
+  const [x0, y0, x1, y1] = region.bbox;
+  return {
+    left: `${(x0 / MINI_LECTURE_CANVAS_WIDTH) * 100}%`,
+    top: `${(y0 / MINI_LECTURE_CANVAS_HEIGHT) * 100}%`,
+    width: `${((x1 - x0) / MINI_LECTURE_CANVAS_WIDTH) * 100}%`,
+    height: `${((y1 - y0) / MINI_LECTURE_CANVAS_HEIGHT) * 100}%`,
+  };
+}
+
+function MiniLectureInviteCard({
+  prompt,
+  deck,
+  generating,
+  onGenerate,
+  onOpen,
+}: {
+  prompt?: MiniLecturePrompt;
+  deck?: MiniLectureDeck;
+  generating: boolean;
+  onGenerate: () => void;
+  onOpen: (deck: MiniLectureDeck) => void;
+}) {
+  if (!prompt && !deck) return null;
+  return (
+    <div
+      className={cn(
+        learnAssistantActionCardWidthClassName,
+        'mt-3 flex flex-col gap-2 border-t border-slate-200/80 pt-3 text-sm dark:border-white/10',
+      )}
+    >
+      <div
+        className={cn(
+          learnHomeGlowCardBaseClassName,
+          'flex flex-col gap-2 rounded-[16px] px-3.5 py-3',
+        )}
+      >
+        <LearnHomeGlowLayers variant="lecture" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
+              需要生成课堂讲解吗？
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+              {deck
+                ? `已生成 ${deck.pages.length} 页迷你课堂，可以直接打开观看。`
+                : '我可以把这段讲解压成一两页图片课堂，配合移动遮罩和语音播放。'}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-[#2F8FC9] ring-1 ring-[#A9E7FF]/65 dark:bg-white/10 dark:text-[#A9E7FF] dark:ring-[#A9E7FF]/20">
+            {deck ? `${deck.pages.length} 页` : '1-2 页'}
+          </span>
+        </div>
+        <div className="relative flex flex-wrap gap-2">
+          {deck ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-2 rounded-full bg-[#103832] px-3 text-xs text-white hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+              onClick={() => onOpen(deck)}
+            >
+              <Play className="size-3.5" />
+              进入课堂
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-2 rounded-full bg-[#103832] px-3 text-xs text-white hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+              onClick={onGenerate}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <BookOpenCheck className="size-3.5" />
+              )}
+              {generating ? '生成中' : '生成课堂讲解'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniLectureClassroomDialog({
+  deck,
+  open,
+  onOpenChange,
+}: {
+  deck: MiniLectureDeck | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [pageIndex, setPageIndex] = useState(0);
+  const [actionIndex, setActionIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
+  const [speechText, setSpeechText] = useState('');
+  const timeoutRef = useRef<number | null>(null);
+  const playbackRef = useRef(0);
+
+  const page = deck?.pages[Math.max(0, Math.min(pageIndex, (deck?.pages.length || 1) - 1))] || null;
+  const activeRegion = page?.regions.find((region) => region.id === activeRegionId) || null;
+  const canPrev = pageIndex > 0;
+  const canNext = Boolean(deck && pageIndex < deck.pages.length - 1);
+
+  const stopPlayback = useCallback(() => {
+    playbackRef.current += 1;
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+    }
+    setPlaying(false);
+  }, []);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (!open) {
+        stopPlayback();
+        return;
+      }
+      setPageIndex(0);
+      setActionIndex(0);
+      setActiveRegionId(null);
+      setSpeechText('');
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [deck?.id, open, stopPlayback]);
+
+  useEffect(() => {
+    if (!playing || !page || !deck) return;
+    const action = page.actions[actionIndex];
+    const requestId = playbackRef.current;
+    if (!action) {
+      timeoutRef.current = window.setTimeout(() => {
+        if (playbackRef.current !== requestId) return;
+        if (pageIndex < deck.pages.length - 1) {
+          setPageIndex((current) => current + 1);
+          setActionIndex(0);
+          setActiveRegionId(null);
+          return;
+        }
+        setPlaying(false);
+      }, 0);
+      return;
+    }
+
+    if (action.type === 'spotlight') {
+      timeoutRef.current = window.setTimeout(() => {
+        if (playbackRef.current !== requestId) return;
+        setActiveRegionId(action.elementId);
+        timeoutRef.current = window.setTimeout(() => {
+          if (playbackRef.current !== requestId) return;
+          setActionIndex((current) => current + 1);
+        }, 520);
+      }, 0);
+      return () => {
+        if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      };
+    }
+
+    timeoutRef.current = window.setTimeout(() => {
+      if (playbackRef.current !== requestId) return;
+      setSpeechText(action.text);
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        timeoutRef.current = window.setTimeout(
+          () => setActionIndex((current) => current + 1),
+          Math.max(1400, Math.min(5200, action.text.length * 90)),
+        );
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(action.text);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 1;
+      utterance.volume = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const zhVoice = voices.find((voice) =>
+        /^zh|Chinese|Mandarin/i.test(voice.lang || voice.name),
+      );
+      if (zhVoice) utterance.voice = zhVoice;
+      utterance.onend = () => {
+        if (playbackRef.current !== requestId) return;
+        setActionIndex((current) => current + 1);
+      };
+      utterance.onerror = () => {
+        if (playbackRef.current !== requestId) return;
+        setActionIndex((current) => current + 1);
+      };
+      window.speechSynthesis.speak(utterance);
+    }, 0);
+    return () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      window.speechSynthesis.cancel();
+    };
+  }, [actionIndex, deck, page, pageIndex, playing]);
+
+  useEffect(() => () => stopPlayback(), [stopPlayback]);
+
+  const jumpToPage = useCallback(
+    (nextIndex: number) => {
+      stopPlayback();
+      setPageIndex(nextIndex);
+      setActionIndex(0);
+      setActiveRegionId(null);
+      setSpeechText('');
+    },
+    [stopPlayback],
+  );
+
+  if (!deck || !page) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[min(860px,92dvh)] w-[calc(100vw-1rem)] max-w-5xl overflow-hidden rounded-[28px] border-slate-200/80 bg-slate-950 p-0 text-white shadow-2xl dark:border-white/10">
+        <DialogHeader className="border-b border-white/10 px-5 py-4 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="truncate text-base text-white">{deck.title}</DialogTitle>
+              <p className="mt-1 text-xs text-slate-400">
+                第 {pageIndex + 1}/{deck.pages.length} 页 · {page.regions.length} 个讲解区域
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-full border-white/15 bg-white/8 px-3 text-xs text-white hover:bg-white/15"
+              onClick={() => {
+                if (playing) {
+                  stopPlayback();
+                  return;
+                }
+                playbackRef.current += 1;
+                setActionIndex(0);
+                setPlaying(true);
+              }}
+            >
+              {playing ? '暂停' : '播放'}
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="grid min-h-0 gap-0 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="bg-black px-3 py-4 sm:px-5">
+            <div className="relative mx-auto aspect-video max-h-[68dvh] overflow-hidden rounded-[18px] border border-white/10 bg-white">
+              <img
+                src={page.imageDataUrl}
+                alt={page.title}
+                className="absolute inset-0 size-full object-contain"
+              />
+              {activeRegion ? (
+                <div
+                  className="pointer-events-none absolute rounded-[18px] border-2 transition-all duration-700 ease-out"
+                  style={{
+                    ...miniLectureRegionStyle(activeRegion),
+                    borderColor: activeRegion.markerColorHex,
+                    boxShadow: `0 0 0 9999px rgba(2, 6, 23, 0.58), 0 0 34px ${activeRegion.markerColorHex}`,
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+
+          <aside className="flex min-h-0 flex-col border-t border-white/10 bg-slate-950/95 lg:border-l lg:border-t-0">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                讲解节奏
+              </p>
+              <div className="mt-3 space-y-2">
+                {page.regions.map((region) => (
+                  <button
+                    key={region.id}
+                    type="button"
+                    className={cn(
+                      'w-full rounded-[14px] border px-3 py-2 text-left text-xs leading-5 transition',
+                      activeRegionId === region.id
+                        ? 'border-sky-300/70 bg-sky-400/15 text-sky-50'
+                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10',
+                    )}
+                    onClick={() => {
+                      stopPlayback();
+                      setActiveRegionId(region.id);
+                      setSpeechText(region.script);
+                    }}
+                  >
+                    <span className="block font-semibold">{region.label}</span>
+                    <span className="mt-0.5 line-clamp-2 block text-slate-400">
+                      {region.script}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {speechText ? (
+                <div className="mt-4 rounded-[16px] border border-white/10 bg-white/5 px-3 py-3 text-xs leading-5 text-slate-200">
+                  {speechText}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-3">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full border-white/15 bg-white/8 px-3 text-xs text-white hover:bg-white/15 disabled:opacity-40"
+                onClick={() => jumpToPage(pageIndex - 1)}
+                disabled={!canPrev}
+              >
+                <ChevronLeft className="size-3.5" />
+                上一页
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full border-white/15 bg-white/8 px-3 text-xs text-white hover:bg-white/15 disabled:opacity-40"
+                onClick={() => jumpToPage(pageIndex + 1)}
+                disabled={!canNext}
+              >
+                下一页
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </aside>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function PlanActionCard({
   plan,
   onStart,
-  onRegenerate,
-  onEasier,
 }: {
   plan: PracticePlan;
   onStart: (plan: PracticePlan) => void;
-  onRegenerate: (plan: PracticePlan) => void;
-  onEasier: (plan: PracticePlan) => void;
 }) {
-  const backgroundImage =
-    plan.mode === 'quiz'
-      ? learnConfirmationSciFiImages.quiz
-      : learnConfirmationSciFiImages.practice;
+  const isQuizPlan = plan.mode === 'quiz';
+  const planGlowVariant = isQuizPlan ? 'quiz' : 'practice';
+  const planIconClassName = isQuizPlan
+    ? 'border-[#A9E7FF]/70 bg-white/72 text-[#2F8FC9] dark:border-[#A9E7FF]/20 dark:bg-white/8 dark:text-[#A9E7FF]'
+    : 'border-[#A9F0DC]/70 bg-white/72 text-[#106453] dark:border-[#A9F0DC]/20 dark:bg-white/8 dark:text-[#A9F0DC]';
+  const planChipClassName = isQuizPlan
+    ? 'border-[#A9E7FF]/70 bg-white/58 text-[#2F8FC9] dark:border-[#A9E7FF]/22 dark:bg-white/6 dark:text-[#A9E7FF]'
+    : 'border-[#A9F0DC]/70 bg-white/58 text-[#106453] dark:border-[#A9F0DC]/22 dark:bg-white/6 dark:text-[#A9F0DC]';
+  const planMetricPillClassName =
+    'inline-flex h-8 min-w-[76px] items-center justify-center gap-1.5 rounded-full bg-white/68 px-2.5 text-[11px] shadow-sm ring-1 ring-[#A9E7FF]/35 dark:bg-white/5 dark:ring-white/10';
+  const rationale = plan.evidence?.rationale?.slice(0, 4) || [];
+  const gaps = plan.evidence?.gaps?.slice(0, 2) || [];
+  const evidenceItems = plan.evidence?.items?.slice(0, 4) || [];
 
   return (
-    <div className="relative mt-4 overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-950">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.78)_50%,rgba(255,255,255,0.38)_100%)] dark:bg-[linear-gradient(90deg,rgba(2,6,23,0.9)_0%,rgba(2,6,23,0.72)_50%,rgba(2,6,23,0.42)_100%)]"
-        aria-hidden="true"
-      />
-      <div className="relative border-b border-slate-100/80 px-5 py-4 dark:border-white/10">
+    <div
+      className={cn(
+        learnAssistantActionCardWidthClassName,
+        learnHomeGlowCardBaseClassName,
+        'mt-3 rounded-[18px]',
+      )}
+    >
+      <LearnHomeGlowLayers variant={planGlowVariant} />
+      <div className="relative px-4 py-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-[12px] border border-sky-100 bg-white/76 text-sky-700 shadow-sm dark:border-sky-300/20 dark:bg-slate-950/72 dark:text-sky-100">
-              <BookOpenCheck className="size-4" strokeWidth={1.9} />
+            <span
+              className={cn(
+                'mt-0.5 grid size-8 shrink-0 place-items-center rounded-[11px] border shadow-sm',
+                planIconClassName,
+              )}
+            >
+              <BookOpenCheck className="size-3.5" strokeWidth={1.9} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">{plan.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="truncate text-sm font-semibold text-foreground">{plan.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {plan.mode === 'quiz' ? '课程测验' : '刷题计划'} · {plan.estimatedMinutes} 分钟 ·{' '}
                 {plan.problemIds.length || 0} 题
               </p>
             </div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-400/12 dark:text-emerald-200 dark:ring-emerald-300/15">
-            可开始
-          </span>
-        </div>
-      </div>
-      <div className="relative space-y-4 px-5 py-4">
-        <div className="flex flex-wrap gap-2">
-          {plan.targetConcepts.slice(0, 5).map((concept) => (
-            <span
-              key={concept}
-              className="rounded-full border border-sky-200/80 bg-sky-50/70 px-3 py-1 text-xs font-medium text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-200"
-            >
-              {concept}
-            </span>
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-          <div className="rounded-[14px] bg-white/72 px-2 py-2.5 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-            <p className="font-semibold text-foreground">{plan.difficultyMix.easy}</p>
-            <p className="mt-0.5 text-muted-foreground">基础</p>
-          </div>
-          <div className="rounded-[14px] bg-white/72 px-2 py-2.5 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-            <p className="font-semibold text-foreground">{plan.difficultyMix.medium}</p>
-            <p className="mt-0.5 text-muted-foreground">中等</p>
-          </div>
-          <div className="rounded-[14px] bg-white/72 px-2 py-2.5 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-            <p className="font-semibold text-foreground">{plan.difficultyMix.hard}</p>
-            <p className="mt-0.5 text-muted-foreground">挑战</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
           <Button
+            type="button"
             onClick={() => onStart(plan)}
-            className="gap-2 rounded-full bg-slate-950 px-4 text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            className="h-8 shrink-0 gap-1.5 rounded-full bg-[#103832] px-3 text-xs text-white shadow-sm hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
-            <Play className="size-4" />
+            <Play className="size-3.5" />
             开始
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onRegenerate(plan)}
-            className="gap-2 rounded-full border-slate-200 bg-white px-4 shadow-sm dark:border-white/10 dark:bg-white/5"
-          >
-            <RefreshCcw className="size-4" />
-            换一组
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => onEasier(plan)}
-            className="gap-2 rounded-full px-4 text-muted-foreground"
-          >
-            <Target className="size-4" />
-            降低难度
-          </Button>
         </div>
+
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {plan.targetConcepts.slice(0, 5).map((concept) => (
+              <span
+                key={concept}
+                className={cn(
+                  'rounded-full border px-2.5 py-0.5 text-[11px] font-medium leading-5',
+                  planChipClassName,
+                )}
+              >
+                {concept}
+              </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-center text-xs sm:justify-end">
+            <span className={planMetricPillClassName}>
+              <strong className="text-foreground">{plan.difficultyMix.easy}</strong>
+              <span className="text-muted-foreground">基础</span>
+            </span>
+            <span className={planMetricPillClassName}>
+              <strong className="text-foreground">{plan.difficultyMix.medium}</strong>
+              <span className="text-muted-foreground">中等</span>
+            </span>
+            <span className={planMetricPillClassName}>
+              <strong className="text-foreground">{plan.difficultyMix.hard}</strong>
+              <span className="text-muted-foreground">挑战</span>
+            </span>
+          </div>
+        </div>
+        {rationale.length ? (
+          <div className="mt-3 border-t border-white/70 pt-3 text-xs leading-5 text-slate-600 dark:border-white/10 dark:text-slate-300">
+            <p className="font-semibold text-slate-900 dark:text-slate-100">计划依据</p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4">
+              {rationale.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {evidenceItems.length ? (
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                参考来源：
+                {evidenceItems
+                  .map((item) => item.title)
+                  .filter(Boolean)
+                  .join('、')}
+              </p>
+            ) : null}
+            {gaps.length ? (
+              <p className="mt-2 text-[11px] text-[#DB544E] dark:text-[#FF9A9A]">
+                证据缺口：{gaps.join('；')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -1933,53 +3107,46 @@ function ProgressConfirmationCard({
   onConfirm: () => void;
   onDismiss?: () => void;
 }) {
-  const backgroundImage =
-    proposal.writeMode === 'planning_scope'
-      ? learnConfirmationSciFiImages.scope
-      : learnConfirmationSciFiImages.progress;
-
   return (
-    <div className="relative mt-4 overflow-hidden rounded-[22px] border border-amber-200/80 bg-[#fffdf7] px-5 py-5 text-sm text-slate-800 shadow-[0_18px_50px_rgba(120,79,18,0.08)] dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-50">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.78)_50%,rgba(255,255,255,0.38)_100%)] dark:bg-[linear-gradient(90deg,rgba(2,6,23,0.9)_0%,rgba(2,6,23,0.72)_50%,rgba(2,6,23,0.42)_100%)]"
-        aria-hidden="true"
-      />
+    <div
+      className={cn(
+        learnAssistantActionCardWidthClassName,
+        learnHomeGlowCardBaseClassName,
+        'mt-3 rounded-[16px] px-3.5 py-3 text-sm text-slate-800 dark:text-slate-50',
+      )}
+    >
+      <LearnHomeGlowLayers variant="progress" />
       <div className="relative">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full border border-amber-200 bg-white/76 text-amber-600 shadow-sm dark:border-amber-300/20 dark:bg-slate-950/70 dark:text-amber-200">
-            <Target className="size-4" strokeWidth={1.9} />
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-[#FF9A9A]/45 bg-white/72 text-[#DB544E] shadow-sm dark:border-[#FF9A9A]/22 dark:bg-white/8 dark:text-[#FF9A9A]">
+            <Target className="size-3.5" strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-slate-950 dark:text-amber-50">
+            <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
               {proposal.confirmed
                 ? proposal.writeMode === 'planning_scope'
                   ? '计划范围已确认'
                   : '学习进度已更新'
                 : (proposal.title ?? '确认学习进度')}
             </p>
-            <p className="mt-1 leading-6 text-slate-600 dark:text-amber-100/85">
+            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
               {proposal.reason}
             </p>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
           <select
             value={proposal.selection}
             onChange={(event) => onSelectionChange(event.target.value)}
             disabled={proposal.confirmed}
-            className="h-11 min-w-0 flex-1 rounded-[14px] border border-amber-200 bg-white/86 px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-amber-300/20 dark:bg-slate-950/70"
+            className="h-9 min-w-0 rounded-[10px] border border-[#CEC6FF]/55 bg-white/72 px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-[#A9E7FF] focus:ring-2 focus:ring-[#A9E7FF]/30 disabled:cursor-not-allowed disabled:opacity-70 dark:border-[#CEC6FF]/22 dark:bg-slate-950/70"
             aria-label="确认学习进度"
           >
             <option value="">选择学习进度</option>
             <option value={PROGRESS_SELECTION_NOT_STARTED}>还没开始</option>
-            {notebooks.map((notebook, index) => (
+            {notebooks.map((notebook) => (
               <option key={notebook.id} value={notebook.id}>
-                正在学习 {index + 1}. {notebook.name}
+                正在学习：{notebook.name}
               </option>
             ))}
             {notebooks.length > 0 ? (
@@ -1989,12 +3156,12 @@ function ProgressConfirmationCard({
           <Button
             onClick={onConfirm}
             disabled={!proposal.selection || proposal.confirmed}
-            className="h-11 rounded-[14px] bg-slate-950 px-5 text-white shadow-sm hover:bg-slate-800 disabled:bg-slate-300 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            className="h-9 rounded-[10px] bg-[#103832] px-4 text-sm text-white shadow-sm hover:bg-[#15574d] disabled:bg-slate-300 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
             {proposal.confirmed ? '已确认' : (proposal.confirmLabel ?? '确认更新')}
           </Button>
           {onDismiss && !proposal.confirmed ? (
-            <Button variant="ghost" onClick={onDismiss} className="h-11 rounded-[14px] px-4">
+            <Button variant="ghost" onClick={onDismiss} className="h-9 rounded-[10px] px-3 text-sm">
               稍后再说
             </Button>
           ) : null}
@@ -2008,6 +3175,7 @@ export function LearnPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlSessionId = searchParams.get('session')?.trim() || '';
+  const urlCourseId = searchParams.get('courseId')?.trim() || '';
   const imageInputRef = useRef<HTMLInputElement>(null);
   const draftTextareaRef = useRef<HTMLTextAreaElement>(null);
   const syllabusInputRef = useRef<HTMLInputElement>(null);
@@ -2029,6 +3197,7 @@ export function LearnPageClient() {
 
   const [courses, setCourses] = useState<CourseRecord[]>([]);
   const [coursesLoadState, setCoursesLoadState] = useState<LoadState>('idle');
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [assetLoadState, setAssetLoadState] = useState<LoadState>('idle');
   const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
@@ -2040,12 +3209,18 @@ export function LearnPageClient() {
   const [syllabusImportMessage, setSyllabusImportMessage] = useState<string | null>(null);
   const [syllabusDialogOpen, setSyllabusDialogOpen] = useState(false);
   const [courseFilesDialogOpen, setCourseFilesDialogOpen] = useState(false);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [syllabusImportMode, setSyllabusImportMode] = useState<SyllabusImportMode>('file');
   const [syllabusCommitMode, setSyllabusCommitMode] = useState<SyllabusCommitMode>('merge');
   const [syllabusImportLoading, setSyllabusImportLoading] = useState(false);
   const [syllabusDraftEvents, setSyllabusDraftEvents] = useState<SyllabusCalendarEvent[]>([]);
   const [syllabusDraftSourceName, setSyllabusDraftSourceName] = useState('');
   const [syllabusPlanDraft, setSyllabusPlanDraft] = useState('');
+  const [manualScheduleDialogOpen, setManualScheduleDialogOpen] = useState(false);
+  const [manualScheduleTitle, setManualScheduleTitle] = useState('');
+  const [manualScheduleDate, setManualScheduleDate] = useState(() => localDayKey(new Date()));
+  const [manualScheduleKind, setManualScheduleKind] = useState<SyllabusEventKind>('assignment');
+  const [manualScheduleError, setManualScheduleError] = useState<string | null>(null);
   const [messages, setMessages] = useState<LearnMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<LearnImageAttachment[]>([]);
@@ -2067,6 +3242,11 @@ export function LearnPageClient() {
   const [rightRailView, setRightRailView] = useState<LearnRightRailView>('sessions');
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [calendarReferenceDate, setCalendarReferenceDate] = useState(() => new Date());
+  const [miniLectureOpen, setMiniLectureOpen] = useState(false);
+  const [activeMiniLectureDeck, setActiveMiniLectureDeck] = useState<MiniLectureDeck | null>(null);
+  const [generatingMiniLectureMessageId, setGeneratingMiniLectureMessageId] = useState<
+    string | null
+  >(null);
 
   const hydrated = authHydrated && courseHydrated;
   const localUserId = userId || 'anonymous';
@@ -2078,6 +3258,11 @@ export function LearnPageClient() {
     () => courses.find((course) => course.id === activeCourseId) || null,
     [activeCourseId, courses],
   );
+  const isResearchCourse = activeCourse?.purpose === 'research';
+  const activeQuickPrompts = isResearchCourse ? researchQuickPrompts : learningQuickPrompts;
+  const manualScheduleKindOptions = isResearchCourse
+    ? RESEARCH_EVENT_KIND_OPTIONS
+    : SYLLABUS_EVENT_KIND_OPTIONS;
   const modelOptions = useMemo(() => buildLearnModelOptions(providersConfig), [providersConfig]);
   const selectedModelValue = modelOptionValue(providerId, modelId);
   const selectedModel = useMemo(
@@ -2111,6 +3296,42 @@ export function LearnPageClient() {
   const openSourceUploadPanel = useCallback(() => {
     setSourceUploadDialogOpen(true);
   }, [setSourceUploadDialogOpen]);
+
+  const openMiniLectureDeck = useCallback((deck: MiniLectureDeck) => {
+    setActiveMiniLectureDeck(deck);
+    setMiniLectureOpen(true);
+  }, []);
+
+  const generateMiniLectureForMessage = useCallback(
+    (messageId: string) => {
+      const message = messages.find((item) => item.id === messageId);
+      if (!message?.lecturePrompt && !message?.lectureDeck) return;
+      if (message.lectureDeck) {
+        openMiniLectureDeck(message.lectureDeck);
+        return;
+      }
+      const prompt = message.lecturePrompt;
+      if (!prompt) return;
+      const deck = buildMiniLectureDeck(prompt);
+      setGeneratingMiniLectureMessageId(messageId);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === messageId
+            ? {
+                ...item,
+                lectureDeck: deck,
+              }
+            : item,
+        ),
+      );
+      setActiveMiniLectureDeck(deck);
+      setMiniLectureOpen(true);
+      window.setTimeout(() => {
+        setGeneratingMiniLectureMessageId((current) => (current === messageId ? null : current));
+      }, 260);
+    },
+    [messages, openMiniLectureDeck],
+  );
 
   const updateSourceUploadItem = useCallback(
     (itemId: string, patch: Partial<Omit<LearnSourceUploadItem, 'id' | 'createdAt'>>) => {
@@ -2192,7 +3413,7 @@ export function LearnPageClient() {
       sourceId: event.id,
       title: event.title,
       date: event.date,
-      meta: `${syllabusEventLabel(event.kind)}${event.sourceName ? ` · ${event.sourceName}` : ''}`,
+      meta: `${scheduleEventLabel(event.kind, isResearchCourse)}${event.sourceName ? ` · ${event.sourceName}` : ''}`,
       dotClassName: syllabusEventTone(event.kind),
     }));
     const allActivities = [...planActivities, ...syllabusActivities];
@@ -2213,7 +3434,7 @@ export function LearnPageClient() {
           a.id.localeCompare(b.id),
       );
     return [...upcoming, ...recentPast].slice(0, 4);
-  }, [recentPlans, syllabusEvents]);
+  }, [isResearchCourse, recentPlans, syllabusEvents]);
   const learningSuggestionItems = useMemo(() => {
     if (!snapshot) return ['先同步课程学习状态，再生成复习或刷题安排。'];
 
@@ -2285,18 +3506,26 @@ export function LearnPageClient() {
         other: 0,
       } satisfies Record<SyllabusEventKind, number>,
     );
-    const parts = [
-      counts.assignment ? `${counts.assignment} 个作业` : '',
-      counts.exam ? `${counts.exam} 个考试` : '',
-      counts.progress ? `${counts.progress} 个周进度` : '',
-      counts.tutorial ? `${counts.tutorial} 个 tutorial` : '',
-      counts.holiday ? `${counts.holiday} 个假期` : '',
-      counts.other ? `${counts.other} 个事项` : '',
-    ].filter(Boolean);
+    const parts = (
+      [
+        ['assignment', counts.assignment],
+        ['exam', counts.exam],
+        ['progress', counts.progress],
+        ['tutorial', counts.tutorial],
+        ['holiday', counts.holiday],
+        ['other', counts.other],
+      ] as Array<[SyllabusEventKind, number]>
+    )
+      .map(([kind, count]) =>
+        count ? `${count} 个${scheduleEventLabel(kind, isResearchCourse)}` : '',
+      )
+      .filter(Boolean);
     return parts.length ? parts.join('，') : '';
-  }, [syllabusEvents]);
-  const syllabusNeedsReview = syllabusEvents.length > 0 && syllabusEvents.length < 3;
-  const missingLearningSetup = !snapshot?.progressKnown && syllabusEvents.length === 0;
+  }, [isResearchCourse, syllabusEvents]);
+  const syllabusNeedsReview =
+    !isResearchCourse && syllabusEvents.length > 0 && syllabusEvents.length < 3;
+  const missingLearningSetup =
+    !isResearchCourse && !snapshot?.progressKnown && syllabusEvents.length === 0;
   const validSyllabusDraftEvents = useMemo(
     () =>
       syllabusDraftEvents
@@ -2325,6 +3554,11 @@ export function LearnPageClient() {
     setSyllabusImportLoading(false);
     setSyllabusDraftEvents([]);
     setSyllabusDraftSourceName('');
+    setManualScheduleDialogOpen(false);
+    setManualScheduleTitle('');
+    setManualScheduleDate(localDayKey(new Date()));
+    setManualScheduleKind('assignment');
+    setManualScheduleError(null);
     setSyllabusEvents(readSyllabusEvents(localUserId, activeCourseId));
   }, [activeCourseId, localUserId]);
 
@@ -2346,9 +3580,78 @@ export function LearnPageClient() {
       next.set('courseId', courseId);
       next.delete('session');
       setActiveCourseId(courseId);
-      router.push(`/learn?${next.toString()}`);
+      router.replace(`/learn?${next.toString()}`, { scroll: false });
     },
     [router, searchParams],
+  );
+
+  const handleCourseCreated = useCallback(async (courseId: string) => {
+    setCoursesLoadState('loading');
+    const items = await listCourses();
+    setCourses(items);
+    setCoursesLoadState('ready');
+    setActiveCourseId((current) => {
+      if (current && items.some((course) => course.id === current)) return current;
+      if (items.some((course) => course.id === courseId)) return courseId;
+      return items[0]?.id || null;
+    });
+  }, []);
+
+  const handleDeleteCourse = useCallback(
+    async (course: CourseRecord) => {
+      if (deletingCourseId) return;
+      if (course.accessRole === 'enrolled') {
+        toast.error('已加入的课程不能在这里删除。');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `确认删除课程「${course.name}」吗？课程下的笔记本、题库、记忆、对话和资料索引都会一起删除。`,
+      );
+      if (!confirmed) return;
+
+      setDeletingCourseId(course.id);
+      setError(null);
+      try {
+        await deleteCourseAndNotebooks(course.id);
+        const nextCourses = courses.filter((item) => item.id !== course.id);
+        const deletedIndex = courses.findIndex((item) => item.id === course.id);
+        const fallbackCourse =
+          nextCourses[Math.min(Math.max(deletedIndex, 0), Math.max(nextCourses.length - 1, 0))] ||
+          nextCourses[0] ||
+          null;
+
+        setCourses(nextCourses);
+        if (activeCourseId === course.id) {
+          const next = new URLSearchParams(searchParams.toString());
+          next.delete('session');
+          if (fallbackCourse) {
+            next.set('courseId', fallbackCourse.id);
+            setActiveCourseId(fallbackCourse.id);
+            router.replace(`/learn?${next.toString()}`, { scroll: false });
+          } else {
+            next.delete('courseId');
+            setActiveCourseId(null);
+            setCurrentCourse(null);
+            setMessages([]);
+            setLearnSessions([]);
+            setNotebooks([]);
+            setProblems([]);
+            setSnapshot(null);
+            const query = next.toString();
+            router.replace(query ? `/learn?${query}` : '/learn', { scroll: false });
+          }
+        }
+        toast.success('课程已删除');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '课程删除失败';
+        setError(message);
+        toast.error(message);
+      } finally {
+        setDeletingCourseId(null);
+      }
+    },
+    [activeCourseId, courses, deletingCourseId, router, searchParams, setCurrentCourse],
   );
 
   const persistLeftRailCollapsed = useCallback((collapsed: boolean) => {
@@ -2534,15 +3837,6 @@ export function LearnPageClient() {
         if (!alive) return;
         setCourses(items);
         setCoursesLoadState('ready');
-        const urlCourseId = searchParams.get('courseId');
-        const nextCourseId =
-          (urlCourseId && items.some((course) => course.id === urlCourseId) ? urlCourseId : null) ||
-          (storedCourseId && items.some((course) => course.id === storedCourseId)
-            ? storedCourseId
-            : null) ||
-          items[0]?.id ||
-          null;
-        setActiveCourseId(nextCourseId);
       })
       .catch((err) => {
         if (!alive) return;
@@ -2552,7 +3846,19 @@ export function LearnPageClient() {
     return () => {
       alive = false;
     };
-  }, [hydrated, isLoggedIn, router, searchParams, storedCourseId]);
+  }, [hydrated, isLoggedIn, router]);
+
+  useEffect(() => {
+    if (coursesLoadState !== 'ready') return;
+    const nextCourseId =
+      (urlCourseId && courses.some((course) => course.id === urlCourseId) ? urlCourseId : null) ||
+      (storedCourseId && courses.some((course) => course.id === storedCourseId)
+        ? storedCourseId
+        : null) ||
+      courses[0]?.id ||
+      null;
+    setActiveCourseId((current) => (current === nextCourseId ? current : nextCourseId));
+  }, [courses, coursesLoadState, storedCourseId, urlCourseId]);
 
   useEffect(() => {
     if (!activeCourse) return;
@@ -2868,25 +4174,24 @@ export function LearnPageClient() {
               );
             }
 
-            const text = await readLearnSourceFileText(file, {
-              pdfProviderId,
-              pdfProviderConfig,
-            });
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('sourceTitle', file.name);
+            formData.append('sourceKind', sourceKind);
+            formData.append('language', activeCourse.language === 'en-US' ? 'en-US' : 'zh-CN');
+            formData.append('pdfProviderId', pdfProviderId);
+            if (pdfProviderConfig?.apiKey) formData.append('pdfApiKey', pdfProviderConfig.apiKey);
+            if (pdfProviderConfig?.baseUrl) {
+              formData.append('pdfBaseUrl', pdfProviderConfig.baseUrl);
+            }
             const response = await backendJson<CourseSourceIngestResponse>(
               `/api/courses/${encodeURIComponent(activeCourse.id)}/source-ingest`,
               {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
                   ...(providerId === 'openai' && modelId ? { 'x-model': `openai:${modelId}` } : {}),
                 },
-                body: JSON.stringify({
-                  sourceTitle: file.name,
-                  sourceKind,
-                  sourceFileMime: file.type || undefined,
-                  language: activeCourse.language === 'en-US' ? 'en-US' : 'zh-CN',
-                  text,
-                }),
+                body: formData,
               },
             );
             const summary = formatSourceUploadStatusSummary(response.ingest);
@@ -3042,9 +4347,59 @@ export function LearnPageClient() {
     setSyllabusEvents([]);
     setSyllabusDraftEvents([]);
     setSyllabusDraftSourceName('');
-    setSyllabusImportMessage('已清空 syllabus 日程。');
-    announceSyllabusScheduleUpdated('已清空 syllabus 日程');
-  }, [activeCourseId, localUserId]);
+    const label = isResearchCourse ? '研究日程' : 'syllabus 日程';
+    setSyllabusImportMessage(`已清空 ${label}。`);
+    announceSyllabusScheduleUpdated(`已清空 ${label}`);
+  }, [activeCourseId, isResearchCourse, localUserId]);
+
+  const openManualScheduleDialog = useCallback(() => {
+    setManualScheduleTitle('');
+    setManualScheduleDate(localDayKey(new Date()));
+    setManualScheduleKind('assignment');
+    setManualScheduleError(null);
+    setManualScheduleDialogOpen(true);
+  }, []);
+
+  const confirmManualScheduleEvent = useCallback(() => {
+    if (!activeCourseId) return;
+    const title = manualScheduleTitle.trim();
+    if (!title) {
+      setManualScheduleError('请填写日程标题。');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(manualScheduleDate)) {
+      setManualScheduleError('请选择有效日期。');
+      return;
+    }
+
+    const event: SyllabusCalendarEvent = {
+      id: makeClientId('syllabus-event'),
+      title,
+      kind: manualScheduleKind,
+      date: manualScheduleDate,
+      sourceName: '手动添加',
+      createdAt: Date.now(),
+    };
+    const nextEvents = mergeSyllabusEvents(syllabusEvents, [event]);
+    writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
+    setSyllabusEvents(nextEvents);
+    setSyllabusImportMessage(`已添加日程「${title}」。`);
+    setCalendarReferenceDate(new Date(`${manualScheduleDate}T12:00:00`));
+    setRightRailView('calendar');
+    setManualScheduleDialogOpen(false);
+    setManualScheduleTitle('');
+    setManualScheduleDate(localDayKey(new Date()));
+    setManualScheduleKind('assignment');
+    setManualScheduleError(null);
+    announceSyllabusScheduleUpdated(`${title}，${manualScheduleDate}`);
+  }, [
+    activeCourseId,
+    localUserId,
+    manualScheduleDate,
+    manualScheduleKind,
+    manualScheduleTitle,
+    syllabusEvents,
+  ]);
 
   const removeStatusCalendarActivity = useCallback(
     (activity: StatusCalendarActivity) => {
@@ -3264,15 +4619,17 @@ export function LearnPageClient() {
 
   const addAssistantPlan = useCallback(
     (plan: PracticePlan) => {
-      void saveRemotePracticePlan(plan);
+      const savedPlan = savePracticePlan(plan);
+      void saveRemotePracticePlan(savedPlan);
+      setRecentPlans((current) => mergePlans([savedPlan], current).slice(0, 4));
       setMessages((current) => [
         ...current,
         {
           id: makeClientId('assistant-plan'),
           role: 'assistant',
-          text: planIntro(plan),
+          text: planIntro(savedPlan),
           createdAt: Date.now(),
-          plan,
+          plan: savedPlan,
         },
       ]);
       refreshLearnerSnapshot();
@@ -3306,6 +4663,63 @@ export function LearnPageClient() {
     [activeCourse, notebooks, problems, userId],
   );
 
+  const buildEvidenceBasedPlan = useCallback(
+    async (args: {
+      mode: PracticePlanMode;
+      prompt: string;
+      targetCount?: number;
+      stateOverride?: LearnerCourseState;
+      snapshotOverride?: LearnerCourseSnapshot;
+    }) => {
+      if (!activeCourse) return null;
+      const localUserId = userId || 'anonymous';
+      const planState =
+        args.stateOverride ||
+        seedLearnerCourseStateFromCourse({
+          userId: localUserId,
+          course: activeCourse,
+          notebooks,
+          problems,
+        });
+      const planSnapshot =
+        args.snapshotOverride ||
+        summarizeLearnerCourseState({
+          state: planState,
+          notebooks,
+          problems,
+        });
+      if (!planSnapshot.progressKnown) return null;
+
+      try {
+        const response = await requestTeachingReviewPlan({
+          courseId: activeCourse.id,
+          prompt: args.prompt,
+          conversationId: activeSessionId,
+          syllabusEvents,
+          mode: args.mode,
+          questionCount: args.targetCount,
+        });
+        return practicePlanFromTeachingReviewDecision({
+          response,
+          userId: localUserId,
+          course: activeCourse,
+          mode: args.mode,
+          prompt: args.prompt,
+          state: planState,
+          snapshot: planSnapshot,
+          targetCount: args.targetCount,
+        });
+      } catch (error) {
+        console.warn(
+          '[learn] evidence-based review plan unavailable, falling back locally:',
+          error instanceof Error ? error.message : error,
+        );
+        return null;
+      }
+    },
+    [activeCourse, activeSessionId, notebooks, problems, syllabusEvents, userId],
+  );
+
   const continuePendingAction = useCallback(
     async (
       action: PendingCourseAction | undefined,
@@ -3320,14 +4734,22 @@ export function LearnPageClient() {
             courseId: activeCourse.id,
             prompt: action.prompt,
           });
-          const plan = buildPlan(
-            action.mode,
-            action.prompt,
-            undefined,
-            undefined,
-            nextState,
-            preferredProblemIds,
-          );
+          const evidencePlan = await buildEvidenceBasedPlan({
+            mode: action.mode,
+            prompt: action.prompt,
+            stateOverride: nextState,
+            snapshotOverride: nextSnapshot,
+          });
+          const plan =
+            evidencePlan ||
+            buildPlan(
+              action.mode,
+              action.prompt,
+              undefined,
+              undefined,
+              nextState,
+              preferredProblemIds,
+            );
           if (plan) {
             addAssistantPlan(plan);
             return;
@@ -3346,6 +4768,24 @@ export function LearnPageClient() {
         }
         return;
       }
+
+      if (action.kind === 'review_plan') {
+        const plan = await buildEvidenceBasedPlan({
+          mode: 'practice',
+          prompt: action.prompt,
+          stateOverride: nextState,
+          snapshotOverride: nextSnapshot,
+        });
+        if (plan) {
+          addAssistantPlan(plan);
+          setSending(false);
+          return;
+        }
+      }
+
+      const planVerbPhrase = action.kind === 'preview_plan' ? '安排预习计划' : '安排复习';
+      const messagePrefix =
+        action.kind === 'preview_plan' ? 'assistant-preview-plan' : 'assistant-review-plan';
 
       try {
         const result = await askCourseOrchestrator({
@@ -3370,11 +4810,11 @@ export function LearnPageClient() {
             snapshot: nextSnapshot,
             state: nextState,
           }) ||
-          `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排复习。`;
+          `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} ${planVerbPhrase}。`;
         setMessages((current) => [
           ...current,
           {
-            id: makeClientId('assistant-review-plan'),
+            id: makeClientId(messagePrefix),
             role: 'assistant',
             text: answer,
             createdAt: Date.now(),
@@ -3389,11 +4829,13 @@ export function LearnPageClient() {
             snapshot: nextSnapshot,
             state: nextState,
           }) ||
-          `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排复习。\n\n1. 先用 10 分钟回看这一段的核心定义和例子。\n2. 再用 20 分钟只复习相关薄弱点，不做全量重刷。\n3. 最后做一组对应题，做完后我会根据结果更新下一轮复习范围。`;
+          (action.kind === 'preview_plan'
+            ? `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排预习。\n\n1. 先用 10 分钟扫一遍下一段的标题、定义和例子。\n2. 再用 20 分钟整理概念提纲，只标出还没懂的词和步骤。\n3. 最后用 10 分钟写下 2-3 个问题，正式学习时优先解决。`
+            : `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排复习。\n\n1. 先用 10 分钟回看这一段的核心定义和例子。\n2. 再用 20 分钟只复习相关薄弱点，不做全量重刷。\n3. 最后做一组对应题，做完后我会根据结果更新下一轮复习范围。`);
         setMessages((current) => [
           ...current,
           {
-            id: makeClientId('assistant-review-plan'),
+            id: makeClientId(messagePrefix),
             role: 'assistant',
             text: answer,
             createdAt: Date.now(),
@@ -3406,6 +4848,7 @@ export function LearnPageClient() {
     [
       activeCourse,
       addAssistantPlan,
+      buildEvidenceBasedPlan,
       buildPlan,
       recentPlans,
       refreshLearnerSnapshot,
@@ -3466,9 +4909,11 @@ export function LearnPageClient() {
       const title =
         writeMode === 'progress'
           ? '确认学习进度'
-          : args.intent?.kind === 'review_plan'
-            ? '确认复习范围'
-            : '确认题目范围';
+          : args.intent?.kind === 'preview_plan'
+            ? '确认预习范围'
+            : args.intent?.kind === 'review_plan'
+              ? '确认复习范围'
+              : '确认题目范围';
       setMessages((current) => [
         ...current,
         {
@@ -3516,31 +4961,6 @@ export function LearnPageClient() {
       router.push(`/practice/${encodeURIComponent(activity.sourceId)}`);
     },
     [router],
-  );
-
-  const regeneratePlan = useCallback(
-    (plan: PracticePlan) => {
-      const nextPlan = buildPlan(
-        plan.mode,
-        plan.createdFrom.prompt,
-        plan.problemIds.length || undefined,
-      );
-      if (nextPlan) addAssistantPlan(nextPlan);
-    },
-    [addAssistantPlan, buildPlan],
-  );
-
-  const easierPlan = useCallback(
-    (plan: PracticePlan) => {
-      const nextPlan = buildPlan(
-        plan.mode,
-        plan.createdFrom.prompt,
-        5,
-        plan.targetConcepts.slice(0, 2),
-      );
-      if (nextPlan) addAssistantPlan(nextPlan);
-    },
-    [addAssistantPlan, buildPlan],
   );
 
   const sendMessage = useCallback(
@@ -3630,6 +5050,11 @@ export function LearnPageClient() {
         state: questionState,
       });
       if (!hasAttachments && localAnswer) {
+        const lecturePrompt = buildMiniLecturePrompt({
+          question: questionText,
+          answer: localAnswer,
+          course: activeCourse,
+        });
         setMessages((current) => [
           ...current,
           {
@@ -3637,6 +5062,7 @@ export function LearnPageClient() {
             role: 'assistant',
             text: localAnswer,
             createdAt: Date.now(),
+            lecturePrompt,
           },
         ]);
         setSending(false);
@@ -3666,6 +5092,11 @@ export function LearnPageClient() {
         });
         const answer =
           latestAssistantText(result.messages) || result.answer || '我先记录下这个问题。';
+        const lecturePrompt = buildMiniLecturePrompt({
+          question: questionText,
+          answer,
+          course: activeCourse,
+        });
         setMessages((current) => [
           ...current,
           {
@@ -3673,6 +5104,7 @@ export function LearnPageClient() {
             role: 'assistant',
             text: answer,
             createdAt: Date.now(),
+            lecturePrompt,
           },
         ]);
         refreshLearnerSnapshot();
@@ -3709,7 +5141,14 @@ export function LearnPageClient() {
     ],
   );
 
-  if (!hydrated || coursesLoadState === 'loading') {
+  const resolvingActiveCourse = coursesLoadState === 'ready' && courses.length > 0 && !activeCourse;
+
+  if (
+    !hydrated ||
+    coursesLoadState === 'idle' ||
+    coursesLoadState === 'loading' ||
+    resolvingActiveCourse
+  ) {
     return (
       <div className="grid h-full min-h-[70dvh] place-items-center text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
@@ -3783,15 +5222,27 @@ export function LearnPageClient() {
       >
         {courses.map((course) => {
           const active = course.id === activeCourseId;
+          const deletingThisCourse = deletingCourseId === course.id;
+          const canDeleteCourse = course.accessRole !== 'enrolled';
           return (
-            <button
+            <div
               key={course.id}
-              type="button"
-              onClick={() => switchCourse(course.id)}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (!deletingCourseId) switchCourse(course.id);
+              }}
+              onKeyDown={(event) => {
+                if (deletingCourseId) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  switchCourse(course.id);
+                }
+              }}
               className={cn(
                 leftRailCollapsed
-                  ? 'flex size-12 items-center justify-center rounded-[15px] transition hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200'
-                  : 'group relative flex min-h-[68px] w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition hover:border-slate-200 hover:bg-white hover:shadow-sm',
+                  ? 'flex size-12 cursor-pointer items-center justify-center rounded-[15px] transition hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200'
+                  : 'group relative flex min-h-[68px] w-full min-w-0 cursor-pointer items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition hover:border-slate-200 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200',
                 active
                   ? leftRailCollapsed
                     ? 'bg-white shadow-sm ring-1 ring-sky-200'
@@ -3801,6 +5252,7 @@ export function LearnPageClient() {
                     : null,
               )}
               aria-current={active ? 'page' : undefined}
+              aria-disabled={deletingThisCourse ? true : undefined}
               aria-label={course.name}
               title={course.name}
             >
@@ -3833,7 +5285,31 @@ export function LearnPageClient() {
                   ) : null}
                 </span>
               ) : null}
-            </button>
+              {!leftRailCollapsed && canDeleteCourse ? (
+                <button
+                  type="button"
+                  className={cn(
+                    'flex size-8 shrink-0 items-center justify-center rounded-[10px] text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
+                    active || deletingThisCourse
+                      ? 'opacity-100'
+                      : 'opacity-70 group-hover:opacity-100 group-focus-within:opacity-100',
+                  )}
+                  disabled={Boolean(deletingCourseId)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleDeleteCourse(course);
+                  }}
+                  aria-label={`删除课程 ${course.name}`}
+                  title="删除课程"
+                >
+                  {deletingThisCourse ? (
+                    <Loader2 className="size-4 animate-spin" strokeWidth={1.8} />
+                  ) : (
+                    <Trash2 className="size-4" strokeWidth={1.8} />
+                  )}
+                </button>
+              ) : null}
+            </div>
           );
         })}
       </nav>
@@ -3853,7 +5329,7 @@ export function LearnPageClient() {
               ? 'mx-auto flex size-10 rounded-[13px] text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-sm'
               : 'h-10 w-full justify-start gap-2 rounded-[13px] px-3 text-sm text-slate-700 hover:bg-white hover:text-slate-950 hover:shadow-sm',
           )}
-          onClick={() => router.push('/courses/new')}
+          onClick={() => setCreateCourseOpen(true)}
           aria-label="新建课程"
           title="新建课程"
         >
@@ -3889,12 +5365,18 @@ export function LearnPageClient() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <CalendarDays className="size-4 text-muted-foreground" strokeWidth={1.8} />
-            <p className="text-sm font-semibold text-foreground">学习日历</p>
+            <p className="text-sm font-semibold text-foreground">
+              {isResearchCourse ? '研究日历' : '学习日历'}
+            </p>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{calendarMonthLabel}</p>
         </div>
         <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
-          {snapshot?.dueReviewCount ? `${snapshot.dueReviewCount} 个复习` : '暂无到期'}
+          {snapshot?.dueReviewCount
+            ? `${snapshot.dueReviewCount} 个复习`
+            : isResearchCourse
+              ? '暂无安排'
+              : '暂无到期'}
         </span>
       </div>
 
@@ -3915,7 +5397,9 @@ export function LearnPageClient() {
             )}
             title={[
               day.planCount ? `${day.planCount} 个学习计划` : '',
-              day.syllabusCount ? `${day.syllabusCount} 个 syllabus 事项` : '',
+              day.syllabusCount
+                ? `${day.syllabusCount} 个${isResearchCourse ? '研究日程' : 'syllabus 事项'}`
+                : '',
             ]
               .filter(Boolean)
               .join('，')}
@@ -3951,14 +5435,18 @@ export function LearnPageClient() {
           <div className="flex items-center gap-2">
             <FileText className="size-4 text-muted-foreground" strokeWidth={1.8} />
             <p className="text-sm font-semibold text-foreground">
-              {syllabusEvents.length ? 'syllabus 日程' : '导入 syllabus'}
+              {isResearchCourse
+                ? '研究日程'
+                : syllabusEvents.length
+                  ? 'syllabus 日程'
+                  : '导入 syllabus'}
             </p>
           </div>
           {syllabusEvents.length ? (
             <p className="mt-1 text-xs text-muted-foreground">{syllabusEvents.length} 个事项</p>
           ) : null}
         </div>
-        {syllabusEvents.length ? null : (
+        {isResearchCourse || syllabusEvents.length ? null : (
           <Button
             type="button"
             size="sm"
@@ -3977,35 +5465,67 @@ export function LearnPageClient() {
         </p>
       ) : null}
 
+      <button
+        type="button"
+        onClick={openManualScheduleDialog}
+        className={cn(
+          rightRailRowClassName,
+          'mt-3 flex w-full items-center justify-between gap-3 text-left transition hover:border-sky-200 hover:bg-sky-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-100 dark:hover:border-sky-300/20 dark:hover:bg-sky-400/10 dark:focus-visible:ring-sky-300/20',
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+            <Plus className="size-4" strokeWidth={1.8} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+              添加日程
+            </span>
+            <span className="mt-0.5 block text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+              {isResearchCourse ? '手动补一个会议、DDL 或研究提醒' : '手动补一个作业、考试或提醒'}
+            </span>
+          </span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+      </button>
+
       {syllabusEvents.length ? (
         <div className={cn(rightRailRowClassName, 'mt-3 space-y-2 text-xs leading-5')}>
           <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-foreground">管理 syllabus</span>
+            <span className="font-semibold text-foreground">
+              {isResearchCourse ? '管理日程' : '管理 syllabus'}
+            </span>
           </div>
           <p className="text-muted-foreground">
-            {syllabusNeedsReview
-              ? `目前只识别到 ${syllabusEventSummary || `${syllabusEvents.length} 个事项`}，建议先补充关键日期，再安排复习。`
-              : `已记录 ${syllabusEventSummary}，可以把这些日期作为约束来安排复习和刷题。`}
+            {isResearchCourse
+              ? `已记录 ${syllabusEventSummary || `${syllabusEvents.length} 个事项`}，可以把这些日期作为研究推进的约束。`
+              : syllabusNeedsReview
+                ? `目前只识别到 ${syllabusEventSummary || `${syllabusEvents.length} 个事项`}，建议先补充关键日期，再安排复习。`
+                : `已记录 ${syllabusEventSummary}，可以把这些日期作为约束来安排复习和刷题。`}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={syllabusNeedsReview ? 'default' : 'outline'}
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={openSyllabusEditDialog}
-            >
-              更改
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => openSyllabusUploadDialog('replace')}
-            >
-              重新上传
-            </Button>
+            {isResearchCourse ? null : (
+              <Button
+                type="button"
+                size="sm"
+                variant={syllabusNeedsReview ? 'default' : 'outline'}
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={openSyllabusEditDialog}
+              >
+                更改
+              </Button>
+            )}
+            {isResearchCourse ? null : (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => openSyllabusUploadDialog('replace')}
+              >
+                重新上传
+              </Button>
+            )}
             <Button
               type="button"
               size="sm"
@@ -4023,11 +5543,13 @@ export function LearnPageClient() {
               disabled={sending}
               onClick={() => {
                 void sendMessage(
-                  '我已经导入了 syllabus 日程。请结合这些作业、考试和课程进度，帮我安排接下来两周的学习计划；如果还不清楚我的学习进度，请先让我确认。',
+                  isResearchCourse
+                    ? '我已经添加了研究日程。请结合这些会议、DDL 和研究节点，帮我安排接下来两周的研究推进计划。'
+                    : '我已经导入了 syllabus 日程。请结合这些作业、考试和课程进度，帮我安排接下来两周的学习计划；如果还不清楚我的学习进度，请先让我确认。',
                 );
               }}
             >
-              安排学习计划
+              {isResearchCourse ? '安排研究计划' : '安排学习计划'}
             </Button>
           </div>
         </div>
@@ -4045,14 +5567,16 @@ export function LearnPageClient() {
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className={cn('size-1.5 rounded-full', syllabusEventTone(event.kind))} />
-                <span>{syllabusEventLabel(event.kind)}</span>
+                <span>{scheduleEventLabel(event.kind, isResearchCourse)}</span>
                 <span className="min-w-0 truncate">· {event.sourceName}</span>
               </div>
             </div>
           ))
         ) : (
           <p className={cn(rightRailRowClassName, 'text-xs leading-5 text-muted-foreground')}>
-            导入课程大纲后，我会把作业、考试和每周进度放到日历里。
+            {isResearchCourse
+              ? '添加关键会议、DDL 或实验节点后，我会把它们放到研究日历里。'
+              : '导入课程大纲后，我会把作业、考试和每周进度放到日历里。'}
           </p>
         )}
       </div>
@@ -4236,12 +5760,11 @@ export function LearnPageClient() {
                             }
                             className="h-9 rounded-full border border-border bg-muted/30 px-3 text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                           >
-                            <option value="assignment">作业</option>
-                            <option value="exam">考试</option>
-                            <option value="progress">进度</option>
-                            <option value="tutorial">Tutorial</option>
-                            <option value="holiday">假期</option>
-                            <option value="other">事项</option>
+                            {manualScheduleKindOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
                           </select>
                           <input
                             value={event.title}
@@ -4329,6 +5852,101 @@ export function LearnPageClient() {
             </section>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const manualScheduleDialog = (
+    <Dialog
+      open={manualScheduleDialogOpen}
+      onOpenChange={(open) => {
+        setManualScheduleDialogOpen(open);
+        if (!open) setManualScheduleError(null);
+      }}
+    >
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-md rounded-[24px] border-border/80 bg-background p-0 shadow-2xl">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            confirmManualScheduleEvent();
+          }}
+        >
+          <DialogHeader className="border-b border-border px-5 py-4 text-left">
+            <DialogTitle className="text-base">添加日程</DialogTitle>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {isResearchCourse
+                ? '手动补充一条会议、DDL、实验节点或研究提醒。'
+                : '手动补充一条作业、考试、课程进度或提醒。'}
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-4 px-5 py-4">
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">标题</span>
+              <input
+                value={manualScheduleTitle}
+                onChange={(event) => {
+                  setManualScheduleTitle(event.currentTarget.value);
+                  setManualScheduleError(null);
+                }}
+                placeholder={isResearchCourse ? '例如：完成消融实验' : '例如：Assignment 2 截止'}
+                className="h-10 w-full rounded-[14px] border border-border bg-muted/30 px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
+              />
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">日期</span>
+                <input
+                  type="date"
+                  value={manualScheduleDate}
+                  onChange={(event) => {
+                    setManualScheduleDate(event.currentTarget.value);
+                    setManualScheduleError(null);
+                  }}
+                  className="h-10 w-full rounded-[14px] border border-border bg-muted/30 px-3 text-sm text-foreground outline-none transition focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">类型</span>
+                <select
+                  value={manualScheduleKind}
+                  onChange={(event) =>
+                    setManualScheduleKind(event.currentTarget.value as SyllabusEventKind)
+                  }
+                  className="h-10 w-full rounded-[14px] border border-border bg-muted/30 px-3 text-sm text-foreground outline-none transition focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
+                >
+                  {manualScheduleKindOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {manualScheduleError ? (
+              <p className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700 dark:border-rose-300/20 dark:bg-rose-400/10 dark:text-rose-100">
+                {manualScheduleError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-full px-4 text-sm"
+              onClick={() => setManualScheduleDialogOpen(false)}
+            >
+              取消
+            </Button>
+            <Button type="submit" className="h-9 rounded-full px-4 text-sm">
+              添加
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
@@ -4695,7 +6313,7 @@ export function LearnPageClient() {
                   ...dayEvents.map((event) => ({
                     id: `syllabus-${event.id}`,
                     title: event.title,
-                    meta: syllabusEventLabel(event.kind),
+                    meta: scheduleEventLabel(event.kind, isResearchCourse),
                     dotClassName: syllabusEventTone(event.kind),
                     pillClassName: syllabusEventPillTone(event.kind),
                   })),
@@ -4919,13 +6537,17 @@ export function LearnPageClient() {
               <section className={cn(rightRailCardClassName, 'p-3')}>
                 <div className="flex items-center gap-2">
                   <BookOpenCheck className="size-4 text-muted-foreground" strokeWidth={1.8} />
-                  <p className="text-sm font-semibold text-foreground">学习进度</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {isResearchCourse ? '研究进度' : '学习进度'}
+                  </p>
                 </div>
                 <div className="mt-3 text-xs">
                   <div
                     className={cn(rightRailRowClassName, 'flex items-center justify-between gap-2')}
                   >
-                    <span className="text-muted-foreground">当前进度</span>
+                    <span className="text-muted-foreground">
+                      {isResearchCourse ? '当前阶段' : '当前进度'}
+                    </span>
                     <span className="font-medium text-foreground">
                       {snapshot?.progressLabel || '未确认'}
                     </span>
@@ -4936,7 +6558,9 @@ export function LearnPageClient() {
               <section className={cn(rightRailCardClassName, 'mt-3 p-3')}>
                 <div className="flex items-center gap-2">
                   <Target className="size-4 text-muted-foreground" strokeWidth={1.8} />
-                  <p className="text-sm font-semibold text-foreground">学习建议</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {isResearchCourse ? '研究建议' : '学习建议'}
+                  </p>
                 </div>
                 <div className="mt-3 space-y-1.5">
                   {learningSuggestionItems.map((item, index) => (
@@ -4975,10 +6599,9 @@ export function LearnPageClient() {
         </aside>
 
         <main className="flex min-h-[70dvh] flex-col overflow-hidden bg-white lg:min-h-0 dark:bg-slate-950">
-          <header className="shrink-0 border-b border-slate-200/80 bg-white/95 px-5 py-3 dark:border-white/10 dark:bg-slate-950/95">
-            <div className="mx-auto flex w-full max-w-4xl flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex w-full min-w-0 items-center gap-2.5 sm:w-auto">
-                <CourseAvatar course={activeCourse} className="size-8 rounded-[10px]" />
+          <header className="shrink-0 border-b border-slate-200/80 bg-white/95 px-6 py-3 dark:border-white/10 dark:bg-slate-950/95 sm:px-8 lg:px-10">
+            <div className="mx-auto flex w-full max-w-[52rem] flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="w-full min-w-0 sm:w-auto">
                 <div className="min-w-0">
                   <h1 className="line-clamp-2 text-sm font-semibold leading-4 text-slate-950 dark:text-slate-50">
                     {activeCourse.name}
@@ -5027,7 +6650,7 @@ export function LearnPageClient() {
                     onClick={() => addProgressRequestMessage({ snapshot })}
                     className="h-8 rounded-[10px] border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-sm hover:bg-sky-100"
                   >
-                    更新学习进度
+                    {isResearchCourse ? '更新研究进度' : '更新学习进度'}
                   </Button>
                 ) : null}
                 <Button
@@ -5038,11 +6661,10 @@ export function LearnPageClient() {
                 >
                   <UploadCloud className="size-3.5" />
                   上传文件
-                  {completedSourceUploadBadgeCount > 0 ? (
-                    <span className="absolute -right-1.5 -top-1.5 grid min-w-4 place-items-center rounded-full border border-white bg-emerald-500 px-1 text-[10px] font-bold leading-4 text-white shadow-sm dark:border-slate-950">
-                      {completedSourceUploadBadgeCount > 9 ? '9+' : completedSourceUploadBadgeCount}
-                    </span>
-                  ) : null}
+                  <SourceUploadBadge
+                    uploading={sourceUploading}
+                    completedCount={completedSourceUploadBadgeCount}
+                  />
                 </Button>
                 <Button
                   size="sm"
@@ -5059,12 +6681,17 @@ export function LearnPageClient() {
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-white px-5 py-5 dark:bg-slate-950">
-            <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-4">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-5 dark:bg-slate-950 sm:px-8 lg:px-10">
+            <div className="mx-auto flex min-h-full w-full max-w-[52rem] flex-col gap-4">
               {messages.length === 0 && !sending ? (
-                <div className="flex min-h-[260px] flex-1 items-center justify-center">
-                  <div className="flex max-w-2xl flex-col items-center gap-4 px-3 text-center">
-                    <div className="relative">
+                <div className="learn-empty-ambient relative isolate flex min-h-[420px] flex-1 items-center justify-center overflow-hidden">
+                  <span className="learn-empty-spotlight learn-empty-spotlight-main" aria-hidden />
+                  <span
+                    className="learn-empty-spotlight learn-empty-spotlight-accent"
+                    aria-hidden
+                  />
+                  <div className="learn-empty-center relative z-10 flex max-w-2xl flex-col items-center gap-4 px-3 text-center">
+                    <div className="learn-empty-avatar relative">
                       <CourseAvatar course={activeCourse} className="size-14 rounded-[18px]" />
                       <span
                         className={cn(
@@ -5076,27 +6703,29 @@ export function LearnPageClient() {
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                        {activeCourse.courseCode || 'Learning'}
+                        {activeCourse.courseCode || (isResearchCourse ? 'Research' : 'Learning')}
                       </p>
                       <p className="mt-1 text-lg font-semibold tracking-normal text-slate-950 dark:text-slate-50">
-                        今天想从哪里开始？
+                        {isResearchCourse ? '今天想推进什么？' : '今天想从哪里开始？'}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {missingLearningSetup
-                          ? '补齐 syllabus 和学习进度后，今天的安排会更准。'
-                          : snapshot?.progressKnown && snapshot.progressLabel
-                            ? `当前进度：${snapshot.progressLabel}`
-                            : `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进。`}
+                        {isResearchCourse
+                          ? `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进研究。`
+                          : missingLearningSetup
+                            ? '补齐 syllabus 和学习进度后，今天的安排会更准。'
+                            : snapshot?.progressKnown && snapshot.progressLabel
+                              ? `当前进度：${snapshot.progressLabel}`
+                              : `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进。`}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2" aria-label="快捷入口">
-                      {quickPrompts.map((prompt) => (
+                      {activeQuickPrompts.map((prompt) => (
                         <Button
                           key={prompt}
                           variant="outline"
                           size="sm"
                           onClick={() => void sendMessage(prompt)}
-                          className="h-8 rounded-full border-slate-200 bg-white px-3 text-xs shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5"
+                          className="h-8 rounded-full border-slate-200/80 bg-white/76 px-3 text-xs shadow-sm backdrop-blur-sm hover:bg-white dark:border-white/10 dark:bg-white/8 dark:hover:bg-white/12"
                         >
                           {prompt}
                         </Button>
@@ -5112,7 +6741,7 @@ export function LearnPageClient() {
                       className={cn(
                         message.role === 'user'
                           ? 'ml-auto max-w-[min(78%,680px)] rounded-[24px] bg-slate-950 px-4 py-2.5 text-sm leading-6 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] dark:bg-white dark:text-black'
-                          : 'mr-auto w-full max-w-4xl py-2',
+                          : 'mr-auto flex w-full max-w-[52rem] items-start gap-3 py-2',
                       )}
                     >
                       {message.role === 'user' ? (
@@ -5132,37 +6761,47 @@ export function LearnPageClient() {
                           <p className="select-text whitespace-pre-wrap">{message.text}</p>
                         </>
                       ) : (
-                        <div className="select-text">
-                          {message.text ? (
-                            <MessageResponse className={courseMarkdownClassName}>
-                              {normalizeAssistantMarkdown(message.text)}
-                            </MessageResponse>
-                          ) : null}
-                          {message.plan ? (
-                            <PlanActionCard
-                              plan={message.plan}
-                              onStart={startPlan}
-                              onRegenerate={regeneratePlan}
-                              onEasier={easierPlan}
-                            />
-                          ) : null}
-                          {message.progressProposal ? (
-                            <ProgressConfirmationCard
-                              proposal={message.progressProposal}
-                              notebooks={notebooks}
-                              onSelectionChange={(selection) =>
-                                updateMessageProgressProposal(message.id, selection)
-                              }
-                              onConfirm={() =>
-                                confirmMessageProgressProposal(
-                                  message.id,
-                                  message.progressProposal?.selection || '',
-                                )
-                              }
-                              onDismiss={() => dismissMessageProgressProposal(message.id)}
-                            />
-                          ) : null}
-                        </div>
+                        <>
+                          <CourseAvatar
+                            course={activeCourse}
+                            className="mt-1 size-8 rounded-[10px]"
+                          />
+                          <div className="min-w-0 flex-1 select-text">
+                            {message.text ? (
+                              <MessageResponse className={courseMarkdownClassName}>
+                                {normalizeAssistantMarkdown(message.text)}
+                              </MessageResponse>
+                            ) : null}
+                            {message.plan ? (
+                              <PlanActionCard plan={message.plan} onStart={startPlan} />
+                            ) : null}
+                            {message.progressProposal ? (
+                              <ProgressConfirmationCard
+                                proposal={message.progressProposal}
+                                notebooks={notebooks}
+                                onSelectionChange={(selection) =>
+                                  updateMessageProgressProposal(message.id, selection)
+                                }
+                                onConfirm={() =>
+                                  confirmMessageProgressProposal(
+                                    message.id,
+                                    message.progressProposal?.selection || '',
+                                  )
+                                }
+                                onDismiss={() => dismissMessageProgressProposal(message.id)}
+                              />
+                            ) : null}
+                            {message.lecturePrompt || message.lectureDeck ? (
+                              <MiniLectureInviteCard
+                                prompt={message.lecturePrompt}
+                                deck={message.lectureDeck}
+                                generating={generatingMiniLectureMessageId === message.id}
+                                onGenerate={() => generateMiniLectureForMessage(message.id)}
+                                onOpen={openMiniLectureDeck}
+                              />
+                            ) : null}
+                          </div>
+                        </>
                       )}
                     </div>
                   </ContextMenuTrigger>
@@ -5196,8 +6835,8 @@ export function LearnPageClient() {
             </div>
           </div>
 
-          <footer className="shrink-0 border-t border-transparent bg-transparent px-5 py-3">
-            <div className="mx-auto max-w-4xl">
+          <footer className="shrink-0 border-t border-transparent bg-transparent px-6 py-3 sm:px-8 lg:px-10">
+            <div className="mx-auto max-w-[52rem]">
               <div className="rounded-[22px] border border-slate-200/70 bg-transparent px-2.5 py-2 shadow-none dark:border-white/10">
                 <input
                   ref={imageInputRef}
@@ -5262,13 +6901,11 @@ export function LearnPageClient() {
                     ) : (
                       <Plus className="size-4" />
                     )}
-                    {completedSourceUploadBadgeCount > 0 ? (
-                      <span className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full border border-white bg-emerald-500 px-1 text-[10px] font-bold leading-4 text-white shadow-sm dark:border-slate-950">
-                        {completedSourceUploadBadgeCount > 9
-                          ? '9+'
-                          : completedSourceUploadBadgeCount}
-                      </span>
-                    ) : null}
+                    <SourceUploadBadge
+                      uploading={sourceUploading}
+                      completedCount={completedSourceUploadBadgeCount}
+                      compact
+                    />
                   </Button>
                   <Textarea
                     ref={draftTextareaRef}
@@ -5336,7 +6973,18 @@ export function LearnPageClient() {
           {sessionsPanel}
         </aside>
       </div>
+      <CreateCourseDialog
+        open={createCourseOpen}
+        onOpenChange={setCreateCourseOpen}
+        onSuccess={handleCourseCreated}
+      />
+      <MiniLectureClassroomDialog
+        deck={activeMiniLectureDeck}
+        open={miniLectureOpen}
+        onOpenChange={setMiniLectureOpen}
+      />
       {syllabusImportDialog}
+      {manualScheduleDialog}
       {sourceUploadStatusDialog}
       {courseFilesDialog}
       {largeCalendarDialog}

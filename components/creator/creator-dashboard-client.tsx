@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpenText, Loader2, Plus, ShoppingBag, Sparkles, Target } from 'lucide-react';
+import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { Button } from '@/components/ui/button';
 import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
@@ -86,6 +87,12 @@ export function CreatorDashboardClient() {
   const [courses, setCourses] = useState<CourseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
+
+  const loadCreatorCourses = useCallback(async () => {
+    const items = await listCourses();
+    setCourses(items.filter(isCreatorCourse));
+  }, []);
 
   useEffect(() => {
     if (!authHydrated) return;
@@ -94,16 +101,15 @@ export function CreatorDashboardClient() {
       return;
     }
     setLoading(true);
-    listCourses()
-      .then((items) => {
-        setCourses(items.filter(isCreatorCourse));
+    loadCreatorCourses()
+      .then(() => {
         setLoading(false);
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : '课程加载失败');
         setLoading(false);
       });
-  }, [authHydrated, isLoggedIn, router]);
+  }, [authHydrated, isLoggedIn, router, loadCreatorCourses]);
 
   const totals = useMemo(
     () => ({
@@ -142,7 +148,7 @@ export function CreatorDashboardClient() {
             课程内容地图、笔记本、题库、记忆和商城发布都从这里进入。
           </p>
         </div>
-        <Button onClick={() => router.push('/courses/new')} className="gap-2">
+        <Button onClick={() => setCreateCourseOpen(true)} className="gap-2">
           <Plus className="size-4" />
           新建课程
         </Button>
@@ -173,13 +179,22 @@ export function CreatorDashboardClient() {
           <div className="rounded-lg border border-dashed border-border bg-background p-8 text-center">
             <BookOpenText className="mx-auto size-9 text-muted-foreground" />
             <h2 className="mt-4 text-lg font-semibold">还没有课程</h2>
-            <Button onClick={() => router.push('/courses/new')} className="mt-4 gap-2">
+            <Button onClick={() => setCreateCourseOpen(true)} className="mt-4 gap-2">
               <Plus className="size-4" />
               创建第一门课
             </Button>
           </div>
         ) : null}
       </section>
+      <CreateCourseDialog
+        open={createCourseOpen}
+        onOpenChange={setCreateCourseOpen}
+        onSuccess={async () => {
+          setLoading(true);
+          await loadCreatorCourses();
+          setLoading(false);
+        }}
+      />
     </div>
   );
 }

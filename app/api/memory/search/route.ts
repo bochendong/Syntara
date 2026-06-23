@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
           readPlan: context.readPlan,
           layers: context.layers,
           staticFacts: context.staticFacts,
+          platformMemories: context.platformMemories,
           directMemories: context.directMemories,
           semanticMatches: context.semanticMatches,
           knowledgeCache: context.knowledgeCache,

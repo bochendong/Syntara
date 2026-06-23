@@ -398,9 +398,9 @@ function ProgressConfirmationMock({ mock, theme }: { mock: ProgressMock; theme: 
         >
           <option value="">选择学习进度</option>
           <option value="还没开始">还没开始</option>
-          {notebookOptions.map((notebook, index) => (
+          {notebookOptions.map((notebook) => (
             <option key={notebook} value={notebook}>
-              正在学习 {index + 1}. {notebook}
+              正在学习：{notebook}
             </option>
           ))}
           <option value="已经学完整门课">已经学完整门课</option>

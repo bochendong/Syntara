@@ -11,6 +11,7 @@ export type SourceIngestionInput = {
   courseCode?: string;
   sourceTitle: string;
   sourceKind?: 'pdf' | 'markdown' | 'plain_text' | 'problem_bank' | 'other';
+  sourceHash?: string;
   text: string;
   audience?: SourceIngestionAudience;
 };
@@ -81,15 +82,17 @@ function detectCourseCode(input: SourceIngestionInput): string | null {
   ) {
     return 'CSC148';
   }
-  if (/\bmat\s*102\b|mat102|proof|subgroup|homomorphism|kernel|bijection/i.test(haystack)) {
+  if (/\bmat\s*102\b|mat102/i.test(haystack)) {
     return 'MAT102';
   }
-  if (
-    /\bmat\s*136\b|mat136|integral|series|taylor|convergence|improper|ratio test/i.test(haystack)
-  ) {
+  if (/\bmat\s*136\b|mat136/i.test(haystack)) {
     return 'MAT136';
   }
   return null;
+}
+
+function shouldExtractTemplateForCourse(input: SourceIngestionInput, courseCode: string): boolean {
+  return detectCourseCode(input) === courseCode;
 }
 
 function targetContentType(
@@ -119,6 +122,7 @@ function buildStudyMemoryCandidate(args: {
     sourceRef: {
       sourceTitle: args.input.sourceTitle,
       sourceKind: args.input.sourceKind || 'plain_text',
+      sourceHash: args.input.sourceHash || null,
       courseCode: detectCourseCode(args.input),
     },
     studyMemory: {
@@ -135,6 +139,7 @@ function buildStudyMemoryCandidate(args: {
           title: args.input.sourceTitle,
           why: `Imported ${args.input.sourceKind || 'plain_text'} source for memory ingestion.`,
           sourceKind: args.input.sourceKind || 'plain_text',
+          sourceHash: args.input.sourceHash || null,
           courseCode: detectCourseCode(args.input),
         },
       ],
@@ -155,6 +160,7 @@ function buildKnowledgeCandidate(input: SourceIngestionInput): MemoryWriteCandid
     sourceRef: {
       sourceTitle: input.sourceTitle,
       sourceKind: input.sourceKind || 'plain_text',
+      sourceHash: input.sourceHash || null,
       courseCode: detectCourseCode(input),
     },
   };
@@ -195,6 +201,7 @@ function addTemplateArtifact(args: {
 }
 
 function extractCpsc107Template(input: SourceIngestionInput, artifacts: SourceMemoryArtifact[]) {
+  if (!shouldExtractTemplateForCourse(input, 'CPSC107')) return;
   const text = input.text;
   if (!/@htdf|@signature|@template-origin|check-expect|htdf|htdd/i.test(text)) return;
   addTemplateArtifact({
@@ -219,6 +226,7 @@ function extractCpsc107Template(input: SourceIngestionInput, artifacts: SourceMe
 }
 
 function extractCsc108Template(input: SourceIngestionInput, artifacts: SourceMemoryArtifact[]) {
+  if (!shouldExtractTemplateForCourse(input, 'CSC108')) return;
   const text = input.text;
   if (!/docstring|doctest|starter code|def\s+[A-Za-z_]\w*\s*\(/i.test(text)) return;
   addTemplateArtifact({
@@ -276,6 +284,7 @@ function extractClassAttributes(text: string): Array<{ name: string; type: strin
 }
 
 function extractCsc148Template(input: SourceIngestionInput, artifacts: SourceMemoryArtifact[]) {
+  if (!shouldExtractTemplateForCourse(input, 'CSC148')) return;
   const text = input.text;
   const classMatch = text.match(/\bclass\s+([A-Za-z_]\w*)\s*[:(]/);
   const invariants = extractRepresentationInvariants(text);
@@ -321,6 +330,7 @@ function extractCsc148Template(input: SourceIngestionInput, artifacts: SourceMem
 }
 
 function extractMat102Template(input: SourceIngestionInput, artifacts: SourceMemoryArtifact[]) {
+  if (!shouldExtractTemplateForCourse(input, 'MAT102')) return;
   const text = input.text;
   if (
     !/proof|prove|subset|bijection|injective|surjective|induction|homomorphism|kernel|subgroup|quantifier|contrapositive|contradiction/i.test(
@@ -352,6 +362,7 @@ function extractMat102Template(input: SourceIngestionInput, artifacts: SourceMem
 }
 
 function extractMat136Template(input: SourceIngestionInput, artifacts: SourceMemoryArtifact[]) {
+  if (!shouldExtractTemplateForCourse(input, 'MAT136')) return;
   const text = input.text;
   if (
     !/integral|series|sequence|taylor|convergence|improper|ratio test|comparison test|differential equation|area|volume/i.test(

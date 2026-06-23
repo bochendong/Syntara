@@ -392,6 +392,12 @@ export function buildNotebookChatMemoryToolOutput(args: {
     isProgrammingHelp ? formatProgrammingEvidence(packet, index) : formatEvidence(packet, index),
   );
   const semanticPublicMemories = publicMemories(context.specialistMemories);
+  const platformMemories = publicMemories(
+    uniqueMemories([
+      ...context.platformMemories,
+      ...semanticPublicMemories.filter((memory) => memory.targetType === 'platform'),
+    ]),
+  );
   const courseControllerMemories = publicMemories(
     uniqueMemories([
       ...context.courseControllerMemories,
@@ -417,6 +423,13 @@ export function buildNotebookChatMemoryToolOutput(args: {
     ? []
     : privateMemories(uniqueMemories([...context.directMemories, ...context.semanticMatches]));
   const layeredMemoryLines = [
+    ...memorySection({
+      heading: 'platform_memory:',
+      memories: platformMemories,
+      layerLabel: 'platform',
+      isProgrammingHelp,
+      limit: isProgrammingHelp ? 2 : 3,
+    }),
     ...memorySection({
       heading: 'course_controller_memory:',
       memories: courseControllerMemories,

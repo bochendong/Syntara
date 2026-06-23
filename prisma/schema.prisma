@@ -805,6 +805,7 @@ model StudyMemory {
 
   @@index([ownerId, targetType, courseId, updatedAt(sort: Desc)])
   @@index([ownerId, targetType, notebookId, updatedAt(sort: Desc)])
+  @@index([ownerId, targetType, updatedAt(sort: Desc)], map: "StudyMemory_owner_target_platform_updated_idx")
   @@index([ownerId, scope, status, updatedAt(sort: Desc)])
 }
 

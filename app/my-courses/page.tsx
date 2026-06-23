@@ -8,6 +8,7 @@ import {
   CourseGalleryCard,
   courseGalleryListGridClassName,
 } from '@/components/course-gallery-card';
+import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { CreateCourseForm } from '@/components/courses/create-course-form';
 import { MyCoursesCourseGridLoading } from '@/components/loading/app-page-skeletons';
 import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
@@ -54,7 +55,6 @@ export default function MyCoursesPage() {
   );
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseRecord | null>(null);
 
@@ -89,7 +89,6 @@ export default function MyCoursesPage() {
   }, [authHydrated, isLoggedIn, router, loadMyCourses]);
 
   const openCreateDialog = () => {
-    setFormKey((k) => k + 1);
     setCreateOpen(true);
   };
 
@@ -357,27 +356,15 @@ export default function MyCoursesPage() {
         )}
       </main>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent
-          className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl gap-0 overflow-y-auto rounded-2xl border-0 bg-background p-4 shadow-xl sm:max-h-[min(90dvh,720px)] sm:w-full sm:rounded-[20px] sm:p-6 sm:max-w-2xl"
-          showCloseButton
-        >
-          <DialogHeader className="pr-8 text-left">
-            <DialogTitle className="text-lg font-semibold">新建课程</DialogTitle>
-          </DialogHeader>
-          <CreateCourseForm
-            key={formKey}
-            className="mt-6"
-            onSuccess={async (courseId) => {
-              setCreateOpen(false);
-              setLoading(true);
-              await loadMyCourses();
-              setLoading(false);
-              router.push(`/creator/courses/${encodeURIComponent(courseId)}`);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      <CreateCourseDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSuccess={async () => {
+          setLoading(true);
+          await loadMyCourses();
+          setLoading(false);
+        }}
+      />
 
       <Dialog
         open={editOpen}

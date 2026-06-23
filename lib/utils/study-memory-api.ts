@@ -1,6 +1,6 @@
 import { backendJson } from '@/lib/utils/backend-api';
 
-export type StudyMemoryApiTargetType = 'course' | 'notebook';
+export type StudyMemoryApiTargetType = 'platform' | 'course' | 'notebook';
 export type StudyMemoryApiScope = 'public' | 'private';
 export type StudyMemoryApiStatus = 'active' | 'archived';
 

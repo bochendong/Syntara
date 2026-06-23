@@ -48,6 +48,11 @@ type KnowledgeCacheWrite = {
   score: number;
 };
 
+function cacheTargetType(target: ReadableStudyMemoryTarget): 'course' | 'notebook' | null {
+  if (target.targetType === 'course' || target.targetType === 'notebook') return target.targetType;
+  return null;
+}
+
 let ensureKnowledgeCacheTablePromise: Promise<void> | null = null;
 
 function compact(input: string | null | undefined, maxChars: number): string {
@@ -268,7 +273,8 @@ export async function refreshKnowledgeCache(args: {
   await ensureKnowledgeCacheTable(args.prisma);
   const courseId = targetCourseId(args.target);
   const notebookId = targetNotebookId(args.target);
-  const targetType = args.target.targetType;
+  const targetType = cacheTargetType(args.target);
+  if (!targetType) return;
   const query = compact(args.query, 800) || 'N/A';
 
   for (const entry of stableEntries(
@@ -354,6 +360,8 @@ export async function listKnowledgeCache(args: {
   await ensureKnowledgeCacheTable(args.prisma);
   const courseId = targetCourseId(args.target);
   const notebookId = targetNotebookId(args.target);
+  const targetType = cacheTargetType(args.target);
+  if (!targetType) return [];
   const rows = await args.prisma.$queryRawUnsafe<RawKnowledgeCacheRow[]>(
     `
       SELECT
@@ -383,7 +391,7 @@ export async function listKnowledgeCache(args: {
     args.ownerId,
     courseId,
     notebookId,
-    args.target.targetType,
+    targetType,
   );
 
   const terms = queryTerms(args.query);
