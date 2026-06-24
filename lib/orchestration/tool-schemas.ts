@@ -9,6 +9,17 @@ import { SLIDE_ONLY_ACTIONS } from '@/lib/types/action';
 
 // ==================== Effective Actions ====================
 
+export const COURSE_CHAT_LEARNING_ACTIONS = [
+  'calendar.propose_add',
+  'calendar.propose_update',
+  'calendar.propose_delete',
+  'calendar.search',
+  'learner_progress.request_confirmation',
+  'practice.propose_generation',
+  'classroom.propose_temporary_explanation',
+  'memory.propose_write',
+] as const;
+
 /**
  * Filter allowed actions by scene type.
  * Slide-only actions (spotlight, laser) are removed for non-slide scenes.
@@ -54,6 +65,22 @@ export function getActionDescriptions(allowedActions: string[]): string {
       'Close the whiteboard and return to the slide view. Always close after you finish drawing. Parameters: {}',
     play_video:
       'Start playback of a video element on the current slide. Synchronous — blocks until the video finishes playing. Use a speech action before this to introduce the video. Parameters: { elementId: string }',
+    'calendar.propose_add':
+      'Propose adding a study plan, review block, assignment, exam prep item, or practice session to the learner calendar. This never executes by itself; user confirmation is required. Parameters: { label: string, summary?: string, items?: Array<{ title: string, date?: string, start?: string, durationMinutes?: number, courseId?: string, reason?: string }>, requiresConfirmation: true }',
+    'calendar.propose_update':
+      'Propose modifying existing learner calendar items, such as shifting missed work or resizing a plan. This never executes by itself; user confirmation is required. Parameters: { label: string, summary?: string, target?: string, updates?: Record<string, unknown>, requiresConfirmation: true }',
+    'calendar.propose_delete':
+      'Propose deleting one or more learner calendar items. This never executes by itself; user confirmation is required. Parameters: { label: string, summary?: string, targets: string[], requiresConfirmation: true }',
+    'calendar.search':
+      'Ask the UI to show or search existing learner calendar items relevant to the current course or time window. This is read-only. Parameters: { label: string, query?: string, courseId?: string, dateRange?: string }',
+    'learner_progress.request_confirmation':
+      'Ask the UI to collect or confirm the learner progress that is needed before making a plan. Use when progress, exam date, available time, or mastery state is missing or ambiguous. Parameters: { label: string, fields: string[], summary?: string, courseId?: string }',
+    'practice.propose_generation':
+      'Propose generating or selecting practice questions. Use when the learner asks for exercises, a targeted review set, or problem-bank selection. Include whether items come from the problem bank or are self-generated. User confirmation is required before creating a larger set. Parameters: { label: string, summary?: string, source: "problem_bank"|"self_generated"|"mixed", count?: number, difficulty?: string, concepts?: string[], requiresConfirmation: true }',
+    'classroom.propose_temporary_explanation':
+      'Offer a temporary classroom-style explanation when the learner asks for a substantive explanation that could benefit from a guided mini-lesson. This never starts the classroom by itself; user confirmation is required. Parameters: { label: string, topic: string, summary?: string, estimatedMinutes?: number, requiresConfirmation: true }',
+    'memory.propose_write':
+      'Propose writing or updating learner memory such as weakness, mastery, cause, next teaching move, or corrected memory. This never writes by itself; user confirmation is required when the update is evaluative or durable. Parameters: { label: string, summary: string, memoryType: "weakness"|"mastery"|"progress"|"preference"|"correction"|"next_step", courseId?: string, evidence?: string[], requiresConfirmation: true }',
   };
 
   if (allowedActions.length === 0) {

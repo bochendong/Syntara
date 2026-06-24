@@ -1,0 +1,45 @@
+{
+  "name": "learning-action-calendar-crud",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "帮我查找这门课未来 7 天的学习日程。这个是只读操作，不需要确认。"
+    },
+    {
+      "kind": "user",
+      "text": "我今天只有 20 分钟，把原计划压缩一下；如果要改日历，请先让我确认。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认修改日历",
+      "actionId": "calendar.propose_update",
+      "event": "confirmed",
+      "note": "模拟用户确认把当天学习块压缩到 20 分钟。",
+      "payload": {
+        "target": "今天学习块",
+        "updates": {
+          "durationMinutes": 20
+        }
+      }
+    },
+    {
+      "kind": "user",
+      "text": "把后天那条重复的复习事项删掉；同样不要直接删，先给确认。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认删除日历事项",
+      "actionId": "calendar.propose_delete",
+      "event": "confirmed",
+      "note": "模拟用户确认删除重复复习事项。",
+      "payload": {
+        "targets": ["后天重复复习事项"]
+      }
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看日历 CRUD 模拟状态",
+      "query": "calendar operations"
+    }
+  ]
+}

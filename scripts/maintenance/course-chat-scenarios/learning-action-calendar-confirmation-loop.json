@@ -1,0 +1,71 @@
+{
+  "name": "learning-action-calendar-confirmation-loop",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "这门课还有 4 周考试。请帮我排一个课程计划；如果你觉得应该加入日历，请先给我确认按钮，不要直接说已经添加。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认学习进度",
+      "actionId": "learner_progress.request_confirmation",
+      "event": "confirmed",
+      "selection": "每天 45 分钟，优先复习薄弱内容",
+      "note": "模拟用户在进度确认卡里确认复习时间和优先级。",
+      "sendText": "我在确认卡里选择：每天 45 分钟，优先复习薄弱内容。请继续生成 4 周课程计划，并给我加入日历的确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认加入日历",
+      "actionId": "calendar.propose_add",
+      "event": "confirmed",
+      "note": "模拟用户在确认框里同意把课程计划加入学习日历。",
+      "payload": {
+        "items": [
+          {
+            "title": "第 1 周：整理课程重点与薄弱点",
+            "date": "2026-06-29",
+            "durationMinutes": 45
+          },
+          {
+            "title": "第 2 周：针对练习与错题复盘",
+            "date": "2026-07-06",
+            "durationMinutes": 45
+          }
+        ]
+      },
+      "sendText": "我已经在确认框里同意把这个课程计划加入日历。现在请基于已加入的日历回答。"
+    },
+    {
+      "kind": "user",
+      "text": "查一下这周我每天应该先做什么。"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看日历模拟状态",
+      "query": "calendar"
+    },
+    {
+      "kind": "user",
+      "text": "如果我周三没学，后面怎么顺延？也请先给我一个修改确认，不要直接改日历。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认顺延日历",
+      "actionId": "calendar.propose_update",
+      "event": "confirmed",
+      "note": "模拟用户确认把周三未完成学习顺延到后续日期。",
+      "payload": {
+        "target": "本周三学习块",
+        "updates": {
+          "shiftByDays": 1
+        }
+      }
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看顺延后的日历状态",
+      "query": "calendar"
+    }
+  ]
+}

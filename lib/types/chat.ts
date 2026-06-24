@@ -49,6 +49,7 @@ export interface ChatMessageMetadata {
     why?: string;
   }>;
   actions?: MessageAction[];
+  learningActions?: LearningAction[];
   /** 用户消息附带的文件（仅展示，不参与模型协议字段） */
   attachments?: Array<{
     id: string;
@@ -114,6 +115,39 @@ export interface MessageAction {
   label: string;
   icon?: string;
   variant?: 'spotlight' | 'highlight' | 'reset' | 'insert' | 'draw';
+}
+
+export type LearningActionKind =
+  | 'calendar.propose_add'
+  | 'calendar.propose_update'
+  | 'calendar.propose_delete'
+  | 'calendar.search'
+  | 'learner_progress.request_confirmation'
+  | 'practice.propose_generation'
+  | 'classroom.propose_temporary_explanation'
+  | 'memory.propose_write';
+
+export type LearningActionStatus = 'proposed' | 'confirmed' | 'cancelled' | 'completed' | 'failed';
+
+export type LearningActionConfirmation = 'none' | 'optional' | 'required';
+
+export interface LearningActionEvidence {
+  sourceType: 'notebook' | 'memory' | 'problem_bank' | 'calendar' | 'user' | 'system';
+  sourceId?: string;
+  title?: string;
+  reason?: string;
+}
+
+export interface LearningAction {
+  id: string;
+  kind: LearningActionKind;
+  label: string;
+  summary?: string;
+  status?: LearningActionStatus;
+  confirmation?: LearningActionConfirmation;
+  payload?: Record<string, unknown>;
+  result?: unknown;
+  evidence?: LearningActionEvidence[];
 }
 
 /**

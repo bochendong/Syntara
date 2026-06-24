@@ -1,0 +1,62 @@
+{
+  "name": "learning-action-preview-plan-loop",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我下周要开始这门课新的章节。请给我一个预习计划；如果你不知道我目前学到哪里了，先弹进度确认卡，不要猜。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认预习起点",
+      "actionId": "learner_progress.request_confirmation",
+      "event": "confirmed",
+      "selection": "已经完成上一章练习，但新章节只看过标题",
+      "note": "模拟用户在进度确认卡里确认预习起点。",
+      "sendText": "我在确认卡里选择：已经完成上一章练习，但新章节只看过标题。请继续生成预习计划，并给我加入日历的确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认加入预习日历",
+      "actionId": "calendar.propose_add",
+      "event": "confirmed",
+      "note": "模拟用户确认把预习计划加入学习日历。",
+      "payload": {
+        "items": [
+          {
+            "title": "预习新章节：概念浏览与术语标记",
+            "date": "2026-06-29",
+            "durationMinutes": 30
+          },
+          {
+            "title": "预习新章节：例题对照与疑问整理",
+            "date": "2026-07-01",
+            "durationMinutes": 30
+          }
+        ]
+      },
+      "sendText": "我已经确认把预习计划加入日历。请告诉我明天应该先预习什么，以及为什么。"
+    },
+    {
+      "kind": "user",
+      "text": "如果我明天临时只有 15 分钟，预习计划怎么调整？如果要改日历，也先给确认。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认压缩预习日程",
+      "actionId": "calendar.propose_update",
+      "event": "confirmed",
+      "payload": {
+        "target": "明天预习学习块",
+        "updates": {
+          "durationMinutes": 15,
+          "strategy": "只保留术语浏览和疑问标记"
+        }
+      }
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看预习计划模拟状态",
+      "query": "preview plan calendar"
+    }
+  ]
+}

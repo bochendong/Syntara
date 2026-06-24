@@ -76,7 +76,7 @@ import {
   buildCourseReplyProgress,
   dispatchCourseReplyProgress,
 } from '@/lib/chat/course-reply-progress';
-import type { ChatMessageMetadata, CourseChatContext } from '@/lib/types/chat';
+import type { ChatMessageMetadata, CourseChatContext, LearningAction } from '@/lib/types/chat';
 import type { ParsedPdfContent } from '@/lib/types/pdf';
 import {
   createPracticePlan,
@@ -91,6 +91,7 @@ import {
   setLearnerPlanningScope,
   setLearnerProgressCheckpoint,
   summarizeLearnerCourseState,
+  type LearnerWeakPoint,
   type LearnerCourseSnapshot,
   type LearnerCourseState,
   type LearnerProgressCheckpointKind,
@@ -128,6 +129,11 @@ import {
   type RemoteLearnMessage,
   type RemoteLearnMessagePayload,
 } from '@/lib/utils/learn-conversation-api';
+import {
+  writeMemoryWithActivity,
+  type MemoryWriteCandidate,
+  type MemoryWriteContentType,
+} from '@/lib/utils/memory-write-api';
 import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
 import { normalizeLooseMathDelimiters } from '@/lib/math-engine';
 
@@ -142,6 +148,7 @@ type LearnMessage = {
   pendingAction?: PendingCourseAction;
   lecturePrompt?: MiniLecturePrompt;
   lectureDeck?: MiniLectureDeck;
+  learningActions?: LearningAction[];
 };
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -714,6 +721,8 @@ function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage 
     lecturePrompt:
       message.lecturePrompt == null ? undefined : (message.lecturePrompt as MiniLecturePrompt),
     lectureDeck: message.lectureDeck == null ? undefined : (message.lectureDeck as MiniLectureDeck),
+    learningActions:
+      message.learningActions == null ? undefined : (message.learningActions as LearningAction[]),
   };
 }
 
@@ -728,6 +737,7 @@ function learnMessageToRemotePayload(message: LearnMessage): RemoteLearnMessageP
     pendingAction: message.pendingAction,
     lecturePrompt: message.lecturePrompt,
     lectureDeck: message.lectureDeck,
+    learningActions: message.learningActions,
     attachments: message.attachments?.map((attachment) => ({
       id: attachment.id,
       name: attachment.name,
@@ -745,6 +755,9 @@ function copyableLearnMessageText(message: LearnMessage): string {
     message.plan?.title ? `计划：${message.plan.title}` : '',
     message.progressProposal?.label ? `学习范围：${message.progressProposal.label}` : '',
     message.lectureDeck?.title ? `课堂讲解：${message.lectureDeck.title}` : '',
+    message.learningActions?.length
+      ? `学习操作：${message.learningActions.map((a) => a.label).join(' / ')}`
+      : '',
     message.attachments?.length ? `[附件 ${message.attachments.length} 个]` : '',
   ].filter(Boolean);
   return parts.join('\n').trim();
@@ -1584,7 +1597,8 @@ function learnMessageHasContent(message: LearnMessage): boolean {
     message.progressProposal ||
     message.pendingAction ||
     message.lecturePrompt ||
-    message.lectureDeck,
+    message.lectureDeck ||
+    message.learningActions?.length,
   );
 }
 
@@ -1814,6 +1828,16 @@ function latestAssistantText(messages: UIMessage<ChatMessageMetadata>[]): string
     .reverse()
     .find((message) => message.role === 'assistant');
   return assistant ? messageText(assistant) : '';
+}
+
+function latestAssistantLearningActions(
+  messages: UIMessage<ChatMessageMetadata>[],
+): LearningAction[] {
+  const assistant = messages
+    .slice()
+    .reverse()
+    .find((message) => message.role === 'assistant' && message.metadata?.learningActions?.length);
+  return assistant?.metadata?.learningActions?.map((action) => ({ ...action })) || [];
 }
 
 function normalizeAssistantMarkdown(text: string): string {
@@ -3583,6 +3607,287 @@ function ProgressConfirmationCard({
   );
 }
 
+function learnActionTitle(action: LearningAction): string {
+  switch (action.kind) {
+    case 'calendar.propose_add':
+      return '添加到学习日历';
+    case 'calendar.propose_update':
+      return '修改学习日历';
+    case 'calendar.propose_delete':
+      return '删除日历事项';
+    case 'calendar.search':
+      return '查看学习日程';
+    case 'learner_progress.request_confirmation':
+      return '确认学习进度';
+    case 'practice.propose_generation':
+      return '生成练习计划';
+    case 'classroom.propose_temporary_explanation':
+      return '生成临时课堂';
+    case 'memory.propose_write':
+      return '写入学习记忆';
+    default:
+      return action.label;
+  }
+}
+
+function learnActionButtonLabel(action: LearningAction): string {
+  if (action.status === 'completed') return '已完成';
+  if (action.status === 'confirmed') return '已确认';
+  if (action.status === 'cancelled') return '已取消';
+  if (action.status === 'failed') return '重试';
+  switch (action.kind) {
+    case 'calendar.search':
+      return '查看';
+    case 'calendar.propose_add':
+      return '确认添加';
+    case 'calendar.propose_update':
+      return '确认修改';
+    case 'calendar.propose_delete':
+      return '确认删除';
+    case 'learner_progress.request_confirmation':
+      return '确认进度';
+    case 'practice.propose_generation':
+      return '确认生成';
+    case 'classroom.propose_temporary_explanation':
+      return '生成课堂';
+    case 'memory.propose_write':
+      return '确认写入';
+    default:
+      return '确认';
+  }
+}
+
+function LearnLearningActionCards({
+  actions,
+  onConfirm,
+  onCancel,
+}: {
+  actions?: LearningAction[];
+  onConfirm: (action: LearningAction) => void;
+  onCancel: (action: LearningAction) => void;
+}) {
+  if (!actions?.length) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {actions.map((action) => {
+        const completed =
+          action.status === 'completed' ||
+          action.status === 'confirmed' ||
+          action.status === 'cancelled';
+        const requiresConfirmation = action.confirmation === 'required';
+        return (
+          <div
+            key={action.id}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">
+                  {learnActionTitle(action)}
+                </p>
+                <p className="mt-1 line-clamp-2 text-slate-500 dark:text-slate-400">
+                  {action.summary || action.label}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={completed}
+                className={cn(
+                  'h-8 shrink-0 rounded-[10px] px-3 text-xs',
+                  requiresConfirmation ? '' : 'hidden',
+                )}
+                onClick={() => onCancel(action)}
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={action.confirmation === 'none' ? 'outline' : 'default'}
+                disabled={completed}
+                className="h-8 shrink-0 rounded-[10px] px-3 text-xs"
+                onClick={() => onConfirm(action)}
+              >
+                {learnActionButtonLabel(action)}
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function actionPayload(action: LearningAction): Record<string, unknown> {
+  return action.payload && typeof action.payload === 'object' ? action.payload : {};
+}
+
+function payloadString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value.trim() : fallback;
+}
+
+function actionSummary(action: LearningAction): string {
+  const payload = actionPayload(action);
+  return (
+    payloadString(payload.summary) ||
+    payloadString(payload.reason) ||
+    action.summary ||
+    action.label ||
+    learnActionTitle(action)
+  ).slice(0, 500);
+}
+
+function latestUserLearnMessageText(messages: LearnMessage[]): string {
+  return (
+    messages
+      .slice()
+      .reverse()
+      .find((message) => message.role === 'user')
+      ?.text.trim()
+      .slice(0, 1000) || ''
+  );
+}
+
+function memoryActionType(action: LearningAction): string {
+  return payloadString(action.payload?.memoryType, 'weakness').toLowerCase();
+}
+
+function memoryActionContentType(memoryType: string): MemoryWriteContentType {
+  if (memoryType === 'weakness' || memoryType === 'correction') return 'weakness';
+  return 'learning_pattern';
+}
+
+function memoryActionStudyKind(memoryType: string): string {
+  if (memoryType === 'weakness' || memoryType === 'correction') return 'knowledge_gap';
+  if (memoryType === 'preference') return 'preference';
+  if (memoryType === 'mastery') return 'mastery';
+  if (memoryType === 'progress') return 'progress';
+  if (memoryType === 'next_step') return 'next_teaching_move';
+  return 'reflection';
+}
+
+function memoryActionTitle(action: LearningAction): string {
+  const payload = actionPayload(action);
+  return (
+    payloadString(payload.title) ||
+    payloadString(payload.label) ||
+    action.label ||
+    'AI 确认的学习记忆'
+  ).slice(0, 120);
+}
+
+function memoryWriteCandidateFromLearningAction(args: {
+  action: LearningAction;
+  courseId: string;
+  summary: string;
+  question: string;
+}): MemoryWriteCandidate {
+  const memoryType = memoryActionType(args.action);
+  const title = memoryActionTitle(args.action);
+  const reason =
+    payloadString(args.action.payload?.reason) ||
+    '学生在课程聊天里确认了这条学习记忆，后续讲解、复习和练习选择应参考它。';
+  return {
+    id: `learn-action:${args.action.id}`,
+    trigger: memoryType === 'correction' ? 'fact_correction' : 'explicit_user',
+    contentType: memoryActionContentType(memoryType),
+    targetType: 'course',
+    targetId: args.courseId,
+    privacy: 'private',
+    title,
+    text: args.summary,
+    source: 'learn.learning_action',
+    sourceRef: {
+      actionId: args.action.id,
+      actionKind: args.action.kind,
+      memoryType,
+      evidence: args.action.evidence || args.action.payload?.evidence || null,
+    },
+    studyMemory: {
+      targetType: 'course',
+      targetId: args.courseId,
+      scope: 'private',
+      kind: memoryActionStudyKind(memoryType),
+      title,
+      text: args.summary,
+      reason,
+      question: args.question || undefined,
+      sourceReferences: {
+        source: 'learn.learning_action',
+        actionId: args.action.id,
+        memoryType,
+        evidence: args.action.evidence || args.action.payload?.evidence || null,
+      },
+    },
+  };
+}
+
+function validDateKey(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) ? value.trim() : null;
+}
+
+function learningActionCalendarEvents(action: LearningAction): SyllabusCalendarEvent[] {
+  const payload = actionPayload(action);
+  const rawItems = Array.isArray(payload.items) ? payload.items : [];
+  const itemRecords = rawItems.filter((item): item is Record<string, unknown> =>
+    Boolean(item && typeof item === 'object'),
+  );
+  const sourceName = 'AI 学习动作';
+
+  if (itemRecords.length > 0) {
+    return itemRecords.slice(0, 30).map((item, index) => {
+      const date =
+        validDateKey(item.date) ||
+        validDateKey(item.day) ||
+        localDayKey(addCalendarDays(new Date(), index));
+      return {
+        id: makeClientId('learning-action-event'),
+        title:
+          payloadString(item.title) ||
+          payloadString(item.label) ||
+          `${learnActionTitle(action)} ${index + 1}`,
+        kind: 'progress',
+        date,
+        sourceName,
+        rawText: payloadString(item.reason) || actionSummary(action),
+        createdAt: Date.now(),
+      };
+    });
+  }
+
+  return [
+    {
+      id: makeClientId('learning-action-event'),
+      title: actionSummary(action) || learnActionTitle(action),
+      kind: 'progress',
+      date: validDateKey(payload.date) || localDayKey(new Date()),
+      sourceName,
+      rawText: actionSummary(action),
+      createdAt: Date.now(),
+    },
+  ];
+}
+
+function actionTargets(action: LearningAction): string[] {
+  const payload = actionPayload(action);
+  const targets = Array.isArray(payload.targets) ? payload.targets : [];
+  const fromTargets = targets.map((item) => payloadString(item)).filter(Boolean);
+  const singleTarget = payloadString(payload.target);
+  return Array.from(new Set([...fromTargets, singleTarget].filter(Boolean)));
+}
+
+function learningActionPreferredConcepts(action: LearningAction): string[] {
+  const payload = actionPayload(action);
+  const concepts = Array.isArray(payload.concepts) ? payload.concepts : [];
+  return concepts
+    .map((item) => payloadString(item))
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 export function LearnPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -5272,6 +5577,299 @@ export function LearnPageClient() {
     [activeCourse, notebooks, problems, userId],
   );
 
+  const markLearningActionStatus = useCallback(
+    (actionId: string, status: NonNullable<LearningAction['status']>) => {
+      setMessages((current) =>
+        current.map((message) =>
+          message.learningActions?.some((action) => action.id === actionId)
+            ? {
+                ...message,
+                learningActions: message.learningActions.map((action) =>
+                  action.id === actionId ? { ...action, status } : action,
+                ),
+              }
+            : message,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleLearningActionConfirm = useCallback(
+    async (action: LearningAction) => {
+      if (!activeCourseId || !activeCourse) {
+        markLearningActionStatus(action.id, 'failed');
+        toast.error('当前没有可写入的课程。');
+        return;
+      }
+
+      try {
+        if (action.kind === 'calendar.search') {
+          setRightRailCollapsed(false);
+          setRightRailView('calendar');
+          setCalendarDialogOpen(true);
+          markLearningActionStatus(action.id, 'completed');
+          return;
+        }
+
+        if (action.kind === 'calendar.propose_add' || action.kind === 'calendar.propose_update') {
+          const events = learningActionCalendarEvents(action);
+          const nextEvents = mergeSyllabusEvents(syllabusEvents, events);
+          writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
+          setSyllabusEvents(nextEvents);
+          setSyllabusImportMessage(
+            action.kind === 'calendar.propose_update'
+              ? '已记录 AI 建议的日历调整，请在学习日历中检查。'
+              : `已添加 ${events.length} 个 AI 学习日程。`,
+          );
+          setRightRailCollapsed(false);
+          setRightRailView('calendar');
+          setCalendarReferenceDate(new Date(`${events[0].date}T12:00:00`));
+          announceSyllabusScheduleUpdated(events[0].title);
+          markLearningActionStatus(action.id, 'completed');
+          toast.success(
+            action.kind === 'calendar.propose_update' ? '日历调整已记录。' : '已加入学习日历。',
+          );
+          return;
+        }
+
+        if (action.kind === 'calendar.propose_delete') {
+          const targets = actionTargets(action);
+          if (!targets.length) {
+            setRightRailCollapsed(false);
+            setRightRailView('calendar');
+            setCalendarDialogOpen(true);
+            markLearningActionStatus(action.id, 'failed');
+            toast.error('这个删除操作缺少明确目标，请在日历里手动确认。');
+            return;
+          }
+          const nextEvents = syllabusEvents.filter((event) => {
+            const haystack = `${event.id} ${event.title}`.toLowerCase();
+            return !targets.some((target) => haystack.includes(target.toLowerCase()));
+          });
+          writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
+          setSyllabusEvents(nextEvents);
+          setRightRailCollapsed(false);
+          setRightRailView('calendar');
+          markLearningActionStatus(action.id, 'completed');
+          toast.success(`已删除 ${syllabusEvents.length - nextEvents.length} 个日历事项。`);
+          return;
+        }
+
+        if (action.kind === 'learner_progress.request_confirmation') {
+          setMessages((current) => [
+            ...current,
+            {
+              id: makeClientId('assistant-progress-action'),
+              role: 'assistant',
+              text: '先确认一下学习进度；确认后我会按这个位置继续安排计划和复习。',
+              createdAt: Date.now(),
+              progressProposal: {
+                selection: '',
+                label: action.label || '确认学习进度',
+                title: '确认学习进度',
+                reason: actionSummary(action),
+                confirmLabel: '确认进度',
+                writeMode: 'progress',
+              },
+            },
+          ]);
+          setRightRailCollapsed(false);
+          setRightRailView('learning');
+          markLearningActionStatus(action.id, 'completed');
+          return;
+        }
+
+        if (action.kind === 'practice.propose_generation') {
+          const currentState = loadLearnerCourseState({
+            userId: localUserId,
+            courseId: activeCourseId,
+          });
+          const currentSnapshot =
+            snapshot ||
+            summarizeLearnerCourseState({
+              state: currentState,
+              notebooks,
+              problems,
+            });
+          if (!currentSnapshot.progressKnown) {
+            setMessages((current) => [
+              ...current,
+              {
+                id: makeClientId('assistant-practice-progress'),
+                role: 'assistant',
+                text: '生成练习前需要先确认学习进度，这样题目范围不会偏。',
+                createdAt: Date.now(),
+                progressProposal: {
+                  selection: '',
+                  label: '确认练习范围',
+                  title: '确认练习范围',
+                  reason: actionSummary(action),
+                  confirmLabel: '确认并生成练习',
+                  writeMode: 'planning_scope',
+                },
+                pendingAction: {
+                  kind: 'practice_plan',
+                  mode: 'practice',
+                  prompt: actionSummary(action),
+                },
+              },
+            ]);
+            markLearningActionStatus(action.id, 'completed');
+            return;
+          }
+          const plan = buildPlan(
+            'practice',
+            actionSummary(action),
+            typeof action.payload?.count === 'number' ? action.payload.count : undefined,
+            learningActionPreferredConcepts(action),
+            currentState,
+          );
+          if (!plan) {
+            setMessages((current) => [
+              ...current,
+              {
+                id: makeClientId('assistant-practice-empty'),
+                role: 'assistant',
+                text: '这门课当前没有足够题库内容生成练习计划。我先保留这个练习意图，你可以继续让我自生成讲解题。',
+                createdAt: Date.now(),
+              },
+            ]);
+          } else {
+            addAssistantPlan(plan);
+          }
+          markLearningActionStatus(action.id, 'completed');
+          return;
+        }
+
+        if (action.kind === 'classroom.propose_temporary_explanation') {
+          const topic = payloadString(action.payload?.topic) || action.label || '临时课堂讲解';
+          const answer = actionSummary(action);
+          const lecturePrompt = buildMiniLecturePrompt({
+            question: topic,
+            answer,
+            course: activeCourse,
+          });
+          setMessages((current) => [
+            ...current,
+            {
+              id: makeClientId('assistant-lecture-action'),
+              role: 'assistant',
+              text: lecturePrompt ? '已准备好临时课堂讲解。' : answer,
+              createdAt: Date.now(),
+              lecturePrompt,
+            },
+          ]);
+          markLearningActionStatus(action.id, 'completed');
+          return;
+        }
+
+        if (action.kind === 'memory.propose_write') {
+          const summary = actionSummary(action);
+          const question = latestUserLearnMessageText(messages);
+          const timestamp = Date.now();
+          const currentState = loadLearnerCourseState({
+            userId: localUserId,
+            courseId: activeCourseId,
+          });
+          const concept = payloadString(action.payload?.concept) || summary.slice(0, 64);
+          const weakPoint: LearnerWeakPoint = {
+            id: makeClientId('weak'),
+            concept,
+            title: payloadString(action.payload?.title) || 'AI 确认的薄弱点',
+            evidence: summary,
+            source: 'chat',
+            severity: 'medium',
+            status: 'open',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          };
+          const nextState = saveLearnerCourseState({
+            ...currentState,
+            activeWeakPoints: [
+              weakPoint,
+              ...currentState.activeWeakPoints.filter(
+                (item) =>
+                  item.evidence !== weakPoint.evidence && item.concept !== weakPoint.concept,
+              ),
+            ].slice(0, 30),
+          });
+          setSnapshot(
+            summarizeLearnerCourseState({
+              state: nextState,
+              notebooks,
+              problems,
+            }),
+          );
+          void saveRemoteLearnerCourseState(nextState);
+          try {
+            await writeMemoryWithActivity({
+              candidate: memoryWriteCandidateFromLearningAction({
+                action,
+                courseId: activeCourseId,
+                summary,
+                question,
+              }),
+            });
+          } catch (error) {
+            toast.warning(
+              `已更新本地学习状态，但长期记忆暂时没有同步：${
+                error instanceof Error ? error.message : '未知错误'
+              }`,
+            );
+          }
+          markLearningActionStatus(action.id, 'completed');
+          toast.success('已更新学习记忆。');
+          return;
+        }
+      } catch (error) {
+        markLearningActionStatus(action.id, 'failed');
+        toast.error(error instanceof Error ? error.message : '学习动作执行失败。');
+      }
+    },
+    [
+      activeCourse,
+      activeCourseId,
+      addAssistantPlan,
+      buildPlan,
+      localUserId,
+      markLearningActionStatus,
+      messages,
+      notebooks,
+      problems,
+      snapshot,
+      syllabusEvents,
+    ],
+  );
+
+  const handleLearningActionCancel = useCallback(
+    (action: LearningAction) => {
+      if (!action?.id) return;
+      markLearningActionStatus(action.id, 'cancelled');
+      toast.info('已取消这个学习操作。');
+    },
+    [markLearningActionStatus],
+  );
+
+  useEffect(() => {
+    const handleLearningActionEvent = (event: Event) => {
+      const action = (event as CustomEvent<LearningAction>).detail;
+      if (!action?.id || !action.kind) return;
+      handleLearningActionConfirm(action);
+    };
+    const handleLearningActionCancelEvent = (event: Event) => {
+      const action = (event as CustomEvent<LearningAction>).detail;
+      if (!action?.id || !action.kind) return;
+      handleLearningActionCancel(action);
+    };
+    window.addEventListener('syntara:learning-action-confirm', handleLearningActionEvent);
+    window.addEventListener('syntara:learning-action-cancel', handleLearningActionCancelEvent);
+    return () => {
+      window.removeEventListener('syntara:learning-action-confirm', handleLearningActionEvent);
+      window.removeEventListener('syntara:learning-action-cancel', handleLearningActionCancelEvent);
+    };
+  }, [handleLearningActionCancel, handleLearningActionConfirm]);
+
   const buildEvidenceBasedPlan = useCallback(
     async (args: {
       mode: PracticePlanMode;
@@ -5701,6 +6299,7 @@ export function LearnPageClient() {
         });
         const answer =
           latestAssistantText(result.messages) || result.answer || '我先记录下这个问题。';
+        const learningActions = latestAssistantLearningActions(result.messages);
         const lecturePrompt = buildMiniLecturePrompt({
           question: questionText,
           answer,
@@ -5714,6 +6313,7 @@ export function LearnPageClient() {
             text: answer,
             createdAt: Date.now(),
             lecturePrompt,
+            learningActions: learningActions.length ? learningActions : undefined,
           },
         ]);
         refreshLearnerSnapshot();
@@ -7997,6 +8597,13 @@ export function LearnPageClient() {
                                 generating={generatingMiniLectureMessageId === message.id}
                                 onGenerate={() => generateMiniLectureForMessage(message.id)}
                                 onOpen={openMiniLectureDeck}
+                              />
+                            ) : null}
+                            {message.learningActions?.length ? (
+                              <LearnLearningActionCards
+                                actions={message.learningActions}
+                                onConfirm={handleLearningActionConfirm}
+                                onCancel={handleLearningActionCancel}
                               />
                             ) : null}
                           </div>

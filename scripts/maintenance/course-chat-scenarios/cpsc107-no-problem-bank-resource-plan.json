@@ -14,6 +14,14 @@
       "text": "我不懂为什么 one-of data definition 要对应 cond 分支，这算我的薄弱点吗？"
     },
     {
+      "kind": "ui",
+      "label": "确认写入记忆",
+      "actionId": "memory.propose_write",
+      "event": "confirmed",
+      "note": "模拟用户确认把 one-of data definition 与 cond 分支对应关系写为 CPSC107 薄弱点。",
+      "sendText": "我确认把 one-of data definition 和 cond 分支对应关系写成本门课薄弱点，然后继续。"
+    },
+    {
       "kind": "user",
       "text": "根据这个薄弱点，给我安排 20 分钟复习。现在我该看笔记、做自拟练习，还是让你讲一遍？"
     },

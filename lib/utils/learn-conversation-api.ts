@@ -18,6 +18,7 @@ export type RemoteLearnMessage = {
   pendingAction?: unknown;
   lecturePrompt?: unknown;
   lectureDeck?: unknown;
+  learningActions?: unknown;
   attachments?: Array<{
     id?: string;
     name?: string;
@@ -49,6 +50,7 @@ export type RemoteLearnMessagePayload = {
   pendingAction?: unknown;
   lecturePrompt?: unknown;
   lectureDeck?: unknown;
+  learningActions?: unknown;
   attachments?: Array<{
     id?: string;
     name?: string;

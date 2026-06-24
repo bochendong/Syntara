@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import type { UIMessage } from 'ai';
-import { Loader2, Presentation, Sparkles } from 'lucide-react';
+import {
+  BookOpen,
+  Brain,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Loader2,
+  Presentation,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MessageResponse } from '@/components/ai-elements/message';
 import {
@@ -15,6 +25,7 @@ import type {
   ChatMessageMetadata,
   CourseChatGroupMeta,
   CourseChatParticipant,
+  LearningAction,
 } from '@/lib/types/chat';
 import type { Scene } from '@/lib/types/stage';
 import type { CourseAgentListItem } from '@/lib/utils/course-agents';
@@ -79,6 +90,140 @@ function MessageStatusLine({ text }: { text: string }) {
     <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-muted-foreground dark:bg-white/10">
       <Loader2 className="size-3.5 animate-spin" />
       <span>{text}</span>
+    </div>
+  );
+}
+
+function learningActionTitle(action: LearningAction): string {
+  switch (action.kind) {
+    case 'calendar.propose_add':
+      return '添加到日历';
+    case 'calendar.propose_update':
+      return '修改日历';
+    case 'calendar.propose_delete':
+      return '删除日历事项';
+    case 'calendar.search':
+      return '查看日程';
+    case 'learner_progress.request_confirmation':
+      return '确认学习进度';
+    case 'practice.propose_generation':
+      return '生成练习';
+    case 'classroom.propose_temporary_explanation':
+      return '生成临时课堂';
+    case 'memory.propose_write':
+      return '写入学习记忆';
+    default:
+      return action.label;
+  }
+}
+
+function learningActionButtonLabel(action: LearningAction): string {
+  switch (action.kind) {
+    case 'calendar.propose_add':
+      return '确认添加';
+    case 'calendar.propose_update':
+      return '确认修改';
+    case 'calendar.propose_delete':
+      return '确认删除';
+    case 'calendar.search':
+      return '查看';
+    case 'learner_progress.request_confirmation':
+      return '确认进度';
+    case 'practice.propose_generation':
+      return '确认生成';
+    case 'classroom.propose_temporary_explanation':
+      return '生成课堂';
+    case 'memory.propose_write':
+      return '确认写入';
+    default:
+      return '确认';
+  }
+}
+
+function LearningActionIcon({ action }: { action: LearningAction }) {
+  if (action.kind.startsWith('calendar.')) {
+    return action.kind === 'calendar.search' ? (
+      <Search className="size-3.5" />
+    ) : (
+      <CalendarDays className="size-3.5" />
+    );
+  }
+  if (action.kind === 'learner_progress.request_confirmation') {
+    return <CheckCircle2 className="size-3.5" />;
+  }
+  if (action.kind === 'practice.propose_generation') {
+    return <ClipboardList className="size-3.5" />;
+  }
+  if (action.kind === 'classroom.propose_temporary_explanation') {
+    return <BookOpen className="size-3.5" />;
+  }
+  return <Brain className="size-3.5" />;
+}
+
+function dispatchLearningAction(action: LearningAction) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('syntara:learning-action-confirm', { detail: action }));
+}
+
+function dispatchLearningActionCancel(action: LearningAction) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('syntara:learning-action-cancel', { detail: action }));
+}
+
+function LearningActionCards({ actions }: { actions?: LearningAction[] }) {
+  if (!actions?.length) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {actions.map((action) => {
+        const requiresConfirmation = action.confirmation === 'required';
+        const completed =
+          action.status === 'completed' ||
+          action.status === 'confirmed' ||
+          action.status === 'cancelled';
+        return (
+          <div
+            key={action.id}
+            className="rounded-lg border border-slate-900/[0.08] bg-white px-3 py-2.5 text-xs shadow-sm dark:border-white/[0.1] dark:bg-white/[0.04]"
+            data-learning-action-id={action.id}
+            data-learning-action-kind={action.kind}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                  <LearningActionIcon action={action} />
+                  <span>{learningActionTitle(action)}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-muted-foreground">
+                  {action.summary || action.label}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {requiresConfirmation && !completed ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 rounded-md px-2.5 text-[11px]"
+                    onClick={() => dispatchLearningActionCancel(action)}
+                  >
+                    取消
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={action.confirmation === 'none' ? 'outline' : 'default'}
+                  disabled={completed}
+                  className="h-7 rounded-md px-2.5 text-[11px]"
+                  onClick={() => dispatchLearningAction(action)}
+                >
+                  {action.status === 'cancelled' ? '已取消' : learningActionButtonLabel(action)}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -379,6 +524,7 @@ function GroupMemberMessage({
               })}
             </div>
           ) : null}
+          <LearningActionCards actions={meta?.learningActions} />
         </div>
       </div>
     </div>
@@ -737,6 +883,7 @@ export function AgentMessageThread({
                       })}
                     </div>
                   ) : null}
+                  {!isUser ? <LearningActionCards actions={meta?.learningActions} /> : null}
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>

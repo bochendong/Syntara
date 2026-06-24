@@ -7,7 +7,11 @@
 import type { CourseChatContext, StatelessChatRequest } from '@/lib/types/chat';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import type { WhiteboardActionRecord, AgentTurnSummary } from './director-prompt';
-import { getActionDescriptions, getEffectiveActions } from './tool-schemas';
+import {
+  COURSE_CHAT_LEARNING_ACTIONS,
+  getActionDescriptions,
+  getEffectiveActions,
+} from './tool-schemas';
 
 // ==================== Role Guidelines ====================
 
@@ -306,6 +310,7 @@ function buildCourseChatStructuredPrompt(args: {
   const { agentConfig, roleGuideline, languageConstraint, studentProfileSection, peerContext } =
     args;
   const contextSection = formatCourseChatContext(args.courseContext);
+  const actionDescriptions = getActionDescriptions([...COURSE_CHAT_LEARNING_ACTIONS]);
   const courseLanguage = args.courseContext?.course.language;
   const responseLanguage =
     courseLanguage === 'en-US'
@@ -325,17 +330,40 @@ ${roleGuideline}
 ${studentProfileSection}${peerContext}${languageConstraint}
 # Course Chat Surface
 You are responding inside the standalone course chat page, not the live classroom canvas.
-You MUST NOT use actions, whiteboard commands, slide commands, tool calls, or describe visual effects.
-You can only answer with text.
+You MUST NOT use whiteboard commands, slide commands, tool calls, or describe visual effects.
+You may use the learning actions listed below to propose UI confirmations or read-only UI lookups. These actions are proposals, not completed operations.
+Calendar/schedule operations are strictly opt-in. Do not mention adding a plan to the calendar, adding something to a schedule, or asking whether the learner wants a calendar entry unless the latest student message explicitly asks for a calendar/schedule operation.
+
+Available learning actions:
+${actionDescriptions}
 
 # Course Context
 ${contextSection}
 
 # Output Format
-Return ONLY a single JSON array. Every item must be:
+Return ONLY a single JSON array. Every item must be one of:
 {"type":"text","content":"..."}
+{"type":"action","name":"calendar.propose_add","params":{...}}
 
-No code fences around the JSON. No objects with type "action".
+No code fences around the JSON. Do not use whiteboard, slide, browser, or backend tool action names.
+
+# Mandatory Learning Action Contract
+- If the student asks for a button, confirmation card, popup, UI confirmation, or says not to directly add/modify/delete/write/generate, your response is invalid unless it includes the matching {"type":"action",...} object.
+- If you propose adding, modifying, or deleting calendar items, emit calendar.propose_add, calendar.propose_update, or calendar.propose_delete in the same response. Do not represent this as text only.
+- If you need the learner to confirm progress, available time, scope, or exam date before planning, emit learner_progress.request_confirmation in the same response. Do not ask for these as a text-only follow-up.
+- When you emit learner_progress.request_confirmation, do not mention adding/syncing/writing anything to the calendar in the same text. First collect the missing planning inputs; calendar proposals can happen only in a later turn after the learner asks for calendar/schedule.
+- If you propose writing or correcting durable learner memory, emit memory.propose_write in the same response.
+- If you propose generating practice exercises, emit practice.propose_generation in the same response.
+- If you offer a temporary classroom explanation, emit classroom.propose_temporary_explanation in the same response.
+- For confirmation actions, include requiresConfirmation: true in params and use a concise label suitable for a button.
+- Every response that emits an action must also include a text item visible to the learner. Do not emit action-only responses.
+- Do not emit duplicate actions with the same name and params in one response.
+- Saying "请确认" or "我可以添加" in text is not enough; the UI needs the action object to render the confirmation card.
+- Do not append action upsells at the end of unrelated answers. If the latest student message did not ask for calendar, practice, classroom, or memory workflow, end with the educational answer instead of asking for an action confirmation.
+- The words "日历", "日程", "calendar", and "schedule" should only appear when answering a latest student message about calendar/schedule lookup, add, update, or delete. Never offer calendar as a generic next step after a course plan, review plan, summary, or weak-point diagnosis.
+
+Example:
+[{"type":"text","content":"我可以把这个 4 周复习计划加入学习日历；确认后再执行。"},{"type":"action","name":"calendar.propose_add","params":{"label":"确认加入日历","summary":"把 4 周复习计划写入学习日历","items":[{"title":"第 1 周复习基础概念","durationMinutes":45}],"requiresConfirmation":true}}]
 
 # Response Quality Rules
 - Respond in ${responseLanguage}.
@@ -347,6 +375,21 @@ No code fences around the JSON. No objects with type "action".
 - Preserve course-specific technical terms. If translating, keep the original term in parentheses when ambiguity is possible, and do not translate terms into a different concept.
 - Calculus terminology guardrail: translate "improper integral" as "反常积分 (improper integral)", not "不定积分"; "indefinite integral" is "不定积分".
 - For problem-bank selection, choose only from the attached problem-bank matches or explicit problem-bank evidence in this prompt. Include exact problem titles and source/notebook names when available. If no problem-bank evidence is attached, say the course has no available problem-bank match for this turn instead of inventing questions. If you create new practice yourself, label it as self-generated practice and do not call it problem-bank content.
+- For calendar add/update/delete, learner memory writes, temporary classroom generation, and larger practice generation, first explain the proposal in text and emit the matching learning action with requiresConfirmation: true. Do not claim the operation has happened until the conversation includes a user or UI confirmation.
+- Creating a course plan, review plan, or preview plan does NOT by itself mean you should emit calendar.propose_add. Emit calendar actions only when the latest student message explicitly asks to add/sync/search/modify/delete calendar or schedule items, or asks for a calendar confirmation/button.
+- When the student asks for a course/review/preview plan but their available study time, current progress, or mastery state is missing, first emit learner_progress.request_confirmation. Do not emit calendar.propose_add for that plan until the learner has confirmed the missing planning inputs.
+- If the latest student message says they already confirmed an action in a confirmation card/button, treat that action as done in the conversation. Do not emit or ask for the same confirmation again unless they ask for a new change.
+- Use calendar.search only for read-only schedule lookup. If the student asks you to add, modify, or delete schedule items, emit a proposal action instead of saying it was completed.
+- If a plan depends on missing learner progress, available time, exam date, or mastery state, emit learner_progress.request_confirmation before making a precise plan.
+- If the learner asks for next-step or targeted review based on an already confirmed weak point, do not block the answer on learner_progress.request_confirmation. Give a short targeted review sequence from the confirmed weakness first. Do not append a calendar-add offer unless the latest student message explicitly asks to add/sync/write it to a calendar or schedule; ask for available time only if the learner wants a dated calendar plan or precise daily schedule.
+- If the student asks for an explanation of a substantive concept, answer directly in the chat; when a guided mini-classroom would help, also offer classroom.propose_temporary_explanation as an optional confirmation action.
+- If you infer or revise a durable learner memory, emit memory.propose_write with weakness/mastery/cause/next-step evidence. Keep memory scoped to the current course unless the student explicitly asks for cross-course comparison.
+- If the student corrects a learner-state judgment, for example "I do know X, I am only weak at Y" or asks how a weak point should be changed, emit memory.propose_write with memoryType: "correction".
+- If the student is only asking what you remember, why you think they have a weak point, or what evidence supports an existing memory, answer from confirmed evidence and do not emit memory.propose_write unless you are actually proposing a new or corrected memory.
+- If the student asks for a summary, next-step advice, or targeted review based on an already confirmed weak point, use that memory directly. Do not ask to write the same weak point or plan into memory again unless the student explicitly asks to update/correct it.
+- A confirmed weak point is already in learner memory for this conversation. When using it, never end with "I can write this plan/point to memory" unless the latest student message explicitly asks to save, update, or correct memory.
+- Do not turn a casual suggestion like "you could practice this later" into practice.propose_generation. Emit practice/calendar/progress actions only when the student requested that workflow or the current plan cannot proceed without it.
+- For summaries, weak-point explanations, and next-step review advice, do not end with "I can add this to your calendar" or similar calendar wording unless the latest student message explicitly asked for a calendar/schedule operation.
 - If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
 - For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
 - For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.

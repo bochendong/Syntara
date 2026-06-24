@@ -1,0 +1,45 @@
+{
+  "name": "learning-action-progress-classroom-practice",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我想要一个两周复习计划，但我不确定你是否知道我学到哪里了。需要确认进度的话，请先弹确认卡。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认学习进度",
+      "actionId": "learner_progress.request_confirmation",
+      "event": "confirmed",
+      "selection": "已学完前半部分，后半部分只预习过",
+      "note": "模拟用户在进度确认卡中选择目前进度。",
+      "sendText": "我在确认卡里选择：已学完前半部分，后半部分只预习过。请据此继续安排复习。"
+    },
+    {
+      "kind": "user",
+      "text": "我现在卡在一个概念上：为什么定义或公式不能只背结论？你先用聊天解释；如果适合临时课堂讲解，也给我一个生成按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "生成临时课堂讲解",
+      "actionId": "classroom.propose_temporary_explanation",
+      "event": "confirmed",
+      "note": "模拟用户点击生成临时课堂讲解按钮。"
+    },
+    {
+      "kind": "user",
+      "text": "根据我刚才暴露出来的薄弱点，给我 3 道针对练习。若题库没有匹配，明确说是自生成练习；生成前也给确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认生成练习",
+      "actionId": "practice.propose_generation",
+      "event": "confirmed",
+      "note": "模拟用户同意生成第一组练习题。"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看进度、课堂和练习模拟状态",
+      "query": "progress classroom practice"
+    }
+  ]
+}

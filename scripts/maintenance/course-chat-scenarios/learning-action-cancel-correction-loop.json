@@ -1,0 +1,45 @@
+{
+  "name": "learning-action-cancel-correction-loop",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我觉得我刚才的错题说明我不会这个概念。请你先提出一个可确认的记忆写入，不要直接写。"
+    },
+    {
+      "kind": "ui",
+      "label": "取消写入薄弱点",
+      "actionId": "memory.propose_write",
+      "event": "cancelled",
+      "note": "模拟用户看到确认框后取消写入，测试系统不应该把这条当成已确认记忆。"
+    },
+    {
+      "kind": "user",
+      "text": "我取消是因为你判断太重了。其实我不是不会这个概念，只是不熟它的适用条件。请重新提出一个更准确的记忆修正确认。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认写入修正后的薄弱点",
+      "actionId": "memory.propose_write",
+      "event": "confirmed",
+      "payload": {
+        "memoryType": "correction",
+        "summary": "学生掌握概念本身，但不熟适用条件和触发信号。"
+      },
+      "sendText": "我确认写入修正后的记忆：我掌握概念本身，但不熟适用条件和触发信号。"
+    },
+    {
+      "kind": "new_conversation",
+      "label": "开启新对话检查纠错后的记忆",
+      "note": "模拟跨对话，只保留已确认的修正记忆。"
+    },
+    {
+      "kind": "user",
+      "text": "你为什么觉得我不是完全不会这个概念？请引用这门课里已确认的证据，不要引用被我取消的那条判断。"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看取消与纠错记忆状态",
+      "query": "cancelled and corrected memory"
+    }
+  ]
+}

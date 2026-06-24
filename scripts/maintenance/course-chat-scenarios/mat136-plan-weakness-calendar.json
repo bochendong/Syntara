@@ -7,14 +7,38 @@
     },
     {
       "kind": "ui",
-      "label": "加入日历",
-      "actionId": "add_course_plan_to_calendar",
+      "label": "确认学习进度",
+      "actionId": "learner_progress.request_confirmation",
+      "note": "模拟用户确认 MAT136 当前进度、可用时间和复习优先级。",
+      "event": "confirmed",
+      "selection": "每天 45 分钟，优先补反常积分、级数和应用题；考试约 4 周后。",
+      "sendText": "我在确认卡里选择：每天 45 分钟，优先补反常积分、级数和应用题；考试约 4 周后。请继续生成 MAT136 课程计划，并给我加入日历的确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认加入日历",
+      "actionId": "calendar.propose_add",
       "note": "模拟用户确认课程计划并加入日历。",
+      "event": "confirmed",
       "sendText": "我点击了「加入日历」，请把刚才的 MAT136 课程计划当作已加入日历，然后告诉我这周每天该做什么。"
     },
     {
       "kind": "user",
-      "text": "如果我周三没学，后面怎么顺延？今天只有 20 分钟，原计划如果太满要怎么调整？"
+      "text": "如果我周三没学，后面怎么顺延？今天只有 20 分钟，原计划如果太满要怎么调整？需要改日历的话先给确认。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认修改日历",
+      "actionId": "calendar.propose_update",
+      "note": "模拟用户确认顺延周三未完成内容，并压缩今天学习块。",
+      "event": "confirmed",
+      "payload": {
+        "target": "MAT136 本周学习安排",
+        "updates": {
+          "shiftMissedDay": "周三",
+          "todayDurationMinutes": 20
+        }
+      }
     },
     {
       "kind": "user",
@@ -26,7 +50,14 @@
     },
     {
       "kind": "user",
-      "text": "根据这个薄弱点，优先从题库里给我 3 道针对练习；如果题库摘要不够判断难度或题干，请明确说缺什么。"
+      "text": "根据这个薄弱点，优先从题库里给我 3 道针对练习；如果题库摘要不够判断难度或题干，请明确说缺什么。生成或选择前先给确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认生成练习",
+      "actionId": "practice.propose_generation",
+      "note": "模拟用户确认生成或选择一组反常积分针对练习。",
+      "event": "confirmed"
     }
   ]
 }

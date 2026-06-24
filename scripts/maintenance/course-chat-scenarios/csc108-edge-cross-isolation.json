@@ -14,8 +14,23 @@
       "text": "你觉得这两个问题背后统一的薄弱点是什么？能不能记成一个待复习点？"
     },
     {
+      "kind": "ui",
+      "label": "确认写入记忆",
+      "actionId": "memory.propose_write",
+      "event": "confirmed",
+      "note": "模拟用户确认把 Python 变量、引用和边界判断写为 CSC108 待复习点。",
+      "sendText": "我确认把这个统一薄弱点写入本门课记忆，然后继续。"
+    },
+    {
       "kind": "user",
-      "text": "我现在想练 CSC108 Python edge cases，只想基础到中等，帮我从题库里选 3 道；不要选我已经掌握的类型。"
+      "text": "我现在想练 CSC108 Python edge cases，只想基础到中等，帮我从题库里选 3 道；不要选我已经掌握的类型。选择前先给确认按钮。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认生成练习",
+      "actionId": "practice.propose_generation",
+      "event": "confirmed",
+      "note": "模拟用户确认从 CSC108 题库选择基础到中等边界情况练习。"
     },
     {
       "kind": "user",

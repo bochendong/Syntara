@@ -13,6 +13,8 @@ import type {
   ChatMessageMetadata,
   CourseChatContext,
   DirectorState,
+  LearningAction,
+  LearningActionKind,
   StatelessChatRequest,
   StatelessEvent,
 } from '@/lib/types/chat';
@@ -42,8 +44,58 @@ function cloneMessages(m: UIMessage<ChatMessageMetadata>[]) {
   return m.map((msg) => ({
     ...msg,
     parts: msg.parts.map((p) => ({ ...p })),
-    metadata: msg.metadata ? { ...msg.metadata } : undefined,
+    metadata: msg.metadata
+      ? {
+          ...msg.metadata,
+          learningActions: msg.metadata.learningActions?.map((action) => ({
+            ...action,
+            payload: action.payload ? { ...action.payload } : undefined,
+            evidence: action.evidence?.map((item) => ({ ...item })),
+          })),
+        }
+      : undefined,
   })) as UIMessage<ChatMessageMetadata>[];
+}
+
+const LEARNING_ACTION_KINDS = new Set<LearningActionKind>([
+  'calendar.propose_add',
+  'calendar.propose_update',
+  'calendar.propose_delete',
+  'calendar.search',
+  'learner_progress.request_confirmation',
+  'practice.propose_generation',
+  'classroom.propose_temporary_explanation',
+  'memory.propose_write',
+]);
+
+function toLearningActionKind(actionName: string): LearningActionKind | null {
+  return LEARNING_ACTION_KINDS.has(actionName as LearningActionKind)
+    ? (actionName as LearningActionKind)
+    : null;
+}
+
+function makeLearningAction(
+  event: Extract<StatelessEvent, { type: 'action' }>,
+): LearningAction | null {
+  const kind = toLearningActionKind(event.data.actionName);
+  if (!kind) return null;
+  const params = event.data.params || {};
+  const rawLabel = params.label || params.title || params.topic || event.data.actionName;
+  const label = typeof rawLabel === 'string' ? rawLabel : event.data.actionName;
+  const rawSummary = params.summary || params.reason;
+  const summary = typeof rawSummary === 'string' ? rawSummary : undefined;
+  const requiresConfirmation =
+    params.requiresConfirmation === true ||
+    (kind !== 'calendar.search' && params.requiresConfirmation !== false);
+  return {
+    id: event.data.actionId,
+    kind,
+    label,
+    summary,
+    status: 'proposed',
+    confirmation: requiresConfirmation ? 'required' : 'none',
+    payload: params,
+  };
 }
 
 async function consumeOneResponse(
@@ -245,6 +297,20 @@ async function consumeOneResponse(
                 part.text = (part.text || '') + event.data.content;
               }
             }
+            onMessages(cloneMessages(working));
+            break;
+          }
+          case 'action': {
+            const learningAction = makeLearningAction(event);
+            if (!learningAction) break;
+            const targetId = event.data.messageId ?? currentMessageId;
+            if (!targetId) break;
+            const msg = working.find((m) => m.id === targetId);
+            if (!msg) break;
+            msg.metadata = {
+              ...msg.metadata,
+              learningActions: [...(msg.metadata?.learningActions || []), learningAction],
+            };
             onMessages(cloneMessages(working));
             break;
           }

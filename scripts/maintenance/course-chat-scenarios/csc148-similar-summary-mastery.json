@@ -15,11 +15,24 @@
     },
     {
       "kind": "user",
-      "text": "你觉得我这些问题背后统一不会的点是什么？请归纳，不要把三个问题分开讲。"
+      "text": "你觉得我这些问题背后统一不会的点是什么？请归纳，不要把三个问题分开讲。这个统一薄弱点如果适合，请先给确认按钮写入本门课记忆。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认写入统一薄弱点",
+      "actionId": "memory.propose_write",
+      "event": "confirmed",
+      "note": "模拟用户确认把递归 trace、状态管理和 recursive result 的统一薄弱点写入 CSC148 课程记忆。",
+      "sendText": "我确认把这个统一薄弱点写入 CSC148 课程记忆。后续复习请基于这条记忆，不要把我当成完全不会 basic recursion。"
+    },
+    {
+      "kind": "new_conversation",
+      "label": "开启新的 CSC148 课程聊天",
+      "note": "模拟跨对话检查刚确认的课程记忆是否能继续影响教学。"
     },
     {
       "kind": "user",
-      "text": "我已经会 basic recursion 了，不要再从 base case 开始讲。根据刚才的薄弱点，直接给我下一步复习安排。"
+      "text": "我已经会 basic recursion 了，不要再从 base case 开始讲。根据刚才已确认的薄弱点，直接给我下一步复习安排；先不要再问我当前进度或每天可用时间。"
     },
     {
       "kind": "user",

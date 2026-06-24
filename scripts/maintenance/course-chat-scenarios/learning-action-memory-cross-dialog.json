@@ -1,0 +1,35 @@
+{
+  "name": "learning-action-memory-cross-dialog",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我刚才做题时发现，我不是完全不会这个知识点，而是不会判断什么时候应该用它。请先总结成一个可确认的薄弱点，不要直接写入记忆。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认写入薄弱点",
+      "actionId": "memory.propose_write",
+      "event": "confirmed",
+      "note": "模拟用户确认把这个薄弱点写入本课程记忆。",
+      "payload": {
+        "memoryType": "weakness",
+        "summary": "学生不是完全不会概念，而是不熟悉适用条件和题型触发信号。"
+      },
+      "sendText": "我确认把这个薄弱点写入本课程记忆：我不是完全不会概念，而是不熟悉什么时候该用。"
+    },
+    {
+      "kind": "new_conversation",
+      "label": "开启新的课程聊天",
+      "note": "模拟跨对话；清空可见消息，但测试器保留已确认的工作流记忆状态。"
+    },
+    {
+      "kind": "user",
+      "text": "你还记得上一段对话里我确认过的薄弱点吗？请只基于这门课的记忆回答，不要串到其他课程。"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看跨对话记忆模拟状态",
+      "query": "memory"
+    }
+  ]
+}
