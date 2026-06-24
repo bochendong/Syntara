@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   AlertTriangle,
+  Brain,
   BookOpenCheck,
   CalendarDays,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -16,9 +16,9 @@ import {
   FileText,
   LibraryBig,
   Loader2,
+  Maximize2,
   MessageSquarePlus,
-  MoreHorizontal,
-  Pin,
+  Minimize2,
   Play,
   Plus,
   SendHorizontal,
@@ -39,7 +39,13 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -53,7 +59,15 @@ import { usePersistHydrated } from '@/lib/hooks/use-persist-hydrated';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCurrentCourseStore } from '@/lib/store/current-course';
 import { useSettingsStore } from '@/lib/store/settings';
-import { addMemoryActivity, updateMemoryActivity } from '@/lib/store/memory-activity';
+import {
+  addMemoryActivity,
+  dismissMemoryActivity,
+  isActiveMemoryActivityStatus,
+  updateMemoryActivity,
+  useMemoryActivityStore,
+  type MemoryActivityRecord,
+} from '@/lib/store/memory-activity';
+import { useTaskHistoryStore, type TaskHistoryRecord } from '@/lib/store/task-history';
 import {
   askCourseOrchestrator,
   type CourseChatImageAttachment,
@@ -95,12 +109,18 @@ import {
   type CourseProblemClientSummary,
 } from '@/lib/utils/notebook-problem-api';
 import {
+  deleteCourseSourceUpload,
+  listCourseSourceUploads,
+  type CourseSourceUploadRecord,
+} from '@/lib/utils/course-source-upload-api';
+import {
   listRemotePracticePlans,
   loadRemoteLearnerCourseState,
   saveRemoteLearnerCourseState,
   saveRemotePracticePlan,
 } from '@/lib/utils/learner-course-api';
 import {
+  deleteRemoteLearnConversation,
   listRemoteLearnSessions,
   loadRemoteLearnConversation,
   syncRemoteLearnConversation,
@@ -108,7 +128,7 @@ import {
   type RemoteLearnMessage,
   type RemoteLearnMessagePayload,
 } from '@/lib/utils/learn-conversation-api';
-import { listStagesByCourse, type StageListItem } from '@/lib/utils/stage-storage';
+import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
 import { normalizeLooseMathDelimiters } from '@/lib/math-engine';
 
 type LearnMessage = {
@@ -261,6 +281,36 @@ type LearnSourceUploadItem = {
   summary?: string;
   error?: string;
 };
+
+type SourceLibraryTile = {
+  id: string;
+  tileKind: 'source' | 'notebook' | 'transient';
+  title: string;
+  subtitle: string;
+  dateLabel: string;
+  coverImagePath: string | null;
+  placeholderLabel: string;
+  typeLabel: string;
+  updatedAt: number;
+  isProblemBank: boolean;
+  status: LearnSourceUploadStatus | null;
+  error: string | null;
+  sourceHash: string | null;
+  textNotebookIds: string[];
+  textSectionIds: string[];
+  textBlocks: Array<{
+    id: string;
+    title: string;
+    markdown: string;
+  }>;
+};
+
+type SourceLibraryTextState = {
+  status: 'loading' | 'ready' | 'empty' | 'failed';
+  text: string;
+};
+
+type SourceLibraryDetailView = 'image' | 'text';
 
 const learningQuickPrompts = [
   '我现在学到哪里了？',
@@ -501,6 +551,21 @@ function learnSessionMessagesKey(userId: string, courseId: string, sessionId: st
   ].join(':');
 }
 
+function sortLearnSessionsForList(
+  userId: string,
+  courseId: string,
+  sessions: LearnChatSession[],
+): LearnChatSession[] {
+  return [...sessions].sort((a, b) => {
+    const aIsBlankNew =
+      a.title === '新对话' && learnSessionIsBlank(readLearnSessionMessages(userId, courseId, a.id));
+    const bIsBlankNew =
+      b.title === '新对话' && learnSessionIsBlank(readLearnSessionMessages(userId, courseId, b.id));
+    if (aIsBlankNew !== bIsBlankNew) return aIsBlankNew ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
+}
+
 function readLearnSessions(userId: string, courseId: string): LearnChatSession[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -508,18 +573,16 @@ function readLearnSessions(userId: string, courseId: string): LearnChatSession[]
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<LearnChatSession>[];
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item): item is LearnChatSession =>
-        Boolean(
-          item &&
-          typeof item.id === 'string' &&
-          typeof item.title === 'string' &&
-          typeof item.createdAt === 'number' &&
-          typeof item.updatedAt === 'number',
-        ),
-      )
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, 12);
+    const sessions = parsed.filter((item): item is LearnChatSession =>
+      Boolean(
+        item &&
+        typeof item.id === 'string' &&
+        typeof item.title === 'string' &&
+        typeof item.createdAt === 'number' &&
+        typeof item.updatedAt === 'number',
+      ),
+    );
+    return sortLearnSessionsForList(userId, courseId, sessions).slice(0, 12);
   } catch {
     return [];
   }
@@ -530,7 +593,7 @@ function writeLearnSessions(userId: string, courseId: string, sessions: LearnCha
   try {
     localStorage.setItem(
       learnSessionIndexKey(userId, courseId),
-      JSON.stringify(sessions.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12)),
+      JSON.stringify(sortLearnSessionsForList(userId, courseId, sessions).slice(0, 12)),
     );
   } catch {
     /* localStorage may be unavailable */
@@ -606,7 +669,18 @@ function writeLearnSessionMessages(
   }
 }
 
+function deleteLearnSessionMessages(userId: string, courseId: string, sessionId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(learnSessionMessagesKey(userId, courseId, sessionId));
+  } catch {
+    /* localStorage may be unavailable */
+  }
+}
+
 function mergeLearnSessions(
+  userId: string,
+  courseId: string,
   current: LearnChatSession[],
   incoming: Array<LearnChatSession | RemoteLearnChatSession>,
 ): LearnChatSession[] {
@@ -623,9 +697,7 @@ function mergeLearnSessions(
       });
     }
   }
-  return Array.from(byId.values())
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 12);
+  return sortLearnSessionsForList(userId, courseId, Array.from(byId.values())).slice(0, 12);
 }
 
 function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage {
@@ -882,87 +954,391 @@ async function readSyllabusFileText(
   return text;
 }
 
-function sourceLayerLabel(layer: string): string {
-  switch (layer) {
-    case 'notebook_text':
-      return '笔记本';
-    case 'long_term_public_memory':
-      return '公共记忆';
-    case 'long_term_platform_memory':
-      return '平台记忆';
-    case 'long_term_course_memory':
-      return '课程记忆';
-    case 'long_term_notebook_memory':
-      return '笔记本记忆';
-    case 'long_term_private_memory':
-      return '私有记忆';
-    case 'knowledge_graph':
-      return '知识图谱';
-    case 'knowledge_base_rag':
-      return 'RAG';
+function sourceUploadKindLabel(kind: string): string {
+  switch (kind) {
+    case 'pdf':
+      return 'PDF';
+    case 'markdown':
+      return 'Markdown';
+    case 'plain_text':
+      return '文本';
+    case 'pptx':
+      return 'PPTX';
     case 'problem_bank':
       return '题库';
-    case 'template_library':
-      return '模板库';
     default:
-      return layer;
+      return '资料';
   }
 }
 
-function formatSourceLayerSummary(result: CourseSourceIngestResponse['ingest']) {
-  const layers = result.memory.layers || [];
-  if (!layers.length) {
-    return `分层记忆：平台 ${result.memory.publicPlatformMemoryCount || 0}，课程 ${result.memory.publicCourseMemoryCount || 0}，笔记本 ${result.memory.publicNotebookMemoryCount}，私有 ${result.memory.privateMemoryCount || 0}，模板 ${result.memory.templateCount}。`;
-  }
-  return [
-    '分层写入：',
-    ...layers.map((layer) => {
-      const status =
-        layer.status === 'written' ? '已写' : layer.status === 'available' ? '可检索' : '跳过';
-      return `- ${sourceLayerLabel(layer.layer)}：${status}，${layer.summary}`;
-    }),
-  ].join('\n');
+function formatLibraryItemDate(value: string | number | null | undefined): string {
+  const timestamp = typeof value === 'number' ? value : value ? Date.parse(value) : Number.NaN;
+  if (!Number.isFinite(timestamp)) return '';
+  return new Date(timestamp).toLocaleString('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-function formatSourceIngestMessage(fileName: string, result: CourseSourceIngestResponse['ingest']) {
-  const sectionCount = result.notebook?.sections?.length ?? (result.notebook?.sectionId ? 1 : 0);
-  const allQuestionLine = result.classification.allQuestionUpload
-    ? '判定为全题目文件，已跳过公共记忆补充和纯文本笔记本整理。'
-    : result.notebook
-      ? `${result.notebook.created ? '创建' : '更新'}笔记本「${result.notebook.name}」，写入 ${sectionCount} 个 section。`
-      : '没有写入笔记本 section。';
-  const tokenLine = result.problems.usage
-    ? `题库抽取用量：input ${result.problems.usage.inputTokens}，output ${result.problems.usage.outputTokens}。`
-    : '题库抽取没有额外模型用量或只使用了启发式解析。';
+function formatMemoryActivityTime(value: number) {
+  return new Date(value).toLocaleString('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function memoryActivityStatusLabel(
+  status: MemoryActivityRecord['status'] | TaskHistoryRecord['status'],
+) {
+  if (
+    status === 'detecting' ||
+    status === 'writing_fact' ||
+    status === 'writing_study_memory' ||
+    status === 'indexing_source' ||
+    status === 'needs_confirmation' ||
+    status === 'running' ||
+    status === 'queued' ||
+    status === 'needs_attention'
+  ) {
+    return '理解中';
+  }
+  if (status === 'completed') return '已记住';
+  if (status === 'failed') return '没记成';
+  return '已跳过';
+}
+
+const INTERNAL_MEMORY_PROCESS_PATTERN =
+  /用户先看到|后台|处理判断|写入和索引|独立任务|独立判断|正在覆盖当前任务|当前任务、卡点|教学动作|currentTask|stuckPoint|nextTeachingMove/i;
+
+function memoryActivityStudentTitle(title: string, description: string) {
+  const raw = [title, description].join(' ').trim();
+  if (INTERNAL_MEMORY_PROCESS_PATTERN.test(raw)) {
+    return '我记录了这次互动里有用的学习线索';
+  }
+  if (
+    /(考试|测验|quiz|test|midterm|final|ddl|deadline|due|作业|assignment|日程|calendar|syllabus|上课|office hour)/i.test(
+      raw,
+    )
+  ) {
+    return '课程安排已更新';
+  }
+  if (/(课程要求|笔记本要求|要求|格式|模板|rubric|marking|评分|规则|contract)/i.test(raw)) {
+    return '课程要求已更新';
+  }
+  if (/(个人背景|背景|目标|专业|年级|学校|profile)/i.test(raw)) {
+    return '个人背景已更新';
+  }
+  if (/(重要信息|事实|current fact|fact|记住.*信息)/i.test(raw)) {
+    return '重要信息已更新';
+  }
+  if (/(对话摘要|conversation summary|摘要|总结)/i.test(raw)) {
+    return '对话摘要已更新';
+  }
+  if (/进度|范围|checkpoint|学到的位置/i.test(raw)) return '学习进度已更新';
+  if (/薄弱|不稳|不会|卡点|weak|错|mistake|stuck/i.test(raw)) return '薄弱点已更新';
+  if (/掌握|会了|已通过|mastered|passed/i.test(raw)) return '掌握情况已更新';
+  if (/下一步|怎么帮|教学动作|next/i.test(raw)) return '下一步学习建议已更新';
+  if (/资料|索引|入库|source/i.test(raw)) return '资料理解已更新';
+  if (/偏好|preference|喜欢|希望|习惯/i.test(raw)) return '学习偏好已更新';
+  return title || '我更新了一条学习记忆';
+}
+
+function memoryActivityStudentDescription(record: {
+  title: string;
+  description: string;
+  status: MemoryActivityRecord['status'] | TaskHistoryRecord['status'];
+  error?: string;
+}) {
+  if (record.status === 'failed') {
+    return record.error || record.description || '这次没有写入成功，我会保留当前对话继续帮你。';
+  }
+  if (INTERNAL_MEMORY_PROCESS_PATTERN.test(record.description)) {
+    return '我会把这次对话里有用的学习状态整理出来，之后回答时更接得上你的进度和卡点。';
+  }
+  if (record.description) return record.description;
+  if (record.status === 'completed')
+    return '这条记忆已经更新。之后我会用它判断你的进度、薄弱点和下一步学习安排。';
+  return '平台正在判断这条信息会不会帮助之后的学习。';
+}
+
+function platformMemoryChipLabel(chip: string) {
+  if (chip === 'conversation') return '对话';
+  if (chip === 'course') return '课程';
+  if (chip === 'notebook') return '笔记本';
+  if (chip === 'private') return '私有';
+  if (chip === 'public') return '共享';
+  if (chip === 'study_memory') return '学习记忆';
+  if (chip === 'knowledge_index') return '资料理解';
+  if (chip === 'structured_fact') return '事实';
+  return chip;
+}
+
+type PlatformMemoryVisualTone =
+  | 'schedule'
+  | 'preference'
+  | 'progress'
+  | 'weakness'
+  | 'mastery'
+  | 'source'
+  | 'next'
+  | 'writing';
+
+const PLATFORM_MEMORY_SPHERES: Array<{
+  tone: PlatformMemoryVisualTone;
+  label: string;
+  className: string;
+}> = [
+  { tone: 'progress', label: '进度', className: 'learn-memory-sphere-xl sphere-progress' },
+  { tone: 'weakness', label: '薄弱点', className: 'learn-memory-sphere-md sphere-weakness' },
+  { tone: 'mastery', label: '掌握', className: 'learn-memory-sphere-lg sphere-mastery' },
+  { tone: 'schedule', label: '安排', className: 'learn-memory-sphere-sm sphere-schedule' },
+  { tone: 'source', label: '资料', className: 'learn-memory-sphere-md sphere-source' },
+  { tone: 'preference', label: '偏好', className: 'learn-memory-sphere-sm sphere-preference' },
+  { tone: 'next', label: '下一步', className: 'learn-memory-sphere-lg sphere-next' },
+  { tone: 'writing', label: '写入中', className: 'learn-memory-sphere-xs sphere-writing' },
+  { tone: 'source', label: '索引', className: 'learn-memory-sphere-xs sphere-source-alt' },
+  { tone: 'mastery', label: '稳定', className: 'learn-memory-sphere-sm sphere-mastery-alt' },
+];
+
+function platformMemoryVisualTone(record: { title: string; description: string; chips: string[] }) {
+  const raw = [record.title, record.description, ...record.chips].join(' ');
+  if (
+    /(考试|测验|quiz|test|midterm|final|ddl|deadline|due|作业|assignment|日程|calendar|syllabus|上课|office hour|课程安排)/i.test(
+      raw,
+    )
+  ) {
+    return 'schedule';
+  }
+  if (/偏好|preference|喜欢|希望|习惯|学习偏好/i.test(raw)) return 'preference';
+  if (/进度|范围|checkpoint|学到的位置|学习进度/i.test(raw)) return 'progress';
+  if (/薄弱|不稳|不会|卡点|weak|错|mistake|stuck|薄弱点/i.test(raw)) {
+    return 'weakness';
+  }
+  if (/掌握|会了|已通过|mastered|passed|掌握情况/i.test(raw)) return 'mastery';
+  if (/下一步|怎么帮|教学动作|next|学习建议/i.test(raw)) return 'next';
+  if (/资料|索引|入库|source|题目|讲义|资料理解/i.test(raw)) return 'source';
+  return 'writing';
+}
+
+function shouldShowPlatformMemoryRecord(record: TaskHistoryRecord) {
+  if (record.source !== 'memory_activity') return false;
+  if (record.kind === 'none') return false;
+  if (INTERNAL_MEMORY_PROCESS_PATTERN.test([record.title, record.description].join(' '))) {
+    return false;
+  }
+  return true;
+}
+
+function isPlatformMemoryStatusMockRecord(record: TaskHistoryRecord) {
+  return (
+    record.sourceId.startsWith('platform-memory-status-mock-') ||
+    record.sourceId.startsWith('live2d-memory-status-mock-')
+  );
+}
+
+function shouldCountPlatformMemoryActivity(activity: MemoryActivityRecord) {
+  if (activity.layer === 'none') return false;
+  if (INTERNAL_MEMORY_PROCESS_PATTERN.test([activity.title, activity.description].join(' '))) {
+    return false;
+  }
+  return true;
+}
+
+type PlatformMemoryStatusMockMode = 'off' | 'running' | 'flow';
+
+const PLATFORM_MEMORY_STATUS_MOCK_QUERY_PARAM = 'memoryStatusMock';
+const PLATFORM_MEMORY_STATUS_MOCK_ACTIVITY_IDS = [
+  'platform-memory-status-mock-schedule',
+  'platform-memory-status-mock-preference',
+  'platform-memory-status-mock-progress',
+  'platform-memory-status-mock-weakness',
+  'platform-memory-status-mock-mastery',
+  'platform-memory-status-mock-source',
+  'platform-memory-status-mock-next-step',
+] as const;
+
+function platformMemoryStatusMockModeFromValue(
+  value: string | null | undefined,
+): PlatformMemoryStatusMockMode {
+  if (value === 'running' || value === 'flow') return value;
+  return 'off';
+}
+
+function dismissPlatformMemoryStatusMockActivities() {
+  for (const id of PLATFORM_MEMORY_STATUS_MOCK_ACTIVITY_IDS) {
+    dismissMemoryActivity(id);
+  }
+}
+
+function showRunningPlatformMemoryStatusMock() {
+  dismissPlatformMemoryStatusMockActivities();
+
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-schedule',
+    title: '课程安排已更新',
+    description:
+      '课程安排：你说 CSC108 下周五有 midterm。之后安排复习、小测和提醒时，我会围绕这个时间倒排。',
+    status: 'completed',
+    layer: 'study_memory',
+    chips: ['课程安排', '考试'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-preference',
+    title: '学习偏好已更新',
+    description:
+      '学习偏好：你更希望先看一个具体例子，再回到定义和规则。之后讲新概念时我会按这个顺序来。',
+    status: 'completed',
+    layer: 'structured_fact',
+    chips: ['学习偏好'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-progress',
+    title: '学习进度写入中',
+    description: '学习进度：正在学习 03 循环，重点是 range、for、while 和嵌套循环。',
+    status: 'writing_study_memory',
+    layer: 'study_memory',
+    chips: ['学习进度', 'CSC108'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-weakness',
+    title: '薄弱点写入中',
+    description:
+      '薄弱点：循环边界和 range 的停止位置还不稳，尤其容易把最后一次循环是否执行判断错。',
+    status: 'writing_study_memory',
+    layer: 'study_memory',
+    chips: ['薄弱点', '循环'],
+  });
+}
+
+function replayPlatformMemoryStatusMock() {
+  dismissPlatformMemoryStatusMockActivities();
+
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-schedule',
+    title: '课程安排写入中',
+    description: '课程安排：你说 CSC108 下周五有 midterm，我正在把它放进之后的复习规划里。',
+    status: 'writing_study_memory',
+    layer: 'study_memory',
+    chips: ['课程安排', '考试'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-preference',
+    title: '学习偏好写入中',
+    description: '学习偏好：你更喜欢先看例子，再看定义。之后我会按这个顺序组织讲解。',
+    status: 'writing_fact',
+    layer: 'structured_fact',
+    chips: ['学习偏好'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-progress',
+    title: '学习进度写入中',
+    description: '学习进度：正在学习 03 循环，范围包括 range、for、while 和嵌套循环。',
+    status: 'writing_study_memory',
+    layer: 'study_memory',
+    chips: ['学习进度', 'CSC108'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-weakness',
+    title: '薄弱点写入中',
+    description: '薄弱点：循环边界和 range 的停止位置还不稳，需要用小题继续确认。',
+    status: 'writing_study_memory',
+    layer: 'study_memory',
+    chips: ['薄弱点', '循环'],
+  });
+  addMemoryActivity({
+    id: 'platform-memory-status-mock-source',
+    title: '资料理解写入中',
+    description: '资料理解：我正在把循环讲义和刚才的小测题整理成之后可以检索的课程依据。',
+    status: 'indexing_source',
+    layer: 'knowledge_index',
+    chips: ['资料理解', '题目'],
+  });
+
   return [
-    `已读取并处理《${fileName}》。`,
-    `主题：${result.classification.topic}。`,
-    `资料类型：${result.classification.documentType}，置信度 ${result.classification.confidence.toFixed(2)}。`,
-    `知识图谱：${result.knowledgeGraph.nodeCount} 个节点，${result.knowledgeGraph.edgeCount} 条关系。`,
-    `题库：识别 ${result.problems.extractedCount} 题，新增 ${result.problems.insertedCount} 题，跳过重复 ${result.problems.duplicateCount} 题。`,
-    formatSourceLayerSummary(result),
-    allQuestionLine,
-    result.source.truncated ? '原文较长，已按摄取预算截断后处理。' : '',
-    tokenLine,
-  ]
-    .filter(Boolean)
-    .join('\n');
+    window.setTimeout(() => {
+      updateMemoryActivity('platform-memory-status-mock-schedule', {
+        title: '课程安排已更新',
+        status: 'completed',
+        description:
+          '课程安排：CSC108 下周五有 midterm。之后安排复习、小测和提醒时，我会围绕这个时间倒排。',
+      });
+    }, 700),
+    window.setTimeout(() => {
+      updateMemoryActivity('platform-memory-status-mock-preference', {
+        title: '学习偏好已更新',
+        status: 'completed',
+        description:
+          '学习偏好：你更喜欢先看例子，再看定义。之后讲新概念时我会先给一个可运行的小例子。',
+      });
+    }, 1200),
+    window.setTimeout(() => {
+      updateMemoryActivity('platform-memory-status-mock-progress', {
+        title: '学习进度已更新',
+        status: 'completed',
+        description:
+          '学习进度：你现在定位在 03 循环。下一轮复习会从 range、for、while 和嵌套循环接上。',
+      });
+    }, 1700),
+    window.setTimeout(() => {
+      addMemoryActivity({
+        id: 'platform-memory-status-mock-mastery',
+        title: '掌握情况已更新',
+        description: '掌握情况：你已经能读懂简单 for 循环，并能说出循环变量每轮怎样变化。',
+        status: 'completed',
+        layer: 'study_memory',
+        chips: ['掌握情况', '循环'],
+      });
+    }, 2300),
+    window.setTimeout(() => {
+      updateMemoryActivity('platform-memory-status-mock-weakness', {
+        title: '薄弱点已更新',
+        status: 'completed',
+        description:
+          '薄弱点：range 的停止位置和 while 的终止条件还不稳。下一步要用 2-3 道边界小题来补。',
+      });
+    }, 2800),
+    window.setTimeout(() => {
+      addMemoryActivity({
+        id: 'platform-memory-status-mock-next-step',
+        title: '下一步学习建议已更新',
+        description:
+          '下一步：先做一组循环边界判断题，再让你自己写一个带 accumulator 的 while 循环。',
+        status: 'completed',
+        layer: 'study_memory',
+        chips: ['下一步', '练习'],
+      });
+    }, 3400),
+    window.setTimeout(() => {
+      updateMemoryActivity('platform-memory-status-mock-source', {
+        title: '资料理解已更新',
+        status: 'completed',
+        description:
+          '资料理解：循环讲义和小测题已经整理好。之后问到 range/for/while，我可以回到这些材料里找依据。',
+      });
+    }, 4100),
+  ];
 }
 
 function formatSourceUploadStatusSummary(result: CourseSourceIngestResponse['ingest']) {
   const sectionCount = result.notebook?.sections?.length ?? (result.notebook?.sectionId ? 1 : 0);
   const notebookLine = result.classification.allQuestionUpload
-    ? '全题目文件，已跳过公共记忆和笔记本整理'
+    ? '我识别出这是一份题目文件，已经把能练习的题目整理出来'
     : result.notebook
-      ? `${result.notebook.created ? '新建' : '更新'}笔记本「${result.notebook.name}」${sectionCount ? `，${sectionCount} sections` : ''}`
-      : '未写入笔记本';
+      ? `我${result.notebook.created ? '新建' : '更新'}了笔记本「${result.notebook.name}」${sectionCount ? `，整理出 ${sectionCount} 个段落` : ''}`
+      : '我已经把资料放进可检索的课程理解里';
   return [
-    `${result.classification.topic} (${result.classification.documentType})`,
-    `新增 ${result.problems.insertedCount} 题，重复 ${result.problems.duplicateCount} 题`,
-    `知识图谱 ${result.knowledgeGraph.nodeCount} 点 / ${result.knowledgeGraph.edgeCount} 边`,
-    `平台 ${result.memory.publicPlatformMemoryCount || 0} · 课程 ${result.memory.publicCourseMemoryCount || 0} · 笔记本 ${result.memory.publicNotebookMemoryCount} · 私有 ${result.memory.privateMemoryCount || 0}`,
+    `我读懂了这份关于「${result.classification.topic}」的资料`,
+    result.problems.insertedCount
+      ? `还整理出 ${result.problems.insertedCount} 道可以之后练习的题`
+      : '',
     notebookLine,
-  ].join(' · ');
+  ]
+    .filter(Boolean)
+    .join('。');
 }
 
 function sourceUploadLive2DLine(fileName: string, result: CourseSourceIngestResponse['ingest']) {
@@ -1216,6 +1592,23 @@ function learnSessionIsBlank(messages: LearnMessage[]): boolean {
   return !messages.some(learnMessageHasContent);
 }
 
+function learnSessionUpdatedAtFromMessages(messages: LearnMessage[]): number | null {
+  const messageTimes = messages
+    .filter(learnMessageHasContent)
+    .map((message) => message.createdAt)
+    .filter((createdAt) => Number.isFinite(createdAt));
+  if (!messageTimes.length) return null;
+  return Math.max(...messageTimes);
+}
+
+function learnConversationSyncSignature(args: {
+  key: string;
+  title: string;
+  messages: RemoteLearnMessagePayload[];
+}) {
+  return JSON.stringify(args);
+}
+
 function normalizeLearnSessionTitle(text: string): string {
   const compact = text
     .replace(/```[\s\S]*?```/g, ' ')
@@ -1294,8 +1687,15 @@ function detectPlanningIntent(text: string): PlanningIntent | null {
   return null;
 }
 
+function isWeaknessStatusQuery(text: string): boolean {
+  return /((哪里|哪儿|什么|哪些|哪几|有什么|都有什么).{0,14}(薄弱|薄弱项|薄弱点|不足|短板|弱点|不熟)|(薄弱|薄弱项|薄弱点|不足|短板|弱点|不熟).{0,14}(哪里|哪儿|什么|哪些|哪几|总结|列|有))/i.test(
+    text,
+  );
+}
+
 function needsProgressConfirmation(text: string): boolean {
-  return /(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里|预习|复习|学习计划|下一步|刷题|做题|练习|小测|测验|quiz|test|掌握度|薄弱|不足|短板|弱点)/i.test(
+  if (isWeaknessStatusQuery(text)) return false;
+  return /(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里|预习|复习|学习计划|下一步|刷题|做题|练习|小测|测验|quiz|test|掌握度)/i.test(
     text,
   );
 }
@@ -1338,6 +1738,7 @@ function detectProgressProposal(args: {
 }): ProgressProposal | null {
   const raw = args.text.trim();
   if (!raw) return null;
+  if (isWeaknessStatusQuery(raw)) return null;
   const normalized = normalizeProgressText(raw);
   const hasProgressCue =
     /(学到|学完|刚学|正在学|在学|讲到|上到|看到|复习到|current|currently|covered|finished|reached)/i.test(
@@ -1530,16 +1931,16 @@ function progressRequestReason(args: {
 
 function announceLearningMemoryUpdated(label: string, descriptionPrefix = '记忆已更新') {
   const activityId = addMemoryActivity({
-    title: '学习记忆写入中',
-    description: `正在写入：${label}`,
+    title: '学习进度写入中',
+    description: `学习进度：你现在定位在「${label}」。我会用它判断下一步该复习、预习还是练题。`,
     status: 'writing_study_memory',
     layer: 'study_memory',
     chips: ['课程', '进度'],
   });
   window.setTimeout(() => {
     updateMemoryActivity(activityId, {
-      title: '学习记忆已更新',
-      description: `${descriptionPrefix}：${label}`,
+      title: '学习进度已更新',
+      description: `学习进度：${label}。${descriptionPrefix}，之后我会按这个位置安排复习、预习和练习。`,
       status: 'completed',
       layer: 'study_memory',
       chips: ['课程', '进度'],
@@ -1549,16 +1950,16 @@ function announceLearningMemoryUpdated(label: string, descriptionPrefix = '记�
 
 function announceSyllabusScheduleUpdated(label: string) {
   const activityId = addMemoryActivity({
-    title: '课程日程写入中',
-    description: `正在记录：${label}`,
+    title: '我正在整理课程安排',
+    description: `我会记住「${label}」，之后提醒复习和规划任务时会参考它。`,
     status: 'writing_study_memory',
     layer: 'study_memory',
     chips: ['课程', '日程'],
   });
   window.setTimeout(() => {
     updateMemoryActivity(activityId, {
-      title: '课程日程已更新',
-      description: `已记录：${label}`,
+      title: '我已经记住这门课的安排',
+      description: `「${label}」已经放进学习日历，之后计划会避开临近任务和考试。`,
       status: 'completed',
       layer: 'study_memory',
       chips: ['课程', '日程'],
@@ -1609,18 +2010,22 @@ function buildLocalLearningAnswer(args: {
     args.course.courseCode || args.course.name,
   );
 
-  if (/(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里)/.test(normalized)) {
-    return `${progressLine}\n\n下一步不要全量重刷，先围绕 ${conceptSentence(
-      args.snapshot.nextConcepts,
-      '当前笔记本的核心概念',
-    )} 复习；如果你完成一组题，我会用新的做题结果更新这个判断。`;
-  }
-
-  if (/(哪里.*薄弱|薄弱点|不足|短板|弱点|总结.*不足|不足.*总结|归纳.*不足|不熟)/.test(normalized)) {
+  if (isWeaknessStatusQuery(args.text)) {
     const recentMisses = args.state.recentProblemAttempts
       .filter((attempt) => attempt.status !== 'passed')
       .slice(0, 2)
       .map((attempt) => `《${attempt.problemTitle}》`);
+    if (!args.snapshot.weakConcepts.length && !recentMisses.length) {
+      const scope = currentNotebook
+        ? `当前定位在《${currentNotebook}》`
+        : args.snapshot.progressKnown
+          ? `当前进度是：${progressTarget || '已确认'}`
+          : '目前还没有确认学习进度';
+      const diagnosticTarget = weakConcepts.length
+        ? `可以先从 ${weakCopy} 做一次小诊断`
+        : '可以先做一组 5-8 题的小诊断';
+      return `${scope}，但我还没有记录到明确的错题、半对题或薄弱点证据，所以不能硬编薄弱项。\n\n${diagnosticTarget}。做完后我会按错因把薄弱点写入记忆，再给你排下一轮复习。`;
+    }
     const evidence =
       recentMisses.length > 0
         ? `依据最近的 ${recentMisses.join('、')}。`
@@ -1628,6 +2033,13 @@ function buildLocalLearningAnswer(args: {
           ? '目前做题证据还不多，所以先按当前笔记本、题库标签和学习进度判断。'
           : '目前做题证据还不多，所以先按课程标签、入门范围和学习进度判断。';
     return `目前最需要补的是：${weakCopy}。\n\n${evidence}\n\n建议先做小范围复习：把这些概念各用一句话解释清楚，再做少量对应题。如果做题结果继续显示不稳，我会把它们加入待复习队列。`;
+  }
+
+  if (/(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里)/.test(normalized)) {
+    return `${progressLine}\n\n下一步不要全量重刷，先围绕 ${conceptSentence(
+      args.snapshot.nextConcepts,
+      '当前笔记本的核心概念',
+    )} 复习；如果你完成一组题，我会用新的做题结果更新这个判断。`;
   }
 
   if (/(预习|提前学|提前看|先学|先看.*提纲|preview|pre[-\s]?study|study ahead)/i.test(normalized)) {
@@ -3176,10 +3588,16 @@ export function LearnPageClient() {
   const searchParams = useSearchParams();
   const urlSessionId = searchParams.get('session')?.trim() || '';
   const urlCourseId = searchParams.get('courseId')?.trim() || '';
+  const platformMemoryStatusMockMode = platformMemoryStatusMockModeFromValue(
+    searchParams.get(PLATFORM_MEMORY_STATUS_MOCK_QUERY_PARAM),
+  );
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const sourceDocumentInputRef = useRef<HTMLInputElement>(null);
   const draftTextareaRef = useRef<HTMLTextAreaElement>(null);
   const syllabusInputRef = useRef<HTMLInputElement>(null);
   const sourceUploadPanelOpenRef = useRef(false);
+  const platformMemoryStatusMockTimersRef = useRef<number[]>([]);
+  const appliedPlatformMemoryStatusMockModeRef = useRef<PlatformMemoryStatusMockMode>('off');
   const lastSyncedConversationRef = useRef('');
   const authHydrated = usePersistHydrated(useAuthStore);
   const courseHydrated = usePersistHydrated(useCurrentCourseStore);
@@ -3194,6 +3612,8 @@ export function LearnPageClient() {
   const pdfProviderId = useSettingsStore((state) => state.pdfProviderId);
   const pdfProvidersConfig = useSettingsStore((state) => state.pdfProvidersConfig);
   const setModel = useSettingsStore((state) => state.setModel);
+  const memoryActivities = useMemoryActivityStore((state) => state.activities);
+  const memoryHistoryRecords = useTaskHistoryStore((state) => state.records);
 
   const [courses, setCourses] = useState<CourseRecord[]>([]);
   const [coursesLoadState, setCoursesLoadState] = useState<LoadState>('idle');
@@ -3228,9 +3648,21 @@ export function LearnPageClient() {
   const [sourceUploading, setSourceUploading] = useState(false);
   const [sourceUploadPanelOpen, setSourceUploadPanelOpen] = useState(false);
   const [sourceUploadItems, setSourceUploadItems] = useState<LearnSourceUploadItem[]>([]);
+  const [selectedSourceLibraryTileId, setSelectedSourceLibraryTileId] = useState<string | null>(
+    null,
+  );
+  const [sourceLibraryDetailView, setSourceLibraryDetailView] =
+    useState<SourceLibraryDetailView>('image');
+  const [sourceLibraryImageExpanded, setSourceLibraryImageExpanded] = useState(false);
+  const [deletingSourceHashes, setDeletingSourceHashes] = useState<string[]>([]);
+  const [sourceLibraryTextCache, setSourceLibraryTextCache] = useState<
+    Record<string, SourceLibraryTextState>
+  >({});
+  const [courseSourceUploads, setCourseSourceUploads] = useState<CourseSourceUploadRecord[]>([]);
   const [completedSourceUploadBadgeCount, setCompletedSourceUploadBadgeCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [learnSessions, setLearnSessions] = useState<LearnChatSession[]>([]);
+  const [deletingLearnSessionId, setDeletingLearnSessionId] = useState<string | null>(null);
   const [messageStoreKey, setMessageStoreKey] = useState('');
   const [remoteConversationReadyKey, setRemoteConversationReadyKey] = useState('');
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(() =>
@@ -3241,6 +3673,7 @@ export function LearnPageClient() {
   );
   const [rightRailView, setRightRailView] = useState<LearnRightRailView>('sessions');
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
+  const [memoryActivityDialogOpen, setMemoryActivityDialogOpen] = useState(false);
   const [calendarReferenceDate, setCalendarReferenceDate] = useState(() => new Date());
   const [miniLectureOpen, setMiniLectureOpen] = useState(false);
   const [activeMiniLectureDeck, setActiveMiniLectureDeck] = useState<MiniLectureDeck | null>(null);
@@ -3291,6 +3724,11 @@ export function LearnPageClient() {
     sourceUploadPanelOpenRef.current = open;
     setSourceUploadPanelOpen(open);
     if (open) setCompletedSourceUploadBadgeCount(0);
+    else {
+      setSelectedSourceLibraryTileId(null);
+      setSourceLibraryDetailView('image');
+      setSourceLibraryImageExpanded(false);
+    }
   }, []);
 
   const openSourceUploadPanel = useCallback(() => {
@@ -3370,6 +3808,39 @@ export function LearnPageClient() {
     textarea.style.height = '24px';
     textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 24), 128)}px`;
   }, [draft]);
+
+  useEffect(() => {
+    const clearPlatformMemoryStatusMockTimers = () => {
+      for (const timerId of platformMemoryStatusMockTimersRef.current) {
+        window.clearTimeout(timerId);
+      }
+      platformMemoryStatusMockTimersRef.current = [];
+    };
+
+    clearPlatformMemoryStatusMockTimers();
+
+    if (platformMemoryStatusMockMode === 'off') {
+      if (appliedPlatformMemoryStatusMockModeRef.current !== 'off') {
+        dismissPlatformMemoryStatusMockActivities();
+      }
+      appliedPlatformMemoryStatusMockModeRef.current = 'off';
+      return undefined;
+    }
+
+    dismissPlatformMemoryStatusMockActivities();
+    appliedPlatformMemoryStatusMockModeRef.current = platformMemoryStatusMockMode;
+    if (platformMemoryStatusMockMode === 'flow') {
+      platformMemoryStatusMockTimersRef.current = replayPlatformMemoryStatusMock();
+    } else {
+      showRunningPlatformMemoryStatusMock();
+    }
+
+    return () => {
+      clearPlatformMemoryStatusMockTimers();
+      dismissPlatformMemoryStatusMockActivities();
+      appliedPlatformMemoryStatusMockModeRef.current = 'off';
+    };
+  }, [platformMemoryStatusMockMode]);
 
   const showPreviousCalendarMonth = useCallback(() => {
     setCalendarReferenceDate(
@@ -3526,6 +3997,53 @@ export function LearnPageClient() {
     !isResearchCourse && syllabusEvents.length > 0 && syllabusEvents.length < 3;
   const missingLearningSetup =
     !isResearchCourse && !snapshot?.progressKnown && syllabusEvents.length === 0;
+  const activeMemoryActivities = useMemo(
+    () =>
+      memoryActivities.filter(
+        (activity) =>
+          shouldCountPlatformMemoryActivity(activity) &&
+          isActiveMemoryActivityStatus(activity.status),
+      ),
+    [memoryActivities],
+  );
+  const completedMemoryActivities = useMemo(
+    () =>
+      memoryActivities.filter(
+        (activity) =>
+          shouldCountPlatformMemoryActivity(activity) && activity.status === 'completed',
+      ),
+    [memoryActivities],
+  );
+  const platformMemoryState = activeMemoryActivities.length
+    ? 'writing'
+    : completedMemoryActivities.length
+      ? 'completed'
+      : 'idle';
+  const platformMemoryBadgeCount =
+    activeMemoryActivities.length || completedMemoryActivities.length;
+  const platformMemoryHistory = useMemo(
+    () =>
+      memoryHistoryRecords
+        .filter(
+          (record) =>
+            shouldShowPlatformMemoryRecord(record) &&
+            (platformMemoryStatusMockMode !== 'off' || !isPlatformMemoryStatusMockRecord(record)),
+        )
+        .slice(0, 15),
+    [memoryHistoryRecords, platformMemoryStatusMockMode],
+  );
+  const platformMemoryButtonLabel =
+    platformMemoryState === 'writing'
+      ? `平台记忆正在更新，${platformMemoryBadgeCount} 条`
+      : platformMemoryState === 'completed'
+        ? `平台记忆刚更新了 ${platformMemoryBadgeCount} 条`
+        : '平台记忆动态';
+  const platformMemoryTooltip =
+    platformMemoryState === 'writing'
+      ? '平台正在理解新的学习信息'
+      : platformMemoryState === 'completed'
+        ? '平台记忆刚刚有更新'
+        : '查看平台记忆写入历史';
   const validSyllabusDraftEvents = useMemo(
     () =>
       syllabusDraftEvents
@@ -3637,6 +4155,7 @@ export function LearnPageClient() {
             setLearnSessions([]);
             setNotebooks([]);
             setProblems([]);
+            setCourseSourceUploads([]);
             setSnapshot(null);
             const query = next.toString();
             router.replace(query ? `/learn?${query}` : '/learn', { scroll: false });
@@ -3710,13 +4229,14 @@ export function LearnPageClient() {
     const nextSessions = pruneDuplicateBlankLearnSessions(
       localUserId,
       activeCourseId,
-      Array.from(byId.values()).sort((a, b) => b.updatedAt - a.updatedAt),
+      sortLearnSessionsForList(localUserId, activeCourseId, Array.from(byId.values())),
       activeSessionId,
     );
     writeLearnSessions(localUserId, activeCourseId, nextSessions);
     setLearnSessions(nextSessions);
     setMessageStoreKey(nextStoreKey);
     const localMessages = readLearnSessionMessages(localUserId, activeCourseId, activeSessionId);
+    let loadedMessages = localMessages;
     setMessages(localMessages);
 
     Promise.all([
@@ -3727,12 +4247,19 @@ export function LearnPageClient() {
         if (!alive) return;
         let mergedSessions = nextSessions;
         if (remoteSessions?.storage === 'database' && remoteSessions.sessions.length > 0) {
-          mergedSessions = mergeLearnSessions(mergedSessions, remoteSessions.sessions);
+          mergedSessions = mergeLearnSessions(
+            localUserId,
+            activeCourseId,
+            mergedSessions,
+            remoteSessions.sessions,
+          );
         }
 
         if (remoteConversation?.storage === 'database' && remoteConversation.session) {
           const remoteSession = remoteConversation.session;
-          mergedSessions = mergeLearnSessions(mergedSessions, [remoteSession]);
+          mergedSessions = mergeLearnSessions(localUserId, activeCourseId, mergedSessions, [
+            remoteSession,
+          ]);
           const localSession = nextSessions.find((session) => session.id === activeSessionId);
           const remoteIsNewer =
             !localSession ||
@@ -3740,6 +4267,7 @@ export function LearnPageClient() {
             localMessages.length === 0;
           if (remoteIsNewer) {
             const remoteMessages = remoteConversation.messages.map(remoteMessageToLearnMessage);
+            loadedMessages = remoteMessages;
             writeLearnSessionMessages(localUserId, activeCourseId, activeSessionId, remoteMessages);
             setMessages(remoteMessages);
           }
@@ -3755,7 +4283,14 @@ export function LearnPageClient() {
         setLearnSessions(mergedSessions);
       })
       .finally(() => {
-        if (alive) setRemoteConversationReadyKey(nextStoreKey);
+        if (alive) {
+          lastSyncedConversationRef.current = learnConversationSyncSignature({
+            key: nextStoreKey,
+            title: learnSessionTitleFromMessages(loadedMessages, '新对话'),
+            messages: loadedMessages.map(learnMessageToRemotePayload),
+          });
+          setRemoteConversationReadyKey(nextStoreKey);
+        }
       });
 
     return () => {
@@ -3770,6 +4305,7 @@ export function LearnPageClient() {
     const syncTitle = learnSessionTitleFromMessages(messages, '新对话');
     setLearnSessions((current) => {
       const now = Date.now();
+      const latestMessageUpdatedAt = learnSessionUpdatedAtFromMessages(messages);
       const byId = new Map<string, LearnChatSession>();
       for (const session of current) byId.set(session.id, session);
       const currentSession = byId.get(activeSessionId);
@@ -3783,12 +4319,12 @@ export function LearnPageClient() {
         id: activeSessionId,
         title: learnSessionTitleFromMessages(messages, fallbackTitle),
         createdAt: currentSession?.createdAt ?? now,
-        updatedAt: messages.length > 0 ? now : (currentSession?.updatedAt ?? now),
+        updatedAt: latestMessageUpdatedAt ?? currentSession?.updatedAt ?? now,
       });
       const nextSessions = pruneDuplicateBlankLearnSessions(
         localUserId,
         activeCourseId,
-        Array.from(byId.values()).sort((a, b) => b.updatedAt - a.updatedAt),
+        sortLearnSessionsForList(localUserId, activeCourseId, Array.from(byId.values())),
         activeSessionId,
       );
       writeLearnSessions(localUserId, activeCourseId, nextSessions);
@@ -3797,7 +4333,7 @@ export function LearnPageClient() {
     if (remoteConversationReadyKey !== activeMessageStoreKey) return;
 
     const payload = messages.map(learnMessageToRemotePayload);
-    const syncSignature = JSON.stringify({
+    const syncSignature = learnConversationSyncSignature({
       key: activeMessageStoreKey,
       title: syncTitle,
       messages: payload,
@@ -3861,7 +4397,10 @@ export function LearnPageClient() {
   }, [courses, coursesLoadState, storedCourseId, urlCourseId]);
 
   useEffect(() => {
-    if (!activeCourse) return;
+    if (!activeCourse) {
+      setCourseSourceUploads([]);
+      return;
+    }
     setCurrentCourse({
       id: activeCourse.id,
       name: activeCourse.name,
@@ -3872,11 +4411,13 @@ export function LearnPageClient() {
     Promise.all([
       listStagesByCourse(activeCourse.id).catch(() => []),
       listCourseProblemSummaries(activeCourse.id).catch(() => []),
+      listCourseSourceUploads(activeCourse.id).catch(() => []),
     ])
-      .then(async ([nextNotebooks, nextProblems]) => {
+      .then(async ([nextNotebooks, nextProblems, nextSourceUploads]) => {
         if (!alive) return;
         setNotebooks(nextNotebooks);
         setProblems(nextProblems);
+        setCourseSourceUploads(nextSourceUploads);
         const localUserId = userId || 'anonymous';
         const remoteState = await loadRemoteLearnerCourseState(activeCourse.id);
         if (!alive) return;
@@ -4212,15 +4753,6 @@ export function LearnPageClient() {
               setCompletedSourceUploadBadgeCount((count) => Math.min(99, count + 1));
             }
             didIngestAnyFile = true;
-            setMessages((current) => [
-              ...current,
-              {
-                id: makeClientId('assistant-source-upload-done'),
-                role: 'assistant',
-                text: formatSourceIngestMessage(file.name, response.ingest),
-                createdAt: Date.now(),
-              },
-            ]);
           } catch (err) {
             const message = err instanceof Error ? err.message : '课程资料上传失败';
             updateSourceUploadItem(itemId, {
@@ -4250,12 +4782,14 @@ export function LearnPageClient() {
         }
 
         if (didIngestAnyFile) {
-          const [nextNotebooks, nextProblems] = await Promise.all([
+          const [nextNotebooks, nextProblems, nextSourceUploads] = await Promise.all([
             listStagesByCourse(activeCourse.id).catch(() => notebooks),
             listCourseProblemSummaries(activeCourse.id).catch(() => problems),
+            listCourseSourceUploads(activeCourse.id).catch(() => courseSourceUploads),
           ]);
           setNotebooks(nextNotebooks);
           setProblems(nextProblems);
+          setCourseSourceUploads(nextSourceUploads);
           refreshLearnerSnapshot();
         }
       } finally {
@@ -4273,10 +4807,26 @@ export function LearnPageClient() {
       problems,
       providerId,
       refreshLearnerSnapshot,
+      courseSourceUploads,
       sourceUploading,
       updateSourceUploadItem,
     ],
   );
+
+  useEffect(() => {
+    if (!sourceUploadPanelOpen || !activeCourse?.id) return;
+    let alive = true;
+    void listCourseSourceUploads(activeCourse.id)
+      .then((uploads) => {
+        if (alive) setCourseSourceUploads(uploads);
+      })
+      .catch(() => {
+        if (alive) setCourseSourceUploads((current) => current);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeCourse?.id, sourceUploadPanelOpen]);
 
   const commitSyllabusEvents = useCallback(
     (
@@ -4580,15 +5130,19 @@ export function LearnPageClient() {
         learnSessionIsBlank(readLearnSessionMessages(localUserId, activeCourseId, session.id)),
     );
     if (existingBlankSession) {
-      const nextSessions = pruneDuplicateBlankLearnSessions(
+      const nextSessions = sortLearnSessionsForList(
         localUserId,
         activeCourseId,
-        learnSessions.map((session) =>
-          session.id === existingBlankSession.id
-            ? { ...session, title: session.title || '新对话', updatedAt: Date.now() }
-            : session,
+        pruneDuplicateBlankLearnSessions(
+          localUserId,
+          activeCourseId,
+          learnSessions.map((session) =>
+            session.id === existingBlankSession.id
+              ? { ...session, title: session.title || '新对话' }
+              : session,
+          ),
+          existingBlankSession.id,
         ),
-        existingBlankSession.id,
       );
       writeLearnSessions(localUserId, activeCourseId, nextSessions);
       setLearnSessions(nextSessions);
@@ -4603,7 +5157,10 @@ export function LearnPageClient() {
       createdAt: now,
       updatedAt: now,
     };
-    const nextSessions = [nextSession, ...learnSessions];
+    const nextSessions = sortLearnSessionsForList(localUserId, activeCourseId, [
+      nextSession,
+      ...learnSessions,
+    ]);
     writeLearnSessions(localUserId, activeCourseId, nextSessions);
     setLearnSessions(nextSessions);
     router.push(learnSessionHref(nextSession.id));
@@ -4616,6 +5173,58 @@ export function LearnPageClient() {
     messages,
     router,
   ]);
+
+  const deleteLearnSession = useCallback(
+    async (session: LearnChatSession) => {
+      if (!activeCourseId || deletingLearnSessionId) return;
+
+      setDeletingLearnSessionId(session.id);
+      try {
+        const remainingSessions = learnSessions.filter((item) => item.id !== session.id);
+        const now = Date.now();
+        const fallbackSession =
+          remainingSessions[0] ??
+          ({
+            id: 'default',
+            title: '新对话',
+            createdAt: now,
+            updatedAt: now,
+          } satisfies LearnChatSession);
+        const nextSessions = sortLearnSessionsForList(
+          localUserId,
+          activeCourseId,
+          remainingSessions.length ? remainingSessions : [fallbackSession],
+        );
+
+        deleteLearnSessionMessages(localUserId, activeCourseId, session.id);
+        writeLearnSessions(localUserId, activeCourseId, nextSessions);
+        setLearnSessions(nextSessions);
+
+        if (session.id === activeSessionId) {
+          setMessages(readLearnSessionMessages(localUserId, activeCourseId, fallbackSession.id));
+          setRemoteConversationReadyKey('');
+          router.push(learnSessionHref(fallbackSession.id));
+        }
+
+        const remoteDeleted = await deleteRemoteLearnConversation(activeCourseId, session.id);
+        toast.success(remoteDeleted ? '会话已删除。' : '本地会话已删除。');
+      } catch (deleteError) {
+        console.error('[learn] failed to delete session', deleteError);
+        toast.error('删除会话失败，请稍后再试。');
+      } finally {
+        setDeletingLearnSessionId(null);
+      }
+    },
+    [
+      activeCourseId,
+      activeSessionId,
+      deletingLearnSessionId,
+      learnSessionHref,
+      learnSessions,
+      localUserId,
+      router,
+    ],
+  );
 
   const addAssistantPlan = useCallback(
     (plan: PracticePlan) => {
@@ -5141,6 +5750,246 @@ export function LearnPageClient() {
     ],
   );
 
+  const sourceBackedNotebookIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const upload of courseSourceUploads) {
+      for (const notebookId of upload.notebookIds) ids.add(notebookId);
+    }
+    return ids;
+  }, [courseSourceUploads]);
+
+  const sourceLibraryTiles = useMemo<SourceLibraryTile[]>(() => {
+    const uploadTiles = courseSourceUploads.map((upload) => {
+      const isProblemBank = upload.allQuestionUpload === true || upload.kind === 'problem_bank';
+      const sectionCount = upload.stats.sectionCount || upload.sectionIds.length;
+      const problemCount = upload.stats.problemCount || upload.problemIds.length;
+      const updatedLabel = formatLibraryItemDate(upload.updatedAt);
+      return {
+        id: `source-${upload.sourceHash}`,
+        tileKind: 'source' as const,
+        title: upload.topic || upload.title,
+        subtitle: isProblemBank
+          ? problemCount > 0
+            ? `${problemCount} 道题`
+            : '题库文件'
+          : sectionCount > 0
+            ? `${sectionCount} 段笔记`
+            : sourceUploadKindLabel(upload.kind),
+        dateLabel: updatedLabel,
+        coverImagePath: isProblemBank ? null : upload.coverImagePath,
+        placeholderLabel: isProblemBank ? '题库' : 'Notebook',
+        typeLabel: isProblemBank ? '题库' : sourceUploadKindLabel(upload.kind),
+        updatedAt: Date.parse(upload.updatedAt) || 0,
+        isProblemBank,
+        status: null as LearnSourceUploadStatus | null,
+        error: null as string | null,
+        sourceHash: upload.sourceHash,
+        textNotebookIds: upload.notebookIds,
+        textSectionIds: upload.sectionIds,
+        textBlocks: (upload.textSections || []).map((section) => ({
+          id: section.id,
+          title: section.title,
+          markdown: section.markdown,
+        })),
+      };
+    });
+
+    const notebookTiles = notebooks
+      .filter((notebook) => !sourceBackedNotebookIds.has(notebook.id))
+      .map((notebook) => ({
+        id: `notebook-${notebook.id}`,
+        tileKind: 'notebook' as const,
+        title: notebook.name,
+        subtitle:
+          notebook.notebookKind === 'markdown'
+            ? `${notebook.sectionCount || 0} 段笔记`
+            : `${notebook.sceneCount || 0} 页`,
+        dateLabel: formatLibraryItemDate(notebook.updatedAt),
+        coverImagePath: null,
+        placeholderLabel: 'Notebook',
+        typeLabel: notebook.notebookKind === 'markdown' ? '笔记本' : '图片笔记本',
+        updatedAt: notebook.updatedAt || 0,
+        isProblemBank: false,
+        status: null as LearnSourceUploadStatus | null,
+        error: null as string | null,
+        sourceHash: null,
+        textNotebookIds: [notebook.id],
+        textSectionIds: [],
+        textBlocks: [],
+      }));
+
+    return [...uploadTiles, ...notebookTiles].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [courseSourceUploads, notebooks, sourceBackedNotebookIds]);
+
+  const transientSourceUploadTiles = useMemo<SourceLibraryTile[]>(
+    () =>
+      sourceUploadItems
+        .filter((item) => item.status !== 'stored')
+        .map((item) => ({
+          id: `transient-${item.id}`,
+          tileKind: 'transient' as const,
+          title: item.fileName,
+          subtitle: item.status === 'ingesting' ? '入库中' : '入库失败',
+          dateLabel: formatLibraryItemDate(item.updatedAt),
+          coverImagePath: null,
+          placeholderLabel: item.sourceKind === 'problem_bank' ? '题库' : 'Notebook',
+          typeLabel: sourceUploadKindLabel(item.sourceKind),
+          updatedAt: item.updatedAt,
+          isProblemBank: item.sourceKind === 'problem_bank',
+          status: item.status,
+          error: item.error ?? null,
+          sourceHash: null,
+          textNotebookIds: [],
+          textSectionIds: [],
+          textBlocks: [],
+        })),
+    [sourceUploadItems],
+  );
+
+  const allSourceLibraryTiles = useMemo(
+    () => [...transientSourceUploadTiles, ...sourceLibraryTiles],
+    [sourceLibraryTiles, transientSourceUploadTiles],
+  );
+
+  const selectedSourceLibraryTile = useMemo(
+    () => allSourceLibraryTiles.find((tile) => tile.id === selectedSourceLibraryTileId) ?? null,
+    [allSourceLibraryTiles, selectedSourceLibraryTileId],
+  );
+  const selectedSourceLibraryTileCacheState = selectedSourceLibraryTile
+    ? sourceLibraryTextCache[selectedSourceLibraryTile.id]?.status
+    : undefined;
+
+  useEffect(() => {
+    if (!selectedSourceLibraryTile || !selectedSourceLibraryTile.textNotebookIds.length) return;
+    if (selectedSourceLibraryTile.textBlocks.length > 0) return;
+    if (selectedSourceLibraryTileCacheState && selectedSourceLibraryTileCacheState !== 'failed') {
+      return;
+    }
+
+    let alive = true;
+    setSourceLibraryTextCache((current) => ({
+      ...current,
+      [selectedSourceLibraryTile.id]: { status: 'loading', text: '' },
+    }));
+
+    void Promise.all(
+      selectedSourceLibraryTile.textNotebookIds.map((notebookId) =>
+        loadStageData(notebookId).catch(() => null),
+      ),
+    ).then((stageResults) => {
+      if (!alive) return;
+      const wantedSectionIds = new Set(selectedSourceLibraryTile.textSectionIds);
+      const markdownBlocks = stageResults.flatMap((stageResult) => {
+        const allMarkdownScenes = [
+          ...(stageResult?.markdownScenes || []),
+          ...(stageResult?.scenes || []),
+        ].filter((scene, index, scenes) => {
+          if (scene.content.type !== 'markdown') return false;
+          return scenes.findIndex((candidate) => candidate.id === scene.id) === index;
+        });
+        const matchedMarkdownScenes =
+          wantedSectionIds.size > 0
+            ? allMarkdownScenes.filter((scene) => wantedSectionIds.has(scene.id))
+            : allMarkdownScenes;
+        const markdownScenes =
+          matchedMarkdownScenes.length > 0 ? matchedMarkdownScenes : allMarkdownScenes;
+        return markdownScenes.map((scene, index) => {
+          if (scene.content.type !== 'markdown') return '';
+          const title = scene.title || `文本 ${index + 1}`;
+          return [`## ${title}`, scene.content.markdown.trim()].filter(Boolean).join('\n\n');
+        });
+      });
+      const text = markdownBlocks.join('\n\n').trim();
+      setSourceLibraryTextCache((current) => ({
+        ...current,
+        [selectedSourceLibraryTile.id]: {
+          status: text ? 'ready' : 'empty',
+          text,
+        },
+      }));
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedSourceLibraryTile, selectedSourceLibraryTileCacheState]);
+
+  const selectedSourceLibraryTextState = selectedSourceLibraryTile
+    ? sourceLibraryTextCache[selectedSourceLibraryTile.id]
+    : undefined;
+  const selectedSourceLibraryHasImage = Boolean(selectedSourceLibraryTile?.coverImagePath);
+  const selectedSourceLibraryPreloadedText =
+    selectedSourceLibraryTile?.textBlocks
+      .map((block, index) => {
+        const markdown = block.markdown.trim();
+        if (!markdown) return '';
+        const title = block.title || `文本 ${index + 1}`;
+        return [`## ${title}`, markdown].join('\n\n');
+      })
+      .filter(Boolean)
+      .join('\n\n') || '';
+  const selectedSourceLibraryText =
+    selectedSourceLibraryPreloadedText.trim() || selectedSourceLibraryTextState?.text.trim() || '';
+  const selectedSourceLibraryHasText =
+    Boolean(selectedSourceLibraryPreloadedText.trim()) ||
+    (selectedSourceLibraryTextState?.status === 'ready' && selectedSourceLibraryText.length > 0);
+  const selectedSourceLibraryTextLoading =
+    Boolean(selectedSourceLibraryTile?.textNotebookIds.length) &&
+    !selectedSourceLibraryTile?.textBlocks.length &&
+    (!selectedSourceLibraryTextState || selectedSourceLibraryTextState.status === 'loading');
+  const showSourceLibraryViewSwitch = selectedSourceLibraryHasImage && selectedSourceLibraryHasText;
+  const effectiveSourceLibraryDetailView: SourceLibraryDetailView = showSourceLibraryViewSwitch
+    ? sourceLibraryDetailView
+    : selectedSourceLibraryHasText ||
+        (!selectedSourceLibraryHasImage && selectedSourceLibraryTextLoading)
+      ? 'text'
+      : 'image';
+
+  const handleDeleteSourceLibraryTile = useCallback(
+    async (tile: SourceLibraryTile) => {
+      if (!activeCourse?.id || !tile.sourceHash) return;
+      const sourceHash = tile.sourceHash;
+      if (deletingSourceHashes.includes(sourceHash)) return;
+
+      setDeletingSourceHashes((current) =>
+        current.includes(sourceHash) ? current : [...current, sourceHash],
+      );
+      try {
+        await deleteCourseSourceUpload({
+          courseId: activeCourse.id,
+          sourceHash,
+        });
+        setCourseSourceUploads((current) =>
+          current.filter((upload) => upload.sourceHash !== sourceHash),
+        );
+        setSourceLibraryTextCache((current) => {
+          const next = { ...current };
+          delete next[tile.id];
+          return next;
+        });
+        if (selectedSourceLibraryTileId === tile.id) {
+          setSelectedSourceLibraryTileId(null);
+          setSourceLibraryDetailView('image');
+          setSourceLibraryImageExpanded(false);
+        }
+        const [nextNotebooks, nextProblems, nextSourceUploads] = await Promise.all([
+          listStagesByCourse(activeCourse.id).catch(() => notebooks),
+          listCourseProblemSummaries(activeCourse.id).catch(() => problems),
+          listCourseSourceUploads(activeCourse.id).catch(() => null),
+        ]);
+        setNotebooks(nextNotebooks);
+        setProblems(nextProblems);
+        if (nextSourceUploads) setCourseSourceUploads(nextSourceUploads);
+        toast.success('已删除资料及相关记录');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '删除资料失败');
+      } finally {
+        setDeletingSourceHashes((current) => current.filter((hash) => hash !== sourceHash));
+      }
+    },
+    [activeCourse?.id, deletingSourceHashes, notebooks, problems, selectedSourceLibraryTileId],
+  );
+
   const resolvingActiveCourse = coursesLoadState === 'ready' && courses.length > 0 && !activeCourse;
 
   if (
@@ -5268,21 +6117,6 @@ export function LearnPageClient() {
                   <span className="mt-0.5 block truncate text-xs text-slate-500">
                     {course.courseCode || courseSubtitle(course) || '课程对话'}
                   </span>
-                  {active && snapshot?.progressKnown ? (
-                    <span className="mt-2 flex items-center gap-2">
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
-                        <span
-                          className="block h-full rounded-full bg-sky-500"
-                          style={{
-                            width: `${Math.min(100, Math.max(4, snapshot.progressPercent))}%`,
-                          }}
-                        />
-                      </span>
-                      <span className="text-[10px] font-semibold tabular-nums text-slate-500">
-                        {snapshot.progressPercent}%
-                      </span>
-                    </span>
-                  ) : null}
                 </span>
               ) : null}
               {!leftRailCollapsed && canDeleteCourse ? (
@@ -5967,47 +6801,58 @@ export function LearnPageClient() {
 
   const sourceUploadStatusDialog = (
     <Dialog open={sourceUploadPanelOpen} onOpenChange={setSourceUploadDialogOpen}>
-      <DialogContent className="max-h-[min(720px,86dvh)] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-[28px] border-border/80 bg-background p-0 shadow-2xl">
-        <DialogHeader className="border-b border-border px-5 py-4 text-left">
-          <DialogTitle className="text-base">课程资料入库</DialogTitle>
-          <p className="text-xs leading-5 text-muted-foreground">
-            关闭这个窗口不会中断入库；完成后，伴学角色会提示，上传按钮也会显示角标。
-          </p>
+      <DialogContent className="flex h-[min(760px,86dvh)] w-[calc(100vw-1rem)] max-w-[1180px] flex-col overflow-hidden rounded-[28px] border-border/80 bg-background p-0 shadow-2xl sm:h-[min(780px,86dvh)]">
+        <DialogHeader className="sr-only">
+          <DialogTitle>资料库</DialogTitle>
+          <DialogDescription>
+            浏览课程资料和整理好的笔记本；第一个位置用于上传新的课程文件。
+          </DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[calc(min(720px,86dvh)-82px)] flex-col overflow-hidden">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 px-5 py-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {sourceUploading ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  入库中，可以先关闭窗口
-                </>
-              ) : sourceUploadItems.length ? (
-                <>
-                  <CheckCircle2 className="size-3.5 text-emerald-600" />
-                  最近入库状态已更新
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="size-3.5" />
-                  选择课程资料开始入库
-                </>
-              )}
+        <input
+          ref={sourceDocumentInputRef}
+          type="file"
+          accept=".pdf,.pptx,.txt,.md,.markdown,.csv,.json,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/*"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handleLearnUploadFiles(event.currentTarget.files);
+            event.currentTarget.value = '';
+          }}
+        />
+        <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-slate-950">
+          <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-slate-200/70 px-6 py-4 dark:border-white/10">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold text-slate-950 dark:text-white">
+                资料库
+              </h2>
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                {!selectedSourceLibraryTile ? (
+                  <span>
+                    {sourceLibraryTiles.length + transientSourceUploadTiles.length} 个项目
+                  </span>
+                ) : null}
+                {sourceUploading ? (
+                  <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-100">
+                    <Loader2 className="size-3 animate-spin" />
+                    入库中
+                  </span>
+                ) : null}
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-full px-3 text-xs"
-                onClick={() => {
-                  setSourceUploadDialogOpen(false);
-                  setCourseFilesDialogOpen(true);
-                }}
-              >
-                查看文件库
-              </Button>
-              {sourceUploadItems.some((item) => item.status !== 'ingesting') ? (
+            {!selectedSourceLibraryTile ? (
+              <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                <span className="rounded-lg bg-white px-4 py-1.5 text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white">
+                  Date
+                </span>
+                <span className="px-4 py-1.5">Name</span>
+                <span className="px-4 py-1.5">Type</span>
+              </div>
+            ) : (
+              <div />
+            )}
+            <div className="flex min-w-0 justify-end">
+              {!selectedSourceLibraryTile &&
+              sourceUploadItems.some((item) => item.status !== 'ingesting') ? (
                 <Button
                   type="button"
                   variant="ghost"
@@ -6022,96 +6867,264 @@ export function LearnPageClient() {
                   清空完成项
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                size="sm"
-                className="h-8 rounded-full px-3 text-xs"
-                disabled={sourceUploading}
-                onClick={() => imageInputRef.current?.click()}
-              >
-                选择文件
-              </Button>
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-5">
-            {sourceUploadItems.length ? (
-              <ul className="space-y-2.5">
-                {sourceUploadItems.map((item) => (
-                  <li
-                    key={item.id}
-                    className="rounded-[18px] border border-border/70 bg-muted/20 p-3"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span
+          {selectedSourceLibraryTile ? (
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 pt-5">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSourceLibraryTileId(null);
+                    setSourceLibraryDetailView('image');
+                    setSourceLibraryImageExpanded(false);
+                  }}
+                  className="inline-flex h-8 w-fit items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  <ChevronLeft className="size-4" strokeWidth={1.8} />
+                  资料库
+                </button>
+                {showSourceLibraryViewSwitch ? (
+                  <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                    {(['text', 'image'] as const).map((view) => (
+                      <button
+                        key={view}
+                        type="button"
+                        onClick={() => {
+                          setSourceLibraryDetailView(view);
+                          if (view === 'text') setSourceLibraryImageExpanded(false);
+                        }}
                         className={cn(
-                          'mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full border',
-                          item.status === 'ingesting'
-                            ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-300/20 dark:bg-sky-400/10 dark:text-sky-100'
-                            : item.status === 'stored'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-100'
-                              : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-300/20 dark:bg-rose-400/10 dark:text-rose-100',
+                          'rounded-lg px-4 py-1.5 transition',
+                          effectiveSourceLibraryDetailView === view
+                            ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white'
+                            : 'hover:text-slate-900 dark:hover:text-white',
                         )}
                       >
-                        {item.status === 'ingesting' ? (
+                        {view === 'text' ? '文本' : '图片'}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div />
+                )}
+                <div />
+              </div>
+              <div className="mt-5 flex justify-center">
+                {effectiveSourceLibraryDetailView === 'text' ? (
+                  <div className="w-full max-w-[760px] rounded-[18px] border border-slate-200 bg-white px-6 py-6 shadow-[0_20px_48px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-900">
+                    {selectedSourceLibraryTextLoading ? (
+                      <div className="grid min-h-64 place-items-center text-sm text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-2">
                           <Loader2 className="size-4 animate-spin" />
-                        ) : item.status === 'stored' ? (
-                          <CheckCircle2 className="size-4" />
-                        ) : (
-                          <AlertCircle className="size-4" />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-                            {item.fileName}
-                          </p>
-                          <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[11px] font-medium uppercase text-muted-foreground ring-1 ring-border">
-                            {item.sourceKind.replace('_', ' ')}
-                          </span>
-                          <span
-                            className={cn(
-                              'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                              item.status === 'ingesting'
-                                ? 'bg-sky-100 text-sky-700 dark:bg-sky-400/10 dark:text-sky-100'
-                                : item.status === 'stored'
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-100'
-                                  : 'bg-rose-100 text-rose-700 dark:bg-rose-400/10 dark:text-rose-100',
-                            )}
-                          >
-                            {sourceUploadStatusLabel(item.status)}
-                          </span>
-                        </div>
-                        {item.summary ? (
-                          <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {item.summary}
-                          </p>
-                        ) : item.error ? (
-                          <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-destructive">
-                            {item.error}
-                          </p>
-                        ) : (
-                          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                            正在读取、去重并同步到知识图谱、题库、模板库和笔记本。
-                          </p>
-                        )}
+                          正在读取文本…
+                        </span>
                       </div>
+                    ) : selectedSourceLibraryHasText ? (
+                      <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100 [&_a]:text-blue-600 [&_a]:underline-offset-4 hover:[&_a]:underline dark:[&_a]:text-blue-300">
+                        {selectedSourceLibraryText}
+                      </MessageResponse>
+                    ) : null}
+                  </div>
+                ) : selectedSourceLibraryTile.coverImagePath ? (
+                  <div
+                    className="relative w-full transition-[max-width] duration-200 ease-out"
+                    style={{ maxWidth: sourceLibraryImageExpanded ? 1080 : 760 }}
+                  >
+                    <img
+                      src={selectedSourceLibraryTile.coverImagePath}
+                      alt=""
+                      className="w-full rounded-[18px] border border-slate-200 bg-white shadow-[0_20px_48px_rgba(15,23,42,0.16)] dark:border-white/10 dark:bg-slate-900"
+                      loading="lazy"
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setSourceLibraryImageExpanded((expanded) => !expanded)}
+                          className="absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-full border border-white/80 bg-white/85 text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.18)] backdrop-blur transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-white/15 dark:bg-slate-950/78 dark:text-slate-100 dark:hover:bg-slate-900"
+                          aria-label={sourceLibraryImageExpanded ? '缩小图片' : '放大图片'}
+                        >
+                          {sourceLibraryImageExpanded ? (
+                            <Minimize2 className="size-4" strokeWidth={1.9} />
+                          ) : (
+                            <Maximize2 className="size-4" strokeWidth={1.9} />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="font-medium">
+                        {sourceLibraryImageExpanded ? '缩小图片' : '放大图片'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      'flex aspect-[0.707] w-full max-w-[760px] flex-col justify-between overflow-hidden rounded-[18px] border border-slate-200 p-6 text-left shadow-[0_20px_48px_rgba(15,23,42,0.16)] dark:border-white/10',
+                      selectedSourceLibraryTile.isProblemBank
+                        ? 'bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.38),transparent_34%),linear-gradient(160deg,#f8fafc,#e2e8f0_48%,#cbd5e1)] text-slate-700 dark:bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.24),transparent_34%),linear-gradient(160deg,#172033,#111827_52%,#020617)] dark:text-slate-200'
+                        : 'bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.36),transparent_34%),linear-gradient(160deg,#fff,#e0f2fe_45%,#bae6fd)] text-slate-700 dark:bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.26),transparent_34%),linear-gradient(160deg,#172554,#0f172a_52%,#020617)] dark:text-slate-100',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-bold uppercase tracking-normal text-slate-600 shadow-sm dark:bg-white/10 dark:text-white">
+                        {selectedSourceLibraryTile.placeholderLabel}
+                      </span>
+                      {selectedSourceLibraryTile.status === 'ingesting' ? (
+                        <Loader2 className="size-6 animate-spin text-sky-600 dark:text-sky-200" />
+                      ) : selectedSourceLibraryTile.status === 'failed' ? (
+                        <AlertCircle className="size-6 text-rose-600 dark:text-rose-200" />
+                      ) : (
+                        <FileText className="size-6 text-white/80" strokeWidth={1.8} />
+                      )}
                     </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="grid min-h-52 place-items-center rounded-[22px] border border-dashed border-border bg-muted/20 text-center">
-                <div className="px-6">
-                  <UploadCloud className="mx-auto size-8 text-muted-foreground" />
-                  <p className="mt-3 text-sm font-medium text-foreground">还没有入库任务</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    支持 PDF、PPTX、Markdown、文本和题库文件。
+                    <div className="space-y-4">
+                      <div className="h-3 w-2/3 rounded-full bg-white/70 dark:bg-white/25" />
+                      <div className="h-3 w-full rounded-full bg-white/55 dark:bg-white/18" />
+                      <div className="h-3 w-4/5 rounded-full bg-white/45 dark:bg-white/14" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-7">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="min-w-0 text-center">
+                  <button
+                    type="button"
+                    disabled={sourceUploading}
+                    onClick={() => sourceDocumentInputRef.current?.click()}
+                    className="group mx-auto flex aspect-[0.707] w-full max-w-[142px] items-center justify-center rounded-[16px] border-2 border-dashed border-sky-300 bg-white text-sky-600 transition hover:border-sky-400 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-300/40 dark:bg-white/[0.03] dark:text-sky-200 dark:hover:bg-sky-400/10"
+                    aria-label="上传文件"
+                  >
+                    {sourceUploading ? (
+                      <Loader2 className="size-7 animate-spin" strokeWidth={1.8} />
+                    ) : (
+                      <Plus className="size-8 transition group-hover:scale-110" strokeWidth={1.8} />
+                    )}
+                  </button>
+                  <p className="mt-3 truncate text-sm font-semibold text-sky-600 dark:text-sky-200">
+                    上传文件
                   </p>
                 </div>
+
+                {allSourceLibraryTiles.map((tile) => {
+                  const status = tile.status;
+                  const deletingSource = tile.sourceHash
+                    ? deletingSourceHashes.includes(tile.sourceHash)
+                    : false;
+                  const openTile = () => {
+                    setSourceLibraryDetailView('image');
+                    setSourceLibraryImageExpanded(false);
+                    setSelectedSourceLibraryTileId(tile.id);
+                  };
+                  return (
+                    <div key={tile.id} className="min-w-0 text-center">
+                      <div className="relative mx-auto w-full max-w-[142px]">
+                        <button
+                          type="button"
+                          aria-label={`查看 ${tile.title}`}
+                          onClick={openTile}
+                          disabled={deletingSource}
+                          className="group block w-full focus-visible:outline-none disabled:cursor-wait disabled:opacity-55"
+                        >
+                          <span className="relative block aspect-[0.707] w-full overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_30px_rgba(15,23,42,0.16)] group-focus-visible:ring-2 group-focus-visible:ring-sky-300 dark:border-white/10 dark:bg-slate-900">
+                            {tile.coverImagePath ? (
+                              <img
+                                src={tile.coverImagePath}
+                                alt=""
+                                className="size-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span
+                                className={cn(
+                                  'flex size-full flex-col justify-between overflow-hidden p-3 text-left',
+                                  tile.isProblemBank
+                                    ? 'bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.38),transparent_34%),linear-gradient(160deg,#f8fafc,#e2e8f0_48%,#cbd5e1)] text-slate-700 dark:bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.24),transparent_34%),linear-gradient(160deg,#172033,#111827_52%,#020617)] dark:text-slate-200'
+                                    : 'bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.36),transparent_34%),linear-gradient(160deg,#fff,#e0f2fe_45%,#bae6fd)] text-slate-700 dark:bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.26),transparent_34%),linear-gradient(160deg,#172554,#0f172a_52%,#020617)] dark:text-slate-100',
+                                )}
+                              >
+                                <span className="flex items-center justify-between gap-2">
+                                  <span className="rounded-full bg-white/72 px-2 py-0.5 text-[10px] font-bold uppercase tracking-normal text-slate-600 shadow-sm dark:bg-white/10 dark:text-white">
+                                    {tile.placeholderLabel}
+                                  </span>
+                                  {status === 'ingesting' ? (
+                                    <Loader2 className="size-4 animate-spin text-sky-600 dark:text-sky-200" />
+                                  ) : status === 'failed' ? (
+                                    <AlertCircle className="size-4 text-rose-600 dark:text-rose-200" />
+                                  ) : (
+                                    <FileText className="size-4 text-white/80" strokeWidth={1.8} />
+                                  )}
+                                </span>
+                                <span className="space-y-2">
+                                  <span className="block h-1.5 w-2/3 rounded-full bg-white/70 dark:bg-white/25" />
+                                  <span className="block h-1.5 w-full rounded-full bg-white/55 dark:bg-white/18" />
+                                  <span className="block h-1.5 w-4/5 rounded-full bg-white/45 dark:bg-white/14" />
+                                </span>
+                              </span>
+                            )}
+                            {status ? (
+                              <span
+                                className={cn(
+                                  'absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur',
+                                  status === 'ingesting'
+                                    ? 'bg-sky-100/90 text-sky-700 dark:bg-sky-400/20 dark:text-sky-100'
+                                    : 'bg-rose-100/90 text-rose-700 dark:bg-rose-400/20 dark:text-rose-100',
+                                )}
+                              >
+                                {sourceUploadStatusLabel(status)}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                        {tile.sourceHash ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteSourceLibraryTile(tile)}
+                                disabled={deletingSource}
+                                className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm backdrop-blur transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:cursor-wait disabled:opacity-75 dark:border-white/15 dark:bg-slate-950/78 dark:text-slate-200 dark:hover:bg-rose-400/15 dark:hover:text-rose-100"
+                                aria-label={`删除 ${tile.title}`}
+                              >
+                                {deletingSource ? (
+                                  <Loader2 className="size-3.5 animate-spin" strokeWidth={1.8} />
+                                ) : (
+                                  <Trash2 className="size-3.5" strokeWidth={1.8} />
+                                )}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="font-medium">
+                              删除资料及相关记录
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openTile}
+                        disabled={deletingSource}
+                        className="mt-3 block w-full min-w-0 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-wait disabled:opacity-55"
+                      >
+                        <span className="block line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-sky-600 dark:text-sky-200">
+                          {tile.title}
+                        </span>
+                        <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                          {tile.dateLabel || tile.typeLabel}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-slate-400 dark:text-slate-500">
+                          {tile.subtitle}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -6191,6 +7204,141 @@ export function LearnPageClient() {
         )}
       </div>
     </section>
+  );
+
+  const platformMemoryDialog = (
+    <Dialog open={memoryActivityDialogOpen} onOpenChange={setMemoryActivityDialogOpen}>
+      <DialogContent className="learn-memory-dialog-shell h-[min(760px,86dvh)] w-[calc(100vw-1rem)] max-w-[1180px] overflow-hidden rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:h-[min(780px,86dvh)]">
+        <DialogHeader className="sr-only">
+          <DialogTitle>平台记忆动态</DialogTitle>
+          <DialogDescription>查看平台最近怎样更新对学生学习状态的理解。</DialogDescription>
+        </DialogHeader>
+
+        <div className="learn-memory-dialog-surface flex h-full min-h-0">
+          <aside className="learn-memory-sidebar hidden w-[282px] shrink-0 px-6 py-6 lg:flex lg:flex-col">
+            <p className="text-xs font-semibold tracking-normal text-slate-500">平台记忆</p>
+            <h2 className="mt-3 text-[32px] font-semibold leading-10 tracking-normal text-slate-950">
+              记忆动态
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              这里显示平台最近怎样理解你的资料、进度、偏好和薄弱点。
+            </p>
+            <div className="mt-6 grid gap-2 text-sm">
+              <div className="learn-memory-metric-row" data-tone="writing">
+                <span className="font-semibold">写入中</span>
+                <span className="tabular-nums">{activeMemoryActivities.length}</span>
+              </div>
+              <div className="learn-memory-metric-row" data-tone="completed">
+                <span className="font-semibold">刚完成</span>
+                <span className="tabular-nums">{completedMemoryActivities.length}</span>
+              </div>
+            </div>
+
+            <div className="learn-memory-sphere-stage mt-auto" aria-hidden="true">
+              <div className="learn-memory-sphere-glow" />
+              {PLATFORM_MEMORY_SPHERES.map((sphere) => (
+                <span
+                  key={`${sphere.tone}-${sphere.className}`}
+                  className={cn('learn-memory-glass-sphere', sphere.className)}
+                  data-tone={sphere.tone}
+                />
+              ))}
+            </div>
+          </aside>
+
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="learn-memory-dialog-header flex shrink-0 items-start justify-between gap-4 px-7 py-6">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-500 lg:hidden">平台记忆</p>
+                <h2 className="truncate text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">
+                  最近写入
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  平台正在把新的学习线索整理成之后能用上的记忆。
+                </p>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-7 pt-5">
+              {platformMemoryHistory.length ? (
+                <div className="learn-memory-list-surface">
+                  {platformMemoryHistory.map((record) => {
+                    const statusLabel = memoryActivityStatusLabel(record.status);
+                    const isRunning =
+                      record.status === 'running' ||
+                      record.status === 'queued' ||
+                      record.status === 'needs_attention';
+                    const isCompleted = record.status === 'completed';
+                    const tone = platformMemoryVisualTone(record);
+                    return (
+                      <div
+                        key={record.id}
+                        className="learn-memory-history-row grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
+                      >
+                        <div className="grid min-w-0 grid-cols-[22px_minmax(0,1fr)] gap-3">
+                          <span
+                            className="learn-memory-glass-bead mt-1"
+                            data-tone={tone}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={cn(
+                                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold',
+                                  isRunning
+                                    ? 'bg-amber-100/75 text-amber-800 ring-1 ring-amber-200/70'
+                                    : isCompleted
+                                      ? 'bg-sky-100/75 text-sky-800 ring-1 ring-sky-200/70'
+                                      : 'bg-slate-100/80 text-slate-600 ring-1 ring-slate-200/70',
+                                )}
+                              >
+                                {statusLabel}
+                              </span>
+                              {record.chips.slice(0, 3).map((chip) => (
+                                <span
+                                  key={`${record.id}-${chip}`}
+                                  className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200/70"
+                                >
+                                  {platformMemoryChipLabel(chip)}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="mt-2 text-sm font-semibold leading-5 text-slate-950">
+                              {memoryActivityStudentTitle(record.title, record.description)}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
+                              {memoryActivityStudentDescription(record)}
+                            </p>
+                          </div>
+                        </div>
+                        <time className="text-xs font-medium tabular-nums text-slate-400 sm:pt-1">
+                          {formatMemoryActivityTime(record.updatedAt)}
+                        </time>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="learn-memory-empty-state grid h-full min-h-72 place-items-center text-center">
+                  <div className="max-w-sm px-6">
+                    <div className="learn-memory-empty-orbs mx-auto" aria-hidden="true">
+                      <span data-tone="progress" />
+                      <span data-tone="mastery" />
+                      <span data-tone="weakness" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-950">还没有记忆动态</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                      当你上传资料、确认学习进度或完成练习后，平台会在这里告诉你它学到了什么。
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 
   const largeCalendarDialog = (
@@ -6492,29 +7640,42 @@ export function LearnPageClient() {
               <nav className="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-6">
                 {learnSessions.map((session) => {
                   const active = session.id === activeSessionId;
+                  const deleting = deletingLearnSessionId === session.id;
                   return (
-                    <Link
+                    <div
                       key={session.id}
-                      href={learnSessionHref(session.id)}
-                      aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'group flex min-h-10 min-w-0 items-center justify-between gap-2 rounded-[14px] border px-3 py-2 text-[12px] font-semibold leading-4 tracking-normal text-slate-700 transition hover:border-slate-200 hover:bg-white/80 dark:text-slate-100 dark:hover:bg-white/5',
+                        'group flex min-h-10 min-w-0 items-center gap-1 rounded-[14px] border pr-1 text-[12px] font-semibold leading-4 tracking-normal text-slate-700 transition hover:border-slate-200 hover:bg-white/80 dark:text-slate-100 dark:hover:bg-white/5',
                         active
                           ? 'border-slate-200/80 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/5'
                           : 'border-transparent bg-transparent',
                       )}
                     >
-                      <span className="min-w-0 flex-1 truncate">{session.title}</span>
-                      <span
-                        className={cn(
-                          'shrink-0 items-center gap-2 text-slate-400 dark:text-slate-500',
-                          active ? 'flex' : 'hidden group-hover:flex',
-                        )}
+                      <Link
+                        href={learnSessionHref(session.id)}
+                        aria-current={active ? 'page' : undefined}
+                        className="flex min-h-10 min-w-0 flex-1 items-center px-3 py-2"
                       >
-                        <Pin className="size-3.5 rotate-45" strokeWidth={1.8} />
-                        <MoreHorizontal className="size-3.5" strokeWidth={1.8} />
-                      </span>
-                    </Link>
+                        <span className="min-w-0 flex-1 truncate">{session.title}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void deleteLearnSession(session)}
+                        disabled={deleting}
+                        className={cn(
+                          'grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:pointer-events-none disabled:opacity-60 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
+                          active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
+                        )}
+                        aria-label={`删除会话：${session.title}`}
+                        title="删除会话"
+                      >
+                        {deleting ? (
+                          <Loader2 className="size-3.5 animate-spin" strokeWidth={1.9} />
+                        ) : (
+                          <Trash2 className="size-3.5" strokeWidth={1.9} />
+                        )}
+                      </button>
+                    </div>
                   );
                 })}
               </nav>
@@ -6659,8 +7820,8 @@ export function LearnPageClient() {
                   onClick={openSourceUploadPanel}
                   className="relative h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
                 >
-                  <UploadCloud className="size-3.5" />
-                  上传文件
+                  <LibraryBig className="size-3.5" />
+                  资料库
                   <SourceUploadBadge
                     uploading={sourceUploading}
                     completedCount={completedSourceUploadBadgeCount}
@@ -6670,13 +7831,51 @@ export function LearnPageClient() {
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    router.push(`/course/${encodeURIComponent(activeCourse.id)}/resources`)
+                    router.push(
+                      `/course/${encodeURIComponent(activeCourse.id)}/resources?tab=memory`,
+                    )
                   }
                   className="h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
                 >
-                  <LibraryBig className="size-3.5" />
-                  资料库
+                  <Brain className="size-3.5" />
+                  记忆库
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setMemoryActivityDialogOpen(true)}
+                      className="learn-memory-orb-button size-9 rounded-full border-transparent p-0 text-white shadow-sm hover:text-white focus-visible:ring-sky-200"
+                      data-memory-state={platformMemoryState}
+                      aria-label={platformMemoryButtonLabel}
+                    >
+                      <span className="learn-memory-orb-core" aria-hidden="true">
+                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-a" />
+                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-b" />
+                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-c" />
+                        <span className="learn-memory-orb-star" />
+                      </span>
+                      {platformMemoryBadgeCount > 0 ? (
+                        <span
+                          className={cn(
+                            'absolute -right-1.5 -top-1.5 z-20 grid min-w-5 place-items-center rounded-full border border-white px-1 text-[10px] font-bold leading-5 shadow-sm dark:border-slate-950',
+                            platformMemoryState === 'writing'
+                              ? 'bg-amber-400 text-amber-950'
+                              : 'bg-sky-500 text-white',
+                          )}
+                          aria-hidden="true"
+                        >
+                          {platformMemoryBadgeCount > 9 ? '9+' : platformMemoryBadgeCount}
+                        </span>
+                      ) : null}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="end" className="font-medium">
+                    {platformMemoryTooltip}
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </header>
@@ -6987,6 +8186,7 @@ export function LearnPageClient() {
       {manualScheduleDialog}
       {sourceUploadStatusDialog}
       {courseFilesDialog}
+      {platformMemoryDialog}
       {largeCalendarDialog}
     </>
   );

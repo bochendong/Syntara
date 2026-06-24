@@ -1,0 +1,27 @@
+{
+  "name": "plan-confirm-calendar-followup",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我这门课下周要复习，请先根据课程内容给我一个复习计划。"
+    },
+    {
+      "kind": "ui",
+      "label": "确认并继续",
+      "actionId": "confirm_review_scope",
+      "selection": "当前学习进度",
+      "note": "模拟用户在确认卡片里选择范围并点击确认。",
+      "sendText": "我已经在确认卡片里选择「当前学习进度」并点击「确认并继续」。请继续生成复习安排。"
+    },
+    {
+      "kind": "ui",
+      "label": "加入日历",
+      "actionId": "add_plan_to_calendar",
+      "note": "模拟用户把生成的复习计划加入学习日历。"
+    },
+    {
+      "kind": "user",
+      "text": "你现在看一下，我这周的日程里应该先做什么？"
+    }
+  ]
+}

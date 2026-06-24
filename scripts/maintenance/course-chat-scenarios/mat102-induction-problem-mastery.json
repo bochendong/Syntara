@@ -1,0 +1,29 @@
+{
+  "name": "mat102-induction-problem-mastery",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我现在要练 MAT102 induction，但只想练基础到中等，帮我从题库里选。不要选我已经掌握的类型。"
+    },
+    {
+      "kind": "user",
+      "text": "先给我 3 道，做完再决定下一组。每道题告诉我为什么适合现在做。"
+    },
+    {
+      "kind": "user",
+      "text": "我做完第一道题了，思路是：先写 base case，然后假设 P(k) 成立，再想证明 P(k+1)，但是我把结论直接代进去了。"
+    },
+    {
+      "kind": "user",
+      "text": "我的答案错在这里：我没有说明从 P(k) 到 P(k+1) 的中间变形，只是说显然成立。"
+    },
+    {
+      "kind": "user",
+      "text": "现在你觉得我会了什么，还不会什么？下次复习时别再把我当成完全不会 induction。"
+    },
+    {
+      "kind": "user",
+      "text": "你刚才说我不会 induction，但其实我会普通 induction，只是不熟 strong induction。现在我的薄弱点应该怎么改？"
+    }
+  ]
+}

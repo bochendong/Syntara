@@ -103,6 +103,90 @@ function resolveAgent(state: OrchestratorStateType, agentId: string): AgentConfi
   return state.agentConfigOverrides[agentId] ?? useAgentRegistry.getState().getAgent(agentId);
 }
 
+function compactText(input: string | undefined, maxLength: number): string {
+  const text = String(input || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function buildPlainTextFallbackPrompt(
+  agentConfig: AgentConfig,
+  courseContext: CourseChatContext | null,
+): string {
+  const course = courseContext?.course;
+  const responseLanguage =
+    course?.language === 'en-US'
+      ? 'English'
+      : course?.language === 'zh-CN'
+        ? 'Simplified Chinese'
+        : 'the same language as the student';
+  const learner = courseContext?.learner;
+  const notebooks =
+    courseContext?.notebooks
+      ?.slice(0, 3)
+      .map((notebook, notebookIndex) => {
+        const pages = notebook.pages
+          .slice(0, 3)
+          .map((page) => `   - p.${page.order} ${page.title}: ${compactText(page.digest, 260)}`)
+          .join('\n');
+        return `${notebookIndex + 1}. ${notebook.name}${pages ? `\n${pages}` : ''}`;
+      })
+      .join('\n') || 'No relevant notebook excerpts.';
+  const problemMatches =
+    courseContext?.layeredMemory?.knowledgeMatches
+      ?.slice(0, 5)
+      .map((match, index) => {
+        const tags = match.metadata?.tags?.slice(0, 4).join(', ');
+        const notebook = match.metadata?.notebookName;
+        return `${index + 1}. ${match.title}${notebook ? ` (${notebook})` : ''}${
+          tags ? ` tags=${tags}` : ''
+        }`;
+      })
+      .join('\n') || 'No attached problem-bank matches.';
+  const memoryPrompt = compactText(courseContext?.layeredMemory?.prompt, 2400);
+
+  return `You are ${agentConfig.name}, a course tutor.
+Answer the student's latest message directly in ${responseLanguage}.
+Return plain text only. Do not return JSON, markdown code fences, tool calls, or actions.
+If the student asks about memory, plans, weak points, schedules, or problem selection, answer using the evidence below and be explicit when evidence is missing.
+Keep course memories isolated to this course; do not update or infer another course's weak points from this course unless the student explicitly asks for a comparison.
+If the student asks whether this course affects another course's weak-point judgment, say it should not automatically affect or be written into the other course's record. Explain transferable background separately.
+Preserve technical terms; when translating an ambiguous course term, keep the original term in parentheses.
+Calculus terminology guardrail: translate "improper integral" as "反常积分 (improper integral)", not "不定积分"; "indefinite integral" is "不定积分".
+For problem-bank selection, choose only from the attached problem-bank matches below. If none are attached, say no available problem-bank match is attached for this turn. If you create new practice yourself, label it as self-generated practice and do not call it problem-bank content.
+
+Course:
+- name: ${course?.name || 'current course'}
+- id: ${course?.id || 'unknown'}
+- code: ${course?.courseCode || 'unknown'}
+- tags: ${course?.tags?.join(', ') || 'none'}
+
+Learner signals:
+- progress: ${learner?.progressLabel || 'unknown'} (${learner?.progressPercent ?? 0}%)
+- weak concepts: ${learner?.weakConcepts?.join(', ') || 'none attached'}
+- next concepts: ${learner?.nextConcepts?.join(', ') || 'none attached'}
+- recent questions: ${learner?.recentQuestions?.slice(0, 5).join(' | ') || 'none attached'}
+- recent attempts: ${
+    learner?.recentAttempts
+      ?.slice(0, 5)
+      .map((attempt) => `${attempt.title}: ${attempt.status}`)
+      .join(' | ') || 'none attached'
+  }
+
+Problem-bank matches:
+${problemMatches}
+
+Layered memory summary:
+${memoryPrompt || 'No layered memory prompt attached.'}
+
+Notebook excerpts:
+${notebooks}`;
+}
+
 // ==================== Director Node ====================
 
 /**
@@ -342,100 +426,141 @@ async function runAgentGeneration(
   let actionCount = 0;
   const whiteboardActions: WhiteboardActionRecord[] = [];
 
-  try {
-    for await (const chunk of adapter.streamGenerate(lcMessages, {
-      signal: config.signal,
-    })) {
-      if (chunk.type === 'delta') {
-        const parseResult = parseStructuredChunk(chunk.content, parserState);
-
-        // Emit events in original interleaved order via the `ordered` array.
-        // The ordered array tracks complete items from Step 5 of the parser;
-        // trailing partial text deltas (Step 6) are in textChunks but not in ordered.
-        let emittedTextCount = 0;
-        if (parseResult.ordered.length > 0 || parseResult.textChunks.length > 0) {
-          log.debug(
-            `[AgentGenerate] Parse: ordered=${parseResult.ordered.length} (${parseResult.ordered.map((e) => e.type).join(',')}), textChunks=${parseResult.textChunks.length}, actions=${parseResult.actions.length}, done=${parseResult.isDone}`,
-          );
-        }
-        for (const entry of parseResult.ordered) {
-          if (entry.type === 'text') {
-            const rawText = parseResult.textChunks[entry.index];
-            if (!rawText) {
-              log.warn(
-                `[AgentGenerate] Ordered text entry index=${entry.index} but textChunks[${entry.index}] is empty`,
-              );
-              continue;
-            }
-            const text = rawText.replace(/^>+\s?/gm, '');
-            if (!text) continue;
-            fullText += text;
-            write({
-              type: 'text_delta',
-              data: { content: text, messageId },
-            });
-            emittedTextCount++;
-          } else if (entry.type === 'action') {
-            const ac = parseResult.actions[entry.index];
-            if (!ac) continue;
-            if (!effectiveActions.includes(ac.actionName)) {
-              log.warn(
-                `[AgentGenerate] Agent ${agentConfig.name} attempted disallowed action: ${ac.actionName}, skipping`,
-              );
-              continue;
-            }
-            actionCount++;
-            // Record whiteboard actions to the ledger
-            if (ac.actionName.startsWith('wb_')) {
-              whiteboardActions.push({
-                actionName: ac.actionName as WhiteboardActionRecord['actionName'],
-                agentId,
-                agentName: agentConfig.name,
-                params: ac.params,
-              });
-            }
-            write({
-              type: 'action',
-              data: {
-                actionId: ac.actionId,
-                actionName: ac.actionName,
-                params: ac.params,
-                agentId,
-                messageId,
-              },
-            });
-          }
-        }
-
-        // Emit trailing partial text deltas not covered by ordered
-        for (let i = emittedTextCount; i < parseResult.textChunks.length; i++) {
-          const rawText = parseResult.textChunks[i];
-          if (!rawText) continue;
-          const text = rawText.replace(/^>+\s?/gm, '');
-          if (!text) continue;
-          fullText += text;
-          write({
-            type: 'text_delta',
-            data: { content: text, messageId },
-          });
-        }
-      }
+  const normalizeTextDelta = (rawText: string) => {
+    let text = rawText.replace(/^>+\s?/gm, '');
+    if (!text) return '';
+    if (fullText && text.startsWith(fullText)) {
+      text = text.slice(fullText.length);
     }
+    if (!text || (text.length > 16 && fullText.endsWith(text))) {
+      return '';
+    }
+    return text;
+  };
 
-    // Finalize: emit any remaining content if the model didn't produce valid JSON
-    const finalResult = finalizeParser(parserState);
-    for (const entry of finalResult.ordered) {
+  const emitParseResult = (parseResult: ReturnType<typeof parseStructuredChunk>) => {
+    // Emit events in original interleaved order via the `ordered` array.
+    // The ordered array tracks complete items from Step 5 of the parser;
+    // trailing partial text deltas (Step 6) are in textChunks but not in ordered.
+    let emittedTextCount = 0;
+    if (parseResult.ordered.length > 0 || parseResult.textChunks.length > 0) {
+      log.debug(
+        `[AgentGenerate] Parse: ordered=${parseResult.ordered.length} (${parseResult.ordered.map((e) => e.type).join(',')}), textChunks=${parseResult.textChunks.length}, actions=${parseResult.actions.length}, done=${parseResult.isDone}`,
+      );
+    }
+    for (const entry of parseResult.ordered) {
       if (entry.type === 'text') {
-        const rawText = finalResult.textChunks[entry.index];
-        if (!rawText) continue;
-        const text = rawText.replace(/^>+\s?/gm, '');
+        const rawText = parseResult.textChunks[entry.index];
+        if (!rawText) {
+          log.warn(
+            `[AgentGenerate] Ordered text entry index=${entry.index} but textChunks[${entry.index}] is empty`,
+          );
+          continue;
+        }
+        const text = normalizeTextDelta(rawText);
         if (!text) continue;
         fullText += text;
         write({
           type: 'text_delta',
           data: { content: text, messageId },
         });
+        emittedTextCount++;
+      } else if (entry.type === 'action') {
+        const ac = parseResult.actions[entry.index];
+        if (!ac) continue;
+        if (!effectiveActions.includes(ac.actionName)) {
+          log.warn(
+            `[AgentGenerate] Agent ${agentConfig.name} attempted disallowed action: ${ac.actionName}, skipping`,
+          );
+          continue;
+        }
+        actionCount++;
+        // Record whiteboard actions to the ledger
+        if (ac.actionName.startsWith('wb_')) {
+          whiteboardActions.push({
+            actionName: ac.actionName as WhiteboardActionRecord['actionName'],
+            agentId,
+            agentName: agentConfig.name,
+            params: ac.params,
+          });
+        }
+        write({
+          type: 'action',
+          data: {
+            actionId: ac.actionId,
+            actionName: ac.actionName,
+            params: ac.params,
+            agentId,
+            messageId,
+          },
+        });
       }
+    }
+
+    // Emit trailing partial text deltas not covered by ordered
+    for (let i = emittedTextCount; i < parseResult.textChunks.length; i++) {
+      const rawText = parseResult.textChunks[i];
+      if (!rawText) continue;
+      const text = normalizeTextDelta(rawText);
+      if (!text) continue;
+      fullText += text;
+      write({
+        type: 'text_delta',
+        data: { content: text, messageId },
+      });
+    }
+  };
+
+  try {
+    for await (const chunk of adapter.streamGenerate(lcMessages, {
+      signal: config.signal,
+    })) {
+      if (chunk.type === 'delta') {
+        const parseResult = parseStructuredChunk(chunk.content, parserState);
+        emitParseResult(parseResult);
+      } else if (chunk.type === 'done') {
+        const finalContent = chunk.content.trim();
+        if (finalContent) {
+          const completeState = createParserState();
+          emitParseResult(parseStructuredChunk(finalContent, completeState));
+          emitParseResult(finalizeParser(completeState));
+        }
+      }
+    }
+
+    // Finalize: emit any remaining content if the model didn't produce valid JSON
+    const finalResult = finalizeParser(parserState);
+    emitParseResult(finalResult);
+
+    if (!fullText.trim() && actionCount === 0) {
+      log.warn(
+        `[AgentGenerate] Empty structured response for ${agentConfig.name}; retrying once with plain-text fallback`,
+      );
+      const fallbackParserState = createParserState();
+      const fallbackPrompt = buildPlainTextFallbackPrompt(agentConfig, state.courseContext);
+      const fallbackMessages = [
+        new SystemMessage(fallbackPrompt),
+        ...openaiMessages.map((m) =>
+          m.role === 'user'
+            ? new HumanMessage({ content: toLangChainHumanContent(m.content) })
+            : new AIMessage(convertedMessageContentToText(m.content)),
+        ),
+      ];
+      for await (const retryChunk of adapter.streamGenerate(fallbackMessages, {
+        signal: config.signal,
+      })) {
+        if (retryChunk.type === 'delta') {
+          emitParseResult(parseStructuredChunk(retryChunk.content, fallbackParserState));
+        } else if (retryChunk.type === 'done') {
+          const finalContent = retryChunk.content.trim();
+          if (finalContent) {
+            const completeState = createParserState();
+            emitParseResult(parseStructuredChunk(finalContent, completeState));
+            emitParseResult(finalizeParser(completeState));
+          }
+        }
+      }
+      emitParseResult(finalizeParser(fallbackParserState));
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

@@ -48,6 +48,8 @@ interface ParserState {
   lastParsedItemCount: number;
   /** Length of text content already emitted for the trailing partial text item */
   lastPartialTextLength: number;
+  /** Length of text content already emitted per partial item index */
+  partialTextLengths: Record<number, number>;
   /** Whether parsing is complete (closing `]` found) */
   isDone: boolean;
 }
@@ -61,6 +63,7 @@ export function createParserState(): ParserState {
     jsonStarted: false,
     lastParsedItemCount: 0,
     lastPartialTextLength: 0,
+    partialTextLengths: {},
     isDone: false,
   };
 }
@@ -114,6 +117,70 @@ function emitItem(
   return { textSegmentIndex, actionSegmentIndex };
 }
 
+function stripJsonFence(input: string): string {
+  const trimmed = input.trim();
+  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return match ? match[1].trim() : trimmed;
+}
+
+function parseCompleteStructuredItems(input: string): Record<string, unknown>[] | null {
+  const stripped = stripJsonFence(input);
+  const firstArray = stripped.indexOf('[');
+  const firstObject = stripped.indexOf('{');
+  const starts = [firstArray, firstObject].filter((index) => index >= 0);
+  if (starts.length === 0) return null;
+
+  const jsonText = stripped.slice(Math.min(...starts)).trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonrepair(jsonText));
+  } catch {
+    return null;
+  }
+
+  const items = Array.isArray(parsed) ? parsed : [parsed];
+  const structuredItems = items.filter((item): item is Record<string, unknown> =>
+    Boolean(item && typeof item === 'object'),
+  );
+  return structuredItems.length > 0 ? structuredItems : null;
+}
+
+function emitCompleteStructuredItems(input: string): ParseResult | null {
+  const items = parseCompleteStructuredItems(input);
+  if (!items) return null;
+
+  const result: ParseResult = {
+    textChunks: [],
+    actions: [],
+    isDone: true,
+    ordered: [],
+  };
+  let textSegmentIndex = 0;
+  let actionSegmentIndex = 0;
+
+  for (const item of items) {
+    const indices = emitItem(item, result, textSegmentIndex, actionSegmentIndex);
+    textSegmentIndex = indices.textSegmentIndex;
+    actionSegmentIndex = indices.actionSegmentIndex;
+  }
+
+  return result.textChunks.length > 0 || result.actions.length > 0 ? result : null;
+}
+
+function findStructuredArrayStart(buffer: string): number {
+  let index = 0;
+  while (index < buffer.length && /\s/.test(buffer[index])) index++;
+
+  if (buffer.slice(index, index + 3) === '```') {
+    const newlineIndex = buffer.indexOf('\n', index);
+    if (newlineIndex === -1) return -1;
+    index = newlineIndex + 1;
+    while (index < buffer.length && /\s/.test(buffer[index])) index++;
+  }
+
+  return buffer[index] === '[' ? index : -1;
+}
+
 /**
  * Parse streaming chunks of structured JSON Array output.
  *
@@ -149,7 +216,7 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
 
   // Step 1: Find the opening `[` if not yet found
   if (!state.jsonStarted) {
-    const bracketIndex = state.buffer.indexOf('[');
+    const bracketIndex = findStructuredArrayStart(state.buffer);
     if (bracketIndex === -1) {
       return result;
     }
@@ -204,23 +271,21 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
 
     // If this item was previously the trailing partial text item, we've already
     // streamed its content incrementally. Only emit the remaining delta, not the full content.
-    if (
-      i === state.lastParsedItemCount &&
-      state.lastPartialTextLength > 0 &&
-      item.type === 'text'
-    ) {
+    const priorPartialTextLength = state.partialTextLengths[i] ?? 0;
+    if (priorPartialTextLength > 0 && item.type === 'text') {
       const content = item.content || '';
-      const remaining = content.slice(state.lastPartialTextLength);
+      const remaining = content.slice(priorPartialTextLength);
       if (remaining) {
         result.textChunks.push(remaining);
+        // Use per-call array index for consistency with emitItem.
+        result.ordered.push({
+          type: 'text',
+          index: result.textChunks.length - 1,
+        });
       }
-      // Use per-call array index for consistency with emitItem fix
-      result.ordered.push({
-        type: 'text',
-        index: result.textChunks.length - 1,
-      });
       textSegmentIndex++;
       state.lastPartialTextLength = 0;
+      delete state.partialTextLengths[i];
       continue;
     }
 
@@ -233,12 +298,15 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
 
   // Step 6: Stream partial text delta for the trailing item
   if (!isArrayClosed && parsed.length > completeUpTo) {
+    const itemIndex = parsed.length - 1;
     const lastItem = parsed[parsed.length - 1];
     if (lastItem && typeof lastItem === 'object' && lastItem.type === 'text') {
       const content = lastItem.content || '';
-      if (content.length > state.lastPartialTextLength) {
-        result.textChunks.push(content.slice(state.lastPartialTextLength));
+      const emittedLength = state.partialTextLengths[itemIndex] ?? 0;
+      if (content.length > emittedLength) {
+        result.textChunks.push(content.slice(emittedLength));
         state.lastPartialTextLength = content.length;
+        state.partialTextLengths[itemIndex] = content.length;
       }
     }
   }
@@ -249,6 +317,7 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
     result.isDone = true;
     state.lastParsedItemCount = parsed.length;
     state.lastPartialTextLength = 0;
+    state.partialTextLengths = {};
   }
 
   return result;
@@ -280,6 +349,12 @@ export function finalizeParser(state: ParserState): ParseResult {
   }
 
   if (!state.jsonStarted) {
+    const completeStructured = emitCompleteStructuredItems(content);
+    if (completeStructured) {
+      state.isDone = true;
+      return completeStructured;
+    }
+
     // Model never output `[` — treat entire buffer as plain text
     result.textChunks.push(content);
     result.ordered.push({ type: 'text', index: 0 });

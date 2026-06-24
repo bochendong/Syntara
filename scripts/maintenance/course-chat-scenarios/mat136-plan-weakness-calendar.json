@@ -1,0 +1,32 @@
+{
+  "name": "mat136-plan-weakness-calendar",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我这门 MAT136 还有 4 周考试，帮我排一个课程计划。要按课程内容倒推，不要平均摊。"
+    },
+    {
+      "kind": "ui",
+      "label": "加入日历",
+      "actionId": "add_course_plan_to_calendar",
+      "note": "模拟用户确认课程计划并加入日历。",
+      "sendText": "我点击了「加入日历」，请把刚才的 MAT136 课程计划当作已加入日历，然后告诉我这周每天该做什么。"
+    },
+    {
+      "kind": "user",
+      "text": "如果我周三没学，后面怎么顺延？今天只有 20 分钟，原计划如果太满要怎么调整？"
+    },
+    {
+      "kind": "user",
+      "text": "我不懂 improper integral 为什么要转成 limit。"
+    },
+    {
+      "kind": "user",
+      "text": "你记得我刚才哪里不会吗？请不要只复述原句，要说你判断的薄弱点。"
+    },
+    {
+      "kind": "user",
+      "text": "根据这个薄弱点，优先从题库里给我 3 道针对练习；如果题库摘要不够判断难度或题干，请明确说缺什么。"
+    }
+  ]
+}

@@ -27,10 +27,16 @@ function feedbackFromAttempt(attempt: NotebookProblemAttemptRecord) {
 
 function activityDoneDescription(memory: NotebookWorkingMemory) {
   return compact(
-    [memory.currentTask, memory.masteredSignal, memory.stuckPoint, memory.nextTeachingMove]
+    [
+      memory.masteredSignal ? `掌握：${memory.masteredSignal}` : '',
+      memory.stuckPoint ? `薄弱：${memory.stuckPoint}` : '',
+      memory.nextTeachingMove ? `下一步：${memory.nextTeachingMove}` : '',
+    ]
       .filter(Boolean)
-      .join(' · ') || memory.summary,
-    120,
+      .join('；') ||
+      memory.summary ||
+      '我更新了这次学习的掌握点、薄弱点和下一步帮助方式。',
+    220,
   );
 }
 
@@ -40,8 +46,8 @@ function queueWorkingMemoryWrite(args: {
   buildMemory: () => Omit<NotebookWorkingMemory, 'updatedAt'>;
 }) {
   const activityId = addMemoryActivity({
-    title: '正在更新短期记忆',
-    description: args.activityDescription,
+    title: '我正在更新这次学习的短期记忆',
+    description: args.activityDescription || '我会把这次互动里有用的学习状态整理出来。',
     status: 'writing_study_memory',
     layer: 'study_memory',
     chips: ['短期', '笔记本', '后台'],
@@ -54,7 +60,7 @@ function queueWorkingMemoryWrite(args: {
         memory: args.buildMemory(),
       });
       updateMemoryActivity(activityId, {
-        title: '短期记忆已更新',
+        title: '我已经记住这次学习状态',
         description: activityDoneDescription(memory),
         status: 'completed',
         layer: 'study_memory',
@@ -62,8 +68,8 @@ function queueWorkingMemoryWrite(args: {
       });
     } catch (error) {
       updateMemoryActivity(activityId, {
-        title: '短期记忆没有更新',
-        description: error instanceof Error ? error.message : String(error),
+        title: '这次短期记忆没有更新成功',
+        description: '我没有改动已有记忆，当前对话仍然可以继续。',
         status: 'failed',
         layer: 'study_memory',
         chips: ['短期', '失败'],
@@ -297,7 +303,7 @@ export function queueChatTurnWorkingMemoryUpdate(args: {
 
   queueWorkingMemoryWrite({
     stageId: args.notebookId,
-    activityDescription: '回答已展示，后台整理下一轮教学状态',
+    activityDescription: '我会从这次提问里整理：你掌握了哪里、哪里还不稳、下一步怎么帮。',
     buildMemory: () => ({
       source: 'chat_turn',
       title: '短期学习状态',
@@ -336,8 +342,8 @@ export function queueProblemAttemptWorkingMemoryUpdate(args: {
   queueWorkingMemoryWrite({
     stageId: args.notebookId,
     activityDescription: passed
-      ? '判题结果已展示，后台记录当前掌握信号'
-      : '判题结果已展示，后台记录下一步复盘重点',
+      ? `我会记住你已经通过「${args.problem.title}」，之后可以给你更进一步的迁移题。`
+      : `我会记住「${args.problem.title}」还没完全通过，下一步优先复盘这里。`,
     buildMemory: () => ({
       source: 'problem_attempt',
       title: '短期学习状态',

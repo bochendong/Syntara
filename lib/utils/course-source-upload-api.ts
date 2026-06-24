@@ -21,6 +21,13 @@ export type CourseSourceUploadRecord = {
   knowledgeGraphFactIds: string[];
   ragEntryIds: string[];
   openaiFileIds: string[];
+  textSections: Array<{
+    id: string;
+    notebookId: string;
+    title: string;
+    order: number;
+    markdown: string;
+  }>;
   createdAt: string;
   updatedAt: string;
   stats: {

@@ -43,17 +43,11 @@ import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { resolveCourseOrchestratorAvatar } from '@/lib/constants/course-chat';
 import { isDashboardRoute } from '@/lib/utils/dashboard-routes';
 import { UserAvatarWithFrame } from '@/components/user-profile/user-avatar-with-frame';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isSolidColorBarStageId } from '@/lib/notifications/notification-bar-stage-ids';
 import { CONTACT_SUPPORT_NAV_URL, REPORT_ISSUE_NAV_URL } from '@/lib/constants/support-nav';
 
 const ChatContactsRail = lazy(() =>
   import('@/components/chat-contacts-rail').then((mod) => ({ default: mod.ChatContactsRail })),
-);
-const ProfileAvatarPicker = lazy(() =>
-  import('@/components/user-profile/profile-avatar-picker').then((mod) => ({
-    default: mod.ProfileAvatarPicker,
-  })),
 );
 const NotificationBarStageBackground = lazy(() =>
   import('@/components/notifications/notification-bar-stage-background').then((mod) => ({
@@ -138,8 +132,8 @@ export function AppLeftRail({
   const resolvedCourseAvatar = resolveCourseOrchestratorAvatar(courseId, courseAvatarUrl);
   const railAvatarSrc = inCourseContext ? resolvedCourseAvatar : avatar;
   const railTitle = inCourseContext ? courseName : displayName;
-  const railHref = inCourseContext ? `/course/${courseId}` : '/';
-  const railTooltip = inCourseContext ? '所有课程' : '首页';
+  const railHref = inCourseContext ? `/course/${courseId}` : '/profile';
+  const railTooltip = inCourseContext ? '所有课程' : '个人中心';
   /** 聊天页也跟随全局主题，避免左侧联系人栏和聊天主体割裂。 */
   const isChatPage = pathname === '/chat' || pathname?.startsWith('/chat/');
   /** 非「默认」时在主导航上叠动效；课程区与 Dashboard（如 /profile）均生效，避免在设置页点击无反馈 */
@@ -207,7 +201,6 @@ export function AppLeftRail({
     : 'text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100';
 
   const [contactSearchQuery, setContactSearchQuery] = useState('');
-  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [userAffinityLevel, setUserAffinityLevel] = useState<number | null>(null);
   const [userCreditBalances, setUserCreditBalances] = useState<CreditsBalances | null>(null);
@@ -517,11 +510,10 @@ export function AppLeftRail({
                             />
                           </Link>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAvatarPickerOpen(true)}
+                          <Link
+                            href={railHref}
                             className="block shrink-0 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                            aria-label="选择头像"
+                            aria-label={`打开个人中心：${displayName}`}
                           >
                             <UserAvatarWithFrame
                               src={railAvatarSrc}
@@ -529,11 +521,11 @@ export function AppLeftRail({
                               className="size-12"
                               imgClassName="ring-1 ring-black/5 dark:ring-white/10"
                             />
-                          </button>
+                          </Link>
                         )}
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        {inCourseContext ? railTooltip : '选择头像'}
+                        {railTooltip}
                       </TooltipContent>
                     </Tooltip>
                     <div className="min-w-0 flex-1">
@@ -617,11 +609,10 @@ export function AppLeftRail({
                           />
                         </Link>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => setAvatarPickerOpen(true)}
+                        <Link
+                          href={railHref}
                           className="block w-fit rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500"
-                          aria-label="选择头像"
+                          aria-label={`打开个人中心：${displayName}`}
                         >
                           <UserAvatarWithFrame
                             src={railAvatarSrc}
@@ -629,11 +620,11 @@ export function AppLeftRail({
                             className="size-10"
                             imgClassName="ring-1 ring-black/5 dark:ring-white/10"
                           />
-                        </button>
+                        </Link>
                       )}
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {inCourseContext ? railTooltip : '选择头像'}
+                      {railTooltip}
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -1035,22 +1026,6 @@ export function AppLeftRail({
         onOpenChange={setCreateCourseOpen}
         onSuccess={() => router.refresh()}
       />
-      <Dialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen}>
-        <DialogContent className="max-h-[85vh] w-[min(92vw,980px)] max-w-[980px] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>选择头像</DialogTitle>
-          </DialogHeader>
-          {avatarPickerOpen ? (
-            <Suspense
-              fallback={
-                <div className="py-8 text-center text-sm text-muted-foreground">加载头像…</div>
-              }
-            >
-              <ProfileAvatarPicker size="lg" />
-            </Suspense>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

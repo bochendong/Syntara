@@ -26,15 +26,18 @@ function getOrbitPosition(angleDegrees: number, radius: number) {
 function getHomeMotionState(rawProgress: number) {
   const progress = clamp01(rawProgress);
   const secondScreenProgress = 0.66;
-  const firstToSecond = easeInOut(progressBetween(progress, 0.12, 0.46));
-  const secondToThird = easeInOut(progressBetween(progress, 0.74, 0.9));
+  const firstToSecond = easeInOut(progressBetween(progress, 0.12, 0.4));
+  const secondToThird = easeInOut(progressBetween(progress, 0.56, 0.74));
+  const footerProgress = easeInOut(progressBetween(progress, 0.955, 1));
   const heroOpacity = 1 - easeInOut(progressBetween(progress, 0.1, 0.3));
-  const secondReveal = easeInOut(progressBetween(progress, 0.3, 0.46));
+  const secondReveal = easeInOut(progressBetween(progress, 0.24, 0.4));
   const orbitSpin = (progress - 0.48) * 500;
   const screenOne = 1 - firstToSecond;
   const screenTwo = firstToSecond * (1 - secondToThird);
   const screenThree = secondToThird;
   const secondContentOpacity = screenTwo * secondReveal * (1 - screenThree);
+  const laptopOpacity = screenThree * (1 - footerProgress);
+  const footerReveal = easeInOut(progressBetween(progress, 0.966, 0.995));
   const visualProgress =
     secondScreenProgress * firstToSecond + (1 - secondScreenProgress) * secondToThird;
 
@@ -44,7 +47,10 @@ function getHomeMotionState(rawProgress: number) {
     screenOne,
     screenTwo,
     screenThree,
+    footerProgress,
+    footerReveal,
     secondContentOpacity,
+    laptopOpacity,
     heroOpacity,
     secondReveal,
     orbitSpin,
@@ -83,10 +89,13 @@ export function SyntaraHomeMotion() {
       root.style.setProperty('--home-screen-one', state.screenOne.toFixed(3));
       root.style.setProperty('--home-screen-two', state.screenTwo.toFixed(3));
       root.style.setProperty('--home-screen-three', state.screenThree.toFixed(3));
+      root.style.setProperty('--home-footer-progress', state.footerProgress.toFixed(3));
+      root.style.setProperty('--home-footer-reveal', state.footerReveal.toFixed(3));
       root.style.setProperty(
         '--home-second-content-opacity',
         state.secondContentOpacity.toFixed(3),
       );
+      root.style.setProperty('--home-laptop-opacity', state.laptopOpacity.toFixed(3));
       root.style.setProperty('--home-hero-opacity', state.heroOpacity.toFixed(3));
       root.style.setProperty('--home-second-reveal', state.secondReveal.toFixed(3));
       root.style.setProperty('--home-orbit-spin', state.orbitSpin.toFixed(3));
@@ -99,6 +108,7 @@ export function SyntaraHomeMotion() {
       root.style.setProperty('--home-first-to-second', state.firstToSecond.toFixed(3));
       root.style.setProperty('--home-second-to-third', state.secondToThird.toFixed(3));
       root.style.setProperty('--home-orb-presence', state.orbPresence.toFixed(3));
+      root.classList.toggle('is-home-footer-active', state.footerProgress > 0.58);
     };
 
     const revealObserver = new IntersectionObserver(

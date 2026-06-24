@@ -1,0 +1,25 @@
+{
+  "name": "csc108-edge-cross-isolation",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我总是不确定 Python for loop 里 range 的终点到底包不包含，尤其是边界 case。"
+    },
+    {
+      "kind": "user",
+      "text": "还有 list aliasing，为什么改一个变量另一个也变？我经常把它当成 copy。"
+    },
+    {
+      "kind": "user",
+      "text": "你觉得这两个问题背后统一的薄弱点是什么？能不能记成一个待复习点？"
+    },
+    {
+      "kind": "user",
+      "text": "我现在想练 CSC108 Python edge cases，只想基础到中等，帮我从题库里选 3 道；不要选我已经掌握的类型。"
+    },
+    {
+      "kind": "user",
+      "text": "我在 CSC108 的 Python edge case 问题，会不会影响 CSC148 的薄弱点判断？这个测试很重要，防止记忆串课。"
+    }
+  ]
+}

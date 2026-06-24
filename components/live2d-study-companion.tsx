@@ -41,12 +41,13 @@ import { ClassroomTaskHistoryPopup } from '@/components/task-history/classroom-t
 const STORAGE_KEY = 'syntara-live2d-study-companion-position-v2';
 const MEMORY_STATUS_MOCK_QUERY_PARAM = 'memoryStatusMock';
 const MEMORY_STATUS_MOCK_ACTIVITY_IDS = [
-  'live2d-memory-status-mock-reply',
-  'live2d-memory-status-mock-grade',
-  'live2d-memory-status-mock-working-memory',
-  'live2d-memory-status-mock-source-index',
-  'live2d-memory-status-mock-confirmation',
-  'live2d-memory-status-mock-private-memory',
+  'live2d-memory-status-mock-schedule',
+  'live2d-memory-status-mock-preference',
+  'live2d-memory-status-mock-progress',
+  'live2d-memory-status-mock-weakness',
+  'live2d-memory-status-mock-mastery',
+  'live2d-memory-status-mock-source',
+  'live2d-memory-status-mock-next-step',
 ] as const;
 const EDGE_PADDING = 12;
 const DESKTOP_SIZE = { width: 190, height: 270 };
@@ -178,36 +179,39 @@ export function Live2DStudyCompanion({ onCollapse }: { onCollapse?: () => void }
     dismissMemoryStatusMockActivities();
 
     addMemoryActivity({
-      id: 'live2d-memory-status-mock-reply',
-      title: '回复已展示',
-      description: '用户先看到答案，后台继续处理判断、写入和索引。',
+      id: 'live2d-memory-status-mock-schedule',
+      title: '课程安排已更新',
+      description:
+        '课程安排：CSC108 下周五有 midterm。之后安排复习和小测时，我会优先避开考试前的高压时间。',
       status: 'completed',
-      layer: 'none',
-      chips: ['conversation'],
+      layer: 'study_memory',
+      chips: ['课程安排', '考试'],
     });
     addMemoryActivity({
-      id: 'live2d-memory-status-mock-grade',
-      title: 'AI 正误判断',
-      description: '正在独立判断这次提交是正确、部分正确还是错误。',
-      status: 'detecting',
-      layer: 'none',
-      chips: ['notebook'],
+      id: 'live2d-memory-status-mock-preference',
+      title: '学习偏好已更新',
+      description:
+        '学习偏好：你更希望先看一个具体例子，再回到定义和规则。之后讲新概念时我会按这个顺序来。',
+      status: 'completed',
+      layer: 'structured_fact',
+      chips: ['学习偏好'],
     });
     addMemoryActivity({
-      id: 'live2d-memory-status-mock-working-memory',
-      title: '短期状态写入',
-      description: '正在覆盖当前任务、卡点和下一步教学动作。',
+      id: 'live2d-memory-status-mock-progress',
+      title: '学习进度写入中',
+      description: '学习进度：正在学习 03 循环，重点是 range、for、while 和嵌套循环。',
       status: 'writing_study_memory',
       layer: 'study_memory',
-      chips: ['notebook', 'conversation'],
+      chips: ['学习进度', 'CSC108'],
     });
     addMemoryActivity({
-      id: 'live2d-memory-status-mock-source-index',
-      title: '来源索引同步',
-      description: '把这次题目和讲解来源放进可检索上下文。',
-      status: 'indexing_source',
-      layer: 'knowledge_index',
-      chips: ['course', 'notebook'],
+      id: 'live2d-memory-status-mock-weakness',
+      title: '薄弱点写入中',
+      description:
+        '薄弱点：循环边界和 range 的停止位置还不稳，尤其容易把最后一次循环是否执行判断错。',
+      status: 'writing_study_memory',
+      layer: 'study_memory',
+      chips: ['薄弱点', '循环'],
     });
     setQueueOpen(true);
   }, [addMemoryActivity, clearMemoryStatusMockTimers, dismissMemoryStatusMockActivities]);
@@ -217,60 +221,109 @@ export function Live2DStudyCompanion({ onCollapse }: { onCollapse?: () => void }
     dismissMemoryStatusMockActivities();
 
     addMemoryActivity({
-      id: 'live2d-memory-status-mock-reply',
-      title: '回复已展示',
-      description: '用户先看到讲解，后台任务再处理判断和记忆写入。',
-      status: 'completed',
-      layer: 'none',
-      chips: ['conversation'],
-    });
-    addMemoryActivity({
-      id: 'live2d-memory-status-mock-grade',
-      title: 'AI 正误判断',
-      description: '独立任务：只判断这次提交是正确、部分正确还是错误。',
-      status: 'detecting',
-      layer: 'none',
-      chips: ['notebook'],
-    });
-    addMemoryActivity({
-      id: 'live2d-memory-status-mock-working-memory',
-      title: '短期状态写入',
-      description: '独立任务：覆盖当前任务、卡点和下一步教学动作。',
+      id: 'live2d-memory-status-mock-schedule',
+      title: '课程安排写入中',
+      description: '课程安排：你说 CSC108 下周五有 midterm，我正在把它放进之后的复习规划里。',
       status: 'writing_study_memory',
       layer: 'study_memory',
-      chips: ['notebook', 'conversation'],
+      chips: ['课程安排', '考试'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-preference',
+      title: '学习偏好写入中',
+      description: '学习偏好：你更喜欢先看例子，再看定义。之后我会按这个顺序组织讲解。',
+      status: 'writing_fact',
+      layer: 'structured_fact',
+      chips: ['学习偏好'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-progress',
+      title: '学习进度写入中',
+      description: '学习进度：正在学习 03 循环，范围包括 range、for、while 和嵌套循环。',
+      status: 'writing_study_memory',
+      layer: 'study_memory',
+      chips: ['学习进度', 'CSC108'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-weakness',
+      title: '薄弱点写入中',
+      description: '薄弱点：循环边界和 range 的停止位置还不稳，需要用小题继续确认。',
+      status: 'writing_study_memory',
+      layer: 'study_memory',
+      chips: ['薄弱点', '循环'],
+    });
+    addMemoryActivity({
+      id: 'live2d-memory-status-mock-source',
+      title: '资料理解写入中',
+      description: '资料理解：我正在把循环讲义和刚才的小测题整理成之后可以检索的课程依据。',
+      status: 'indexing_source',
+      layer: 'knowledge_index',
+      chips: ['资料理解', '题目'],
     });
     setQueueOpen(true);
 
     const timers = [
       window.setTimeout(() => {
-        updateMemoryActivity('live2d-memory-status-mock-grade', {
+        updateMemoryActivity('live2d-memory-status-mock-schedule', {
+          title: '课程安排已更新',
           status: 'completed',
-          description: '正误判断完成：部分正确，记忆写入任务读取这个结果。',
+          description:
+            '课程安排：CSC108 下周五有 midterm。之后安排复习和小测时，我会优先围绕这个时间倒排。',
+        });
+      }, 700),
+      window.setTimeout(() => {
+        updateMemoryActivity('live2d-memory-status-mock-preference', {
+          title: '学习偏好已更新',
+          status: 'completed',
+          description:
+            '学习偏好：你更喜欢先看例子，再看定义。之后讲新概念时我会先给一个可运行的小例子。',
         });
       }, 1200),
       window.setTimeout(() => {
-        updateMemoryActivity('live2d-memory-status-mock-working-memory', {
-          description: '正在写入 currentTask、stuckPoint 和 nextTeachingMove。',
-        });
-      }, 1900),
-      window.setTimeout(() => {
-        updateMemoryActivity('live2d-memory-status-mock-working-memory', {
+        updateMemoryActivity('live2d-memory-status-mock-progress', {
+          title: '学习进度已更新',
           status: 'completed',
-          description: '短期学习状态已更新，下一次回复会优先读取。',
-          detailHref: resolveWorkingMemoryMockDetailHref(),
+          description:
+            '学习进度：你现在定位在 03 循环。下一轮复习会从 range、for、while 和嵌套循环接上。',
+        });
+      }, 1700),
+      window.setTimeout(() => {
+        addMemoryActivity({
+          id: 'live2d-memory-status-mock-mastery',
+          title: '掌握情况已更新',
+          description: '掌握情况：你已经能读懂简单 for 循环，并能说出循环变量每轮怎样变化。',
+          status: 'completed',
+          layer: 'study_memory',
+          chips: ['掌握情况', '循环'],
+        });
+      }, 2300),
+      window.setTimeout(() => {
+        updateMemoryActivity('live2d-memory-status-mock-weakness', {
+          title: '薄弱点已更新',
+          status: 'completed',
+          description:
+            '薄弱点：range 的停止位置和 while 的终止条件还不稳。下一步要用 2-3 道边界小题来补。',
+        });
+      }, 2800),
+      window.setTimeout(() => {
+        addMemoryActivity({
+          id: 'live2d-memory-status-mock-next-step',
+          title: '下一步学习建议已更新',
+          description:
+            '下一步：先做一组循环边界判断题，再让你自己写一个带 accumulator 的 while 循环。',
+          status: 'completed',
+          layer: 'study_memory',
+          chips: ['下一步', '练习'],
         });
       }, 3400),
       window.setTimeout(() => {
-        addMemoryActivity({
-          id: 'live2d-memory-status-mock-private-memory',
-          title: '长期私有记忆',
-          description: '本轮只是短期状态变化，没有沉淀成长期私有记忆。',
-          status: 'skipped',
-          layer: 'study_memory',
-          chips: ['private'],
+        updateMemoryActivity('live2d-memory-status-mock-source', {
+          title: '资料理解已更新',
+          status: 'completed',
+          description:
+            '资料理解：循环讲义和小测题已经整理好。之后问到 range/for/while，我可以回到这些材料里找依据。',
         });
-      }, 4200),
+      }, 4100),
     ];
     memoryStatusMockTimersRef.current = timers;
   }, [

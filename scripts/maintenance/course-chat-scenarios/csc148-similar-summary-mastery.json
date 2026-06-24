@@ -1,0 +1,29 @@
+{
+  "name": "csc148-similar-summary-mastery",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "为什么 tree recursion 不是只多写几个 recursive call？我总是不知道怎么 trace。"
+    },
+    {
+      "kind": "user",
+      "text": "为什么 mutual recursion 里两个函数互相叫，我就很容易丢掉当前状态？"
+    },
+    {
+      "kind": "user",
+      "text": "为什么 linked list recursion 里我明明会 base case，但还是不知道 recursive result 代表什么？"
+    },
+    {
+      "kind": "user",
+      "text": "你觉得我这些问题背后统一不会的点是什么？请归纳，不要把三个问题分开讲。"
+    },
+    {
+      "kind": "user",
+      "text": "我已经会 basic recursion 了，不要再从 base case 开始讲。根据刚才的薄弱点，直接给我下一步复习安排。"
+    },
+    {
+      "kind": "user",
+      "text": "总结一下我最近在 CSC148 问过什么，这些问题说明我主要卡在哪些概念？按优先级列出接下来该补的 3 个点。"
+    }
+  ]
+}

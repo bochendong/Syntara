@@ -203,10 +203,23 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
 
     let fullContent = '';
 
-    for await (const chunk of result.textStream) {
-      if (chunk) {
-        fullContent += chunk;
-        yield { type: 'delta', content: chunk };
+    for await (const part of result.fullStream) {
+      if (part.type === 'text-delta' && part.text) {
+        fullContent += part.text;
+        yield { type: 'delta', content: part.text };
+      }
+    }
+
+    if (!fullContent.trim()) {
+      const finalContent = await result.content;
+      const finalText = finalContent
+        .filter((part): part is Extract<(typeof finalContent)[number], { type: 'text' }> =>
+          Boolean(part && part.type === 'text'),
+        )
+        .map((part) => part.text)
+        .join('');
+      if (finalText?.trim()) {
+        fullContent = finalText;
       }
     }
 

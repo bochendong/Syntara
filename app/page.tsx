@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { SendHorizontal, Sparkles } from 'lucide-react';
+import { BookOpen, SendHorizontal } from 'lucide-react';
+import { AppGlobalHeader } from '@/components/app-global-header';
 import { SyntaraHomeMotion } from '@/components/home/syntara-home-motion';
 
 export const metadata: Metadata = {
@@ -15,67 +16,23 @@ const quickActions = [
   { label: '课程商城', href: '/store/courses' },
 ];
 
-function HomeNav() {
-  return (
-    <header className="syntara-home-nav pointer-events-none fixed left-0 right-0 top-0 z-40 px-5 py-5 sm:px-8 sm:py-8">
-      <div className="mx-auto grid max-w-[1680px] grid-cols-[1fr_auto] gap-4 text-[#103832] md:grid-cols-[1fr_1fr_1fr_1fr]">
-        <Link
-          href="/"
-          className="pointer-events-auto flex w-fit items-start gap-3 leading-none"
-          aria-label="Syntara home"
-        >
-          <span className="mt-0.5 size-2.5 rounded-full bg-[#103832]" />
-          <span className="syntara-marimba-wordmark text-[26px] font-black leading-[0.78] sm:text-[32px]">
-            syntara.
-            <br />
-            learn
-          </span>
-        </Link>
-        <div className="hidden pt-3 text-sm font-medium md:block">AI learning workspace</div>
-        <div className="hidden pt-3 text-sm font-medium md:block">Designed for deeper learning</div>
-        <div className="hidden pt-3 text-sm font-medium md:block">For individuals & teams</div>
-        <nav className="pointer-events-auto row-span-2 flex flex-col items-end gap-3 text-right text-lg font-semibold sm:text-xl md:col-start-4 md:row-auto">
-          <Link
-            href="/"
-            className="leading-none transition hover:translate-x-[-2px] hover:text-[#4d7f89]"
-          >
-            · Home
-          </Link>
-          <Link
-            href="/store/courses"
-            className="leading-none transition hover:translate-x-[-2px] hover:text-[#4d7f89]"
-          >
-            Courses
-          </Link>
-          <Link
-            href="/my-courses"
-            className="leading-none transition hover:translate-x-[-2px] hover:text-[#4d7f89]"
-          >
-            Workspace
-          </Link>
-          <Link
-            href="/learn"
-            className="leading-none transition hover:translate-x-[-2px] hover:text-[#4d7f89]"
-          >
-            Learn
-          </Link>
-        </nav>
-      </div>
-    </header>
-  );
-}
+const footerActions = [
+  { label: 'Open learning', href: '/learn', primary: true },
+  { label: 'Course store', href: '/store/courses' },
+  { label: 'My workspace', href: '/my-courses' },
+];
+
+const interfaceSupport = ['中文界面', 'English UI', 'Light theme', 'Dark theme'];
 
 export default function HomePage() {
   return (
     <main data-syntara-home className="syntara-home min-h-screen bg-[#f7fbfd] text-slate-950">
       <SyntaraHomeMotion />
-      <HomeNav />
-      <div className="syntara-side-honors" aria-hidden>
-        <span>S.</span>
-        <span>Open your learning</span>
+      <div className="fixed left-3 right-3 top-3 z-[1400] sm:left-4 sm:right-4 sm:top-4">
+        <AppGlobalHeader showHomeControls />
       </div>
 
-      <section className="syntara-hero syntara-marimba-hero relative isolate min-h-[700vh] bg-[#f3f8fb]">
+      <section className="syntara-hero syntara-marimba-hero relative isolate min-h-[940vh] bg-[#f3f8fb]">
         <div className="syntara-hero-stage sticky top-0 min-h-screen overflow-hidden">
           <div className="syntara-marimba-grid absolute inset-0" />
           <div className="syntara-scroll-dot syntara-scroll-dot-a" aria-hidden />
@@ -188,20 +145,94 @@ export default function HomePage() {
             />
           </div>
 
+          <footer className="syntara-footer-screen" aria-labelledby="syntara-footer-title">
+            <div className="syntara-footer-glow syntara-footer-glow-a" aria-hidden />
+            <div className="syntara-footer-glow syntara-footer-glow-b" aria-hidden />
+            <div className="syntara-footer-thread syntara-footer-thread-a" aria-hidden />
+            <div className="syntara-footer-thread syntara-footer-thread-b" aria-hidden />
+
+            <div className="syntara-footer-content">
+              <p className="syntara-footer-kicker">Syntara learning workspace</p>
+              <h2
+                id="syntara-footer-title"
+                className="syntara-footer-title syntara-marimba-headline"
+              >
+                Start your next
+                <br />
+                learning loop
+              </h2>
+              <p className="syntara-footer-copy">
+                把课程资料、提问、薄弱点和下一组练习放在同一个地方。 Syntara 记得你学到哪，
+                也会把下一步准备好。
+              </p>
+
+              <div className="syntara-footer-state" aria-label="Learning state summary">
+                <span>Course context</span>
+                <span>Study memory</span>
+                <span>Next practice</span>
+              </div>
+
+              <div className="syntara-footer-support" aria-label="Interface support">
+                {interfaceSupport.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+
+              <div className="syntara-footer-actions" aria-label="Footer navigation">
+                {footerActions.map((action) => (
+                  <Link
+                    key={action.href}
+                    href={action.href}
+                    className={
+                      action.primary ? 'syntara-footer-primary' : 'syntara-footer-secondary'
+                    }
+                  >
+                    {action.label}
+                    {action.primary ? <SendHorizontal className="size-4" /> : null}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="syntara-footer-bottom">
+              <span>© 2026 Syntara Learn</span>
+              <span>Built for course learning, memory, and practice.</span>
+            </div>
+          </footer>
+
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f7fbfd] to-transparent" />
 
           <div className="relative z-10 mx-auto flex min-h-screen max-w-[1680px] flex-col justify-center px-5 pb-20 pt-32 text-[#103832] sm:px-8 lg:px-12">
-            <div className="syntara-hero-kicker mx-auto mb-10 inline-flex items-center gap-2 rounded-full border border-[#103832] bg-[#f8fcff]/60 px-5 py-2 text-sm font-semibold text-[#103832] backdrop-blur-sm sm:text-base">
-              <Sparkles className="size-4" />
-              AI course learning
+            <div className="syntara-hero-kicker mx-auto mb-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-[#103832] backdrop-blur-sm sm:text-base">
+              <BookOpen className="size-4" />
+              Course learning workspace
             </div>
             <h1
               className="syntara-hero-title syntara-marimba-headline mx-auto max-w-[1280px] text-center text-[clamp(3.8rem,7.6vw,8.7rem)] font-normal leading-[0.93]"
               aria-label="Make every course feel alive, not just stored in files."
             >
-              Make every course
+              Make every{' '}
+              <span className="syntara-headline-media syntara-headline-media-haru">
+                <Image
+                  src="/home/syntara-haru-headline-transparent.png"
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 56px, 84px"
+                  className="object-cover"
+                />
+              </span>{' '}
+              course
               <br />
-              feel alive, not just
+              feel alive, not just{' '}
+              <span className="syntara-headline-media syntara-headline-media-workspace">
+                <Image
+                  src="/home/syntara-headline-laptop-transparent.png"
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 92px, 148px"
+                  className="object-cover"
+                />
+              </span>
               <br />
               stored in files.
             </h1>

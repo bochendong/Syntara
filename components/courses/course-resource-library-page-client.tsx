@@ -76,7 +76,10 @@ import { listStudyMemoryRecords, type StudyMemoryApiRecord } from '@/lib/utils/s
 
 type CourseResourceLibraryPageClientProps = {
   courseId: string;
+  initialTab?: string | null;
 };
+
+type ResourceLibraryTab = 'search' | 'sources' | 'memory' | 'notebooks' | 'problems' | 'knowledge';
 
 type NotebookMemoryRecordBundle = {
   notebookId: string;
@@ -3652,10 +3655,25 @@ function ResourceFilterButton({
   );
 }
 
+function normalizeResourceLibraryTab(value: string | null): ResourceLibraryTab {
+  if (
+    value === 'sources' ||
+    value === 'memory' ||
+    value === 'notebooks' ||
+    value === 'problems' ||
+    value === 'knowledge'
+  ) {
+    return value;
+  }
+  return 'search';
+}
+
 export function CourseResourceLibraryPageClient({
   courseId,
+  initialTab: initialTabParam,
 }: CourseResourceLibraryPageClientProps) {
   const router = useRouter();
+  const initialTab = normalizeResourceLibraryTab(initialTabParam ?? null);
   const [course, setCourse] = useState<CourseRecord | null | undefined>(undefined);
   const [notebooks, setNotebooks] = useState<StageListItem[]>([]);
   const [problems, setProblems] = useState<NotebookProblemClientRecord[]>([]);
@@ -6005,7 +6023,7 @@ export function CourseResourceLibraryPageClient({
           </div>
         </section>
 
-        <Tabs defaultValue="search" className="gap-4">
+        <Tabs defaultValue={initialTab} className="gap-4">
           <div className="border-b border-slate-200/80 dark:border-white/10">
             <TabsList
               variant="line"

@@ -22,6 +22,13 @@ export type CourseSourceUploadRecord = {
   knowledgeGraphFactIds: string[];
   ragEntryIds: string[];
   openaiFileIds: string[];
+  textSections: Array<{
+    id: string;
+    notebookId: string;
+    title: string;
+    order: number;
+    markdown: string;
+  }>;
   createdAt: string;
   updatedAt: string;
   stats: {
@@ -72,6 +79,13 @@ type SourceUploadAccumulator = {
   knowledgeGraphFactIds: Set<string>;
   ragEntryIds: Set<string>;
   openaiFileIds: Set<string>;
+  textSections: Array<{
+    id: string;
+    notebookId: string;
+    title: string;
+    order: number;
+    markdown: string;
+  }>;
   createdAtMs: number | null;
   updatedAtMs: number | null;
 };
@@ -205,6 +219,9 @@ function finalizeRecord(acc: SourceUploadAccumulator): CourseSourceUploadRecord 
   const knowledgeGraphFactIds = Array.from(acc.knowledgeGraphFactIds);
   const ragEntryIds = Array.from(acc.ragEntryIds);
   const openaiFileIds = Array.from(acc.openaiFileIds);
+  const textSections = acc.textSections
+    .slice()
+    .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'));
   const createdAt = isoFromMs(acc.createdAtMs ?? acc.updatedAtMs);
   const updatedAt = isoFromMs(acc.updatedAtMs ?? acc.createdAtMs);
 
@@ -227,6 +244,7 @@ function finalizeRecord(acc: SourceUploadAccumulator): CourseSourceUploadRecord 
     knowledgeGraphFactIds,
     ragEntryIds,
     openaiFileIds,
+    textSections,
     createdAt,
     updatedAt,
     stats: {
@@ -281,6 +299,7 @@ function ensureSourceUpload(
     knowledgeGraphFactIds: new Set(),
     ragEntryIds: new Set(),
     openaiFileIds: new Set(),
+    textSections: [],
     createdAtMs: null,
     updatedAtMs: null,
   };
@@ -307,6 +326,8 @@ async function collectCourseSourceUploads(args: {
       id: true,
       notebookId: true,
       title: true,
+      order: true,
+      markdown: true,
       sourceMeta: true,
       createdAt: true,
       updatedAt: true,
@@ -320,6 +341,13 @@ async function collectCourseSourceUploads(args: {
     const acc = ensureSourceUpload(uploads, sourceHash);
     acc.sectionIds.add(section.id);
     acc.notebookIds.add(section.notebookId);
+    acc.textSections.push({
+      id: section.id,
+      notebookId: section.notebookId,
+      title: section.title,
+      order: section.order,
+      markdown: section.markdown,
+    });
     acc.title ||= readJsonString(meta, ['sourceTitle']) || section.title;
     acc.kind ||= readJsonString(meta, ['sourceKind']);
     acc.fileMime ||= readJsonString(meta, ['sourceFileMime']);

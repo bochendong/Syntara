@@ -113,3 +113,19 @@ export async function syncRemoteLearnConversation(args: {
     return false;
   }
 }
+
+export async function deleteRemoteLearnConversation(
+  courseId: string,
+  sessionId: string,
+): Promise<boolean> {
+  try {
+    const response = await backendJson<{ ok: boolean; storage: 'database' | 'unavailable' }>(
+      `/api/learn/conversations?${paramsFor(courseId, sessionId)}`,
+      { method: 'DELETE' },
+    );
+    return response.storage === 'database' && response.ok;
+  } catch (error) {
+    console.warn('[learn-conversation-api] failed to delete conversation', error);
+    return false;
+  }
+}

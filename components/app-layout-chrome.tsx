@@ -120,6 +120,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isClassroomMemory =
     pathname != null && /^\/classroom\/[^/]+\/memory(?:\/|$)/.test(pathname);
   const isAdmin = pathname?.startsWith('/admin');
+  const isProfile = pathname === '/profile' || pathname?.startsWith('/profile/');
   const isTestPage = isTestSurface(pathname);
   const isCourseHome = pathname != null && /^\/course\/[^/]+\/?$/.test(pathname);
   const isCourseProblemDetail =
@@ -246,6 +247,14 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   }
 
   if (isCourseResources) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
+  }
+
+  if (isProfile) {
     return withStudyCompanion(
       <MainShellNoRail balancedInset showHeader>
         {children}

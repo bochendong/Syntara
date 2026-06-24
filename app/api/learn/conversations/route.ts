@@ -403,3 +403,53 @@ export async function POST(request: Request) {
     });
   });
 }
+
+export async function DELETE(request: Request) {
+  return safeRoute(async () => {
+    const auth = await requireUserId();
+    if ('response' in auth) return auth.response;
+    const prisma = getOptionalPrisma();
+    if (!prisma) {
+      return NextResponse.json({ storage: 'unavailable', ok: false });
+    }
+
+    await ensureLearnConversationDb(prisma);
+    const { userId } = auth;
+    const { searchParams } = new URL(request.url);
+    const courseId = searchParams.get('courseId')?.trim();
+    const sessionId = searchParams.get('sessionId')?.trim();
+    if (!courseId) return NextResponse.json({ error: 'Missing courseId' }, { status: 400 });
+    if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+
+    const accessError = await requireCourseAccess(prisma, userId, courseId);
+    if (accessError) return accessError;
+
+    const conversation = await findLearnConversation(prisma, { userId, courseId, sessionId });
+    if (conversation) {
+      await prisma.$transaction(async (tx) => {
+        await tx.message.deleteMany({
+          where: {
+            conversationId: conversation.id,
+            ownerId: userId,
+          },
+        });
+        await tx.$executeRawUnsafe(
+          `
+            DELETE FROM "Conversation"
+            WHERE "id" = $1
+              AND "ownerId" = $2
+              AND "courseId" = $3
+              AND "targetId" = $4
+              AND "kind"::text = 'course'
+          `,
+          conversation.id,
+          userId,
+          courseId,
+          learnTargetId(sessionId),
+        );
+      });
+    }
+
+    return NextResponse.json({ storage: 'database', ok: true });
+  });
+}

@@ -156,7 +156,7 @@ export async function writeMemoryWithActivity(args: {
 function initialActivity(candidate: MemoryWriteCandidate): MemoryActivityInput {
   const status = initialStatus(candidate);
   return {
-    title: initialTitle(status),
+    title: initialTitle(status, candidate),
     description: candidateTitle(candidate),
     status,
     layer: initialLayer(candidate),
@@ -170,8 +170,12 @@ function initialStatus(candidate: MemoryWriteCandidate): MemoryActivityStatus {
   }
   if (candidate.fact?.namespace && candidate.fact.key) return 'writing_fact';
   if (
+    candidate.contentType === 'current_fact' ||
+    candidate.contentType === 'preference' ||
+    candidate.contentType === 'profile' ||
     candidate.contentType === 'weakness' ||
     candidate.contentType === 'learning_pattern' ||
+    candidate.contentType === 'problem_attempt' ||
     candidate.contentType === 'conversation_summary' ||
     candidate.contentType === 'course_requirement' ||
     candidate.contentType === 'notebook_requirement'
@@ -181,11 +185,23 @@ function initialStatus(candidate: MemoryWriteCandidate): MemoryActivityStatus {
   return 'detecting';
 }
 
-function initialTitle(status: MemoryActivityStatus) {
-  if (status === 'writing_fact') return '正在更新记忆';
-  if (status === 'writing_study_memory') return '正在写入记忆';
-  if (status === 'indexing_source') return '正在加入知识索引';
-  return '正在判断是否值得记住';
+function initialTitle(status: MemoryActivityStatus, candidate?: MemoryWriteCandidate) {
+  if (isScheduleMemoryCandidate(candidate)) return '课程安排写入中';
+  if (candidate?.contentType === 'current_fact') return '重要信息写入中';
+  if (candidate?.contentType === 'preference') return '学习偏好写入中';
+  if (candidate?.contentType === 'profile') return '个人背景写入中';
+  if (candidate?.contentType === 'weakness') return '薄弱点写入中';
+  if (candidate?.contentType === 'learning_pattern') return '学习方式写入中';
+  if (candidate?.contentType === 'problem_attempt') return '掌握情况写入中';
+  if (candidate?.contentType === 'conversation_summary') return '对话摘要写入中';
+  if (candidate?.contentType === 'course_requirement') return '课程要求写入中';
+  if (candidate?.contentType === 'notebook_requirement') return '笔记本要求写入中';
+  if (candidate?.contentType === 'source_original') return '资料理解写入中';
+  if (candidate?.contentType === 'problem_original') return '题目资料写入中';
+  if (status === 'writing_fact') return '我正在更新对你的了解';
+  if (status === 'writing_study_memory') return '我正在整理一条学习记忆';
+  if (status === 'indexing_source') return '我正在读这份资料';
+  return '我正在判断这条信息以后会不会帮到你';
 }
 
 function initialLayer(candidate: MemoryWriteCandidate): MemoryActivityLayer {
@@ -194,8 +210,16 @@ function initialLayer(candidate: MemoryWriteCandidate): MemoryActivityLayer {
   }
   if (candidate.fact?.namespace && candidate.fact.key) return 'structured_fact';
   if (
+    candidate.contentType === 'current_fact' ||
+    candidate.contentType === 'preference' ||
+    candidate.contentType === 'profile'
+  ) {
+    return 'structured_fact';
+  }
+  if (
     candidate.contentType === 'weakness' ||
     candidate.contentType === 'learning_pattern' ||
+    candidate.contentType === 'problem_attempt' ||
     candidate.contentType === 'conversation_summary' ||
     candidate.contentType === 'course_requirement' ||
     candidate.contentType === 'notebook_requirement'
@@ -256,7 +280,7 @@ function activityFromResult(
     };
   }
   return {
-    title: completedTitle(result),
+    title: completedTitle(result, candidate),
     description: completedDescription(result, candidate),
     status: 'completed',
     layer: result.layer,
@@ -265,23 +289,89 @@ function activityFromResult(
   };
 }
 
-function completedTitle(result: MemoryWriteResult) {
-  if (result.action === 'write_fact') return '偏好/事实已更新';
-  if (result.action === 'write_study_memory') return '记忆已写入';
-  return '记忆活动已完成';
+function completedTitle(result: MemoryWriteResult, candidate?: MemoryWriteCandidate) {
+  if (isScheduleMemoryCandidate(candidate)) return '课程安排已更新';
+  if (candidate?.contentType === 'current_fact') return '重要信息已更新';
+  if (candidate?.contentType === 'preference') return '学习偏好已更新';
+  if (candidate?.contentType === 'profile') return '个人背景已更新';
+  if (candidate?.contentType === 'weakness') return '薄弱点已更新';
+  if (candidate?.contentType === 'learning_pattern') return '学习方式已更新';
+  if (candidate?.contentType === 'problem_attempt') return '掌握情况已更新';
+  if (candidate?.contentType === 'conversation_summary') return '对话摘要已更新';
+  if (candidate?.contentType === 'course_requirement') return '课程要求已更新';
+  if (candidate?.contentType === 'notebook_requirement') return '笔记本要求已更新';
+  if (candidate?.contentType === 'source_original') return '资料理解已更新';
+  if (candidate?.contentType === 'problem_original') return '题目资料已更新';
+  if (result.action === 'write_fact') return '学习偏好已更新';
+  if (result.action === 'write_study_memory') return '学习记忆已更新';
+  return '我已经整理好这次记忆更新';
 }
 
 function completedDescription(result: MemoryWriteResult, candidate?: MemoryWriteCandidate) {
-  if (result.memory?.title) return result.memory.title;
-  if (result.fact) return `${result.fact.namespace}.${result.fact.key}`;
-  return candidateTitle(candidate) || result.reason;
+  const title = candidate?.studyMemory?.title || result.memory?.title || candidate?.title || '';
+  const text = candidate?.studyMemory?.text || candidate?.text || '';
+  const reason = candidate?.studyMemory?.reason || result.reason || '';
+  const subject = title || text || reason;
+  if (isScheduleMemoryCandidate(candidate)) {
+    return compact(`课程安排：${subject}。之后安排复习、提醒和学习计划时我会参考这个时间。`, 220);
+  }
+  if (candidate?.contentType === 'current_fact') {
+    return compact(`重要信息：${subject}。之后回答和规划时我会把它纳入考虑。`, 220);
+  }
+  if (candidate?.contentType === 'preference') {
+    return compact(`学习偏好：${subject}。之后我会按这个偏好调整讲解和互动方式。`, 220);
+  }
+  if (candidate?.contentType === 'profile') {
+    return compact(`个人背景：${subject}。之后我会用它理解你的学习目标和上下文。`, 220);
+  }
+  if (candidate?.contentType === 'weakness') {
+    return compact(`薄弱点：${title || text || reason}。${reason ? `原因：${reason}` : ''}`, 220);
+  }
+  if (candidate?.contentType === 'learning_pattern') {
+    return compact(`学习方式：${title || text || reason}。我会据此调整讲解和练习安排。`, 220);
+  }
+  if (candidate?.contentType === 'problem_attempt') {
+    return compact(`掌握情况：${subject}`, 220);
+  }
+  if (candidate?.contentType === 'conversation_summary') {
+    return compact(`对话摘要：${subject}。之后继续这个主题时，我会参考这段上下文。`, 220);
+  }
+  if (
+    candidate?.contentType === 'course_requirement' ||
+    candidate?.contentType === 'notebook_requirement'
+  ) {
+    return compact(`课程要求：${title || text}。之后回答时我会遵守这个格式或规则。`, 220);
+  }
+  if (reason) return compact(reason, 220);
+  if (title) return `之后我会参考「${title}」来更贴近你的学习状态。`;
+  if (text) return compact(text, 220);
+  if (result.fact) return '这条事实/偏好已经更新，之后回答时我会把它纳入考虑。';
+  return result.reason || '这条信息已经加入平台记忆，之后我会用它更好地帮助你。';
+}
+
+function candidateMemorySubject(candidate?: MemoryWriteCandidate) {
+  return [
+    candidate?.studyMemory?.title,
+    candidate?.title,
+    candidate?.studyMemory?.text,
+    candidate?.text,
+    candidate?.studyMemory?.reason,
+  ]
+    .filter((item): item is string => Boolean(item?.trim()))
+    .join(' ');
+}
+
+function isScheduleMemoryCandidate(candidate?: MemoryWriteCandidate) {
+  return /(考试|测验|quiz|test|midterm|final|ddl|deadline|due|作业|assignment|日程|calendar|syllabus|上课|office hour|due date)/i.test(
+    candidateMemorySubject(candidate),
+  );
 }
 
 function skippedTitle(result: MemoryWriteResult) {
-  if (result.action === 'index_knowledge_source') return '原文等待索引';
-  if (result.action === 'write_business_record') return '应写入做题记录';
-  if (result.action === 'ignore') return '未写入记忆';
-  return '记忆没有写入';
+  if (result.action === 'index_knowledge_source') return '这份原文还在等待整理';
+  if (result.action === 'write_business_record') return '这次更适合放进练习记录';
+  if (result.action === 'ignore') return '这条暂时不用记住';
+  return '这次没有写入记忆';
 }
 
 function candidateTitle(candidate?: MemoryWriteCandidate) {
