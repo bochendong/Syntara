@@ -654,14 +654,82 @@ function renderTextFragmentWithBareMath(text: string): string {
 function isLooseMathContent(value: string): boolean {
   const text = value.trim();
   if (text.length < 2 || text.length > 220) return false;
-  if (/[\u3400-\u9fff]/.test(text)) return false;
+  const mathSyntaxText = text.replace(/\\text\s*\{[^{}]*\}/g, '');
+  if (/[\u3400-\u9fff]/.test(mathSyntaxText)) return false;
   if (/https?:\/\//i.test(text)) return false;
-  if (/^[A-Za-z\s]+$/.test(text)) return false;
+  if (/^[A-Za-z\s]+$/.test(mathSyntaxText)) return false;
   return (
     LATEX_INLINE_COMMAND_PATTERN.test(text) ||
-    /[=^*/]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|ℕ|ℤ|ℚ|ℝ|ℂ/.test(text) ||
-    /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(text)
+    /[=^*/+\-<>]|→|∘|≠|⇒|≤|≥|≡|∈|∉|⊆|⊂|∪|∩|∅|∣|∤|−|ℕ|ℤ|ℚ|ℝ|ℂ/.test(mathSyntaxText) ||
+    /\b(?:O|T|Theta|Omega|Θ|Ω)\s*\(/.test(mathSyntaxText) ||
+    /^[A-Za-z][A-Za-z0-9_]*\s*\([^，。！？；;\n]{1,120}\)$/.test(mathSyntaxText)
   );
+}
+
+function copyDollarMathSpan(
+  text: string,
+  index: number,
+): { span: string; nextIndex: number } | null {
+  if (text[index] !== '$') return null;
+  const delimiter = text.startsWith('$$', index) ? '$$' : '$';
+  const start = index + delimiter.length;
+  const end = text.indexOf(delimiter, start);
+  if (end < 0) return null;
+  return {
+    span: text.slice(index, end + delimiter.length),
+    nextIndex: end + delimiter.length,
+  };
+}
+
+function wrapSquareBracketMath(text: string): string {
+  let output = '';
+  let index = 0;
+
+  while (index < text.length) {
+    const dollarMathSpan = copyDollarMathSpan(text, index);
+    if (dollarMathSpan) {
+      output += dollarMathSpan.span;
+      index = dollarMathSpan.nextIndex;
+      continue;
+    }
+
+    if (text[index] !== '[' || text[index - 1] === '!') {
+      output += text[index];
+      index += 1;
+      continue;
+    }
+
+    const end = text.indexOf(']', index + 1);
+    if (end < 0 || end - index > 260 || text.slice(index + 1, end).includes('\n')) {
+      output += text[index];
+      index += 1;
+      continue;
+    }
+
+    const next = text[end + 1];
+    if (next === '(' || next === '[') {
+      output += text[index];
+      index += 1;
+      continue;
+    }
+
+    const candidate = text.slice(index + 1, end).trim();
+    if (!isLooseMathContent(candidate)) {
+      output += text[index];
+      index += 1;
+      continue;
+    }
+
+    const lineStart = text.lastIndexOf('\n', index - 1) + 1;
+    const lineEndIndex = text.indexOf('\n', end + 1);
+    const lineEnd = lineEndIndex < 0 ? text.length : lineEndIndex;
+    const displayMode =
+      !text.slice(lineStart, index).trim() && !text.slice(end + 1, lineEnd).trim();
+    output += displayMode ? `$$\n${candidate}\n$$` : `$${candidate}$`;
+    index = end + 1;
+  }
+
+  return output;
 }
 
 function wrapDoubleParenMath(text: string): string {
@@ -669,6 +737,13 @@ function wrapDoubleParenMath(text: string): string {
   let index = 0;
 
   outer: while (index < text.length) {
+    const dollarMathSpan = copyDollarMathSpan(text, index);
+    if (dollarMathSpan) {
+      output += dollarMathSpan.span;
+      index = dollarMathSpan.nextIndex;
+      continue;
+    }
+
     if (text.startsWith('((', index)) {
       let cursor = index + 2;
       let depth = 0;
@@ -702,6 +777,50 @@ function wrapDoubleParenMath(text: string): string {
   return output;
 }
 
+function wrapParenMath(text: string): string {
+  let output = '';
+  let index = 0;
+
+  outer: while (index < text.length) {
+    const dollarMathSpan = copyDollarMathSpan(text, index);
+    if (dollarMathSpan) {
+      output += dollarMathSpan.span;
+      index = dollarMathSpan.nextIndex;
+      continue;
+    }
+
+    if (text[index] === '(') {
+      let cursor = index + 1;
+      let depth = 0;
+      while (cursor < text.length && cursor - index <= 260) {
+        const ch = text[cursor];
+        if (ch === '\n') break;
+        if (ch === '(') {
+          depth += 1;
+        } else if (ch === ')') {
+          if (depth > 0) {
+            depth -= 1;
+          } else {
+            const candidate = text.slice(index + 1, cursor).trim();
+            if (isLooseMathContent(candidate)) {
+              output += `$${candidate}$`;
+              index = cursor + 1;
+              continue outer;
+            }
+            break;
+          }
+        }
+        cursor += 1;
+      }
+    }
+
+    output += text[index];
+    index += 1;
+  }
+
+  return output;
+}
+
 function wrapBacktickMath(text: string): string {
   return text.replace(/`([^`\n]{2,220})`/g, (match, candidate: string) => {
     const math = candidate.trim();
@@ -710,17 +829,7 @@ function wrapBacktickMath(text: string): string {
 }
 
 export function normalizeLooseMathDelimiters(text: string): string {
-  const withDisplayBrackets = text
-    .split('\n')
-    .map((line) => {
-      const match = line.match(/^(\s*)\[\s*([^\[\]]{2,220})\s*\](\s*)$/u);
-      if (!match) return line;
-      const candidate = match[2].trim();
-      return isLooseMathContent(candidate) ? `${match[1]}$$\n${candidate}\n$$` : line;
-    })
-    .join('\n');
-
-  return wrapBacktickMath(wrapDoubleParenMath(withDisplayBrackets));
+  return wrapBacktickMath(wrapParenMath(wrapDoubleParenMath(wrapSquareBracketMath(text))));
 }
 
 function isComplexMath(latex: string): boolean {

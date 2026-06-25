@@ -873,6 +873,7 @@ async function runAgentGeneration(
   const parserState = createParserState();
   let fullText = '';
   let actionCount = 0;
+  let sawStreamDelta = false;
   const emittedActionKeys = new Set<string>();
   const emittedActionNames: string[] = [];
   const latestUserTextForActionSuppression = latestUserText(openaiMessages);
@@ -984,11 +985,12 @@ async function runAgentGeneration(
       signal: config.signal,
     })) {
       if (chunk.type === 'delta') {
+        sawStreamDelta = true;
         const parseResult = parseStructuredChunk(chunk.content, parserState);
         emitParseResult(parseResult);
       } else if (chunk.type === 'done') {
         const finalContent = chunk.content.trim();
-        if (finalContent) {
+        if (finalContent && !sawStreamDelta) {
           const completeState = createParserState();
           emitParseResult(parseStructuredChunk(finalContent, completeState));
           emitParseResult(finalizeParser(completeState));
@@ -1005,6 +1007,7 @@ async function runAgentGeneration(
         `[AgentGenerate] Empty structured response for ${agentConfig.name}; retrying once with plain-text fallback`,
       );
       const fallbackParserState = createParserState();
+      let fallbackSawStreamDelta = false;
       const fallbackPrompt = buildPlainTextFallbackPrompt(agentConfig, state.courseContext);
       const fallbackMessages = [
         new SystemMessage(fallbackPrompt),
@@ -1018,10 +1021,11 @@ async function runAgentGeneration(
         signal: config.signal,
       })) {
         if (retryChunk.type === 'delta') {
+          fallbackSawStreamDelta = true;
           emitParseResult(parseStructuredChunk(retryChunk.content, fallbackParserState));
         } else if (retryChunk.type === 'done') {
           const finalContent = retryChunk.content.trim();
-          if (finalContent) {
+          if (finalContent && !fallbackSawStreamDelta) {
             const completeState = createParserState();
             emitParseResult(parseStructuredChunk(finalContent, completeState));
             emitParseResult(finalizeParser(completeState));

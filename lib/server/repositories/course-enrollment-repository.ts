@@ -137,3 +137,16 @@ export async function listCourseEnrollmentsForUser(
     ORDER BY "joinedAt" DESC
   `;
 }
+
+export async function removeCourseEnrollmentForUser(
+  db: DbClient,
+  userId: string,
+  courseId: string,
+): Promise<number> {
+  await ensureCourseEnrollmentTable(db);
+  const result = await db.$executeRaw`
+    DELETE FROM "CourseEnrollment"
+    WHERE "userId" = ${userId} AND "courseId" = ${courseId}
+  `;
+  return result;
+}

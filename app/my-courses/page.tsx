@@ -92,14 +92,20 @@ export default function MyCoursesPage() {
     setCreateOpen(true);
   };
 
-  const handleDeleteCourse = async (courseId: string, courseName: string) => {
+  const handleDeleteCourse = async (
+    courseId: string,
+    courseName: string,
+    accessRole?: CourseRecord['accessRole'],
+  ) => {
     try {
       await deleteCourseAndNotebooks(courseId);
       if (useCurrentCourseStore.getState().id === courseId) {
         useCurrentCourseStore.getState().clearCurrentCourse();
       }
       await loadMyCourses();
-      toast.success(`已删除「${courseName}」`);
+      toast.success(
+        accessRole === 'enrolled' ? `已从我的课程移除「${courseName}」` : `已删除「${courseName}」`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败');
     }
@@ -334,17 +340,15 @@ export default function MyCoursesPage() {
                               }
                         }
                         deleteDialogTitle={
-                          course.accessRole === 'enrolled' ? undefined : '删除课程？'
+                          course.accessRole === 'enrolled' ? '移除课程？' : '删除课程？'
                         }
                         deleteDialogDescription={
                           course.accessRole === 'enrolled'
-                            ? undefined
+                            ? `将从你的课程列表中移除「${course.name}」，不会删除创建者维护的课程内容。`
                             : `将永久删除课程「${course.name}」及其下全部笔记本，不可恢复。`
                         }
-                        onDelete={
-                          course.accessRole === 'enrolled'
-                            ? undefined
-                            : () => handleDeleteCourse(course.id, course.name)
+                        onDelete={() =>
+                          handleDeleteCourse(course.id, course.name, course.accessRole)
                         }
                       />
                     </motion.li>

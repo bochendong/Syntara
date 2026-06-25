@@ -5,7 +5,10 @@ import { requireUserId } from '@/lib/server/api-auth';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { pickStableCourseAvatarUrl } from '@/lib/constants/course-avatars';
 import { getCoursePublishBlockReasonFromFlags } from '@/lib/utils/course-publish';
-import { findCourseAccessRole } from '@/lib/server/repositories/course-enrollment-repository';
+import {
+  findCourseAccessRole,
+  removeCourseEnrollmentForUser,
+} from '@/lib/server/repositories/course-enrollment-repository';
 import {
   countPurchasedNotebooksInOwnedCourse,
   deleteOwnedCourseWithNotebooks,
@@ -134,12 +137,30 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     const { userId } = auth;
     const { id } = await context.params;
 
-    const existing = await findOwnedCourse(prisma, userId, id);
-    if (!existing) {
+    const accessRole = await findCourseAccessRole(prisma, userId, id);
+    if (!accessRole) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    await deleteOwnedCourseWithNotebooks(prisma, userId, id);
-    return NextResponse.json({ ok: true });
+    if (accessRole === 'owner') {
+      await deleteOwnedCourseWithNotebooks(prisma, userId, id);
+      return NextResponse.json({ ok: true, action: 'deleted' });
+    }
+
+    const { removedEnrollment, removedLegacyPurchases } = await prisma.$transaction(async (tx) => ({
+      removedEnrollment: await removeCourseEnrollmentForUser(tx, userId, id),
+      removedLegacyPurchases: await tx.coursePurchase.deleteMany({
+        where: {
+          buyerId: userId,
+          sourceCourseId: id,
+        },
+      }),
+    }));
+
+    if (removedEnrollment === 0 && removedLegacyPurchases.count === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, action: 'removed' });
   });
 }

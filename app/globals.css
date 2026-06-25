@@ -3408,25 +3408,17 @@
 .learn-empty-center {
   width: min(100%, 640px);
   padding: 28px 34px 26px;
-  border: 1px solid rgba(169, 231, 255, 0.24);
+  border: 1px solid transparent;
   border-radius: 32px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.34)),
-    radial-gradient(ellipse at 50% 0%, rgba(169, 231, 255, 0.18), transparent 58%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 22px 70px rgba(47, 143, 201, 0.08);
-  backdrop-filter: blur(2px);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .dark .learn-empty-center {
-  border-color: rgba(169, 231, 255, 0.12);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(15, 23, 42, 0.34)),
-    radial-gradient(ellipse at 50% 0%, rgba(169, 231, 255, 0.1), transparent 58%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 22px 70px rgba(2, 6, 23, 0.24);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 
 .learn-empty-center::before {

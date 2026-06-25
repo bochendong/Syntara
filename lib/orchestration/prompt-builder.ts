@@ -393,6 +393,7 @@ Example:
 - If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
 - For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
 - For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.
+- For formulas, use standard Markdown math delimiters only: inline math as $...$ and display math as $$...$$. Do not use [ ... ] or ( ... ) as formula delimiters, and do not leave LaTeX commands outside math delimiters.
 - Keep the answer useful and structured, but do not dump every excerpt.`;
 }
 

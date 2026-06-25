@@ -4423,13 +4423,12 @@ export function LearnPageClient() {
   const handleDeleteCourse = useCallback(
     async (course: CourseRecord) => {
       if (deletingCourseId) return;
-      if (course.accessRole === 'enrolled') {
-        toast.error('已加入的课程不能在这里删除。');
-        return;
-      }
 
+      const isEnrolledCourse = course.accessRole === 'enrolled';
       const confirmed = window.confirm(
-        `确认删除课程「${course.name}」吗？课程下的笔记本、题库、记忆、对话和资料索引都会一起删除。`,
+        isEnrolledCourse
+          ? `确认从我的课程中移除「${course.name}」吗？这不会删除创建者的课程内容。`
+          : `确认删除课程「${course.name}」吗？课程下的笔记本、题库、记忆、对话和资料索引都会一起删除。`,
       );
       if (!confirmed) return;
 
@@ -4466,9 +4465,9 @@ export function LearnPageClient() {
             router.replace(query ? `/learn?${query}` : '/learn', { scroll: false });
           }
         }
-        toast.success('课程已删除');
+        toast.success(isEnrolledCourse ? '课程已从我的课程移除' : '课程已删除');
       } catch (err) {
-        const message = err instanceof Error ? err.message : '课程删除失败';
+        const message = err instanceof Error ? err.message : '课程操作失败';
         setError(message);
         toast.error(message);
       } finally {
@@ -6672,7 +6671,7 @@ export function LearnPageClient() {
         {courses.map((course) => {
           const active = course.id === activeCourseId;
           const deletingThisCourse = deletingCourseId === course.id;
-          const canDeleteCourse = course.accessRole !== 'enrolled';
+          const isEnrolledCourse = course.accessRole === 'enrolled';
           return (
             <div
               key={course.id}
@@ -6719,7 +6718,7 @@ export function LearnPageClient() {
                   </span>
                 </span>
               ) : null}
-              {!leftRailCollapsed && canDeleteCourse ? (
+              {!leftRailCollapsed ? (
                 <button
                   type="button"
                   className={cn(
@@ -6733,8 +6732,8 @@ export function LearnPageClient() {
                     event.stopPropagation();
                     void handleDeleteCourse(course);
                   }}
-                  aria-label={`删除课程 ${course.name}`}
-                  title="删除课程"
+                  aria-label={`${isEnrolledCourse ? '移除课程' : '删除课程'} ${course.name}`}
+                  title={isEnrolledCourse ? '从我的课程移除' : '删除课程'}
                 >
                   {deletingThisCourse ? (
                     <Loader2 className="size-4 animate-spin" strokeWidth={1.8} />
@@ -8489,7 +8488,15 @@ export function LearnPageClient() {
                     className="learn-empty-spotlight learn-empty-spotlight-accent"
                     aria-hidden
                   />
-                  <div className="learn-empty-center relative z-10 flex max-w-2xl flex-col items-center gap-4 px-3 text-center">
+                  <div
+                    className="learn-empty-center relative z-10 flex max-w-2xl flex-col items-center gap-4 px-3 text-center"
+                    style={{
+                      background: 'transparent',
+                      borderColor: 'transparent',
+                      boxShadow: 'none',
+                      backdropFilter: 'none',
+                    }}
+                  >
                     <div className="learn-empty-avatar relative">
                       <CourseAvatar course={activeCourse} className="size-14 rounded-[18px]" />
                       <span
