@@ -3996,6 +3996,7 @@ export function LearnPageClient() {
     () => courses.find((course) => course.id === activeCourseId) || null,
     [activeCourseId, courses],
   );
+  const hasActiveCourse = Boolean(activeCourse);
   const isResearchCourse = activeCourse?.purpose === 'research';
   const activeQuickPrompts = isResearchCourse ? researchQuickPrompts : learningQuickPrompts;
   const manualScheduleKindOptions = isResearchCourse
@@ -4094,6 +4095,10 @@ export function LearnPageClient() {
   );
 
   const handleUploadButtonClick = useCallback(() => {
+    if (!activeCourse) {
+      setError('先添加或选择一门课程，再上传课程资料。');
+      return;
+    }
     if (sourceUploading || sourceUploadItems.length > 0 || completedSourceUploadBadgeCount > 0) {
       openSourceUploadPanel();
       return;
@@ -4101,6 +4106,7 @@ export function LearnPageClient() {
     imageInputRef.current?.click();
   }, [
     completedSourceUploadBadgeCount,
+    activeCourse,
     openSourceUploadPanel,
     sourceUploadItems.length,
     sourceUploading,
@@ -6607,24 +6613,6 @@ export function LearnPageClient() {
     );
   }
 
-  if (!activeCourse) {
-    return (
-      <div className="grid h-full min-h-[70dvh] place-items-center px-6 text-center">
-        <div className="max-w-md">
-          <ShoppingBag className="mx-auto size-10 text-muted-foreground" />
-          <h1 className="mt-4 text-2xl font-semibold text-foreground">先加入一门课程</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            新版学习页以课程为主线。加入课程后，聊天、复习、题库和记忆都会围绕这门课展开。
-          </p>
-          <Button onClick={() => router.push('/store/courses')} className="mt-5 gap-2">
-            <ShoppingBag className="size-4" />
-            去课程商城
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   const courseSidebar = (
     <div
       className={cn(
@@ -6745,6 +6733,49 @@ export function LearnPageClient() {
             </div>
           );
         })}
+        {courses.length === 0 && !leftRailCollapsed ? (
+          <div className="rounded-[18px] border border-dashed border-slate-200 bg-white/60 p-4 text-sm shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-slate-950 dark:text-slate-50">
+              <ShoppingBag className="size-4 text-sky-600" strokeWidth={1.8} />
+              <span className="font-semibold">还没有课程</span>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              添加课程后，聊天、复习、题库和记忆都会围绕课程展开。
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => setCreateCourseOpen(true)}
+              >
+                <Plus className="size-3.5" />
+                新建课程
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => router.push('/store/courses')}
+              >
+                <ShoppingBag className="size-3.5" />
+                课程商城
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        {courses.length === 0 && leftRailCollapsed ? (
+          <button
+            type="button"
+            onClick={() => persistLeftRailCollapsed(false)}
+            className="grid size-12 place-items-center rounded-[15px] border border-dashed border-slate-200 bg-white/70 text-slate-500 transition hover:bg-white hover:text-slate-950 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:text-slate-50"
+            aria-label="添加课程"
+            title="添加课程"
+          >
+            <ShoppingBag className="size-5" strokeWidth={1.8} />
+          </button>
+        ) : null}
       </nav>
 
       <div
@@ -7392,7 +7423,13 @@ export function LearnPageClient() {
           <p className="text-xs leading-5 text-muted-foreground">管理这门课里你上传过的文件。</p>
         </DialogHeader>
         <div className="p-4 sm:p-5">
-          <CourseMaterialsPanel courseId={activeCourse.id} className="shadow-none" />
+          {activeCourse ? (
+            <CourseMaterialsPanel courseId={activeCourse.id} className="shadow-none" />
+          ) : (
+            <p className="rounded-[18px] border border-dashed border-border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+              先添加或选择课程，再管理课程文件。
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -8228,7 +8265,9 @@ export function LearnPageClient() {
                 </div>
                 <button
                   type="button"
-                  onClick={createNewLearnSession}
+                  onClick={
+                    hasActiveCourse ? createNewLearnSession : () => setCreateCourseOpen(true)
+                  }
                   className={rightRailIconButtonClassName}
                   aria-label="添加新会话"
                   title="添加新会话"
@@ -8237,46 +8276,55 @@ export function LearnPageClient() {
                 </button>
               </div>
               <nav className="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-6">
-                {learnSessions.map((session) => {
-                  const active = session.id === activeSessionId;
-                  const deleting = deletingLearnSessionId === session.id;
-                  return (
-                    <div
-                      key={session.id}
-                      className={cn(
-                        'group flex min-h-10 min-w-0 items-center gap-1 rounded-[14px] border pr-1 text-[12px] font-semibold leading-4 tracking-normal text-slate-700 transition hover:border-slate-200 hover:bg-white/80 dark:text-slate-100 dark:hover:bg-white/5',
-                        active
-                          ? 'border-slate-200/80 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/5'
-                          : 'border-transparent bg-transparent',
-                      )}
-                    >
-                      <Link
-                        href={learnSessionHref(session.id)}
-                        aria-current={active ? 'page' : undefined}
-                        className="flex min-h-10 min-w-0 flex-1 items-center px-3 py-2"
-                      >
-                        <span className="min-w-0 flex-1 truncate">{session.title}</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void deleteLearnSession(session)}
-                        disabled={deleting}
-                        className={cn(
-                          'grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:pointer-events-none disabled:opacity-60 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
-                          active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
-                        )}
-                        aria-label={`删除会话：${session.title}`}
-                        title="删除会话"
-                      >
-                        {deleting ? (
-                          <Loader2 className="size-3.5 animate-spin" strokeWidth={1.9} />
-                        ) : (
-                          <Trash2 className="size-3.5" strokeWidth={1.9} />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
+                {!hasActiveCourse ? (
+                  <div
+                    className={cn(rightRailRowClassName, 'text-xs leading-5 text-muted-foreground')}
+                  >
+                    先在左侧添加课程；添加后这里会保存这门课的聊天会话。
+                  </div>
+                ) : null}
+                {hasActiveCourse
+                  ? learnSessions.map((session) => {
+                      const active = session.id === activeSessionId;
+                      const deleting = deletingLearnSessionId === session.id;
+                      return (
+                        <div
+                          key={session.id}
+                          className={cn(
+                            'group flex min-h-10 min-w-0 items-center gap-1 rounded-[14px] border pr-1 text-[12px] font-semibold leading-4 tracking-normal text-slate-700 transition hover:border-slate-200 hover:bg-white/80 dark:text-slate-100 dark:hover:bg-white/5',
+                            active
+                              ? 'border-slate-200/80 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/5'
+                              : 'border-transparent bg-transparent',
+                          )}
+                        >
+                          <Link
+                            href={learnSessionHref(session.id)}
+                            aria-current={active ? 'page' : undefined}
+                            className="flex min-h-10 min-w-0 flex-1 items-center px-3 py-2"
+                          >
+                            <span className="min-w-0 flex-1 truncate">{session.title}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => void deleteLearnSession(session)}
+                            disabled={deleting}
+                            className={cn(
+                              'grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:pointer-events-none disabled:opacity-60 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
+                              active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
+                            )}
+                            aria-label={`删除会话：${session.title}`}
+                            title="删除会话"
+                          >
+                            {deleting ? (
+                              <Loader2 className="size-3.5 animate-spin" strokeWidth={1.9} />
+                            ) : (
+                              <Trash2 className="size-3.5" strokeWidth={1.9} />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })
+                  : null}
               </nav>
               <div className="my-3 h-px shrink-0 bg-slate-200/80 dark:bg-white/10" />
               <div className="max-h-[45%] min-h-[180px] shrink-0 overflow-y-auto pb-6">
@@ -8364,15 +8412,26 @@ export function LearnPageClient() {
               <div className="w-full min-w-0 sm:w-auto">
                 <div className="min-w-0">
                   <h1 className="line-clamp-2 text-sm font-semibold leading-4 text-slate-950 dark:text-slate-50">
-                    {activeCourse.name}
+                    {activeCourse?.name || '学习聊天'}
                   </h1>
                   <p className="truncate text-[11px] font-medium leading-4 text-slate-400">
-                    {activeCourse.courseCode || '当前课程上下文'}
+                    {activeCourse?.courseCode ||
+                      (activeCourse ? '当前课程上下文' : '等待添加课程上下文')}
                   </p>
                 </div>
               </div>
               <div className="flex max-w-full shrink-0 items-center gap-1.5 overflow-x-auto pb-0.5 sm:overflow-visible sm:pb-0">
-                {assetLoadState === 'loading' ? (
+                {!activeCourse ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCreateCourseOpen(true)}
+                    className="h-8 rounded-[10px] border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-sm hover:bg-sky-100"
+                  >
+                    <Plus className="size-3.5" />
+                    添加课程
+                  </Button>
+                ) : assetLoadState === 'loading' ? (
                   <span
                     className={cn(
                       'inline-flex h-8 items-center rounded-[10px] px-3 text-xs font-semibold shadow-sm',
@@ -8417,6 +8476,7 @@ export function LearnPageClient() {
                   size="sm"
                   variant="outline"
                   onClick={openSourceUploadPanel}
+                  disabled={!activeCourse}
                   className="relative h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
                 >
                   <LibraryBig className="size-3.5" />
@@ -8429,11 +8489,13 @@ export function LearnPageClient() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
+                  onClick={() => {
+                    if (!activeCourse) return;
                     router.push(
                       `/course/${encodeURIComponent(activeCourse.id)}/resources?tab=memory`,
-                    )
-                  }
+                    );
+                  }}
+                  disabled={!activeCourse}
                   className="h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
                 >
                   <Brain className="size-3.5" />
@@ -8498,44 +8560,73 @@ export function LearnPageClient() {
                     }}
                   >
                     <div className="learn-empty-avatar relative">
-                      <CourseAvatar course={activeCourse} className="size-14 rounded-[18px]" />
+                      {activeCourse ? (
+                        <CourseAvatar course={activeCourse} className="size-14 rounded-[18px]" />
+                      ) : (
+                        <div className="grid size-14 place-items-center rounded-[18px] bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+                          <MessageSquarePlus className="size-6" strokeWidth={1.8} />
+                        </div>
+                      )}
                       <span
                         className={cn(
                           'absolute -right-1 -top-1 size-3 rounded-full border-2 border-white shadow-sm dark:border-slate-950',
-                          missingLearningSetup ? 'bg-amber-400' : 'bg-emerald-400',
+                          !activeCourse || missingLearningSetup ? 'bg-amber-400' : 'bg-emerald-400',
                         )}
                         aria-hidden="true"
                       />
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                        {activeCourse.courseCode || (isResearchCourse ? 'Research' : 'Learning')}
+                        {activeCourse?.courseCode ||
+                          (activeCourse
+                            ? isResearchCourse
+                              ? 'Research'
+                              : 'Learning'
+                            : 'General chat')}
                       </p>
                       <p className="mt-1 text-lg font-semibold tracking-normal text-slate-950 dark:text-slate-50">
-                        {isResearchCourse ? '今天想推进什么？' : '今天想从哪里开始？'}
+                        {!activeCourse
+                          ? '添加课程后开始聊天'
+                          : isResearchCourse
+                            ? '今天想推进什么？'
+                            : '今天想从哪里开始？'}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {isResearchCourse
-                          ? `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进研究。`
-                          : missingLearningSetup
-                            ? '补齐 syllabus 和学习进度后，今天的安排会更准。'
-                            : snapshot?.progressKnown && snapshot.progressLabel
-                              ? `当前进度：${snapshot.progressLabel}`
-                              : `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进。`}
+                        {!activeCourse
+                          ? '添加课程后，我会把聊天、复习、题库和记忆都绑定到对应课程。'
+                          : isResearchCourse
+                            ? `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进研究。`
+                            : missingLearningSetup
+                              ? '补齐 syllabus 和学习进度后，今天的安排会更准。'
+                              : snapshot?.progressKnown && snapshot.progressLabel
+                                ? `当前进度：${snapshot.progressLabel}`
+                                : `围绕 ${activeCourse.courseCode || activeCourse.name} 继续推进。`}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2" aria-label="快捷入口">
-                      {activeQuickPrompts.map((prompt) => (
-                        <Button
-                          key={prompt}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void sendMessage(prompt)}
-                          className="h-8 rounded-full border-slate-200/80 bg-white/76 px-3 text-xs shadow-sm backdrop-blur-sm hover:bg-white dark:border-white/10 dark:bg-white/8 dark:hover:bg-white/12"
-                        >
-                          {prompt}
-                        </Button>
-                      ))}
+                      {(activeCourse ? activeQuickPrompts : ['添加一门课程', '去课程商城']).map(
+                        (prompt) => (
+                          <Button
+                            key={prompt}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (prompt === '添加一门课程') {
+                                setCreateCourseOpen(true);
+                                return;
+                              }
+                              if (prompt === '去课程商城') {
+                                router.push('/store/courses');
+                                return;
+                              }
+                              void sendMessage(prompt);
+                            }}
+                            className="h-8 rounded-full border-slate-200/80 bg-white/76 px-3 text-xs shadow-sm backdrop-blur-sm hover:bg-white dark:border-white/10 dark:bg-white/8 dark:hover:bg-white/12"
+                          >
+                            {prompt}
+                          </Button>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -8568,10 +8659,16 @@ export function LearnPageClient() {
                         </>
                       ) : (
                         <>
-                          <CourseAvatar
-                            course={activeCourse}
-                            className="mt-1 size-8 rounded-[10px]"
-                          />
+                          {activeCourse ? (
+                            <CourseAvatar
+                              course={activeCourse}
+                              className="mt-1 size-8 rounded-[10px]"
+                            />
+                          ) : (
+                            <div className="mt-1 grid size-8 shrink-0 place-items-center rounded-[10px] bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+                              <MessageSquarePlus className="size-4" strokeWidth={1.8} />
+                            </div>
+                          )}
                           <div className="min-w-0 flex-1 select-text">
                             {message.text ? (
                               <MessageResponse className={courseMarkdownClassName}>
@@ -8725,7 +8822,11 @@ export function LearnPageClient() {
                     rows={1}
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    placeholder={`问 ${activeCourse.courseCode || activeCourse.name} 一个问题`}
+                    placeholder={
+                      activeCourse
+                        ? `问 ${activeCourse.courseCode || activeCourse.name} 一个问题`
+                        : '添加课程后开始提问'
+                    }
                     className="max-h-32 min-h-9 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 text-sm leading-6 shadow-none [field-sizing:fixed] focus-visible:ring-0"
                   />
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -8757,6 +8858,7 @@ export function LearnPageClient() {
                       onClick={() => void sendMessage()}
                       disabled={
                         (!draft.trim() && attachments.length === 0) ||
+                        !activeCourse ||
                         sending ||
                         sourceUploading ||
                         (attachments.length > 0 && selectedKnownNoVision)

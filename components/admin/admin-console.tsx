@@ -2,16 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bot, Coins, Image as ImageIcon, Volume2, Search, RefreshCw } from 'lucide-react';
+import { BookOpen, Bot, Coins, Image as ImageIcon, Volume2, Search, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AdminLLMSection } from '@/components/admin/admin-llm-section';
 import { AdminCreditsSection } from '@/components/admin/admin-credits-section';
 import { AdminSiteProvidersSection } from '@/components/admin/admin-site-providers-section';
+import { AdminCoursesSection } from '@/components/admin/admin-courses-section';
 
 const SECTIONS = [
   { id: 'llm', label: '语言模型', icon: Bot },
   { id: 'credits', label: '积分管理', icon: Coins },
+  { id: 'courses', label: '课程管理', icon: BookOpen },
   { id: 'image', label: '图像生成', icon: ImageIcon },
   { id: 'tts', label: '语音合成', icon: Volume2 },
   { id: 'web-search', label: '网络搜索', icon: Search },
@@ -47,9 +49,16 @@ export function AdminConsole() {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             管理员控制台
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">全站服务配置</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+            全站服务配置
+          </h1>
         </div>
-        <Button variant="outline" size="sm" type="button" onClick={() => setRefreshKey((k) => k + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => setRefreshKey((k) => k + 1)}
+        >
           <RefreshCw className="mr-1 h-4 w-4" />
           刷新
         </Button>
@@ -85,7 +94,10 @@ export function AdminConsole() {
           <div className="min-h-0 flex-1 overflow-y-auto p-5">
             {section === 'llm' ? <AdminLLMSection key={refreshKey} /> : null}
             {section === 'credits' ? <AdminCreditsSection key={refreshKey} /> : null}
-            {section === 'image' ? <AdminSiteProvidersSection key={refreshKey} kind="image" /> : null}
+            {section === 'courses' ? <AdminCoursesSection key={refreshKey} /> : null}
+            {section === 'image' ? (
+              <AdminSiteProvidersSection key={refreshKey} kind="image" />
+            ) : null}
             {section === 'tts' ? <AdminSiteProvidersSection key={refreshKey} kind="tts" /> : null}
             {section === 'web-search' ? (
               <AdminSiteProvidersSection key={refreshKey} kind="web-search" />

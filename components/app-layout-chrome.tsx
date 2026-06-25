@@ -121,6 +121,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
     pathname != null && /^\/classroom\/[^/]+\/memory(?:\/|$)/.test(pathname);
   const isAdmin = pathname?.startsWith('/admin');
   const isProfile = pathname === '/profile' || pathname?.startsWith('/profile/');
+  const isStore = pathname === '/store' || Boolean(pathname?.startsWith('/store/'));
   const isTestPage = isTestSurface(pathname);
   const isCourseHome = pathname != null && /^\/course\/[^/]+\/?$/.test(pathname);
   const isCourseProblemDetail =
@@ -200,6 +201,14 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
 
   if (isCreatorV2) {
     return withStudyCompanion(<MainShellNoRail balancedInset>{children}</MainShellNoRail>);
+  }
+
+  if (isStore) {
+    return withStudyCompanion(
+      <MainShellNoRail balancedInset showHeader>
+        {children}
+      </MainShellNoRail>,
+    );
   }
 
   if (isTestPage) {
