@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  AlertCircle,
   AlertTriangle,
   Brain,
   BookOpenCheck,
@@ -317,6 +316,118 @@ type SourceLibraryTile = {
     markdown: string;
   }>;
 };
+
+function sourceLibraryCoverTone(seed: string) {
+  const tones = [
+    {
+      shell:
+        'bg-[radial-gradient(circle_at_78%_12%,rgba(125,211,252,0.72),transparent_34%),radial-gradient(circle_at_16%_76%,rgba(167,139,250,0.42),transparent_32%),linear-gradient(150deg,#f8fbff,#dff4ff_48%,#b9e3f8)] text-slate-800',
+      accent: 'bg-sky-500',
+      soft: 'bg-white/42',
+    },
+    {
+      shell:
+        'bg-[radial-gradient(circle_at_22%_18%,rgba(252,165,165,0.62),transparent_32%),radial-gradient(circle_at_80%_72%,rgba(134,239,172,0.48),transparent_34%),linear-gradient(150deg,#fffaf4,#fde7da_45%,#c6f6d5)] text-slate-800',
+      accent: 'bg-emerald-500',
+      soft: 'bg-white/46',
+    },
+    {
+      shell:
+        'bg-[radial-gradient(circle_at_82%_18%,rgba(253,224,71,0.62),transparent_32%),radial-gradient(circle_at_18%_72%,rgba(147,197,253,0.58),transparent_36%),linear-gradient(150deg,#fffdf7,#eef6ff_45%,#dbeafe)] text-slate-800',
+      accent: 'bg-amber-500',
+      soft: 'bg-white/48',
+    },
+  ];
+  const hash = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return tones[hash % tones.length];
+}
+
+function SourceLibraryGeneratedCover({
+  tile,
+  size = 'grid',
+}: {
+  tile: SourceLibraryTile;
+  size?: 'grid' | 'detail';
+}) {
+  const tone = sourceLibraryCoverTone(tile.sourceHash || tile.title);
+  const isDetail = size === 'detail';
+  return (
+    <div
+      className={cn(
+        'relative flex size-full flex-col overflow-hidden text-left',
+        tone.shell,
+        isDetail ? 'p-8' : 'p-3',
+      )}
+    >
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:36px_36px]" />
+      <div className="absolute -left-10 top-10 size-32 rounded-full bg-white/30 blur-2xl" />
+      <div className="absolute -right-12 bottom-8 size-40 rounded-full bg-sky-200/34 blur-2xl" />
+      <div
+        className={cn(
+          'absolute rounded-full shadow-[0_0_0_10px_rgba(255,255,255,0.22)]',
+          tone.accent,
+          isDetail ? 'right-14 top-20 size-5' : 'right-5 top-12 size-2.5',
+        )}
+      />
+      <div
+        className={cn(
+          'absolute rotate-[-26deg] rounded-full bg-white/58',
+          isDetail ? 'left-16 top-36 h-2 w-44' : 'left-7 top-16 h-1 w-20',
+        )}
+      />
+      <div
+        className={cn(
+          'absolute rotate-[33deg] rounded-full bg-white/46',
+          isDetail ? 'right-20 top-44 h-2 w-36' : 'right-6 top-20 h-1 w-16',
+        )}
+      />
+
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            'rounded-full bg-white/72 font-bold uppercase tracking-normal text-slate-600 shadow-sm',
+            isDetail ? 'px-3 py-1.5 text-xs' : 'px-2 py-0.5 text-[10px]',
+          )}
+        >
+          {tile.placeholderLabel}
+        </span>
+        <FileText
+          className={cn('text-white/86 drop-shadow-sm', isDetail ? 'size-6' : 'size-4')}
+          strokeWidth={1.8}
+        />
+      </div>
+
+      <div className={cn('relative z-10 mt-auto', isDetail ? 'space-y-5' : 'space-y-2')}>
+        <div
+          className={cn(
+            'w-fit rounded-full font-semibold text-slate-700 shadow-sm',
+            tone.soft,
+            isDetail ? 'px-3 py-1 text-sm' : 'px-2 py-0.5 text-[10px]',
+          )}
+        >
+          {tile.typeLabel}
+        </div>
+        <h3
+          className={cn(
+            'font-semibold leading-tight tracking-normal text-slate-900',
+            isDetail ? 'max-w-[520px] text-5xl' : 'line-clamp-3 text-[17px]',
+          )}
+        >
+          {tile.title}
+        </h3>
+        <div
+          className={cn(
+            'border-t border-slate-900/10 pt-2 font-medium text-slate-700/82',
+            isDetail ? 'flex items-center justify-between gap-3 text-sm' : 'space-y-0.5 text-[9px]',
+          )}
+        >
+          <span className={cn(!isDetail && 'block truncate')}>{tile.subtitle}</span>
+          <span className={cn(!isDetail && 'block truncate')}>{tile.dateLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type SourceLibraryTextState = {
   status: 'loading' | 'ready' | 'empty' | 'failed';
@@ -7843,31 +7954,8 @@ export function LearnPageClient() {
                     </Tooltip>
                   </div>
                 ) : (
-                  <div
-                    className={cn(
-                      'flex aspect-[0.707] w-full max-w-[760px] flex-col justify-between overflow-hidden rounded-[18px] border border-slate-200 p-6 text-left shadow-[0_20px_48px_rgba(15,23,42,0.16)] dark:border-white/10',
-                      selectedSourceLibraryTile.isProblemBank
-                        ? 'bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.38),transparent_34%),linear-gradient(160deg,#f8fafc,#e2e8f0_48%,#cbd5e1)] text-slate-700 dark:bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.24),transparent_34%),linear-gradient(160deg,#172033,#111827_52%,#020617)] dark:text-slate-200'
-                        : 'bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.36),transparent_34%),linear-gradient(160deg,#fff,#e0f2fe_45%,#bae6fd)] text-slate-700 dark:bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.26),transparent_34%),linear-gradient(160deg,#172554,#0f172a_52%,#020617)] dark:text-slate-100',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-white/72 px-3 py-1.5 text-xs font-bold uppercase tracking-normal text-slate-600 shadow-sm dark:bg-white/10 dark:text-white">
-                        {selectedSourceLibraryTile.placeholderLabel}
-                      </span>
-                      {selectedSourceLibraryTile.status === 'ingesting' ? (
-                        <Loader2 className="size-6 animate-spin text-sky-600 dark:text-sky-200" />
-                      ) : selectedSourceLibraryTile.status === 'failed' ? (
-                        <AlertCircle className="size-6 text-rose-600 dark:text-rose-200" />
-                      ) : (
-                        <FileText className="size-6 text-white/80" strokeWidth={1.8} />
-                      )}
-                    </div>
-                    <div className="space-y-4">
-                      <div className="h-3 w-2/3 rounded-full bg-white/70 dark:bg-white/25" />
-                      <div className="h-3 w-full rounded-full bg-white/55 dark:bg-white/18" />
-                      <div className="h-3 w-4/5 rounded-full bg-white/45 dark:bg-white/14" />
-                    </div>
+                  <div className="aspect-[0.707] w-full max-w-[760px] overflow-hidden rounded-[18px] border border-slate-200 shadow-[0_20px_48px_rgba(15,23,42,0.16)] dark:border-white/10">
+                    <SourceLibraryGeneratedCover tile={selectedSourceLibraryTile} size="detail" />
                   </div>
                 )}
               </div>
@@ -7936,32 +8024,7 @@ export function LearnPageClient() {
                                 loading="lazy"
                               />
                             ) : (
-                              <span
-                                className={cn(
-                                  'flex size-full flex-col justify-between overflow-hidden p-3 text-left',
-                                  tile.isProblemBank
-                                    ? 'bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.38),transparent_34%),linear-gradient(160deg,#f8fafc,#e2e8f0_48%,#cbd5e1)] text-slate-700 dark:bg-[radial-gradient(circle_at_78%_16%,rgba(251,191,36,0.24),transparent_34%),linear-gradient(160deg,#172033,#111827_52%,#020617)] dark:text-slate-200'
-                                    : 'bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.36),transparent_34%),linear-gradient(160deg,#fff,#e0f2fe_45%,#bae6fd)] text-slate-700 dark:bg-[radial-gradient(circle_at_74%_18%,rgba(56,189,248,0.26),transparent_34%),linear-gradient(160deg,#172554,#0f172a_52%,#020617)] dark:text-slate-100',
-                                )}
-                              >
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="rounded-full bg-white/72 px-2 py-0.5 text-[10px] font-bold uppercase tracking-normal text-slate-600 shadow-sm dark:bg-white/10 dark:text-white">
-                                    {tile.placeholderLabel}
-                                  </span>
-                                  {status === 'ingesting' ? (
-                                    <Loader2 className="size-4 animate-spin text-sky-600 dark:text-sky-200" />
-                                  ) : status === 'failed' ? (
-                                    <AlertCircle className="size-4 text-rose-600 dark:text-rose-200" />
-                                  ) : (
-                                    <FileText className="size-4 text-white/80" strokeWidth={1.8} />
-                                  )}
-                                </span>
-                                <span className="space-y-2">
-                                  <span className="block h-1.5 w-2/3 rounded-full bg-white/70 dark:bg-white/25" />
-                                  <span className="block h-1.5 w-full rounded-full bg-white/55 dark:bg-white/18" />
-                                  <span className="block h-1.5 w-4/5 rounded-full bg-white/45 dark:bg-white/14" />
-                                </span>
-                              </span>
+                              <SourceLibraryGeneratedCover tile={tile} />
                             )}
                             {status ? (
                               <span
