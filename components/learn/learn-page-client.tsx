@@ -1404,6 +1404,49 @@ type NotebookMarkdownPreview = {
   }>;
 };
 
+function sourceLibraryTextFromBlocks(
+  blocks: Array<{
+    title: string;
+    markdown: string;
+  }>,
+) {
+  return blocks
+    .map((block, index) => {
+      const markdown = block.markdown.trim();
+      if (!markdown) return '';
+      const title = block.title || `文本 ${index + 1}`;
+      return [`## ${title}`, markdown].join('\n\n');
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function sourceLibraryTextFromMarkdownPreviews(
+  previewResults: Array<{ notebook: NotebookMarkdownPreview } | null>,
+  textSectionIds: string[],
+) {
+  const wantedSectionIds = new Set(textSectionIds);
+  return previewResults
+    .flatMap((previewResult) => {
+      const allMarkdownSections = (previewResult?.notebook.markdownSections || [])
+        .slice()
+        .sort((a, b) => a.order - b.order);
+      const matchedMarkdownSections =
+        wantedSectionIds.size > 0
+          ? allMarkdownSections.filter((section) => wantedSectionIds.has(section.id))
+          : allMarkdownSections;
+      const markdownSections =
+        matchedMarkdownSections.length > 0 ? matchedMarkdownSections : allMarkdownSections;
+      return markdownSections.map((section, index) => {
+        const title = section.title || `文本 ${index + 1}`;
+        return [`## ${title}`, section.markdown.trim()].filter(Boolean).join('\n\n');
+      });
+    })
+    .join('\n\n')
+    .trim();
+}
+
 async function loadNotebookMarkdownPreview(notebookId: string, timeoutMs = 4500) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   return Promise.race([
@@ -6595,6 +6638,19 @@ export function LearnPageClient() {
       ...current,
       [selectedSourceLibraryTile.id]: { status: 'loading', text: '' },
     }));
+    const loadingFallbackId = setTimeout(() => {
+      if (!alive) return;
+      setSourceLibraryTextCache((current) => {
+        if (current[selectedSourceLibraryTile.id]?.status !== 'loading') return current;
+        return {
+          ...current,
+          [selectedSourceLibraryTile.id]: {
+            status: 'empty',
+            text: '',
+          },
+        };
+      });
+    }, 6000);
 
     void Promise.all(
       selectedSourceLibraryTile.textNotebookIds.map((notebookId) =>
@@ -6603,23 +6659,10 @@ export function LearnPageClient() {
     )
       .then((previewResults) => {
         if (!alive) return;
-        const wantedSectionIds = new Set(selectedSourceLibraryTile.textSectionIds);
-        const markdownBlocks = previewResults.flatMap((previewResult) => {
-          const allMarkdownSections = (previewResult?.notebook.markdownSections || [])
-            .slice()
-            .sort((a, b) => a.order - b.order);
-          const matchedMarkdownSections =
-            wantedSectionIds.size > 0
-              ? allMarkdownSections.filter((section) => wantedSectionIds.has(section.id))
-              : allMarkdownSections;
-          const markdownSections =
-            matchedMarkdownSections.length > 0 ? matchedMarkdownSections : allMarkdownSections;
-          return markdownSections.map((section, index) => {
-            const title = section.title || `文本 ${index + 1}`;
-            return [`## ${title}`, section.markdown.trim()].filter(Boolean).join('\n\n');
-          });
-        });
-        const text = markdownBlocks.join('\n\n').trim();
+        const text = sourceLibraryTextFromMarkdownPreviews(
+          previewResults,
+          selectedSourceLibraryTile.textSectionIds,
+        );
         setSourceLibraryTextCache((current) => ({
           ...current,
           [selectedSourceLibraryTile.id]: {
@@ -6642,6 +6685,7 @@ export function LearnPageClient() {
 
     return () => {
       alive = false;
+      clearTimeout(loadingFallbackId);
     };
   }, [selectedSourceLibraryTile, selectedSourceLibraryTileCacheState]);
 
@@ -6649,16 +6693,9 @@ export function LearnPageClient() {
     ? sourceLibraryTextCache[selectedSourceLibraryTile.id]
     : undefined;
   const selectedSourceLibraryHasImage = Boolean(selectedSourceLibraryTile?.coverImagePath);
-  const selectedSourceLibraryPreloadedText =
-    selectedSourceLibraryTile?.textBlocks
-      .map((block, index) => {
-        const markdown = block.markdown.trim();
-        if (!markdown) return '';
-        const title = block.title || `文本 ${index + 1}`;
-        return [`## ${title}`, markdown].join('\n\n');
-      })
-      .filter(Boolean)
-      .join('\n\n') || '';
+  const selectedSourceLibraryPreloadedText = selectedSourceLibraryTile
+    ? sourceLibraryTextFromBlocks(selectedSourceLibraryTile.textBlocks)
+    : '';
   const selectedSourceLibraryText =
     selectedSourceLibraryPreloadedText.trim() || selectedSourceLibraryTextState?.text.trim() || '';
   const selectedSourceLibraryHasText =
@@ -6679,6 +6716,55 @@ export function LearnPageClient() {
         (!selectedSourceLibraryHasImage && selectedSourceLibraryTextLoading)
       ? 'text'
       : 'image';
+
+  const loadSourceLibraryTileText = useCallback((tile: SourceLibraryTile) => {
+    if (!tile.textNotebookIds.length || tile.textBlocks.length > 0) return;
+    setSourceLibraryTextCache((current) => ({
+      ...current,
+      [tile.id]: { status: 'loading', text: '' },
+    }));
+    const loadingFallbackId = setTimeout(() => {
+      setSourceLibraryTextCache((current) => {
+        if (current[tile.id]?.status !== 'loading') return current;
+        return {
+          ...current,
+          [tile.id]: {
+            status: 'empty',
+            text: '',
+          },
+        };
+      });
+    }, 6000);
+
+    void Promise.all(
+      tile.textNotebookIds.map((notebookId) =>
+        loadNotebookMarkdownPreview(notebookId).catch(() => null),
+      ),
+    )
+      .then((previewResults) => {
+        const text = sourceLibraryTextFromMarkdownPreviews(previewResults, tile.textSectionIds);
+        setSourceLibraryTextCache((current) => ({
+          ...current,
+          [tile.id]: {
+            status: text ? 'ready' : 'empty',
+            text,
+          },
+        }));
+      })
+      .catch((err) => {
+        setSourceLibraryTextCache((current) => ({
+          ...current,
+          [tile.id]: {
+            status: 'failed',
+            text: '',
+            error: err instanceof Error ? err.message : '文本读取失败',
+          },
+        }));
+      })
+      .finally(() => {
+        clearTimeout(loadingFallbackId);
+      });
+  }, []);
 
   const handleDeleteSourceLibraryTile = useCallback(
     async (tile: SourceLibraryTile) => {
@@ -7814,7 +7900,20 @@ export function LearnPageClient() {
                     ? deletingSourceHashes.includes(tile.sourceHash)
                     : false;
                   const openTile = () => {
-                    setSourceLibraryDetailView('image');
+                    const preloadedText = sourceLibraryTextFromBlocks(tile.textBlocks);
+                    if (preloadedText) {
+                      setSourceLibraryTextCache((current) => ({
+                        ...current,
+                        [tile.id]: { status: 'ready', text: preloadedText },
+                      }));
+                    } else {
+                      loadSourceLibraryTileText(tile);
+                    }
+                    setSourceLibraryDetailView(
+                      (preloadedText || tile.textNotebookIds.length > 0) && !tile.coverImagePath
+                        ? 'text'
+                        : 'image',
+                    );
                     setSourceLibraryImageExpanded(false);
                     setSelectedSourceLibraryTileId(tile.id);
                   };
