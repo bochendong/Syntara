@@ -140,7 +140,7 @@ import {
   type MemoryWriteCandidate,
   type MemoryWriteContentType,
 } from '@/lib/utils/memory-write-api';
-import { listStagesByCourse, loadStageData, type StageListItem } from '@/lib/utils/stage-storage';
+import { listStagesByCourse, type StageListItem } from '@/lib/utils/stage-storage';
 import { normalizeLooseMathDelimiters } from '@/lib/math-engine';
 
 type LearnMessage = {
@@ -1395,10 +1395,21 @@ function notifySourceUploadFailureLive2D(fileName: string, message: string) {
   });
 }
 
-function loadStageDataForLibraryPreview(notebookId: string, timeoutMs = 4500) {
+type NotebookMarkdownPreview = {
+  markdownSections?: Array<{
+    id: string;
+    title: string;
+    order: number;
+    markdown: string;
+  }>;
+};
+
+async function loadNotebookMarkdownPreview(notebookId: string, timeoutMs = 4500) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   return Promise.race([
-    loadStageData(notebookId),
+    backendJson<{ notebook: NotebookMarkdownPreview }>(
+      `/api/notebooks/${encodeURIComponent(notebookId)}?includeScenes=0&includeMarkdown=1`,
+    ),
     new Promise<null>((resolve) => {
       timeoutId = setTimeout(() => resolve(null), timeoutMs);
     }),
@@ -6587,30 +6598,25 @@ export function LearnPageClient() {
 
     void Promise.all(
       selectedSourceLibraryTile.textNotebookIds.map((notebookId) =>
-        loadStageDataForLibraryPreview(notebookId).catch(() => null),
+        loadNotebookMarkdownPreview(notebookId).catch(() => null),
       ),
     )
-      .then((stageResults) => {
+      .then((previewResults) => {
         if (!alive) return;
         const wantedSectionIds = new Set(selectedSourceLibraryTile.textSectionIds);
-        const markdownBlocks = stageResults.flatMap((stageResult) => {
-          const allMarkdownScenes = [
-            ...(stageResult?.markdownScenes || []),
-            ...(stageResult?.scenes || []),
-          ].filter((scene, index, scenes) => {
-            if (scene.content.type !== 'markdown') return false;
-            return scenes.findIndex((candidate) => candidate.id === scene.id) === index;
-          });
-          const matchedMarkdownScenes =
+        const markdownBlocks = previewResults.flatMap((previewResult) => {
+          const allMarkdownSections = (previewResult?.notebook.markdownSections || [])
+            .slice()
+            .sort((a, b) => a.order - b.order);
+          const matchedMarkdownSections =
             wantedSectionIds.size > 0
-              ? allMarkdownScenes.filter((scene) => wantedSectionIds.has(scene.id))
-              : allMarkdownScenes;
-          const markdownScenes =
-            matchedMarkdownScenes.length > 0 ? matchedMarkdownScenes : allMarkdownScenes;
-          return markdownScenes.map((scene, index) => {
-            if (scene.content.type !== 'markdown') return '';
-            const title = scene.title || `文本 ${index + 1}`;
-            return [`## ${title}`, scene.content.markdown.trim()].filter(Boolean).join('\n\n');
+              ? allMarkdownSections.filter((section) => wantedSectionIds.has(section.id))
+              : allMarkdownSections;
+          const markdownSections =
+            matchedMarkdownSections.length > 0 ? matchedMarkdownSections : allMarkdownSections;
+          return markdownSections.map((section, index) => {
+            const title = section.title || `文本 ${index + 1}`;
+            return [`## ${title}`, section.markdown.trim()].filter(Boolean).join('\n\n');
           });
         });
         const text = markdownBlocks.join('\n\n').trim();

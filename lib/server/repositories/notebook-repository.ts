@@ -271,6 +271,26 @@ export async function findReadableNotebook(db: DbClient, userId: string, noteboo
   return accessRole ? notebook : null;
 }
 
+export async function findReadableNotebookWithMarkdownSections(
+  db: DbClient,
+  userId: string,
+  notebookId: string,
+) {
+  const notebook = await db.notebook.findUnique({
+    where: { id: notebookId },
+    include: {
+      markdownSections: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+  if (!notebook) return null;
+  if (notebook.ownerId === userId) return notebook;
+  if (!notebook.courseId) return null;
+  const accessRole = await findCourseAccessRole(db, userId, notebook.courseId);
+  return accessRole ? notebook : null;
+}
+
 export async function findReadableNotebookWithScenes(
   db: DbClient,
   userId: string,

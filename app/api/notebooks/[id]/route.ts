@@ -11,6 +11,7 @@ import {
   findOwnedNotebookForStoreUpdate,
   findOwnedNotebookId,
   findReadableNotebook,
+  findReadableNotebookWithMarkdownSections,
   findReadableNotebookWithScenes,
   updateOwnedNotebook,
 } from '@/lib/server/repositories/notebook-repository';
@@ -36,9 +37,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const { id } = await context.params;
     const url = new URL(request.url);
     const includeScenes = url.searchParams.get('includeScenes') !== '0';
+    const includeMarkdown = url.searchParams.get('includeMarkdown') === '1';
 
     if (!includeScenes) {
-      const notebook = await findReadableNotebook(prisma, userId, id);
+      const notebook = includeMarkdown
+        ? await findReadableNotebookWithMarkdownSections(prisma, userId, id)
+        : await findReadableNotebook(prisma, userId, id);
       if (!notebook) {
         return NextResponse.json({ error: 'Notebook not found' }, { status: 404 });
       }
