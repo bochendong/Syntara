@@ -10,6 +10,8 @@ import { useAuthStore } from '@/lib/store/auth';
 
 type OauthConfig = { google: boolean; github: boolean };
 
+const POST_LOGIN_HREF = '/learn';
+
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -42,6 +44,12 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    if (status !== 'loading' && status !== 'authenticated' && isLoggedIn && authMode === 'email') {
+      router.replace(POST_LOGIN_HREF);
+    }
+  }, [authMode, isLoggedIn, router, status]);
+
+  useEffect(() => {
     if (status !== 'authenticated' || !session?.user) return;
     const id = session.user.id?.trim();
     if (!id) {
@@ -54,7 +62,7 @@ export default function LoginPage() {
       email: session.user.email?.trim().toLowerCase() ?? '',
       role: session.user.role ?? 'USER',
     });
-    router.replace('/my-courses');
+    router.replace(POST_LOGIN_HREF);
   }, [status, session, router, syncFromOAuth]);
 
   const onSubmitLocal = (e: FormEvent<HTMLFormElement>) => {
@@ -70,7 +78,7 @@ export default function LoginPage() {
       return;
     }
     login({ name: finalName, email: finalEmail });
-    router.push('/my-courses');
+    router.push(POST_LOGIN_HREF);
   };
 
   const hasOauth = Boolean(oauth && (oauth.google || oauth.github));
@@ -98,7 +106,7 @@ export default function LoginPage() {
           animate={{ opacity: 1 }}
           className="text-sm text-[#86868b]"
         >
-          正在进入我的课程…
+          正在进入学习页…
         </motion.p>
       </div>
     );
@@ -176,7 +184,7 @@ export default function LoginPage() {
                 登录 Syntara
               </h1>
               <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                使用 Google 或 GitHub 账号登录；登录后默认进入「我的课程」，也可从侧栏前往商城。
+                使用 Google 或 GitHub 账号登录；登录后默认进入「学习页」，也可从侧栏前往商城。
               </p>
               <p className="text-xs text-[#8e8e93] dark:text-[#8f8f98]">
                 还没有账号？
@@ -201,10 +209,10 @@ export default function LoginPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => router.push('/my-courses')}
+                  onClick={() => router.push(POST_LOGIN_HREF)}
                   className="apple-btn apple-btn-primary mt-3 w-full rounded-xl px-4 py-2.5 text-sm"
                 >
-                  前往我的课程
+                  前往学习页
                 </button>
               </motion.div>
             ) : (
@@ -222,9 +230,9 @@ export default function LoginPage() {
                         disabled={oauthBusy !== null}
                         onClick={() => {
                           setOauthBusy('google');
-                          void signIn('google', { callbackUrl: '/my-courses' });
+                          void signIn('google', { callbackUrl: POST_LOGIN_HREF });
                         }}
-                      className="apple-btn apple-btn-secondary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium disabled:opacity-60"
+                        className="apple-btn apple-btn-secondary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium disabled:opacity-60"
                       >
                         <span className="text-base font-semibold text-[#4285F4]">G</span>
                         使用 Google 登录
@@ -236,7 +244,7 @@ export default function LoginPage() {
                         disabled={oauthBusy !== null}
                         onClick={() => {
                           setOauthBusy('github');
-                          void signIn('github', { callbackUrl: '/my-courses' });
+                          void signIn('github', { callbackUrl: POST_LOGIN_HREF });
                         }}
                         className="apple-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1d1d1f] text-sm font-medium text-white shadow-sm transition hover:bg-[#2d2d2f] disabled:opacity-60 dark:bg-white dark:text-[#1d1d1f] dark:hover:bg-[#f5f5f7]"
                       >
@@ -249,12 +257,22 @@ export default function LoginPage() {
                   <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-3 text-left text-xs text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
                     <p className="font-medium">尚未配置第三方登录</p>
                     <p className="mt-1 text-amber-800/90 dark:text-amber-200/90">
-                      在 <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env.local</code>{' '}
-                      中设置 <code className="rounded bg-black/5 px-1 dark:bg-white/10">GOOGLE_CLIENT_ID</code> /{' '}
-                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">GITHUB_CLIENT_ID</code>{' '}
+                      在{' '}
+                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env.local</code>{' '}
+                      中设置{' '}
+                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+                        GOOGLE_CLIENT_ID
+                      </code>{' '}
+                      /{' '}
+                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+                        GITHUB_CLIENT_ID
+                      </code>{' '}
                       及对应 Secret，并配置{' '}
-                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">NEXTAUTH_URL</code>、
-                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">NEXTAUTH_SECRET</code>
+                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">NEXTAUTH_URL</code>
+                      、
+                      <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+                        NEXTAUTH_SECRET
+                      </code>
                       后重启开发服务。
                     </p>
                   </div>
@@ -310,7 +328,7 @@ export default function LoginPage() {
                     type="submit"
                     className="apple-btn apple-btn-primary h-11 w-full rounded-xl text-sm"
                   >
-                    {hasOauth ? '邮箱登录并进入我的课程' : '登录并进入我的课程'}
+                    {hasOauth ? '邮箱登录并进入学习页' : '登录并进入学习页'}
                   </button>
                 </form>
                 <div className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/70 bg-white/60 px-3 py-2 text-[11px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">

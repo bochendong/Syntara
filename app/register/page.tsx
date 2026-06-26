@@ -10,6 +10,8 @@ import { useAuthStore } from '@/lib/store/auth';
 
 type OauthConfig = { google: boolean; github: boolean };
 
+const POST_LOGIN_HREF = '/learn';
+
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -19,6 +21,8 @@ export default function RegisterPage() {
   const { data: session, status } = useSession();
   const login = useAuthStore((s) => s.login);
   const syncFromOAuth = useAuthStore((s) => s.syncFromOAuth);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const authMode = useAuthStore((s) => s.authMode);
 
   const [oauth, setOauth] = useState<OauthConfig | null>(null);
   const [name, setName] = useState('');
@@ -43,6 +47,12 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
+    if (status !== 'loading' && status !== 'authenticated' && isLoggedIn && authMode === 'email') {
+      router.replace(POST_LOGIN_HREF);
+    }
+  }, [authMode, isLoggedIn, router, status]);
+
+  useEffect(() => {
     if (status !== 'authenticated' || !session?.user) return;
     const id = session.user.id?.trim();
     if (!id) {
@@ -55,7 +65,7 @@ export default function RegisterPage() {
       email: session.user.email?.trim().toLowerCase() ?? '',
       role: session.user.role ?? 'USER',
     });
-    router.replace('/my-courses');
+    router.replace(POST_LOGIN_HREF);
   }, [status, session, router, syncFromOAuth]);
 
   const hasOauth = useMemo(() => Boolean(oauth && (oauth.google || oauth.github)), [oauth]);
@@ -73,7 +83,7 @@ export default function RegisterPage() {
       return;
     }
     login({ name: finalName, email: finalEmail });
-    router.push('/my-courses');
+    router.push(POST_LOGIN_HREF);
   };
 
   if (status === 'loading' || oauth === null) {
@@ -133,8 +143,7 @@ export default function RegisterPage() {
                 </div>
                 <div className="rounded-2xl border border-white/35 bg-white/10 p-3">
                   <p className="inline-flex items-center gap-2 text-sm font-medium">
-                    <Bot className="size-4" />
-                    多 Agent 课堂协作
+                    <Bot className="size-4" />多 Agent 课堂协作
                   </p>
                 </div>
               </div>
@@ -166,7 +175,7 @@ export default function RegisterPage() {
                         disabled={oauthBusy !== null}
                         onClick={() => {
                           setOauthBusy('google');
-                          void signIn('google', { callbackUrl: '/my-courses' });
+                          void signIn('google', { callbackUrl: POST_LOGIN_HREF });
                         }}
                         className="apple-btn apple-btn-secondary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium disabled:opacity-60"
                       >
@@ -180,7 +189,7 @@ export default function RegisterPage() {
                         disabled={oauthBusy !== null}
                         onClick={() => {
                           setOauthBusy('github');
-                          void signIn('github', { callbackUrl: '/my-courses' });
+                          void signIn('github', { callbackUrl: POST_LOGIN_HREF });
                         }}
                         className="apple-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1d1d1f] text-sm font-medium text-white shadow-sm transition hover:bg-[#2d2d2f] disabled:opacity-60 dark:bg-white dark:text-[#1d1d1f] dark:hover:bg-[#f5f5f7]"
                       >
@@ -228,7 +237,7 @@ export default function RegisterPage() {
                     type="submit"
                     className="apple-btn apple-btn-primary h-11 w-full rounded-xl text-sm"
                   >
-                    创建账号并进入我的课程
+                    创建账号并进入学习页
                   </button>
                 </form>
 
