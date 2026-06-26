@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   Copy,
   Cpu,
   FileText,
@@ -104,7 +105,8 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/lib/notifications/client-toast';
 import type { CourseRecord } from '@/lib/utils/database';
 import { backendJson } from '@/lib/utils/backend-api';
-import { deleteCourseAndNotebooks, listCourses } from '@/lib/utils/course-storage';
+import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
+import { getCoursePublishBlockReason } from '@/lib/utils/course-publish';
 import {
   listCourseProblemSummaries,
   type CourseProblemClientSummary,
@@ -114,6 +116,10 @@ import {
   listCourseSourceUploads,
   type CourseSourceUploadRecord,
 } from '@/lib/utils/course-source-upload-api';
+import {
+  listNotebookStudyMemoryCounts,
+  listStudyMemoryRecords,
+} from '@/lib/utils/study-memory-api';
 import {
   listRemotePracticePlans,
   loadRemoteLearnerCourseState,
@@ -3893,6 +3899,7 @@ export function LearnPageClient() {
   const searchParams = useSearchParams();
   const urlSessionId = searchParams.get('session')?.trim() || '';
   const urlCourseId = searchParams.get('courseId')?.trim() || '';
+  const debugNoCourses = searchParams.get('debugNoCourses') === '1';
   const platformMemoryStatusMockMode = platformMemoryStatusMockModeFromValue(
     searchParams.get(PLATFORM_MEMORY_STATUS_MOCK_QUERY_PARAM),
   );
@@ -3965,6 +3972,9 @@ export function LearnPageClient() {
   >({});
   const [courseSourceUploads, setCourseSourceUploads] = useState<CourseSourceUploadRecord[]>([]);
   const [completedSourceUploadBadgeCount, setCompletedSourceUploadBadgeCount] = useState(0);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [publishingCourse, setPublishingCourse] = useState(false);
+  const [publishableMemoryCount, setPublishableMemoryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [learnSessions, setLearnSessions] = useState<LearnChatSession[]>([]);
   const [deletingLearnSessionId, setDeletingLearnSessionId] = useState<string | null>(null);
@@ -3997,7 +4007,15 @@ export function LearnPageClient() {
     [activeCourseId, courses],
   );
   const hasActiveCourse = Boolean(activeCourse);
+  const activeCourseIsOwner = activeCourse?.accessRole !== 'enrolled';
   const isResearchCourse = activeCourse?.purpose === 'research';
+  const coursePublishBlockReason = activeCourse
+    ? getCoursePublishBlockReason(activeCourse, notebooks)
+    : null;
+  const publishableProblemCount = useMemo(
+    () => problems.filter((problem) => problem.status === 'published').length,
+    [problems],
+  );
   const activeQuickPrompts = isResearchCourse ? researchQuickPrompts : learningQuickPrompts;
   const manualScheduleKindOptions = isResearchCourse
     ? RESEARCH_EVENT_KIND_OPTIONS
@@ -4307,7 +4325,10 @@ export function LearnPageClient() {
   const syllabusNeedsReview =
     !isResearchCourse && syllabusEvents.length > 0 && syllabusEvents.length < 3;
   const missingLearningSetup =
-    !isResearchCourse && !snapshot?.progressKnown && syllabusEvents.length === 0;
+    Boolean(activeCourse) &&
+    !isResearchCourse &&
+    !snapshot?.progressKnown &&
+    syllabusEvents.length === 0;
   const activeMemoryActivities = useMemo(
     () =>
       memoryActivities.filter(
@@ -4482,6 +4503,43 @@ export function LearnPageClient() {
     },
     [activeCourseId, courses, deletingCourseId, router, searchParams, setCurrentCourse],
   );
+
+  const handlePublishActiveCourse = useCallback(async () => {
+    if (!activeCourse || publishingCourse) return;
+    if (!activeCourseIsOwner) {
+      toast.error('已加入的课程由创建者维护，不能发布到商城');
+      return;
+    }
+    if (coursePublishBlockReason) {
+      toast.error(coursePublishBlockReason);
+      return;
+    }
+
+    setPublishingCourse(true);
+    try {
+      const updatedCourse = await updateCourse(activeCourse.id, {
+        name: activeCourse.name,
+        description: activeCourse.description ?? '',
+        language: activeCourse.language,
+        tags: activeCourse.tags,
+        purpose: activeCourse.purpose,
+        university: activeCourse.university,
+        courseCode: activeCourse.courseCode,
+        avatarUrl: activeCourse.avatarUrl,
+        listedInCourseStore: true,
+        coursePriceCents: activeCourse.coursePriceCents ?? 0,
+      });
+      setCourses((current) =>
+        current.map((course) => (course.id === updatedCourse.id ? updatedCourse : course)),
+      );
+      setPublishDialogOpen(false);
+      toast.success('已发布到课程商城：题库和公开课程记忆已同步，源文件和私人内容不会发布。');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '课程发布失败');
+    } finally {
+      setPublishingCourse(false);
+    }
+  }, [activeCourse, activeCourseIsOwner, coursePublishBlockReason, publishingCourse]);
 
   const persistLeftRailCollapsed = useCallback((collapsed: boolean) => {
     setLeftRailCollapsed(collapsed);
@@ -4678,6 +4736,13 @@ export function LearnPageClient() {
     }
     let alive = true;
     setCoursesLoadState('loading');
+    if (debugNoCourses) {
+      setCourses([]);
+      setCoursesLoadState('ready');
+      return () => {
+        alive = false;
+      };
+    }
     listCourses()
       .then((items) => {
         if (!alive) return;
@@ -4692,10 +4757,14 @@ export function LearnPageClient() {
     return () => {
       alive = false;
     };
-  }, [hydrated, isLoggedIn, router]);
+  }, [debugNoCourses, hydrated, isLoggedIn, router]);
 
   useEffect(() => {
     if (coursesLoadState !== 'ready') return;
+    if (debugNoCourses) {
+      setActiveCourseId((current) => (current === null ? current : null));
+      return;
+    }
     const nextCourseId =
       (urlCourseId && courses.some((course) => course.id === urlCourseId) ? urlCourseId : null) ||
       (storedCourseId && courses.some((course) => course.id === storedCourseId)
@@ -4704,11 +4773,12 @@ export function LearnPageClient() {
       courses[0]?.id ||
       null;
     setActiveCourseId((current) => (current === nextCourseId ? current : nextCourseId));
-  }, [courses, coursesLoadState, storedCourseId, urlCourseId]);
+  }, [courses, coursesLoadState, debugNoCourses, storedCourseId, urlCourseId]);
 
   useEffect(() => {
     if (!activeCourse) {
       setCourseSourceUploads([]);
+      setPublishableMemoryCount(0);
       return;
     }
     setCurrentCourse({
@@ -4767,6 +4837,31 @@ export function LearnPageClient() {
       alive = false;
     };
   }, [activeCourse, setCurrentCourse, userId]);
+
+  useEffect(() => {
+    if (!activeCourse || !activeCourseIsOwner) {
+      setPublishableMemoryCount(0);
+      return;
+    }
+    let alive = true;
+    Promise.all([
+      listStudyMemoryRecords({ targetType: 'course', targetId: activeCourse.id }).catch(() => []),
+      listNotebookStudyMemoryCounts(notebooks.map((notebook) => notebook.id)).catch(() => ({})),
+    ]).then(([courseMemories, notebookMemoryCounts]) => {
+      if (!alive) return;
+      const publicCourseMemoryCount = courseMemories.filter(
+        (memory) => memory.scope === 'public' && memory.status === 'active',
+      ).length;
+      const publicNotebookMemoryCount = Object.values(notebookMemoryCounts).reduce(
+        (total, item) => total + (item.public || 0),
+        0,
+      );
+      setPublishableMemoryCount(publicCourseMemoryCount + publicNotebookMemoryCount);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [activeCourse, activeCourseIsOwner, notebooks]);
 
   const refreshLearnerSnapshot = useCallback(() => {
     if (!activeCourse) return;
@@ -6734,34 +6829,49 @@ export function LearnPageClient() {
           );
         })}
         {courses.length === 0 && !leftRailCollapsed ? (
-          <div className="rounded-[18px] border border-dashed border-slate-200 bg-white/60 p-4 text-sm shadow-sm dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center gap-2 text-slate-950 dark:text-slate-50">
-              <ShoppingBag className="size-4 text-sky-600" strokeWidth={1.8} />
-              <span className="font-semibold">还没有课程</span>
+          <div className="pt-1 text-sm">
+            <div className="flex items-start gap-3 px-1">
+              <span className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-sky-50/80 text-sky-700 ring-1 ring-sky-100/80 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+                <BookOpenCheck className="size-[18px]" strokeWidth={1.75} />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold leading-5 text-slate-950 dark:text-slate-50">
+                  课程库为空
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  添加课程后，聊天、资料和记忆会自动归到对应上下文。
+                </p>
+              </div>
             </div>
-            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              添加课程后，聊天、复习、题库和记忆都会围绕课程展开。
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
+            <div className="mt-4 space-y-1.5">
+              <button
                 type="button"
-                size="sm"
-                className="h-8 rounded-full px-3 text-xs"
+                className="group flex h-10 w-full items-center justify-between rounded-[13px] bg-white/75 px-3 text-[13px] font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200/75 transition hover:bg-white hover:text-slate-950 hover:ring-sky-200 dark:bg-white/5 dark:text-slate-200 dark:ring-white/10 dark:hover:bg-white/10"
                 onClick={() => setCreateCourseOpen(true)}
               >
-                <Plus className="size-3.5" />
-                新建课程
-              </Button>
-              <Button
+                <span className="flex items-center gap-2">
+                  <Plus className="size-3.5 text-sky-600" strokeWidth={1.9} />
+                  新建课程
+                </span>
+                <ChevronRight
+                  className="size-3.5 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-sky-500"
+                  strokeWidth={1.8}
+                />
+              </button>
+              <button
                 type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-full px-3 text-xs"
+                className="group flex h-10 w-full items-center justify-between rounded-[13px] px-3 text-[13px] font-semibold text-slate-600 transition hover:bg-white/70 hover:text-slate-950 hover:shadow-sm hover:ring-1 hover:ring-slate-200/75 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-slate-50 dark:hover:ring-white/10"
                 onClick={() => router.push('/store/courses')}
               >
-                <ShoppingBag className="size-3.5" />
-                课程商城
-              </Button>
+                <span className="flex items-center gap-2">
+                  <ShoppingBag className="size-3.5 text-slate-400" strokeWidth={1.9} />
+                  去课程商城
+                </span>
+                <ChevronRight
+                  className="size-3.5 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500"
+                  strokeWidth={1.8}
+                />
+              </button>
             </div>
           </div>
         ) : null}
@@ -6769,7 +6879,7 @@ export function LearnPageClient() {
           <button
             type="button"
             onClick={() => persistLeftRailCollapsed(false)}
-            className="grid size-12 place-items-center rounded-[15px] border border-dashed border-slate-200 bg-white/70 text-slate-500 transition hover:bg-white hover:text-slate-950 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:text-slate-50"
+            className="grid size-12 place-items-center rounded-[15px] border border-slate-200/75 bg-white/75 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:hover:text-slate-50"
             aria-label="添加课程"
             title="添加课程"
           >
@@ -6778,29 +6888,31 @@ export function LearnPageClient() {
         ) : null}
       </nav>
 
-      <div
-        className={cn(
-          'shrink-0 border-t border-slate-200/80 pt-3',
-          leftRailCollapsed ? 'w-full' : null,
-        )}
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size={leftRailCollapsed ? 'icon' : 'default'}
+      {courses.length > 0 ? (
+        <div
           className={cn(
-            leftRailCollapsed
-              ? 'mx-auto flex size-10 rounded-[13px] text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-sm'
-              : 'h-10 w-full justify-start gap-2 rounded-[13px] px-3 text-sm text-slate-700 hover:bg-white hover:text-slate-950 hover:shadow-sm',
+            'shrink-0 border-t border-slate-200/80 pt-3',
+            leftRailCollapsed ? 'w-full' : null,
           )}
-          onClick={() => setCreateCourseOpen(true)}
-          aria-label="新建课程"
-          title="新建课程"
         >
-          <Plus className="size-4" />
-          {!leftRailCollapsed ? '新建课程' : null}
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size={leftRailCollapsed ? 'icon' : 'default'}
+            className={cn(
+              leftRailCollapsed
+                ? 'mx-auto flex size-10 rounded-[13px] text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-sm'
+                : 'h-10 w-full justify-start gap-2 rounded-[13px] px-3 text-sm text-slate-700 hover:bg-white hover:text-slate-950 hover:shadow-sm',
+            )}
+            onClick={() => setCreateCourseOpen(true)}
+            aria-label="新建课程"
+            title="新建课程"
+          >
+            <Plus className="size-4" />
+            {!leftRailCollapsed ? '新建课程' : null}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -8156,6 +8268,85 @@ export function LearnPageClient() {
     </Dialog>
   );
 
+  const coursePublishDialog = (
+    <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+      <DialogContent className="max-w-[520px] rounded-[24px] border-border/80 bg-background p-0 shadow-2xl">
+        <DialogHeader className="border-b border-border/70 px-5 py-4 text-left">
+          <DialogTitle className="text-base">
+            {activeCourse?.listedInCourseStore ? '更新课程发布' : '发布到课程商城'}
+          </DialogTitle>
+          <DialogDescription className="leading-5">
+            共享你的课程，让其他同学加入学习；有人加入付费课程时，你可以获得额度。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 px-5 py-4">
+          <div className="grid grid-cols-3 gap-2">
+            <div className={cn(rightRailRowClassName, 'text-center')}>
+              <p className="text-lg font-semibold text-foreground">{notebooks.length}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">课程笔记本</p>
+            </div>
+            <div className={cn(rightRailRowClassName, 'text-center')}>
+              <p className="text-lg font-semibold text-foreground">{publishableProblemCount}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">已发布题目</p>
+            </div>
+            <div className={cn(rightRailRowClassName, 'text-center')}>
+              <p className="text-lg font-semibold text-foreground">{publishableMemoryCount}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">公开记忆</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              '不会发布你的私人学习状态、私人记忆或聊天记录。',
+              '不会上传 PDF、图片等源文件；源文件只留在你的资料库里。',
+              '会同步课程信息、课程笔记本、已发布题库，以及课程回复题目需要用到的公开记忆。',
+            ].map((item) => (
+              <div key={item} className="flex gap-2 text-sm leading-5 text-slate-600">
+                <CheckCircle2
+                  className="mt-0.5 size-4 shrink-0 text-emerald-600"
+                  strokeWidth={1.9}
+                />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          {coursePublishBlockReason ? (
+            <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
+              {coursePublishBlockReason}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-full px-4 text-sm"
+            onClick={() => setPublishDialogOpen(false)}
+            disabled={publishingCourse}
+          >
+            取消
+          </Button>
+          <Button
+            type="button"
+            className="h-9 rounded-full px-4 text-sm"
+            onClick={() => void handlePublishActiveCourse()}
+            disabled={publishingCourse || Boolean(coursePublishBlockReason)}
+          >
+            {publishingCourse ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={1.8} />
+            ) : (
+              <ShoppingBag className="size-4" strokeWidth={1.8} />
+            )}
+            {activeCourse?.listedInCourseStore ? '更新发布' : '确认发布'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   const sessionsPanel = (
     <div
       className={cn(
@@ -8363,6 +8554,67 @@ export function LearnPageClient() {
                 </div>
               </section>
 
+              {activeCourse && activeCourseIsOwner ? (
+                <section className={cn(rightRailCardClassName, 'mt-3 p-3')}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="size-4 text-muted-foreground" strokeWidth={1.8} />
+                        <p className="text-sm font-semibold text-foreground">课程发布</p>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {activeCourse.listedInCourseStore
+                          ? '课程已在商城展示，可重新同步题库和公开记忆。'
+                          : '发布后其他同学可以加入课程，你可以通过付费加入获得额度。'}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold',
+                        activeCourse.listedInCourseStore
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-100 dark:ring-emerald-300/20'
+                          : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10',
+                      )}
+                    >
+                      {activeCourse.listedInCourseStore ? '已上架' : '未上架'}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
+                    <div className={cn(rightRailRowClassName, 'px-2 py-2')}>
+                      <p className="text-sm font-semibold text-foreground">{notebooks.length}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">笔记本</p>
+                    </div>
+                    <div className={cn(rightRailRowClassName, 'px-2 py-2')}>
+                      <p className="text-sm font-semibold text-foreground">
+                        {publishableProblemCount}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">题目</p>
+                    </div>
+                    <div className={cn(rightRailRowClassName, 'px-2 py-2')}>
+                      <p className="text-sm font-semibold text-foreground">
+                        {publishableMemoryCount}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">公开记忆</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="mt-3 h-9 w-full rounded-[12px] text-xs"
+                    variant={activeCourse.listedInCourseStore ? 'outline' : 'default'}
+                    onClick={() => setPublishDialogOpen(true)}
+                  >
+                    <ShoppingBag className="size-3.5" strokeWidth={1.8} />
+                    {activeCourse.listedInCourseStore ? '更新发布' : '发布课程'}
+                  </Button>
+                  {coursePublishBlockReason ? (
+                    <p className="mt-2 text-[11px] leading-4 text-amber-700 dark:text-amber-200">
+                      {coursePublishBlockReason}
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
+
               <section className={cn(rightRailCardClassName, 'mt-3 p-3')}>
                 <div className="flex items-center gap-2">
                   <Target className="size-4 text-muted-foreground" strokeWidth={1.8} />
@@ -8421,17 +8673,7 @@ export function LearnPageClient() {
                 </div>
               </div>
               <div className="flex max-w-full shrink-0 items-center gap-1.5 overflow-x-auto pb-0.5 sm:overflow-visible sm:pb-0">
-                {!activeCourse ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setCreateCourseOpen(true)}
-                    className="h-8 rounded-[10px] border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-sm hover:bg-sky-100"
-                  >
-                    <Plus className="size-3.5" />
-                    添加课程
-                  </Button>
-                ) : assetLoadState === 'loading' ? (
+                {activeCourse && assetLoadState === 'loading' ? (
                   <span
                     className={cn(
                       'inline-flex h-8 items-center rounded-[10px] px-3 text-xs font-semibold shadow-sm',
@@ -8462,7 +8704,7 @@ export function LearnPageClient() {
                       syllabus，并到「状态」更新学习状态，来获得最佳体验。
                     </TooltipContent>
                   </Tooltip>
-                ) : !snapshot?.progressKnown ? (
+                ) : activeCourse && !snapshot?.progressKnown ? (
                   <Button
                     size="sm"
                     variant="outline"
@@ -8472,71 +8714,74 @@ export function LearnPageClient() {
                     {isResearchCourse ? '更新研究进度' : '更新学习进度'}
                   </Button>
                 ) : null}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={openSourceUploadPanel}
-                  disabled={!activeCourse}
-                  className="relative h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
-                >
-                  <LibraryBig className="size-3.5" />
-                  资料库
-                  <SourceUploadBadge
-                    uploading={sourceUploading}
-                    completedCount={completedSourceUploadBadgeCount}
-                  />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (!activeCourse) return;
-                    router.push(
-                      `/course/${encodeURIComponent(activeCourse.id)}/resources?tab=memory`,
-                    );
-                  }}
-                  disabled={!activeCourse}
-                  className="h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
-                >
-                  <Brain className="size-3.5" />
-                  记忆库
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                {activeCourse ? (
+                  <>
                     <Button
-                      type="button"
-                      size="icon"
+                      size="sm"
                       variant="outline"
-                      onClick={() => setMemoryActivityDialogOpen(true)}
-                      className="learn-memory-orb-button size-9 rounded-full border-transparent p-0 text-white shadow-sm hover:text-white focus-visible:ring-sky-200"
-                      data-memory-state={platformMemoryState}
-                      aria-label={platformMemoryButtonLabel}
+                      onClick={openSourceUploadPanel}
+                      className="relative h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
                     >
-                      <span className="learn-memory-orb-core" aria-hidden="true">
-                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-a" />
-                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-b" />
-                        <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-c" />
-                        <span className="learn-memory-orb-star" />
-                      </span>
-                      {platformMemoryBadgeCount > 0 ? (
-                        <span
-                          className={cn(
-                            'absolute -right-1.5 -top-1.5 z-20 grid min-w-5 place-items-center rounded-full border border-white px-1 text-[10px] font-bold leading-5 shadow-sm dark:border-slate-950',
-                            platformMemoryState === 'writing'
-                              ? 'bg-amber-400 text-amber-950'
-                              : 'bg-sky-500 text-white',
-                          )}
-                          aria-hidden="true"
-                        >
-                          {platformMemoryBadgeCount > 9 ? '9+' : platformMemoryBadgeCount}
-                        </span>
-                      ) : null}
+                      <LibraryBig className="size-3.5" />
+                      资料库
+                      <SourceUploadBadge
+                        uploading={sourceUploading}
+                        completedCount={completedSourceUploadBadgeCount}
+                      />
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="font-medium">
-                    {platformMemoryTooltip}
-                  </TooltipContent>
-                </Tooltip>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        router.push(
+                          `/course/${encodeURIComponent(activeCourse.id)}/resources?tab=memory`,
+                        );
+                      }}
+                      className="h-8 gap-1.5 rounded-[10px] border-slate-200 bg-white px-3 text-xs font-semibold shadow-sm dark:border-white/10 dark:bg-white/5"
+                    >
+                      <Brain className="size-3.5" />
+                      记忆库
+                    </Button>
+                  </>
+                ) : null}
+                {activeCourse ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setMemoryActivityDialogOpen(true)}
+                        className="learn-memory-orb-button size-9 rounded-full border-transparent p-0 text-white shadow-sm hover:text-white focus-visible:ring-sky-200"
+                        data-memory-state={platformMemoryState}
+                        aria-label={platformMemoryButtonLabel}
+                      >
+                        <span className="learn-memory-orb-core" aria-hidden="true">
+                          <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-a" />
+                          <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-b" />
+                          <span className="learn-memory-orb-ribbon learn-memory-orb-ribbon-c" />
+                          <span className="learn-memory-orb-star" />
+                        </span>
+                        {platformMemoryBadgeCount > 0 ? (
+                          <span
+                            className={cn(
+                              'absolute -right-1.5 -top-1.5 z-20 grid min-w-5 place-items-center rounded-full border border-white px-1 text-[10px] font-bold leading-5 shadow-sm dark:border-slate-950',
+                              platformMemoryState === 'writing'
+                                ? 'bg-amber-400 text-amber-950'
+                                : 'bg-sky-500 text-white',
+                            )}
+                            aria-hidden="true"
+                          >
+                            {platformMemoryBadgeCount > 9 ? '9+' : platformMemoryBadgeCount}
+                          </span>
+                        ) : null}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="end" className="font-medium">
+                      {platformMemoryTooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
               </div>
             </div>
           </header>
@@ -8904,6 +9149,7 @@ export function LearnPageClient() {
       {courseFilesDialog}
       {platformMemoryDialog}
       {largeCalendarDialog}
+      {coursePublishDialog}
     </>
   );
 }

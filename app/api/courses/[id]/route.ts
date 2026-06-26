@@ -39,6 +39,28 @@ const updateCourseSchema = z.object({
   coursePriceCents: z.number().int().min(0).max(100000000).optional(),
 });
 
+async function countPublicCourseMemoriesForPublish(userId: string, courseId: string) {
+  const notebooks = await prisma.notebook.findMany({
+    where: { ownerId: userId, courseId },
+    select: { id: true },
+  });
+  const notebookIds = notebooks.map((notebook) => notebook.id);
+  return prisma.studyMemory.count({
+    where: {
+      ownerId: userId,
+      scope: 'public',
+      status: 'active',
+      OR:
+        notebookIds.length > 0
+          ? [
+              { targetType: 'course', courseId },
+              { targetType: 'notebook', notebookId: { in: notebookIds } },
+            ]
+          : [{ targetType: 'course', courseId }],
+    },
+  });
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
@@ -123,10 +145,30 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (payload.data.listedInCourseStore !== undefined) {
       await syncOwnedCourseNotebookStoreState(prisma, userId, id, payload.data.listedInCourseStore);
     }
+    let publishScope:
+      | {
+          problemBank: Awaited<ReturnType<typeof publishCourseProblemBankForUser>> | null;
+          publicMemoryCount: number;
+          sourceFilesUploaded: false;
+          privateContentUploaded: false;
+        }
+      | undefined;
     if (shouldPublishCourse) {
-      await publishCourseProblemBankForUser({ userId, courseId: id });
+      // Course publishing deliberately does not copy or upload source files, private study memory,
+      // learner progress, or chat transcripts. Public course/notebook memories remain readable
+      // through the shared course context; only the problem bank gets an explicit publish pass.
+      const [problemBank, publicMemoryCount] = await Promise.all([
+        publishCourseProblemBankForUser({ userId, courseId: id }),
+        countPublicCourseMemoriesForPublish(userId, id),
+      ]);
+      publishScope = {
+        problemBank,
+        publicMemoryCount,
+        sourceFilesUploaded: false,
+        privateContentUploaded: false,
+      };
     }
-    return NextResponse.json({ course });
+    return NextResponse.json({ course, publishScope });
   });
 }
 
