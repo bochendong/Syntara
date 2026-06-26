@@ -19,7 +19,7 @@ import {
 
 const MAX_NOTEBOOKS = 5;
 const MAX_PAGES_PER_NOTEBOOK = 4;
-const MAX_PAGE_DIGEST_LENGTH = 600;
+const MAX_PAGE_DIGEST_LENGTH = 1800;
 const MAX_PRIVATE_MEMORIES_PER_NOTEBOOK = 3;
 const COURSE_META_TIMEOUT_MS = 1200;
 
@@ -50,6 +50,30 @@ function sceneSearchText(scene: Scene): string {
     .filter(Boolean)
     .join(' ');
   return `${title} ${textBits}`.trim();
+}
+
+function focusedDigest(
+  input: string,
+  tokens: string[],
+  maxLength = MAX_PAGE_DIGEST_LENGTH,
+): string {
+  const text = normalizeText(input);
+  if (text.length <= maxLength) return text;
+
+  const lowered = text.toLowerCase();
+  const firstHit = tokens
+    .map((token) => lowered.indexOf(token.toLowerCase()))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+
+  if (firstHit === undefined) return text.slice(0, maxLength).trim();
+
+  const preferredStart = Math.max(0, firstHit - Math.floor(maxLength * 0.35));
+  const start = Math.min(preferredStart, Math.max(0, text.length - maxLength));
+  const end = Math.min(text.length, start + maxLength);
+  return `${start > 0 ? '... ' : ''}${text.slice(start, end).trim()}${
+    end < text.length ? ' ...' : ''
+  }`;
 }
 
 export function tokenizeCourseChatQuery(input: string): string[] {
@@ -152,7 +176,7 @@ export async function buildCourseChatContext(args: {
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((scene) => {
-          const digest = normalizeText(sceneSearchText(scene)).slice(0, MAX_PAGE_DIGEST_LENGTH);
+          const digest = focusedDigest(sceneSearchText(scene), tokens);
           return {
             id: scene.id,
             order: scene.order + 1,

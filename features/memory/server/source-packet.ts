@@ -255,6 +255,58 @@ function matchingExcerpt(text: string, patterns: RegExp[], fallbackStart = 0): s
   return compact(text.slice(start, start + MAX_EXCERPT_CHARS), MAX_EXCERPT_CHARS);
 }
 
+const NUMERIC_EVIDENCE_LINE_PATTERN =
+  /\b(?:supplementary\s+table|table\s+\d|model\s+name|data\s+format|target\s+value|valid|unique|novelty|fid|fcd|logp|qed|mw|tpsa|hbd|hba|dragonfly|diffumol|digress|sketchmol|mae|mean\s+absolute\s+error)\b/i;
+
+function looksLikeNumericEvidenceLine(line: string): boolean {
+  const normalized = collapse(line);
+  if (normalized.length < 3 || normalized.length > 650) return false;
+  const numericCount = normalized.match(/[-+]?\d+(?:\.\d+)?/g)?.length || 0;
+  const hasEvidenceKeyword = NUMERIC_EVIDENCE_LINE_PATTERN.test(normalized);
+  const hasColumnSeparator = /\||\t| {2,}/.test(line);
+  if (hasEvidenceKeyword && (numericCount > 0 || /table|model\s+name|target\s+value/i.test(line))) {
+    return true;
+  }
+  return numericCount >= 3 && hasColumnSeparator;
+}
+
+function extractNumericEvidenceBlocks(text: string): string[] {
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const anchorIndexes = lines
+    .map((line, index) => (looksLikeNumericEvidenceLine(line) ? index : -1))
+    .filter((index) => index >= 0);
+  if (anchorIndexes.length === 0) return [];
+
+  const ranges: Array<[number, number]> = [];
+  for (const index of anchorIndexes) {
+    const start = Math.max(0, index - 2);
+    const end = Math.min(lines.length, index + 9);
+    const last = ranges[ranges.length - 1];
+    if (last && start <= last[1] + 1) {
+      last[1] = Math.max(last[1], end);
+    } else {
+      ranges.push([start, end]);
+    }
+  }
+
+  const seen = new Set<string>();
+  const blocks: string[] = [];
+  for (const [start, end] of ranges) {
+    const block = lines.slice(start, end).join('\n').trim();
+    if (!block) continue;
+    const key = collapse(block).toLowerCase().slice(0, 500);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    blocks.push(compact(block, 4_000));
+    if (blocks.join('\n\n').length >= 12_000) break;
+  }
+  return blocks.slice(0, 8);
+}
+
 function inferDocumentType(args: SourcePacketBuildArgs): {
   documentType: SourcePacketDocumentType;
   confidence: number;
@@ -506,6 +558,34 @@ function markdownSection(args: {
   };
 }
 
+function buildNumericEvidenceSection(
+  args: SourcePacketBuildArgs,
+  refs: SourcePacketEvidenceRef[],
+): SourcePacketNotebookSection | null {
+  const blocks = extractNumericEvidenceBlocks(args.text);
+  if (blocks.length === 0) return null;
+
+  const topic = cleanTitle(args.topic || args.sourceTitle);
+  return markdownSection({
+    key: 'paper-numeric-evidence',
+    title: `${topic} - 表格与数值证据`,
+    summary: '保留论文原文中的表格、模型名、指标和 benchmark 数字，供后续精确问答检索。',
+    sourceRefs: refs,
+    body: [
+      `来源：${args.sourceTitle}`,
+      '',
+      '## 原文表格/数值线索',
+      ...blocks.flatMap((block, index) => [
+        '',
+        `### Evidence block ${index + 1}`,
+        '```text',
+        block,
+        '```',
+      ]),
+    ],
+  });
+}
+
 function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSection[] {
   const sourceTitle = cleanTitle(args.sourceTitle);
   const topic = cleanTitle(args.topic || sourceTitle);
@@ -531,8 +611,9 @@ function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSe
     Math.floor(args.text.length * 0.75),
   );
   const refs = [sourceRef(args, 'paper-source')];
+  const numericEvidence = buildNumericEvidenceSection(args, refs);
 
-  return [
+  const sections: SourcePacketNotebookSection[] = [
     markdownSection({
       key: 'paper-overview',
       title: `${topic} - 资料总览`,
@@ -587,6 +668,7 @@ function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSe
       sourceRefs: refs,
       body: ['## 原文依据', experiments],
     }),
+    ...(numericEvidence ? [numericEvidence] : []),
     markdownSection({
       key: 'paper-limits-course',
       title: `${topic} - 局限与课程关联`,
@@ -601,6 +683,7 @@ function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSe
       ],
     }),
   ];
+  return sections;
 }
 
 function buildUniversityCourseSections(args: SourcePacketBuildArgs): SourcePacketNotebookSection[] {

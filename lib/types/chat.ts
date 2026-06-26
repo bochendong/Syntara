@@ -424,6 +424,11 @@ export interface CourseChatLayeredMemoryContext {
     rewrittenQuery?: string;
     progressFilter?: string | null;
     knowledgeTypes?: string[];
+    sourceGrounding?: {
+      required?: boolean;
+      reason?: string;
+      signals?: string[];
+    };
   };
   knowledgeMatches?: Array<{
     id: string;

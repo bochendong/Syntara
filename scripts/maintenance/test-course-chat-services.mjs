@@ -20,7 +20,7 @@ const DEFAULT_MESSAGE =
 
 const MAX_NOTEBOOKS = 5;
 const MAX_PAGES_PER_NOTEBOOK = 4;
-const MAX_PAGE_DIGEST_LENGTH = 600;
+const MAX_PAGE_DIGEST_LENGTH = 1800;
 const MAX_PROBLEM_MATCHES = 12;
 const MIN_PROBLEM_MATCH_SCORE = 3;
 const LEARNING_ACTION_NAMES = new Set([
@@ -402,6 +402,30 @@ function sceneSearchText(scene) {
   return `${title} ${textBits}`.trim();
 }
 
+function markdownSectionSearchText(section) {
+  return `${section?.title || ''} ${section?.summary || ''} ${section?.markdown || ''}`.trim();
+}
+
+function focusedDigest(input, tokens, max = MAX_PAGE_DIGEST_LENGTH) {
+  const text = normalizeText(input);
+  if (text.length <= max) return text;
+
+  const lowered = text.toLowerCase();
+  const firstHit = tokens
+    .map((token) => lowered.indexOf(String(token || '').toLowerCase()))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+
+  if (firstHit === undefined) return text.slice(0, max).trim();
+
+  const preferredStart = Math.max(0, firstHit - Math.floor(max * 0.35));
+  const start = Math.min(preferredStart, Math.max(0, text.length - max));
+  const end = Math.min(text.length, start + max);
+  return `${start > 0 ? '... ' : ''}${text.slice(start, end).trim()}${
+    end < text.length ? ' ...' : ''
+  }`;
+}
+
 function mockTextElement(id, top, content) {
   return {
     id,
@@ -625,14 +649,23 @@ function buildCourseContextFromNotebookData(course, notebooks, question, problem
       const scenes = (notebook.scenes || [])
         .slice()
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      const pages = scenes.map((scene) => {
-        const digest = compact(normalizeText(sceneSearchText(scene)), MAX_PAGE_DIGEST_LENGTH);
+      const markdownSections = (notebook.markdownSections || [])
+        .slice()
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const useMarkdownPages =
+        markdownSections.length > 0 &&
+        (scenes.length === 0 || String(notebook.notebookKind || '').toLowerCase() === 'markdown');
+      const pages = (useMarkdownPages ? markdownSections : scenes).map((page) => {
+        const digest = focusedDigest(
+          useMarkdownPages ? markdownSectionSearchText(page) : sceneSearchText(page),
+          tokens,
+        );
         return {
-          id: scene.id,
-          order: (scene.order ?? 0) + 1,
-          title: scene.title || '未命名页面',
-          digest,
-          sourceScore: scoreText(tokens, `${scene.title || ''} ${digest}`),
+          id: page.id,
+          order: (page.order ?? 0) + 1,
+          title: page.title || '未命名页面',
+          digest: compact(digest, MAX_PAGE_DIGEST_LENGTH + 8),
+          sourceScore: scoreText(tokens, `${page.title || ''} ${digest}`),
         };
       });
       const metaScore = scoreText(
@@ -877,10 +910,14 @@ async function discoverCourseServices(options, question) {
         );
         notebooks.push({
           ...row,
+          notebookKind: detail?.notebook?.notebookKind || row.notebookKind,
           scenes: Array.isArray(detail?.notebook?.scenes) ? detail.notebook.scenes : [],
+          markdownSections: Array.isArray(detail?.notebook?.markdownSections)
+            ? detail.notebook.markdownSections
+            : [],
         });
       } catch (error) {
-        notebooks.push({ ...row, scenes: [], loadError: error.message });
+        notebooks.push({ ...row, scenes: [], markdownSections: [], loadError: error.message });
       }
     }
     let problems = [];

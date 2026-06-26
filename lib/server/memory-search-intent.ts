@@ -26,6 +26,12 @@ export type MemorySearchKnowledgeType =
   | 'knowledge_sources'
   | 'learner_history';
 
+export type MemorySourceGrounding = {
+  required: boolean;
+  reason: string;
+  signals: string[];
+};
+
 export type MemorySearchIntent = {
   kind: MemorySearchIntentKind;
   originalQuery: string;
@@ -34,6 +40,7 @@ export type MemorySearchIntent = {
   scopeMode: MemorySearchScopeMode;
   scopeReason: string;
   knowledgeTypes: MemorySearchKnowledgeType[];
+  sourceGrounding: MemorySourceGrounding;
   matchedSignals: string[];
   notes: string[];
   source: 'ai' | 'fallback';
@@ -89,6 +96,13 @@ const aiIntentSchema = z.object({
   scopeMode: scopeModeSchema.optional(),
   scopeReason: z.string().optional().nullable(),
   knowledgeTypes: z.array(knowledgeTypeSchema).optional(),
+  sourceGrounding: z
+    .object({
+      required: z.boolean().optional(),
+      reason: z.string().optional().nullable(),
+      signals: z.array(z.string()).optional(),
+    })
+    .optional(),
   matchedSignals: z.array(z.string()).optional(),
   notes: z.array(z.string()).optional(),
   plan: z
@@ -149,6 +163,34 @@ function uniqueKnowledgeTypes(types: Array<MemorySearchKnowledgeType | null | un
     if (type) result.add(type);
   }
   return [...result];
+}
+
+function detectSourceGroundingSignals(query: string): string[] {
+  const text = query.normalize('NFKC').toLowerCase();
+  const signals: string[] = [];
+  const rules: Array<[string, RegExp]> = [
+    [
+      'exact_numeric',
+      /(?:准确|精确|原文|数字|数值|数据|多少|第几|页码|citation|cite|quote|verbatim|exact|number|value|page)/u,
+    ],
+    [
+      'table_or_benchmark',
+      /(?:表格|表\s*\d+|table|benchmark|metric|指标|fid|fcd|mae|valid|unique|novelty|qed|logp|tpsa|mw)/u,
+    ],
+    ['formula_or_definition', /(?:公式|定义|定理|证明|lemma|theorem|definition|formula|equation)/u],
+    [
+      'source_location',
+      /(?:在哪里|哪一页|第\s*\d+\s*页|source|来源|原文中|paper says|according to)/u,
+    ],
+    [
+      'comparison_data',
+      /(?:vs\.?|versus|对比|比较|相比|baseline|模型|method|方法).*(?:数据|指标|metric|benchmark|table|表格)/u,
+    ],
+  ];
+  for (const [name, pattern] of rules) {
+    if (pattern.test(text)) signals.push(name);
+  }
+  return Array.from(new Set(signals));
 }
 
 function explicitScopeModeFromQuery(args: {
@@ -220,6 +262,22 @@ function normalizeIntent(input: {
     ...primarySources,
     ...secondarySources,
   ]);
+  const heuristicGroundingSignals = detectSourceGroundingSignals(originalQuery);
+  const parsedGrounding = parsed?.sourceGrounding;
+  const groundingSignals = uniqueStrings([
+    ...heuristicGroundingSignals,
+    ...compactList(parsedGrounding?.signals, 8, 80),
+  ]);
+  const sourceGroundingRequired = Boolean(parsedGrounding?.required) || groundingSignals.length > 0;
+  const sourceGrounding: MemorySourceGrounding = {
+    required: sourceGroundingRequired,
+    reason:
+      compact(parsedGrounding?.reason, 220) ||
+      (sourceGroundingRequired
+        ? 'The query asks for exact, source-checkable information; summaries may route retrieval but original evidence must ground the answer.'
+        : 'The query can usually be answered from summaries or learner memory unless evidence is ambiguous.'),
+    signals: groundingSignals,
+  };
   const defaultSources: MemorySearchKnowledgeType[] =
     input.source === 'ai'
       ? ['structured_facts', 'study_memory', 'knowledge_sources']
@@ -241,15 +299,18 @@ function normalizeIntent(input: {
     'structured_facts',
     ...declaredSources,
     ...(declaredSources.length === 0 ? defaultSources : []),
+    sourceGroundingRequired ? 'knowledge_sources' : null,
     needsLearnerHistory ? 'study_memory' : null,
     needsProblemBank ? 'problem_bank' : null,
     needsLearnerHistory ? 'learner_history' : null,
   ]);
 
   const normalizedPrimary =
-    primarySources.length > 0
-      ? primarySources
-      : knowledgeTypes.filter((type) => type !== 'structured_facts').slice(0, 2);
+    sourceGroundingRequired && !primarySources.includes('knowledge_sources')
+      ? uniqueKnowledgeTypes(['knowledge_sources', ...primarySources])
+      : primarySources.length > 0
+        ? primarySources
+        : knowledgeTypes.filter((type) => type !== 'structured_facts').slice(0, 2);
   const secondaryBase =
     secondarySources.length > 0
       ? secondarySources.filter((type) => !normalizedPrimary.includes(type))
@@ -277,6 +338,7 @@ function normalizeIntent(input: {
     scopeMode,
     scopeReason,
     knowledgeTypes,
+    sourceGrounding,
     matchedSignals:
       matchedSignals.length > 0
         ? matchedSignals
@@ -291,6 +353,9 @@ function normalizeIntent(input: {
       input.source === 'ai' && kind === 'concept'
         ? 'For concept searches, problem-bank matches may be used as secondary example evidence, but not as the primary answer format.'
         : '',
+      sourceGrounding.required
+        ? `Source grounding required: ${sourceGrounding.reason}`
+        : 'Summary memory may answer unless the retrieved evidence is insufficient or ambiguous.',
       'Structured facts remain exact current values and override fuzzy recall.',
     ].filter(Boolean),
     source: input.source,
@@ -348,6 +413,9 @@ Available retrieval sources:
 - learner_history: the current learner's prior questions, answers, attempts, and progress. Best when the user asks what the student understands, has asked before, has done, got wrong, or needs to review.
 - For course policy, course requirements, preferences, requirements, identity/profile, or administrative facts, prefer structured_facts + study_memory + knowledge_sources. Do not include problem_bank unless the user also asks for exercises, answers, or attempt status.
 - If the query could mean either a concept source or a problem source, plan to retrieve both original source material and problem_bank evidence. Do not force a single class when the user's words are ambiguous.
+- Summary memory may route retrieval, but it is not authoritative for exact claims. Set sourceGrounding.required=true whenever the answer needs original-source verification even if summaries likely contain a partial answer.
+- Source grounding is required for exact numbers, tables, formulas, theorem/definition wording, benchmark metrics, page/source locations, direct quotes, "原文怎么说", "带数据版", "准确数字", or multi-method comparisons with metrics.
+- When sourceGrounding.required=true, include knowledge_sources as a primary source.
 
 Scope modes:
 - notebook_local: use when Target is notebook and the user appears to ask about this notebook, current lesson, current source material, this notebook's problems, or this notebook's learner activity.
@@ -390,6 +458,11 @@ JSON schema:
   "scopeMode": "notebook_local | course_wide | auto_expand",
   "scopeReason": "one short sentence explaining why this scope is appropriate",
   "knowledgeTypes": ["structured_facts", "study_memory", "knowledge_sources", "problem_bank", "learner_history"],
+  "sourceGrounding": {
+    "required": true,
+    "reason": "why original source evidence is or is not required",
+    "signals": ["exact numeric/table/formula/source-location/etc"]
+  },
   "matchedSignals": ["short semantic reasons, not regex names"],
   "notes": ["execution notes for retrievers"],
   "plan": {

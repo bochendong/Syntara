@@ -340,6 +340,28 @@ function formatRecallScope(scope: MemoryRecallScope): string {
   ].join('\n');
 }
 
+function formatSourceGroundingPolicy(searchIntent: MemorySearchIntent): string {
+  const grounding = searchIntent.sourceGrounding;
+  if (!grounding?.required) {
+    return [
+      '## Source grounding policy',
+      'required: no',
+      'Summary and study memory can answer if they are sufficient. Original source evidence should still be preferred when the answer becomes exact, ambiguous, or quote-like.',
+    ].join('\n');
+  }
+  return [
+    '## Source grounding policy',
+    'required: yes',
+    `reason: ${grounding.reason}`,
+    grounding.signals.length ? `signals: ${grounding.signals.join(', ')}` : '',
+    'Rule: summaries route the lookup; original source evidence grounds exact claims. If original evidence is missing, say what evidence is missing instead of inferring exact numbers, wording, formulas, or table cells from summaries/cache.',
+    'Table rule: when original source evidence includes a relevant table, preserve relevant rows and columns as table cells; do not collapse table rows into prose if that would drop values.',
+    'Coverage rule: if a requested item/model is absent from one retrieved source table but appears in another retrieved source table, include that other table or section before concluding what is unavailable.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 function factValueText(value: unknown): string {
   if (value == null) return 'null';
   if (typeof value === 'string') return value;
@@ -439,12 +461,20 @@ function sourceEvidenceLabel(sourceType: MemoryEvidencePacket['sourceType']): st
   return 'learner problem attempt';
 }
 
-function formatSourceEvidence(matches: MemoryEvidencePacket[]): string {
+function formatSourceEvidence(
+  matches: MemoryEvidencePacket[],
+  searchIntent: MemorySearchIntent,
+): string {
   if (matches.length === 0) return '';
+  const sourceRequired = searchIntent.sourceGrounding.required;
+  const maxItems = sourceRequired ? 12 : 10;
+  const maxChars = sourceRequired ? 1600 : 900;
   return [
     '## Original source evidence',
-    'These packets contain original text expanded from the indexed source. Prefer this over summaries when answering source lookup questions.',
-    ...matches.slice(0, 10).map((match, index) => {
+    sourceRequired
+      ? 'These packets are authoritative evidence for this exact-source turn. Use them for numeric values, tables, formulas, page/source wording, and citations; do not replace them with summaries.'
+      : 'These packets contain original text expanded from the indexed source. Prefer this over summaries when answering source lookup questions.',
+    ...matches.slice(0, maxItems).map((match, index) => {
       const notebookName =
         typeof match.metadata.notebookName === 'string' ? match.metadata.notebookName : '';
       const meta = [
@@ -454,7 +484,7 @@ function formatSourceEvidence(matches: MemoryEvidencePacket[]): string {
       ].filter(Boolean);
       return `${index + 1}. ${match.title} (${meta.join('; ')})\n   - ${compact(
         match.renderedText || match.originalText,
-        900,
+        maxChars,
       )}`;
     }),
   ].join('\n');
@@ -711,6 +741,7 @@ async function buildRecallPass(args: {
   let sourceEvidence: MemoryEvidencePacket[] = [];
   if (args.sourceEvidenceQuery) {
     const shouldSearchMarkdownEvidence =
+      args.searchIntent.sourceGrounding.required ||
       args.searchIntent.knowledgeTypes.includes('knowledge_sources') ||
       args.searchIntent.plan.primarySources.includes('knowledge_sources') ||
       args.searchIntent.plan.secondarySources.includes('knowledge_sources');
@@ -736,7 +767,7 @@ async function buildRecallPass(args: {
                 query: args.sourceEvidenceQuery,
                 notebookId: args.recallTarget.notebookId,
                 courseId: args.recallTarget.courseId,
-                limit: 5,
+                limit: args.searchIntent.sourceGrounding.required ? 8 : 5,
               })
             : [],
           shouldSearchProblemEvidence
@@ -777,7 +808,7 @@ async function buildRecallPass(args: {
         problemEvidence,
         studentMessages,
         attemptEvidence,
-      ).slice(0, 12);
+      ).slice(0, args.searchIntent.sourceGrounding.required ? 16 : 12);
     } catch (error) {
       log.warn('Original source evidence recall failed:', error);
     }
@@ -1085,6 +1116,7 @@ export async function buildMemoryRecallContext(args: {
 
     const sections = [
       formatRecallScope(scope),
+      formatSourceGroundingPolicy(searchIntent),
       formatFacts(factResolution.facts),
       formatConflicts(factResolution.conflicts),
       formatSection({
@@ -1104,7 +1136,7 @@ export async function buildMemoryRecallContext(args: {
         memories: specialistMemories.slice(0, 6),
       }),
       formatKnowledgeCache(knowledgeCache),
-      formatSourceEvidence(sourceEvidence),
+      formatSourceEvidence(sourceEvidence, searchIntent),
       formatLearnerAnalytics(learnerAnalytics),
       formatKnowledgeMatches(knowledgeMatches),
     ].filter(Boolean);

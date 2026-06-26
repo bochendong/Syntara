@@ -129,6 +129,133 @@ function compact(input: string | null | undefined, maxChars: number): string {
   return `${text.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
 }
 
+function tableishLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^\|.*\|$/.test(trimmed)) return true;
+  if (/^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?$/.test(trimmed)) return true;
+  const numericCount = trimmed.match(/[-+]?\d+(?:\.\d+)?/g)?.length || 0;
+  return numericCount >= 3 && / {2,}|\t/.test(line);
+}
+
+function lineMatchesTerms(line: string, terms: string[]): boolean {
+  if (terms.length === 0) return false;
+  const normalized = normalize(line);
+  return terms.some((term) => includesTerm(normalized, term));
+}
+
+function expandTableBlock(lines: string[], index: number): [number, number] {
+  let start = index;
+  let end = index;
+  while (start > 0 && tableishLine(lines[start - 1])) start -= 1;
+  while (end < lines.length - 1 && tableishLine(lines[end + 1])) end += 1;
+  if (start > 0 && /table|表|benchmark|metric|指标/i.test(lines[start - 1])) {
+    start -= 1;
+  }
+  return [start, end];
+}
+
+function previousHeading(lines: string[], index: number): { line: string; index: number } | null {
+  for (let cursor = index - 1; cursor >= Math.max(0, index - 6); cursor -= 1) {
+    const line = lines[cursor]?.trim();
+    if (!line) continue;
+    if (/^#{1,6}\s+/.test(line) || /table|表|benchmark|metric|指标/i.test(line)) {
+      return { line, index: cursor };
+    }
+    return null;
+  }
+  return null;
+}
+
+function sourceTableScore(block: string, heading: string, terms: string[]): number {
+  const haystack = normalize(`${heading}\n${block}`);
+  const termScore = terms.reduce(
+    (score, term) => (includesTerm(haystack, term) ? score + 8 : score),
+    0,
+  );
+  if (termScore === 0) return 0;
+  const numericCount = block.match(/[-+]?\d+(?:\.\d+)?/g)?.length || 0;
+  const sourceHeadingBoost = /supplementary\s+table|table\s+\d+|原文表格|source\s+table/i.test(
+    heading,
+  )
+    ? 32
+    : 0;
+  const summaryPenalty = /summary|摘要|reading note|retrieval hints|查询提示/i.test(heading)
+    ? 18
+    : 0;
+  return termScore + Math.min(numericCount, 24) + sourceHeadingBoost - summaryPenalty;
+}
+
+function matchingSourceTableBlocks(lines: string[], terms: string[]): string[] {
+  const tables: Array<{ block: string; score: number; start: number }> = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!tableishLine(lines[index])) continue;
+    const [start, end] = expandTableBlock(lines, index);
+    index = end;
+    const heading = previousHeading(lines, start);
+    const block = lines
+      .slice(start, end + 1)
+      .join('\n')
+      .trim();
+    const headingText = heading?.line || '';
+    const score = sourceTableScore(block, headingText, terms);
+    if (score <= 0) continue;
+    tables.push({
+      block: [headingText, block].filter(Boolean).join('\n'),
+      score,
+      start: heading?.index ?? start,
+    });
+  }
+  return tables.sort((a, b) => b.score - a.score || a.start - b.start).map((item) => item.block);
+}
+
+function focusedEvidenceText(text: string, terms: string[], maxChars: number): string {
+  const compacted = compact(text, Math.max(maxChars, 9000));
+  if (compacted.length <= maxChars) return compacted;
+
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd());
+  const blocks: string[] = [];
+  const seen = new Set<string>();
+
+  for (const tableBlock of matchingSourceTableBlocks(lines, terms)) {
+    const key = normalize(tableBlock).slice(0, 300);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    blocks.push(tableBlock);
+    if (blocks.join('\n\n').length >= maxChars) return compact(blocks.join('\n\n'), maxChars);
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!lineMatchesTerms(lines[index], terms)) continue;
+    const nextTableIndex =
+      !tableishLine(lines[index]) && tableishLine(lines[index + 1] || '')
+        ? index + 1
+        : !tableishLine(lines[index]) && tableishLine(lines[index + 2] || '')
+          ? index + 2
+          : null;
+    const [start, end] =
+      tableishLine(lines[index]) || nextTableIndex !== null
+        ? expandTableBlock(lines, nextTableIndex ?? index)
+        : [Math.max(0, index - 2), Math.min(lines.length - 1, index + 4)];
+    const block = lines
+      .slice(start, end + 1)
+      .join('\n')
+      .trim();
+    if (!block) continue;
+    const key = normalize(block).slice(0, 300);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    blocks.push(block);
+    if (blocks.join('\n\n').length >= maxChars) break;
+  }
+
+  if (blocks.length > 0) return compact(blocks.join('\n\n'), maxChars);
+  return compacted.slice(0, maxChars).trim();
+}
+
 function jsonFromText(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -448,8 +575,8 @@ export async function searchMarkdownSourceEvidence(args: {
       id: `markdown_section:${row.id}`,
       sourceType: 'markdown_section',
       title: row.title,
-      originalText: compact(row.markdown, 7000),
-      renderedText: compact(row.markdown, 7000),
+      originalText: compact(row.markdown, 9000),
+      renderedText: focusedEvidenceText(row.markdown, terms, 3200),
       score,
       courseId: row.courseId,
       notebookId: row.notebookId,

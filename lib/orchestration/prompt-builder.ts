@@ -120,6 +120,9 @@ function formatLayeredMemoryContext(courseContext: CourseChatContext): string {
         memory.searchIntent.knowledgeTypes?.length
           ? `knowledgeTypes=${memory.searchIntent.knowledgeTypes.join(', ')}`
           : '',
+        memory.searchIntent.sourceGrounding?.required
+          ? `sourceGrounding=required (${memory.searchIntent.sourceGrounding.reason})`
+          : '',
       ]
         .filter(Boolean)
         .join('; ')
@@ -375,6 +378,11 @@ Example:
 - Preserve course-specific technical terms. If translating, keep the original term in parentheses when ambiguity is possible, and do not translate terms into a different concept.
 - Calculus terminology guardrail: translate "improper integral" as "反常积分 (improper integral)", not "不定积分"; "indefinite integral" is "不定积分".
 - For problem-bank selection, choose only from the attached problem-bank matches or explicit problem-bank evidence in this prompt. Include exact problem titles and source/notebook names when available. If no problem-bank evidence is attached, say the course has no available problem-bank match for this turn instead of inventing questions. If you create new practice yourself, label it as self-generated practice and do not call it problem-bank content.
+- For exact table or benchmark-data questions, preserve the source table structure and metric definitions. If relevant evidence comes from multiple tables with different columns or metric families, output separate tables or clearly labeled sections instead of merging them into one table and dropping source numbers.
+- If the student asks for one comparison table but the source evidence uses multiple benchmark tables, reproduce each relevant source table separately first, then add a short relationship note. Only synthesize one combined table when every column has the same meaning for every row.
+- When source evidence contains a relevant table, keep the table's relevant rows and columns as table cells. Do not collapse one row into a prose "data" cell if that would omit another column, metric, or comparison value.
+- When an item or model is absent from a source table, state that absence only for that table or metric family. Never imply it has metrics that are not listed in the source evidence.
+- If a requested item/model is absent from one retrieved source table but appears in another retrieved source table, continue to include the other table or section. Do not stop after saying it is absent from the first table.
 - For calendar add/update/delete, learner memory writes, temporary classroom generation, and larger practice generation, first explain the proposal in text and emit the matching learning action with requiresConfirmation: true. Do not claim the operation has happened until the conversation includes a user or UI confirmation.
 - Creating a course plan, review plan, or preview plan does NOT by itself mean you should emit calendar.propose_add. Emit calendar actions only when the latest student message explicitly asks to add/sync/search/modify/delete calendar or schedule items, or asks for a calendar confirmation/button.
 - When the student asks for a course/review/preview plan but their available study time, current progress, or mastery state is missing, first emit learner_progress.request_confirmation. Do not emit calendar.propose_add for that plan until the learner has confirmed the missing planning inputs.
