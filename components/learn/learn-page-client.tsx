@@ -321,6 +321,7 @@ type SourceLibraryTile = {
 type SourceLibraryTextState = {
   status: 'loading' | 'ready' | 'empty' | 'failed';
   text: string;
+  error?: string;
 };
 
 type SourceLibraryDetailView = 'image' | 'text';
@@ -1391,6 +1392,18 @@ function notifySourceUploadFailureLive2D(fileName: string, message: string) {
     ...progress,
     title: '课程资料入库',
     line: `《${fileName}》入库失败：${message}`,
+  });
+}
+
+function loadStageDataForLibraryPreview(notebookId: string, timeoutMs = 4500) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race([
+    loadStageData(notebookId),
+    new Promise<null>((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
   });
 }
 
@@ -6506,14 +6519,14 @@ export function LearnPageClient() {
             : `${notebook.sceneCount || 0} 页`,
         dateLabel: formatLibraryItemDate(notebook.updatedAt),
         coverImagePath: null,
-        placeholderLabel: 'Notebook',
+        placeholderLabel: notebook.notebookKind === 'markdown' ? 'Notebook' : 'Image notebook',
         typeLabel: notebook.notebookKind === 'markdown' ? '笔记本' : '图片笔记本',
         updatedAt: notebook.updatedAt || 0,
         isProblemBank: false,
         status: null as LearnSourceUploadStatus | null,
         error: null as string | null,
         sourceHash: null,
-        textNotebookIds: [notebook.id],
+        textNotebookIds: notebook.notebookKind === 'markdown' ? [notebook.id] : [],
         textSectionIds: [],
         textBlocks: [],
       }));
@@ -6574,40 +6587,52 @@ export function LearnPageClient() {
 
     void Promise.all(
       selectedSourceLibraryTile.textNotebookIds.map((notebookId) =>
-        loadStageData(notebookId).catch(() => null),
+        loadStageDataForLibraryPreview(notebookId).catch(() => null),
       ),
-    ).then((stageResults) => {
-      if (!alive) return;
-      const wantedSectionIds = new Set(selectedSourceLibraryTile.textSectionIds);
-      const markdownBlocks = stageResults.flatMap((stageResult) => {
-        const allMarkdownScenes = [
-          ...(stageResult?.markdownScenes || []),
-          ...(stageResult?.scenes || []),
-        ].filter((scene, index, scenes) => {
-          if (scene.content.type !== 'markdown') return false;
-          return scenes.findIndex((candidate) => candidate.id === scene.id) === index;
+    )
+      .then((stageResults) => {
+        if (!alive) return;
+        const wantedSectionIds = new Set(selectedSourceLibraryTile.textSectionIds);
+        const markdownBlocks = stageResults.flatMap((stageResult) => {
+          const allMarkdownScenes = [
+            ...(stageResult?.markdownScenes || []),
+            ...(stageResult?.scenes || []),
+          ].filter((scene, index, scenes) => {
+            if (scene.content.type !== 'markdown') return false;
+            return scenes.findIndex((candidate) => candidate.id === scene.id) === index;
+          });
+          const matchedMarkdownScenes =
+            wantedSectionIds.size > 0
+              ? allMarkdownScenes.filter((scene) => wantedSectionIds.has(scene.id))
+              : allMarkdownScenes;
+          const markdownScenes =
+            matchedMarkdownScenes.length > 0 ? matchedMarkdownScenes : allMarkdownScenes;
+          return markdownScenes.map((scene, index) => {
+            if (scene.content.type !== 'markdown') return '';
+            const title = scene.title || `文本 ${index + 1}`;
+            return [`## ${title}`, scene.content.markdown.trim()].filter(Boolean).join('\n\n');
+          });
         });
-        const matchedMarkdownScenes =
-          wantedSectionIds.size > 0
-            ? allMarkdownScenes.filter((scene) => wantedSectionIds.has(scene.id))
-            : allMarkdownScenes;
-        const markdownScenes =
-          matchedMarkdownScenes.length > 0 ? matchedMarkdownScenes : allMarkdownScenes;
-        return markdownScenes.map((scene, index) => {
-          if (scene.content.type !== 'markdown') return '';
-          const title = scene.title || `文本 ${index + 1}`;
-          return [`## ${title}`, scene.content.markdown.trim()].filter(Boolean).join('\n\n');
-        });
+        const text = markdownBlocks.join('\n\n').trim();
+        setSourceLibraryTextCache((current) => ({
+          ...current,
+          [selectedSourceLibraryTile.id]: {
+            status: text ? 'ready' : 'empty',
+            text,
+          },
+        }));
+      })
+      .catch((err) => {
+        if (!alive) return;
+        setSourceLibraryTextCache((current) => ({
+          ...current,
+          [selectedSourceLibraryTile.id]: {
+            status: 'failed',
+            text: '',
+            error: err instanceof Error ? err.message : '文本读取失败',
+          },
+        }));
       });
-      const text = markdownBlocks.join('\n\n').trim();
-      setSourceLibraryTextCache((current) => ({
-        ...current,
-        [selectedSourceLibraryTile.id]: {
-          status: text ? 'ready' : 'empty',
-          text,
-        },
-      }));
-    });
 
     return () => {
       alive = false;
@@ -6633,6 +6658,9 @@ export function LearnPageClient() {
   const selectedSourceLibraryHasText =
     Boolean(selectedSourceLibraryPreloadedText.trim()) ||
     (selectedSourceLibraryTextState?.status === 'ready' && selectedSourceLibraryText.length > 0);
+  const selectedSourceLibraryTextResolved =
+    selectedSourceLibraryTextState?.status === 'empty' ||
+    selectedSourceLibraryTextState?.status === 'failed';
   const selectedSourceLibraryTextLoading =
     Boolean(selectedSourceLibraryTile?.textNotebookIds.length) &&
     !selectedSourceLibraryTile?.textBlocks.length &&
@@ -6641,6 +6669,7 @@ export function LearnPageClient() {
   const effectiveSourceLibraryDetailView: SourceLibraryDetailView = showSourceLibraryViewSwitch
     ? sourceLibraryDetailView
     : selectedSourceLibraryHasText ||
+        selectedSourceLibraryTextResolved ||
         (!selectedSourceLibraryHasImage && selectedSourceLibraryTextLoading)
       ? 'text'
       : 'image';
@@ -7673,7 +7702,22 @@ export function LearnPageClient() {
                       <MessageResponse className="text-[15px] leading-8 text-slate-800 dark:text-slate-100 [&_a]:text-blue-600 [&_a]:underline-offset-4 hover:[&_a]:underline dark:[&_a]:text-blue-300">
                         {selectedSourceLibraryText}
                       </MessageResponse>
-                    ) : null}
+                    ) : (
+                      <div className="grid min-h-64 place-items-center text-center text-sm text-slate-500 dark:text-slate-400">
+                        <div className="max-w-sm">
+                          <FileText className="mx-auto size-7 text-slate-300" strokeWidth={1.7} />
+                          <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">
+                            {selectedSourceLibraryTextState?.status === 'failed'
+                              ? '文本读取失败'
+                              : '没有可预览的文本'}
+                          </p>
+                          <p className="mt-1 text-xs leading-5">
+                            {selectedSourceLibraryTextState?.error ||
+                              '这份资料可能是图片笔记本或暂时没有整理出的 markdown 文本。'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : selectedSourceLibraryTile.coverImagePath ? (
                   <div
