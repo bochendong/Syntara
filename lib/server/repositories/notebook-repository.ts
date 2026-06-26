@@ -171,6 +171,7 @@ const notebookListSelect = {
   speechReadyCount: true,
   speechTotalCount: true,
   speechStatus: true,
+  coverImagePath: true,
   contentVersion: true,
   createdAt: true,
   updatedAt: true,

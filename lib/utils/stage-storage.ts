@@ -95,6 +95,7 @@ export interface StageListItem {
   notebookPriceCents?: number;
   storePublishedAt?: number;
   sourceNotebookId?: string;
+  coverImagePath?: string;
   speechReadyCount?: number;
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';
@@ -118,6 +119,7 @@ type NotebookApiRow = {
   notebookPriceCents?: number;
   storePublishedAt?: string | null;
   sourceNotebookId?: string | null;
+  coverImagePath?: string | null;
   speechReadyCount?: number;
   speechTotalCount?: number;
   speechStatus?: 'no_speech' | 'ready' | 'pending';
@@ -186,6 +188,7 @@ function mapNotebook(row: NotebookApiRow): StageListItem {
     notebookPriceCents: row.notebookPriceCents ?? 0,
     storePublishedAt: row.storePublishedAt ? Date.parse(row.storePublishedAt) : undefined,
     sourceNotebookId: row.sourceNotebookId || undefined,
+    coverImagePath: row.coverImagePath || undefined,
     speechReadyCount: row.speechReadyCount ?? 0,
     speechTotalCount: row.speechTotalCount ?? 0,
     speechStatus: row.speechStatus ?? 'no_speech',

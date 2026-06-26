@@ -6683,7 +6683,7 @@ export function LearnPageClient() {
             ? `${notebook.sectionCount || 0} 段笔记`
             : `${notebook.sceneCount || 0} 页`,
         dateLabel: formatLibraryItemDate(notebook.updatedAt),
-        coverImagePath: null,
+        coverImagePath: notebook.coverImagePath || null,
         placeholderLabel: notebook.notebookKind === 'markdown' ? 'Notebook' : 'Image notebook',
         typeLabel: notebook.notebookKind === 'markdown' ? '笔记本' : '图片笔记本',
         updatedAt: notebook.updatedAt || 0,
