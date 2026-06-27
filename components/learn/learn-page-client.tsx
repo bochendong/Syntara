@@ -2260,6 +2260,7 @@ async function planLearningActions(args: {
           status: plan.status,
         })),
         recentArtifacts: latestLearnArtifacts(args.messages, 12),
+        recentActions: latestPendingLearningActions(args.messages, 8),
       }),
     });
   } catch (error) {
@@ -2279,6 +2280,26 @@ function latestLearnArtifacts(messages: LearnMessage[], limit = 10): LearnArtifa
     if (artifacts.length >= limit) break;
   }
   return artifacts.slice(0, limit);
+}
+
+function latestPendingLearningActions(
+  messages: LearnMessage[],
+  limit = 6,
+): Array<LearningAction & { messageText?: string }> {
+  const actions: Array<LearningAction & { messageText?: string }> = [];
+  for (const message of messages.slice().reverse()) {
+    if (!message.learningActions?.length) continue;
+    for (const action of message.learningActions) {
+      if (action.confirmation !== 'required') continue;
+      if (action.status && action.status !== 'proposed') continue;
+      actions.push({
+        ...action,
+        messageText: message.text.trim().slice(0, 600),
+      });
+      if (actions.length >= limit) return actions;
+    }
+  }
+  return actions;
 }
 
 function payloadRecord(value: unknown): Record<string, unknown> {
@@ -2314,6 +2335,33 @@ function actionRequiresConfirmation(kind: LearnActionPlannerKind): boolean {
     kind === 'practice.propose_generation' ||
     kind === 'classroom.propose_temporary_explanation'
   );
+}
+
+function calendarAddActionFromArtifacts(artifacts: LearnArtifact[]): LearningAction | null {
+  const calendarDraft = artifacts.find(
+    (artifact): artifact is Extract<LearnArtifact, { kind: 'calendar_draft' }> =>
+      artifact.kind === 'calendar_draft' && artifact.items.length > 0,
+  );
+  const reviewPlan = artifacts.find(
+    (artifact): artifact is Extract<LearnArtifact, { kind: 'review_plan' }> =>
+      artifact.kind === 'review_plan' && Boolean(artifact.calendarDraftItems?.length),
+  );
+  const items = calendarDraft?.items || reviewPlan?.calendarDraftItems || [];
+  if (!items.length) return null;
+  const title = calendarDraft?.title || `${reviewPlan?.title || '学习计划'} 日历草稿`;
+  return {
+    id: makeClientId('calendar-add-action'),
+    kind: 'calendar.propose_add',
+    label: '把活动计划加入日历',
+    summary: `确认后会把「${title}」里的 ${items.length} 个活动加入学习日历。`,
+    status: 'proposed',
+    confirmation: 'required',
+    payload: {
+      title,
+      items,
+      sourceArtifactId: calendarDraft?.sourceArtifactId || reviewPlan?.id,
+    },
+  };
 }
 
 function syllabusTopicLabel(event: SyllabusCalendarEvent): string {
@@ -2428,12 +2476,14 @@ function buildSyllabusPlanningFallbackAnswer(args: {
   const constraintsLine = args.constraintsSummary
     ? `\n\n你补充的约束：${args.constraintsSummary}。我会按这个强度排，临近作业/测验时优先做题和错因整理。`
     : '';
+  const today = localDayKey(new Date());
+  const defaultPlanLine = `\n\n活动计划我先从今天 ${today} 开始排，默认 7 天、每天约 45 分钟；如果你要改成 3 天、14 天或每天 20 分钟，可以直接说，我会重排草稿。`;
 
   if (args.intent.kind === 'preview_plan') {
-    return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\n默认范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}\n\n先预习这些主题：${topicText}。\n\n建议这样做：\n1. 先按日期扫一遍 syllabus 主题，只标出看不懂的定义和例题。\n2. 每个主题用 15 分钟建立“定义 -> 一个例子 -> 一个待问问题”。\n3. 临近作业或考试的日期前，优先把对应主题改成练题。\n\n相关日程：\n${scheduleLines.join('\n')}`;
+    return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\nsyllabus 覆盖范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n先预习这些主题：${topicText}。\n\n活动安排会先以知识点预习为主，中间穿插短练习来检查理解；这不是题库刷题计划，只有你明确要题目时才会进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
   }
 
-  return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\n默认范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}\n\n复习重点先放在：${topicText}。\n\n建议这样做：\n1. 第一轮先按 syllabus 顺序回看每个主题的定义、判别条件和典型例子。\n2. 第二轮只做短练习：每个主题选 1-2 道题，记录错因。\n3. 第三轮把错因整理成薄弱点，下次复习时按薄弱点而不是按章节平均分配。\n\n相关日程：\n${scheduleLines.join('\n')}`;
+  return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\nsyllabus 覆盖范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n复习重点先放在：${topicText}。\n\n活动安排会混合三类任务：知识点复习、短练习、错因整理。刷题只是计划里的活动之一，不会自动变成题库刷题卡；只有你明确说“出题 / 选题 / 刷题”时才进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
 }
 
 function buildSyllabusPlanningArtifacts(args: {
@@ -2453,17 +2503,77 @@ function buildSyllabusPlanningArtifacts(args: {
   if (!window) return [];
   const progressEvents = window.progressEvents.filter((event) => event.kind === 'progress');
   const baseEvents = progressEvents.length ? progressEvents : window.events.slice(0, 7);
-  const items = baseEvents.slice(0, 7).map((event, index) => {
-    const topic = args.focusTopics?.[index] || syllabusTopicLabel(event);
-    return {
+  const topics = baseEvents
+    .map((event, index) => ({
+      topic: args.focusTopics?.[index] || syllabusTopicLabel(event),
+      event,
+    }))
+    .filter((item) => item.topic.trim())
+    .slice(0, 8);
+  const today = new Date();
+  const items: LearnCalendarDraftItem[] = [];
+  const addItem = (
+    dayOffset: number,
+    title: string,
+    sourceEvents: SyllabusCalendarEvent[],
+    durationMinutes = 45,
+  ) => {
+    items.push({
       id: makeClientId('calendar-draft-item'),
-      title: `${args.intent.kind === 'preview_plan' ? '预习' : '复习'}：${topic}`,
-      date: event.date,
-      durationMinutes: 45,
+      title,
+      date: localDayKey(addCalendarDays(today, dayOffset)),
+      durationMinutes,
       courseId: args.course.id,
-      reason: `来自 syllabus：${event.title}`,
-    };
-  });
+      reason: sourceEvents.length
+        ? `依据 syllabus：${sourceEvents.map((event) => `${event.date} ${event.title}`).join('；')}`
+        : `依据 syllabus 的${window.label}`,
+    });
+  };
+
+  if (args.intent.kind === 'preview_plan') {
+    topics.slice(0, 5).forEach((item, index) => {
+      addItem(index, `预习：${item.topic}`, [item.event]);
+    });
+    if (topics.length > 1) {
+      addItem(
+        5,
+        `短练习：检查 ${topics
+          .slice(0, 3)
+          .map((item) => item.topic)
+          .join(' / ')}`,
+        [...new Set(topics.slice(0, 3).map((item) => item.event))],
+      );
+    }
+    addItem(6, `整理问题：${window.label}预习清单`, baseEvents.slice(0, 4), 30);
+  } else {
+    topics.slice(0, 2).forEach((item, index) => {
+      addItem(index, `知识点复习：${item.topic}`, [item.event]);
+    });
+    if (topics.length) {
+      addItem(
+        2,
+        `短练习：${topics
+          .slice(0, 2)
+          .map((item) => item.topic)
+          .join(' / ')}`,
+        [...new Set(topics.slice(0, 2).map((item) => item.event))],
+      );
+    }
+    topics.slice(2, 4).forEach((item, index) => {
+      addItem(index + 3, `知识点复习：${item.topic}`, [item.event]);
+    });
+    if (topics.length > 2) {
+      addItem(
+        5,
+        `混合练习：${topics
+          .slice(2, 5)
+          .map((item) => item.topic)
+          .join(' / ')}`,
+        [...new Set(topics.slice(2, 5).map((item) => item.event))],
+      );
+    }
+    addItem(6, `错因整理：${window.label}复习回顾`, baseEvents.slice(0, 5), 30);
+  }
   if (!items.length) return [];
   const reviewArtifactId = makeClientId('review-plan-artifact');
   return [
@@ -4546,7 +4656,59 @@ function LearnLearningActionCards({
   );
 }
 
-function LearnArtifactCards({ artifacts }: { artifacts?: LearnArtifact[] }) {
+function calendarDraftReferenceIds(artifacts?: LearnArtifact[]): Set<string> {
+  const ids = new Set<string>();
+  for (const artifact of artifacts || []) {
+    if (artifact.kind === 'calendar_draft') {
+      ids.add(artifact.id);
+      if (artifact.sourceArtifactId) ids.add(artifact.sourceArtifactId);
+    }
+    if (artifact.kind === 'review_plan' && artifact.calendarDraftItems?.length) {
+      ids.add(artifact.id);
+    }
+  }
+  return ids;
+}
+
+function matchingCalendarAddActionForDraft(
+  draft: Extract<LearnArtifact, { kind: 'calendar_draft' }>,
+  actions?: LearningAction[],
+): LearningAction | null {
+  const candidateRefs = new Set([draft.id, draft.sourceArtifactId].filter(Boolean));
+  return (
+    actions?.find((action) => {
+      if (action.kind !== 'calendar.propose_add') return false;
+      const sourceArtifactId = payloadString(actionPayload(action).sourceArtifactId);
+      return sourceArtifactId ? candidateRefs.has(sourceArtifactId) : false;
+    }) || null
+  );
+}
+
+function visibleLearningActionsForArtifacts(
+  actions?: LearningAction[],
+  artifacts?: LearnArtifact[],
+): LearningAction[] | undefined {
+  if (!actions?.length) return undefined;
+  const calendarRefs = calendarDraftReferenceIds(artifacts);
+  if (!calendarRefs.size) return actions;
+  const visible = actions.filter((action) => {
+    if (action.kind !== 'calendar.propose_add') return true;
+    const sourceArtifactId = payloadString(actionPayload(action).sourceArtifactId);
+    return sourceArtifactId ? !calendarRefs.has(sourceArtifactId) : false;
+  });
+  return visible.length ? visible : undefined;
+}
+
+function LearnArtifactCards({
+  artifacts,
+  actions,
+  onConfirmCalendarAction,
+}: {
+  artifacts?: LearnArtifact[];
+  actions?: LearningAction[];
+  onConfirmCalendarAction?: (action: LearningAction) => void;
+}) {
+  const [openCalendarDraftId, setOpenCalendarDraftId] = useState<string | null>(null);
   if (!artifacts?.length) return null;
   return (
     <div className="mt-3 space-y-2">
@@ -4585,25 +4747,101 @@ function LearnArtifactCards({ artifacts }: { artifacts?: LearnArtifact[] }) {
         }
 
         if (artifact.kind === 'calendar_draft') {
+          const matchingAction = matchingCalendarAddActionForDraft(artifact, actions);
+          const addAction = matchingAction || calendarAddActionFromArtifacts([artifact]);
+          const completed =
+            matchingAction?.status === 'completed' || matchingAction?.status === 'confirmed';
           return (
-            <div
-              key={artifact.id}
-              className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-xs dark:border-amber-300/15 dark:bg-amber-400/10"
-            >
-              <p className="font-semibold text-amber-950 dark:text-amber-100">
-                {artifact.title || '日历草稿'}
-              </p>
-              <div className="mt-2 space-y-1">
-                {artifact.items.slice(0, 4).map((item, index) => (
-                  <p key={item.id || `${artifact.id}-${index}`} className="text-amber-800/85">
-                    {item.date || '待定'} · {item.title}
-                    {item.durationMinutes ? ` · ${item.durationMinutes} 分钟` : ''}
-                  </p>
-                ))}
-                {artifact.items.length > 4 ? (
-                  <p className="text-amber-700/70">还有 {artifact.items.length - 4} 项...</p>
+            <div key={artifact.id}>
+              <button
+                type="button"
+                onClick={() => setOpenCalendarDraftId(artifact.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-left text-xs shadow-sm transition hover:border-amber-200 hover:bg-amber-50 dark:border-amber-300/15 dark:bg-amber-400/10 dark:hover:bg-amber-400/15"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-[12px] border border-amber-200 bg-white text-amber-700 shadow-sm dark:border-amber-300/20 dark:bg-white/10 dark:text-amber-100">
+                  <CalendarDays className="size-4" strokeWidth={1.9} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-amber-950 dark:text-amber-100">
+                    {artifact.title || '日程规划'}
+                  </span>
+                  <span className="mt-0.5 block text-amber-800/75 dark:text-amber-100/70">
+                    {artifact.items.length} 个活动 · 点击查看这次规划
+                  </span>
+                </span>
+                {completed ? (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-100">
+                    <CheckCircle2 className="size-3.5" />
+                    已添加
+                  </span>
                 ) : null}
-              </div>
+              </button>
+
+              <Dialog
+                open={openCalendarDraftId === artifact.id}
+                onOpenChange={(open) => setOpenCalendarDraftId(open ? artifact.id : null)}
+              >
+                <DialogContent className="flex max-h-[min(720px,86dvh)] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden rounded-[24px] border-border/80 bg-background p-0 shadow-2xl">
+                  <DialogHeader className="border-b border-border/70 px-5 py-4 text-left">
+                    <DialogTitle className="flex items-center gap-2 text-base">
+                      <span className="grid size-8 place-items-center rounded-[10px] bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-300/15">
+                        <CalendarDays className="size-4" />
+                      </span>
+                      {artifact.title || '日程规划'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      只显示这一次生成的活动安排。添加后会进入当前课程的学习日历。
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                    <div className="space-y-2.5">
+                      {artifact.items.map((item, index) => (
+                        <div
+                          key={item.id || `${artifact.id}-dialog-${index}`}
+                          className="rounded-[14px] border border-border/70 bg-muted/25 px-3.5 py-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground">{item.title}</p>
+                              {item.reason ? (
+                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                  {item.reason}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="shrink-0 text-right text-xs text-muted-foreground">
+                              <p className="font-medium text-foreground">{item.date || '待定'}</p>
+                              {item.durationMinutes ? <p>{item.durationMinutes} 分钟</p> : null}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="rounded-[10px]"
+                      onClick={() => setOpenCalendarDraftId(null)}
+                    >
+                      关闭
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!addAction || completed}
+                      className="rounded-[10px] bg-[#103832] text-white hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                      onClick={() => {
+                        if (!addAction || !onConfirmCalendarAction) return;
+                        onConfirmCalendarAction(addAction);
+                        setOpenCalendarDraftId(null);
+                      }}
+                    >
+                      {completed ? '已添加到日历' : '添加到日历'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           );
         }
@@ -7257,20 +7495,6 @@ export function LearnPageClient() {
         return;
       }
 
-      if (action.kind === 'review_plan') {
-        const plan = await buildEvidenceBasedPlan({
-          mode: 'practice',
-          prompt: action.prompt,
-          stateOverride: nextState,
-          snapshotOverride: nextSnapshot,
-        });
-        if (plan) {
-          addAssistantPlan(plan);
-          setSending(false);
-          return;
-        }
-      }
-
       const planVerbPhrase = action.kind === 'preview_plan' ? '安排预习计划' : '安排复习';
       const messagePrefix =
         action.kind === 'preview_plan' ? 'assistant-preview-plan' : 'assistant-review-plan';
@@ -7637,7 +7861,7 @@ export function LearnPageClient() {
           return;
         }
 
-        if (planningIntent.kind === 'review_plan') {
+        if (planningIntent.kind === 'review_plan' && !syllabusAnswer) {
           const evidencePlan = await buildEvidenceBasedPlan({
             mode: 'practice',
             prompt: planningPrompt,
@@ -7653,6 +7877,7 @@ export function LearnPageClient() {
         }
 
         if (syllabusAnswer) {
+          const calendarAddAction = calendarAddActionFromArtifacts(syllabusArtifacts);
           setMessages((current) => [
             ...current,
             {
@@ -7665,6 +7890,7 @@ export function LearnPageClient() {
               text: syllabusAnswer,
               createdAt: Date.now(),
               artifacts: syllabusArtifacts.length ? syllabusArtifacts : undefined,
+              learningActions: calendarAddAction ? [calendarAddAction] : undefined,
             },
           ]);
           setSending(false);
@@ -10317,7 +10543,11 @@ export function LearnPageClient() {
                               <PlanActionCard plan={message.plan} onStart={startPlan} />
                             ) : null}
                             {message.artifacts?.length ? (
-                              <LearnArtifactCards artifacts={message.artifacts} />
+                              <LearnArtifactCards
+                                artifacts={message.artifacts}
+                                actions={message.learningActions}
+                                onConfirmCalendarAction={handleLearningActionConfirm}
+                              />
                             ) : null}
                             {message.progressProposal ? (
                               <ProgressConfirmationCard
@@ -10346,7 +10576,10 @@ export function LearnPageClient() {
                             ) : null}
                             {message.learningActions?.length ? (
                               <LearnLearningActionCards
-                                actions={message.learningActions}
+                                actions={visibleLearningActionsForArtifacts(
+                                  message.learningActions,
+                                  message.artifacts,
+                                )}
                                 onConfirm={handleLearningActionConfirm}
                                 onCancel={handleLearningActionCancel}
                               />

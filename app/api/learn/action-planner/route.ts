@@ -56,6 +56,7 @@ const actionPlannerRequestSchema = z.object({
   calendarEvents: z.array(z.record(z.string(), z.unknown())).max(80).default([]),
   recentPlans: z.array(z.record(z.string(), z.unknown())).max(8).default([]),
   recentArtifacts: z.array(z.record(z.string(), z.unknown())).max(16).default([]),
+  recentActions: z.array(z.record(z.string(), z.unknown())).max(8).default([]),
   layeredMemorySummary: z.string().trim().max(3000).optional().default(''),
 });
 
@@ -120,6 +121,9 @@ function buildPrompt(input: z.infer<typeof actionPlannerRequestSchema>) {
     '',
     'Decision rules:',
     '- If the message is a normal course question or explanation request, return empty directCalls/proposals/artifacts and replyText="".',
+    '- If the learner asks to create a new review/preview/study activity plan, return empty directCalls/proposals/artifacts; a separate syllabus-aware planner will build the plan.',
+    '- Do not turn a review/preview/activity plan into practice.propose_generation unless the learner explicitly asks for practice questions, a quiz, a problem set, or problem-bank selection.',
+    '- If the latest message clearly confirms a recentActions item that required confirmation, return that same action in directCalls with confirmation="none". This user message is the confirmation; do not ask for confirmation again.',
     '- If the learner asks to add a recent plan to the calendar, use recentArtifacts calendarDraftItems or calendar_draft items. Do not reconstruct from prose unless no artifact exists; if no draft exists, ask them to generate a plan first.',
     '- Calendar update/delete must target explicit event ids from calendarEvents when possible. If ambiguous, return calendar.search instead of a destructive proposal.',
     '- If the learner asks for latest/current/external information, use web.search with a concise query.',
@@ -134,6 +138,7 @@ function buildPrompt(input: z.infer<typeof actionPlannerRequestSchema>) {
     `Calendar events: ${compactJson(input.calendarEvents, 5000)}`,
     `Recent plans: ${compactJson(input.recentPlans, 4000)}`,
     `Recent artifacts: ${compactJson(input.recentArtifacts, 6000)}`,
+    `Recent proposed actions: ${compactJson(input.recentActions, 5000)}`,
     input.layeredMemorySummary
       ? `Layered memory summary:\n${input.layeredMemorySummary}`
       : 'Layered memory summary: none.',
