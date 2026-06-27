@@ -21,6 +21,8 @@ const plannerActionKindSchema = z.enum([
   'memory.search',
   'memory.propose_write',
   'web.search',
+  'calendar.start_recent',
+  'learner_progress.request_confirmation',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',
   'image.propose_generation',
@@ -37,8 +39,10 @@ const plannerActionSchema = z.object({
 const plannerArtifactSchema = z
   .object({
     kind: z.enum([
+      'activity_plan',
       'review_plan',
       'calendar_draft',
+      'answer_evidence',
       'web_search_result',
       'image_prompt_draft',
       'memory_candidate',
@@ -57,6 +61,7 @@ const actionPlannerRequestSchema = z.object({
   recentPlans: z.array(z.record(z.string(), z.unknown())).max(8).default([]),
   recentArtifacts: z.array(z.record(z.string(), z.unknown())).max(16).default([]),
   recentActions: z.array(z.record(z.string(), z.unknown())).max(8).default([]),
+  recentActivities: z.array(z.record(z.string(), z.unknown())).max(8).default([]),
   layeredMemorySummary: z.string().trim().max(3000).optional().default(''),
 });
 
@@ -111,8 +116,10 @@ function buildPrompt(input: z.infer<typeof actionPlannerRequestSchema>) {
     '',
     'Allowed action kinds:',
     '- calendar.search: read-only calendar lookup; directCalls, confirmation none.',
+    '- calendar.start_recent: start/open an existing recent course calendar activity from recentActivities; directCalls, confirmation none.',
     '- memory.search: read-only memory lookup; directCalls, confirmation none.',
     '- web.search: read-only web search; directCalls, confirmation none.',
+    '- learner_progress.request_confirmation: ask the UI to collect missing progress/time/scope before planning; proposals, confirmation required.',
     '- calendar.propose_add/update/delete: state-changing calendar action; proposals, confirmation required.',
     '- memory.propose_write: durable learner memory write; proposals, confirmation required.',
     '- image.propose_generation: image/media generation; proposals, confirmation required.',
@@ -122,6 +129,7 @@ function buildPrompt(input: z.infer<typeof actionPlannerRequestSchema>) {
     'Decision rules:',
     '- If the message is a normal course question or explanation request, return empty directCalls/proposals/artifacts and replyText="".',
     '- If the learner asks to create a new review/preview/study activity plan, return empty directCalls/proposals/artifacts; a separate syllabus-aware planner will build the plan.',
+    '- If the learner asks to start/open/continue the nearest, recent, next, or today activity and recentActivities contains items, use calendar.start_recent in directCalls. Pass the best activity id in payload.activityId. Do not create a new plan.',
     '- Do not turn a review/preview/activity plan into practice.propose_generation unless the learner explicitly asks for practice questions, a quiz, a problem set, or problem-bank selection.',
     '- If the latest message clearly confirms a recentActions item that required confirmation, return that same action in directCalls with confirmation="none". This user message is the confirmation; do not ask for confirmation again.',
     '- If the learner asks to add a recent plan to the calendar, use recentArtifacts calendarDraftItems or calendar_draft items. Do not reconstruct from prose unless no artifact exists; if no draft exists, ask them to generate a plan first.',
@@ -139,6 +147,7 @@ function buildPrompt(input: z.infer<typeof actionPlannerRequestSchema>) {
     `Recent plans: ${compactJson(input.recentPlans, 4000)}`,
     `Recent artifacts: ${compactJson(input.recentArtifacts, 6000)}`,
     `Recent proposed actions: ${compactJson(input.recentActions, 5000)}`,
+    `Recent calendar activities: ${compactJson(input.recentActivities, 5000)}`,
     input.layeredMemorySummary
       ? `Layered memory summary:\n${input.layeredMemorySummary}`
       : 'Layered memory summary: none.',

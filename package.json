@@ -32,6 +32,7 @@
     "frontend:dev": "bash scripts/maintenance/start-frontend.sh",
     "frontend:dev:clean": "bash scripts/maintenance/start-frontend.sh --clean",
     "test:course-chat": "node scripts/maintenance/test-course-chat-services.mjs",
+    "test:learn-scenarios": "node scripts/learn/run-learn-scenarios.mjs",
     "test:image-gen": "dotenv -e .env.local -- node scripts/smoke/test-openai-image.mjs",
     "test:tts-gen": "dotenv -e .env.local -- node scripts/smoke/test-openai-tts.mjs"
   },

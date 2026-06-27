@@ -14,6 +14,7 @@ export const COURSE_CHAT_LEARNING_ACTIONS = [
   'calendar.propose_update',
   'calendar.propose_delete',
   'calendar.search',
+  'calendar.start_recent',
   'memory.search',
   'web.search',
   'learner_progress.request_confirmation',
@@ -76,6 +77,8 @@ export function getActionDescriptions(allowedActions: string[]): string {
       'Propose deleting one or more learner calendar items. This never executes by itself; user confirmation is required. Parameters: { label: string, summary?: string, targets: string[], requiresConfirmation: true }',
     'calendar.search':
       'Ask the UI to show or search existing learner calendar items relevant to the current course or time window. This is read-only. Parameters: { label: string, query?: string, courseId?: string, dateRange?: string }',
+    'calendar.start_recent':
+      'Start or open the most relevant existing recent/upcoming course calendar activity from the UI. Use when the learner says to start the latest, recent, next, or today activity. This must not create a new plan. Parameters: { label: string, activityId?: string, summary?: string }',
     'memory.search':
       'Search existing learner/course memory to answer what the system remembers, why a weakness was inferred, or what evidence exists. This is read-only. Parameters: { label: string, query: string, courseId?: string }',
     'web.search':

@@ -79,6 +79,8 @@ import {
 import type {
   ChatMessageMetadata,
   CourseChatContext,
+  LearnActivityPlanTask,
+  LearnAnswerEvidenceSource,
   LearnArtifact,
   LearnCalendarDraftItem,
   LearningAction,
@@ -275,8 +277,31 @@ type LearnActionPlannerAction = {
   confirmation?: 'none' | 'required';
 };
 
-type LearnActionPlannerResponse = {
+type LearnTurnAnswerMode =
+  | 'course_answer'
+  | 'action_only'
+  | 'client_activity_plan'
+  | 'client_practice_plan'
+  | 'none';
+
+type LearnTurnPlanningDecision = {
+  intent: 'none' | 'review_plan' | 'preview_plan' | 'practice_plan';
+  practiceMode?: PracticePlanMode | null;
+  scopeHint?: LearningPlanningScopeHint | null;
+  isFollowUpToPlan?: boolean;
+  shouldAskProgressFirst?: boolean;
+  useSyllabusAsDefaultScope?: boolean;
+  resolvedPrompt?: string;
+  focusTopics?: string[];
+  constraintsSummary?: string;
+  reason?: string;
+  confidence?: number;
+};
+
+type LearnTurnResponse = {
+  answerMode?: LearnTurnAnswerMode;
   replyText?: string;
+  planningDecision?: LearnTurnPlanningDecision | null;
   directCalls?: LearnActionPlannerAction[];
   proposals?: LearnActionPlannerAction[];
   artifacts?: Array<Record<string, unknown>>;
@@ -286,6 +311,41 @@ type LearnActionPlannerResponse = {
 
 type LearnLayeredMemoryContextResponse = {
   knowledgeMatches?: Array<{ id: string }>;
+  sourceEvidence?: Array<{
+    id: string;
+    sourceType?: string;
+    title: string;
+    originalText?: string;
+    renderedText?: string;
+    score?: number;
+    courseId?: string | null;
+    notebookId?: string | null;
+    sourceId?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+  semanticMatches?: Array<{
+    id: string;
+    title?: string;
+    text?: string;
+    summary?: string;
+    source?: string;
+  }>;
+  knowledgeCache?: Array<{
+    id: string;
+    sourceType?: string;
+    title: string;
+    previewText?: string;
+    hitCount?: number;
+    lastAccessedAt?: string;
+  }>;
+  counts?: {
+    direct?: number;
+    semantic?: number;
+    knowledgeCache?: number;
+    knowledge?: number;
+    sourceEvidence?: number;
+    learnerAnalytics?: number;
+  };
 };
 
 type CourseSourceUploadKind = 'pdf' | 'markdown' | 'plain_text' | 'pptx' | 'problem_bank' | 'other';
@@ -2163,6 +2223,35 @@ function planningIntentFromAIResponse(
   return null;
 }
 
+function planningDecisionFromLearnTurn(
+  response: LearnTurnResponse | null,
+  fallbackQuestion: string,
+): LearningPlanningDecision | null {
+  const decision = response?.planningDecision;
+  if (!decision || decision.intent === 'none') return null;
+  const intent =
+    decision.intent === 'practice_plan'
+      ? ({ kind: 'practice_plan', mode: decision.practiceMode || 'practice' } as const)
+      : decision.intent === 'preview_plan'
+        ? ({ kind: 'preview_plan' } as const)
+        : decision.intent === 'review_plan'
+          ? ({ kind: 'review_plan' } as const)
+          : null;
+  if (!intent) return null;
+  return {
+    intent,
+    scopeHint: decision.scopeHint || null,
+    isFollowUpToPlan: decision.isFollowUpToPlan === true,
+    shouldAskProgressFirst: decision.shouldAskProgressFirst === true,
+    useSyllabusAsDefaultScope: decision.useSyllabusAsDefaultScope === true,
+    resolvedPrompt: decision.resolvedPrompt?.trim() || fallbackQuestion,
+    focusTopics: (decision.focusTopics || []).map((topic) => topic.trim()).filter(Boolean),
+    constraintsSummary: decision.constraintsSummary?.trim() || '',
+    reason: decision.reason?.trim() || '',
+    confidence: typeof decision.confidence === 'number' ? decision.confidence : 0.5,
+  };
+}
+
 function learnMessagesForPlanningIntent(messages: LearnMessage[]): LearnPlanningIntentMessage[] {
   return messages
     .slice(-8)
@@ -2215,18 +2304,20 @@ async function classifyLearningPlanningIntent(args: {
   };
 }
 
-async function planLearningActions(args: {
+async function planLearnTurn(args: {
   question: string;
   messages: LearnMessage[];
   course: CourseRecord;
   snapshot: LearnerCourseSnapshot | null;
   calendarEvents: SyllabusCalendarEvent[];
+  recentActivities?: StatusCalendarActivity[];
   recentPlans: PracticePlan[];
+  sourceUploads: CourseSourceUploadRecord[];
   providerId: ProviderId;
   modelId: string;
-}): Promise<LearnActionPlannerResponse | null> {
+}): Promise<LearnTurnResponse | null> {
   try {
-    return await backendJson<LearnActionPlannerResponse>('/api/learn/action-planner', {
+    return await backendJson<LearnTurnResponse>('/api/learn/turn', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2240,6 +2331,8 @@ async function planLearningActions(args: {
         courseId: args.course.id,
         courseName: args.course.name,
         courseCode: args.course.courseCode,
+        hasSyllabus: syllabusPlanningEvents(args.calendarEvents).length > 0,
+        progressKnown: Boolean(args.snapshot?.progressKnown),
         learnerSnapshot: args.snapshot,
         calendarEvents: args.calendarEvents.slice(0, 80).map((event) => ({
           id: event.id,
@@ -2261,11 +2354,33 @@ async function planLearningActions(args: {
         })),
         recentArtifacts: latestLearnArtifacts(args.messages, 12),
         recentActions: latestPendingLearningActions(args.messages, 8),
+        recentActivities: (args.recentActivities || []).slice(0, 6).map((activity) => ({
+          id: activity.id,
+          source: activity.source,
+          sourceId: activity.sourceId,
+          title: activity.title,
+          date: activity.date,
+          meta: activity.meta,
+        })),
+        sourceUploads: args.sourceUploads.slice(0, 12).map((source) => ({
+          id: source.sourceHash,
+          sourceHash: source.sourceHash,
+          title: source.title,
+          kind: source.kind,
+          topic: source.topic,
+          usageProfile: source.usageProfile,
+          createdAt: source.createdAt,
+          notebookIds: source.notebookIds,
+          problemIds: source.problemIds,
+          memoryIds: source.memoryIds,
+          ragEntryIds: source.ragEntryIds,
+          stats: source.stats,
+        })),
       }),
     });
   } catch (error) {
     console.warn(
-      '[learn] AI action planner unavailable:',
+      '[learn] AI learn turn planner unavailable:',
       error instanceof Error ? error.message : error,
     );
     return null;
@@ -2342,13 +2457,18 @@ function calendarAddActionFromArtifacts(artifacts: LearnArtifact[]): LearningAct
     (artifact): artifact is Extract<LearnArtifact, { kind: 'calendar_draft' }> =>
       artifact.kind === 'calendar_draft' && artifact.items.length > 0,
   );
+  const activityPlan = artifacts.find(
+    (artifact): artifact is Extract<LearnArtifact, { kind: 'activity_plan' }> =>
+      artifact.kind === 'activity_plan' && Boolean(artifact.calendarDraftItems?.length),
+  );
   const reviewPlan = artifacts.find(
     (artifact): artifact is Extract<LearnArtifact, { kind: 'review_plan' }> =>
       artifact.kind === 'review_plan' && Boolean(artifact.calendarDraftItems?.length),
   );
-  const items = calendarDraft?.items || reviewPlan?.calendarDraftItems || [];
+  const sourcePlan = activityPlan || reviewPlan;
+  const items = calendarDraft?.items || sourcePlan?.calendarDraftItems || [];
   if (!items.length) return null;
-  const title = calendarDraft?.title || `${reviewPlan?.title || '学习计划'} 日历草稿`;
+  const title = calendarDraft?.title || `${sourcePlan?.title || '学习计划'} 日历草稿`;
   return {
     id: makeClientId('calendar-add-action'),
     kind: 'calendar.propose_add',
@@ -2359,7 +2479,7 @@ function calendarAddActionFromArtifacts(artifacts: LearnArtifact[]): LearningAct
     payload: {
       title,
       items,
-      sourceArtifactId: calendarDraft?.sourceArtifactId || reviewPlan?.id,
+      sourceArtifactId: calendarDraft?.sourceArtifactId || sourcePlan?.id,
     },
   };
 }
@@ -2575,14 +2695,23 @@ function buildSyllabusPlanningArtifacts(args: {
     addItem(6, `错因整理：${window.label}复习回顾`, baseEvents.slice(0, 5), 30);
   }
   if (!items.length) return [];
-  const reviewArtifactId = makeClientId('review-plan-artifact');
+  const activityArtifactId = makeClientId('activity-plan-artifact');
   return [
     {
-      kind: 'review_plan',
-      id: reviewArtifactId,
+      kind: 'activity_plan',
+      id: activityArtifactId,
       title: `${args.intent.kind === 'preview_plan' ? '预习' : '复习'}计划：${window.label}`,
+      planType: args.intent.kind === 'preview_plan' ? 'preview' : 'review',
       tasks: items.map((item) => ({
         title: item.title,
+        kind:
+          item.title.startsWith('短练习') || item.title.startsWith('混合练习')
+            ? 'practice'
+            : item.title.startsWith('整理') || item.title.startsWith('错因')
+              ? 'reflection'
+              : args.intent.kind === 'preview_plan'
+                ? 'preview'
+                : 'review',
         minutes: item.durationMinutes,
         reason: item.reason,
       })),
@@ -2593,7 +2722,7 @@ function buildSyllabusPlanningArtifacts(args: {
       id: makeClientId('calendar-draft'),
       title: `${window.label}日历草稿`,
       items,
-      sourceArtifactId: reviewArtifactId,
+      sourceArtifactId: activityArtifactId,
     },
   ];
 }
@@ -3466,6 +3595,21 @@ function scheduleEventLabel(kind: SyllabusEventKind, isResearchCourse: boolean):
   return options.find((option) => option.value === kind)?.label || syllabusEventLabel(kind);
 }
 
+function buildCalendarActivityStartText(args: {
+  event: SyllabusCalendarEvent;
+  course: CourseRecord | null;
+  isResearchCourse: boolean;
+}): string {
+  const eventLabel = scheduleEventLabel(args.event.kind, args.isResearchCourse);
+  const duration = args.event.durationMinutes ? ` · ${args.event.durationMinutes} 分钟` : '';
+  const source = args.event.rawText ? `\n依据：${args.event.rawText}` : '';
+  const courseLabel = args.course?.courseCode || args.course?.name || '这门课';
+  if (args.isResearchCourse) {
+    return `开始最近活动：${args.event.title}\n\n${args.event.date} · ${eventLabel}${duration}${source}\n\n建议这次先这样推进：\n1. 用 5 分钟明确这次要产出的东西。\n2. 用主要时间完成活动本身，不重新规划。\n3. 结束时记录一个结果或阻塞点，方便下次接着推进。`;
+  }
+  return `开始最近活动：${args.event.title}\n\n${args.event.date} · ${eventLabel}${duration} · ${courseLabel}${source}\n\n建议这次先这样学：\n1. 用 5 分钟回看相关定义或例题。\n2. 用主要时间完成这项活动本身，不重新生成计划。\n3. 最后记录一个错因、一个还不稳的点，之后我可以据此更新薄弱点。`;
+}
+
 function inferSyllabusEventKind(line: string): SyllabusEventKind {
   if (/midterm|final|exam|test|quiz|考试|期中|期末|测验/i.test(line)) return 'exam';
   if (/tutorial|two-stage|workshop|activity|discussion|辅导|习题课/i.test(line)) return 'tutorial';
@@ -3624,10 +3768,103 @@ function learnCalendarDraftItemFromRecord(
   };
 }
 
+function normalizeAnswerEvidenceSource(raw: unknown): LearnAnswerEvidenceSource | null {
+  const record = payloadRecord(raw);
+  const title = payloadString(record.title) || payloadString(record.sourceId) || '证据来源';
+  if (!title.trim()) return null;
+  const sourceType = payloadString(record.sourceType);
+  return {
+    sourceType:
+      sourceType === 'notebook' ||
+      sourceType === 'memory' ||
+      sourceType === 'problem_bank' ||
+      sourceType === 'calendar' ||
+      sourceType === 'web' ||
+      sourceType === 'user' ||
+      sourceType === 'system'
+        ? sourceType
+        : 'source',
+    id: payloadString(record.id) || undefined,
+    sourceId: payloadString(record.sourceId) || undefined,
+    notebookId: payloadString(record.notebookId) || null,
+    title: title.slice(0, 160),
+    previewText:
+      payloadString(record.previewText) ||
+      payloadString(record.renderedText).slice(0, 900) ||
+      payloadString(record.originalText).slice(0, 900) ||
+      undefined,
+    score: typeof record.score === 'number' ? record.score : undefined,
+    metadata: payloadRecord(record.metadata),
+  };
+}
+
 function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
   const record = payloadRecord(raw);
   const kind = payloadString(record.kind);
   const id = payloadString(record.id) || makeClientId('artifact');
+
+  if (kind === 'activity_plan') {
+    const title = payloadString(record.title) || '学习活动计划';
+    const planType = payloadString(record.planType);
+    const tasks = Array.isArray(record.tasks)
+      ? record.tasks
+          .map((task) => payloadRecord(task))
+          .map((task, index) => {
+            const taskKind = payloadString(task.kind);
+            const normalizedKind: LearnActivityPlanTask['kind'] =
+              taskKind === 'review' ||
+              taskKind === 'preview' ||
+              taskKind === 'practice' ||
+              taskKind === 'reading' ||
+              taskKind === 'reflection' ||
+              taskKind === 'catch_up' ||
+              taskKind === 'other'
+                ? taskKind
+                : undefined;
+            return {
+              title: payloadString(task.title) || `活动 ${index + 1}`,
+              kind: normalizedKind,
+              concepts: Array.isArray(task.concepts)
+                ? task.concepts
+                    .map((item) => String(item))
+                    .filter(Boolean)
+                    .slice(0, 8)
+                : undefined,
+              minutes: typeof task.minutes === 'number' ? task.minutes : undefined,
+              reason: payloadString(task.reason) || undefined,
+            };
+          })
+          .filter((task) => task.title)
+          .slice(0, 16)
+      : [];
+    const calendarDraftItems = Array.isArray(record.calendarDraftItems)
+      ? record.calendarDraftItems
+          .map((item, index) => learnCalendarDraftItemFromRecord(payloadRecord(item), index))
+          .filter((item): item is LearnCalendarDraftItem => Boolean(item))
+      : undefined;
+    const evidence = Array.isArray(record.evidence)
+      ? record.evidence
+          .map((source) => normalizeAnswerEvidenceSource(source))
+          .filter(
+            (source): source is NonNullable<ReturnType<typeof normalizeAnswerEvidenceSource>> =>
+              Boolean(source),
+          )
+          .slice(0, 12)
+      : undefined;
+    if (!tasks.length && !calendarDraftItems?.length) return null;
+    return {
+      kind,
+      id,
+      title,
+      planType:
+        planType === 'preview' || planType === 'study' || planType === 'catch_up'
+          ? planType
+          : 'review',
+      tasks,
+      calendarDraftItems,
+      evidence,
+    };
+  }
 
   if (kind === 'calendar_draft') {
     const items = Array.isArray(record.items)
@@ -3717,6 +3954,23 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
     };
   }
 
+  if (kind === 'answer_evidence') {
+    const sources = Array.isArray(record.sources)
+      ? record.sources
+          .map((source) => normalizeAnswerEvidenceSource(source))
+          .filter((source): source is LearnAnswerEvidenceSource => Boolean(source))
+          .slice(0, 16)
+      : [];
+    if (!sources.length) return null;
+    return {
+      kind,
+      id,
+      title: payloadString(record.title) || undefined,
+      usedFor: payloadString(record.usedFor) || undefined,
+      sources,
+    };
+  }
+
   if (kind === 'review_plan') {
     const title = payloadString(record.title) || '复习计划';
     const tasks = Array.isArray(record.tasks)
@@ -3748,6 +4002,83 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
   return null;
 }
 
+function answerEvidenceArtifactFromCourseContext(args: {
+  courseContext?: CourseChatContext;
+  question: string;
+}): Extract<LearnArtifact, { kind: 'answer_evidence' }> | null {
+  const memory = args.courseContext?.layeredMemory;
+  if (!memory) return null;
+  const sources: LearnAnswerEvidenceSource[] = [];
+
+  for (const source of memory.sourceEvidence || []) {
+    sources.push({
+      sourceType: 'source',
+      id: source.id,
+      sourceId: source.sourceId,
+      notebookId: source.notebookId ?? null,
+      title: source.title || '原文证据',
+      previewText: (source.renderedText || source.originalText || '').trim().slice(0, 900),
+      score: typeof source.score === 'number' ? source.score : undefined,
+      metadata: {
+        ...(source.metadata || {}),
+        evidenceType: source.sourceType,
+      },
+    });
+  }
+
+  for (const match of memory.knowledgeMatches || []) {
+    sources.push({
+      sourceType: 'problem_bank',
+      id: match.id,
+      title: match.title || '题库匹配',
+      previewText: (match.text || '').trim().slice(0, 700),
+      metadata: match.metadata || {},
+    });
+  }
+
+  for (const match of memory.semanticMatches || []) {
+    sources.push({
+      sourceType: 'memory',
+      id: match.id,
+      title: match.title || '语义记忆',
+      previewText: (match.summary || match.text || '').trim().slice(0, 700),
+      metadata: match.source ? { source: match.source } : undefined,
+    });
+  }
+
+  for (const cache of memory.knowledgeCache || []) {
+    sources.push({
+      sourceType: cache.sourceType === 'problem' ? 'problem_bank' : 'source',
+      id: cache.id,
+      title: cache.title || '知识缓存',
+      previewText: (cache.previewText || '').trim().slice(0, 700),
+      metadata: {
+        sourceType: cache.sourceType,
+        hitCount: cache.hitCount,
+        lastAccessedAt: cache.lastAccessedAt,
+      },
+    });
+  }
+
+  const deduped = sources.filter(
+    (source, index, all) =>
+      all.findIndex(
+        (item) =>
+          item.sourceType === source.sourceType &&
+          (item.id || item.sourceId || item.title) ===
+            (source.id || source.sourceId || source.title),
+      ) === index,
+  );
+  if (!deduped.length) return null;
+  return {
+    kind: 'answer_evidence',
+    id: makeClientId('answer-evidence'),
+    title: '本次回答证据',
+    usedFor: args.question.slice(0, 160),
+    sources: deduped.slice(0, 16),
+  };
+}
+
 function practicePlanCalendarDraftItems(plan: PracticePlan): LearnCalendarDraftItem[] {
   const concepts = plan.targetConcepts.length ? plan.targetConcepts : [plan.title];
   const count = Math.min(7, Math.max(1, concepts.length));
@@ -3760,24 +4091,6 @@ function practicePlanCalendarDraftItems(plan: PracticePlan): LearnCalendarDraftI
     courseId: plan.courseId,
     reason: `来自计划「${plan.title}」`,
   }));
-}
-
-function reviewPlanArtifactFromPracticePlan(
-  plan: PracticePlan,
-): Extract<LearnArtifact, { kind: 'review_plan' }> {
-  const calendarDraftItems = practicePlanCalendarDraftItems(plan);
-  return {
-    kind: 'review_plan',
-    id: makeClientId('review-plan-artifact'),
-    title: plan.title,
-    tasks: calendarDraftItems.map((item) => ({
-      title: item.title,
-      concepts: item.title.includes('：') ? [item.title.split('：').slice(1).join('：')] : [],
-      minutes: item.durationMinutes,
-      reason: item.reason,
-    })),
-    calendarDraftItems,
-  };
 }
 
 function nextStudyWeekStart(referenceDate = new Date()): Date {
@@ -4543,6 +4856,8 @@ function learnActionTitle(action: LearningAction): string {
       return '删除日历事项';
     case 'calendar.search':
       return '查看学习日程';
+    case 'calendar.start_recent':
+      return '开始最近活动';
     case 'memory.search':
       return '查看学习记忆';
     case 'web.search':
@@ -4569,6 +4884,7 @@ function learnActionButtonLabel(action: LearningAction): string {
   if (action.status === 'failed') return '重试';
   switch (action.kind) {
     case 'calendar.search':
+    case 'calendar.start_recent':
     case 'memory.search':
     case 'web.search':
       return '查看';
@@ -4774,6 +5090,9 @@ function calendarDraftReferenceIds(artifacts?: LearnArtifact[]): Set<string> {
     if (artifact.kind === 'calendar_draft') {
       ids.add(artifact.id);
       if (artifact.sourceArtifactId) ids.add(artifact.sourceArtifactId);
+    }
+    if (artifact.kind === 'activity_plan' && artifact.calendarDraftItems?.length) {
+      ids.add(artifact.id);
     }
     if (artifact.kind === 'review_plan' && artifact.calendarDraftItems?.length) {
       ids.add(artifact.id);
@@ -5070,6 +5389,65 @@ function LearnArtifactCards({
           );
         }
 
+        if (artifact.kind === 'activity_plan') {
+          return (
+            <div
+              key={artifact.id}
+              className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2.5 text-xs dark:border-emerald-300/15 dark:bg-emerald-400/10"
+            >
+              <p className="font-semibold text-emerald-950 dark:text-emerald-100">
+                {artifact.title}
+              </p>
+              <div className="mt-2 space-y-1">
+                {artifact.tasks.slice(0, 4).map((task, index) => (
+                  <p key={`${artifact.id}-${index}`} className="text-emerald-800/85">
+                    {task.title}
+                    {task.minutes ? ` · ${task.minutes} 分钟` : ''}
+                  </p>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        if (artifact.kind === 'answer_evidence') {
+          return (
+            <div
+              key={artifact.id}
+              className="rounded-lg border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-xs dark:border-indigo-300/15 dark:bg-indigo-400/10"
+            >
+              <p className="font-semibold text-indigo-950 dark:text-indigo-100">
+                {artifact.title || '本次回答证据'}
+              </p>
+              {artifact.usedFor ? (
+                <p className="mt-1 line-clamp-2 text-indigo-800/75 dark:text-indigo-100/70">
+                  {artifact.usedFor}
+                </p>
+              ) : null}
+              <div className="mt-2 space-y-1.5">
+                {artifact.sources.slice(0, 4).map((source) => (
+                  <div
+                    key={`${artifact.id}-${source.sourceType}-${source.id || source.sourceId || source.title}`}
+                    className="rounded-md bg-white/70 px-2 py-1.5 text-indigo-900/80 shadow-sm dark:bg-white/10 dark:text-indigo-100/80"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-indigo-700 dark:bg-indigo-300/15 dark:text-indigo-100">
+                        {source.sourceType}
+                      </span>
+                      <span className="min-w-0 truncate font-semibold">{source.title}</span>
+                    </div>
+                    {source.previewText ? (
+                      <p className="mt-1 line-clamp-2 text-indigo-800/65 dark:text-indigo-100/60">
+                        {source.previewText}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
         if (artifact.kind === 'review_plan') {
           return (
             <div
@@ -5287,6 +5665,69 @@ function actionTargets(action: LearningAction): string[] {
   return Array.from(
     new Set([...fromTargetIds, eventId, ...fromTargets, singleTarget].filter(Boolean)),
   );
+}
+
+function calendarEventMatchesTarget(event: SyllabusCalendarEvent, target: string): boolean {
+  const normalizedTarget = target.trim().toLowerCase();
+  if (!normalizedTarget) return false;
+  if (event.id.toLowerCase() === normalizedTarget) return true;
+  if (event.sourceRef?.id?.toLowerCase() === normalizedTarget) return true;
+  const normalizedTitle = event.title.trim().toLowerCase();
+  return normalizedTitle === normalizedTarget || normalizedTitle.includes(normalizedTarget);
+}
+
+function uniqueCalendarTargetMatches(
+  events: SyllabusCalendarEvent[],
+  targets: string[],
+): SyllabusCalendarEvent[] {
+  const matched = new Map<string, SyllabusCalendarEvent>();
+  for (const target of targets) {
+    for (const event of events) {
+      if (calendarEventMatchesTarget(event, target)) matched.set(event.id, event);
+    }
+  }
+  return [...matched.values()];
+}
+
+function applyLearningCalendarUpdate(args: {
+  events: SyllabusCalendarEvent[];
+  action: LearningAction;
+}): { events: SyllabusCalendarEvent[]; updated: SyllabusCalendarEvent } | null {
+  const payload = actionPayload(args.action);
+  const targets = actionTargets(args.action);
+  const matches = uniqueCalendarTargetMatches(args.events, targets);
+  if (matches.length !== 1) return null;
+  const target = matches[0];
+  const updates = payloadRecord(payload.updates);
+  const shiftByDays =
+    typeof updates.shiftByDays === 'number' && Number.isFinite(updates.shiftByDays)
+      ? Math.round(updates.shiftByDays)
+      : 0;
+  const updated: SyllabusCalendarEvent = {
+    ...target,
+    title: payloadString(updates.title) || payloadString(payload.title) || target.title,
+    date:
+      validDateKey(updates.date) ||
+      validDateKey(payload.date) ||
+      (shiftByDays
+        ? localDayKey(addCalendarDays(new Date(`${target.date}T12:00:00`), shiftByDays))
+        : target.date),
+    durationMinutes:
+      typeof updates.durationMinutes === 'number' && Number.isFinite(updates.durationMinutes)
+        ? Math.max(5, Math.round(updates.durationMinutes))
+        : typeof payload.durationMinutes === 'number' && Number.isFinite(payload.durationMinutes)
+          ? Math.max(5, Math.round(payload.durationMinutes))
+          : target.durationMinutes,
+    status:
+      updates.status === 'done' || updates.status === 'skipped' || updates.status === 'planned'
+        ? updates.status
+        : target.status,
+    rawText: payloadString(updates.reason) || payloadString(payload.reason) || target.rawText,
+  };
+  return {
+    events: args.events.map((event) => (event.id === target.id ? updated : event)),
+    updated,
+  };
 }
 
 function learningActionPreferredConcepts(action: LearningAction): string[] {
@@ -5625,6 +6066,8 @@ export function LearnPageClient() {
       date: event.date,
       meta: `${scheduleEventLabel(event.kind, isResearchCourse)}${event.sourceName ? ` · ${event.sourceName}` : ''}`,
       dotClassName: syllabusEventTone(event.kind),
+      actionLabel:
+        event.origin === 'ai_plan' || event.kind === 'progress' ? '开始活动' : '查看日程',
     }));
     const allActivities = [...planActivities, ...syllabusActivities];
     const upcoming = allActivities
@@ -6783,6 +7226,39 @@ export function LearnPageClient() {
     [activeCourseId, localUserId, syllabusDraftEvents, syllabusEvents],
   );
 
+  const startStatusCalendarActivity = useCallback(
+    (activity: StatusCalendarActivity) => {
+      if (activity.source === 'plan') {
+        router.push(`/practice/${encodeURIComponent(activity.sourceId)}`);
+        return;
+      }
+
+      const event = syllabusEvents.find((item) => item.id === activity.sourceId);
+      if (!event) {
+        toast.error('没有找到这个日历活动。');
+        return;
+      }
+
+      setRightRailCollapsed(false);
+      setRightRailView('calendar');
+      setCalendarReferenceDate(new Date(`${event.date}T12:00:00`));
+      setMessages((current) => [
+        ...current,
+        {
+          id: makeClientId('assistant-calendar-activity-start'),
+          role: 'assistant',
+          text: buildCalendarActivityStartText({
+            event,
+            course: activeCourse,
+            isResearchCourse,
+          }),
+          createdAt: Date.now(),
+        },
+      ]);
+    },
+    [activeCourse, isResearchCourse, router, syllabusEvents],
+  );
+
   const handleSyllabusFile = useCallback(
     async (fileList: FileList | null) => {
       if (!activeCourseId) return;
@@ -7038,10 +7514,8 @@ export function LearnPageClient() {
   const addAssistantPlan = useCallback(
     (plan: PracticePlan, textOverride?: string, extraArtifacts: LearnArtifact[] = []) => {
       const savedPlan = savePracticePlan(plan);
-      const reviewArtifact = reviewPlanArtifactFromPracticePlan(savedPlan);
-      const calendarDraftItems = reviewArtifact.calendarDraftItems || [];
+      const calendarDraftItems = practicePlanCalendarDraftItems(savedPlan);
       const artifacts: LearnArtifact[] = [
-        reviewArtifact,
         ...(calendarDraftItems.length
           ? [
               {
@@ -7049,7 +7523,7 @@ export function LearnPageClient() {
                 id: makeClientId('calendar-draft'),
                 title: `${savedPlan.title} 日历草稿`,
                 items: calendarDraftItems,
-                sourceArtifactId: reviewArtifact.id,
+                sourceArtifactId: savedPlan.id,
               },
             ]
           : []),
@@ -7130,6 +7604,31 @@ export function LearnPageClient() {
           setRightRailCollapsed(false);
           setRightRailView('calendar');
           setCalendarDialogOpen(true);
+          markLearningActionStatus(action.id, 'completed');
+          return;
+        }
+
+        if (action.kind === 'calendar.start_recent') {
+          const payload = actionPayload(action);
+          const activityId = payloadString(payload.activityId);
+          const activity =
+            statusCalendarActivities.find(
+              (item) => item.id === activityId || item.sourceId === activityId,
+            ) || statusCalendarActivities[0];
+          if (!activity) {
+            setMessages((current) => [
+              ...current,
+              {
+                id: makeClientId('assistant-calendar-no-activity'),
+                role: 'assistant',
+                text: '现在没有可开始的课程日历活动。你可以先生成一个活动计划，或手动添加今天的学习安排。',
+                createdAt: Date.now(),
+              },
+            ]);
+            markLearningActionStatus(action.id, 'completed');
+            return;
+          }
+          startStatusCalendarActivity(activity);
           markLearningActionStatus(action.id, 'completed');
           return;
         }
@@ -7235,47 +7734,62 @@ export function LearnPageClient() {
           return;
         }
 
-        if (action.kind === 'calendar.propose_add' || action.kind === 'calendar.propose_update') {
+        if (action.kind === 'calendar.propose_add') {
           const events = learningActionCalendarEvents(action);
           const nextEvents = mergeSyllabusEvents(syllabusEvents, events);
           writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
           setSyllabusEvents(nextEvents);
-          setSyllabusImportMessage(
-            action.kind === 'calendar.propose_update'
-              ? '已记录 AI 建议的日历调整，请在学习日历中检查。'
-              : `已添加 ${events.length} 个 AI 学习日程。`,
-          );
+          setSyllabusImportMessage(`已添加 ${events.length} 个 AI 学习日程。`);
           setRightRailCollapsed(false);
           setRightRailView('calendar');
           setCalendarReferenceDate(new Date(`${events[0].date}T12:00:00`));
           announceSyllabusScheduleUpdated(events[0].title);
           markLearningActionStatus(action.id, 'completed');
-          toast.success(
-            action.kind === 'calendar.propose_update' ? '日历调整已记录。' : '已加入学习日历。',
-          );
+          toast.success('已加入学习日历。');
+          return;
+        }
+
+        if (action.kind === 'calendar.propose_update') {
+          const updateResult = applyLearningCalendarUpdate({ events: syllabusEvents, action });
+          if (!updateResult) {
+            setRightRailCollapsed(false);
+            setRightRailView('calendar');
+            setCalendarDialogOpen(true);
+            markLearningActionStatus(action.id, 'failed');
+            toast.error('这个日历修改没有命中唯一事项，请在日历里选择后再改。');
+            return;
+          }
+          writeSyllabusEvents(localUserId, activeCourseId, updateResult.events);
+          setSyllabusEvents(updateResult.events);
+          setSyllabusImportMessage('已记录 AI 建议的日历调整，请在学习日历中检查。');
+          setRightRailCollapsed(false);
+          setRightRailView('calendar');
+          setCalendarReferenceDate(new Date(`${updateResult.updated.date}T12:00:00`));
+          announceSyllabusScheduleUpdated(updateResult.updated.title);
+          markLearningActionStatus(action.id, 'completed');
+          toast.success('日历调整已记录。');
           return;
         }
 
         if (action.kind === 'calendar.propose_delete') {
           const targets = actionTargets(action);
-          if (!targets.length) {
+          const matches = uniqueCalendarTargetMatches(syllabusEvents, targets);
+          if (matches.length !== 1) {
             setRightRailCollapsed(false);
             setRightRailView('calendar');
             setCalendarDialogOpen(true);
             markLearningActionStatus(action.id, 'failed');
-            toast.error('这个删除操作缺少明确目标，请在日历里手动确认。');
+            toast.error('这个删除操作没有命中唯一事项，请在日历里手动确认。');
             return;
           }
-          const nextEvents = syllabusEvents.filter((event) => {
-            const haystack = `${event.id} ${event.title}`.toLowerCase();
-            return !targets.some((target) => haystack.includes(target.toLowerCase()));
-          });
+          const targetId = matches[0].id;
+          const nextEvents = syllabusEvents.filter((event) => event.id !== targetId);
           writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
           setSyllabusEvents(nextEvents);
           setRightRailCollapsed(false);
           setRightRailView('calendar');
           markLearningActionStatus(action.id, 'completed');
-          toast.success(`已删除 ${syllabusEvents.length - nextEvents.length} 个日历事项。`);
+          toast.success('已删除 1 个日历事项。');
           return;
         }
 
@@ -7546,6 +8060,8 @@ export function LearnPageClient() {
       problems,
       providerId,
       snapshot,
+      startStatusCalendarActivity,
+      statusCalendarActivities,
       syllabusEvents,
       webSearchProviderId,
       webSearchProvidersConfig,
@@ -7864,14 +8380,6 @@ export function LearnPageClient() {
     [router],
   );
 
-  const startStatusCalendarActivity = useCallback(
-    (activity: StatusCalendarActivity) => {
-      if (activity.source !== 'plan') return;
-      router.push(`/practice/${encodeURIComponent(activity.sourceId)}`);
-    },
-    [router],
-  );
-
   const sendMessage = useCallback(
     async (textOverride?: string) => {
       const text = (textOverride ?? draft).trim();
@@ -7913,32 +8421,52 @@ export function LearnPageClient() {
       setProgressSelection(progressSelectionFromSnapshot(questionSnapshot));
       void saveRemoteLearnerCourseState(questionState);
 
-      const actionPlan = !hasAttachments
-        ? await planLearningActions({
+      const learnTurn = !hasAttachments
+        ? await planLearnTurn({
             question: questionText,
             messages,
             course: activeCourse,
             snapshot: questionSnapshot,
             calendarEvents: syllabusEvents,
+            recentActivities: statusCalendarActivities,
             recentPlans,
+            sourceUploads: courseSourceUploads,
             providerId,
             modelId,
           })
         : null;
-      const actionPlanArtifacts = (actionPlan?.artifacts || [])
+      const learnTurnAnswerMode = learnTurn?.answerMode || 'course_answer';
+      const shouldContinueToCourseAnswer = learnTurnAnswerMode === 'course_answer';
+      const actionPlanArtifacts = (learnTurn?.artifacts || [])
         .map(normalizeLearnArtifact)
         .filter((artifact): artifact is LearnArtifact => Boolean(artifact));
-      const proposalActions = (actionPlan?.proposals || []).map((action) =>
+      const proposalActions = (learnTurn?.proposals || []).map((action) =>
         plannerActionToLearningAction(
           action,
           actionRequiresConfirmation(action.kind) ? 'required' : 'none',
         ),
       );
-      const directActions = (actionPlan?.directCalls || []).map((action) =>
+      const directActions = (learnTurn?.directCalls || []).map((action) =>
         plannerActionToLearningAction(action, 'none'),
       );
-      const actionPlanText = actionPlan?.replyText?.trim() || '';
-      if (actionPlanText || proposalActions.length || actionPlanArtifacts.length) {
+      const deferredAnswerActions = shouldContinueToCourseAnswer
+        ? proposalActions.filter(
+            (action) =>
+              action.kind === 'memory.propose_write' ||
+              action.kind === 'classroom.propose_temporary_explanation',
+          )
+        : [];
+      const blockingProposalActions = shouldContinueToCourseAnswer
+        ? proposalActions.filter(
+            (action) =>
+              action.kind !== 'memory.propose_write' &&
+              action.kind !== 'classroom.propose_temporary_explanation',
+          )
+        : proposalActions;
+      const deferredAnswerArtifacts = shouldContinueToCourseAnswer ? actionPlanArtifacts : [];
+      const visibleActionPlanArtifacts = shouldContinueToCourseAnswer ? [] : actionPlanArtifacts;
+      const actionPlanText = learnTurn?.replyText?.trim() || '';
+      if (actionPlanText || blockingProposalActions.length || visibleActionPlanArtifacts.length) {
         setMessages((current) => [
           ...current,
           {
@@ -7946,8 +8474,8 @@ export function LearnPageClient() {
             role: 'assistant',
             text: actionPlanText,
             createdAt: Date.now(),
-            learningActions: proposalActions.length ? proposalActions : undefined,
-            artifacts: actionPlanArtifacts.length ? actionPlanArtifacts : undefined,
+            learningActions: blockingProposalActions.length ? blockingProposalActions : undefined,
+            artifacts: visibleActionPlanArtifacts.length ? visibleActionPlanArtifacts : undefined,
           },
         ]);
       }
@@ -7956,13 +8484,19 @@ export function LearnPageClient() {
           await handleLearningActionConfirm(action);
         }
       }
-      if (directActions.length || proposalActions.length || actionPlanArtifacts.length) {
+      if (
+        directActions.length ||
+        blockingProposalActions.length ||
+        visibleActionPlanArtifacts.length ||
+        learnTurnAnswerMode === 'action_only' ||
+        learnTurnAnswerMode === 'none'
+      ) {
         setSending(false);
         return;
       }
 
-      let planningDecision: LearningPlanningDecision | null = null;
-      if (!hasAttachments) {
+      let planningDecision = planningDecisionFromLearnTurn(learnTurn, questionText);
+      if (!planningDecision && !learnTurn && !hasAttachments) {
         try {
           planningDecision = await classifyLearningPlanningIntent({
             question: questionText,
@@ -8137,6 +8671,7 @@ export function LearnPageClient() {
           answer: localAnswer,
           course: activeCourse,
         });
+        const artifacts = deferredAnswerArtifacts.length ? deferredAnswerArtifacts : undefined;
         setMessages((current) => [
           ...current,
           {
@@ -8145,6 +8680,8 @@ export function LearnPageClient() {
             text: localAnswer,
             createdAt: Date.now(),
             lecturePrompt,
+            learningActions: deferredAnswerActions.length ? deferredAnswerActions : undefined,
+            artifacts,
           },
         ]);
         setSending(false);
@@ -8174,12 +8711,23 @@ export function LearnPageClient() {
         });
         const answer =
           latestAssistantText(result.messages) || result.answer || '我先记录下这个问题。';
-        const learningActions = latestAssistantLearningActions(result.messages);
+        const learningActions = [
+          ...latestAssistantLearningActions(result.messages),
+          ...deferredAnswerActions,
+        ];
         const lecturePrompt = buildMiniLecturePrompt({
           question: questionText,
           answer,
           course: activeCourse,
         });
+        const evidenceArtifact = answerEvidenceArtifactFromCourseContext({
+          courseContext: result.courseContext,
+          question: questionText,
+        });
+        const artifacts = [
+          ...(evidenceArtifact ? [evidenceArtifact] : []),
+          ...deferredAnswerArtifacts,
+        ];
         setMessages((current) => [
           ...current,
           {
@@ -8189,6 +8737,7 @@ export function LearnPageClient() {
             createdAt: Date.now(),
             lecturePrompt,
             learningActions: learningActions.length ? learningActions : undefined,
+            artifacts: artifacts.length ? artifacts : undefined,
           },
         ]);
         refreshLearnerSnapshot();
@@ -8214,6 +8763,7 @@ export function LearnPageClient() {
       attachments,
       buildEvidenceBasedPlan,
       buildPlan,
+      courseSourceUploads,
       draft,
       handleLearningActionConfirm,
       messages,
@@ -8222,6 +8772,7 @@ export function LearnPageClient() {
       problems,
       providerId,
       refreshLearnerSnapshot,
+      statusCalendarActivities,
       recentPlans,
       selectedKnownNoVision,
       sending,
@@ -9705,50 +10256,29 @@ export function LearnPageClient() {
           statusCalendarActivities.map((activity) => (
             <div key={activity.id} className={cn(rightRailRowClassName, 'text-[12px] leading-4')}>
               <div className="flex items-start gap-2">
-                {activity.source === 'plan' ? (
-                  <button
-                    type="button"
-                    onClick={() => startStatusCalendarActivity(activity)}
-                    className="-m-1 min-w-0 flex-1 rounded-[12px] p-1 text-left transition hover:bg-slate-50/80 focus-visible:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:focus-visible:ring-sky-300/20"
-                    aria-label={`${activity.actionLabel ?? '打开'}：${activity.title}`}
-                    title={activity.actionLabel ?? '打开'}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={cn('size-1.5 shrink-0 rounded-full', activity.dotClassName)}
-                      />
-                      <span className="min-w-0 flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">
-                        {activity.title}
-                      </span>
-                      <span className="shrink-0 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        {formatShortCalendarDate(activity.date)}
-                      </span>
-                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
-                        <Play className="size-3.5" fill="currentColor" strokeWidth={1.8} />
-                      </span>
+                <button
+                  type="button"
+                  onClick={() => startStatusCalendarActivity(activity)}
+                  className="-m-1 min-w-0 flex-1 rounded-[12px] p-1 text-left transition hover:bg-slate-50/80 focus-visible:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:focus-visible:ring-sky-300/20"
+                  aria-label={`${activity.actionLabel ?? '打开'}：${activity.title}`}
+                  title={activity.actionLabel ?? '打开'}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={cn('size-1.5 shrink-0 rounded-full', activity.dotClassName)} />
+                    <span className="min-w-0 flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">
+                      {activity.title}
                     </span>
-                    <span className="mt-1 block truncate pl-3.5 text-[11px] font-medium leading-4 text-slate-500 dark:text-slate-400">
-                      {activity.meta}
+                    <span className="shrink-0 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      {formatShortCalendarDate(activity.date)}
                     </span>
-                  </button>
-                ) : (
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn('size-1.5 shrink-0 rounded-full', activity.dotClassName)}
-                      />
-                      <span className="min-w-0 flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">
-                        {activity.title}
-                      </span>
-                      <span className="shrink-0 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        {formatShortCalendarDate(activity.date)}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate pl-3.5 text-[11px] font-medium leading-4 text-slate-500 dark:text-slate-400">
-                      {activity.meta}
-                    </p>
-                  </div>
-                )}
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+                      <Play className="size-3.5" fill="currentColor" strokeWidth={1.8} />
+                    </span>
+                  </span>
+                  <span className="mt-1 block truncate pl-3.5 text-[11px] font-medium leading-4 text-slate-500 dark:text-slate-400">
+                    {activity.meta}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => removeStatusCalendarActivity(activity)}

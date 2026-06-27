@@ -123,6 +123,7 @@ export type LearningActionKind =
   | 'calendar.propose_update'
   | 'calendar.propose_delete'
   | 'calendar.search'
+  | 'calendar.start_recent'
   | 'memory.search'
   | 'web.search'
   | 'learner_progress.request_confirmation'
@@ -136,7 +137,15 @@ export type LearningActionStatus = 'proposed' | 'confirmed' | 'cancelled' | 'com
 export type LearningActionConfirmation = 'none' | 'optional' | 'required';
 
 export interface LearningActionEvidence {
-  sourceType: 'notebook' | 'memory' | 'problem_bank' | 'calendar' | 'user' | 'system';
+  sourceType:
+    | 'notebook'
+    | 'memory'
+    | 'problem_bank'
+    | 'calendar'
+    | 'source'
+    | 'web'
+    | 'user'
+    | 'system';
   sourceId?: string;
   title?: string;
   reason?: string;
@@ -165,7 +174,43 @@ export type LearnCalendarDraftItem = {
   reason?: string;
 };
 
+export type LearnActivityPlanTask = {
+  title: string;
+  kind?: 'review' | 'preview' | 'practice' | 'reading' | 'reflection' | 'catch_up' | 'other';
+  concepts?: string[];
+  minutes?: number;
+  reason?: string;
+};
+
+export type LearnAnswerEvidenceSource = {
+  sourceType:
+    | 'source'
+    | 'notebook'
+    | 'memory'
+    | 'problem_bank'
+    | 'calendar'
+    | 'web'
+    | 'user'
+    | 'system';
+  id?: string;
+  sourceId?: string;
+  notebookId?: string | null;
+  title: string;
+  previewText?: string;
+  score?: number;
+  metadata?: Record<string, unknown>;
+};
+
 export type LearnArtifact =
+  | {
+      kind: 'activity_plan';
+      id: string;
+      title: string;
+      planType?: 'review' | 'preview' | 'study' | 'catch_up';
+      tasks: LearnActivityPlanTask[];
+      calendarDraftItems?: LearnCalendarDraftItem[];
+      evidence?: LearnAnswerEvidenceSource[];
+    }
   | {
       kind: 'review_plan';
       id: string;
@@ -214,6 +259,13 @@ export type LearnArtifact =
       memoryType: 'weakness' | 'mastery' | 'progress' | 'preference' | 'correction' | 'next_step';
       summary: string;
       evidence?: string[];
+    }
+  | {
+      kind: 'answer_evidence';
+      id: string;
+      title?: string;
+      usedFor?: string;
+      sources: LearnAnswerEvidenceSource[];
     };
 
 /**
@@ -505,6 +557,25 @@ export interface CourseChatLayeredMemoryContext {
       tags?: string[];
       attemptStatus?: string | null;
     };
+  }>;
+  sourceEvidence?: Array<{
+    id: string;
+    sourceType?: string;
+    title: string;
+    originalText?: string;
+    renderedText?: string;
+    score?: number;
+    courseId?: string | null;
+    notebookId?: string | null;
+    sourceId?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+  semanticMatches?: Array<{
+    id: string;
+    title?: string;
+    text?: string;
+    summary?: string;
+    source?: string;
   }>;
   knowledgeCache?: Array<{
     id: string;

@@ -126,7 +126,6 @@ function inferCourseChatActionFallback(args: {
   assistantText: string;
   courseId?: string;
 }): InferredCourseChatAction | null {
-  const combined = `${args.userText}\n${args.assistantText}`.toLowerCase();
   const original = `${args.userText}\n${args.assistantText}`;
   const userOriginal = args.userText;
   const assistantText = args.assistantText;
@@ -596,7 +595,7 @@ function buildPlainTextFallbackPrompt(
         }`;
       })
       .join('\n') || 'No attached problem-bank matches.';
-  const memoryPrompt = compactText(courseContext?.layeredMemory?.prompt, 2400);
+  const memoryPrompt = compactText(courseContext?.layeredMemory?.prompt, 8000);
 
   return `You are ${agentConfig.name}, a course tutor.
 Answer the student's latest message directly in ${responseLanguage}.
@@ -1050,7 +1049,7 @@ async function runAgentGeneration(
     });
   }
 
-  if (isCourseChat) {
+  if (isCourseChat && process.env.LEARN_LEGACY_ACTION_FALLBACK === '1') {
     const currentUserText = latestUserText(openaiMessages);
     const inferredAction = inferCourseChatActionFallback({
       userText: currentUserText,

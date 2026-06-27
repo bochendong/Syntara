@@ -62,6 +62,7 @@ const LEARNING_ACTION_KINDS = new Set<LearningActionKind>([
   'calendar.propose_update',
   'calendar.propose_delete',
   'calendar.search',
+  'calendar.start_recent',
   'memory.search',
   'web.search',
   'learner_progress.request_confirmation',

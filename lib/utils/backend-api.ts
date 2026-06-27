@@ -24,6 +24,7 @@ function shouldNotifyCreditsAfterRequest(path: string, init?: RequestInit): bool
     '/api/notebooks/clone',
     '/api/gamification/',
     '/api/generate/',
+    '/api/learn/turn',
     '/api/learn/action-planner',
     '/api/learn/planning-intent',
     '/api/web-search',
