@@ -62,9 +62,12 @@ const LEARNING_ACTION_KINDS = new Set<LearningActionKind>([
   'calendar.propose_update',
   'calendar.propose_delete',
   'calendar.search',
+  'memory.search',
+  'web.search',
   'learner_progress.request_confirmation',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',
+  'image.propose_generation',
   'memory.propose_write',
 ]);
 

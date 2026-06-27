@@ -27,6 +27,7 @@ type LearnMessageContent = {
   pendingAction?: unknown;
   lecturePrompt?: unknown;
   lectureDeck?: unknown;
+  artifacts?: unknown;
   attachments?: unknown;
 };
 
@@ -49,6 +50,7 @@ const learnMessageSchema = z.object({
   pendingAction: z.unknown().optional(),
   lecturePrompt: z.unknown().optional(),
   lectureDeck: z.unknown().optional(),
+  artifacts: z.unknown().optional(),
   attachments: z
     .array(
       z.object({
@@ -112,6 +114,7 @@ function contentFromMessage(message: z.infer<typeof learnMessageSchema>) {
     pendingAction: message.pendingAction ?? null,
     lecturePrompt: message.lecturePrompt ?? null,
     lectureDeck: message.lectureDeck ?? null,
+    artifacts: message.artifacts ?? null,
     attachments: message.attachments ?? [],
   };
 }
@@ -132,6 +135,7 @@ function messageFromRow(row: LearnMessageRow) {
     pendingAction: row.content?.pendingAction ?? undefined,
     lecturePrompt: row.content?.lecturePrompt ?? undefined,
     lectureDeck: row.content?.lectureDeck ?? undefined,
+    artifacts: row.content?.artifacts ?? undefined,
     attachments: Array.isArray(row.content?.attachments) ? row.content.attachments : undefined,
   };
 }

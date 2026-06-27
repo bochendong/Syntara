@@ -50,6 +50,7 @@ export interface ChatMessageMetadata {
   }>;
   actions?: MessageAction[];
   learningActions?: LearningAction[];
+  artifacts?: LearnArtifact[];
   /** 用户消息附带的文件（仅展示，不参与模型协议字段） */
   attachments?: Array<{
     id: string;
@@ -122,9 +123,12 @@ export type LearningActionKind =
   | 'calendar.propose_update'
   | 'calendar.propose_delete'
   | 'calendar.search'
+  | 'memory.search'
+  | 'web.search'
   | 'learner_progress.request_confirmation'
   | 'practice.propose_generation'
   | 'classroom.propose_temporary_explanation'
+  | 'image.propose_generation'
   | 'memory.propose_write';
 
 export type LearningActionStatus = 'proposed' | 'confirmed' | 'cancelled' | 'completed' | 'failed';
@@ -149,6 +153,68 @@ export interface LearningAction {
   result?: unknown;
   evidence?: LearningActionEvidence[];
 }
+
+export type LearnCalendarDraftItem = {
+  id?: string;
+  eventId?: string;
+  title: string;
+  date?: string;
+  start?: string;
+  durationMinutes?: number;
+  courseId?: string;
+  reason?: string;
+};
+
+export type LearnArtifact =
+  | {
+      kind: 'review_plan';
+      id: string;
+      title: string;
+      tasks: Array<{
+        title: string;
+        concepts?: string[];
+        minutes?: number;
+        reason?: string;
+      }>;
+      calendarDraftItems?: LearnCalendarDraftItem[];
+    }
+  | {
+      kind: 'calendar_draft';
+      id: string;
+      title?: string;
+      items: LearnCalendarDraftItem[];
+      sourceArtifactId?: string;
+    }
+  | {
+      kind: 'web_search_result';
+      id: string;
+      query: string;
+      sources: Array<{
+        title: string;
+        url: string;
+        content?: string;
+        score?: number;
+      }>;
+      answer?: string;
+      usedFor?: string;
+    }
+  | {
+      kind: 'image_prompt_draft';
+      id: string;
+      prompt: string;
+      aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
+      sourceQuestion?: string;
+      imageUrl?: string;
+      width?: number;
+      height?: number;
+    }
+  | {
+      kind: 'memory_candidate';
+      id: string;
+      memoryType: 'weakness' | 'mastery' | 'progress' | 'preference' | 'correction' | 'next_step';
+      summary: string;
+      evidence?: string[];
+    };
 
 /**
  * Chat session representing a conversation with one or more agents
