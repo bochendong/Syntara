@@ -238,6 +238,23 @@ export type LearnArtifact =
       sourceArtifactId?: string;
     }
   | {
+      kind: 'active_activity';
+      id: string;
+      activityId: string;
+      title: string;
+      date: string;
+      source: 'calendar' | 'plan' | 'manual';
+      sourceId?: string;
+      courseId?: string;
+      courseCode?: string;
+      courseName?: string;
+      eventKind?: 'assignment' | 'exam' | 'progress' | 'tutorial' | 'holiday' | 'other';
+      durationMinutes?: number;
+      origin?: 'syllabus' | 'ai_plan' | 'manual' | 'practice' | 'exam_prep';
+      rawText?: string;
+      startedAt?: number;
+    }
+  | {
       kind: 'web_search_result';
       id: string;
       query: string;

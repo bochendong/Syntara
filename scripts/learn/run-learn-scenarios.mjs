@@ -101,6 +101,14 @@ function readScenario(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8');
   const parsed = JSON.parse(raw);
   const steps = Array.isArray(parsed) ? parsed : parsed.steps || parsed.messages || [];
+  const initialCalendarEvents =
+    parsed && typeof parsed === 'object' && Array.isArray(parsed.initialCalendarEvents)
+      ? parsed.initialCalendarEvents.filter((event) => event && typeof event === 'object')
+      : [];
+  const initialArtifacts =
+    parsed && typeof parsed === 'object' && Array.isArray(parsed.initialArtifacts)
+      ? parsed.initialArtifacts.filter((artifact) => artifact && typeof artifact === 'object')
+      : [];
   return {
     filePath,
     name:
@@ -109,6 +117,8 @@ function readScenario(filePath) {
         typeof parsed.name === 'string' &&
         parsed.name.trim()) ||
       path.basename(filePath, '.json'),
+    initialCalendarEvents,
+    initialArtifacts,
     steps: steps.map((step, index) => normalizeStep(step, index)).filter(Boolean),
   };
 }
@@ -317,6 +327,7 @@ async function runScenario(options, scenario) {
         date: '2026-07-28',
         origin: 'syllabus',
       },
+      ...scenario.initialCalendarEvents,
     ],
     memoryCandidates: [],
     learnerSnapshot: { progressKnown: false, weakConcepts: [], nextConcepts: [] },
@@ -330,6 +341,14 @@ async function runScenario(options, scenario) {
       },
     ],
   };
+  if (scenario.initialArtifacts.length) {
+    state.messages.push({
+      role: 'assistant',
+      text: '已载入用于测试的学习活动上下文。',
+      createdAt: Date.now(),
+      artifacts: scenario.initialArtifacts,
+    });
+  }
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, '');

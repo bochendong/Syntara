@@ -796,6 +796,7 @@ type StatusCalendarActivity = {
   meta: string;
   dotClassName: string;
   actionLabel?: string;
+  event?: SyllabusCalendarEvent;
 };
 
 type ParsedSyllabusFileEvent = {
@@ -2408,6 +2409,10 @@ async function planLearnTurn(args: {
           title: activity.title,
           date: activity.date,
           meta: activity.meta,
+          eventKind: activity.event?.kind,
+          durationMinutes: activity.event?.durationMinutes,
+          origin: activity.event?.origin,
+          rawText: activity.event?.rawText,
         })),
         sourceUploads: args.sourceUploads.slice(0, 12).map((source) => ({
           id: source.sourceHash,
@@ -3711,6 +3716,119 @@ function buildCalendarActivityStartText(args: {
   return `开始最近活动：${args.event.title}\n\n${args.event.date} · ${eventLabel}${duration} · ${courseLabel}${source}\n\n建议这次先这样学：\n1. 用 5 分钟回看相关定义或例题。\n2. 用主要时间完成这项活动本身，不重新生成计划。\n3. 最后记录一个错因、一个还不稳的点，之后我可以据此更新薄弱点。`;
 }
 
+function activeActivityArtifactFromEvent(args: {
+  event: SyllabusCalendarEvent;
+  course: CourseRecord | null;
+}): Extract<LearnArtifact, { kind: 'active_activity' }> {
+  return {
+    kind: 'active_activity',
+    id: makeClientId('active-activity'),
+    activityId: args.event.id,
+    title: args.event.title,
+    date: args.event.date,
+    source: 'calendar',
+    sourceId: args.event.id,
+    courseId: args.course?.id,
+    courseCode: args.course?.courseCode,
+    courseName: args.course?.name,
+    eventKind: args.event.kind,
+    durationMinutes: args.event.durationMinutes,
+    origin: args.event.origin || 'syllabus',
+    rawText: args.event.rawText || undefined,
+    startedAt: Date.now(),
+  };
+}
+
+function calendarActivityTopic(event: SyllabusCalendarEvent): string {
+  let topic = event.title.trim();
+  const prefixes = [
+    '知识点复习',
+    '知识点预习',
+    '短练习',
+    '混合练习',
+    '错因整理',
+    '预习',
+    '复习',
+    '练习',
+    '阅读',
+    '回顾',
+  ];
+  for (const prefix of prefixes) {
+    if (topic.startsWith(prefix)) {
+      topic = topic.slice(prefix.length).trim();
+      if (topic.startsWith('：') || topic.startsWith(':')) {
+        topic = topic.slice(1).trim();
+      }
+      break;
+    }
+  }
+  return topic || event.title;
+}
+
+function isExecutableStudyCalendarEvent(event: SyllabusCalendarEvent): boolean {
+  if (event.origin === 'ai_plan' || event.origin === 'practice') return true;
+  return event.kind === 'progress';
+}
+
+function buildCalendarActivityExecutionPrompt(args: {
+  event: SyllabusCalendarEvent;
+  course: CourseRecord | null;
+  isResearchCourse: boolean;
+}): string {
+  const topic = calendarActivityTopic(args.event);
+  const duration = args.event.durationMinutes || 45;
+  const courseLabel = args.course?.courseCode || args.course?.name || '这门课';
+  const basis = args.event.rawText || args.event.sourceName || '课程日历';
+  if (args.isResearchCourse) {
+    return [
+      `用户刚点击右栏“开始活动”。请直接帮用户推进这个研究活动，不要重新规划。`,
+      `课程/项目：${courseLabel}`,
+      `活动：${args.event.title}`,
+      `日期：${args.event.date}`,
+      `预计时长：${duration} 分钟`,
+      `依据：${basis}`,
+      '',
+      '输出要求：',
+      '- 开头写「开始活动：活动标题」。',
+      '- 直接说明这次要产出的东西、第一步怎么做、检查标准是什么。',
+      '- 不要只说让用户自己去看资料；要给可执行的步骤。',
+      '- 结尾请用户把本次产出或阻塞点发回来，方便继续推进。',
+    ].join('\n');
+  }
+  return [
+    `用户刚点击右栏“开始活动”。你现在要直接执行这次学习活动，不是重新制定计划。`,
+    `课程：${courseLabel}`,
+    `活动：${args.event.title}`,
+    `主题：${topic}`,
+    `日期：${args.event.date}`,
+    `预计时长：${duration} 分钟`,
+    `依据：${basis}`,
+    '',
+    '输出要求：',
+    `- 开头写「开始活动：${args.event.title}」。`,
+    '- 如果这是知识点复习或预习，先用简洁中文讲清这个知识点包含哪些核心概念、它解决什么问题、常见题型和易错点。',
+    '- 如果这是短练习/混合练习，先给 1 个很短的回顾，然后直接出练习。',
+    '- 后面附上 3 道短练习或自检题，题目要具体，其中至少 2 道必须给出明确函数、条件、代码片段、定义对象或可操作材料；不要创建题库刷题卡，也不要只说“去刷题”。',
+    '- 不要把主要动作写成“你去看笔记/教材”；可以引用资料，但必须把核心内容讲出来。',
+    '- 不要声称已经更新记忆、更新日历或生成正式题库练习。',
+    '- 结尾请学生先做第 1 题或把思路发来，你再根据结果判断掌握状态。',
+  ].join('\n');
+}
+
+function buildCalendarActivityExecutionFallback(args: {
+  event: SyllabusCalendarEvent;
+  course: CourseRecord | null;
+  isResearchCourse: boolean;
+}): string {
+  const topic = calendarActivityTopic(args.event);
+  const duration = args.event.durationMinutes || 45;
+  const basis = args.event.rawText ? `\n依据：${args.event.rawText}` : '';
+  if (args.isResearchCourse) {
+    return `开始活动：${args.event.title}\n\n这次先按 ${duration} 分钟推进。${basis}\n\n1. 先用 5 分钟明确本次要产出的结果。\n2. 用主要时间完成最小可交付版本。\n3. 最后写下一个结果、一个阻塞点和下一步。\n\n把你的产出或卡住的地方发我，我继续帮你往下推。`;
+  }
+  return `开始活动：${args.event.title}\n\n这次我们不重新规划，直接做 ${duration} 分钟的「${topic}」复习。${basis}\n\n先抓这个知识点的三件事：\n1. 它解决什么问题：把一个看起来抽象的量转成可以计算或判断的对象。\n2. 它靠什么定义/公式工作：先看核心定义，再看每个符号代表什么。\n3. 它怎么出题：常见题会让你解释意义、套定义、做一个小计算，或者判断某一步为什么成立。\n\n短练习：\n1. 用一句话解释「${topic}」到底在解决什么问题。\n2. 写出一个你觉得最典型的例子，并标出题目里哪个词提示你要用这个知识点。\n3. 做一个自检：如果题目换一种说法，你怎么判断它仍然属于「${topic}」？\n\n你先把第 1 题的回答发我，我会按你的回答判断下一步该讲概念还是给计算题。`;
+}
+
 function inferSyllabusEventKind(line: string): SyllabusEventKind {
   if (/midterm|final|exam|test|quiz|考试|期中|期末|测验/i.test(line)) return 'exam';
   if (/tutorial|two-stage|workshop|activity|discussion|辅导|习题课/i.test(line)) return 'tutorial';
@@ -3996,6 +4114,48 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
       title: payloadString(record.title) || '日历草稿',
       items,
       sourceArtifactId: payloadString(record.sourceArtifactId) || undefined,
+    };
+  }
+
+  if (kind === 'active_activity') {
+    const title = payloadString(record.title);
+    const date = payloadString(record.date);
+    if (!title || !date) return null;
+    const source = payloadString(record.source);
+    const eventKind = payloadString(record.eventKind);
+    const origin = payloadString(record.origin);
+    return {
+      kind,
+      id,
+      activityId: payloadString(record.activityId) || payloadString(record.sourceId) || id,
+      title,
+      date,
+      source: source === 'plan' || source === 'manual' ? source : 'calendar',
+      sourceId: payloadString(record.sourceId) || undefined,
+      courseId: payloadString(record.courseId) || undefined,
+      courseCode: payloadString(record.courseCode) || undefined,
+      courseName: payloadString(record.courseName) || undefined,
+      eventKind:
+        eventKind === 'assignment' ||
+        eventKind === 'exam' ||
+        eventKind === 'progress' ||
+        eventKind === 'tutorial' ||
+        eventKind === 'holiday' ||
+        eventKind === 'other'
+          ? eventKind
+          : undefined,
+      durationMinutes:
+        typeof record.durationMinutes === 'number' ? record.durationMinutes : undefined,
+      origin:
+        origin === 'syllabus' ||
+        origin === 'ai_plan' ||
+        origin === 'manual' ||
+        origin === 'practice' ||
+        origin === 'exam_prep'
+          ? origin
+          : undefined,
+      rawText: payloadString(record.rawText) || undefined,
+      startedAt: typeof record.startedAt === 'number' ? record.startedAt : undefined,
     };
   }
 
@@ -6185,6 +6345,7 @@ export function LearnPageClient() {
       dotClassName: syllabusEventTone(event.kind),
       actionLabel:
         event.origin === 'ai_plan' || event.kind === 'progress' ? '开始活动' : '查看日程',
+      event,
     }));
     const allActivities = [...planActivities, ...syllabusActivities];
     const upcoming = allActivities
@@ -7344,7 +7505,8 @@ export function LearnPageClient() {
   );
 
   const startStatusCalendarActivity = useCallback(
-    (activity: StatusCalendarActivity) => {
+    async (activity: StatusCalendarActivity) => {
+      if (sending) return;
       if (activity.source === 'plan') {
         router.push(`/practice/${encodeURIComponent(activity.sourceId)}`);
         return;
@@ -7359,21 +7521,145 @@ export function LearnPageClient() {
       setRightRailCollapsed(false);
       setRightRailView('calendar');
       setCalendarReferenceDate(new Date(`${event.date}T12:00:00`));
+      const activeArtifact = activeActivityArtifactFromEvent({
+        event,
+        course: activeCourse,
+      });
+      const messageId = makeClientId('assistant-calendar-activity-start');
+      const fallbackText = buildCalendarActivityExecutionFallback({
+        event,
+        course: activeCourse,
+        isResearchCourse,
+      });
+
+      if (!isExecutableStudyCalendarEvent(event) || !activeCourse) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: messageId,
+            role: 'assistant',
+            text: isExecutableStudyCalendarEvent(event)
+              ? fallbackText
+              : buildCalendarActivityStartText({
+                  event,
+                  course: activeCourse,
+                  isResearchCourse,
+                }),
+            createdAt: Date.now(),
+            artifacts: [activeArtifact],
+          },
+        ]);
+        return;
+      }
+
       setMessages((current) => [
         ...current,
         {
-          id: makeClientId('assistant-calendar-activity-start'),
+          id: messageId,
           role: 'assistant',
-          text: buildCalendarActivityStartText({
-            event,
-            course: activeCourse,
-            isResearchCourse,
-          }),
+          text: `开始活动：${event.title}\n\n我正在根据这门课的资料准备这次活动内容...`,
           createdAt: Date.now(),
+          artifacts: [activeArtifact],
         },
       ]);
+      setSending(true);
+
+      try {
+        const currentState = loadLearnerCourseState({
+          userId: userId || 'anonymous',
+          courseId: activeCourse.id,
+        });
+        const currentSnapshot =
+          snapshot ||
+          summarizeLearnerCourseState({
+            state: currentState,
+            notebooks,
+            problems,
+          });
+        const executionQuestion = buildCalendarActivityExecutionPrompt({
+          event,
+          course: activeCourse,
+          isResearchCourse,
+        });
+        const result = await askCourseOrchestrator({
+          courseId: activeCourse.id,
+          courseName: activeCourse.name,
+          question: executionQuestion,
+          orchestratorAvatarUrl: activeCourse.avatarUrl,
+          learnerContext: buildLearnerChatContext({
+            snapshot: currentSnapshot,
+            state: currentState,
+            plans: recentPlans,
+            syllabusEvents,
+          }),
+          userProfile: { nickname: userName },
+        });
+        const answer = latestAssistantText(result.messages) || result.answer || fallbackText;
+        const evidenceArtifact = answerEvidenceArtifactFromCourseContext({
+          courseContext: result.courseContext,
+          question: executionQuestion,
+        });
+        const lecturePrompt = buildMiniLecturePrompt({
+          question: `开始活动：${event.title}`,
+          answer,
+          course: activeCourse,
+        });
+        const artifacts: LearnArtifact[] = evidenceArtifact
+          ? [activeArtifact, evidenceArtifact]
+          : [activeArtifact];
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  text: answer,
+                  lecturePrompt,
+                  artifacts,
+                }
+              : message,
+          ),
+        );
+      } catch (activityError) {
+        console.warn(
+          '[learn] failed to execute calendar activity',
+          activityError instanceof Error ? activityError.message : activityError,
+        );
+        const lecturePrompt = activeCourse
+          ? buildMiniLecturePrompt({
+              question: `开始活动：${event.title}`,
+              answer: fallbackText,
+              course: activeCourse,
+            })
+          : undefined;
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  text: fallbackText,
+                  lecturePrompt,
+                  artifacts: [activeArtifact],
+                }
+              : message,
+          ),
+        );
+      } finally {
+        setSending(false);
+      }
     },
-    [activeCourse, isResearchCourse, router, syllabusEvents],
+    [
+      activeCourse,
+      isResearchCourse,
+      notebooks,
+      problems,
+      recentPlans,
+      router,
+      sending,
+      snapshot,
+      syllabusEvents,
+      userId,
+      userName,
+    ],
   );
 
   const handleSyllabusFile = useCallback(
@@ -7745,7 +8031,7 @@ export function LearnPageClient() {
             markLearningActionStatus(action.id, 'completed');
             return;
           }
-          startStatusCalendarActivity(activity);
+          await startStatusCalendarActivity(activity);
           markLearningActionStatus(action.id, 'completed');
           return;
         }
@@ -10377,7 +10663,9 @@ export function LearnPageClient() {
               <div className="flex items-start gap-2">
                 <button
                   type="button"
-                  onClick={() => startStatusCalendarActivity(activity)}
+                  onClick={() => {
+                    void startStatusCalendarActivity(activity);
+                  }}
                   className="-m-1 min-w-0 flex-1 rounded-[12px] p-1 text-left transition hover:bg-slate-50/80 focus-visible:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:focus-visible:ring-sky-300/20"
                   aria-label={`${activity.actionLabel ?? '打开'}：${activity.title}`}
                   title={activity.actionLabel ?? '打开'}

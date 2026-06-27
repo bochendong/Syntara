@@ -42,6 +42,7 @@ const artifactSchema = z
       'activity_plan',
       'review_plan',
       'calendar_draft',
+      'active_activity',
       'answer_evidence',
       'web_search_result',
       'image_prompt_draft',
@@ -86,10 +87,20 @@ const nullableStringSchema = (max: number) =>
   );
 
 const nullableNumberSchema = (fallback: number, min: number, max: number) =>
-  z.preprocess(
-    (value) => (value == null ? undefined : value),
-    z.number().min(min).max(max).optional().default(fallback),
-  );
+  z.preprocess((value) => {
+    if (value == null || value === '') return undefined;
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numeric) || numeric < min || numeric > max) return undefined;
+    return numeric;
+  }, z.number().min(min).max(max).optional().default(fallback));
+
+const nullableIntegerSchema = (fallback: number, min: number, max: number) =>
+  z.preprocess((value) => {
+    if (value == null || value === '') return undefined;
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numeric) || numeric < min || numeric > max) return undefined;
+    return Math.trunc(numeric);
+  }, z.number().int().min(min).max(max).optional().default(fallback));
 
 function normalizeScopeBasis(value: unknown) {
   if (typeof value !== 'string') return value;
@@ -131,14 +142,8 @@ const scopeResolutionSchema = z
     executionWindow: z
       .object({
         startDate: nullableStringSchema(32),
-        days: z.preprocess(
-          (value) => (value == null ? undefined : value),
-          z.number().int().min(1).max(60).optional().default(7),
-        ),
-        minutesPerDay: z.preprocess(
-          (value) => (value == null ? undefined : value),
-          z.number().int().min(5).max(600).optional().default(45),
-        ),
+        days: nullableIntegerSchema(7, 1, 60),
+        minutesPerDay: nullableIntegerSchema(45, 5, 600),
         rationale: nullableStringSchema(500),
       })
       .nullable()
@@ -268,7 +273,9 @@ function buildPrompt(input: z.infer<typeof learnTurnRequestSchema>) {
     '- Read-only direct calls: calendar.search, calendar.start_recent, memory.search, web.search.',
     '- State-changing or costly actions require proposals unless the latest message is clearly confirming a previously proposed action: calendar.propose_add/update/delete, memory.propose_write, practice.propose_generation, classroom.propose_temporary_explanation, image.propose_generation.',
     '- The AI never claims a write/generation happened. Only the executor can say that after success.',
-    '- If the learner asks to start/open/continue the nearest, recent, next, or today activity and recentActivities has items, use calendar.start_recent directCalls with payload.activityId. Do not create a new plan.',
+    '- If the learner asks only to start/open/continue the nearest, recent, next, or today activity and recentActivities has items, use calendar.start_recent directCalls with payload.activityId. Do not create a new plan.',
+    '- If the learner asks how to do, review, continue, prepare for, or connect "this activity", "the first one", "the current one", or a recently started activity to another course topic, resolve the reference before answering: prefer recentArtifacts.kind="active_activity", then the first item in the latest calendar_draft/activity_plan artifact, then recentActivities[0]. Use answerMode="action_only" with a concrete activity-specific replyText and no calendar.start_recent directCall. Include the resolved activity title, duration if available, syllabus/rawText basis if available, and a short timed sequence for this activity. Do not fall back to the learner snapshot current notebook or create a new plan.',
+    '- If the resolved activity is from an ai_plan/review calendar item, keep the answer anchored to that activity title and its syllabus/rawText evidence. The current date only determines doing the activity now; it must not replace the activity topic.',
     '- If the learner confirms a recent required action, return the same action in directCalls with confirmation="none".',
     '- If the learner asks to add the latest plan to calendar, use recentArtifacts calendar_draft/activity_plan calendarDraftItems or a recent calendar.propose_add action. Do not reconstruct from prose if artifacts exist.',
     '- Calendar delete/update must target explicit event ids when possible. If ambiguous, use calendar.search/open calendar rather than guessing.',
@@ -317,6 +324,12 @@ function buildPrompt(input: z.infer<typeof learnTurnRequestSchema>) {
 function normalizeLearnTurnResponse(
   parsed: z.infer<typeof learnTurnResponseSchema>,
 ): z.infer<typeof learnTurnResponseSchema> {
+  if (parsed.answerMode === 'action_only' && parsed.replyText.trim()) {
+    return {
+      ...parsed,
+      directCalls: parsed.directCalls.filter((action) => action.kind !== 'calendar.start_recent'),
+    };
+  }
   const planningIntent = parsed.planningDecision?.intent || 'none';
   if (
     (parsed.answerMode === 'client_activity_plan' ||

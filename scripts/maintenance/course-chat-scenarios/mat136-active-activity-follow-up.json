@@ -1,0 +1,54 @@
+{
+  "name": "mat136-active-activity-follow-up",
+  "initialCalendarEvents": [
+    {
+      "id": "fixture-ai-plan-approximating-areas",
+      "title": "知识点复习：Approximating Areas",
+      "kind": "progress",
+      "date": "2026-06-27",
+      "origin": "ai_plan",
+      "status": "planned",
+      "durationMinutes": 45,
+      "sourceName": "AI 学习动作",
+      "rawText": "依据 syllabus：2026-05-04 1.1 - Approximating Areas",
+      "sourceRef": {
+        "type": "plan",
+        "id": "fixture-first-half-plan"
+      }
+    }
+  ],
+  "initialArtifacts": [
+    {
+      "kind": "active_activity",
+      "id": "fixture-active-activity",
+      "activityId": "fixture-ai-plan-approximating-areas",
+      "title": "知识点复习：Approximating Areas",
+      "date": "2026-06-27",
+      "source": "calendar",
+      "sourceId": "fixture-ai-plan-approximating-areas",
+      "courseId": "mat136-local-fixture",
+      "courseCode": "MAT 136",
+      "courseName": "Calculus II",
+      "eventKind": "progress",
+      "durationMinutes": 45,
+      "origin": "ai_plan",
+      "rawText": "依据 syllabus：2026-05-04 1.1 - Approximating Areas",
+      "startedAt": 1782547200000
+    }
+  ],
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我准备开始第一个，你觉得我应该怎么复习"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看活动 follow-up 是否锚定 Approximating Areas",
+      "query": "active activity reply and artifacts"
+    },
+    {
+      "kind": "user",
+      "text": "那这个活动和我当前学到反常积分有什么关系？"
+    }
+  ]
+}
