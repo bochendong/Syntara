@@ -4656,6 +4656,118 @@ function LearnLearningActionCards({
   );
 }
 
+function buildSyllabusEventsByDay(
+  events: SyllabusCalendarEvent[],
+): Map<string, SyllabusCalendarEvent[]> {
+  const next = new Map<string, SyllabusCalendarEvent[]>();
+  for (const event of events) {
+    const items = next.get(event.date) || [];
+    items.push(event);
+    next.set(event.date, items);
+  }
+  return next;
+}
+
+function LearningCalendarGrid({
+  days,
+  plansByCalendarDay,
+  syllabusEventsByCalendarDay,
+  isResearchCourse,
+  maxVisibleItems = 3,
+  className,
+}: {
+  days: ReturnType<typeof buildLearningCalendarDays>;
+  plansByCalendarDay?: Map<string, PracticePlan[]>;
+  syllabusEventsByCalendarDay?: Map<string, SyllabusCalendarEvent[]>;
+  isResearchCourse: boolean;
+  maxVisibleItems?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', className)}>
+      <div className="grid shrink-0 grid-cols-7 border-y border-border/80 text-right">
+        {calendarWeekdays.map((day) => (
+          <div
+            key={day}
+            className="border-r border-border/70 px-3 py-2 text-sm font-semibold text-muted-foreground last:border-r-0"
+          >
+            周{day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 overflow-hidden">
+        {days.map((day) => {
+          const dayPlans = plansByCalendarDay?.get(day.key) || [];
+          const dayEvents = syllabusEventsByCalendarDay?.get(day.key) || [];
+          const items = [
+            ...dayPlans.map((plan) => ({
+              id: `plan-${plan.id}`,
+              title: plan.title,
+              meta: plan.mode === 'quiz' ? '小测' : '刷题',
+              dotClassName: 'bg-emerald-500',
+              pillClassName:
+                'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-100',
+            })),
+            ...dayEvents.map((event) => ({
+              id: `syllabus-${event.id}`,
+              title: event.title,
+              meta: scheduleEventLabel(event.kind, isResearchCourse),
+              dotClassName: syllabusEventTone(event.kind),
+              pillClassName: syllabusEventPillTone(event.kind),
+            })),
+          ];
+          const visibleItems = items.slice(0, maxVisibleItems);
+          const hiddenItemCount = items.length - visibleItems.length;
+
+          return (
+            <div
+              key={day.key}
+              className={cn(
+                'min-h-0 border-b border-r border-border/70 px-2 py-2 last:border-r-0',
+                !day.inMonth ? 'bg-muted/20' : 'bg-background',
+              )}
+            >
+              <div className="flex justify-end">
+                <span
+                  className={cn(
+                    'grid size-7 place-items-center rounded-full text-lg font-semibold leading-none',
+                    day.inMonth ? 'text-foreground' : 'text-muted-foreground/35',
+                    day.isToday ? 'bg-red-500 text-white' : null,
+                  )}
+                >
+                  {day.day}
+                </span>
+              </div>
+
+              <div className="mt-2 space-y-1 overflow-hidden">
+                {visibleItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      'flex h-5 min-w-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold leading-none',
+                      item.pillClassName,
+                    )}
+                    title={`${item.title}${item.meta ? ` · ${item.meta}` : ''}`}
+                  >
+                    <span className={cn('size-1.5 shrink-0 rounded-full', item.dotClassName)} />
+                    <span className="min-w-0 truncate">{item.title}</span>
+                  </div>
+                ))}
+                {hiddenItemCount > 0 ? (
+                  <p className="truncate px-2 text-[10px] font-medium text-muted-foreground">
+                    还有 {hiddenItemCount} 项
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function calendarDraftReferenceIds(artifacts?: LearnArtifact[]): Set<string> {
   const ids = new Set<string>();
   for (const artifact of artifacts || []) {
@@ -4684,6 +4796,134 @@ function matchingCalendarAddActionForDraft(
   );
 }
 
+function calendarDraftEvents(
+  draft: Extract<LearnArtifact, { kind: 'calendar_draft' }>,
+): SyllabusCalendarEvent[] {
+  return draft.items.map((item, index) => ({
+    id: item.id || `${draft.id}-item-${index}`,
+    title: item.title,
+    kind: 'progress',
+    date: item.date || localDayKey(addCalendarDays(new Date(), index)),
+    sourceName: draft.title || '日程规划草稿',
+    createdAt: Date.now(),
+    origin: 'ai_plan',
+    sourceRef: { type: 'plan', id: draft.sourceArtifactId || draft.id },
+    durationMinutes: item.durationMinutes,
+    status: 'planned',
+    rawText: item.reason || null,
+  }));
+}
+
+function calendarDraftInitialDate(draft: Extract<LearnArtifact, { kind: 'calendar_draft' }>) {
+  const firstDate = draft.items.map((item) => item.date).find(Boolean);
+  return new Date(`${firstDate || localDayKey(new Date())}T12:00:00`);
+}
+
+function CalendarDraftPreview({
+  draft,
+  addAction,
+  completed,
+  isResearchCourse,
+  onAddToCalendar,
+  onClose,
+}: {
+  draft: Extract<LearnArtifact, { kind: 'calendar_draft' }>;
+  addAction: LearningAction | null;
+  completed: boolean;
+  isResearchCourse: boolean;
+  onAddToCalendar?: (action: LearningAction) => void;
+  onClose: () => void;
+}) {
+  const [referenceDate, setReferenceDate] = useState(() => calendarDraftInitialDate(draft));
+  useEffect(() => {
+    setReferenceDate(calendarDraftInitialDate(draft));
+  }, [draft]);
+  const draftEvents = useMemo(() => calendarDraftEvents(draft), [draft]);
+  const calendarDays = useMemo(
+    () => buildLearningCalendarDays(referenceDate, [], draftEvents),
+    [draftEvents, referenceDate],
+  );
+  const eventsByDay = useMemo(() => buildSyllabusEventsByDay(draftEvents), [draftEvents]);
+  const firstDate = draftEvents[0]?.date;
+  const monthLabel = useMemo(() => formatCalendarMonth(referenceDate), [referenceDate]);
+
+  const showPreviousMonth = useCallback(() => {
+    setReferenceDate((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1));
+  }, []);
+  const showNextMonth = useCallback(() => {
+    setReferenceDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1));
+  }, []);
+  const showDraftStart = useCallback(() => {
+    setReferenceDate(calendarDraftInitialDate(draft));
+  }, [draft]);
+
+  return (
+    <>
+      <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-2xl font-semibold text-foreground">{monthLabel}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {draft.items.length} 个活动{firstDate ? ` · 从 ${firstDate} 开始` : ''}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={showDraftStart}
+              className="rounded-full bg-muted px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              首日
+            </button>
+            <button
+              type="button"
+              onClick={showPreviousMonth}
+              className="grid size-9 place-items-center rounded-full bg-muted text-muted-foreground transition hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="上一个月"
+              title="上一个月"
+            >
+              <ChevronLeft className="size-4" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              onClick={showNextMonth}
+              className="grid size-9 place-items-center rounded-full bg-muted text-muted-foreground transition hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="下一个月"
+              title="下一个月"
+            >
+              <ChevronRight className="size-4" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+        <LearningCalendarGrid
+          days={calendarDays}
+          syllabusEventsByCalendarDay={eventsByDay}
+          isResearchCourse={isResearchCourse}
+          maxVisibleItems={4}
+          className="h-[min(430px,52dvh)] rounded-[18px] border border-border/70"
+        />
+      </div>
+      <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
+        <Button type="button" variant="ghost" className="rounded-[10px]" onClick={onClose}>
+          关闭
+        </Button>
+        <Button
+          type="button"
+          disabled={!addAction || completed}
+          className="rounded-[10px] bg-[#103832] text-white hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+          onClick={() => {
+            if (!addAction || !onAddToCalendar) return;
+            onAddToCalendar(addAction);
+            onClose();
+          }}
+        >
+          {completed ? '已添加到日历' : '添加到日历'}
+        </Button>
+      </div>
+    </>
+  );
+}
+
 function visibleLearningActionsForArtifacts(
   actions?: LearningAction[],
   artifacts?: LearnArtifact[],
@@ -4702,10 +4942,12 @@ function visibleLearningActionsForArtifacts(
 function LearnArtifactCards({
   artifacts,
   actions,
+  isResearchCourse,
   onConfirmCalendarAction,
 }: {
   artifacts?: LearnArtifact[];
   actions?: LearningAction[];
+  isResearchCourse?: boolean;
   onConfirmCalendarAction?: (action: LearningAction) => void;
 }) {
   const [openCalendarDraftId, setOpenCalendarDraftId] = useState<string | null>(null);
@@ -4793,53 +5035,14 @@ function LearnArtifactCards({
                       只显示这一次生成的活动安排。添加后会进入当前课程的学习日历。
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                    <div className="space-y-2.5">
-                      {artifact.items.map((item, index) => (
-                        <div
-                          key={item.id || `${artifact.id}-dialog-${index}`}
-                          className="rounded-[14px] border border-border/70 bg-muted/25 px-3.5 py-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-medium text-foreground">{item.title}</p>
-                              {item.reason ? (
-                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                  {item.reason}
-                                </p>
-                              ) : null}
-                            </div>
-                            <div className="shrink-0 text-right text-xs text-muted-foreground">
-                              <p className="font-medium text-foreground">{item.date || '待定'}</p>
-                              {item.durationMinutes ? <p>{item.durationMinutes} 分钟</p> : null}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="rounded-[10px]"
-                      onClick={() => setOpenCalendarDraftId(null)}
-                    >
-                      关闭
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={!addAction || completed}
-                      className="rounded-[10px] bg-[#103832] text-white hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                      onClick={() => {
-                        if (!addAction || !onConfirmCalendarAction) return;
-                        onConfirmCalendarAction(addAction);
-                        setOpenCalendarDraftId(null);
-                      }}
-                    >
-                      {completed ? '已添加到日历' : '添加到日历'}
-                    </Button>
-                  </div>
+                  <CalendarDraftPreview
+                    draft={artifact}
+                    addAction={addAction}
+                    completed={completed}
+                    isResearchCourse={Boolean(isResearchCourse)}
+                    onAddToCalendar={onConfirmCalendarAction}
+                    onClose={() => setOpenCalendarDraftId(null)}
+                  />
                 </DialogContent>
               </Dialog>
             </div>
@@ -5483,13 +5686,7 @@ export function LearnPageClient() {
     return next;
   }, [recentPlans]);
   const syllabusEventsByCalendarDay = useMemo(() => {
-    const next = new Map<string, SyllabusCalendarEvent[]>();
-    for (const event of syllabusEvents) {
-      const items = next.get(event.date) || [];
-      items.push(event);
-      next.set(event.date, items);
-    }
-    return next;
+    return buildSyllabusEventsByDay(syllabusEvents);
   }, [syllabusEvents]);
   const upcomingSyllabusEvents = useMemo(() => {
     const today = localDayKey(calendarReferenceDate);
@@ -9801,86 +9998,12 @@ export function LearnPageClient() {
               </div>
             </div>
 
-            <div className="grid shrink-0 grid-cols-7 border-y border-border/80 text-right">
-              {calendarWeekdays.map((day) => (
-                <div
-                  key={day}
-                  className="border-r border-border/70 px-3 py-2 text-sm font-semibold text-muted-foreground last:border-r-0"
-                >
-                  周{day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 overflow-hidden">
-              {calendarDays.map((day) => {
-                const dayPlans = plansByCalendarDay.get(day.key) || [];
-                const dayEvents = syllabusEventsByCalendarDay.get(day.key) || [];
-                const items = [
-                  ...dayPlans.map((plan) => ({
-                    id: `plan-${plan.id}`,
-                    title: plan.title,
-                    meta: plan.mode === 'quiz' ? '小测' : '刷题',
-                    dotClassName: 'bg-emerald-500',
-                    pillClassName:
-                      'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-100',
-                  })),
-                  ...dayEvents.map((event) => ({
-                    id: `syllabus-${event.id}`,
-                    title: event.title,
-                    meta: scheduleEventLabel(event.kind, isResearchCourse),
-                    dotClassName: syllabusEventTone(event.kind),
-                    pillClassName: syllabusEventPillTone(event.kind),
-                  })),
-                ];
-                const visibleItems = items.slice(0, 3);
-                const hiddenItemCount = items.length - visibleItems.length;
-
-                return (
-                  <div
-                    key={day.key}
-                    className={cn(
-                      'min-h-0 border-b border-r border-border/70 px-2 py-2 last:border-r-0',
-                      !day.inMonth ? 'bg-muted/20' : 'bg-background',
-                    )}
-                  >
-                    <div className="flex justify-end">
-                      <span
-                        className={cn(
-                          'grid size-7 place-items-center rounded-full text-lg font-semibold leading-none',
-                          day.inMonth ? 'text-foreground' : 'text-muted-foreground/35',
-                          day.isToday ? 'bg-red-500 text-white' : null,
-                        )}
-                      >
-                        {day.day}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 space-y-1 overflow-hidden">
-                      {visibleItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            'flex h-5 min-w-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold leading-none',
-                            item.pillClassName,
-                          )}
-                        >
-                          <span
-                            className={cn('size-1.5 shrink-0 rounded-full', item.dotClassName)}
-                          />
-                          <span className="min-w-0 truncate">{item.title}</span>
-                        </div>
-                      ))}
-                      {hiddenItemCount > 0 ? (
-                        <p className="truncate px-2 text-[10px] font-medium text-muted-foreground">
-                          还有 {hiddenItemCount} 项
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <LearningCalendarGrid
+              days={calendarDays}
+              plansByCalendarDay={plansByCalendarDay}
+              syllabusEventsByCalendarDay={syllabusEventsByCalendarDay}
+              isResearchCourse={isResearchCourse}
+            />
           </div>
         </div>
       </DialogContent>
@@ -10546,6 +10669,7 @@ export function LearnPageClient() {
                               <LearnArtifactCards
                                 artifacts={message.artifacts}
                                 actions={message.learningActions}
+                                isResearchCourse={isResearchCourse}
                                 onConfirmCalendarAction={handleLearningActionConfirm}
                               />
                             ) : null}
