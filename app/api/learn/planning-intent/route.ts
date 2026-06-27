@@ -22,20 +22,34 @@ const planningIntentRequestSchema = z.object({
   courseCode: z.string().trim().max(80).optional(),
 });
 
+const scopeHintSchema = z.enum([
+  'first_half',
+  'second_half',
+  'next_two_weeks',
+  'upcoming',
+  'full_course',
+  'explicit_topic',
+]);
+
+function normalizeScopeHint(value: unknown) {
+  if (typeof value !== 'string') return value;
+  const normalized = value.toLowerCase().replace(/[\s-]+/g, '_');
+  if (scopeHintSchema.options.includes(normalized as (typeof scopeHintSchema.options)[number])) {
+    return normalized;
+  }
+  if (/first|front|前半/.test(normalized)) return 'first_half';
+  if (/second|back|后半/.test(normalized)) return 'second_half';
+  if (/two.*week|2.*week|两周|next_two/.test(normalized)) return 'next_two_weeks';
+  if (/upcoming|next|接下来|近期/.test(normalized)) return 'upcoming';
+  if (/full|whole|entire|整门|全/.test(normalized)) return 'full_course';
+  if (/topic|chapter|unit|concept|主题|章节|到_/.test(normalized)) return 'explicit_topic';
+  return null;
+}
+
 const planningIntentResponseSchema = z.object({
   intent: z.enum(['none', 'review_plan', 'preview_plan', 'practice_plan']),
   practiceMode: z.enum(['practice', 'quiz']).nullable().optional(),
-  scopeHint: z
-    .enum([
-      'first_half',
-      'second_half',
-      'next_two_weeks',
-      'upcoming',
-      'full_course',
-      'explicit_topic',
-    ])
-    .nullable()
-    .optional(),
+  scopeHint: z.preprocess(normalizeScopeHint, scopeHintSchema.nullable().optional()),
   isFollowUpToPlan: z.boolean().default(false),
   shouldAskProgressFirst: z.boolean().default(false),
   useSyllabusAsDefaultScope: z.boolean().default(false),
@@ -87,10 +101,10 @@ function buildPrompt(input: z.infer<typeof planningIntentRequestSchema>) {
     'Decision policy:',
     '- A review or preview plan may be requested without using the exact words "plan" or "review"; infer from intent.',
     '- If the latest message supplies missing planning details after the assistant asked for scope/time/progress, treat it as a follow-up to the earlier plan request and combine the old request with the new details in resolvedPrompt.',
-    '- If the student asks for a schedule-scoped review/preview plan and syllabus is available, set useSyllabusAsDefaultScope=true and shouldAskProgressFirst=false. The system should produce a default plan from today plus syllabus dates and let the student revise it.',
+    '- If the student asks for a schedule-scoped review/preview plan and syllabus is available, set useSyllabusAsDefaultScope=true and shouldAskProgressFirst=false when the requested content range can be grounded in the syllabus. Today may decide when study activities start; it must not rewrite content scopes like first half of term, before Test 2, or through a named topic into upcoming schedule.',
     '- If the student asks to choose practice problems, generate a quiz, or select from a problem bank, and progress is unknown, set shouldAskProgressFirst=true because choosing questions depends on learned scope.',
     '- If there is no planning intent, return intent="none".',
-    '- scopeHint captures the requested planning window semantically: first half of term, second half, next two weeks, upcoming schedule, whole course, or explicit topic-only scope.',
+    '- scopeHint captures the requested content scope semantically: first half of term, second half, next two weeks, upcoming schedule, whole course, or explicit topic-only scope.',
     '- focusTopics should include explicit student constraints such as "反常积分" when present.',
     '- constraintsSummary should summarize time/scope constraints in the student language, for example "覆盖到反常积分；每周 3-4 小时".',
     '',

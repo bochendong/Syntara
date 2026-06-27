@@ -1,0 +1,18 @@
+{
+  "name": "mat136-syllabus-first-half-scope",
+  "steps": [
+    {
+      "kind": "user",
+      "text": "帮我规划一下前半学期的复习"
+    },
+    {
+      "kind": "snapshot",
+      "label": "查看前半学期范围解析与计划草稿",
+      "query": "scopeResolution and activity plan artifacts"
+    },
+    {
+      "kind": "user",
+      "text": "你为什么把这些内容算作前半学期？不要把今天之后的 7 月进度当成前半学期。"
+    }
+  ]
+}

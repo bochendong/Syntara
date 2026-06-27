@@ -235,10 +235,32 @@ type LearningPlanningScopeHint =
   | 'full_course'
   | 'explicit_topic';
 
+type LearnScopeResolution = {
+  contentScope?: {
+    label?: string;
+    kind?: LearningPlanningScopeHint | null;
+    basis?: 'user_explicit' | 'calendar_semantic' | 'memory' | 'artifact' | 'fallback';
+    eventIds?: string[];
+    startDate?: string;
+    endDate?: string;
+    rationale?: string;
+    confidence?: number;
+  } | null;
+  executionWindow?: {
+    startDate?: string;
+    days?: number;
+    minutesPerDay?: number;
+    rationale?: string;
+  } | null;
+  needsClarification?: boolean;
+  clarificationQuestion?: string;
+} | null;
+
 type LearnPlanningIntentResponse = {
   intent: 'none' | 'review_plan' | 'preview_plan' | 'practice_plan';
   practiceMode?: PracticePlanMode | null;
   scopeHint?: LearningPlanningScopeHint | null;
+  scopeResolution?: LearnScopeResolution;
   isFollowUpToPlan?: boolean;
   shouldAskProgressFirst?: boolean;
   useSyllabusAsDefaultScope?: boolean;
@@ -252,6 +274,7 @@ type LearnPlanningIntentResponse = {
 type LearningPlanningDecision = {
   intent: PlanningIntent | null;
   scopeHint: LearningPlanningScopeHint | null;
+  scopeResolution: LearnScopeResolution;
   isFollowUpToPlan: boolean;
   shouldAskProgressFirst: boolean;
   useSyllabusAsDefaultScope: boolean;
@@ -288,6 +311,7 @@ type LearnTurnPlanningDecision = {
   intent: 'none' | 'review_plan' | 'preview_plan' | 'practice_plan';
   practiceMode?: PracticePlanMode | null;
   scopeHint?: LearningPlanningScopeHint | null;
+  scopeResolution?: LearnScopeResolution;
   isFollowUpToPlan?: boolean;
   shouldAskProgressFirst?: boolean;
   useSyllabusAsDefaultScope?: boolean;
@@ -2223,6 +2247,20 @@ function planningIntentFromAIResponse(
   return null;
 }
 
+function planningDecisionHasResolvedSyllabusScope(
+  scopeResolution: LearnScopeResolution | undefined,
+): boolean {
+  const contentScope = scopeResolution?.contentScope;
+  if (!contentScope) return false;
+  return Boolean(
+    contentScope.eventIds?.length ||
+    contentScope.startDate?.trim() ||
+    contentScope.endDate?.trim() ||
+    contentScope.kind ||
+    contentScope.label?.trim(),
+  );
+}
+
 function planningDecisionFromLearnTurn(
   response: LearnTurnResponse | null,
   fallbackQuestion: string,
@@ -2241,9 +2279,13 @@ function planningDecisionFromLearnTurn(
   return {
     intent,
     scopeHint: decision.scopeHint || null,
+    scopeResolution: decision.scopeResolution || null,
     isFollowUpToPlan: decision.isFollowUpToPlan === true,
     shouldAskProgressFirst: decision.shouldAskProgressFirst === true,
-    useSyllabusAsDefaultScope: decision.useSyllabusAsDefaultScope === true,
+    useSyllabusAsDefaultScope:
+      decision.useSyllabusAsDefaultScope === true ||
+      Boolean(decision.scopeHint) ||
+      planningDecisionHasResolvedSyllabusScope(decision.scopeResolution),
     resolvedPrompt: decision.resolvedPrompt?.trim() || fallbackQuestion,
     focusTopics: (decision.focusTopics || []).map((topic) => topic.trim()).filter(Boolean),
     constraintsSummary: decision.constraintsSummary?.trim() || '',
@@ -2293,9 +2335,13 @@ async function classifyLearningPlanningIntent(args: {
   return {
     intent,
     scopeHint: response.scopeHint || null,
+    scopeResolution: response.scopeResolution || null,
     isFollowUpToPlan: response.isFollowUpToPlan === true,
     shouldAskProgressFirst: response.shouldAskProgressFirst === true,
-    useSyllabusAsDefaultScope: response.useSyllabusAsDefaultScope === true,
+    useSyllabusAsDefaultScope:
+      response.useSyllabusAsDefaultScope === true ||
+      Boolean(response.scopeHint) ||
+      planningDecisionHasResolvedSyllabusScope(response.scopeResolution),
     resolvedPrompt: response.resolvedPrompt?.trim() || args.question,
     focusTopics: (response.focusTopics || []).map((topic) => topic.trim()).filter(Boolean),
     constraintsSummary: response.constraintsSummary?.trim() || '',
@@ -2334,9 +2380,10 @@ async function planLearnTurn(args: {
         hasSyllabus: syllabusPlanningEvents(args.calendarEvents).length > 0,
         progressKnown: Boolean(args.snapshot?.progressKnown),
         learnerSnapshot: args.snapshot,
-        calendarEvents: args.calendarEvents.slice(0, 80).map((event) => ({
+        calendarEvents: args.calendarEvents.slice(0, 160).map((event) => ({
           id: event.id,
           title: event.title,
+          rawText: event.rawText,
           kind: event.kind,
           date: event.date,
           sourceName: event.sourceName,
@@ -2499,6 +2546,7 @@ function syllabusTopicLabel(event: SyllabusCalendarEvent): string {
 function selectSyllabusPlanningWindow(args: {
   syllabusEvents: SyllabusCalendarEvent[];
   scopeHint?: LearningPlanningScopeHint | null;
+  scopeResolution?: LearnScopeResolution;
   focusTopics?: string[];
 }): SyllabusPlanningWindow | null {
   const events = syllabusPlanningEvents(args.syllabusEvents);
@@ -2507,40 +2555,72 @@ function selectSyllabusPlanningWindow(args: {
   const progressEvents = events.filter((event) => event.kind === 'progress');
   let selectedProgress = progressEvents;
   let label = 'syllabus 近期范围';
+  const contentScope = args.scopeResolution?.contentScope || null;
+  const resolvedKind = contentScope?.kind || null;
+  const effectiveScopeHint = resolvedKind || args.scopeHint || null;
+  let selectedFromResolution = false;
 
-  if (args.scopeHint === 'first_half' && progressEvents.length > 1) {
-    selectedProgress = progressEvents.slice(0, Math.ceil(progressEvents.length / 2));
-    label = '前半学期';
-  } else if (args.scopeHint === 'second_half' && progressEvents.length > 1) {
-    selectedProgress = progressEvents.slice(Math.floor(progressEvents.length / 2));
-    label = '后半学期';
-  } else if (args.scopeHint === 'next_two_weeks') {
-    const today = localDayKey(new Date());
-    const end = new Date(`${today}T12:00:00`);
-    end.setDate(end.getDate() + 14);
-    const endKey = localDayKey(end);
-    selectedProgress = progressEvents.filter(
-      (event) => event.date >= today && event.date <= endKey,
+  const resolvedEventIds = new Set(
+    (contentScope?.eventIds || []).map((id) => id.trim()).filter(Boolean),
+  );
+  if (resolvedEventIds.size > 0) {
+    const resolvedProgress = progressEvents.filter((event) => resolvedEventIds.has(event.id));
+    if (resolvedProgress.length > 0) {
+      selectedProgress = resolvedProgress;
+      label = contentScope?.label?.trim() || '指定 syllabus 范围';
+      selectedFromResolution = true;
+    }
+  }
+
+  if (!selectedFromResolution && (contentScope?.startDate || contentScope?.endDate)) {
+    const startDate = contentScope.startDate || progressEvents[0]?.date || events[0].date;
+    const endDate =
+      contentScope.endDate || progressEvents[progressEvents.length - 1]?.date || startDate;
+    const resolvedProgress = progressEvents.filter(
+      (event) => event.date >= startDate && event.date <= endDate,
     );
-    label = '接下来两周';
-  } else if (args.scopeHint === 'full_course') {
-    selectedProgress = progressEvents;
-    label = '整门课';
-  } else if (args.scopeHint === 'explicit_topic' && args.focusTopics?.length) {
-    const normalizedTopics = args.focusTopics
-      .map((topic) => topic.toLowerCase().trim())
-      .filter(Boolean);
-    const topicIndex = progressEvents.findIndex((event) => {
-      const haystack = [event.title, event.rawText || ''].join(' ').toLowerCase();
-      return normalizedTopics.some((topic) => haystack.includes(topic));
-    });
-    selectedProgress =
-      topicIndex >= 0 ? progressEvents.slice(0, topicIndex + 1) : progressEvents.slice(0, 4);
-    label = args.focusTopics[0] ? `到 ${args.focusTopics[0]}` : '指定主题范围';
-  } else {
-    const today = localDayKey(new Date());
-    selectedProgress = progressEvents.filter((event) => event.date >= today).slice(0, 4);
-    label = '接下来课程进度';
+    if (resolvedProgress.length > 0) {
+      selectedProgress = resolvedProgress;
+      label = contentScope?.label?.trim() || '指定 syllabus 范围';
+      selectedFromResolution = true;
+    }
+  }
+
+  if (!selectedFromResolution) {
+    if (effectiveScopeHint === 'first_half' && progressEvents.length > 1) {
+      selectedProgress = progressEvents.slice(0, Math.ceil(progressEvents.length / 2));
+      label = contentScope?.label?.trim() || '前半学期';
+    } else if (effectiveScopeHint === 'second_half' && progressEvents.length > 1) {
+      selectedProgress = progressEvents.slice(Math.floor(progressEvents.length / 2));
+      label = contentScope?.label?.trim() || '后半学期';
+    } else if (effectiveScopeHint === 'next_two_weeks') {
+      const today = localDayKey(new Date());
+      const end = new Date(`${today}T12:00:00`);
+      end.setDate(end.getDate() + 14);
+      const endKey = localDayKey(end);
+      selectedProgress = progressEvents.filter(
+        (event) => event.date >= today && event.date <= endKey,
+      );
+      label = contentScope?.label?.trim() || '接下来两周';
+    } else if (effectiveScopeHint === 'full_course') {
+      selectedProgress = progressEvents;
+      label = contentScope?.label?.trim() || '整门课';
+    } else if (effectiveScopeHint === 'explicit_topic' && args.focusTopics?.length) {
+      const normalizedTopics = args.focusTopics
+        .map((topic) => topic.toLowerCase().trim())
+        .filter(Boolean);
+      const topicIndex = progressEvents.findIndex((event) => {
+        const haystack = [event.title, event.rawText || ''].join(' ').toLowerCase();
+        return normalizedTopics.some((topic) => haystack.includes(topic));
+      });
+      selectedProgress =
+        topicIndex >= 0 ? progressEvents.slice(0, topicIndex + 1) : progressEvents.slice(0, 4);
+      label = args.focusTopics[0] ? `到 ${args.focusTopics[0]}` : '指定主题范围';
+    } else {
+      const today = localDayKey(new Date());
+      selectedProgress = progressEvents.filter((event) => event.date >= today).slice(0, 4);
+      label = '接下来课程进度';
+    }
   }
 
   const anchorEvents = selectedProgress.length ? selectedProgress : events.slice(0, 6);
@@ -2566,6 +2646,7 @@ function buildSyllabusPlanningFallbackAnswer(args: {
   syllabusEvents: SyllabusCalendarEvent[];
   intent: PlanningIntent;
   scopeHint?: LearningPlanningScopeHint | null;
+  scopeResolution?: LearnScopeResolution;
   focusTopics?: string[];
   constraintsSummary?: string;
 }): string | null {
@@ -2573,6 +2654,7 @@ function buildSyllabusPlanningFallbackAnswer(args: {
   const window = selectSyllabusPlanningWindow({
     syllabusEvents: args.syllabusEvents,
     scopeHint: args.scopeHint,
+    scopeResolution: args.scopeResolution,
     focusTopics: args.focusTopics,
   });
   if (!window) return null;
@@ -2596,14 +2678,19 @@ function buildSyllabusPlanningFallbackAnswer(args: {
   const constraintsLine = args.constraintsSummary
     ? `\n\n你补充的约束：${args.constraintsSummary}。我会按这个强度排，临近作业/测验时优先做题和错因整理。`
     : '';
-  const today = localDayKey(new Date());
-  const defaultPlanLine = `\n\n活动计划我先从今天 ${today} 开始排，默认 7 天、每天约 45 分钟；如果你要改成 3 天、14 天或每天 20 分钟，可以直接说，我会重排草稿。`;
+  const executionWindow = args.scopeResolution?.executionWindow || null;
+  const planStartDate = executionWindow?.startDate || localDayKey(new Date());
+  const planDays = executionWindow?.days || 7;
+  const planMinutes = executionWindow?.minutesPerDay || 45;
+  const defaultPlanLine = `\n\n活动计划从 ${planStartDate} 开始排，先做 ${planDays} 天、每天约 ${planMinutes} 分钟；如果你要改成 3 天、14 天或每天 20 分钟，可以直接说，我会重排草稿。`;
+  const scopeIntro = `可以。你已经导入 syllabus，所以我把这次的内容范围理解为「${window.label}」，不把它改成今天之后的课程；今天只决定活动从哪天开始执行。`;
+  const reviseLine = '如果真实进度或范围不同，你再改范围就行。';
 
   if (args.intent.kind === 'preview_plan') {
-    return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\nsyllabus 覆盖范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n先预习这些主题：${topicText}。\n\n活动安排会先以知识点预习为主，中间穿插短练习来检查理解；这不是题库刷题计划，只有你明确要题目时才会进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
+    return `${scopeIntro}${reviseLine}\n\n内容范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n先预习这些主题：${topicText}。\n\n活动安排会先以知识点预习为主，中间穿插短练习来检查理解；这不是题库刷题计划，只有你明确要题目时才会进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
   }
 
-  return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\nsyllabus 覆盖范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n复习重点先放在：${topicText}。\n\n活动安排会混合三类任务：知识点复习、短练习、错因整理。刷题只是计划里的活动之一，不会自动变成题库刷题卡；只有你明确说“出题 / 选题 / 刷题”时才进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
+  return `${scopeIntro}${reviseLine}\n\n内容范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n复习重点先放在：${topicText}。\n\n活动安排会混合三类任务：知识点复习、短练习、错因整理。刷题只是计划里的活动之一，不会自动变成题库刷题卡；只有你明确说“出题 / 选题 / 刷题”时才进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
 }
 
 function buildSyllabusPlanningArtifacts(args: {
@@ -2611,6 +2698,7 @@ function buildSyllabusPlanningArtifacts(args: {
   syllabusEvents: SyllabusCalendarEvent[];
   intent: PlanningIntent;
   scopeHint?: LearningPlanningScopeHint | null;
+  scopeResolution?: LearnScopeResolution;
   focusTopics?: string[];
   constraintsSummary?: string;
 }): LearnArtifact[] {
@@ -2618,6 +2706,7 @@ function buildSyllabusPlanningArtifacts(args: {
   const window = selectSyllabusPlanningWindow({
     syllabusEvents: args.syllabusEvents,
     scopeHint: args.scopeHint,
+    scopeResolution: args.scopeResolution,
     focusTopics: args.focusTopics,
   });
   if (!window) return [];
@@ -2630,18 +2719,21 @@ function buildSyllabusPlanningArtifacts(args: {
     }))
     .filter((item) => item.topic.trim())
     .slice(0, 8);
-  const today = new Date();
+  const executionWindow = args.scopeResolution?.executionWindow || null;
+  const startDate = executionWindow?.startDate || localDayKey(new Date());
+  const startDateValue = new Date(`${startDate}T12:00:00`);
+  const defaultDurationMinutes = executionWindow?.minutesPerDay || 45;
   const items: LearnCalendarDraftItem[] = [];
   const addItem = (
     dayOffset: number,
     title: string,
     sourceEvents: SyllabusCalendarEvent[],
-    durationMinutes = 45,
+    durationMinutes = defaultDurationMinutes,
   ) => {
     items.push({
       id: makeClientId('calendar-draft-item'),
       title,
-      date: localDayKey(addCalendarDays(today, dayOffset)),
+      date: localDayKey(addCalendarDays(startDateValue, dayOffset)),
       durationMinutes,
       courseId: args.course.id,
       reason: sourceEvents.length
@@ -2716,6 +2808,15 @@ function buildSyllabusPlanningArtifacts(args: {
         reason: item.reason,
       })),
       calendarDraftItems: items,
+      scope: {
+        label: window.label,
+        startDate: window.startDate,
+        endDate: window.endDate,
+        eventIds: window.progressEvents.map((event) => event.id),
+        rationale:
+          args.scopeResolution?.contentScope?.rationale ||
+          `依据 syllabus 中 ${window.startDate} 到 ${window.endDate} 的${window.label}内容。`,
+      },
     },
     {
       kind: 'calendar_draft',
@@ -3851,6 +3952,21 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
           )
           .slice(0, 12)
       : undefined;
+    const rawScope = payloadRecord(record.scope);
+    const scope = rawScope
+      ? {
+          label: payloadString(rawScope.label) || undefined,
+          startDate: payloadString(rawScope.startDate) || undefined,
+          endDate: payloadString(rawScope.endDate) || undefined,
+          eventIds: Array.isArray(rawScope.eventIds)
+            ? rawScope.eventIds
+                .map((item) => String(item))
+                .filter(Boolean)
+                .slice(0, 80)
+            : undefined,
+          rationale: payloadString(rawScope.rationale) || undefined,
+        }
+      : undefined;
     if (!tasks.length && !calendarDraftItems?.length) return null;
     return {
       kind,
@@ -3863,6 +3979,7 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
       tasks,
       calendarDraftItems,
       evidence,
+      scope,
     };
   }
 
@@ -8537,6 +8654,7 @@ export function LearnPageClient() {
                 syllabusEvents,
                 intent: planningIntent,
                 scopeHint: planningDecision.scopeHint,
+                scopeResolution: planningDecision.scopeResolution,
                 focusTopics: planningDecision.focusTopics,
                 constraintsSummary: planningDecision.constraintsSummary,
               })
@@ -8548,6 +8666,7 @@ export function LearnPageClient() {
                 syllabusEvents,
                 intent: planningIntent,
                 scopeHint: planningDecision.scopeHint,
+                scopeResolution: planningDecision.scopeResolution,
                 focusTopics: planningDecision.focusTopics,
                 constraintsSummary: planningDecision.constraintsSummary,
               })

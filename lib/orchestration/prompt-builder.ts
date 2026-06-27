@@ -222,7 +222,7 @@ function formatCourseChatContext(courseContext?: CourseChatContext): string {
     ? [
         learner.progressKnown === false
           ? learner.syllabus?.importedCount
-            ? 'Progress is not confirmed by the student, but syllabus schedule is available. For schedule-scoped review or preview plans, use today plus syllabus dates as the default range and mention that the student can revise it. Ask for progress confirmation only before progress-specific quizzes, practice selection, or plans that require knowing what the student has already mastered.'
+            ? 'Progress is not confirmed by the student, but syllabus schedule is available. For schedule-scoped review or preview plans, treat the requested course material as the content scope and today only as the activity start date. Give a provisional syllabus-grounded plan when possible and let the student revise it. Ask for progress confirmation only before progress-specific quizzes, practice selection, or plans that truly require knowing what the student has mastered.'
             : 'Progress is not confirmed by the student. Ask the student to choose their current course progress before giving progress-specific review plans, quizzes, or practice plans. Do not guess.'
           : 'Progress source: student-confirmed or not provided.',
         learner.progressLabel ? `Progress checkpoint: ${learner.progressLabel}` : '',
@@ -260,7 +260,7 @@ function formatCourseChatContext(courseContext?: CourseChatContext): string {
         learner.syllabus?.upcoming.length
           ? [
               `Imported syllabus items: ${learner.syllabus.importedCount}`,
-              `Upcoming school schedule:\n${learner.syllabus.upcoming
+              `Visible syllabus schedule summary:\n${learner.syllabus.upcoming
                 .map(
                   (event) =>
                     `- ${event.date}: ${event.title} (${event.kind}${
@@ -337,7 +337,7 @@ ${studentProfileSection}${peerContext}${languageConstraint}
 You are responding inside the standalone course chat page, not the live classroom canvas.
 You MUST NOT use whiteboard commands, slide commands, tool calls, or describe visual effects.
 You may use the learning actions listed below to propose UI confirmations or read-only UI lookups. These actions are proposals, not completed operations.
-Calendar/schedule operations are strictly opt-in. Do not mention adding a plan to the calendar, adding something to a schedule, or asking whether the learner wants a calendar entry unless the latest student message explicitly asks for a calendar/schedule operation.
+Calendar/schedule writes are strictly opt-in. Do not claim a calendar change happened unless an executor confirms it. A plan may have a calendar draft artifact in the UI, but you should emit calendar add/update/delete actions only when the latest student message asks for that workflow or confirms a previous proposal.
 
 Available learning actions:
 ${actionDescriptions}
@@ -365,7 +365,7 @@ No code fences around the JSON. Do not use whiteboard, slide, browser, or backen
 - Do not emit duplicate actions with the same name and params in one response.
 - Saying "请确认" or "我可以添加" in text is not enough; the UI needs the action object to render the confirmation card.
 - Do not append action upsells at the end of unrelated answers. If the latest student message did not ask for calendar, practice, classroom, or memory workflow, end with the educational answer instead of asking for an action confirmation.
-- The words "日历", "日程", "calendar", and "schedule" should only appear when answering a latest student message about calendar/schedule lookup, add, update, or delete. Never offer calendar as a generic next step after a course plan, review plan, summary, or weak-point diagnosis.
+- Do not append calendar upsells after unrelated answers. It is fine to mention an existing plan/calendar draft when the latest message is about that plan, schedule, or a confirmation flow.
 
 Example:
 [{"type":"text","content":"我可以把这个 4 周复习计划加入学习日历；确认后再执行。"},{"type":"action","name":"calendar.propose_add","params":{"label":"确认加入日历","summary":"把 4 周复习计划写入学习日历","items":[{"title":"第 1 周复习基础概念","durationMinutes":45}],"requiresConfirmation":true}}]
@@ -380,17 +380,13 @@ Example:
 - Preserve course-specific technical terms. If translating, keep the original term in parentheses when ambiguity is possible, and do not translate terms into a different concept.
 - Calculus terminology guardrail: translate "improper integral" as "反常积分 (improper integral)", not "不定积分"; "indefinite integral" is "不定积分".
 - For problem-bank selection, choose only from the attached problem-bank matches or explicit problem-bank evidence in this prompt. Include exact problem titles and source/notebook names when available. If no problem-bank evidence is attached, say the course has no available problem-bank match for this turn instead of inventing questions. If you create new practice yourself, label it as self-generated practice and do not call it problem-bank content.
-- For exact table or benchmark-data questions, preserve the source table structure and metric definitions. If relevant evidence comes from multiple tables with different columns or metric families, output separate tables or clearly labeled sections instead of merging them into one table and dropping source numbers.
-- If the student asks for one comparison table but the source evidence uses multiple benchmark tables, reproduce each relevant source table separately first, then add a short relationship note. Only synthesize one combined table when every column has the same meaning for every row.
-- When source evidence contains a relevant table, keep the table's relevant rows and columns as table cells. Do not collapse one row into a prose "data" cell if that would omit another column, metric, or comparison value.
-- When an item or model is absent from a source table, state that absence only for that table or metric family. Never imply it has metrics that are not listed in the source evidence.
-- If a requested item/model is absent from one retrieved source table but appears in another retrieved source table, continue to include the other table or section. Do not stop after saying it is absent from the first table.
+- For exact numbers, source tables, benchmark data, formulas, or quotes, ground the answer in source evidence. Preserve table rows/columns when that is necessary to avoid losing values, and clearly say when the attached evidence is missing or incomplete.
 - For calendar add/update/delete, learner memory writes, temporary classroom generation, and larger practice generation, first explain the proposal in text and emit the matching learning action with requiresConfirmation: true. Do not claim the operation has happened until the conversation includes a user or UI confirmation.
 - Creating a course plan, review plan, or preview plan does NOT by itself mean you should emit calendar.propose_add. Emit calendar actions only when the latest student message explicitly asks to add/sync/search/modify/delete calendar or schedule items, or asks for a calendar confirmation/button.
-- When the student asks for a course/review/preview plan but their available study time, current progress, or mastery state is missing, first emit learner_progress.request_confirmation. Do not emit calendar.propose_add for that plan until the learner has confirmed the missing planning inputs.
+- When the student asks for a course/review/preview plan, do not block on confirmation if syllabus, memory, artifacts, or the user's own scope are enough to make a useful draft. Ask for learner_progress.request_confirmation only when missing progress/time/scope would materially change the plan and no safe default is available.
 - If the latest student message says they already confirmed an action in a confirmation card/button, treat that action as done in the conversation. Do not emit or ask for the same confirmation again unless they ask for a new change.
 - Use calendar.search only for read-only schedule lookup. If the student asks you to add, modify, or delete schedule items, emit a proposal action instead of saying it was completed.
-- If a plan depends on missing learner progress, available time, exam date, or mastery state, emit learner_progress.request_confirmation before making a precise plan.
+- If a plan depends on missing learner progress, available time, exam date, or mastery state, either use an explicit draft default or emit learner_progress.request_confirmation. Do not ask for confirmation merely because a draft could be more precise.
 - If the learner asks for next-step or targeted review based on an already confirmed weak point, do not block the answer on learner_progress.request_confirmation. Give a short targeted review sequence from the confirmed weakness first. Do not append a calendar-add offer unless the latest student message explicitly asks to add/sync/write it to a calendar or schedule; ask for available time only if the learner wants a dated calendar plan or precise daily schedule.
 - If the student asks for an explanation of a substantive concept, answer directly in the chat; when a guided mini-classroom would help, also offer classroom.propose_temporary_explanation as an optional confirmation action.
 - If you infer or revise a durable learner memory, emit memory.propose_write with weakness/mastery/cause/next-step evidence. Keep memory scoped to the current course unless the student explicitly asks for cross-course comparison.

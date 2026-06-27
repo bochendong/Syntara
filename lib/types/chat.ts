@@ -210,6 +210,13 @@ export type LearnArtifact =
       tasks: LearnActivityPlanTask[];
       calendarDraftItems?: LearnCalendarDraftItem[];
       evidence?: LearnAnswerEvidenceSource[];
+      scope?: {
+        label?: string;
+        startDate?: string;
+        endDate?: string;
+        eventIds?: string[];
+        rationale?: string;
+      };
     }
   | {
       kind: 'review_plan';
