@@ -210,6 +210,14 @@ type ProgressProposal = {
   writeMode?: 'progress' | 'planning_scope';
 };
 
+type SyllabusPlanningWindow = {
+  events: SyllabusCalendarEvent[];
+  progressEvents: SyllabusCalendarEvent[];
+  startDate: string;
+  endDate: string;
+  label: string;
+};
+
 type LearnLayeredMemoryContextResponse = {
   knowledgeMatches?: Array<{ id: string }>;
 };
@@ -1898,6 +1906,49 @@ function needsProgressConfirmation(text: string): boolean {
   );
 }
 
+function isSyllabusDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function syllabusPlanningEvents(events: SyllabusCalendarEvent[]): SyllabusCalendarEvent[] {
+  return events
+    .filter((event) => event.title.trim() && isSyllabusDate(event.date) && event.kind !== 'holiday')
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+}
+
+function shiftDayKey(dayKey: string, days: number): string {
+  const date = new Date(`${dayKey}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return localDayKey(date);
+}
+
+function syllabusDeadlineEventIsNearWindow(
+  event: SyllabusCalendarEvent,
+  startDate: string,
+  endDate: string,
+): boolean {
+  if (event.kind !== 'assignment' && event.kind !== 'exam') return false;
+  return event.date >= shiftDayKey(startDate, -2) && event.date <= shiftDayKey(endDate, 7);
+}
+
+function canUseSyllabusForPlanningWithoutProgress(
+  intent: PlanningIntent | null,
+  syllabusEvents: SyllabusCalendarEvent[],
+): boolean {
+  if (!intent || intent.kind === 'practice_plan') return false;
+  return syllabusPlanningEvents(syllabusEvents).length > 0;
+}
+
+function shouldRequestProgressBeforePlanning(args: {
+  intent: PlanningIntent;
+  syllabusEvents: SyllabusCalendarEvent[];
+  detectedProposal?: ProgressProposal | null;
+}): boolean {
+  if (args.detectedProposal) return true;
+  return !canUseSyllabusForPlanningWithoutProgress(args.intent, args.syllabusEvents);
+}
+
 function progressSelectionFromSnapshot(snapshot: LearnerCourseSnapshot | null): string {
   if (!snapshot?.progressKnown) return '';
   if (snapshot.progressCheckpointKind === 'not_started') return PROGRESS_SELECTION_NOT_STARTED;
@@ -2042,6 +2093,106 @@ function pendingActionFromPlanningIntent(
     return { kind: 'preview_plan', prompt };
   }
   return { kind: 'review_plan', prompt };
+}
+
+function syllabusTopicLabel(event: SyllabusCalendarEvent): string {
+  const fromTitle = event.title
+    .replace(/\bcontinued\b/gi, '')
+    .replace(/^\s*(?:week\s*)?\d+(?:\.\d+)*\s*[-–—:]?\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (fromTitle && !/^(assignment|prep checks?|midterm|final|quiz|test|due)$/i.test(fromTitle)) {
+    return fromTitle;
+  }
+  return event.rawText?.replace(/\s+/g, ' ').trim().slice(0, 80) || event.title;
+}
+
+function selectSyllabusPlanningWindow(args: {
+  text: string;
+  syllabusEvents: SyllabusCalendarEvent[];
+}): SyllabusPlanningWindow | null {
+  const events = syllabusPlanningEvents(args.syllabusEvents);
+  if (!events.length) return null;
+
+  const normalized = args.text.toLowerCase();
+  const progressEvents = events.filter((event) => event.kind === 'progress');
+  let selectedProgress = progressEvents;
+  let label = 'syllabus 近期范围';
+
+  if (/前半|上半|first\s+half|first-half/i.test(normalized) && progressEvents.length > 1) {
+    selectedProgress = progressEvents.slice(0, Math.ceil(progressEvents.length / 2));
+    label = '前半学期';
+  } else if (
+    /后半|下半|second\s+half|last\s+half|后半学期|下半学期/i.test(normalized) &&
+    progressEvents.length > 1
+  ) {
+    selectedProgress = progressEvents.slice(Math.floor(progressEvents.length / 2));
+    label = '后半学期';
+  } else if (/两周|2\s*周|14\s*天|two\s+weeks/i.test(normalized)) {
+    const today = localDayKey(new Date());
+    const end = new Date(`${today}T12:00:00`);
+    end.setDate(end.getDate() + 14);
+    const endKey = localDayKey(end);
+    selectedProgress = progressEvents.filter(
+      (event) => event.date >= today && event.date <= endKey,
+    );
+    label = '接下来两周';
+  } else {
+    const today = localDayKey(new Date());
+    selectedProgress = progressEvents.filter((event) => event.date >= today).slice(0, 4);
+    label = '接下来课程进度';
+  }
+
+  const anchorEvents = selectedProgress.length ? selectedProgress : events.slice(0, 6);
+  const startDate = anchorEvents[0]?.date || events[0].date;
+  const endDate = anchorEvents[anchorEvents.length - 1]?.date || startDate;
+  const scopedEvents = events.filter(
+    (event) =>
+      (event.date >= startDate && event.date <= endDate) ||
+      syllabusDeadlineEventIsNearWindow(event, startDate, endDate),
+  );
+
+  return {
+    events: scopedEvents.length ? scopedEvents : anchorEvents,
+    progressEvents: anchorEvents,
+    startDate,
+    endDate,
+    label,
+  };
+}
+
+function buildSyllabusPlanningFallbackAnswer(args: {
+  text: string;
+  course: CourseRecord;
+  syllabusEvents: SyllabusCalendarEvent[];
+  intent: PlanningIntent;
+}): string | null {
+  if (args.intent.kind === 'practice_plan') return null;
+  const window = selectSyllabusPlanningWindow({
+    text: args.text,
+    syllabusEvents: args.syllabusEvents,
+  });
+  if (!window) return null;
+
+  const topics = window.progressEvents.map(syllabusTopicLabel).filter(Boolean).slice(0, 6);
+  const scheduleLines = window.events.slice(0, 6).map((event) => {
+    const kind =
+      event.kind === 'progress'
+        ? '进度'
+        : event.kind === 'assignment'
+          ? '作业'
+          : event.kind === 'exam'
+            ? '考试'
+            : '日程';
+    return `- ${event.date} ${kind}: ${event.title}`;
+  });
+  const topicText = topics.length ? topics.join('、') : args.course.courseCode || args.course.name;
+
+  if (args.intent.kind === 'preview_plan') {
+    return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\n默认范围：${window.startDate} 到 ${window.endDate}。\n\n先预习这些主题：${topicText}。\n\n建议这样做：\n1. 先按日期扫一遍 syllabus 主题，只标出看不懂的定义和例题。\n2. 每个主题用 15 分钟建立“定义 -> 一个例子 -> 一个待问问题”。\n3. 临近作业或考试的日期前，优先把对应主题改成练题。\n\n相关日程：\n${scheduleLines.join('\n')}`;
+  }
+
+  return `可以。你已经导入 syllabus，所以我先按今天和 syllabus 的「${window.label}」来排，不要求你先确认学习进度；如果真实进度不同，你再改范围就行。\n\n默认范围：${window.startDate} 到 ${window.endDate}。\n\n复习重点先放在：${topicText}。\n\n建议这样做：\n1. 第一轮先按 syllabus 顺序回看每个主题的定义、判别条件和典型例子。\n2. 第二轮只做短练习：每个主题选 1-2 道题，记录错因。\n3. 第三轮把错因整理成薄弱点，下次复习时按薄弱点而不是按章节平均分配。\n\n相关日程：\n${scheduleLines.join('\n')}`;
 }
 
 async function loadMemoryPreferredProblemIds(args: {
@@ -6155,6 +6306,7 @@ export function LearnPageClient() {
       targetCount?: number;
       stateOverride?: LearnerCourseState;
       snapshotOverride?: LearnerCourseSnapshot;
+      allowUnconfirmedSchedule?: boolean;
     }) => {
       if (!activeCourse) return null;
       const localUserId = userId || 'anonymous';
@@ -6173,7 +6325,12 @@ export function LearnPageClient() {
           notebooks,
           problems,
         });
-      if (!planSnapshot.progressKnown) return null;
+      if (
+        !planSnapshot.progressKnown &&
+        !(args.allowUnconfirmedSchedule && syllabusPlanningEvents(syllabusEvents).length > 0)
+      ) {
+        return null;
+      }
 
       try {
         const response = await requestTeachingReviewPlan({
@@ -6495,8 +6652,16 @@ export function LearnPageClient() {
         notebooks,
         snapshot: questionSnapshot,
       });
+      const useSyllabusPlanningDefault =
+        !hasAttachments &&
+        planningIntent &&
+        !shouldRequestProgressBeforePlanning({
+          intent: planningIntent,
+          syllabusEvents,
+          detectedProposal: progressProposal,
+        });
 
-      if (!hasAttachments && planningIntent) {
+      if (!hasAttachments && planningIntent && !useSyllabusPlanningDefault) {
         addProgressRequestMessage({
           snapshot: questionSnapshot,
           intent: planningIntent,
@@ -6505,6 +6670,46 @@ export function LearnPageClient() {
         });
         setSending(false);
         return;
+      }
+
+      if (useSyllabusPlanningDefault) {
+        if (planningIntent.kind === 'review_plan') {
+          const evidencePlan = await buildEvidenceBasedPlan({
+            mode: 'practice',
+            prompt: questionText,
+            stateOverride: questionState,
+            snapshotOverride: questionSnapshot,
+            allowUnconfirmedSchedule: true,
+          });
+          if (evidencePlan) {
+            addAssistantPlan(evidencePlan);
+            setSending(false);
+            return;
+          }
+        }
+        const syllabusAnswer = buildSyllabusPlanningFallbackAnswer({
+          text: questionText,
+          course: activeCourse,
+          syllabusEvents,
+          intent: planningIntent,
+        });
+        if (syllabusAnswer) {
+          setMessages((current) => [
+            ...current,
+            {
+              id: makeClientId(
+                planningIntent.kind === 'preview_plan'
+                  ? 'assistant-syllabus-preview-plan'
+                  : 'assistant-syllabus-review-plan',
+              ),
+              role: 'assistant',
+              text: syllabusAnswer,
+              createdAt: Date.now(),
+            },
+          ]);
+          setSending(false);
+          return;
+        }
       }
 
       if (!hasAttachments && progressProposal) {
@@ -6612,8 +6817,10 @@ export function LearnPageClient() {
     },
     [
       activeCourse,
+      addAssistantPlan,
       addProgressRequestMessage,
       attachments,
+      buildEvidenceBasedPlan,
       draft,
       notebooks,
       problems,

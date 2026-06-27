@@ -221,7 +221,9 @@ function formatCourseChatContext(courseContext?: CourseChatContext): string {
   const learnerLines = learner
     ? [
         learner.progressKnown === false
-          ? 'Progress is not confirmed by the student. Ask the student to choose their current course progress before giving progress-specific review plans, quizzes, or practice plans. Do not guess.'
+          ? learner.syllabus?.importedCount
+            ? 'Progress is not confirmed by the student, but syllabus schedule is available. For schedule-scoped review or preview plans, use today plus syllabus dates as the default range and mention that the student can revise it. Ask for progress confirmation only before progress-specific quizzes, practice selection, or plans that require knowing what the student has already mastered.'
+            : 'Progress is not confirmed by the student. Ask the student to choose their current course progress before giving progress-specific review plans, quizzes, or practice plans. Do not guess.'
           : 'Progress source: student-confirmed or not provided.',
         learner.progressLabel ? `Progress checkpoint: ${learner.progressLabel}` : '',
         `Progress: ${learner.progressPercent}%`,

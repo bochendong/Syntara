@@ -116,6 +116,111 @@ function evidenceId(prefix: string, id: string): string {
   return `${prefix}:${id}`;
 }
 
+function normalizedScheduleQuery(query: string): string {
+  return query.toLowerCase();
+}
+
+function isProgressLikeScheduleEvent(event: ReviewPlanScheduleEvent): boolean {
+  return event.kind === 'progress' || event.kind === 'tutorial';
+}
+
+function shiftDayKey(dayKey: string, days: number): string {
+  const date = new Date(`${dayKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return toDayKey(date);
+}
+
+function isNearbyDeadlineEvent(
+  event: ReviewPlanScheduleEvent,
+  startDate: string,
+  endDate: string,
+): boolean {
+  if (event.kind !== 'assignment' && event.kind !== 'exam') return false;
+  return event.date >= shiftDayKey(startDate, -2) && event.date <= shiftDayKey(endDate, 7);
+}
+
+function eventsForProgressWindow(
+  events: ReviewPlanScheduleEvent[],
+  startDate: string,
+  endDate: string,
+): ReviewPlanScheduleEvent[] {
+  return events.filter(
+    (event) =>
+      (event.date >= startDate && event.date <= endDate) ||
+      isNearbyDeadlineEvent(event, startDate, endDate),
+  );
+}
+
+function selectScheduleEventsForQuery(args: {
+  scheduleEvents: ReviewPlanScheduleEvent[];
+  today: string;
+  query: string;
+}): ReviewPlanScheduleEvent[] {
+  const events = args.scheduleEvents
+    .filter((event) => event.title.trim() && event.date.trim() && event.kind !== 'holiday')
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+  if (!events.length) return [];
+
+  const query = normalizedScheduleQuery(args.query);
+  const progressEvents = events.filter(isProgressLikeScheduleEvent);
+
+  if (/前半|上半|first\s+half|first-half/.test(query) && progressEvents.length > 1) {
+    const selectedProgress = progressEvents.slice(0, Math.ceil(progressEvents.length / 2));
+    const startDate = selectedProgress[0].date;
+    const endDate = selectedProgress[selectedProgress.length - 1].date;
+    return eventsForProgressWindow(events, startDate, endDate);
+  }
+
+  if (/后半|下半|second\s+half|last\s+half/.test(query) && progressEvents.length > 1) {
+    const selectedProgress = progressEvents.slice(Math.floor(progressEvents.length / 2));
+    const startDate = selectedProgress[0].date;
+    const endDate = selectedProgress[selectedProgress.length - 1].date;
+    return eventsForProgressWindow(events, startDate, endDate);
+  }
+
+  if (/两周|2\s*周|14\s*天|two\s+weeks/.test(query)) {
+    const end = new Date(`${args.today}T00:00:00.000Z`);
+    end.setUTCDate(end.getUTCDate() + 14);
+    const endDay = toDayKey(end);
+    return events.filter((event) => event.date >= args.today && event.date <= endDay);
+  }
+
+  const upcoming = events.filter((event) => daysBetween(args.today, event.date) >= -2);
+  return upcoming.length ? upcoming : events;
+}
+
+function scheduleConceptTags(event: ReviewPlanScheduleEvent): string[] {
+  if (!isProgressLikeScheduleEvent(event)) return [];
+  const raw = [event.title, event.notes].filter(Boolean).join('\n');
+  const cleaned = raw
+    .replace(/\bcontinued\b/gi, ' ')
+    .replace(/\b(reading|lecture|class|topic|section|week)\b/gi, ' ')
+    .replace(/^\s*(?:week\s*)?\d+(?:\.\d+)*\s*[-–—:]?\s*/gim, '')
+    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const candidates = cleaned
+    .split(/[;；,，、/]|(?:\s+-\s+)/)
+    .map((part) =>
+      compact(
+        part
+          .replace(/^\s*\d+(?:\.\d+)*\s*[-–—:]?\s*/i, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        80,
+      ),
+    )
+    .filter((part) => part.length >= 3 && !/^(continued|reading|lecture|class)$/i.test(part));
+  return Array.from(new Set(candidates)).slice(0, 4);
+}
+
+function shouldKeepPastScheduleEventsForQuery(query: string): boolean {
+  return /前半|上半|后半|下半|first\s+half|first-half|second\s+half|last\s+half|复习|review/.test(
+    normalizedScheduleQuery(query),
+  );
+}
+
 function problemContentExcerpt(problem: NotebookProblemSummary): string {
   const publicContent = problem.publicContent as Record<string, unknown>;
   const grading = problem.grading as Record<string, unknown>;
@@ -174,14 +279,20 @@ function conceptScoresToList(scores: Map<string, ConceptScore>, limit: number): 
 function scheduleEvidence(args: {
   scheduleEvents: ReviewPlanScheduleEvent[];
   today: string;
+  query: string;
 }): TeachingEvidence[] {
-  return args.scheduleEvents
+  const keepPastEvents = shouldKeepPastScheduleEventsForQuery(args.query);
+  return selectScheduleEventsForQuery({
+    scheduleEvents: args.scheduleEvents,
+    today: args.today,
+    query: args.query,
+  })
     .filter((event) => event.title.trim() && event.date.trim())
     .map((event) => ({
       event,
       daysUntil: daysBetween(args.today, event.date),
     }))
-    .filter(({ daysUntil }) => daysUntil >= -2)
+    .filter(({ daysUntil }) => keepPastEvents || daysUntil >= -2)
     .sort((a, b) => a.daysUntil - b.daysUntil)
     .slice(0, 8)
     .map(({ event, daysUntil }) => ({
@@ -199,6 +310,7 @@ function scheduleEvidence(args: {
           : `这个日程还有 ${daysUntil} 天，会影响复习节奏和优先级。`,
       confidence: 0.95,
       occurredAt: event.date,
+      conceptTags: scheduleConceptTags(event),
       metadata: {
         kind: event.kind || 'other',
         daysUntil,
@@ -560,7 +672,7 @@ function rationaleLines(args: {
   const topConcepts = args.concepts.slice(0, 3).map((item) => item.concept);
   if (topConcepts.length) {
     lines.push(
-      `复习目标优先放在 ${topConcepts.join('、')}，因为这些标签被记忆、错题或题库反复命中。`,
+      `复习目标优先放在 ${topConcepts.join('、')}，因为这些标签被 syllabus、记忆、错题或题库命中。`,
     );
   }
   if (attemptCount > 0) lines.push(`我参考了 ${attemptCount} 条最近作答/错题证据来排序薄弱点。`);
@@ -609,6 +721,7 @@ export async function generateEvidenceBasedReviewPlan(args: {
   const scheduleItems = scheduleEvidence({
     scheduleEvents: args.scheduleEvents || [],
     today,
+    query,
   });
   const memoryItems = memoryEvidenceFromContext(memoryContext);
   const problemItems = problemBankEvidence(problems);
