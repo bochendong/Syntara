@@ -1,0 +1,228 @@
+{
+  "name": "learn-initial-25",
+  "description": "Twenty-five realistic first-turn student entries for /learn visual and planner review. These cases are for manual quality review, not semantic assertions.",
+  "cases": [
+    {
+      "id": "mat136-syllabus-first-half-plan",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "帮我规划一下前半学期的复习",
+      "expect": ["activity_plan", "calendar_draft", "content_scope_not_upcoming", "no_progress_block"]
+    },
+    {
+      "id": "mat136-start-first-review",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "setup": {
+        "recentActivities": [
+          {
+            "id": "visual-ai-plan-definite",
+            "source": "syllabus",
+            "sourceId": "visual-ai-plan-definite",
+            "title": "知识点复习：01 - 定积分：从矩形到基本定理",
+            "date": "2026-06-27",
+            "meta": "进度 · AI 学习动作",
+            "event": {
+              "id": "visual-ai-plan-definite",
+              "title": "知识点复习：01 - 定积分：从矩形到基本定理",
+              "kind": "progress",
+              "date": "2026-06-27",
+              "origin": "ai_plan",
+              "durationMinutes": 45,
+              "sourceName": "AI 学习动作",
+              "rawText": "依据课程笔记：01 - 定积分：从矩形到基本定理"
+            }
+          }
+        ]
+      },
+      "input": "我要开始第一个复习了",
+      "expect": ["start_existing_activity", "history_first", "problem_bank_diagnostic", "no_new_plan"]
+    },
+    {
+      "id": "mat136-what-to-review",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "learnerSnapshot": {
+        "progressKnown": true,
+        "progressLabel": "正在学习《08 - 反常积分：从极限定义到比较判别》",
+        "weakConcepts": ["为什么 improper integral 要转成 limit"],
+        "nextConcepts": ["反常积分", "比较判别", "p-积分"],
+        "totalProblemCount": 227,
+        "attemptedProblemCount": 0
+      },
+      "input": "我要复习什么知识点",
+      "expect": ["knowledge_diagnosis", "uses_memory", "mentions_problem_bank", "no_calendar_plan"]
+    },
+    {
+      "id": "mat136-bare-problem-help",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "这个题咋做",
+      "expect": ["ask_for_problem_text_or_image", "no_hallucinated_problem"]
+    },
+    {
+      "id": "mat136-homework-check",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "帮我检查一下作业",
+      "expect": ["ask_for_homework_answer", "ask_for_rubric_when_grading"]
+    },
+    {
+      "id": "mat136-course-outline",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "给我一份课程提纲",
+      "expect": ["outline_from_notebooks", "syllabus_only_not_ai_plan"]
+    },
+    {
+      "id": "mat136-calendar-shift",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "setup": {
+        "calendarEvents": [
+          { "id": "plan-wed", "title": "知识点复习：换元法", "kind": "progress", "date": "2026-07-01", "origin": "ai_plan", "durationMinutes": 45 },
+          { "id": "plan-fri", "title": "短练习：换元法", "kind": "progress", "date": "2026-07-03", "origin": "ai_plan", "durationMinutes": 45 }
+        ]
+      },
+      "input": "我周三没学，顺延后面的安排",
+      "expect": ["calendar_update_proposal", "before_after_items", "requires_confirmation"]
+    },
+    {
+      "id": "mat136-delete-friday",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "setup": {
+        "calendarEvents": [
+          { "id": "plan-fri", "title": "短练习：换元法", "kind": "progress", "date": "2026-07-03", "origin": "ai_plan", "durationMinutes": 45 }
+        ]
+      },
+      "input": "删除周五的复习",
+      "expect": ["calendar_delete_proposal_or_picker", "no_ambiguous_delete"]
+    },
+    {
+      "id": "mat136-open-quiz",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "给我开一个小测",
+      "expect": ["practice_plan", "problem_bank_source", "may_request_progress_if_needed"]
+    },
+    {
+      "id": "mat136-weakness-write",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "我不懂 improper integral 为什么要转成 limit",
+      "expect": ["course_answer", "source_or_notebook_evidence", "memory_candidate_optional"]
+    },
+    {
+      "id": "mat136-memory-recall",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": true, "problemBankCount": 227, "uploadedSources": true, "memory": true },
+      "input": "你记得我哪里不会吗",
+      "expect": ["memory_search_or_status", "no_new_memory_write"]
+    },
+    {
+      "id": "mat136-source-table",
+      "course": { "id": "cmpanemia001v8ouzmhttvkrn", "name": "Calculus II", "code": "MAT 136" },
+      "resources": { "syllabus": false, "problemBankCount": 0, "uploadedSources": true, "memory": false },
+      "sourceUploads": [
+        { "id": "sketchmol-paper", "title": "Bochen Paper 2 Molecule Image MolecularGeneration", "kind": "pdf", "topic": "SketchMol benchmark tables", "ragEntryIds": ["sketchmol-table"] }
+      ],
+      "input": "SketchMol vs DIFFUMOL vs DiGress vs DRAGONFLY 的带数据版表格是什么？数字要对。",
+      "expect": ["uploaded_source_lookup", "table_numbers_with_evidence", "no_memory_only_answer"]
+    },
+    {
+      "id": "mat102-induction-why",
+      "course": { "id": "mat102-local-fixture", "name": "Introduction to Mathematical Proofs", "code": "MAT 102" },
+      "resources": { "syllabus": false, "problemBankCount": 80, "uploadedSources": true, "memory": true },
+      "input": "数学归纳法为什么不是循环论证？",
+      "expect": ["course_answer", "notebook_evidence", "classroom_optional"]
+    },
+    {
+      "id": "mat102-memory-correction",
+      "course": { "id": "mat102-local-fixture", "name": "Introduction to Mathematical Proofs", "code": "MAT 102" },
+      "resources": { "syllabus": false, "problemBankCount": 80, "uploadedSources": true, "memory": true },
+      "input": "你刚才说我不会 induction，但其实我会 basic induction，只是不熟 strong induction。",
+      "expect": ["memory_correction_proposal", "does_not_overwrite_without_confirmation"]
+    },
+    {
+      "id": "mat102-no-syllabus-route",
+      "course": { "id": "mat102-local-fixture", "name": "Introduction to Mathematical Proofs", "code": "MAT 102" },
+      "resources": { "syllabus": false, "problemBankCount": 80, "uploadedSources": true, "memory": true },
+      "input": "没有 syllabus 的情况下，帮我从 induction 到 relations 做一条复习路线。",
+      "expect": ["notebook_based_plan", "clear_no_syllabus_basis", "calendar_draft_optional"]
+    },
+    {
+      "id": "cpsc107-no-bank-practice",
+      "course": { "id": "cpsc107-local-fixture", "name": "CPSC 107", "code": "CPSC 107" },
+      "resources": { "syllabus": false, "problemBankCount": 0, "uploadedSources": true, "memory": true },
+      "input": "我要练 HtDF，但这门课没题库怎么办？不要假装有题库。",
+      "expect": ["explicit_no_problem_bank", "offer_notebook_or_temp_exercise", "confirmation_for_generated_practice"]
+    },
+    {
+      "id": "cpsc107-concept-review-no-practice",
+      "course": { "id": "cpsc107-local-fixture", "name": "CPSC 107", "code": "CPSC 107" },
+      "resources": { "syllabus": false, "problemBankCount": 0, "uploadedSources": true, "memory": true },
+      "input": "帮我复习 one-of data definition，先不要出题。",
+      "expect": ["concept_review", "no_practice_plan", "may_offer_classroom"]
+    },
+    {
+      "id": "cpsc107-bare-code-debug",
+      "course": { "id": "cpsc107-local-fixture", "name": "CPSC 107", "code": "CPSC 107" },
+      "resources": { "syllabus": false, "problemBankCount": 0, "uploadedSources": true, "memory": true },
+      "input": "这个 Racket 函数哪里错了？",
+      "expect": ["ask_for_code", "no_fake_debugging"]
+    },
+    {
+      "id": "csc108-cross-course-isolation",
+      "course": { "id": "csc108-local-fixture", "name": "Introduction to Computer Programming", "code": "CSC 108" },
+      "resources": { "syllabus": false, "problemBankCount": 120, "uploadedSources": true, "memory": true },
+      "input": "我在 CSC108 的 Python edge case 问题，会不会影响 CSC148 的薄弱点判断？",
+      "expect": ["cross_course_isolation", "no_automatic_transfer"]
+    },
+    {
+      "id": "csc108-bare-code-output",
+      "course": { "id": "csc108-local-fixture", "name": "Introduction to Computer Programming", "code": "CSC 108" },
+      "resources": { "syllabus": false, "problemBankCount": 120, "uploadedSources": true, "memory": true },
+      "input": "这段代码为什么输出 None？",
+      "expect": ["ask_for_code", "no_hallucinated_code"]
+    },
+    {
+      "id": "csc108-assignment-check",
+      "course": { "id": "csc108-local-fixture", "name": "Introduction to Computer Programming", "code": "CSC 108" },
+      "resources": { "syllabus": false, "problemBankCount": 120, "uploadedSources": true, "memory": true },
+      "input": "帮我检查 assignment 2 的答案。",
+      "expect": ["ask_for_assignment_and_answer", "rubric_optional"]
+    },
+    {
+      "id": "csc148-recent-summary",
+      "course": { "id": "csc148-local-fixture", "name": "Introduction to Computer Science", "code": "CSC 148" },
+      "resources": { "syllabus": false, "problemBankCount": 160, "uploadedSources": true, "memory": true },
+      "input": "总结一下我最近在 CSC148 问过什么，主要卡在哪。",
+      "expect": ["memory_search", "course_scoped_summary", "no_csc108_leak"]
+    },
+    {
+      "id": "csc148-bst-diagnostic",
+      "course": { "id": "csc148-local-fixture", "name": "Introduction to Computer Science", "code": "CSC 148" },
+      "resources": { "syllabus": false, "problemBankCount": 160, "uploadedSources": true, "memory": true },
+      "input": "我要复习 BST insert，先测一下。",
+      "expect": ["practice_plan", "problem_bank_source", "topic_bst_insert"]
+    },
+    {
+      "id": "csc148-mastery-protection",
+      "course": { "id": "csc148-local-fixture", "name": "Introduction to Computer Science", "code": "CSC 148" },
+      "resources": { "syllabus": false, "problemBankCount": 160, "uploadedSources": true, "memory": true },
+      "input": "我已经会 basic recursion 了，不要再从 base case 开始讲 tree recursion。",
+      "expect": ["mastery_signal", "skip_low_level_explanation", "memory_candidate_optional"]
+    },
+    {
+      "id": "molecule-design-source-qa",
+      "course": { "id": "molecule-design-local-fixture", "name": "Molecule Design", "code": "Research" },
+      "resources": { "syllabus": false, "problemBankCount": 0, "uploadedSources": true, "memory": true },
+      "sourceUploads": [
+        { "id": "sketchmol-paper", "title": "Bochen Paper 2 Molecule Image MolecularGeneration", "kind": "pdf", "topic": "molecule generation benchmarks", "ragEntryIds": ["sketchmol-table"] }
+      ],
+      "input": "这篇 SketchMol 论文里，哪个表能证明它比 DIFFUMOL、DiGress、DRAGONFLY 好？要列数字和页码。",
+      "expect": ["uploaded_source_lookup", "benchmark_table", "page_or_chunk_evidence", "no_unsourced_claim"]
+    }
+  ]
+}
