@@ -1,5 +1,9 @@
 {
   "name": "csc148-similar-summary-mastery",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
@@ -15,7 +19,12 @@
     },
     {
       "kind": "user",
-      "text": "你觉得我这些问题背后统一不会的点是什么？请归纳，不要把三个问题分开讲。这个统一薄弱点如果适合，请先给确认按钮写入本门课记忆。"
+      "text": "你觉得我这些问题背后统一不会的点是什么？请归纳，不要把三个问题分开讲。这个统一薄弱点如果适合，请先给确认按钮写入本门课记忆。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["memory.propose_write"],
+        "traceToolsInclude": ["propose_memory_write"]
+      }
     },
     {
       "kind": "ui",
@@ -36,7 +45,12 @@
     },
     {
       "kind": "user",
-      "text": "总结一下我最近在 CSC148 问过什么，这些问题说明我主要卡在哪些概念？按优先级列出接下来该补的 3 个点。"
+      "text": "总结一下我最近在 CSC148 问过什么，这些问题说明我主要卡在哪些概念？按优先级列出接下来该补的 3 个点。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["search_memory"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     }
   ]
 }

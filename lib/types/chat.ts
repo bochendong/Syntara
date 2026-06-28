@@ -136,6 +136,22 @@ export type LearningActionStatus = 'proposed' | 'confirmed' | 'cancelled' | 'com
 
 export type LearningActionConfirmation = 'none' | 'optional' | 'required';
 
+export interface LearningActionExecutionResult {
+  status: LearningActionStatus;
+  executor: 'learn-client' | 'server' | 'simulator';
+  executedAt: number;
+  summary: string;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  error?: string;
+  trace?: {
+    actionId: string;
+    actionKind: LearningActionKind;
+    courseId?: string;
+    conversationId?: string;
+  };
+}
+
 export interface LearningActionEvidence {
   sourceType:
     | 'notebook'
@@ -159,7 +175,7 @@ export interface LearningAction {
   status?: LearningActionStatus;
   confirmation?: LearningActionConfirmation;
   payload?: Record<string, unknown>;
-  result?: unknown;
+  result?: LearningActionExecutionResult;
   evidence?: LearningActionEvidence[];
 }
 
@@ -611,6 +627,25 @@ export interface CourseChatLayeredMemoryContext {
   }>;
 }
 
+export interface CourseChatAnswererHandoffEvidence {
+  sourceType: string;
+  sourceId?: string;
+  title?: string;
+  quoteOrSummary: string;
+  supports: string;
+  confidence?: number;
+}
+
+export interface CourseChatAnswererHandoff {
+  runId: string;
+  intent: string;
+  reasonSummary: string;
+  evidence: CourseChatAnswererHandoffEvidence[];
+  requiredBehavior: string[];
+  forbiddenBehavior: string[];
+  missingEvidence: string[];
+}
+
 export interface CourseChatContext {
   course: {
     id: string;
@@ -674,6 +709,7 @@ export interface CourseChatContext {
   };
   notebooks: CourseChatContextNotebook[];
   layeredMemory?: CourseChatLayeredMemoryContext;
+  answererHandoff?: CourseChatAnswererHandoff;
 }
 
 /**

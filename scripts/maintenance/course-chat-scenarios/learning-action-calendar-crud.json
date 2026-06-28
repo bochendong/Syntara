@@ -1,13 +1,27 @@
 {
   "name": "learning-action-calendar-crud",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "帮我查找这门课未来 7 天的学习日程。这个是只读操作，不需要确认。"
+      "text": "帮我查找这门课未来 7 天的学习日程。这个是只读操作，不需要确认。",
+      "expect": {
+        "answerMode": "action_only",
+        "directCallsInclude": ["calendar.search"],
+        "traceToolsInclude": ["search_schedule"]
+      }
     },
     {
       "kind": "user",
-      "text": "我今天只有 20 分钟，把原计划压缩一下；如果要改日历，请先让我确认。"
+      "text": "我今天只有 20 分钟，把原计划压缩一下；如果要改日历，请先让我确认。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["calendar.propose_update"],
+        "traceToolsInclude": ["propose_calendar_change"]
+      }
     },
     {
       "kind": "ui",
@@ -24,7 +38,12 @@
     },
     {
       "kind": "user",
-      "text": "把后天那条重复的复习事项删掉；同样不要直接删，先给确认。"
+      "text": "把后天那条重复的复习事项删掉；同样不要直接删，先给确认。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["calendar.propose_delete"],
+        "traceToolsInclude": ["propose_calendar_change"]
+      }
     },
     {
       "kind": "ui",

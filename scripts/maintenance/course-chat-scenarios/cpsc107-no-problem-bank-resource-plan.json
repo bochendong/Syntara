@@ -1,5 +1,9 @@
 {
   "name": "cpsc107-no-problem-bank-resource-plan",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
@@ -7,7 +11,14 @@
     },
     {
       "kind": "user",
-      "text": "这门课其他笔记里有没有讲过类似问题？把相关页面列出来，告诉我该先看哪一个；如果没有，明确说没有。"
+      "text": "这门课其他笔记里有没有讲过类似问题？把相关页面列出来，告诉我该先看哪一个；如果没有，明确说没有。",
+      "expect": {
+        "answerMode": "course_answer",
+        "directCallsExclude": ["web.search"],
+        "traceToolsInclude": ["search_course_materials"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "user",
@@ -23,11 +34,24 @@
     },
     {
       "kind": "user",
-      "text": "根据这个薄弱点，给我安排 20 分钟复习。现在我该看笔记、做自拟练习，还是让你讲一遍？"
+      "text": "根据这个薄弱点，给我安排 20 分钟复习。现在我该看笔记、做自拟练习，还是让你讲一遍？",
+      "expect": {
+        "answerMode": "course_answer",
+        "directCallsExclude": ["web.search"],
+        "traceToolsInclude": ["search_memory"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "user",
-      "text": "如果之后我要做练习，但这门课没有题库，你应该怎么处理才不会假装有题库？"
+      "text": "如果之后我要做练习，但这门课没有题库，你应该怎么处理才不会假装有题库？",
+      "expect": {
+        "answerMode": "action_only",
+        "replyIncludes": ["不能假装"],
+        "traceStepsInclude": ["validate_decision"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     }
   ]
 }

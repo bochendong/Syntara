@@ -1,9 +1,18 @@
 {
   "name": "mat136-plan-weakness-calendar",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "我这门 MAT136 还有 4 周考试，帮我排一个课程计划。要按课程内容倒推，不要平均摊。"
+      "text": "我这门 MAT136 还有 4 周考试，帮我排一个课程计划。要按课程内容倒推，不要平均摊。",
+      "expect": {
+        "answerMode": "client_activity_plan",
+        "traceToolsInclude": ["plan_review"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "ui",
@@ -20,11 +29,24 @@
       "actionId": "calendar.propose_add",
       "note": "模拟用户确认课程计划并加入日历。",
       "event": "confirmed",
-      "sendText": "我点击了「加入日历」，请把刚才的 MAT136 课程计划当作已加入日历，然后告诉我这周每天该做什么。"
+      "sendText": "我点击了「加入日历」，请把刚才的 MAT136 课程计划当作已加入日历，然后告诉我这周每天该做什么。",
+      "expect": {
+        "answerMode": "course_answer",
+        "proposalsExclude": ["calendar.propose_add"],
+        "traceStepsInclude": ["observe_executor_result", "validate_decision", "handoff"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "user",
-      "text": "如果我周三没学，后面怎么顺延？今天只有 20 分钟，原计划如果太满要怎么调整？需要改日历的话先给确认。"
+      "text": "如果我周三没学，后面怎么顺延？今天只有 20 分钟，原计划如果太满要怎么调整？需要改日历的话先给确认。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["calendar.propose_update"],
+        "traceToolsInclude": ["propose_calendar_change"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "ui",
@@ -42,15 +64,34 @@
     },
     {
       "kind": "user",
-      "text": "我不懂 improper integral 为什么要转成 limit。"
+      "text": "我不懂 improper integral 为什么要转成 limit。",
+      "expect": {
+        "answerMode": "course_answer",
+        "directCallsExclude": ["web.search"],
+        "traceToolsInclude": ["answer_course_question"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "user",
-      "text": "你记得我刚才哪里不会吗？请不要只复述原句，要说你判断的薄弱点。"
+      "text": "你记得我刚才哪里不会吗？请不要只复述原句，要说你判断的薄弱点。",
+      "expect": {
+        "answerMode": "course_answer",
+        "proposalsExclude": ["memory.propose_write"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "user",
-      "text": "根据这个薄弱点，优先从题库里给我 3 道针对练习；如果题库摘要不够判断难度或题干，请明确说缺什么。生成或选择前先给确认按钮。"
+      "text": "根据这个薄弱点，优先从题库里给我 3 道针对练习；如果题库摘要不够判断难度或题干，请明确说缺什么。生成或选择前先给确认按钮。",
+      "expect": {
+        "answerMode": "action_only",
+        "replyIncludes": ["没有可用题库"],
+        "traceStepsInclude": ["validate_decision"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
     },
     {
       "kind": "ui",

@@ -1,0 +1,29 @@
+{
+  "name": "missing-materials-routing",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
+  "steps": [
+    {
+      "kind": "user",
+      "text": "这个题咋做？",
+      "expect": {
+        "answerMode": "action_only",
+        "replyIncludes": ["题干"],
+        "traceStepsInclude": ["validate_decision"],
+        "directCallsExclude": ["web.search"]
+      }
+    },
+    {
+      "kind": "user",
+      "text": "帮我检查一下作业。",
+      "expect": {
+        "answerMode": "action_only",
+        "replyIncludes": ["作业材料"],
+        "traceStepsInclude": ["validate_decision"],
+        "directCallsExclude": ["web.search"]
+      }
+    }
+  ]
+}

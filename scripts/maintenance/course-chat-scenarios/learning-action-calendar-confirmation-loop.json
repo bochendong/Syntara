@@ -1,9 +1,17 @@
 {
   "name": "learning-action-calendar-confirmation-loop",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "这门课还有 4 周考试。请帮我排一个课程计划；如果你觉得应该加入日历，请先给我确认按钮，不要直接说已经添加。"
+      "text": "这门课还有 4 周考试。请帮我排一个课程计划；如果你觉得应该加入日历，请先给我确认按钮，不要直接说已经添加。",
+      "expect": {
+        "answerMode": "client_activity_plan",
+        "traceToolsInclude": ["plan_review"]
+      }
     },
     {
       "kind": "ui",
@@ -38,7 +46,12 @@
     },
     {
       "kind": "user",
-      "text": "查一下这周我每天应该先做什么。"
+      "text": "查一下这周我每天应该先做什么。",
+      "expect": {
+        "answerMode": "action_only",
+        "directCallsInclude": ["calendar.search"],
+        "traceToolsInclude": ["search_schedule"]
+      }
     },
     {
       "kind": "snapshot",
@@ -47,7 +60,12 @@
     },
     {
       "kind": "user",
-      "text": "如果我周三没学，后面怎么顺延？也请先给我一个修改确认，不要直接改日历。"
+      "text": "如果我周三没学，后面怎么顺延？也请先给我一个修改确认，不要直接改日历。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["calendar.propose_update"],
+        "traceToolsInclude": ["propose_calendar_change"]
+      }
     },
     {
       "kind": "ui",

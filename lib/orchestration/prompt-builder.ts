@@ -166,6 +166,43 @@ function formatLayeredMemoryContext(courseContext: CourseChatContext): string {
     .join('\n');
 }
 
+function formatAnswererHandoff(courseContext: CourseChatContext): string {
+  const handoff = courseContext.answererHandoff;
+  if (!handoff) return 'No learn-core answerer handoff was attached for this turn.';
+
+  const evidenceLines = handoff.evidence.length
+    ? handoff.evidence
+        .slice(0, 8)
+        .map((item, index) => {
+          const title = item.title ? ` ${item.title}` : '';
+          const confidence =
+            typeof item.confidence === 'number' ? ` confidence=${item.confidence}` : '';
+          return `${index + 1}. [${item.sourceType}]${title}${confidence}\n   supports: ${
+            item.supports
+          }\n   evidence: ${compactCourseContextText(item.quoteOrSummary, 500)}`;
+        })
+        .join('\n')
+    : 'No explicit handoff evidence.';
+
+  return [
+    `runId: ${handoff.runId}`,
+    `intent: ${handoff.intent}`,
+    `reason: ${handoff.reasonSummary}`,
+    handoff.requiredBehavior.length
+      ? `Required behavior:\n${handoff.requiredBehavior.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    handoff.forbiddenBehavior.length
+      ? `Forbidden behavior:\n${handoff.forbiddenBehavior.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    handoff.missingEvidence.length
+      ? `Missing or weak evidence:\n${handoff.missingEvidence.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    `Handoff evidence:\n${evidenceLines}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 function formatCourseChatContext(courseContext?: CourseChatContext): string {
   if (!courseContext) {
     return 'No course context was provided. Answer honestly and ask the student to open a course/notebook when course-specific grounding is required.';
@@ -300,6 +337,9 @@ ${learnerLines}
 Layered memory and RAG evidence:
 ${formatLayeredMemoryContext(courseContext)}
 
+Learn-core answerer handoff:
+${formatAnswererHandoff(courseContext)}
+
 Relevant notebooks and page excerpts:
 ${notebookLines}`;
 }
@@ -375,6 +415,7 @@ Example:
 - Prioritize the course context. If a claim is grounded in context, cite it inline using this style: 《Notebook Name》第 N 页：Page Title.
 - Treat private memories as personalization hints about this learner, not as public course facts. Do not cite private memories as notebook sources unless they include a source page.
 - Treat the layered memory/RAG section as the evidence layer for this turn: structured facts and confirmed learner progress define boundaries; semantic memory, source evidence, and problem-bank matches are supporting evidence.
+- Treat the learn-core answerer handoff as the routing contract for this exact turn. Follow its required behavior, respect forbidden behavior, and explicitly acknowledge missing evidence when it says evidence is missing or weak.
 - Keep learner memory scoped to the current course. A concept from this course can be useful background for another course, but do not say it changes another course's weak-point judgment unless that other course has its own evidence.
 - If the student asks whether a weakness in this course affects another course, say it should NOT automatically affect or be written into the other course's weak-point record. You may explain transferable background separately and suggest checking the other course's own evidence.
 - Preserve course-specific technical terms. If translating, keep the original term in parentheses when ambiguity is possible, and do not translate terms into a different concept.

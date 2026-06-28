@@ -1,0 +1,20 @@
+{
+  "name": "source-evidence-answer-handoff",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
+  "steps": [
+    {
+      "kind": "user",
+      "text": "上传的 SketchMol benchmark 表格里，和其他方法对比的关键数字是什么？请按原文证据回答，不要凭印象概括。",
+      "expect": {
+        "answerMode": "course_answer",
+        "artifactsInclude": ["answer_evidence"],
+        "traceStepsInclude": ["select_evidence_plan", "handoff"],
+        "traceHandoffTo": ["course_answerer"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
+    }
+  ]
+}

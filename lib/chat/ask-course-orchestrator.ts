@@ -23,6 +23,7 @@ export type AskCourseOrchestratorOptions = {
   conversation?: UIMessage<ChatMessageMetadata>[];
   courseContext?: CourseChatContext;
   learnerContext?: CourseChatContext['learner'];
+  answererHandoff?: CourseChatContext['answererHandoff'];
   userProfile?: { nickname?: string; bio?: string };
   signal?: AbortSignal;
   onMessages?: (messages: UIMessage<ChatMessageMetadata>[]) => void;
@@ -160,9 +161,12 @@ export async function askCourseOrchestrator(
       courseId: options.courseId,
       question: options.question,
     }));
-  const courseContext = layeredMemory
+  const courseContextWithMemory = layeredMemory
     ? { ...baseCourseContext, layeredMemory }
     : baseCourseContext;
+  const courseContext = options.answererHandoff
+    ? { ...courseContextWithMemory, answererHandoff: options.answererHandoff }
+    : courseContextWithMemory;
 
   let messages = [
     ...(options.conversation || []),

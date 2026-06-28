@@ -1,0 +1,31 @@
+{
+  "name": "csc148-explicit-topic-review-plan",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
+  "initialCalendarEvents": [
+    {
+      "id": "fixture-csc148-linked-list",
+      "title": "Linked lists: nodes, traversal, insert, remove",
+      "kind": "progress",
+      "date": "2026-06-12",
+      "origin": "syllabus"
+    }
+  ],
+  "steps": [
+    {
+      "kind": "user",
+      "text": "我需要复习 linked list",
+      "expect": {
+        "answerMode": "client_activity_plan",
+        "planningIntent": "review_plan",
+        "planningScopeHint": "explicit_topic",
+        "focusTopicsInclude": ["linked list"],
+        "shouldAskProgressFirst": false,
+        "traceToolsInclude": ["plan_review"],
+        "traceToolsExclude": ["legacy_semantic_planner"]
+      }
+    }
+  ]
+}

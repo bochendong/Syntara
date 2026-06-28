@@ -1,5 +1,9 @@
 {
   "name": "mat136-active-activity-follow-up",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "initialCalendarEvents": [
     {
       "id": "fixture-ai-plan-approximating-areas",
@@ -39,7 +43,13 @@
   "steps": [
     {
       "kind": "user",
-      "text": "我准备开始第一个，你觉得我应该怎么复习"
+      "text": "我准备开始第一个，你觉得我应该怎么复习",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["search_schedule"],
+        "traceStepsInclude": ["resolve_reference"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     },
     {
       "kind": "snapshot",
@@ -48,7 +58,13 @@
     },
     {
       "kind": "user",
-      "text": "那这个活动和我当前学到反常积分有什么关系？"
+      "text": "那这个活动和我当前学到反常积分有什么关系？",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["search_schedule"],
+        "traceStepsInclude": ["resolve_reference"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     }
   ]
 }

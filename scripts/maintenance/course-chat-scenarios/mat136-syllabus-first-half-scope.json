@@ -1,9 +1,17 @@
 {
   "name": "mat136-syllabus-first-half-scope",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "帮我规划一下前半学期的复习"
+      "text": "帮我规划一下前半学期的复习",
+      "expect": {
+        "answerMode": "client_activity_plan",
+        "traceToolsInclude": ["plan_review"]
+      }
     },
     {
       "kind": "snapshot",
@@ -12,7 +20,12 @@
     },
     {
       "kind": "user",
-      "text": "你为什么把这些内容算作前半学期？不要把今天之后的 7 月进度当成前半学期。"
+      "text": "你为什么把这些内容算作前半学期？不要把今天之后的 7 月进度当成前半学期。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["answer_course_question"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     }
   ]
 }

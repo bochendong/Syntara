@@ -1,5 +1,9 @@
 {
   "name": "mat102-induction-problem-mastery",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
@@ -15,11 +19,21 @@
     },
     {
       "kind": "user",
-      "text": "我做完第一道题了，思路是：先写 base case，然后假设 P(k) 成立，再想证明 P(k+1)，但是我把结论直接代进去了。"
+      "text": "我做完第一道题了，思路是：先写 base case，然后假设 P(k) 成立，再想证明 P(k+1)，但是我把结论直接代进去了。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["answer_course_question"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     },
     {
       "kind": "user",
-      "text": "我的答案错在这里：我没有说明从 P(k) 到 P(k+1) 的中间变形，只是说显然成立。"
+      "text": "我的答案错在这里：我没有说明从 P(k) 到 P(k+1) 的中间变形，只是说显然成立。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["answer_course_question"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     },
     {
       "kind": "user",

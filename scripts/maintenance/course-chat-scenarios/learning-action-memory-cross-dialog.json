@@ -1,9 +1,18 @@
 {
   "name": "learning-action-memory-cross-dialog",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "我刚才做题时发现，我不是完全不会这个知识点，而是不会判断什么时候应该用它。请先总结成一个可确认的薄弱点，不要直接写入记忆。"
+      "text": "我刚才做题时发现，我不是完全不会这个知识点，而是不会判断什么时候应该用它。请先总结成一个可确认的薄弱点，不要直接写入记忆。",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["memory.propose_write"],
+        "traceToolsInclude": ["propose_memory_write"]
+      }
     },
     {
       "kind": "ui",
@@ -24,7 +33,12 @@
     },
     {
       "kind": "user",
-      "text": "你还记得上一段对话里我确认过的薄弱点吗？请只基于这门课的记忆回答，不要串到其他课程。"
+      "text": "你还记得上一段对话里我确认过的薄弱点吗？请只基于这门课的记忆回答，不要串到其他课程。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["search_memory"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     },
     {
       "kind": "snapshot",

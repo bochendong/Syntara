@@ -1,9 +1,18 @@
 {
   "name": "csc108-edge-cross-isolation",
+  "expect": {
+    "traceToolsExclude": ["legacy_semantic_planner"],
+    "traceStepsExclude": ["fallback"]
+  },
   "steps": [
     {
       "kind": "user",
-      "text": "我总是不确定 Python for loop 里 range 的终点到底包不包含，尤其是边界 case。"
+      "text": "我总是不确定 Python for loop 里 range 的终点到底包不包含，尤其是边界 case。",
+      "expect": {
+        "answerMode": "course_answer",
+        "traceToolsInclude": ["answer_course_question"],
+        "traceHandoffTo": ["course_answerer"]
+      }
     },
     {
       "kind": "user",
@@ -11,7 +20,12 @@
     },
     {
       "kind": "user",
-      "text": "你觉得这两个问题背后统一的薄弱点是什么？能不能记成一个待复习点？"
+      "text": "你觉得这两个问题背后统一的薄弱点是什么？能不能记成一个待复习点？",
+      "expect": {
+        "answerMode": "action_only",
+        "proposalsInclude": ["memory.propose_write"],
+        "traceToolsInclude": ["propose_memory_write"]
+      }
     },
     {
       "kind": "ui",
