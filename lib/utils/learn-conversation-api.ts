@@ -20,6 +20,7 @@ export type RemoteLearnMessage = {
   lectureDeck?: unknown;
   learningActions?: unknown;
   artifacts?: unknown;
+  publicTrace?: unknown;
   attachments?: Array<{
     id?: string;
     name?: string;
@@ -53,6 +54,7 @@ export type RemoteLearnMessagePayload = {
   lectureDeck?: unknown;
   learningActions?: unknown;
   artifacts?: unknown;
+  publicTrace?: unknown;
   attachments?: Array<{
     id?: string;
     name?: string;

@@ -506,6 +506,9 @@ async function main() {
     'explicit topic to review',
     'shouldAskProgressFirst=false',
     'Do not use keyword-only routing',
+    'Learning workflow recipes',
+    'Exam preparation',
+    'Review without explicit scope',
   ]) {
     if (!semanticRouterSource.includes(requiredSemanticRouterContract)) {
       contractFailures.push(`semantic-router must include ${requiredSemanticRouterContract}`);
@@ -518,6 +521,17 @@ async function main() {
   );
   if (/isLegacySemanticPlannerEnabled|legacy_semantic_planner/.test(toolRegistrySource)) {
     contractFailures.push('tool-registry must not expose legacy semantic planner switches');
+  }
+
+  const semanticRouterRuntimeSource = fs.readFileSync(
+    path.join(ROOT, 'features', 'learn-core', 'server', 'semantic-router-runtime.ts'),
+    'utf8',
+  );
+  if (!/generateObject/.test(semanticRouterRuntimeSource)) {
+    contractFailures.push('semantic-router-runtime must use schema-native generateObject');
+  }
+  if (/generateText/.test(semanticRouterRuntimeSource)) {
+    contractFailures.push('semantic-router-runtime must not parse freeform generateText output');
   }
 
   const routeFiles = [
@@ -569,7 +583,21 @@ async function main() {
         replyText: '可以，我会只按 linked list 做一次复习活动，不扩展到课程起始范围。',
         planningDecision: explicitTopicPlan('linked list'),
         selectedToolIds: ['semantic_router', 'plan_review', 'search_problem_bank'],
-        artifacts: [{ kind: 'review_plan', topic: 'linked list', source: 'problem_bank' }],
+        artifacts: [
+          {
+            kind: 'review_plan',
+            id: 'review-linked-list',
+            title: 'Linked list 复习',
+            tasks: [
+              {
+                title: '梳理 linked list 的节点、指针、遍历和插入删除边界',
+                concepts: ['linked list'],
+                minutes: 20,
+                reason: 'The learner explicitly asked for linked list review.',
+              },
+            ],
+          },
+        ],
         reason: 'The learner explicitly asked to review linked list, so plan that topic directly.',
         confidence: 0.94,
       }),

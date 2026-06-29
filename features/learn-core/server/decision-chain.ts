@@ -40,12 +40,18 @@ function validateSemanticRouterOutput(output: LearnSemanticRouterOutput) {
     }
   }
   if (output.answerMode === 'client_activity_plan') {
-    const hasPlanArtifact = output.artifacts.some(
-      (artifact) =>
-        artifact.kind === 'activity_plan' ||
-        artifact.kind === 'review_plan' ||
-        artifact.kind === 'calendar_draft',
-    );
+    const hasPlanArtifact = output.artifacts.some((artifact) => {
+      if (artifact.kind === 'calendar_draft') {
+        return Array.isArray(artifact.items) && artifact.items.length > 0;
+      }
+      if (artifact.kind === 'activity_plan' || artifact.kind === 'review_plan') {
+        return (
+          (Array.isArray(artifact.tasks) && artifact.tasks.length > 0) ||
+          (Array.isArray(artifact.calendarDraftItems) && artifact.calendarDraftItems.length > 0)
+        );
+      }
+      return false;
+    });
     if (!output.replyText.trim()) {
       throw new Error('AI semantic router client_activity_plan must include replyText.');
     }
@@ -118,6 +124,7 @@ async function routeWithSemanticRouter(
     validateSemanticRouterOutput(output);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.warn('[learn-core] AI semantic router invalid decision:', message);
     await recorder.toolEnd(tool, {
       status: 'failed',
       error: message,

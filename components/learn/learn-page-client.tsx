@@ -187,6 +187,16 @@ type LearnMessage = {
   lectureDeck?: MiniLectureDeck;
   learningActions?: LearningAction[];
   artifacts?: LearnArtifact[];
+  publicTrace?: LearnPublicTraceStep[];
+  transient?: boolean;
+};
+
+type LearnPublicTraceStep = {
+  id: string;
+  title: string;
+  detail: string;
+  status: 'done' | 'waiting' | 'blocked';
+  evidence?: string[];
 };
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -756,15 +766,17 @@ function readLearnSessionMessages(
     if (!raw) return [];
     const parsed = JSON.parse(raw) as LearnMessage[];
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((message): message is LearnMessage =>
-      Boolean(
-        message &&
-        typeof message.id === 'string' &&
-        (message.role === 'user' || message.role === 'assistant') &&
-        typeof message.text === 'string' &&
-        typeof message.createdAt === 'number',
-      ),
-    );
+    return parsed
+      .filter((message): message is LearnMessage =>
+        Boolean(
+          message &&
+          typeof message.id === 'string' &&
+          (message.role === 'user' || message.role === 'assistant') &&
+          typeof message.text === 'string' &&
+          typeof message.createdAt === 'number',
+        ),
+      )
+      .filter((message) => !message.transient);
   } catch {
     return [];
   }
@@ -778,10 +790,12 @@ function writeLearnSessionMessages(
 ) {
   if (typeof window === 'undefined') return;
   try {
-    const serializableMessages = messages.map((message) => ({
-      ...message,
-      attachments: undefined,
-    }));
+    const serializableMessages = messages
+      .filter((message) => !message.transient)
+      .map((message) => ({
+        ...message,
+        attachments: undefined,
+      }));
     localStorage.setItem(
       learnSessionMessagesKey(userId, courseId, sessionId),
       JSON.stringify(serializableMessages.slice(-80)),
@@ -839,6 +853,8 @@ function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage 
     learningActions:
       message.learningActions == null ? undefined : (message.learningActions as LearningAction[]),
     artifacts: message.artifacts == null ? undefined : (message.artifacts as LearnArtifact[]),
+    publicTrace:
+      message.publicTrace == null ? undefined : (message.publicTrace as LearnPublicTraceStep[]),
   };
 }
 
@@ -855,6 +871,7 @@ function learnMessageToRemotePayload(message: LearnMessage): RemoteLearnMessageP
     lectureDeck: message.lectureDeck,
     learningActions: message.learningActions,
     artifacts: message.artifacts,
+    publicTrace: message.publicTrace,
     attachments: message.attachments?.map((attachment) => ({
       id: attachment.id,
       name: attachment.name,
@@ -2159,6 +2176,12 @@ async function planLearnTurn(args: {
       '[learn] AI learn turn planner unavailable:',
       error instanceof Error ? error.message : error,
     );
+    const rawMessage = error instanceof Error ? error.message : '学习路由失败';
+    if (
+      /AI semantic router failed to produce a valid decision|AI semantic router/i.test(rawMessage)
+    ) {
+      throw new Error('这次没有拿到可用的复习结构');
+    }
     throw error;
   }
 }
@@ -2167,6 +2190,225 @@ function payloadRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function learnAnswerModeLabel(mode?: LearnTurnClientResponse['answerMode']) {
+  if (mode === 'client_activity_plan') return '学习活动计划';
+  if (mode === 'client_practice_plan') return '题库练习';
+  if (mode === 'action_only') return '工具操作';
+  if (mode === 'course_answer') return '课程讲解';
+  return '学习回应';
+}
+
+function publicTraceToolIds(response: LearnTurnClientResponse | null): string[] {
+  const ids: string[] = [];
+  const trace = response?.trace;
+  const steps = Array.isArray(trace?.steps) ? trace.steps : [];
+  const toolCalls = Array.isArray(trace?.toolCalls) ? trace.toolCalls : [];
+  for (const step of steps) {
+    const selectedToolIds = payloadRecord(step.metadata).selectedToolIds;
+    if (Array.isArray(selectedToolIds)) ids.push(...selectedToolIds.map(String));
+  }
+  for (const call of toolCalls) {
+    if (call.toolId) ids.push(call.toolId);
+    const selectedToolIds = payloadRecord(call.metadata).selectedToolIds;
+    if (Array.isArray(selectedToolIds)) ids.push(...selectedToolIds.map(String));
+  }
+  return Array.from(new Set(ids.filter(Boolean)));
+}
+
+function makePublicTraceStep(
+  id: string,
+  title: string,
+  detail: string,
+  evidence?: string[],
+  status: LearnPublicTraceStep['status'] = 'done',
+): LearnPublicTraceStep {
+  return {
+    id,
+    title,
+    detail,
+    status,
+    evidence: evidence?.filter(Boolean).slice(0, 3),
+  };
+}
+
+function pendingPublicTraceForQuestion(question: string): LearnPublicTraceStep[] {
+  return [
+    makePublicTraceStep(
+      'classify',
+      '识别学习意图',
+      `判断这次是知识点复习、刷题、课程讲解、考试准备、预习还是进度确认：${question.slice(0, 80)}`,
+      undefined,
+      'waiting',
+    ),
+    makePublicTraceStep(
+      'context',
+      '读取学习上下文',
+      '查看学习记忆、课程进度、近期活动、课程日程和题库可用性。',
+      undefined,
+      'waiting',
+    ),
+    makePublicTraceStep(
+      'route',
+      '选择下一步动作',
+      '按上下文决定生成知识点复习、题库练习、课程讲解交接或进度确认。',
+      undefined,
+      'waiting',
+    ),
+  ];
+}
+
+function replaceLearnMessage(
+  messages: LearnMessage[],
+  messageId: string,
+  replacement: LearnMessage,
+): LearnMessage[] {
+  const index = messages.findIndex((message) => message.id === messageId);
+  if (index < 0) return [...messages, replacement];
+  return messages.map((message) => (message.id === messageId ? replacement : message));
+}
+
+function removeLearnMessage(messages: LearnMessage[], messageId: string): LearnMessage[] {
+  return messages.filter((message) => message.id !== messageId);
+}
+
+function publicTraceFromLearnTurn(
+  response: LearnTurnClientResponse | null,
+  args: {
+    question: string;
+    progressKnown?: boolean;
+    calendarCount?: number;
+    problemCount?: number;
+  },
+): LearnPublicTraceStep[] {
+  if (!response) return [];
+  const steps: LearnPublicTraceStep[] = [];
+  const toolIds = publicTraceToolIds(response);
+  const focusTopics = (response.planningDecision?.focusTopics || [])
+    .map((topic) => topic.trim())
+    .filter(Boolean);
+  const answerMode = response.answerMode || 'course_answer';
+  const addStep = (step: LearnPublicTraceStep) => {
+    if (!steps.some((item) => item.id === step.id)) steps.push(step);
+  };
+
+  addStep(
+    makePublicTraceStep(
+      'classify',
+      '识别学习请求',
+      focusTopics.length
+        ? `识别为${learnAnswerModeLabel(answerMode)}，范围聚焦：${focusTopics.join('、')}。`
+        : `识别为${learnAnswerModeLabel(answerMode)}：${args.question.slice(0, 80)}`,
+    ),
+  );
+
+  if (toolIds.includes('search_memory')) {
+    addStep(
+      makePublicTraceStep(
+        'memory',
+        '查看学习记忆',
+        args.progressKnown
+          ? '读取当前进度、薄弱点、近期错题和下一步概念。'
+          : '检查是否已有进度、薄弱点和做题记录；当前没有把未知进度当作阻塞。',
+      ),
+    );
+  }
+  if (toolIds.includes('search_schedule')) {
+    addStep(
+      makePublicTraceStep(
+        'schedule',
+        '检查课程日程',
+        typeof args.calendarCount === 'number' && args.calendarCount > 0
+          ? `查看 ${args.calendarCount} 个 syllabus/日历事项，寻找考试、作业和复习窗口。`
+          : '检查 syllabus、考试、作业和近期活动；没有可用日程时不编造 deadline。',
+      ),
+    );
+  }
+  if (toolIds.includes('search_problem_bank')) {
+    addStep(
+      makePublicTraceStep(
+        'problem-bank',
+        '查看题库',
+        typeof args.problemCount === 'number' && args.problemCount > 0
+          ? `读取 ${args.problemCount} 道可用题，判断是否需要进入刷题/诊断。`
+          : '检查是否有可用题库；没有题库时不会假装抽题。',
+      ),
+    );
+  }
+  if (toolIds.includes('search_course_materials')) {
+    addStep(
+      makePublicTraceStep(
+        'materials',
+        '查看课程资料',
+        '检查资料库、笔记和上传来源，决定是否需要基于原文讲解。',
+      ),
+    );
+  }
+  if (toolIds.includes('plan_review')) {
+    addStep(
+      makePublicTraceStep(
+        'plan-review',
+        '生成复习路线',
+        '把复习分成知识点梳理、自检和需要时的题库练习。',
+      ),
+    );
+  }
+  if (toolIds.includes('propose_practice_generation')) {
+    addStep(
+      makePublicTraceStep(
+        'practice',
+        '准备刷题方案',
+        '根据题库可用性准备练习/小测 proposal，执行前需要学生确认。',
+      ),
+    );
+  }
+  if (toolIds.includes('answer_course_question')) {
+    addStep(
+      makePublicTraceStep('answerer', '交给课程讲解', '把证据、缺口和回答要求交给课程答疑 agent。'),
+    );
+  }
+
+  const handoffs = Array.isArray(response.trace?.handoffs) ? response.trace?.handoffs : [];
+  for (const handoff of handoffs.slice(0, 2)) {
+    addStep(
+      makePublicTraceStep(
+        `handoff-${handoff.id || handoff.to || steps.length}`,
+        '交接给下一个 agent',
+        handoff.reasonSummary || '已把上下文、证据和行为要求交给下一个 agent。',
+        handoff.missingEvidence?.length
+          ? [`缺少证据：${handoff.missingEvidence.slice(0, 3).join('、')}`]
+          : undefined,
+      ),
+    );
+  }
+
+  const artifacts = response.artifacts || [];
+  const reviewPlan = artifacts.find((artifact) => artifact.kind === 'review_plan');
+  if (reviewPlan) {
+    const record = payloadRecord(reviewPlan);
+    const tasks = Array.isArray(record.tasks) ? record.tasks : [];
+    addStep(
+      makePublicTraceStep(
+        'review-artifact',
+        '产出知识点复习',
+        `${payloadString(record.title, '复习计划')}：${tasks.length || 1} 个复习任务。`,
+      ),
+    );
+  }
+  const calendarDraft = artifacts.find((artifact) => artifact.kind === 'calendar_draft');
+  if (calendarDraft) {
+    const items = payloadRecord(calendarDraft).items;
+    addStep(
+      makePublicTraceStep(
+        'calendar-artifact',
+        '产生日程草稿',
+        `生成 ${Array.isArray(items) ? items.length : 0} 个可加入日历的活动。`,
+      ),
+    );
+  }
+
+  return steps.slice(0, 8);
 }
 
 function announceLearningMemoryUpdated(label: string, descriptionPrefix = '记忆已更新') {
@@ -4815,6 +5057,62 @@ function LearnArtifactCards({
   );
 }
 
+function LearnPublicTraceCard({ steps }: { steps?: LearnPublicTraceStep[] }) {
+  if (!steps?.length) return null;
+  return (
+    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="grid size-6 shrink-0 place-items-center rounded-[8px] bg-white text-slate-700 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-100 dark:ring-white/10">
+          <Brain className="size-3.5" strokeWidth={1.9} />
+        </span>
+        <p className="font-semibold text-slate-900 dark:text-slate-100">本次工作流</p>
+      </div>
+      <ol className="space-y-2">
+        {steps.map((step) => (
+          <li key={step.id} className="flex gap-2">
+            <span
+              className={cn(
+                'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ring-1',
+                step.status === 'done' &&
+                  'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-100 dark:ring-emerald-300/15',
+                step.status === 'waiting' &&
+                  'bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15',
+                step.status === 'blocked' &&
+                  'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-300/15',
+              )}
+            >
+              {step.status === 'waiting' ? (
+                <Loader2 className="size-3 animate-spin" strokeWidth={1.9} />
+              ) : step.status === 'blocked' ? (
+                <AlertTriangle className="size-3" strokeWidth={1.9} />
+              ) : (
+                <CheckCircle2 className="size-3" strokeWidth={1.9} />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-slate-900 dark:text-slate-100">
+                {step.title}
+              </span>
+              <span className="mt-0.5 block leading-5 text-slate-600 dark:text-slate-300">
+                {step.detail}
+              </span>
+              {step.evidence?.length ? (
+                <span className="mt-1 block space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  {step.evidence.map((item) => (
+                    <span key={`${step.id}-${item}`} className="block">
+                      {item}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function actionPayload(action: LearningAction): Record<string, unknown> {
   return action.payload && typeof action.payload === 'object' ? action.payload : {};
 }
@@ -5931,11 +6229,12 @@ export function LearnPageClient() {
   useEffect(() => {
     if (!activeCourseId) return;
     if (messageStoreKey !== activeMessageStoreKey) return;
-    writeLearnSessionMessages(localUserId, activeCourseId, activeSessionId, messages);
-    const syncTitle = learnSessionTitleFromMessages(messages, '新对话');
+    const persistentMessages = messages.filter((message) => !message.transient);
+    writeLearnSessionMessages(localUserId, activeCourseId, activeSessionId, persistentMessages);
+    const syncTitle = learnSessionTitleFromMessages(persistentMessages, '新对话');
     setLearnSessions((current) => {
       const now = Date.now();
-      const latestMessageUpdatedAt = learnSessionUpdatedAtFromMessages(messages);
+      const latestMessageUpdatedAt = learnSessionUpdatedAtFromMessages(persistentMessages);
       const byId = new Map<string, LearnChatSession>();
       for (const session of current) byId.set(session.id, session);
       const currentSession = byId.get(activeSessionId);
@@ -5947,7 +6246,7 @@ export function LearnPageClient() {
           : '新对话';
       byId.set(activeSessionId, {
         id: activeSessionId,
-        title: learnSessionTitleFromMessages(messages, fallbackTitle),
+        title: learnSessionTitleFromMessages(persistentMessages, fallbackTitle),
         createdAt: currentSession?.createdAt ?? now,
         updatedAt: latestMessageUpdatedAt ?? currentSession?.updatedAt ?? now,
       });
@@ -5962,7 +6261,7 @@ export function LearnPageClient() {
     });
     if (remoteConversationReadyKey !== activeMessageStoreKey) return;
 
-    const payload = messages.map(learnMessageToRemotePayload);
+    const payload = persistentMessages.map(learnMessageToRemotePayload);
     const syncSignature = learnConversationSyncSignature({
       key: activeMessageStoreKey,
       title: syncTitle,
@@ -6746,6 +7045,12 @@ export function LearnPageClient() {
             createdAt: Date.now(),
             learningActions: learningActions.length ? learningActions : undefined,
             artifacts,
+            publicTrace: publicTraceFromLearnTurn(learnTurn, {
+              question: activityQuestion,
+              progressKnown: currentSnapshot.progressKnown,
+              calendarCount: syllabusEvents.length,
+              problemCount: problems.length,
+            }),
           },
         ]);
         refreshLearnerSnapshot();
@@ -8030,6 +8335,12 @@ export function LearnPageClient() {
             createdAt: Date.now(),
             artifacts: artifacts.length ? artifacts : undefined,
             learningActions: learningActions.length ? learningActions : undefined,
+            publicTrace: publicTraceFromLearnTurn(learnTurn, {
+              question: action.prompt,
+              progressKnown: nextSnapshot.progressKnown,
+              calendarCount: syllabusEvents.length,
+              problemCount: problems.length,
+            }),
           },
         ]);
         refreshLearnerSnapshot();
@@ -8142,20 +8453,35 @@ export function LearnPageClient() {
         return;
       }
       const questionText = text || '请看我上传的图片，结合课程内容帮我分析。';
+      const pendingWorkflowMessageId = hasAttachments ? null : makeClientId('assistant-workflow');
+      const pendingWorkflowMessage: LearnMessage | null = pendingWorkflowMessageId
+        ? {
+            id: pendingWorkflowMessageId,
+            role: 'assistant',
+            text: '',
+            createdAt: Date.now(),
+            publicTrace: pendingPublicTraceForQuestion(questionText),
+            transient: true,
+          }
+        : null;
       setDraft('');
       setAttachments([]);
       setError(null);
       setSending(true);
-      setMessages((current) => [
-        ...current,
-        {
-          id: makeClientId('user'),
-          role: 'user',
-          text: questionText,
-          attachments: outgoingAttachments,
-          createdAt: Date.now(),
-        },
-      ]);
+      setMessages((current) => {
+        const nextMessages: LearnMessage[] = [
+          ...current,
+          {
+            id: makeClientId('user'),
+            role: 'user',
+            text: questionText,
+            attachments: outgoingAttachments,
+            createdAt: Date.now(),
+          },
+        ];
+        if (pendingWorkflowMessage) nextMessages.push(pendingWorkflowMessage);
+        return nextMessages;
+      });
       const questionState = recordLearnerQuestion({
         userId: userId || 'anonymous',
         courseId: activeCourse.id,
@@ -8190,15 +8516,27 @@ export function LearnPageClient() {
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : '学习路由失败';
-          setMessages((current) => [
-            ...current,
-            {
-              id: makeClientId('assistant-learn-router-error'),
-              role: 'assistant',
-              text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
-              createdAt: Date.now(),
-            },
-          ]);
+          const errorMessage: LearnMessage = {
+            id: makeClientId('assistant-learn-router-error'),
+            role: 'assistant',
+            text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
+            createdAt: Date.now(),
+            publicTrace: [
+              ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+              makePublicTraceStep(
+                'router-blocked',
+                '路由没有返回可执行结构',
+                '没有拿到合法的结构化学习决定，所以停止生成计划或题目。',
+                undefined,
+                'blocked',
+              ),
+            ],
+          };
+          setMessages((current) =>
+            pendingWorkflowMessageId
+              ? replaceLearnMessage(current, pendingWorkflowMessageId, errorMessage)
+              : [...current, errorMessage],
+          );
           setSending(false);
           return;
         }
@@ -8248,23 +8586,50 @@ export function LearnPageClient() {
       const visibleArtifacts = visibleActionPlanArtifacts;
       const actionPlanText = learnTurn?.replyText?.trim() || '';
       if (actionPlanText || visibleBlockingProposalActions.length || visibleArtifacts.length) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-action-plan'),
-            role: 'assistant',
-            text: actionPlanText,
-            createdAt: Date.now(),
-            learningActions: visibleBlockingProposalActions.length
-              ? visibleBlockingProposalActions
-              : undefined,
-            artifacts: visibleArtifacts.length ? visibleArtifacts : undefined,
-          },
-        ]);
+        const actionPlanMessage: LearnMessage = {
+          id: makeClientId('assistant-action-plan'),
+          role: 'assistant',
+          text: actionPlanText,
+          createdAt: Date.now(),
+          learningActions: visibleBlockingProposalActions.length
+            ? visibleBlockingProposalActions
+            : undefined,
+          artifacts: visibleArtifacts.length ? visibleArtifacts : undefined,
+          publicTrace: publicTraceFromLearnTurn(learnTurn, {
+            question: questionText,
+            progressKnown: questionSnapshot.progressKnown,
+            calendarCount: syllabusEvents.length,
+            problemCount: problems.length,
+          }),
+        };
+        setMessages((current) =>
+          pendingWorkflowMessageId
+            ? replaceLearnMessage(current, pendingWorkflowMessageId, actionPlanMessage)
+            : [...current, actionPlanMessage],
+        );
       }
       if (visibleDirectActions.length) {
         for (const action of visibleDirectActions) {
           await handleLearningActionConfirm(action);
+        }
+        if (!actionPlanText && !visibleBlockingProposalActions.length && !visibleArtifacts.length) {
+          const actionOnlyMessage: LearnMessage = {
+            id: makeClientId('assistant-action-plan'),
+            role: 'assistant',
+            text: '已完成这次结构化学习操作。',
+            createdAt: Date.now(),
+            publicTrace: publicTraceFromLearnTurn(learnTurn, {
+              question: questionText,
+              progressKnown: questionSnapshot.progressKnown,
+              calendarCount: syllabusEvents.length,
+              problemCount: problems.length,
+            }),
+          };
+          setMessages((current) =>
+            pendingWorkflowMessageId
+              ? replaceLearnMessage(current, pendingWorkflowMessageId, actionOnlyMessage)
+              : [...current, actionOnlyMessage],
+          );
         }
       }
       if (
@@ -8274,6 +8639,15 @@ export function LearnPageClient() {
         learnTurnAnswerMode === 'action_only' ||
         learnTurnAnswerMode === 'none'
       ) {
+        if (
+          pendingWorkflowMessageId &&
+          !actionPlanText &&
+          !visibleBlockingProposalActions.length &&
+          !visibleArtifacts.length &&
+          !visibleDirectActions.length
+        ) {
+          setMessages((current) => removeLearnMessage(current, pendingWorkflowMessageId));
+        }
         setSending(false);
         return;
       }
@@ -8292,32 +8666,59 @@ export function LearnPageClient() {
             snapshotOverride: questionSnapshot,
           });
           if (evidencePlan) {
+            if (pendingWorkflowMessageId) {
+              setMessages((current) => removeLearnMessage(current, pendingWorkflowMessageId));
+            }
             addAssistantPlan(evidencePlan);
             setSending(false);
             return;
           }
-          setMessages((current) => [
-            ...current,
-            {
-              id: makeClientId('assistant-plan-empty'),
-              role: 'assistant',
-              text: 'AI 没有返回可用的练习计划。我没有使用本地计划兜底，请重试一次或换一个模型。',
-              createdAt: Date.now(),
-            },
-          ]);
+          const emptyPlanMessage: LearnMessage = {
+            id: makeClientId('assistant-plan-empty'),
+            role: 'assistant',
+            text: 'AI 没有返回可用的练习计划。我没有使用本地计划兜底，请重试一次或换一个模型。',
+            createdAt: Date.now(),
+            publicTrace: [
+              ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+              makePublicTraceStep(
+                'practice-plan-blocked',
+                '练习计划不可展示',
+                '已经识别为练习计划请求，但没有拿到可用的题目/计划结构。',
+                undefined,
+                'blocked',
+              ),
+            ],
+          };
+          setMessages((current) =>
+            pendingWorkflowMessageId
+              ? replaceLearnMessage(current, pendingWorkflowMessageId, emptyPlanMessage)
+              : [...current, emptyPlanMessage],
+          );
           setSending(false);
           return;
         }
 
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-ai-plan-missing-artifact'),
-            role: 'assistant',
-            text: 'AI 已识别这是学习计划请求，但没有返回可展示的计划草稿。我没有使用本地计划兜底，请重试一次或换一个模型。',
-            createdAt: Date.now(),
-          },
-        ]);
+        const missingArtifactMessage: LearnMessage = {
+          id: makeClientId('assistant-ai-plan-missing-artifact'),
+          role: 'assistant',
+          text: 'AI 已识别这是学习计划请求，但没有返回可展示的计划草稿。我没有使用本地计划兜底，请重试一次或换一个模型。',
+          createdAt: Date.now(),
+          publicTrace: [
+            ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+            makePublicTraceStep(
+              'artifact-blocked',
+              '计划草稿不可展示',
+              '路由给出了计划意图，但没有返回合格的 plan artifact。',
+              undefined,
+              'blocked',
+            ),
+          ],
+        };
+        setMessages((current) =>
+          pendingWorkflowMessageId
+            ? replaceLearnMessage(current, pendingWorkflowMessageId, missingArtifactMessage)
+            : [...current, missingArtifactMessage],
+        );
         setSending(false);
         return;
       }
@@ -8365,30 +8766,50 @@ export function LearnPageClient() {
           ...(evidenceArtifact ? [evidenceArtifact] : []),
           ...deferredAnswerArtifacts,
         ];
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant'),
-            role: 'assistant',
-            text: answer,
-            createdAt: Date.now(),
-            lecturePrompt,
-            learningActions: learningActions.length ? learningActions : undefined,
-            artifacts: artifacts.length ? artifacts : undefined,
-          },
-        ]);
+        const answerMessage: LearnMessage = {
+          id: makeClientId('assistant'),
+          role: 'assistant',
+          text: answer,
+          createdAt: Date.now(),
+          lecturePrompt,
+          learningActions: learningActions.length ? learningActions : undefined,
+          artifacts: artifacts.length ? artifacts : undefined,
+          publicTrace: publicTraceFromLearnTurn(learnTurn, {
+            question: questionText,
+            progressKnown: questionSnapshot.progressKnown,
+            calendarCount: syllabusEvents.length,
+            problemCount: problems.length,
+          }),
+        };
+        setMessages((current) =>
+          pendingWorkflowMessageId
+            ? replaceLearnMessage(current, pendingWorkflowMessageId, answerMessage)
+            : [...current, answerMessage],
+        );
         refreshLearnerSnapshot();
       } catch (err) {
         const message = err instanceof Error ? err.message : '课程回复失败';
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-error'),
-            role: 'assistant',
-            text: `${message}。我没有生成本地兜底回答，请稍后重试或换一个模型。`,
-            createdAt: Date.now(),
-          },
-        ]);
+        const errorMessage: LearnMessage = {
+          id: makeClientId('assistant-error'),
+          role: 'assistant',
+          text: `${message}。我没有生成本地兜底回答，请稍后重试或换一个模型。`,
+          createdAt: Date.now(),
+          publicTrace: [
+            ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+            makePublicTraceStep(
+              'answer-blocked',
+              '课程讲解没有完成',
+              '已经进入课程讲解路径，但回答生成没有成功完成。',
+              undefined,
+              'blocked',
+            ),
+          ],
+        };
+        setMessages((current) =>
+          pendingWorkflowMessageId
+            ? replaceLearnMessage(current, pendingWorkflowMessageId, errorMessage)
+            : [...current, errorMessage],
+        );
       } finally {
         setSending(false);
       }
@@ -10840,6 +11261,9 @@ export function LearnPageClient() {
                                 onConfirmCalendarAction={handleLearningActionConfirm}
                               />
                             ) : null}
+                            {message.publicTrace?.length ? (
+                              <LearnPublicTraceCard steps={message.publicTrace} />
+                            ) : null}
                             {message.progressProposal ? (
                               <ProgressConfirmationCard
                                 proposal={message.progressProposal}
@@ -10895,7 +11319,8 @@ export function LearnPageClient() {
                   </ContextMenuContent>
                 </ContextMenu>
               ))}
-              {sending ? (
+              {sending &&
+              !messages.some((message) => message.transient && message.publicTrace?.length) ? (
                 <div className="mr-auto flex items-center gap-2 rounded-full bg-slate-50 px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
                   <Loader2 className="size-4 animate-spin" />
                   课程正在整理回答…
