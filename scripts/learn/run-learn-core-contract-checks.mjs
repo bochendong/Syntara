@@ -566,6 +566,7 @@ async function main() {
       }),
       routerOutput: routeOutput({
         answerMode: 'client_activity_plan',
+        replyText: '可以，我会只按 linked list 做一次复习活动，不扩展到课程起始范围。',
         planningDecision: explicitTopicPlan('linked list'),
         selectedToolIds: ['semantic_router', 'plan_review', 'search_problem_bank'],
         artifacts: [{ kind: 'review_plan', topic: 'linked list', source: 'problem_bank' }],

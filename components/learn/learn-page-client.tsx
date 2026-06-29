@@ -75,9 +75,6 @@ import {
 import {
   answererHandoffFromLearnTurn,
   planningDecisionFromLearnTurn,
-  type LearnClientPlanningIntent as PlanningIntent,
-  type LearnPlanningScopeHint as LearningPlanningScopeHint,
-  type LearnScopeResolution,
   type LearnTurnClientResponse,
 } from '@/features/learn-core/client-adapters';
 import {
@@ -96,7 +93,6 @@ import {
 } from '@/features/learn-core/client-artifacts';
 import {
   createLearnProgressRequest,
-  learnPendingActionFromPlanningIntent,
   type LearnPendingCourseAction as PendingCourseAction,
   type LearnProgressProposal as ProgressProposal,
 } from '@/features/learn-core/client-progress';
@@ -208,53 +204,6 @@ type LearnModelOption = {
   providerName: string;
   modelName: string;
   vision: boolean | null;
-};
-
-type SyllabusPlanningWindow = {
-  events: SyllabusCalendarEvent[];
-  progressEvents: SyllabusCalendarEvent[];
-  startDate: string;
-  endDate: string;
-  label: string;
-};
-
-type LearnLayeredMemoryContextResponse = {
-  knowledgeMatches?: Array<{ id: string }>;
-  sourceEvidence?: Array<{
-    id: string;
-    sourceType?: string;
-    title: string;
-    originalText?: string;
-    renderedText?: string;
-    score?: number;
-    courseId?: string | null;
-    notebookId?: string | null;
-    sourceId?: string;
-    metadata?: Record<string, unknown>;
-  }>;
-  semanticMatches?: Array<{
-    id: string;
-    title?: string;
-    text?: string;
-    summary?: string;
-    source?: string;
-  }>;
-  knowledgeCache?: Array<{
-    id: string;
-    sourceType?: string;
-    title: string;
-    previewText?: string;
-    hitCount?: number;
-    lastAccessedAt?: string;
-  }>;
-  counts?: {
-    direct?: number;
-    semantic?: number;
-    knowledgeCache?: number;
-    knowledge?: number;
-    sourceEvidence?: number;
-    learnerAnalytics?: number;
-  };
 };
 
 type CourseSourceUploadKind = 'pdf' | 'markdown' | 'plain_text' | 'pptx' | 'problem_bank' | 'other';
@@ -1909,84 +1858,6 @@ function courseSubtitle(course: CourseRecord): string {
   return [course.university, course.courseCode, course.tags?.[0]].filter(Boolean).join(' · ');
 }
 
-function isPracticeIntent(text: string): PracticePlanMode | null {
-  const normalized = text.toLowerCase();
-  if (/小测|测验|考试|quiz|test|检测|测一下|诊断|掌握度/.test(normalized)) return 'quiz';
-  if (/刷题|做题|练习题|出.*题|开.*练习|错题|practice/.test(normalized)) {
-    return 'practice';
-  }
-  return null;
-}
-
-function cleanupExplicitReviewTopic(raw: string): string | null {
-  const topic = raw
-    .replace(/[。！？!?；;\n].*$/g, '')
-    .replace(/^(一下|下|这个|这块|这部分|关于|有关|around|on)\s*/i, '')
-    .replace(/\s*(先)?(测一下|做题|刷题|练习|出题|小测|检测|诊断|quiz|test|安排|计划|日程).*$/i, '')
-    .replace(/\s*(吧|了|一下|下|可以吗|好吗|行吗)$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!topic || topic.length > 80) return null;
-  if (
-    /^(什么|哪些|哪几个|知识点|计划|安排|日程|课程|考试|今天|明天|这周|本周|全部|整门)$/i.test(
-      topic,
-    )
-  ) {
-    return null;
-  }
-  return topic;
-}
-
-function explicitReviewTopicFromQuestion(text: string): string | null {
-  const patterns = [
-    /(?:^|[，,。！？\s])(?:(?:帮我|给我|请(?:你)?|麻烦你)\s*)?(?:我\s*)?(?:需要|要|想|得|应该|该)?\s*(?:复习|review)\s*(?:一下|下)?\s*([^，。！？!?；;\n]{2,80})/i,
-    /(?:^|[，,。！？\s])(?:今天|明天|这周|本周|接下来)\s*(?:想|要|需要)?\s*(?:复习|review)\s*(?:一下|下)?\s*([^，。！？!?；;\n]{2,80})/i,
-    /(?:^|[，,。！？\s])(?:(?:帮我|给我|请(?:你)?|麻烦你)\s*)?(?:补|巩固)\s*(?:一下|下)?\s*([^，。！？!?；;\n]{2,80})/i,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    const topic = cleanupExplicitReviewTopic(match?.[1] || '');
-    if (topic) return topic;
-  }
-  return null;
-}
-
-function detectPlanningIntent(text: string): PlanningIntent | null {
-  const practiceMode = isPracticeIntent(text);
-  if (practiceMode) return { kind: 'practice_plan', mode: practiceMode };
-  const normalized = text.toLowerCase();
-  if (
-    /(预习|提前学|提前看|先学|先看.*提纲|preview plan|pre[-\s]?study|study ahead)/i.test(normalized)
-  ) {
-    return { kind: 'preview_plan' };
-  }
-  if (explicitReviewTopicFromQuestion(text)) {
-    return { kind: 'review_plan' };
-  }
-  if (
-    /(安排.*复习|今天.*复习|复习安排|复习计划|学习计划|制定.*计划|制定.*复习|怎么复习|该复习|复习什么|复习哪些|复习.*知识点|补.*知识点|下一步.*学|下一步.*复习|review plan|study plan)/i.test(
-      normalized,
-    )
-  ) {
-    return { kind: 'review_plan' };
-  }
-  return null;
-}
-
-function isWeaknessStatusQuery(text: string): boolean {
-  return /((哪里|哪儿|什么|哪些|哪几|有什么|都有什么).{0,14}(薄弱|薄弱项|薄弱点|不足|短板|弱点|不熟)|(薄弱|薄弱项|薄弱点|不足|短板|弱点|不熟).{0,14}(哪里|哪儿|什么|哪些|哪几|总结|列|有))/i.test(
-    text,
-  );
-}
-
-function needsProgressConfirmation(text: string): boolean {
-  if (isWeaknessStatusQuery(text)) return false;
-  if (explicitReviewTopicFromQuestion(text)) return false;
-  return /(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里|预习|复习|该复习|复习什么|复习哪些|知识点|学习计划|下一步|刷题|做题|练习|小测|测验|quiz|test|掌握度)/i.test(
-    text,
-  );
-}
-
 function isSyllabusDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -1996,21 +1867,6 @@ function syllabusPlanningEvents(events: SyllabusCalendarEvent[]): SyllabusCalend
     .filter((event) => event.title.trim() && isSyllabusDate(event.date) && event.kind !== 'holiday')
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
-}
-
-function shiftDayKey(dayKey: string, days: number): string {
-  const date = new Date(`${dayKey}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  return localDayKey(date);
-}
-
-function syllabusDeadlineEventIsNearWindow(
-  event: SyllabusCalendarEvent,
-  startDate: string,
-  endDate: string,
-): boolean {
-  if (event.kind !== 'assignment' && event.kind !== 'exam') return false;
-  return event.date >= shiftDayKey(startDate, -2) && event.date <= shiftDayKey(endDate, 7);
 }
 
 function progressSelectionFromSnapshot(snapshot: LearnerCourseSnapshot | null): string {
@@ -2040,14 +1896,6 @@ function orderedCourseNotebooks<T extends Pick<StageListItem, 'id' | 'name' | 'c
   });
 }
 
-function normalizeProgressText(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[：:，,。！？!?、/\\()[\]{}"'`~*_\-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function progressLabelForSelection(selection: string, notebooks: StageListItem[]): string {
   if (selection === PROGRESS_SELECTION_NOT_STARTED) return '还没开始';
   if (selection === PROGRESS_SELECTION_COMPLETED_ALL) return '已学完整门课';
@@ -2062,76 +1910,6 @@ function progressCheckpointForSelection(
   if (selection === PROGRESS_SELECTION_NOT_STARTED) return { kind: 'not_started' };
   if (selection === PROGRESS_SELECTION_COMPLETED_ALL) return { kind: 'completed_all' };
   return { kind: 'notebook', notebookId: selection };
-}
-
-function detectProgressProposal(args: {
-  text: string;
-  notebooks: StageListItem[];
-  snapshot: LearnerCourseSnapshot;
-}): ProgressProposal | null {
-  const raw = args.text.trim();
-  if (!raw) return null;
-  if (isWeaknessStatusQuery(raw)) return null;
-  const normalized = normalizeProgressText(raw);
-  const hasProgressCue =
-    /(学到|学完|刚学|正在学|在学|讲到|上到|看到|复习到|current|currently|covered|finished|reached)/i.test(
-      raw,
-    );
-  const currentSelection = progressSelectionFromSnapshot(args.snapshot);
-
-  if (/(还没开始|没开始|尚未开始|刚开始|还没有开始)/.test(raw)) {
-    if (currentSelection === PROGRESS_SELECTION_NOT_STARTED) return null;
-    return {
-      selection: PROGRESS_SELECTION_NOT_STARTED,
-      label: '还没开始',
-      reason: '你提到自己还没有正式开始这门课。',
-    };
-  }
-
-  if (/(全部学完|都学完|学完整门|整门课.*学完|finished.*course|covered.*all)/i.test(raw)) {
-    if (currentSelection === PROGRESS_SELECTION_COMPLETED_ALL) return null;
-    return {
-      selection: PROGRESS_SELECTION_COMPLETED_ALL,
-      label: '已学完整门课',
-      reason: '你提到已经覆盖完整门课程内容。',
-    };
-  }
-
-  if (!hasProgressCue) return null;
-
-  const scored = args.notebooks
-    .map((notebook, index) => {
-      const numericId = notebook.name.match(/\b0?(\d{1,2})\b/)?.[1];
-      const candidates = [
-        notebook.name,
-        notebook.name.replace(/^\s*\d+\s*[-–—]\s*/, ''),
-        ...(notebook.tags || []),
-      ]
-        .map(normalizeProgressText)
-        .filter((candidate) => candidate.length >= 4);
-      let score = 0;
-      for (const candidate of candidates) {
-        if (normalized.includes(candidate)) score += candidate.length;
-      }
-      if (numericId) {
-        const numericPattern = new RegExp(
-          `(week|lecture|lec|chapter|unit|第)\\s*0?${numericId}\\b|0?${numericId}\\s*(周|讲|章|单元)`,
-          'i',
-        );
-        if (numericPattern.test(raw)) score += 12;
-      }
-      return { notebook, index, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.index - b.index);
-
-  const best = scored[0];
-  if (!best || best.notebook.id === currentSelection) return null;
-  return {
-    selection: best.notebook.id,
-    label: `正在学习《${best.notebook.name}》`,
-    reason: `你刚才的消息里出现了“${best.notebook.name}”相关的学习进度线索。`,
-  };
 }
 
 function messageText(message: UIMessage<ChatMessageMetadata>): string {
@@ -2243,10 +2021,6 @@ function normalizeAssistantMarkdown(text: string): string {
     .trim();
 }
 
-function hasActiveActivityArtifact(message: LearnMessage): boolean {
-  return message.artifacts?.some((artifact) => artifact.kind === 'active_activity') ?? false;
-}
-
 function isExplicitProblemBankSelectionRequest(text: string): boolean {
   const normalized = text.toLowerCase();
   return (
@@ -2277,215 +2051,6 @@ function buildNoCourseProblemBankAnswer(args: {
     '',
     '如果你要临时练习，可以直接说“基于笔记临时出 3 道题”；如果你要真正的题库选择，需要先导入或发布这门课的题库。',
   ].join('\n');
-}
-
-function isCourseOutlineRequest(text: string): boolean {
-  return /(课程提纲|课程大纲|知识提纲|内容提纲|这门课.*讲什么|course\s*outline|outline)/i.test(
-    text,
-  );
-}
-
-function buildCourseOutlineAnswer(args: {
-  course: CourseRecord;
-  notebooks: StageListItem[];
-  syllabusEvents: SyllabusCalendarEvent[];
-}): string {
-  const courseLabel = args.course.courseCode || args.course.name;
-  const ordered = orderedCourseNotebooks(args.notebooks);
-  const topicLines = ordered.slice(0, 12).map((notebook, index) => {
-    const tags = notebook.tags?.slice(0, 3).join(' / ');
-    return `${index + 1}. ${notebook.name}${tags ? `（${tags}）` : ''}`;
-  });
-  const progressEvents = args.syllabusEvents
-    .filter((event) => event.kind === 'progress' && (!event.origin || event.origin === 'syllabus'))
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title, 'zh-CN'))
-    .slice(0, 10)
-    .map((event) => `- ${event.date}: ${event.title}`);
-  const examEvents = args.syllabusEvents
-    .filter(
-      (event) =>
-        (event.kind === 'exam' || event.kind === 'assignment') &&
-        (!event.origin || event.origin === 'syllabus'),
-    )
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title, 'zh-CN'))
-    .slice(0, 8)
-    .map((event) => `- ${event.date}: ${syllabusEventLabel(event.kind)} · ${event.title}`);
-
-  return [
-    `${courseLabel} 的课程提纲我先按平台已有资料整理，不靠空想。`,
-    '',
-    topicLines.length
-      ? `按课程笔记/资料库顺序：\n${topicLines.join('\n')}`
-      : '目前资料库里还没有可用课程笔记，所以不能整理出可靠章节提纲。',
-    progressEvents.length ? `\n按 syllabus 进度：\n${progressEvents.join('\n')}` : '',
-    examEvents.length ? `\n关键作业/考试：\n${examEvents.join('\n')}` : '',
-    '',
-    '如果你要用它来复习，我下一步应该把这份提纲变成“当前进度 + 薄弱点 + 题库诊断”的复习路线，而不是平均扫一遍。',
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-function isBareProblemHelpRequest(text: string): boolean {
-  const normalized = text.trim();
-  if (!/(这个题|这题|这道题|题咋做|怎么做|咋做|不会做|帮我做题)/.test(normalized)) {
-    return false;
-  }
-  return normalized.length <= 40 && !/[=+\-*/^∫Σ]|\d/.test(normalized);
-}
-
-function bareProblemHelpAnswer(course: CourseRecord): string {
-  return [
-    '可以，但你现在还没把题目给我。',
-    '',
-    `把题目文字、截图，或者你已经写的步骤发上来。我会按 ${course.courseCode || course.name} 的资料和题库来处理：先识别题型，再找对应知识点，最后检查你的步骤卡在哪里。`,
-    '',
-    '如果这题来自课程题库，我会尽量关联到题库记录；如果只是截图/作业题，我会先按题面讲解，不会假装它已经进了题库。',
-  ].join('\n');
-}
-
-function isBareHomeworkCheckRequest(text: string): boolean {
-  return /(检查|看看|批改|帮我看).{0,10}(作业|homework|assignment|答案|解答)|(?:作业|homework|assignment).{0,10}(检查|批改|看看|对不对)/i.test(
-    text,
-  );
-}
-
-function bareHomeworkCheckAnswer(course: CourseRecord): string {
-  return [
-    '可以检查，但我需要看到作业题目和你的解答。',
-    '',
-    `你可以上传截图，或者直接粘贴题目 + 你的步骤。我会先按 ${course.courseCode || course.name} 的课程资料判断题型，再检查：条件有没有漏、方法是否适用、计算/证明哪一步开始偏掉。`,
-    '',
-    '如果你只想让我判分，要把 rubric 或老师要求也一起发；否则我会按“概念正确性 + 步骤完整性 + 常见扣分点”来检查。',
-  ].join('\n');
-}
-
-function isKnowledgePointReviewRequest(text: string): boolean {
-  return /(复习什么知识点|复习哪些知识点|该复习什么|要复习什么|补什么知识点|哪些知识点.*复习|知识点.*复习)/i.test(
-    text,
-  );
-}
-
-function buildKnowledgePointReviewAnswer(args: {
-  course: CourseRecord;
-  snapshot: LearnerCourseSnapshot;
-  state: LearnerCourseState;
-}): string {
-  const courseLabel = args.course.courseCode || args.course.name;
-  if (!args.snapshot.progressKnown) {
-    return `我可以帮你判断，但现在还缺 ${courseLabel} 的当前位置。\n\n先告诉我你学到哪一章/哪份笔记，或者上传 syllabus 后让我按课程日历判断；有了范围后，我会按“薄弱点、最近错题、题库覆盖、考试/作业日期”来排优先级。`;
-  }
-
-  const currentLabel =
-    args.snapshot.currentNotebook?.name || args.snapshot.progressLabel || '已确认范围';
-  const normalizeConcepts = (values: string[]) =>
-    values
-      .flatMap((value) => value.split(/[\n；;、,]+/))
-      .map((value) => value.replace(/\s+/g, ' ').trim())
-      .filter((value) => value.length > 0)
-      .slice(0, 8);
-  const recentMisses = args.state.recentProblemAttempts
-    .filter((attempt) => attempt.status !== 'passed')
-    .slice(0, 3);
-  const weakConcepts = normalizeConcepts(args.snapshot.weakConcepts).slice(0, 5);
-  const nextConcepts = normalizeConcepts(args.snapshot.nextConcepts).slice(0, 5);
-  const missedConcepts = normalizeConcepts(recentMisses.flatMap((attempt) => attempt.concepts));
-  const candidateConcepts = Array.from(
-    new Set([...weakConcepts, ...missedConcepts, ...nextConcepts].filter(Boolean)),
-  ).slice(0, 5);
-  const priorityConcepts = candidateConcepts.length
-    ? candidateConcepts
-    : [args.snapshot.currentNotebook?.name || courseLabel];
-  const evidenceLines = [
-    `当前定位：${currentLabel}`,
-    weakConcepts.length ? `记忆里的薄弱点：${weakConcepts.join('、')}` : '',
-    recentMisses.length
-      ? `最近错题/半对题：${recentMisses
-          .map((attempt) => `${attempt.problemTitle}（${attempt.status}）`)
-          .join('；')}`
-      : '',
-    nextConcepts.length ? `下一组相关概念：${nextConcepts.join('、')}` : '',
-  ].filter(Boolean);
-  const diagnosticLine = args.snapshot.totalProblemCount
-    ? `题库里有 ${args.snapshot.totalProblemCount} 道题。你说“开一个诊断”，我会从题库按这些知识点选，不会自己临时编题。`
-    : '当前没有可用课程题库，所以我不会假装能从题库抽题；你可以上传题库，或先把一道作业题发给我检查。';
-
-  return [
-    '我先按平台记录判断，不默认给你排一个完整计划。',
-    '',
-    `优先复习这几类知识点：\n${priorityConcepts
-      .map((concept, index) => `${index + 1}. ${concept}`)
-      .join('\n')}`,
-    '',
-    `依据：\n${evidenceLines.map((line) => `- ${line}`).join('\n')}`,
-    '',
-    diagnosticLine,
-  ].join('\n');
-}
-
-function isExplicitWebSearchRequest(text: string): boolean {
-  const normalized = text.trim();
-  if (!normalized) return false;
-  const asksSearch =
-    /(联网|网页搜索|搜索一下|搜一下|查一下|查找|最新|current|latest|web\s*search)/i.test(
-      normalized,
-    );
-  const externalTarget =
-    /(OpenAI|API|官网|官方|文档|docs?|网页|网站|新闻|最新|current|latest|价格|版本|发布|政策|论文|arXiv)/i.test(
-      normalized,
-    );
-  return asksSearch && externalTarget;
-}
-
-function webSearchActionFromQuestion(questionText: string): LearningAction {
-  return {
-    id: makeClientId('learn-web-search'),
-    kind: 'web.search',
-    label: '联网搜索',
-    summary: questionText,
-    confirmation: 'none',
-    payload: {
-      query: questionText,
-      usedFor: questionText,
-    },
-  };
-}
-
-function isExplicitImageGenerationRequest(text: string): boolean {
-  const normalized = text.trim();
-  if (!normalized) return false;
-  if (/(不要生成|不用生成|不生成|别生成)/.test(normalized)) return false;
-  return /(生成|画|做|create|generate).*(图|图片|示意图|插图|image|diagram|illustration)|(?:图|图片|示意图|插图).*(生成|画|做|create|generate)/i.test(
-    normalized,
-  );
-}
-
-function imageGenerationActionFromQuestion(questionText: string): LearningAction {
-  return {
-    id: makeClientId('learn-image-generation'),
-    kind: 'image.propose_generation',
-    label: '生成学习图片',
-    summary: '根据这次问题生成一张学习图片。',
-    confirmation: 'required',
-    payload: {
-      prompt: questionText,
-      aspectRatio: '16:9',
-    },
-  };
-}
-
-function imagePromptDraftFromQuestion(
-  questionText: string,
-): Extract<LearnArtifact, { kind: 'image_prompt_draft' }> {
-  return {
-    kind: 'image_prompt_draft',
-    id: makeClientId('image-prompt-draft'),
-    prompt: questionText,
-    aspectRatio: '16:9',
-    sourceQuestion: questionText,
-  };
 }
 
 function learnMessagesForPlanningIntent(messages: LearnMessage[]): LearnTurnMessage[] {
@@ -2594,7 +2159,7 @@ async function planLearnTurn(args: {
       '[learn] AI learn turn planner unavailable:',
       error instanceof Error ? error.message : error,
     );
-    return null;
+    throw error;
   }
 }
 
@@ -2602,533 +2167,6 @@ function payloadRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-function syllabusTopicLabel(event: SyllabusCalendarEvent): string {
-  const fromTitle = event.title
-    .replace(/\bcontinued\b/gi, '')
-    .replace(/^\s*(?:week\s*)?\d+(?:\.\d+)*\s*[-–—:]?\s*/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (fromTitle && !/^(assignment|prep checks?|midterm|final|quiz|test|due)$/i.test(fromTitle)) {
-    return fromTitle;
-  }
-  return event.rawText?.replace(/\s+/g, ' ').trim().slice(0, 80) || event.title;
-}
-
-function selectSyllabusPlanningWindow(args: {
-  syllabusEvents: SyllabusCalendarEvent[];
-  scopeHint?: LearningPlanningScopeHint | null;
-  scopeResolution?: LearnScopeResolution;
-  focusTopics?: string[];
-}): SyllabusPlanningWindow | null {
-  const events = syllabusPlanningEvents(args.syllabusEvents);
-  if (!events.length) return null;
-
-  const progressEvents = events.filter((event) => event.kind === 'progress');
-  let selectedProgress = progressEvents;
-  let label = 'syllabus 近期范围';
-  const contentScope = args.scopeResolution?.contentScope || null;
-  const resolvedKind = contentScope?.kind || null;
-  const effectiveScopeHint = resolvedKind || args.scopeHint || null;
-  let selectedFromResolution = false;
-
-  const resolvedEventIds = new Set(
-    (contentScope?.eventIds || []).map((id) => id.trim()).filter(Boolean),
-  );
-  if (resolvedEventIds.size > 0) {
-    const resolvedProgress = progressEvents.filter((event) => resolvedEventIds.has(event.id));
-    if (resolvedProgress.length > 0) {
-      selectedProgress = resolvedProgress;
-      label = contentScope?.label?.trim() || '指定 syllabus 范围';
-      selectedFromResolution = true;
-    }
-  }
-
-  if (!selectedFromResolution && (contentScope?.startDate || contentScope?.endDate)) {
-    const startDate = contentScope.startDate || progressEvents[0]?.date || events[0].date;
-    const endDate =
-      contentScope.endDate || progressEvents[progressEvents.length - 1]?.date || startDate;
-    const resolvedProgress = progressEvents.filter(
-      (event) => event.date >= startDate && event.date <= endDate,
-    );
-    if (resolvedProgress.length > 0) {
-      selectedProgress = resolvedProgress;
-      label = contentScope?.label?.trim() || '指定 syllabus 范围';
-      selectedFromResolution = true;
-    }
-  }
-
-  if (!selectedFromResolution) {
-    if (effectiveScopeHint === 'first_half' && progressEvents.length > 1) {
-      selectedProgress = progressEvents.slice(0, Math.ceil(progressEvents.length / 2));
-      label = contentScope?.label?.trim() || '前半学期';
-    } else if (effectiveScopeHint === 'second_half' && progressEvents.length > 1) {
-      selectedProgress = progressEvents.slice(Math.floor(progressEvents.length / 2));
-      label = contentScope?.label?.trim() || '后半学期';
-    } else if (effectiveScopeHint === 'next_two_weeks') {
-      const today = localDayKey(new Date());
-      const end = new Date(`${today}T12:00:00`);
-      end.setDate(end.getDate() + 14);
-      const endKey = localDayKey(end);
-      selectedProgress = progressEvents.filter(
-        (event) => event.date >= today && event.date <= endKey,
-      );
-      label = contentScope?.label?.trim() || '接下来两周';
-    } else if (effectiveScopeHint === 'full_course') {
-      selectedProgress = progressEvents;
-      label = contentScope?.label?.trim() || '整门课';
-    } else if (effectiveScopeHint === 'explicit_topic' && args.focusTopics?.length) {
-      const normalizedTopics = args.focusTopics
-        .map((topic) => topic.toLowerCase().trim())
-        .filter(Boolean);
-      const topicIndex = progressEvents.findIndex((event) => {
-        const haystack = [event.title, event.rawText || ''].join(' ').toLowerCase();
-        return normalizedTopics.some((topic) => haystack.includes(topic));
-      });
-      selectedProgress =
-        topicIndex >= 0 ? progressEvents.slice(0, topicIndex + 1) : progressEvents.slice(0, 4);
-      label = args.focusTopics[0] ? `到 ${args.focusTopics[0]}` : '指定主题范围';
-    } else {
-      const today = localDayKey(new Date());
-      selectedProgress = progressEvents.filter((event) => event.date >= today).slice(0, 4);
-      label = '接下来课程进度';
-    }
-  }
-
-  const anchorEvents = selectedProgress.length ? selectedProgress : events.slice(0, 6);
-  const startDate = anchorEvents[0]?.date || events[0].date;
-  const endDate = anchorEvents[anchorEvents.length - 1]?.date || startDate;
-  const scopedEvents = events.filter(
-    (event) =>
-      (event.date >= startDate && event.date <= endDate) ||
-      syllabusDeadlineEventIsNearWindow(event, startDate, endDate),
-  );
-
-  return {
-    events: scopedEvents.length ? scopedEvents : anchorEvents,
-    progressEvents: anchorEvents,
-    startDate,
-    endDate,
-    label,
-  };
-}
-
-function buildSyllabusPlanningFallbackAnswer(args: {
-  course: CourseRecord;
-  syllabusEvents: SyllabusCalendarEvent[];
-  intent: PlanningIntent;
-  scopeHint?: LearningPlanningScopeHint | null;
-  scopeResolution?: LearnScopeResolution;
-  focusTopics?: string[];
-  constraintsSummary?: string;
-}): string | null {
-  if (args.intent.kind === 'practice_plan') return null;
-  const window = selectSyllabusPlanningWindow({
-    syllabusEvents: args.syllabusEvents,
-    scopeHint: args.scopeHint,
-    scopeResolution: args.scopeResolution,
-    focusTopics: args.focusTopics,
-  });
-  if (!window) return null;
-
-  const topics = window.progressEvents.map(syllabusTopicLabel).filter(Boolean).slice(0, 6);
-  const topicList = [...(args.focusTopics || []), ...topics].filter(Boolean);
-  const scheduleLines = window.events.slice(0, 6).map((event) => {
-    const kind =
-      event.kind === 'progress'
-        ? '进度'
-        : event.kind === 'assignment'
-          ? '作业'
-          : event.kind === 'exam'
-            ? '考试'
-            : '日程';
-    return `- ${event.date} ${kind}: ${event.title}`;
-  });
-  const topicText = topicList.length
-    ? Array.from(new Set(topicList)).join('、')
-    : args.course.courseCode || args.course.name;
-  const constraintsLine = args.constraintsSummary
-    ? `\n\n你补充的约束：${args.constraintsSummary}。我会按这个强度排，临近作业/测验时优先做题和错因整理。`
-    : '';
-  const executionWindow = args.scopeResolution?.executionWindow || null;
-  const planStartDate = executionWindow?.startDate || localDayKey(new Date());
-  const planDays = executionWindow?.days || 7;
-  const planMinutes = executionWindow?.minutesPerDay || 45;
-  const defaultPlanLine = `\n\n活动计划从 ${planStartDate} 开始排，先做 ${planDays} 天、每天约 ${planMinutes} 分钟；如果你要改成 3 天、14 天或每天 20 分钟，可以直接说，我会重排草稿。`;
-  const scopeIntro = `可以。你已经导入 syllabus，所以我把这次的内容范围理解为「${window.label}」，不把它改成今天之后的课程；今天只决定活动从哪天开始执行。`;
-  const reviseLine = '如果真实进度或范围不同，你再改范围就行。';
-
-  if (args.intent.kind === 'preview_plan') {
-    return `${scopeIntro}${reviseLine}\n\n内容范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n先预习这些主题：${topicText}。\n\n活动安排会先以知识点预习为主，中间穿插短练习来检查理解；这不是题库刷题计划，只有你明确要题目时才会进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
-  }
-
-  return `${scopeIntro}${reviseLine}\n\n内容范围：${window.startDate} 到 ${window.endDate}。${constraintsLine}${defaultPlanLine}\n\n复习重点先放在：${topicText}。\n\n活动安排会混合三类任务：知识点复习、短练习、错因整理。刷题只是计划里的活动之一，不会自动变成题库刷题卡；只有你明确说“出题 / 选题 / 刷题”时才进入刷题流。\n\n相关 syllabus 日程：\n${scheduleLines.join('\n')}`;
-}
-
-function buildSyllabusPlanningArtifacts(args: {
-  course: CourseRecord;
-  syllabusEvents: SyllabusCalendarEvent[];
-  intent: PlanningIntent;
-  scopeHint?: LearningPlanningScopeHint | null;
-  scopeResolution?: LearnScopeResolution;
-  focusTopics?: string[];
-  constraintsSummary?: string;
-}): LearnArtifact[] {
-  if (args.intent.kind === 'practice_plan') return [];
-  const window = selectSyllabusPlanningWindow({
-    syllabusEvents: args.syllabusEvents,
-    scopeHint: args.scopeHint,
-    scopeResolution: args.scopeResolution,
-    focusTopics: args.focusTopics,
-  });
-  if (!window) return [];
-  const progressEvents = window.progressEvents.filter((event) => event.kind === 'progress');
-  const baseEvents = progressEvents.length ? progressEvents : window.events.slice(0, 7);
-  const topics = baseEvents
-    .map((event, index) => ({
-      topic: args.focusTopics?.[index] || syllabusTopicLabel(event),
-      event,
-    }))
-    .filter((item) => item.topic.trim())
-    .slice(0, 8);
-  const executionWindow = args.scopeResolution?.executionWindow || null;
-  const startDate = executionWindow?.startDate || localDayKey(new Date());
-  const startDateValue = new Date(`${startDate}T12:00:00`);
-  const defaultDurationMinutes = executionWindow?.minutesPerDay || 45;
-  const items: LearnCalendarDraftItem[] = [];
-  const addItem = (
-    dayOffset: number,
-    title: string,
-    sourceEvents: SyllabusCalendarEvent[],
-    durationMinutes = defaultDurationMinutes,
-  ) => {
-    items.push({
-      id: makeClientId('calendar-draft-item'),
-      title,
-      date: localDayKey(addCalendarDays(startDateValue, dayOffset)),
-      durationMinutes,
-      courseId: args.course.id,
-      reason: sourceEvents.length
-        ? `依据 syllabus：${sourceEvents.map((event) => `${event.date} ${event.title}`).join('；')}`
-        : `依据 syllabus 的${window.label}`,
-    });
-  };
-
-  if (args.intent.kind === 'preview_plan') {
-    topics.slice(0, 5).forEach((item, index) => {
-      addItem(index, `预习：${item.topic}`, [item.event]);
-    });
-    if (topics.length > 1) {
-      addItem(
-        5,
-        `短练习：检查 ${topics
-          .slice(0, 3)
-          .map((item) => item.topic)
-          .join(' / ')}`,
-        [...new Set(topics.slice(0, 3).map((item) => item.event))],
-      );
-    }
-    addItem(6, `整理问题：${window.label}预习清单`, baseEvents.slice(0, 4), 30);
-  } else {
-    topics.slice(0, 2).forEach((item, index) => {
-      addItem(index, `知识点复习：${item.topic}`, [item.event]);
-    });
-    if (topics.length) {
-      addItem(
-        2,
-        `短练习：${topics
-          .slice(0, 2)
-          .map((item) => item.topic)
-          .join(' / ')}`,
-        [...new Set(topics.slice(0, 2).map((item) => item.event))],
-      );
-    }
-    topics.slice(2, 4).forEach((item, index) => {
-      addItem(index + 3, `知识点复习：${item.topic}`, [item.event]);
-    });
-    if (topics.length > 2) {
-      addItem(
-        5,
-        `混合练习：${topics
-          .slice(2, 5)
-          .map((item) => item.topic)
-          .join(' / ')}`,
-        [...new Set(topics.slice(2, 5).map((item) => item.event))],
-      );
-    }
-    addItem(6, `错因整理：${window.label}复习回顾`, baseEvents.slice(0, 5), 30);
-  }
-  if (!items.length) return [];
-  const activityArtifactId = makeClientId('activity-plan-artifact');
-  return [
-    {
-      kind: 'activity_plan',
-      id: activityArtifactId,
-      title: `${args.intent.kind === 'preview_plan' ? '预习' : '复习'}计划：${window.label}`,
-      planType: args.intent.kind === 'preview_plan' ? 'preview' : 'review',
-      tasks: items.map((item) => ({
-        title: item.title,
-        kind:
-          item.title.startsWith('短练习') || item.title.startsWith('混合练习')
-            ? 'practice'
-            : item.title.startsWith('整理') || item.title.startsWith('错因')
-              ? 'reflection'
-              : args.intent.kind === 'preview_plan'
-                ? 'preview'
-                : 'review',
-        minutes: item.durationMinutes,
-        reason: item.reason,
-      })),
-      calendarDraftItems: items,
-      scope: {
-        label: window.label,
-        startDate: window.startDate,
-        endDate: window.endDate,
-        eventIds: window.progressEvents.map((event) => event.id),
-        rationale:
-          args.scopeResolution?.contentScope?.rationale ||
-          `依据 syllabus 中 ${window.startDate} 到 ${window.endDate} 的${window.label}内容。`,
-      },
-    },
-    {
-      kind: 'calendar_draft',
-      id: makeClientId('calendar-draft'),
-      title: `${window.label}日历草稿`,
-      items,
-      sourceArtifactId: activityArtifactId,
-    },
-  ];
-}
-
-function resolveNotebookPlanningScope(args: {
-  notebooks: StageListItem[];
-  action: Extract<PendingCourseAction, { kind: 'review_plan' | 'preview_plan' }>;
-  snapshot: LearnerCourseSnapshot;
-}): {
-  notebooks: StageListItem[];
-  label: string;
-  rationale: string;
-} | null {
-  const ordered = orderedCourseNotebooks(args.notebooks);
-  if (!ordered.length) return null;
-  const prompt = args.action.prompt.toLowerCase();
-  const currentId = args.snapshot.progressNotebookId || args.snapshot.currentNotebook?.id || '';
-  const currentIndex = currentId ? ordered.findIndex((notebook) => notebook.id === currentId) : -1;
-
-  if (/前半|first\s*half|上半/.test(prompt)) {
-    const halfCount = Math.max(1, Math.ceil(ordered.length / 2));
-    return {
-      notebooks: ordered.slice(0, halfCount),
-      label: '前半学期（按课程笔记前半段）',
-      rationale: '没有 syllabus 日程时，先按课程笔记编号取前半段作为内容范围。',
-    };
-  }
-
-  if (/整门|全课|全部|full\s*course/.test(prompt)) {
-    return {
-      notebooks: ordered,
-      label: '整门课',
-      rationale: '按全部课程笔记生成活动计划。',
-    };
-  }
-
-  if (args.action.kind === 'preview_plan') {
-    const start = currentIndex >= 0 ? currentIndex + 1 : 0;
-    const selected = ordered.slice(start, start + 5);
-    return {
-      notebooks: selected.length ? selected : ordered.slice(0, 5),
-      label: currentIndex >= 0 ? '当前进度之后的预习范围' : '课程起始预习范围',
-      rationale: '按刚确认的学习位置，把预习接到当前位置之后。',
-    };
-  }
-
-  if (currentIndex >= 0) {
-    const start = Math.max(0, currentIndex - 5);
-    return {
-      notebooks: ordered.slice(start, currentIndex + 1),
-      label: '当前进度以内的复习范围',
-      rationale: '按刚确认的学习位置，回看当前位置之前的核心内容。',
-    };
-  }
-
-  return {
-    notebooks: ordered.slice(0, 5),
-    label: '课程起始复习范围',
-    rationale: '没有更具体范围时，从课程前几份笔记开始排复习活动。',
-  };
-}
-
-function buildNotebookPlanningFallbackAnswer(args: {
-  course: CourseRecord;
-  notebooks: StageListItem[];
-  action: Extract<PendingCourseAction, { kind: 'review_plan' | 'preview_plan' }>;
-  snapshot: LearnerCourseSnapshot;
-}): string | null {
-  const scope = resolveNotebookPlanningScope(args);
-  if (!scope?.notebooks.length) return null;
-  const planType = args.action.kind === 'preview_plan' ? '预习' : '复习';
-  const topics = scope.notebooks.map((notebook) => notebook.name).slice(0, 6);
-  const first = topics[0];
-  const last = topics[topics.length - 1];
-  const today = localDayKey(new Date());
-  const courseLabel = args.course.courseCode || args.course.name;
-  const rangeLine =
-    first && last && first !== last
-      ? `内容范围：${scope.label}，从《${first}》到《${last}》。`
-      : `内容范围：${scope.label}${first ? `，围绕《${first}》` : ''}。`;
-
-  return [
-    `可以。我先按你刚确认的学习范围给 ${courseLabel} 做一个 ${planType} 活动计划。`,
-    rangeLine,
-    `活动从今天 ${today} 开始排，默认 7 天、每天约 45 分钟；这是一组学习活动，不是题库刷题卡。`,
-    '',
-    `${planType}重点先放在：${topics.join('、')}。`,
-    '',
-    '活动会混合三类任务：知识点梳理、短练习、错因整理。只有你明确说“出题 / 选题 / 刷题”时，才进入正式题库练习流。',
-  ].join('\n');
-}
-
-function buildNotebookPlanningArtifacts(args: {
-  course: CourseRecord;
-  notebooks: StageListItem[];
-  action: Extract<PendingCourseAction, { kind: 'review_plan' | 'preview_plan' }>;
-  snapshot: LearnerCourseSnapshot;
-}): LearnArtifact[] {
-  const scope = resolveNotebookPlanningScope(args);
-  if (!scope?.notebooks.length) return [];
-  const isPreview = args.action.kind === 'preview_plan';
-  const startDateValue = new Date(`${localDayKey(new Date())}T12:00:00`);
-  const defaultDurationMinutes = 45;
-  const items: LearnCalendarDraftItem[] = [];
-  const topicItems = scope.notebooks.slice(0, 6);
-  const addItem = (
-    dayOffset: number,
-    title: string,
-    notebooksForItem: StageListItem[],
-    durationMinutes = defaultDurationMinutes,
-  ) => {
-    items.push({
-      id: makeClientId('calendar-draft-item'),
-      title,
-      date: localDayKey(addCalendarDays(startDateValue, dayOffset)),
-      durationMinutes,
-      courseId: args.course.id,
-      reason: notebooksForItem.length
-        ? `依据课程笔记：${notebooksForItem.map((notebook) => notebook.name).join('；')}`
-        : scope.rationale,
-    });
-  };
-
-  if (isPreview) {
-    topicItems.slice(0, 5).forEach((notebook, index) => {
-      addItem(index, `知识点预习：${notebook.name}`, [notebook]);
-    });
-    if (topicItems.length > 1) {
-      addItem(
-        5,
-        `短练习：检查 ${topicItems
-          .slice(0, 3)
-          .map((item) => item.name)
-          .join(' / ')}`,
-        [...topicItems.slice(0, 3)],
-      );
-    }
-    addItem(6, `整理问题：${scope.label}`, topicItems.slice(0, 4), 30);
-  } else {
-    topicItems.slice(0, 2).forEach((notebook, index) => {
-      addItem(index, `知识点复习：${notebook.name}`, [notebook]);
-    });
-    if (topicItems.length) {
-      addItem(
-        2,
-        `短练习：${topicItems
-          .slice(0, 2)
-          .map((item) => item.name)
-          .join(' / ')}`,
-        [...topicItems.slice(0, 2)],
-      );
-    }
-    topicItems.slice(2, 4).forEach((notebook, index) => {
-      addItem(index + 3, `知识点复习：${notebook.name}`, [notebook]);
-    });
-    if (topicItems.length > 2) {
-      addItem(
-        5,
-        `混合练习：${topicItems
-          .slice(2, 5)
-          .map((item) => item.name)
-          .join(' / ')}`,
-        [...topicItems.slice(2, 5)],
-      );
-    }
-    addItem(6, `错因整理：${scope.label}`, topicItems.slice(0, 5), 30);
-  }
-
-  if (!items.length) return [];
-  const activityArtifactId = makeClientId('activity-plan-artifact');
-  const title = `${isPreview ? '预习' : '复习'}计划：${scope.label}`;
-  return [
-    {
-      kind: 'activity_plan',
-      id: activityArtifactId,
-      title,
-      planType: isPreview ? 'preview' : 'review',
-      tasks: items.map((item) => ({
-        title: item.title,
-        kind:
-          item.title.startsWith('短练习') || item.title.startsWith('混合练习')
-            ? 'practice'
-            : item.title.startsWith('整理') || item.title.startsWith('错因')
-              ? 'reflection'
-              : isPreview
-                ? 'preview'
-                : 'review',
-        minutes: item.durationMinutes,
-        reason: item.reason,
-      })),
-      calendarDraftItems: items,
-      scope: {
-        label: scope.label,
-        startDate: items[0]?.date || localDayKey(new Date()),
-        endDate: items[items.length - 1]?.date || localDayKey(new Date()),
-        eventIds: [],
-        rationale: scope.rationale,
-      },
-    },
-    {
-      kind: 'calendar_draft',
-      id: makeClientId('calendar-draft'),
-      title: `${scope.label}日历草稿`,
-      items,
-      sourceArtifactId: activityArtifactId,
-    },
-  ];
-}
-
-async function loadMemoryPreferredProblemIds(args: {
-  courseId: string;
-  prompt: string;
-}): Promise<string[]> {
-  const prompt = args.prompt.trim();
-  if (!prompt) return [];
-  const params = new URLSearchParams({
-    targetType: 'course',
-    targetId: args.courseId,
-    message: prompt,
-  });
-  try {
-    const data = await backendJson<LearnLayeredMemoryContextResponse>(
-      `/api/memory/context?${params.toString()}`,
-    );
-    return Array.from(new Set((data.knowledgeMatches || []).map((match) => match.id))).slice(0, 20);
-  } catch (error) {
-    console.warn(
-      '[learn] Failed to load memory preferred problem ids:',
-      error instanceof Error ? error.message : error,
-    );
-    return [];
-  }
 }
 
 function announceLearningMemoryUpdated(label: string, descriptionPrefix = '记忆已更新') {
@@ -3177,110 +2215,6 @@ function planIntro(plan: PracticePlan): string {
   const rationale = plan.evidence?.rationale?.slice(0, 2) || [];
   if (!rationale.length) return base;
   return `${base}\n\n为什么这样排：\n${rationale.map((line, index) => `${index + 1}. ${line}`).join('\n')}`;
-}
-
-function conceptSentence(concepts: string[], fallback: string): string {
-  const selected = concepts.filter(Boolean).slice(0, 5);
-  return selected.length > 0 ? selected.join('、') : fallback;
-}
-
-function buildLocalLearningAnswer(args: {
-  text: string;
-  course: CourseRecord;
-  snapshot: LearnerCourseSnapshot;
-  state: LearnerCourseState;
-  answererHandoff?: CourseChatContext['answererHandoff'];
-}): string | null {
-  const handoffText = [
-    args.answererHandoff?.reasonSummary,
-    ...(args.answererHandoff?.requiredBehavior || []),
-    ...(args.answererHandoff?.missingEvidence || []),
-  ]
-    .filter(Boolean)
-    .join('\n');
-  if (
-    /(uploaded source|source evidence|RAG|cite|notebook|problem-bank|题库|原文|来源)/i.test(
-      handoffText,
-    )
-  ) {
-    return null;
-  }
-
-  const normalized = args.text.toLowerCase();
-  if (!args.snapshot.progressKnown && needsProgressConfirmation(args.text)) {
-    return null;
-  }
-
-  const currentNotebook = args.snapshot.currentNotebook?.name;
-  const progressTarget = currentNotebook ? `《${currentNotebook}》` : args.snapshot.progressLabel;
-  const weakConcepts = args.snapshot.weakConcepts.length
-    ? args.snapshot.weakConcepts
-    : args.snapshot.nextConcepts;
-  const weakCopy = conceptSentence(weakConcepts, args.course.courseCode || args.course.name);
-  const hasProblemBank = args.snapshot.totalProblemCount > 0;
-  const progressLine = currentNotebook
-    ? `当前定位在《${currentNotebook}》，课程进度约 ${args.snapshot.progressPercent}%，已做 ${args.snapshot.attemptedProblemCount}/${args.snapshot.totalProblemCount} 道题。`
-    : `当前进度是：${progressTarget || '已确认'}，课程进度约 ${args.snapshot.progressPercent}%，已做 ${args.snapshot.attemptedProblemCount}/${args.snapshot.totalProblemCount} 道题。`;
-  const reviewTarget = currentNotebook
-    ? `《${currentNotebook}》的定义和例子`
-    : `${args.course.courseCode || args.course.name} 的入门目标和第一组核心概念`;
-  const previewTopics = conceptSentence(
-    args.snapshot.nextConcepts.length ? args.snapshot.nextConcepts : weakConcepts,
-    args.course.courseCode || args.course.name,
-  );
-
-  if (isWeaknessStatusQuery(args.text)) {
-    const recentMisses = args.state.recentProblemAttempts
-      .filter((attempt) => attempt.status !== 'passed')
-      .slice(0, 2)
-      .map((attempt) => `《${attempt.problemTitle}》`);
-    if (!args.snapshot.weakConcepts.length && !recentMisses.length) {
-      const scope = currentNotebook
-        ? `当前定位在《${currentNotebook}》`
-        : args.snapshot.progressKnown
-          ? `当前进度是：${progressTarget || '已确认'}`
-          : '目前还没有确认学习进度';
-      const diagnosticTarget = weakConcepts.length
-        ? hasProblemBank
-          ? `可以先从课程题库里围绕 ${weakCopy} 开一组小诊断`
-          : `当前没有可用题库；可以先围绕 ${weakCopy} 做口头自检，或先导入题库后再测`
-        : hasProblemBank
-          ? '可以先从课程题库开一组 5-8 题的小诊断'
-          : '当前没有可用题库，所以先做概念口头自检，不能假装已经有题库诊断';
-      return `${scope}，但我还没有记录到明确的错题、半对题或薄弱点证据，所以不能硬编薄弱项。\n\n${diagnosticTarget}。做完后我会先整理错因和薄弱点；需要写入记忆时，会让你确认后再写入。`;
-    }
-    const evidence =
-      recentMisses.length > 0
-        ? `依据最近的 ${recentMisses.join('、')}。`
-        : currentNotebook
-          ? '目前做题证据还不多，所以先按当前笔记本、题库标签和学习进度判断。'
-          : '目前做题证据还不多，所以先按课程标签、入门范围和学习进度判断。';
-    return `目前最需要补的是：${weakCopy}。\n\n${evidence}\n\n建议先做小范围复习：把这些概念各用一句话解释清楚，再做少量对应题。如果做题结果继续显示不稳，我会把它们加入待复习队列。`;
-  }
-
-  if (/(学到哪里|学到哪|进度|当前状态|学习状态|目前.*哪里|现在.*哪里)/.test(normalized)) {
-    return `${progressLine}\n\n下一步不要全量重刷，先围绕 ${conceptSentence(
-      args.snapshot.nextConcepts,
-      '当前笔记本的核心概念',
-    )} 复习；如果你完成一组题，我会用新的做题结果更新这个判断。`;
-  }
-
-  if (/(预习|提前学|提前看|先学|先看.*提纲|preview|pre[-\s]?study|study ahead)/i.test(normalized)) {
-    return `${progressLine}\n\n预习可以这样排：\n1. 先用 10 分钟扫一遍 ${previewTopics} 的标题、定义和例子，只标出看不懂的词。\n2. 再用 20 分钟按“概念 → 例子 → 小练习”的顺序做提纲，不急着完整刷题。\n3. 最后用 10 分钟写下 2-3 个问题，下次正式学习时优先解决这些卡点。`;
-  }
-
-  if (
-    /(安排.*复习|今天.*复习|复习安排|复习计划|学习计划|制定.*计划|制定.*复习|怎么复习|该复习|复习什么|复习哪些|复习.*知识点|补.*知识点|下一步)/.test(
-      normalized,
-    )
-  ) {
-    const diagnosticStep = hasProblemBank
-      ? '最后从课程题库开一组对应诊断题，做完后我会按结果更新薄弱点和下一轮复习范围。'
-      : '最后做 5 分钟口头自检，或者把一道课后题/作业题发给我；当前没有可用题库，所以我不会假装从题库抽题。';
-    return `${progressLine}\n\n今天按这个顺序来：\n1. 先用 10 分钟回看 ${reviewTarget}。\n2. 再用 20 分钟集中复习 ${weakCopy}，只看相关小节。\n3. ${diagnosticStep}`;
-  }
-
-  return null;
 }
 
 function buildLearnerChatContext(args: {
@@ -3593,7 +2527,6 @@ function miniLecturePage(args: {
 
 function isMiniLectureCandidate(question: string, answer: string): boolean {
   if (answer.trim().length < 120) return false;
-  if (detectPlanningIntent(question)) return false;
   if (
     /(学到哪里|学习状态|当前状态|进度|复习计划|学习计划|刷题计划|小测|quiz|test)/i.test(question)
   ) {
@@ -3966,425 +2899,6 @@ function activeActivityArtifactFromEvent(args: {
     rawText: args.event.rawText || undefined,
     startedAt: Date.now(),
   };
-}
-
-function calendarActivityTopic(event: SyllabusCalendarEvent): string {
-  let topic = event.title.trim();
-  const prefixes = [
-    '知识点复习',
-    '知识点预习',
-    '短练习',
-    '混合练习',
-    '错因整理',
-    '预习',
-    '复习',
-    '练习',
-    '阅读',
-    '回顾',
-  ];
-  for (const prefix of prefixes) {
-    if (topic.startsWith(prefix)) {
-      topic = topic.slice(prefix.length).trim();
-      if (topic.startsWith('：') || topic.startsWith(':')) {
-        topic = topic.slice(1).trim();
-      }
-      break;
-    }
-  }
-  return topic || event.title;
-}
-
-function isExecutableStudyCalendarEvent(event: SyllabusCalendarEvent): boolean {
-  if (event.origin === 'ai_plan' || event.origin === 'practice') return true;
-  return event.kind === 'progress';
-}
-
-function normalizeActivityExecutionAnswer(text: string): string {
-  return text
-    .replace(/\$\$([\s\S]*?)\$\$/g, (_, content: string) => content.trim())
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_, content: string) => content.trim())
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_, content: string) => content.trim())
-    .replace(/\$([^$\n]+)\$/g, (_, content: string) => content.trim())
-    .replace(/\[blocked\]/gi, '')
-    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1) / ($2)')
-    .replace(/\\Delta/g, 'Δ')
-    .replace(/\\times/g, '×')
-    .replace(/\\cdot/g, '·')
-    .replace(/\\infty/g, '∞')
-    .replace(/\\int/g, '∫')
-    .replace(/\\sum/g, 'sum')
-    .replace(/\\left/g, '')
-    .replace(/\\right/g, '')
-    .replace(/\\,/g, '')
-    .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
-    .replace(/\\text\{([^{}]+)\}/g, '$1')
-    .replace(/\^\{([^{}]+)\}/g, '^$1')
-    .replace(/_\{([^{}]+)\}/g, '_$1')
-    .replace(/\\([A-Za-z]+)/g, '$1')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function activityTopicMatchesText(topic: string, text: string): boolean {
-  const normalizedTopic = normalizeProgressText(topic);
-  const normalizedText = normalizeProgressText(text);
-  if (!normalizedTopic || !normalizedText) return false;
-  if (normalizedText.includes(normalizedTopic) || normalizedTopic.includes(normalizedText)) {
-    return true;
-  }
-  const topicTokens = normalizedTopic
-    .split(/\s+|[-–—_:：/]+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length >= 3 && !/^\d+$/.test(token));
-  return topicTokens.some((token) => normalizedText.includes(token));
-}
-
-function buildActivityHistorySummary(args: { state: LearnerCourseState; topic: string }): string {
-  const weakMatches = args.state.activeWeakPoints
-    .filter((weakPoint) => weakPoint.status !== 'resolved')
-    .filter((weakPoint) =>
-      activityTopicMatchesText(
-        args.topic,
-        [weakPoint.concept, weakPoint.title, weakPoint.evidence].join(' '),
-      ),
-    )
-    .slice(0, 3);
-  const attemptMatches = args.state.recentProblemAttempts
-    .filter((attempt) => attempt.status !== 'passed')
-    .filter((attempt) =>
-      activityTopicMatchesText(args.topic, [attempt.problemTitle, ...attempt.concepts].join(' ')),
-    )
-    .slice(0, 3);
-
-  if (weakMatches.length || attemptMatches.length) {
-    const weakLine = weakMatches.length
-      ? `薄弱点：${weakMatches.map((item) => item.title || item.concept).join('；')}`
-      : '';
-    const attemptLine = attemptMatches.length
-      ? `错题/半对题：${attemptMatches
-          .map((item) => `${item.problemTitle}（${item.status}）`)
-          .join('；')}`
-      : '';
-    return [
-      `我先查了你的历史，这个活动会优先处理你在「${args.topic}」附近暴露过的问题。`,
-      weakLine,
-      attemptLine,
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
-
-  const hasAnyHistory =
-    args.state.activeWeakPoints.some((weakPoint) => weakPoint.status !== 'resolved') ||
-    args.state.recentProblemAttempts.length > 0;
-  if (hasAnyHistory) {
-    return `我先查了你的历史，但没有找到「${args.topic}」这个知识点的明确错题或薄弱点记录。`;
-  }
-  return `我先查了你的历史，目前还没有「${args.topic}」相关的错题、半对题或薄弱点记录。`;
-}
-
-function buildConcreteMathActivityContent(args: {
-  event: SyllabusCalendarEvent;
-  topic: string;
-  duration: number;
-  basis: string;
-  historySummary?: string;
-  diagnosticPlan?: PracticePlan | null;
-  hasProblemBank?: boolean;
-}): string | null {
-  const topic = args.topic.toLowerCase();
-  const basis = args.basis ? `\n依据：${args.basis}` : '';
-  const history = args.historySummary ? `\n\n历史检查：\n${args.historySummary}` : '';
-  const diagnostic =
-    args.diagnosticPlan && args.diagnosticPlan.problemIds.length > 0
-      ? `\n\n题库诊断：\n我不会在这里临时编题。下面已经给你开了一个来自课程题库的「${args.diagnosticPlan.title}」，共 ${args.diagnosticPlan.problemIds.length} 题。点卡片里的“开始”进入题库小测；做完后我再根据结果更新薄弱点和下一步复习。`
-      : args.hasProblemBank
-        ? '\n\n题库诊断：\n我看到了课程题库，但这次没能生成稳定的题库诊断卡，先不冒充题库题。你可以先确认学习进度或明确题型，我再从题库里选。'
-        : '\n\n题库诊断：\n这门课当前没有可用题库，所以我不会假装从题库出题。可以先做概念口头自检；要正式测试，需要先导入或发布题库。';
-
-  if (/换元|substitution|u-sub|u\s*sub/.test(topic)) {
-    return [
-      `开始活动：${args.event.title}`,
-      '',
-      `这次用 ${args.duration} 分钟复习换元法。${basis}`,
-      history,
-      '',
-      '这次目标：看到“里面一个函数，外面套一个函数，旁边还出现里面函数的导数”时，能主动想到换元。',
-      '',
-      '核心抓手：',
-      '1. 先选 u：通常选复杂的内层表达式，例如 x * x + 1、sin x、1 + exp(x)。',
-      '2. 再配 du：检查题目里有没有 u 的导数；差一个常数可以补，差一个变量通常要换想法。',
-      '3. 定积分换元时，上下限也要换成 u 的范围，避免最后再换回 x 出错。',
-      diagnostic,
-    ].join('\n');
-  }
-
-  if (/定积分|矩形|基本定理|definite|riemann|approximating/.test(topic)) {
-    return [
-      `开始活动：${args.event.title}`,
-      '',
-      `这次用 ${args.duration} 分钟把“定积分”从图像直觉连到可计算方法。${basis}`,
-      history,
-      '',
-      '这次目标：看到“累计量 / 曲边面积 / 从变化率求总变化”时，能判断它是不是定积分问题，并能写出第一步。',
-      '',
-      '核心抓手：',
-      '1. 矩形近似：先把曲边下面的区域切成很多窄矩形，用高度乘宽度近似面积。',
-      '2. 黎曼和：把这些小矩形面积相加；当切得越来越细，和的极限就是定积分。',
-      '3. 定积分的符号：区间 [a, b] 决定宽度，函数 f(x) 决定高度，结果可以是带符号的累计量。',
-      '4. 基本定理：如果 F 的导数是 f，那么从 a 到 b 的 f 的定积分等于 F(b) - F(a)。',
-      diagnostic,
-    ].join('\n');
-  }
-
-  if (/面积|体积|volume|area|切片|旋转/.test(topic)) {
-    return [
-      `开始活动：${args.event.title}`,
-      '',
-      `这次用 ${args.duration} 分钟复习积分应用。${basis}`,
-      history,
-      '',
-      '这次目标：先把几何量翻译成“一个小片的量”，再把小片累加成积分。',
-      '',
-      '核心抓手：',
-      '1. 面积题先判断上下函数或左右函数，别急着积分。',
-      '2. 体积题先判断切片方向，再写单个切片面积 A(x) 或 A(y)。',
-      '3. 旋转体常见错在半径、内外半径和积分区间。',
-      diagnostic,
-    ].join('\n');
-  }
-
-  return null;
-}
-
-function buildCalendarActivityExecutionFallback(args: {
-  event: SyllabusCalendarEvent;
-  course: CourseRecord | null;
-  isResearchCourse: boolean;
-  historySummary?: string;
-  diagnosticPlan?: PracticePlan | null;
-  hasProblemBank?: boolean;
-}): string {
-  const topic = calendarActivityTopic(args.event);
-  const duration = args.event.durationMinutes || 45;
-  const basis = args.event.rawText ? `\n依据：${args.event.rawText}` : '';
-  if (args.isResearchCourse) {
-    return `开始活动：${args.event.title}\n\n这次先按 ${duration} 分钟推进。${basis}\n\n1. 先用 5 分钟明确本次要产出的结果。\n2. 用主要时间完成最小可交付版本。\n3. 最后写下一个结果、一个阻塞点和下一步。\n\n把你的产出或卡住的地方发我，我继续帮你往下推。`;
-  }
-  const concreteMathContent = buildConcreteMathActivityContent({
-    event: args.event,
-    topic,
-    duration,
-    basis: args.event.rawText || args.event.sourceName || '',
-    historySummary: args.historySummary,
-    diagnosticPlan: args.diagnosticPlan,
-    hasProblemBank: args.hasProblemBank,
-  });
-  if (concreteMathContent) return concreteMathContent;
-  const history = args.historySummary ? `\n\n历史检查：\n${args.historySummary}` : '';
-  const diagnostic =
-    args.diagnosticPlan && args.diagnosticPlan.problemIds.length > 0
-      ? `\n\n题库诊断：\n下面已经给你开了一个来自课程题库的「${args.diagnosticPlan.title}」，共 ${args.diagnosticPlan.problemIds.length} 题。点卡片里的“开始”进入题库小测。`
-      : args.hasProblemBank
-        ? '\n\n题库诊断：\n我看到了课程题库，但这次没能生成稳定的题库诊断卡，所以先不编题。'
-        : '\n\n题库诊断：\n这门课当前没有可用题库，我不会假装从题库出题。';
-  return `开始活动：${args.event.title}\n\n这次不重新规划，直接做 ${duration} 分钟的「${topic}」。${basis}${history}\n\n这次目标：把这个知识点从“听过”推进到“能判断题型并开始动手”。\n\n核心抓手：\n1. 它解决什么问题：把抽象对象转成可以计算、比较或判断的对象。\n2. 它怎么启动：先找到题目给出的对象、区间、条件或目标。\n3. 它怎么检查：做完后问自己方法为什么适用，条件有没有漏掉。${diagnostic}`;
-}
-
-function buildActivityExecutionContext(args: {
-  event: SyllabusCalendarEvent;
-  course: CourseRecord | null;
-  notebooks: StageListItem[];
-  problems: CourseProblemClientSummary[];
-  state: LearnerCourseState;
-  userId: string;
-}): {
-  topic: string;
-  historySummary: string;
-  diagnosticPlan: PracticePlan | null;
-  hasProblemBank: boolean;
-} {
-  const topic = calendarActivityTopic(args.event);
-  const historySummary = buildActivityHistorySummary({
-    state: args.state,
-    topic,
-  });
-  const hasProblemBank = args.problems.some((problem) => problem.status !== 'archived');
-  let diagnosticPlan: PracticePlan | null = null;
-
-  if (args.course && hasProblemBank) {
-    const preferredProblemIds = args.problems
-      .filter((problem) =>
-        activityTopicMatchesText(
-          topic,
-          [problem.title, problem.notebookName, ...problem.tags].join(' '),
-        ),
-      )
-      .map((problem) => problem.id)
-      .slice(0, 12);
-    const plan = createPracticePlan({
-      userId: args.userId || 'anonymous',
-      course: args.course,
-      notebooks: args.notebooks,
-      problems: args.problems,
-      mode: 'quiz',
-      prompt: `开始活动前的题库诊断：${topic}`,
-      targetCount: 4,
-      preferredConcepts: [topic],
-      preferredProblemIds,
-      stateOverride: args.state,
-    });
-    if (plan?.problemIds.length) {
-      diagnosticPlan = savePracticePlan({
-        ...plan,
-        title: `${topic} 诊断小测`,
-        estimatedMinutes: Math.max(12, Math.min(25, plan.estimatedMinutes)),
-        updatedAt: Date.now(),
-      });
-    }
-  }
-
-  return {
-    topic,
-    historySummary,
-    diagnosticPlan,
-    hasProblemBank,
-  };
-}
-
-function isActivityExecutionFollowUp(text: string): boolean {
-  const normalized = text.trim();
-  if (!normalized) return false;
-  if (
-    /(规划|制定|安排|计划|加入日历|添加到日历|删除|修改|顺延|题库|出题|选题|刷题|小测)/.test(
-      normalized,
-    )
-  ) {
-    return false;
-  }
-  return /(开始|开工|继续|执行|进入|最近活动|这个活动|这次活动|刚才那个|第一个|第一项|第一节|先做哪个|怎么复习|怎么学|怎么做|应该怎么复习|应该怎么学)/.test(
-    normalized,
-  );
-}
-
-function activityIndexFromText(text: string): number {
-  if (/(第二|第2|2\s*(个|项|节)|second)/i.test(text)) return 1;
-  if (/(第三|第3|3\s*(个|项|节)|third)/i.test(text)) return 2;
-  if (/(第四|第4|4\s*(个|项|节)|fourth)/i.test(text)) return 3;
-  return 0;
-}
-
-function latestActivityArtifact(messages: LearnMessage[]) {
-  for (const message of messages.slice().reverse()) {
-    const artifact = message.artifacts
-      ?.slice()
-      .reverse()
-      .find(
-        (item): item is Extract<LearnArtifact, { kind: 'active_activity' }> =>
-          item.kind === 'active_activity',
-      );
-    if (artifact) return artifact;
-  }
-  return null;
-}
-
-function latestCalendarDraftItems(messages: LearnMessage[]): LearnCalendarDraftItem[] {
-  for (const message of messages.slice().reverse()) {
-    const artifacts = message.artifacts?.slice().reverse() || [];
-    for (const artifact of artifacts) {
-      if (artifact.kind === 'calendar_draft' && artifact.items.length) return artifact.items;
-      if (artifact.kind === 'activity_plan' && artifact.calendarDraftItems?.length) {
-        return artifact.calendarDraftItems;
-      }
-      if (artifact.kind === 'review_plan' && artifact.calendarDraftItems?.length) {
-        return artifact.calendarDraftItems;
-      }
-    }
-  }
-  return [];
-}
-
-function calendarDraftItemToEvent(
-  item: LearnCalendarDraftItem,
-  course: CourseRecord,
-): SyllabusCalendarEvent {
-  const date = item.date || localDayKey(new Date());
-  return {
-    id: item.eventId || item.id || makeClientId('calendar-draft-activity'),
-    title: item.title,
-    kind: 'progress',
-    date,
-    sourceName: 'AI 学习活动',
-    createdAt: Date.now(),
-    origin: 'ai_plan',
-    durationMinutes: item.durationMinutes,
-    sourceRef: { type: 'plan', id: item.id || item.eventId || date },
-    rawText: item.reason || `来自 ${course.courseCode || course.name} 的活动计划草稿`,
-  };
-}
-
-function activeActivityArtifactToEvent(
-  artifact: Extract<LearnArtifact, { kind: 'active_activity' }>,
-): SyllabusCalendarEvent {
-  return {
-    id: artifact.sourceId || artifact.activityId,
-    title: artifact.title,
-    kind: artifact.eventKind || 'progress',
-    date: artifact.date,
-    sourceName: artifact.courseCode || artifact.courseName || '课程日历',
-    createdAt: artifact.startedAt || Date.now(),
-    origin: artifact.origin || 'ai_plan',
-    durationMinutes: artifact.durationMinutes,
-    rawText: artifact.rawText || null,
-  };
-}
-
-function resolveActivityExecutionEvent(args: {
-  questionText: string;
-  messages: LearnMessage[];
-  statusCalendarActivities: StatusCalendarActivity[];
-  syllabusEvents: SyllabusCalendarEvent[];
-  course: CourseRecord;
-}): SyllabusCalendarEvent | null {
-  if (!isActivityExecutionFollowUp(args.questionText)) return null;
-  const normalized = args.questionText.trim();
-  const index = activityIndexFromText(normalized);
-  const executableStatusEvents = args.statusCalendarActivities
-    .map((activity) => activity.event || null)
-    .filter((event): event is SyllabusCalendarEvent => {
-      if (!event) return false;
-      return isExecutableStudyCalendarEvent(event);
-    });
-
-  if (/(最近活动|今天.*活动|开始活动|开始最近|最近的|下一个|下一项)/.test(normalized)) {
-    const statusEvent = executableStatusEvents[0];
-    if (statusEvent) return statusEvent;
-  }
-
-  const activeArtifact = latestActivityArtifact(args.messages);
-  if (activeArtifact && !/(第一个|第一项|第一节|第二|第三|第四|第2|第3|第4)/.test(normalized)) {
-    const existing = args.syllabusEvents.find(
-      (event) => event.id === activeArtifact.activityId || event.id === activeArtifact.sourceId,
-    );
-    return existing || activeActivityArtifactToEvent(activeArtifact);
-  }
-
-  const draftItems = latestCalendarDraftItems(args.messages);
-  const draftItem = draftItems[index] || draftItems[0];
-  if (draftItem) return calendarDraftItemToEvent(draftItem, args.course);
-
-  const statusEvent = executableStatusEvents[index] || executableStatusEvents[0];
-  if (statusEvent) return statusEvent;
-
-  if (activeArtifact) {
-    const existing = args.syllabusEvents.find(
-      (event) => event.id === activeArtifact.activityId || event.id === activeArtifact.sourceId,
-    );
-    return existing || activeActivityArtifactToEvent(activeArtifact);
-  }
-
-  return null;
 }
 
 function inferSyllabusEventKind(line: string): SyllabusEventKind {
@@ -8149,86 +6663,123 @@ export function LearnPageClient() {
         course: activeCourse,
       });
       const messageId = makeClientId('assistant-calendar-activity-start');
-      const currentState =
-        activeCourse && isExecutableStudyCalendarEvent(event)
-          ? loadLearnerCourseState({
-              userId: localUserId,
-              courseId: activeCourse.id,
-            })
-          : null;
-      const activityContext = currentState
-        ? buildActivityExecutionContext({
-            event,
-            course: activeCourse,
-            notebooks,
-            problems,
-            state: currentState,
-            userId: localUserId,
-          })
-        : {
-            historySummary: '',
-            diagnosticPlan: null,
-            hasProblemBank: problems.some((problem) => problem.status !== 'archived'),
-          };
-      if (activityContext.diagnosticPlan) {
-        void saveRemotePracticePlan(activityContext.diagnosticPlan);
-        setRecentPlans((current) =>
-          mergePlans([activityContext.diagnosticPlan as PracticePlan], current).slice(0, 4),
-        );
-      }
-      const fallbackText = buildCalendarActivityExecutionFallback({
-        event,
-        course: activeCourse,
-        isResearchCourse,
-        historySummary: activityContext.historySummary,
-        diagnosticPlan: activityContext.diagnosticPlan,
-        hasProblemBank: activityContext.hasProblemBank,
-      });
-
-      if (!isExecutableStudyCalendarEvent(event) || !activeCourse) {
+      if (!activeCourse) {
         setMessages((current) => [
           ...current,
           {
             id: messageId,
             role: 'assistant',
-            text: isExecutableStudyCalendarEvent(event)
-              ? fallbackText
-              : buildCalendarActivityStartText({
-                  event,
-                  course: activeCourse,
-                  isResearchCourse,
-                }),
+            text: buildCalendarActivityStartText({
+              event,
+              course: activeCourse,
+              isResearchCourse,
+            }),
             createdAt: Date.now(),
-            plan: isExecutableStudyCalendarEvent(event)
-              ? activityContext.diagnosticPlan || undefined
-              : undefined,
             artifacts: [activeArtifact],
           },
         ]);
         return;
       }
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: messageId,
-          role: 'assistant',
-          text: normalizeActivityExecutionAnswer(fallbackText),
-          createdAt: Date.now(),
-          plan: activityContext.diagnosticPlan || undefined,
-          artifacts: [activeArtifact],
-        },
-      ]);
-      return;
+      setSending(true);
+      try {
+        const currentState = loadLearnerCourseState({
+          userId: localUserId,
+          courseId: activeCourse.id,
+        });
+        const currentSnapshot = summarizeLearnerCourseState({
+          state: currentState,
+          notebooks,
+          problems,
+        });
+        const activityQuestion = [
+          `开始日历活动：${event.title}`,
+          `日期：${event.date}`,
+          `类型：${scheduleEventLabel(event.kind, isResearchCourse)}`,
+          event.durationMinutes ? `预计时长：${event.durationMinutes} 分钟` : '',
+          event.rawText ? `来源内容：${event.rawText}` : '',
+          '请直接带我执行这个活动；如果需要题库、日历或记忆操作，请返回结构化 action/artifact。',
+        ]
+          .filter(Boolean)
+          .join('\n');
+        const learnTurn = await planLearnTurn({
+          question: activityQuestion,
+          messages,
+          course: activeCourse,
+          snapshot: currentSnapshot,
+          calendarEvents: syllabusEvents,
+          recentActivities: statusCalendarActivities,
+          recentPlans,
+          problems,
+          sourceUploads: courseSourceUploads,
+          providerId,
+          modelId,
+        });
+        const artifacts = [
+          activeArtifact,
+          ...(learnTurn?.artifacts || [])
+            .map(normalizeLearnArtifact)
+            .filter((artifact): artifact is LearnArtifact => Boolean(artifact)),
+        ];
+        const learningActions = [
+          ...(learnTurn?.proposals || []),
+          ...(learnTurn?.directCalls || []),
+        ].map((learnAction) =>
+          learnActionToClientAction({
+            action: learnAction,
+            id: makeClientId('learn-action'),
+            defaultConfirmation: learnActionRequiresConfirmation(learnAction.kind)
+              ? 'required'
+              : 'none',
+          }),
+        );
+        const text = learnTurn?.replyText?.trim() || '';
+        if (!text && artifacts.length <= 1 && !learningActions.length) {
+          throw new Error('AI 没有返回可展示的活动执行内容。');
+        }
+        setMessages((current) => [
+          ...current,
+          {
+            id: messageId,
+            role: 'assistant',
+            text,
+            createdAt: Date.now(),
+            learningActions: learningActions.length ? learningActions : undefined,
+            artifacts,
+          },
+        ]);
+        refreshLearnerSnapshot();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '活动执行失败';
+        setMessages((current) => [
+          ...current,
+          {
+            id: messageId,
+            role: 'assistant',
+            text: `${message}。我没有使用本地活动兜底，请稍后重试或换一个模型。`,
+            createdAt: Date.now(),
+            artifacts: [activeArtifact],
+          },
+        ]);
+      } finally {
+        setSending(false);
+      }
     },
     [
       activeCourse,
+      courseSourceUploads,
       isResearchCourse,
       localUserId,
+      messages,
+      modelId,
       notebooks,
       problems,
+      providerId,
+      recentPlans,
+      refreshLearnerSnapshot,
       router,
       sending,
+      statusCalendarActivities,
       syllabusEvents,
     ],
   );
@@ -8275,14 +6826,9 @@ export function LearnPageClient() {
               rawText: event.rawText,
               confidence: event.confidence,
             }));
-          } catch {
-            setSyllabusImportMessage('AI 读取失败，正在用文本解析兜底...');
-            const text = await readSyllabusFileText(file, {
-              pdfProviderId,
-              pdfProviderConfig,
-            });
-            parsedEvents = parseSyllabusEventsFromText(text, file.name);
-            parseWarnings = ['AI 文件读取失败，已使用文本解析兜底。'];
+          } catch (error) {
+            const message = error instanceof Error ? error.message : '未知错误';
+            throw new Error(`AI 读取 syllabus PDF 失败：${message}`);
           }
         } else {
           const text = await readSyllabusFileText(file, {
@@ -9395,7 +7941,7 @@ export function LearnPageClient() {
         });
       } catch (error) {
         console.warn(
-          '[learn] evidence-based review plan unavailable, falling back locally:',
+          '[learn] evidence-based review plan unavailable:',
           error instanceof Error ? error.message : error,
         );
         return null;
@@ -9414,28 +7960,14 @@ export function LearnPageClient() {
       setSending(true);
       if (action.kind === 'practice_plan') {
         try {
-          const preferredProblemIds = await loadMemoryPreferredProblemIds({
-            courseId: activeCourse.id,
-            prompt: action.prompt,
-          });
           const evidencePlan = await buildEvidenceBasedPlan({
             mode: action.mode,
             prompt: action.prompt,
             stateOverride: nextState,
             snapshotOverride: nextSnapshot,
           });
-          const plan =
-            evidencePlan ||
-            buildPlan(
-              action.mode,
-              action.prompt,
-              undefined,
-              undefined,
-              nextState,
-              preferredProblemIds,
-            );
-          if (plan) {
-            addAssistantPlan(plan);
+          if (evidencePlan) {
+            addAssistantPlan(evidencePlan);
             return;
           }
           setMessages((current) => [
@@ -9443,7 +7975,7 @@ export function LearnPageClient() {
             {
               id: makeClientId('assistant-plan-empty'),
               role: 'assistant',
-              text: '进度已经更新，但这门课当前没有足够题目生成计划。你可以先问我整理复习重点。',
+              text: '进度已经更新，但 AI 没有返回可用的练习计划。我没有使用本地计划兜底，请重试一次或换一个模型。',
               createdAt: Date.now(),
             },
           ]);
@@ -9453,95 +7985,62 @@ export function LearnPageClient() {
         return;
       }
 
-      const planVerbPhrase = action.kind === 'preview_plan' ? '安排预习计划' : '安排复习';
       const messagePrefix =
         action.kind === 'preview_plan' ? 'assistant-preview-plan' : 'assistant-review-plan';
-      const notebookArtifacts = buildNotebookPlanningArtifacts({
-        course: activeCourse,
-        notebooks,
-        action,
-        snapshot: nextSnapshot,
-      });
-      const notebookAnswer = buildNotebookPlanningFallbackAnswer({
-        course: activeCourse,
-        notebooks,
-        action,
-        snapshot: nextSnapshot,
-      });
-      if (notebookAnswer && notebookArtifacts.length) {
-        const calendarAddAction = createCalendarAddActionFromArtifacts({
-          artifacts: notebookArtifacts,
-          id: makeClientId('calendar-add-action'),
-        });
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId(messagePrefix),
-            role: 'assistant',
-            text: notebookAnswer,
-            createdAt: Date.now(),
-            artifacts: notebookArtifacts,
-            learningActions: calendarAddAction ? [calendarAddAction] : undefined,
-          },
-        ]);
-        refreshLearnerSnapshot();
-        setSending(false);
-        return;
-      }
 
       try {
-        const result = await askCourseOrchestrator({
-          courseId: activeCourse.id,
-          courseName: activeCourse.name,
+        const learnTurn = await planLearnTurn({
           question: action.prompt,
-          orchestratorAvatarUrl: activeCourse.avatarUrl,
-          learnerContext: buildLearnerChatContext({
-            snapshot: nextSnapshot,
-            state: nextState,
-            plans: recentPlans,
-            syllabusEvents,
-          }),
-          userProfile: { nickname: userName },
+          messages,
+          course: activeCourse,
+          snapshot: nextSnapshot,
+          calendarEvents: syllabusEvents,
+          recentActivities: statusCalendarActivities,
+          recentPlans,
+          problems,
+          sourceUploads: courseSourceUploads,
+          providerId,
+          modelId,
         });
-        const answer = normalizeCourseAssistantAnswer(
-          latestAssistantText(result.messages) ||
-            result.answer ||
-            buildLocalLearningAnswer({
-              text: action.prompt,
-              course: activeCourse,
-              snapshot: nextSnapshot,
-              state: nextState,
-            }) ||
-            `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} ${planVerbPhrase}。`,
+        const artifacts = (learnTurn?.artifacts || [])
+          .map(normalizeLearnArtifact)
+          .filter((artifact): artifact is LearnArtifact => Boolean(artifact));
+        const learningActions = [
+          ...(learnTurn?.proposals || []),
+          ...(learnTurn?.directCalls || []),
+        ].map((learnAction) =>
+          learnActionToClientAction({
+            action: learnAction,
+            id: makeClientId('learn-action'),
+            defaultConfirmation: learnActionRequiresConfirmation(learnAction.kind)
+              ? 'required'
+              : 'none',
+          }),
         );
+        const text = learnTurn?.replyText?.trim() || '';
+        if (!text && !artifacts.length && !learningActions.length) {
+          throw new Error('AI 没有返回可展示的计划草稿。');
+        }
         setMessages((current) => [
           ...current,
           {
             id: makeClientId(messagePrefix),
             role: 'assistant',
-            text: answer,
+            text,
             createdAt: Date.now(),
+            artifacts: artifacts.length ? artifacts : undefined,
+            learningActions: learningActions.length ? learningActions : undefined,
           },
         ]);
         refreshLearnerSnapshot();
-      } catch {
-        const answer = normalizeCourseAssistantAnswer(
-          buildLocalLearningAnswer({
-            text: action.prompt,
-            course: activeCourse,
-            snapshot: nextSnapshot,
-            state: nextState,
-          }) ||
-            (action.kind === 'preview_plan'
-              ? `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排预习。\n\n1. 先用 10 分钟扫一遍下一段的标题、定义和例子。\n2. 再用 20 分钟整理概念提纲，只标出还没懂的词和步骤。\n3. 最后用 10 分钟写下 2-3 个问题，正式学习时优先解决。`
-              : `已按 ${nextSnapshot.progressLabel || '刚确认的范围'} 安排复习。\n\n1. 先用 10 分钟回看这一段的核心定义和例子。\n2. 再用 20 分钟只复习相关薄弱点，不做全量重刷。\n3. 最后做一组对应题，做完后我会根据结果更新下一轮复习范围。`),
-        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '学习路由失败';
         setMessages((current) => [
           ...current,
           {
-            id: makeClientId(messagePrefix),
+            id: makeClientId('assistant-learn-router-error'),
             role: 'assistant',
-            text: answer,
+            text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
             createdAt: Date.now(),
           },
         ]);
@@ -9553,12 +8052,15 @@ export function LearnPageClient() {
       activeCourse,
       addAssistantPlan,
       buildEvidenceBasedPlan,
-      buildPlan,
-      notebooks,
+      courseSourceUploads,
+      messages,
+      modelId,
+      problems,
+      providerId,
       recentPlans,
       refreshLearnerSnapshot,
+      statusCalendarActivities,
       syllabusEvents,
-      userName,
     ],
   );
 
@@ -9598,19 +8100,10 @@ export function LearnPageClient() {
   );
 
   const addProgressRequestMessage = useCallback(
-    (args: {
-      snapshot: LearnerCourseSnapshot | null;
-      intent?: PlanningIntent | null;
-      text?: string;
-      detectedProposal?: ProgressProposal | null;
-    }) => {
+    (args: { snapshot: LearnerCourseSnapshot | null }) => {
       const progressKnown = Boolean(args.snapshot?.progressKnown);
-      const selection =
-        args.detectedProposal?.selection || progressSelectionFromSnapshot(args.snapshot);
+      const selection = progressSelectionFromSnapshot(args.snapshot);
       const progressRequest = createLearnProgressRequest({
-        intent: args.intent,
-        text: args.text,
-        detectedProposal: args.detectedProposal,
         progressKnown,
         snapshotSelection: selection,
         selectionLabel: progressLabelForSelection(selection, notebooks),
@@ -9679,151 +8172,10 @@ export function LearnPageClient() {
       setProgressSelection(progressSelectionFromSnapshot(questionSnapshot));
       void saveRemoteLearnerCourseState(questionState);
 
-      const activityExecutionEvent = !hasAttachments
-        ? resolveActivityExecutionEvent({
-            questionText,
-            messages,
-            statusCalendarActivities,
-            syllabusEvents,
-            course: activeCourse,
-          })
-        : null;
-      if (activityExecutionEvent) {
-        const activeArtifact = activeActivityArtifactFromEvent({
-          event: activityExecutionEvent,
-          course: activeCourse,
-        });
-        const activityContext = buildActivityExecutionContext({
-          event: activityExecutionEvent,
-          course: activeCourse,
-          notebooks,
-          problems,
-          state: questionState,
-          userId: userId || 'anonymous',
-        });
-        if (activityContext.diagnosticPlan) {
-          void saveRemotePracticePlan(activityContext.diagnosticPlan);
-          setRecentPlans((current) =>
-            mergePlans([activityContext.diagnosticPlan as PracticePlan], current).slice(0, 4),
-          );
-        }
-        setRightRailCollapsed(false);
-        setRightRailView('calendar');
-        setCalendarReferenceDate(new Date(`${activityExecutionEvent.date}T12:00:00`));
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-activity-followup'),
-            role: 'assistant',
-            text: normalizeActivityExecutionAnswer(
-              buildCalendarActivityExecutionFallback({
-                event: activityExecutionEvent,
-                course: activeCourse,
-                isResearchCourse,
-                historySummary: activityContext.historySummary,
-                diagnosticPlan: activityContext.diagnosticPlan,
-                hasProblemBank: activityContext.hasProblemBank,
-              }),
-            ),
-            createdAt: Date.now(),
-            plan: activityContext.diagnosticPlan || undefined,
-            artifacts: [activeArtifact],
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isBareProblemHelpRequest(questionText)) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-need-problem'),
-            role: 'assistant',
-            text: bareProblemHelpAnswer(activeCourse),
-            createdAt: Date.now(),
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isBareHomeworkCheckRequest(questionText)) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-need-homework'),
-            role: 'assistant',
-            text: bareHomeworkCheckAnswer(activeCourse),
-            createdAt: Date.now(),
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isCourseOutlineRequest(questionText)) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-course-outline'),
-            role: 'assistant',
-            text: buildCourseOutlineAnswer({
-              course: activeCourse,
-              notebooks,
-              syllabusEvents,
-            }),
-            createdAt: Date.now(),
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isKnowledgePointReviewRequest(questionText)) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-review-knowledge-points'),
-            role: 'assistant',
-            text: buildKnowledgePointReviewAnswer({
-              course: activeCourse,
-              snapshot: questionSnapshot,
-              state: questionState,
-            }),
-            createdAt: Date.now(),
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isExplicitWebSearchRequest(questionText)) {
-        await handleLearningActionConfirm(webSearchActionFromQuestion(questionText));
-        setSending(false);
-        return;
-      }
-
-      if (!hasAttachments && isExplicitImageGenerationRequest(questionText)) {
-        const imageAction = imageGenerationActionFromQuestion(questionText);
-        const imageArtifact = imagePromptDraftFromQuestion(questionText);
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-image-proposal'),
-            role: 'assistant',
-            text: '我可以先生成一张学习图片草稿。图片生成会消耗额度，确认后我再开始生成。',
-            createdAt: Date.now(),
-            learningActions: [imageAction],
-            artifacts: [imageArtifact],
-          },
-        ]);
-        setSending(false);
-        return;
-      }
-
-      const learnTurn = !hasAttachments
-        ? await planLearnTurn({
+      let learnTurn: LearnTurnClientResponse | null = null;
+      if (!hasAttachments) {
+        try {
+          learnTurn = await planLearnTurn({
             question: questionText,
             messages,
             course: activeCourse,
@@ -9835,8 +8187,22 @@ export function LearnPageClient() {
             sourceUploads: courseSourceUploads,
             providerId,
             modelId,
-          })
-        : null;
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '学习路由失败';
+          setMessages((current) => [
+            ...current,
+            {
+              id: makeClientId('assistant-learn-router-error'),
+              role: 'assistant',
+              text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
+              createdAt: Date.now(),
+            },
+          ]);
+          setSending(false);
+          return;
+        }
+      }
       const learnTurnAnswerMode = learnTurn?.answerMode || 'course_answer';
       const shouldContinueToCourseAnswer = learnTurnAnswerMode === 'course_answer';
       const actionPlanArtifacts = (learnTurn?.artifacts || [])
@@ -9844,41 +8210,6 @@ export function LearnPageClient() {
         .filter((artifact): artifact is LearnArtifact => Boolean(artifact));
       const learnTurnPlanningDecision = planningDecisionFromLearnTurn(learnTurn, questionText);
       const answererHandoff = answererHandoffFromLearnTurn(learnTurn);
-      const learnTurnPlanningIntent = learnTurnPlanningDecision?.intent ?? null;
-      const learnTurnHasDurablePlanArtifact = actionPlanArtifacts.some(
-        (artifact) =>
-          artifact.kind === 'activity_plan' ||
-          artifact.kind === 'calendar_draft' ||
-          artifact.kind === 'review_plan',
-      );
-      const shouldDeferLearnTurnPlanningToClient = Boolean(
-        !hasAttachments &&
-        learnTurnPlanningIntent &&
-        learnTurnPlanningIntent.kind !== 'practice_plan' &&
-        !learnTurnHasDurablePlanArtifact,
-      );
-      if (
-        !learnTurn &&
-        !hasAttachments &&
-        !problems.length &&
-        isExplicitProblemBankSelectionRequest(questionText)
-      ) {
-        setMessages((current) => [
-          ...current,
-          {
-            id: makeClientId('assistant-no-course-bank'),
-            role: 'assistant',
-            text: buildNoCourseProblemBankAnswer({
-              course: activeCourse,
-              questionText,
-              notebooks,
-            }),
-            createdAt: Date.now(),
-          },
-        ]);
-        setSending(false);
-        return;
-      }
       const proposalActions = filterLearningActionsForQuestion(
         (learnTurn?.proposals || []).map((action) =>
           learnActionToClientAction({
@@ -9912,16 +8243,10 @@ export function LearnPageClient() {
         : proposalActions;
       const deferredAnswerArtifacts = shouldContinueToCourseAnswer ? actionPlanArtifacts : [];
       const visibleActionPlanArtifacts = shouldContinueToCourseAnswer ? [] : actionPlanArtifacts;
-      const visibleBlockingProposalActions = shouldDeferLearnTurnPlanningToClient
-        ? []
-        : blockingProposalActions;
-      const visibleDirectActions = shouldDeferLearnTurnPlanningToClient ? [] : directActions;
-      const visibleArtifacts = shouldDeferLearnTurnPlanningToClient
-        ? []
-        : visibleActionPlanArtifacts;
-      const actionPlanText = shouldDeferLearnTurnPlanningToClient
-        ? ''
-        : learnTurn?.replyText?.trim() || '';
+      const visibleBlockingProposalActions = blockingProposalActions;
+      const visibleDirectActions = directActions;
+      const visibleArtifacts = visibleActionPlanArtifacts;
+      const actionPlanText = learnTurn?.replyText?.trim() || '';
       if (actionPlanText || visibleBlockingProposalActions.length || visibleArtifacts.length) {
         setMessages((current) => [
           ...current,
@@ -9943,12 +8268,11 @@ export function LearnPageClient() {
         }
       }
       if (
-        !shouldDeferLearnTurnPlanningToClient &&
-        (visibleDirectActions.length ||
-          visibleBlockingProposalActions.length ||
-          visibleArtifacts.length ||
-          learnTurnAnswerMode === 'action_only' ||
-          learnTurnAnswerMode === 'none')
+        visibleDirectActions.length ||
+        visibleBlockingProposalActions.length ||
+        visibleArtifacts.length ||
+        learnTurnAnswerMode === 'action_only' ||
+        learnTurnAnswerMode === 'none'
       ) {
         setSending(false);
         return;
@@ -9959,85 +8283,16 @@ export function LearnPageClient() {
       const planningIntent = planningDecision?.intent ?? null;
       const planningPrompt = planningDecision?.resolvedPrompt || questionText;
 
-      if (!hasAttachments && planningIntent && planningDecision?.shouldAskProgressFirst) {
-        addProgressRequestMessage({
-          snapshot: questionSnapshot,
-          intent: planningIntent,
-          text: planningPrompt,
-        });
-        setSending(false);
-        return;
-      }
-
       if (!hasAttachments && planningIntent && planningDecision) {
-        const hasPlanningSyllabus = syllabusPlanningEvents(syllabusEvents).length > 0;
-        const hasExplicitPlanningTopic =
-          planningDecision.scopeHint === 'explicit_topic' ||
-          planningDecision.focusTopics.length > 0 ||
-          Boolean(explicitReviewTopicFromQuestion(planningPrompt));
-        if (
-          planningIntent.kind !== 'practice_plan' &&
-          !hasPlanningSyllabus &&
-          !questionSnapshot.progressKnown &&
-          !hasExplicitPlanningTopic
-        ) {
-          addProgressRequestMessage({
-            snapshot: questionSnapshot,
-            intent: planningIntent,
-            text: planningPrompt,
-          });
-          setSending(false);
-          return;
-        }
-
-        const syllabusAnswer =
-          planningIntent.kind !== 'practice_plan' && planningDecision.useSyllabusAsDefaultScope
-            ? buildSyllabusPlanningFallbackAnswer({
-                course: activeCourse,
-                syllabusEvents,
-                intent: planningIntent,
-                scopeHint: planningDecision.scopeHint,
-                scopeResolution: planningDecision.scopeResolution,
-                focusTopics: planningDecision.focusTopics,
-                constraintsSummary: planningDecision.constraintsSummary,
-              })
-            : null;
-        const syllabusArtifacts =
-          planningIntent.kind !== 'practice_plan' && planningDecision.useSyllabusAsDefaultScope
-            ? buildSyllabusPlanningArtifacts({
-                course: activeCourse,
-                syllabusEvents,
-                intent: planningIntent,
-                scopeHint: planningDecision.scopeHint,
-                scopeResolution: planningDecision.scopeResolution,
-                focusTopics: planningDecision.focusTopics,
-                constraintsSummary: planningDecision.constraintsSummary,
-              })
-            : [];
-
         if (planningIntent.kind === 'practice_plan') {
-          const preferredProblemIds = await loadMemoryPreferredProblemIds({
-            courseId: activeCourse.id,
-            prompt: planningPrompt,
-          });
           const evidencePlan = await buildEvidenceBasedPlan({
             mode: planningIntent.mode,
             prompt: planningPrompt,
             stateOverride: questionState,
             snapshotOverride: questionSnapshot,
           });
-          const plan =
-            evidencePlan ||
-            buildPlan(
-              planningIntent.mode,
-              planningPrompt,
-              undefined,
-              undefined,
-              questionState,
-              preferredProblemIds,
-            );
-          if (plan) {
-            addAssistantPlan(plan);
+          if (evidencePlan) {
+            addAssistantPlan(evidencePlan);
             setSending(false);
             return;
           }
@@ -10046,7 +8301,7 @@ export function LearnPageClient() {
             {
               id: makeClientId('assistant-plan-empty'),
               role: 'assistant',
-              text: '这门课当前没有足够题目生成这组练习。你可以先让我按薄弱点整理复习重点，或者先导入题库。',
+              text: 'AI 没有返回可用的练习计划。我没有使用本地计划兜底，请重试一次或换一个模型。',
               createdAt: Date.now(),
             },
           ]);
@@ -10054,152 +8309,13 @@ export function LearnPageClient() {
           return;
         }
 
-        if (!syllabusAnswer) {
-          const pendingPlanningAction = learnPendingActionFromPlanningIntent(
-            planningIntent,
-            planningPrompt,
-          );
-          if (
-            pendingPlanningAction.kind === 'review_plan' ||
-            pendingPlanningAction.kind === 'preview_plan'
-          ) {
-            const notebookArtifacts = buildNotebookPlanningArtifacts({
-              course: activeCourse,
-              notebooks,
-              action: pendingPlanningAction,
-              snapshot: questionSnapshot,
-            });
-            const notebookAnswer = buildNotebookPlanningFallbackAnswer({
-              course: activeCourse,
-              notebooks,
-              action: pendingPlanningAction,
-              snapshot: questionSnapshot,
-            });
-            if (notebookAnswer && notebookArtifacts.length) {
-              const calendarAddAction = createCalendarAddActionFromArtifacts({
-                artifacts: notebookArtifacts,
-                id: makeClientId('calendar-add-action'),
-              });
-              setMessages((current) => [
-                ...current,
-                {
-                  id: makeClientId(
-                    planningIntent.kind === 'preview_plan'
-                      ? 'assistant-notebook-preview-plan'
-                      : 'assistant-notebook-review-plan',
-                  ),
-                  role: 'assistant',
-                  text: notebookAnswer,
-                  createdAt: Date.now(),
-                  artifacts: notebookArtifacts,
-                  learningActions: calendarAddAction ? [calendarAddAction] : undefined,
-                },
-              ]);
-              setSending(false);
-              return;
-            }
-          }
-        }
-
-        if (planningIntent.kind === 'review_plan' && !syllabusAnswer) {
-          const evidencePlan = await buildEvidenceBasedPlan({
-            mode: 'practice',
-            prompt: planningPrompt,
-            stateOverride: questionState,
-            snapshotOverride: questionSnapshot,
-            allowUnconfirmedSchedule: planningDecision.useSyllabusAsDefaultScope,
-          });
-          if (evidencePlan) {
-            addAssistantPlan(evidencePlan, syllabusAnswer || undefined, syllabusArtifacts);
-            setSending(false);
-            return;
-          }
-        }
-
-        if (syllabusAnswer) {
-          const calendarAddAction = createCalendarAddActionFromArtifacts({
-            artifacts: syllabusArtifacts,
-            id: makeClientId('calendar-add-action'),
-          });
-          setMessages((current) => [
-            ...current,
-            {
-              id: makeClientId(
-                planningIntent.kind === 'preview_plan'
-                  ? 'assistant-syllabus-preview-plan'
-                  : 'assistant-syllabus-review-plan',
-              ),
-              role: 'assistant',
-              text: syllabusAnswer,
-              createdAt: Date.now(),
-              artifacts: syllabusArtifacts.length ? syllabusArtifacts : undefined,
-              learningActions: calendarAddAction ? [calendarAddAction] : undefined,
-            },
-          ]);
-          setSending(false);
-          return;
-        }
-      }
-
-      const progressProposal = !planningIntent
-        ? detectProgressProposal({
-            text: questionText,
-            notebooks,
-            snapshot: questionSnapshot,
-          })
-        : null;
-
-      if (!hasAttachments && progressProposal) {
-        addProgressRequestMessage({
-          snapshot: questionSnapshot,
-          detectedProposal: progressProposal,
-        });
-        setSending(false);
-        return;
-      }
-
-      if (
-        !hasAttachments &&
-        !planningIntent &&
-        !questionSnapshot.progressKnown &&
-        needsProgressConfirmation(questionText)
-      ) {
-        addProgressRequestMessage({
-          snapshot: questionSnapshot,
-        });
-        setSending(false);
-        return;
-      }
-
-      const localAnswer = buildLocalLearningAnswer({
-        text: questionText,
-        course: activeCourse,
-        snapshot: questionSnapshot,
-        state: questionState,
-        answererHandoff,
-      });
-      if (!hasAttachments && localAnswer) {
-        const localLearningActions = deferredAnswerActions.length ? deferredAnswerActions : [];
-        const safeLocalAnswer = neutralizeUnconfirmedMemoryWriteClaim(
-          localAnswer,
-          localLearningActions,
-        );
-        const lecturePrompt = buildMiniLecturePrompt({
-          question: questionText,
-          answer: safeLocalAnswer,
-          course: activeCourse,
-        });
-        const artifacts = deferredAnswerArtifacts.length ? deferredAnswerArtifacts : undefined;
         setMessages((current) => [
           ...current,
           {
-            id: makeClientId('assistant-state'),
+            id: makeClientId('assistant-ai-plan-missing-artifact'),
             role: 'assistant',
-            text: safeLocalAnswer,
+            text: 'AI 已识别这是学习计划请求，但没有返回可展示的计划草稿。我没有使用本地计划兜底，请重试一次或换一个模型。',
             createdAt: Date.now(),
-            lecturePrompt,
-            learningActions: localLearningActions.length ? localLearningActions : undefined,
-            artifacts,
           },
         ]);
         setSending(false);
@@ -10269,7 +8385,7 @@ export function LearnPageClient() {
           {
             id: makeClientId('assistant-error'),
             role: 'assistant',
-            text: `${message}。我仍然可以先帮你生成刷题计划或查看课程状态。`,
+            text: `${message}。我没有生成本地兜底回答，请稍后重试或换一个模型。`,
             createdAt: Date.now(),
           },
         ]);
@@ -10280,14 +8396,11 @@ export function LearnPageClient() {
     [
       activeCourse,
       addAssistantPlan,
-      addProgressRequestMessage,
       attachments,
       buildEvidenceBasedPlan,
-      buildPlan,
       courseSourceUploads,
       draft,
       handleLearningActionConfirm,
-      isResearchCourse,
       messages,
       modelId,
       notebooks,
@@ -12712,20 +10825,9 @@ export function LearnPageClient() {
                           )}
                           <div className="min-w-0 flex-1 select-text">
                             {message.text ? (
-                              hasActiveActivityArtifact(message) ? (
-                                <div
-                                  className={cn(
-                                    courseMarkdownClassName,
-                                    'whitespace-pre-wrap [&_*]:font-inherit',
-                                  )}
-                                >
-                                  {normalizeActivityExecutionAnswer(message.text)}
-                                </div>
-                              ) : (
-                                <MessageResponse className={courseMarkdownClassName}>
-                                  {normalizeAssistantMarkdown(message.text)}
-                                </MessageResponse>
-                              )
+                              <MessageResponse className={courseMarkdownClassName}>
+                                {normalizeAssistantMarkdown(message.text)}
+                              </MessageResponse>
                             ) : null}
                             {message.plan ? (
                               <PlanActionCard plan={message.plan} onStart={startPlan} />

@@ -31,12 +31,37 @@ async function emitValidationError(
 }
 
 function validateSemanticRouterOutput(output: LearnSemanticRouterOutput) {
-  if (output.answerMode !== 'course_answer') return;
-  if (!output.handoff) {
-    throw new Error('AI semantic router must provide a handoff for course_answer turns.');
+  if (output.answerMode === 'course_answer') {
+    if (!output.handoff) {
+      throw new Error('AI semantic router must provide a handoff for course_answer turns.');
+    }
+    if (!output.handoff.requiredBehavior.length) {
+      throw new Error('AI semantic router course_answer handoff must include requiredBehavior.');
+    }
   }
-  if (!output.handoff.requiredBehavior.length) {
-    throw new Error('AI semantic router course_answer handoff must include requiredBehavior.');
+  if (output.answerMode === 'client_activity_plan') {
+    const hasPlanArtifact = output.artifacts.some(
+      (artifact) =>
+        artifact.kind === 'activity_plan' ||
+        artifact.kind === 'review_plan' ||
+        artifact.kind === 'calendar_draft',
+    );
+    if (!output.replyText.trim()) {
+      throw new Error('AI semantic router client_activity_plan must include replyText.');
+    }
+    if (!hasPlanArtifact) {
+      throw new Error('AI semantic router client_activity_plan must include a plan artifact.');
+    }
+  }
+  if (output.planningDecision?.shouldAskProgressFirst) {
+    const hasProgressRequestAction = [...output.directCalls, ...output.proposals].some(
+      (action) => action.kind === 'learner_progress.request_confirmation',
+    );
+    if (!hasProgressRequestAction) {
+      throw new Error(
+        'AI semantic router progress confirmation must use learner_progress.request_confirmation.',
+      );
+    }
   }
 }
 

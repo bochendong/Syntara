@@ -111,10 +111,7 @@ export function planningDecisionFromLearnTurn(
     scopeResolution: decision.scopeResolution || null,
     isFollowUpToPlan: decision.isFollowUpToPlan === true,
     shouldAskProgressFirst: decision.shouldAskProgressFirst === true,
-    useSyllabusAsDefaultScope:
-      decision.useSyllabusAsDefaultScope === true ||
-      Boolean(decision.scopeHint) ||
-      planningDecisionHasResolvedSyllabusScope(decision.scopeResolution),
+    useSyllabusAsDefaultScope: decision.useSyllabusAsDefaultScope === true,
     resolvedPrompt: decision.resolvedPrompt?.trim() || fallbackQuestion,
     focusTopics: (decision.focusTopics || []).map((topic) => topic.trim()).filter(Boolean),
     constraintsSummary: decision.constraintsSummary?.trim() || '',
