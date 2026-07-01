@@ -198,6 +198,26 @@ export type LearnActivityPlanTask = {
   reason?: string;
 };
 
+export type LearnReviewFocusPoint = {
+  title: string;
+  explanation?: string;
+  checkQuestion?: string;
+};
+
+export type LearnReviewSelfCheck = {
+  question: string;
+  expectedAnswer?: string;
+  concept?: string;
+  difficulty?: 'warmup' | 'core' | 'stretch';
+};
+
+export type LearnReviewPracticeBridge = {
+  title: string;
+  summary?: string;
+  problemIds?: string[];
+  generatedPrompts?: string[];
+};
+
 export type LearnAnswerEvidenceSource = {
   sourceType:
     | 'source'
@@ -238,6 +258,7 @@ export type LearnArtifact =
       kind: 'review_plan';
       id: string;
       title: string;
+      learningGoal?: string;
       tasks: Array<{
         title: string;
         concepts?: string[];
@@ -245,6 +266,10 @@ export type LearnArtifact =
         reason?: string;
       }>;
       calendarDraftItems?: LearnCalendarDraftItem[];
+      focusPoints?: LearnReviewFocusPoint[];
+      selfChecks?: LearnReviewSelfCheck[];
+      practiceBridge?: LearnReviewPracticeBridge;
+      nextSteps?: string[];
     }
   | {
       kind: 'calendar_draft';

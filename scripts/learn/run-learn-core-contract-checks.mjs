@@ -428,6 +428,84 @@ async function validateMissingRouterFailure(decideTeachingTurn) {
   }
 }
 
+async function validateShallowReviewPlanFailure(
+  decideTeachingTurn,
+  learnSemanticRouterOutputSchema,
+) {
+  const events = [];
+  try {
+    await decideTeachingTurn(
+      baseInput('我需要复习 linked list', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+      }),
+      {
+        runId: 'contract-shallow-review-plan-rejected',
+        currentDate: '2026-06-28',
+        hooks: {
+          emit(event) {
+            events.push(JSON.parse(JSON.stringify(event)));
+          },
+        },
+        semanticRouter: async () =>
+          learnSemanticRouterOutputSchema.parse(
+            routeOutput({
+              answerMode: 'client_activity_plan',
+              replyText: '我先给你安排一个复习计划。',
+              planningDecision: explicitTopicPlan('linked list'),
+              selectedToolIds: ['semantic_router', 'plan_review'],
+              artifacts: [
+                {
+                  kind: 'review_plan',
+                  id: 'shallow-review-plan',
+                  title: 'Linked list 复习计划',
+                  tasks: [
+                    {
+                      title: '回顾 linked list 的核心结构与术语',
+                      concepts: ['linked list'],
+                      minutes: 15,
+                    },
+                  ],
+                },
+              ],
+              reason: 'Fixture intentionally omits review-session content.',
+            }),
+          ),
+      },
+    );
+    return {
+      id: 'shallow-review-plan-rejected',
+      failures: ['expected shallow review_plan to fail validation'],
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const validationError = events.find((event) => event.type === 'validation_error');
+    const validationMetadataError = String(validationError?.metadata?.error || '');
+    const failures = [];
+    if (
+      !/AI semantic router failed to produce a valid decision/.test(message) ||
+      !/review_plan must include learningGoal/.test(validationMetadataError)
+    ) {
+      failures.push(
+        `expected review_plan quality error, got message=${message}, metadata=${validationMetadataError}`,
+      );
+    }
+    if (!validationError) {
+      failures.push('shallow review_plan failure must emit validation_error');
+    }
+    if (events.some((event) => event.type === 'turn_end')) {
+      failures.push('shallow review_plan failure must not emit turn_end');
+    }
+    return {
+      id: 'shallow-review-plan-rejected',
+      failures,
+      error: message,
+      hookTypes: events.map((event) => event.type),
+    };
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const { require, restore } = installTypeScriptRequireHook();
@@ -506,6 +584,9 @@ async function main() {
     'explicit topic to review',
     'shouldAskProgressFirst=false',
     'Do not use keyword-only routing',
+    'learningGoal',
+    'focusPoints',
+    'selfChecks',
     'Learning workflow recipes',
     'Exam preparation',
     'Review without explicit scope',
@@ -513,6 +594,9 @@ async function main() {
     if (!semanticRouterSource.includes(requiredSemanticRouterContract)) {
       contractFailures.push(`semantic-router must include ${requiredSemanticRouterContract}`);
     }
+  }
+  if (/minimal concept-review artifact is enough/.test(semanticRouterSource)) {
+    contractFailures.push('semantic-router must not accept shallow review artifacts');
   }
 
   const toolRegistrySource = fs.readFileSync(
@@ -588,14 +672,57 @@ async function main() {
             kind: 'review_plan',
             id: 'review-linked-list',
             title: 'Linked list 复习',
+            learningGoal: '把 linked list 的节点关系、常见操作和边界情况复习到能马上做小题。',
             tasks: [
               {
-                title: '梳理 linked list 的节点、指针、遍历和插入删除边界',
+                title: '用图复述 node、head、tail、next 指针如何组成链表',
                 concepts: ['linked list'],
-                minutes: 20,
+                minutes: 12,
+                reason: 'Start from the structure before operations.',
+              },
+              {
+                title: '比较头部插入、尾部插入、删除节点和遍历的复杂度',
+                concepts: ['linked list', 'time complexity'],
+                minutes: 15,
                 reason: 'The learner explicitly asked for linked list review.',
               },
             ],
+            focusPoints: [
+              {
+                title: 'Node reference model',
+                explanation:
+                  'A linked list stores sequence order through references between nodes rather than contiguous array indexes.',
+                checkQuestion: '如果只有 head，为什么访问第 k 个节点通常要从头走过去？',
+              },
+              {
+                title: 'Edge cases around insertion and deletion',
+                explanation:
+                  'Empty lists, one-node lists, head updates, and tail updates are where most implementation mistakes happen.',
+                checkQuestion: '删除 head 和删除中间节点时，哪一个指针更新最容易漏掉？',
+              },
+            ],
+            selfChecks: [
+              {
+                question: '为什么 singly linked list 头部插入通常是 O(1)？',
+                expectedAnswer: '只需要创建新节点，让它指向旧 head，再把 head 更新成新节点。',
+                concept: 'head insertion',
+                difficulty: 'warmup',
+              },
+              {
+                question: '如果没有 tail 指针，尾部插入为什么通常是 O(n)？',
+                expectedAnswer:
+                  '需要从 head 遍历到最后一个节点，才能把最后节点的 next 接上新节点。',
+                concept: 'tail insertion',
+                difficulty: 'core',
+              },
+            ],
+            practiceBridge: {
+              title: '接到题库练习',
+              summary: '题库里已有 linked list 样例，可在概念自检后抽题。',
+              problemIds: ['csc148-linked-list-1', 'csc148-linked-list-2'],
+              generatedPrompts: [],
+            },
+            nextSteps: ['如果自检答错，回到节点图示；如果答对，进入题库练习。'],
           },
         ],
         reason: 'The learner explicitly asked to review linked list, so plan that topic directly.',
@@ -751,6 +878,9 @@ async function main() {
     records.push({ id: 'ai-router-contract-registry', failures: contractFailures });
   }
   records.push(await validateMissingRouterFailure(decideTeachingTurn));
+  records.push(
+    await validateShallowReviewPlanFailure(decideTeachingTurn, learnSemanticRouterOutputSchema),
+  );
 
   for (const item of cases) {
     const events = [];

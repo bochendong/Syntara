@@ -74,6 +74,28 @@ const structuredPlanTaskSchema = z.object({
   problemIds: z.array(z.string()).max(20),
 });
 
+const structuredReviewFocusPointSchema = z.object({
+  title: z.string(),
+  explanation: z.string(),
+  checkQuestion: z.string(),
+});
+
+const structuredReviewSelfCheckSchema = z.object({
+  question: z.string(),
+  expectedAnswer: z.string(),
+  concept: z.string(),
+  difficulty: z.enum(['warmup', 'core', 'stretch']),
+});
+
+const structuredReviewPracticeBridgeSchema = z
+  .object({
+    title: z.string(),
+    summary: z.string(),
+    problemIds: z.array(z.string()).max(12),
+    generatedPrompts: z.array(z.string()).max(6),
+  })
+  .nullable();
+
 const structuredArtifactScopeSchema = z.object({
   label: z.string(),
   startDate: z.string(),
@@ -91,6 +113,11 @@ const structuredArtifactSchema = z.object({
   calendarDraftItems: z.array(structuredCalendarItemSchema).max(30),
   items: z.array(structuredCalendarItemSchema).max(30),
   scope: structuredArtifactScopeSchema.nullable(),
+  learningGoal: z.string(),
+  focusPoints: z.array(structuredReviewFocusPointSchema).max(10),
+  selfChecks: z.array(structuredReviewSelfCheckSchema).max(8),
+  practiceBridge: structuredReviewPracticeBridgeSchema,
+  nextSteps: z.array(z.string()).max(8),
   sourceArtifactId: z.string(),
   summary: z.string(),
   reason: z.string(),
@@ -265,13 +292,13 @@ export function buildLearnSemanticRouterPrompt(
     '',
     'Decision policy:',
     '- Infer semantically from the latest learner message and context. Do not use keyword-only routing.',
-    '- The latest learner message overrides recent artifacts when it narrows or corrects scope. If the learner says they only want linked list after a broader plan, replace the scope with linked list instead of reusing the old plan.',
-    '- Review requests are simple: choose either concept review or practice. If the learner says "复习/review <topic>" without asking for questions, use concept review: answerMode="client_activity_plan", planningDecision.intent="review_plan", and one review_plan artifact with at least title and tasks. If the learner asks to "刷题/出题/选题/quiz/practice", use client_practice_plan or practice.propose_generation grounded in the problem bank.',
-    '- If the learner gives an explicit topic to review, build a client_activity_plan with planningDecision.intent="review_plan", scopeHint="explicit_topic", focusTopics containing the topic, and shouldAskProgressFirst=false unless the learner explicitly asks you to choose unknown-scope practice questions. Example: "我需要复习 linked list" means arrange linked-list review now.',
-    '- A minimal concept-review artifact is enough. In the strict artifact shape, set kind="review_plan", planType="review", tasks to 1-3 useful review tasks, calendarDraftItems/items to [], scope to {"label":"linked list","startDate":"","endDate":"","eventIds":[],"rationale":"The learner explicitly asked for linked list."}, sourceArtifactId/summary/reason to short strings.',
+    '- The latest learner message overrides recent artifacts when it narrows or corrects scope. When the learner semantically corrects a prior broad plan into a narrower concept, replace the scope with that concept instead of reusing the old plan.',
+    '- Review requests are simple: choose either concept review or practice from the learner intent. For concept review, use answerMode="client_activity_plan", planningDecision.intent="review_plan", and one review_plan artifact that starts a useful review session. For practice or assessment intent, use client_practice_plan or practice.propose_generation grounded in the problem bank.',
+    '- If the learner gives an explicit topic to review, build a client_activity_plan with planningDecision.intent="review_plan", scopeHint="explicit_topic", focusTopics containing the topic, and shouldAskProgressFirst=false unless the learner explicitly asks you to choose unknown-scope practice questions.',
+    '- A review_plan artifact is not a schedule stub. It must begin the review now: include learningGoal, useful tasks, focusPoints with short explanations and check questions, selfChecks with expected answers, a practiceBridge that uses real problemIds when available or generatedPrompts when no bank item is available, and nextSteps.',
     '- If progress confirmation is truly required, return a learner_progress.request_confirmation proposal or directCall. Do not rely on shouldAskProgressFirst alone; the client will not synthesize a local progress-confirmation flow from that boolean.',
     '- If the learner gives an execution constraint such as "three days", "三天后考试", "20 minutes per day", or a deadline, preserve it in planningDecision.scopeResolution.executionWindow and in the plan artifact calendarDraftItems. Do not fall back to 7 days when the learner gave a different window.',
-    '- For answerMode="client_activity_plan", you must include a concise student-facing replyText and at least one durable artifact: activity_plan, review_plan, or calendar_draft. The artifact should contain id, title, planType when applicable, tasks, calendarDraftItems when dates are useful, and scope. Do not return only planningDecision for client-side reconstruction.',
+    '- For answerMode="client_activity_plan", you must include a concise student-facing replyText and at least one durable artifact: activity_plan, review_plan, or calendar_draft. The artifact should contain id, title, planType when applicable, tasks, calendarDraftItems when dates are useful, and scope. For review_plan, also include the review-session fields above. Do not return only planningDecision for client-side reconstruction.',
     '- If the learner asks for bank-backed exercises, quiz, selected questions, or diagnostics, use client_practice_plan or a confirmation-required practice.propose_generation proposal grounded in problem-bank availability.',
     '- If the learner asks a normal course question, asks for explanation, or asks for uploaded-source/table/numeric evidence, use answerMode="course_answer". Include selectedToolIds that name the resources the answerer should use and provide a non-null handoff.',
     '- If answerMode is "course_answer", replyText should usually be empty; the course_answerer will produce the content response.',
@@ -283,7 +310,7 @@ export function buildLearnSemanticRouterPrompt(
     '- The reason field is a concise audit explanation: entry type, selected resources, and why writes were or were not proposed. Do not reveal chain-of-thought.',
     '',
     'Learning workflow recipes:',
-    '- Explicit topic review: classify concept-review vs practice; read memory signals; read schedule/deadline context; inspect problem-bank availability; then output a review_plan artifact for concept review or a practice proposal for刷题.',
+    '- Explicit topic review: classify concept-review vs practice; read memory signals; read schedule/deadline context; inspect problem-bank availability; then output a review_plan artifact that teaches the topic, checks understanding, and bridges into practice, or output a practice proposal when the learner wants exercises.',
     '- Exam preparation: identify exam/deadline and remaining days; read memory weaknesses and recent attempts; inspect schedule load; inspect problem bank; output a calendar-aware activity_plan/review_plan and practice proposal when questions are available.',
     '- Concept explanation: use course_answer handoff with search_course_materials and search_memory; require the answerer to explain the concept, check prerequisites, and optionally propose follow-up practice/memory write after the explanation.',
     '- Review without explicit scope: read memory, current progress, schedule, and recent artifacts; if a useful scope can be inferred, propose it with evidence; if not, return learner_progress.request_confirmation rather than guessing a full-course plan.',

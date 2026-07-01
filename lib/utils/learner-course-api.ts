@@ -85,14 +85,15 @@ async function saveUserFact(args: {
         }),
       });
     });
-  factSaveQueue.set(
-    queueKey,
-    operation.finally(() => {
-      if (factSaveQueue.get(queueKey) === operation) {
+  const trackedOperation: Promise<void> = operation
+    .catch(() => undefined)
+    .then(() => undefined)
+    .finally(() => {
+      if (factSaveQueue.get(queueKey) === trackedOperation) {
         factSaveQueue.delete(queueKey);
       }
-    }),
-  );
+    });
+  factSaveQueue.set(queueKey, trackedOperation);
   try {
     await operation;
     return true;

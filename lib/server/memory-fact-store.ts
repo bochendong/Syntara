@@ -166,6 +166,13 @@ function isUniqueFactConflict(error: unknown): boolean {
   return message.includes('23505') || message.includes('already exists');
 }
 
+function isRetryableFactWriteError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /P2028|Transaction not found|P2024|Transaction already closed|Server has closed the connection/i.test(
+    message,
+  );
+}
+
 function shortDelay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -177,7 +184,9 @@ async function withUniqueFactRetry<T>(operation: () => Promise<T>): Promise<T> {
       return await operation();
     } catch (error) {
       lastError = error;
-      if (!isUniqueFactConflict(error) || attempt === 2) break;
+      if ((!isUniqueFactConflict(error) && !isRetryableFactWriteError(error)) || attempt === 2) {
+        break;
+      }
       await shortDelay(25 * (attempt + 1));
     }
   }
@@ -279,9 +288,10 @@ export async function upsertMemoryFact(args: {
   const validFrom = args.validFrom ? new Date(args.validFrom) : new Date();
 
   return withUniqueFactRetry(() =>
-    args.prisma.$transaction(async (tx) => {
-      const existingRows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
-        `
+    args.prisma.$transaction(
+      async (tx) => {
+        const existingRows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
+          `
         SELECT ${MEMORY_FACT_COLUMNS}
         FROM "MemoryFact"
         WHERE "ownerId" = $1
@@ -294,28 +304,28 @@ export async function upsertMemoryFact(args: {
         LIMIT 1
         FOR UPDATE
       `,
-        args.ownerId,
-        args.scopeType,
-        scopeId,
-        args.namespace.trim(),
-        args.key.trim(),
-      );
+          args.ownerId,
+          args.scopeType,
+          scopeId,
+          args.namespace.trim(),
+          args.key.trim(),
+        );
 
-      const existing = existingRows[0] ? serializeFact(existingRows[0]) : null;
-      const sameValue = existing
-        ? stableJson(existing.valueJson) === stableJson(args.valueJson)
-        : false;
-      const factId = sameValue && existing ? existing.id : memoryFactId();
-      const eventType: MemoryFactEventType = existing
-        ? sameValue
-          ? 'confirmed'
-          : 'superseded'
-        : 'created';
+        const existing = existingRows[0] ? serializeFact(existingRows[0]) : null;
+        const sameValue = existing
+          ? stableJson(existing.valueJson) === stableJson(args.valueJson)
+          : false;
+        const factId = sameValue && existing ? existing.id : memoryFactId();
+        const eventType: MemoryFactEventType = existing
+          ? sameValue
+            ? 'confirmed'
+            : 'superseded'
+          : 'created';
 
-      let fact: MemoryFactRecord;
-      if (sameValue && existing) {
-        const rows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
-          `
+        let fact: MemoryFactRecord;
+        if (sameValue && existing) {
+          const rows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
+            `
           UPDATE "MemoryFact"
           SET
             "confidence" = $2,
@@ -325,27 +335,27 @@ export async function upsertMemoryFact(args: {
           WHERE "id" = $1
           RETURNING ${MEMORY_FACT_COLUMNS}
         `,
-          existing.id,
-          confidence,
-          source,
-          args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
-        );
-        fact = serializeFact(rows[0]);
-      } else {
-        if (existing) {
-          await tx.$executeRawUnsafe(
-            `
+            existing.id,
+            confidence,
+            source,
+            args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
+          );
+          fact = serializeFact(rows[0]);
+        } else {
+          if (existing) {
+            await tx.$executeRawUnsafe(
+              `
             UPDATE "MemoryFact"
             SET "status" = 'superseded',
                 "supersededAt" = CURRENT_TIMESTAMP,
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE "id" = $1
           `,
-            existing.id,
-          );
-        }
-        const rows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
-          `
+              existing.id,
+            );
+          }
+          const rows = await tx.$queryRawUnsafe<RawMemoryFactRow[]>(
+            `
           INSERT INTO "MemoryFact" (
             "id", "ownerId", "scopeType", "scopeId", "namespace", "key",
             "valueJson", "confidence", "source", "sourceRef", "status",
@@ -358,23 +368,23 @@ export async function upsertMemoryFact(args: {
           )
           RETURNING ${MEMORY_FACT_COLUMNS}
         `,
-          factId,
-          args.ownerId,
-          args.scopeType,
-          scopeId,
-          args.namespace.trim(),
-          args.key.trim(),
-          jsonParam(args.valueJson),
-          confidence,
-          source,
-          args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
-          validFrom,
-        );
-        fact = serializeFact(rows[0]);
-      }
+            factId,
+            args.ownerId,
+            args.scopeType,
+            scopeId,
+            args.namespace.trim(),
+            args.key.trim(),
+            jsonParam(args.valueJson),
+            confidence,
+            source,
+            args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
+            validFrom,
+          );
+          fact = serializeFact(rows[0]);
+        }
 
-      const eventRows = await tx.$queryRawUnsafe<RawMemoryFactEventRow[]>(
-        `
+        const eventRows = await tx.$queryRawUnsafe<RawMemoryFactEventRow[]>(
+          `
         INSERT INTO "MemoryFactEvent" (
           "id", "factId", "ownerId", "scopeType", "scopeId", "namespace", "key",
           "eventType", "oldValueJson", "newValueJson", "source", "sourceRef", "createdAt"
@@ -385,22 +395,24 @@ export async function upsertMemoryFact(args: {
         )
         RETURNING ${MEMORY_FACT_EVENT_COLUMNS}
       `,
-        memoryFactEventId(),
-        fact.id,
-        args.ownerId,
-        args.scopeType,
-        scopeId,
-        args.namespace.trim(),
-        args.key.trim(),
-        eventType,
-        existing ? jsonParam(existing.valueJson) : null,
-        jsonParam(args.valueJson),
-        source,
-        args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
-      );
+          memoryFactEventId(),
+          fact.id,
+          args.ownerId,
+          args.scopeType,
+          scopeId,
+          args.namespace.trim(),
+          args.key.trim(),
+          eventType,
+          existing ? jsonParam(existing.valueJson) : null,
+          jsonParam(args.valueJson),
+          source,
+          args.sourceRef === undefined ? null : jsonParam(args.sourceRef),
+        );
 
-      return { fact, event: serializeEvent(eventRows[0]) };
-    }),
+        return { fact, event: serializeEvent(eventRows[0]) };
+      },
+      { maxWait: 10_000, timeout: 20_000 },
+    ),
   );
 }
 

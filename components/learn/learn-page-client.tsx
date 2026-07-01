@@ -465,6 +465,7 @@ const MAX_SYLLABUS_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_SYLLABUS_PDF_FILE_BYTES = 12 * 1024 * 1024;
 const LEARN_SESSION_INDEX_PREFIX = 'syntara-learn-session-index:v1';
 const LEARN_SESSION_MESSAGES_PREFIX = 'syntara-learn-session-messages:v1';
+const LEARN_DELETED_SESSION_IDS_PREFIX = 'syntara-learn-deleted-session-ids:v1';
 const LEARN_LEFT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-left-rail-collapsed';
 const LEARN_RIGHT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-right-rail-collapsed';
 const LEARN_SYLLABUS_EVENTS_PREFIX = 'syntara-learn-syllabus-events:v1';
@@ -683,6 +684,60 @@ function learnSessionMessagesKey(userId: string, courseId: string, sessionId: st
   ].join(':');
 }
 
+function deletedLearnSessionIdsKey(userId: string, courseId: string) {
+  return [
+    LEARN_DELETED_SESSION_IDS_PREFIX,
+    encodeURIComponent(userId),
+    encodeURIComponent(courseId),
+  ].join(':');
+}
+
+function readDeletedLearnSessionIds(userId: string, courseId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(deletedLearnSessionIdsKey(userId, courseId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed
+        .map((item) => String(item))
+        .filter(Boolean)
+        .slice(-80),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDeletedLearnSessionIds(userId: string, courseId: string, ids: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(
+      deletedLearnSessionIdsKey(userId, courseId),
+      JSON.stringify(Array.from(ids).slice(-80)),
+    );
+  } catch {
+    /* localStorage may be unavailable */
+  }
+}
+
+function rememberDeletedLearnSessionId(userId: string, courseId: string, sessionId: string) {
+  if (sessionId === 'default') return;
+  const ids = readDeletedLearnSessionIds(userId, courseId);
+  ids.add(sessionId);
+  writeDeletedLearnSessionIds(userId, courseId, ids);
+}
+
+function filterDeletedLearnSessions(
+  userId: string,
+  courseId: string,
+  sessions: LearnChatSession[],
+): LearnChatSession[] {
+  const deletedIds = readDeletedLearnSessionIds(userId, courseId);
+  if (!deletedIds.size) return sessions;
+  return sessions.filter((session) => !deletedIds.has(session.id));
+}
+
 function sortLearnSessionsForList(
   userId: string,
   courseId: string,
@@ -714,7 +769,11 @@ function readLearnSessions(userId: string, courseId: string): LearnChatSession[]
         typeof item.updatedAt === 'number',
       ),
     );
-    return sortLearnSessionsForList(userId, courseId, sessions).slice(0, 12);
+    return filterDeletedLearnSessions(
+      userId,
+      courseId,
+      sortLearnSessionsForList(userId, courseId, sessions),
+    ).slice(0, 12);
   } catch {
     return [];
   }
@@ -725,7 +784,13 @@ function writeLearnSessions(userId: string, courseId: string, sessions: LearnCha
   try {
     localStorage.setItem(
       learnSessionIndexKey(userId, courseId),
-      JSON.stringify(sortLearnSessionsForList(userId, courseId, sessions).slice(0, 12)),
+      JSON.stringify(
+        filterDeletedLearnSessions(
+          userId,
+          courseId,
+          sortLearnSessionsForList(userId, courseId, sessions),
+        ).slice(0, 12),
+      ),
     );
   } catch {
     /* localStorage may be unavailable */
@@ -776,7 +841,8 @@ function readLearnSessionMessages(
           typeof message.createdAt === 'number',
         ),
       )
-      .filter((message) => !message.transient);
+      .filter((message) => !message.transient)
+      .map(finalizeLearnMessagePublicTrace);
   } catch {
     return [];
   }
@@ -792,6 +858,7 @@ function writeLearnSessionMessages(
   try {
     const serializableMessages = messages
       .filter((message) => !message.transient)
+      .map(finalizeLearnMessagePublicTrace)
       .map((message) => ({
         ...message,
         attachments: undefined,
@@ -820,9 +887,13 @@ function mergeLearnSessions(
   current: LearnChatSession[],
   incoming: Array<LearnChatSession | RemoteLearnChatSession>,
 ): LearnChatSession[] {
+  const deletedIds = readDeletedLearnSessionIds(userId, courseId);
   const byId = new Map<string, LearnChatSession>();
-  for (const session of current) byId.set(session.id, session);
+  for (const session of current) {
+    if (!deletedIds.has(session.id)) byId.set(session.id, session);
+  }
   for (const session of incoming) {
+    if (deletedIds.has(session.id)) continue;
     const existing = byId.get(session.id);
     if (!existing || session.updatedAt >= existing.updatedAt) {
       byId.set(session.id, {
@@ -837,7 +908,7 @@ function mergeLearnSessions(
 }
 
 function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage {
-  return {
+  return finalizeLearnMessagePublicTrace({
     id: message.id,
     role: message.role,
     text: message.text || '',
@@ -855,24 +926,25 @@ function remoteMessageToLearnMessage(message: RemoteLearnMessage): LearnMessage 
     artifacts: message.artifacts == null ? undefined : (message.artifacts as LearnArtifact[]),
     publicTrace:
       message.publicTrace == null ? undefined : (message.publicTrace as LearnPublicTraceStep[]),
-  };
+  });
 }
 
 function learnMessageToRemotePayload(message: LearnMessage): RemoteLearnMessagePayload {
+  const settledMessage = finalizeLearnMessagePublicTrace(message);
   return {
-    id: message.id,
-    role: message.role,
-    text: message.text,
-    createdAt: message.createdAt,
-    plan: message.plan,
-    progressProposal: message.progressProposal,
-    pendingAction: message.pendingAction,
-    lecturePrompt: message.lecturePrompt,
-    lectureDeck: message.lectureDeck,
-    learningActions: message.learningActions,
-    artifacts: message.artifacts,
-    publicTrace: message.publicTrace,
-    attachments: message.attachments?.map((attachment) => ({
+    id: settledMessage.id,
+    role: settledMessage.role,
+    text: settledMessage.text,
+    createdAt: settledMessage.createdAt,
+    plan: settledMessage.plan,
+    progressProposal: settledMessage.progressProposal,
+    pendingAction: settledMessage.pendingAction,
+    lecturePrompt: settledMessage.lecturePrompt,
+    lectureDeck: settledMessage.lectureDeck,
+    learningActions: settledMessage.learningActions,
+    artifacts: settledMessage.artifacts,
+    publicTrace: settledMessage.publicTrace,
+    attachments: settledMessage.attachments?.map((attachment) => ({
       id: attachment.id,
       name: attachment.name,
       mimeType: attachment.mimeType,
@@ -2080,6 +2152,48 @@ function learnMessagesForPlanningIntent(messages: LearnMessage[]): LearnTurnMess
     .filter((message) => message.text.length > 0);
 }
 
+function classifyLearnTurnPlannerError(error: unknown): {
+  message: string;
+  blockedTitle: string;
+  blockedDetail: string;
+} {
+  const rawMessage =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : '学习路由失败';
+  if (
+    /Cannot connect to API|Connect Timeout|timeout|ETIMEDOUT|ECONN|ENOTFOUND|fetch failed|network|rate limit|API key|Unauthorized|401|403|429|AI 路由模型连接超时|AI 路由模型不可用/i.test(
+      rawMessage,
+    )
+  ) {
+    return {
+      message: 'AI 路由模型连接超时或不可用，暂时没有得到结构化学习决定',
+      blockedTitle: 'AI 路由模型不可用',
+      blockedDetail:
+        '模型/API 调用没有成功完成；为了避免硬编码兜底误导，这次没有继续生成回复、计划或题目。',
+    };
+  }
+  if (/review_plan must include|复习计划结构不完整|复习结构不完整/i.test(rawMessage)) {
+    return {
+      message: 'AI 返回的复习计划结构不完整',
+      blockedTitle: '复习计划结构不合格',
+      blockedDetail: '路由返回了复习计划意图，但缺少必要的学习目标、重点或自测结构，所以停止展示。',
+    };
+  }
+  if (
+    /AI semantic router failed to produce a valid decision|AI semantic router/i.test(rawMessage)
+  ) {
+    return {
+      message: 'AI 路由没有返回合法的结构化学习决定',
+      blockedTitle: '路由没有返回可执行结构',
+      blockedDetail: '没有拿到合法的结构化学习决定，所以停止生成回复、计划或题目。',
+    };
+  }
+  return {
+    message: rawMessage,
+    blockedTitle: '学习路由没有完成',
+    blockedDetail: '这次学习路由没有成功完成，所以没有继续生成回复、计划或题目。',
+  };
+}
+
 async function planLearnTurn(args: {
   question: string;
   messages: LearnMessage[];
@@ -2176,13 +2290,7 @@ async function planLearnTurn(args: {
       '[learn] AI learn turn planner unavailable:',
       error instanceof Error ? error.message : error,
     );
-    const rawMessage = error instanceof Error ? error.message : '学习路由失败';
-    if (
-      /AI semantic router failed to produce a valid decision|AI semantic router/i.test(rawMessage)
-    ) {
-      throw new Error('这次没有拿到可用的复习结构');
-    }
-    throw error;
+    throw new Error(classifyLearnTurnPlannerError(error).message);
   }
 }
 
@@ -2256,6 +2364,36 @@ function pendingPublicTraceForQuestion(question: string): LearnPublicTraceStep[]
       undefined,
       'waiting',
     ),
+  ];
+}
+
+function finalizePublicTraceSteps(
+  steps?: LearnPublicTraceStep[],
+): LearnPublicTraceStep[] | undefined {
+  if (!steps?.length) return steps;
+  let changed = false;
+  const settled = steps.map((step) => {
+    if (step.status !== 'waiting') return step;
+    changed = true;
+    return { ...step, status: 'done' as const };
+  });
+  return changed ? settled : steps;
+}
+
+function finalizeLearnMessagePublicTrace(message: LearnMessage): LearnMessage {
+  if (message.transient) return message;
+  const publicTrace = finalizePublicTraceSteps(message.publicTrace);
+  if (publicTrace === message.publicTrace) return message;
+  return { ...message, publicTrace };
+}
+
+function publicTraceForBlockedQuestion(
+  question: string,
+  blockedStep: LearnPublicTraceStep,
+): LearnPublicTraceStep[] {
+  return [
+    ...(finalizePublicTraceSteps(pendingPublicTraceForQuestion(question).slice(0, 2)) || []),
+    blockedStep,
   ];
 }
 
@@ -2388,11 +2526,13 @@ function publicTraceFromLearnTurn(
   if (reviewPlan) {
     const record = payloadRecord(reviewPlan);
     const tasks = Array.isArray(record.tasks) ? record.tasks : [];
+    const focusPoints = Array.isArray(record.focusPoints) ? record.focusPoints : [];
+    const selfChecks = Array.isArray(record.selfChecks) ? record.selfChecks : [];
     addStep(
       makePublicTraceStep(
         'review-artifact',
         '产出知识点复习',
-        `${payloadString(record.title, '复习计划')}：${tasks.length || 1} 个复习任务。`,
+        `${payloadString(record.title, '复习计划')}：${tasks.length || 1} 个任务，${focusPoints.length} 个重点，${selfChecks.length} 个自测。`,
       ),
     );
   }
@@ -3564,6 +3704,7 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
 
   if (kind === 'review_plan') {
     const title = payloadString(record.title) || '复习计划';
+    const learningGoal = payloadString(record.learningGoal);
     const tasks = Array.isArray(record.tasks)
       ? record.tasks
           .map((task) => payloadRecord(task))
@@ -3586,8 +3727,80 @@ function normalizeLearnArtifact(raw: unknown): LearnArtifact | null {
           .map((item, index) => learnCalendarDraftItemFromRecord(payloadRecord(item), index))
           .filter((item): item is LearnCalendarDraftItem => Boolean(item))
       : undefined;
+    const focusPoints = Array.isArray(record.focusPoints)
+      ? record.focusPoints
+          .map((item) => payloadRecord(item))
+          .map((item) => ({
+            title: payloadString(item.title),
+            explanation: payloadString(item.explanation),
+            checkQuestion: payloadString(item.checkQuestion),
+          }))
+          .filter((item) => item.title || item.explanation || item.checkQuestion)
+          .slice(0, 8)
+      : undefined;
+    const selfChecks = Array.isArray(record.selfChecks)
+      ? record.selfChecks
+          .map((item) => payloadRecord(item))
+          .map((item) => {
+            const difficulty = payloadString(item.difficulty);
+            const normalizedDifficulty: 'warmup' | 'core' | 'stretch' | undefined =
+              difficulty === 'warmup' || difficulty === 'core' || difficulty === 'stretch'
+                ? difficulty
+                : undefined;
+            return {
+              question: payloadString(item.question),
+              expectedAnswer: payloadString(item.expectedAnswer),
+              concept: payloadString(item.concept),
+              difficulty: normalizedDifficulty,
+            };
+          })
+          .filter((item) => item.question || item.expectedAnswer)
+          .slice(0, 8)
+      : undefined;
+    const rawPracticeBridge = payloadRecord(record.practiceBridge);
+    const practiceProblemIds = Array.isArray(rawPracticeBridge.problemIds)
+      ? rawPracticeBridge.problemIds
+          .map((item) => String(item))
+          .filter(Boolean)
+          .slice(0, 12)
+      : [];
+    const practiceGeneratedPrompts = Array.isArray(rawPracticeBridge.generatedPrompts)
+      ? rawPracticeBridge.generatedPrompts
+          .map((item) => String(item))
+          .filter(Boolean)
+          .slice(0, 6)
+      : [];
+    const practiceBridge =
+      payloadString(rawPracticeBridge.title) ||
+      payloadString(rawPracticeBridge.summary) ||
+      practiceProblemIds.length ||
+      practiceGeneratedPrompts.length
+        ? {
+            title: payloadString(rawPracticeBridge.title) || '练习衔接',
+            summary: payloadString(rawPracticeBridge.summary),
+            problemIds: practiceProblemIds,
+            generatedPrompts: practiceGeneratedPrompts,
+          }
+        : undefined;
+    const nextSteps = Array.isArray(record.nextSteps)
+      ? record.nextSteps
+          .map((item) => String(item))
+          .filter(Boolean)
+          .slice(0, 6)
+      : undefined;
     if (!tasks.length && !calendarDraftItems?.length) return null;
-    return { kind, id, title, tasks, calendarDraftItems };
+    return {
+      kind,
+      id,
+      title,
+      learningGoal: learningGoal || undefined,
+      tasks,
+      calendarDraftItems,
+      focusPoints,
+      selfChecks,
+      practiceBridge,
+      nextSteps,
+    };
   }
 
   return null;
@@ -5017,14 +5230,39 @@ function LearnArtifactCards({
         }
 
         if (artifact.kind === 'review_plan') {
+          const learningGoal = payloadString(artifact.learningGoal);
+          const focusPoints = Array.isArray(artifact.focusPoints)
+            ? artifact.focusPoints.map((item) => payloadRecord(item)).slice(0, 3)
+            : [];
+          const selfChecks = Array.isArray(artifact.selfChecks)
+            ? artifact.selfChecks.map((item) => payloadRecord(item)).slice(0, 3)
+            : [];
+          const practiceBridge = payloadRecord(artifact.practiceBridge);
+          const practiceProblemIds = Array.isArray(practiceBridge.problemIds)
+            ? practiceBridge.problemIds.map((item) => String(item)).filter(Boolean)
+            : [];
+          const generatedPrompts = Array.isArray(practiceBridge.generatedPrompts)
+            ? practiceBridge.generatedPrompts.map((item) => String(item)).filter(Boolean)
+            : [];
+          const nextSteps = Array.isArray(artifact.nextSteps)
+            ? artifact.nextSteps
+                .map((item) => String(item))
+                .filter(Boolean)
+                .slice(0, 3)
+            : [];
           return (
             <div
               key={artifact.id}
-              className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2.5 text-xs dark:border-emerald-300/15 dark:bg-emerald-400/10"
+              className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-3 text-xs dark:border-emerald-300/15 dark:bg-emerald-400/10"
             >
               <p className="font-semibold text-emerald-950 dark:text-emerald-100">
                 {artifact.title}
               </p>
+              {learningGoal ? (
+                <p className="mt-1.5 text-emerald-900/75 dark:text-emerald-100/75">
+                  {learningGoal}
+                </p>
+              ) : null}
               <div className="mt-2 space-y-1">
                 {artifact.tasks.slice(0, 4).map((task, index) => (
                   <p key={`${artifact.id}-${index}`} className="text-emerald-800/85">
@@ -5033,6 +5271,80 @@ function LearnArtifactCards({
                   </p>
                 ))}
               </div>
+              {focusPoints.length ? (
+                <div className="mt-3 border-t border-emerald-200/70 pt-2 dark:border-emerald-200/10">
+                  <p className="font-semibold text-emerald-950 dark:text-emerald-100">
+                    先过这几个点
+                  </p>
+                  <div className="mt-1.5 space-y-2">
+                    {focusPoints.map((point, index) => (
+                      <div key={`${artifact.id}-focus-${index}`}>
+                        <p className="font-medium text-emerald-900 dark:text-emerald-100">
+                          {payloadString(point.title) || `重点 ${index + 1}`}
+                        </p>
+                        {payloadString(point.explanation) ? (
+                          <p className="mt-0.5 text-emerald-800/75 dark:text-emerald-100/65">
+                            {payloadString(point.explanation)}
+                          </p>
+                        ) : null}
+                        {payloadString(point.checkQuestion) ? (
+                          <p className="mt-0.5 text-emerald-900/80 dark:text-emerald-100/75">
+                            问自己：{payloadString(point.checkQuestion)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {selfChecks.length ? (
+                <div className="mt-3 border-t border-emerald-200/70 pt-2 dark:border-emerald-200/10">
+                  <p className="font-semibold text-emerald-950 dark:text-emerald-100">小自测</p>
+                  <div className="mt-1.5 space-y-2">
+                    {selfChecks.map((check, index) => (
+                      <div key={`${artifact.id}-check-${index}`}>
+                        <p className="text-emerald-900 dark:text-emerald-100">
+                          {index + 1}. {payloadString(check.question)}
+                        </p>
+                        {payloadString(check.expectedAnswer) ? (
+                          <p className="mt-0.5 text-emerald-800/70 dark:text-emerald-100/60">
+                            要点：{payloadString(check.expectedAnswer)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {payloadString(practiceBridge.summary) ||
+              practiceProblemIds.length ||
+              generatedPrompts.length ? (
+                <div className="mt-3 border-t border-emerald-200/70 pt-2 dark:border-emerald-200/10">
+                  <p className="font-semibold text-emerald-950 dark:text-emerald-100">
+                    {payloadString(practiceBridge.title) || '练习衔接'}
+                  </p>
+                  {payloadString(practiceBridge.summary) ? (
+                    <p className="mt-0.5 text-emerald-800/75 dark:text-emerald-100/65">
+                      {payloadString(practiceBridge.summary)}
+                    </p>
+                  ) : null}
+                  {practiceProblemIds.length ? (
+                    <p className="mt-0.5 text-emerald-800/75 dark:text-emerald-100/65">
+                      题库可用：{practiceProblemIds.slice(0, 4).join('、')}
+                    </p>
+                  ) : null}
+                  {generatedPrompts.length ? (
+                    <p className="mt-0.5 text-emerald-800/75 dark:text-emerald-100/65">
+                      生成练习：{generatedPrompts[0]}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {nextSteps.length ? (
+                <p className="mt-2 border-t border-emerald-200/70 pt-2 text-emerald-900/75 dark:border-emerald-200/10 dark:text-emerald-100/70">
+                  下一步：{nextSteps.join('；')}
+                </p>
+              ) : null}
             </div>
           );
         }
@@ -5057,8 +5369,15 @@ function LearnArtifactCards({
   );
 }
 
-function LearnPublicTraceCard({ steps }: { steps?: LearnPublicTraceStep[] }) {
-  if (!steps?.length) return null;
+function LearnPublicTraceCard({
+  steps,
+  transient,
+}: {
+  steps?: LearnPublicTraceStep[];
+  transient?: boolean;
+}) {
+  const displaySteps = transient ? steps : finalizePublicTraceSteps(steps);
+  if (!displaySteps?.length) return null;
   return (
     <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
       <div className="mb-2 flex items-center gap-2">
@@ -5068,7 +5387,7 @@ function LearnPublicTraceCard({ steps }: { steps?: LearnPublicTraceStep[] }) {
         <p className="font-semibold text-slate-900 dark:text-slate-100">本次工作流</p>
       </div>
       <ol className="space-y-2">
-        {steps.map((step) => (
+        {displaySteps.map((step) => (
           <li key={step.id} className="flex gap-2">
             <span
               className={cn(
@@ -6134,15 +6453,17 @@ export function LearnPageClient() {
     const existing = readLearnSessions(localUserId, activeCourseId);
     const byId = new Map<string, LearnChatSession>();
     const defaultSession = existing.find((session) => session.id === 'default');
-    byId.set('default', {
-      id: 'default',
-      title:
-        defaultSession?.title && defaultSession.title !== '默认学习会话'
-          ? defaultSession.title
-          : '新对话',
-      createdAt: defaultSession?.createdAt ?? now,
-      updatedAt: defaultSession?.updatedAt ?? now,
-    });
+    if (activeSessionId === 'default' || existing.length === 0) {
+      byId.set('default', {
+        id: 'default',
+        title:
+          defaultSession?.title && defaultSession.title !== '默认学习会话'
+            ? defaultSession.title
+            : '新对话',
+        createdAt: defaultSession?.createdAt ?? now,
+        updatedAt: defaultSession?.updatedAt ?? now,
+      });
+    }
     for (const session of existing) byId.set(session.id, session);
     const currentSession = byId.get(activeSessionId);
     byId.set(activeSessionId, {
@@ -7306,6 +7627,7 @@ export function LearnPageClient() {
           remainingSessions.length ? remainingSessions : [fallbackSession],
         );
 
+        rememberDeletedLearnSessionId(localUserId, activeCourseId, session.id);
         deleteLearnSessionMessages(localUserId, activeCourseId, session.id);
         writeLearnSessions(localUserId, activeCourseId, nextSessions);
         setLearnSessions(nextSessions);
@@ -8345,13 +8667,13 @@ export function LearnPageClient() {
         ]);
         refreshLearnerSnapshot();
       } catch (error) {
-        const message = error instanceof Error ? error.message : '学习路由失败';
+        const plannerError = classifyLearnTurnPlannerError(error);
         setMessages((current) => [
           ...current,
           {
             id: makeClientId('assistant-learn-router-error'),
             role: 'assistant',
-            text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
+            text: `${plannerError.message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
             createdAt: Date.now(),
           },
         ]);
@@ -8515,22 +8837,22 @@ export function LearnPageClient() {
             modelId,
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : '学习路由失败';
+          const plannerError = classifyLearnTurnPlannerError(error);
           const errorMessage: LearnMessage = {
             id: makeClientId('assistant-learn-router-error'),
             role: 'assistant',
-            text: `${message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
+            text: `${plannerError.message}。我没有使用本地兜底计划，请稍后重试或换一个模型。`,
             createdAt: Date.now(),
-            publicTrace: [
-              ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+            publicTrace: publicTraceForBlockedQuestion(
+              questionText,
               makePublicTraceStep(
                 'router-blocked',
-                '路由没有返回可执行结构',
-                '没有拿到合法的结构化学习决定，所以停止生成计划或题目。',
+                plannerError.blockedTitle,
+                plannerError.blockedDetail,
                 undefined,
                 'blocked',
               ),
-            ],
+            ),
           };
           setMessages((current) =>
             pendingWorkflowMessageId
@@ -8678,8 +9000,8 @@ export function LearnPageClient() {
             role: 'assistant',
             text: 'AI 没有返回可用的练习计划。我没有使用本地计划兜底，请重试一次或换一个模型。',
             createdAt: Date.now(),
-            publicTrace: [
-              ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+            publicTrace: publicTraceForBlockedQuestion(
+              questionText,
               makePublicTraceStep(
                 'practice-plan-blocked',
                 '练习计划不可展示',
@@ -8687,7 +9009,7 @@ export function LearnPageClient() {
                 undefined,
                 'blocked',
               ),
-            ],
+            ),
           };
           setMessages((current) =>
             pendingWorkflowMessageId
@@ -8703,8 +9025,8 @@ export function LearnPageClient() {
           role: 'assistant',
           text: 'AI 已识别这是学习计划请求，但没有返回可展示的计划草稿。我没有使用本地计划兜底，请重试一次或换一个模型。',
           createdAt: Date.now(),
-          publicTrace: [
-            ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+          publicTrace: publicTraceForBlockedQuestion(
+            questionText,
             makePublicTraceStep(
               'artifact-blocked',
               '计划草稿不可展示',
@@ -8712,7 +9034,7 @@ export function LearnPageClient() {
               undefined,
               'blocked',
             ),
-          ],
+          ),
         };
         setMessages((current) =>
           pendingWorkflowMessageId
@@ -8794,8 +9116,8 @@ export function LearnPageClient() {
           role: 'assistant',
           text: `${message}。我没有生成本地兜底回答，请稍后重试或换一个模型。`,
           createdAt: Date.now(),
-          publicTrace: [
-            ...pendingPublicTraceForQuestion(questionText).slice(0, 2),
+          publicTrace: publicTraceForBlockedQuestion(
+            questionText,
             makePublicTraceStep(
               'answer-blocked',
               '课程讲解没有完成',
@@ -8803,7 +9125,7 @@ export function LearnPageClient() {
               undefined,
               'blocked',
             ),
-          ],
+          ),
         };
         setMessages((current) =>
           pendingWorkflowMessageId
@@ -10827,7 +11149,11 @@ export function LearnPageClient() {
                           </Link>
                           <button
                             type="button"
-                            onClick={() => void deleteLearnSession(session)}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              void deleteLearnSession(session);
+                            }}
                             disabled={deleting}
                             className={cn(
                               'grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:pointer-events-none disabled:opacity-60 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
@@ -11262,7 +11588,10 @@ export function LearnPageClient() {
                               />
                             ) : null}
                             {message.publicTrace?.length ? (
-                              <LearnPublicTraceCard steps={message.publicTrace} />
+                              <LearnPublicTraceCard
+                                steps={message.publicTrace}
+                                transient={message.transient}
+                              />
                             ) : null}
                             {message.progressProposal ? (
                               <ProgressConfirmationCard

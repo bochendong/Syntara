@@ -30,6 +30,26 @@ async function emitValidationError(
   throw new Error(message);
 }
 
+function nonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function arrayLength(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function validateReviewPlanArtifact(artifact: Record<string, unknown>) {
+  const hasLearningGoal = nonEmptyString(artifact.learningGoal);
+  const focusPointCount = arrayLength(artifact.focusPoints);
+  const selfCheckCount = arrayLength(artifact.selfChecks);
+
+  if (!hasLearningGoal || focusPointCount < 2 || selfCheckCount < 2) {
+    throw new Error(
+      'AI semantic router review_plan must include learningGoal, at least two focusPoints, and at least two selfChecks.',
+    );
+  }
+}
+
 function validateSemanticRouterOutput(output: LearnSemanticRouterOutput) {
   if (output.answerMode === 'course_answer') {
     if (!output.handoff) {
@@ -45,6 +65,9 @@ function validateSemanticRouterOutput(output: LearnSemanticRouterOutput) {
         return Array.isArray(artifact.items) && artifact.items.length > 0;
       }
       if (artifact.kind === 'activity_plan' || artifact.kind === 'review_plan') {
+        if (artifact.kind === 'review_plan') {
+          validateReviewPlanArtifact(artifact);
+        }
         return (
           (Array.isArray(artifact.tasks) && artifact.tasks.length > 0) ||
           (Array.isArray(artifact.calendarDraftItems) && artifact.calendarDraftItems.length > 0)
@@ -129,9 +152,13 @@ async function routeWithSemanticRouter(
       status: 'failed',
       error: message,
     });
-    return emitValidationError(ctx, 'AI semantic router failed to produce a valid decision.', {
-      error: message,
-    });
+    return emitValidationError(
+      ctx,
+      `AI semantic router failed to produce a valid decision: ${message}`,
+      {
+        error: message,
+      },
+    );
   }
 
   const selectedToolIds = selectedToolIdsForTrace(output);
