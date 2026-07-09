@@ -15,6 +15,7 @@ export const learnActionKindSchema = z.enum([
   'memory.search',
   'memory.propose_write',
   'web.search',
+  'review_mode.request_choice',
   'learner_progress.request_confirmation',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',
@@ -49,6 +50,9 @@ function normalizeLearningActionKind(value: unknown) {
   }
   if (/memory/.test(normalized) && /(search|read|recall|查|读|记得)/.test(normalized)) {
     return 'memory.search';
+  }
+  if (/review.*mode|复习.*模式|讲解.*练题|练题.*讲解/.test(normalized)) {
+    return 'review_mode.request_choice';
   }
   if (/practice|quiz|problem/.test(normalized)) return 'practice.propose_generation';
   if (/classroom|lecture|explanation/.test(normalized)) {
@@ -211,6 +215,42 @@ export const learnScopeResolutionSchema = z
   .nullable()
   .optional();
 
+const learnProblemBankMatchSchema = z.object({
+  problemId: z.string().trim().max(200),
+  title: z.string().trim().max(300),
+  score: z.number().finite().default(0),
+  reason: z.string().trim().max(800),
+  excerpt: z.string().trim().max(1600).optional().default(''),
+  notebookName: z.string().trim().max(240).nullable().optional(),
+  tags: z.array(z.string().trim().max(80)).max(12).optional().default([]),
+  difficulty: z.string().trim().max(40).optional().default(''),
+  problemType: z.string().trim().max(40).optional().default(''),
+  attemptStatus: z.string().trim().max(40).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
+});
+
+const learnProblemBankExcludedCandidateSchema = z.object({
+  problemId: z.string().trim().max(200).optional(),
+  title: z.string().trim().max(300),
+  reason: z.string().trim().max(800),
+  excerpt: z.string().trim().max(1200).optional().default(''),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
+});
+
+export const learnProblemBankSearchResultSchema = z.object({
+  query: z.string().trim().max(400),
+  requestedCount: z.number().int().min(1).max(20).default(5),
+  source: z
+    .enum(['problem_bank_full_text', 'problem_bank_summary', 'none'])
+    .default('problem_bank_full_text'),
+  strictTopic: z.string().trim().max(120).nullable().optional(),
+  matches: z.array(learnProblemBankMatchSchema).max(20).default([]),
+  excluded: z.array(learnProblemBankExcludedCandidateSchema).max(20).default([]),
+  rationale: z.array(z.string().trim().max(800)).max(8).default([]),
+  gaps: z.array(z.string().trim().max(800)).max(8).default([]),
+  searchedAt: z.string().trim().max(80).optional(),
+});
+
 export const learnPlanningIntentValues = [
   'none',
   'review_plan',
@@ -241,6 +281,7 @@ export const learnPlanningDecisionSchema = z.preprocess(
     constraintsSummary: z.string().trim().max(500).default(''),
     reason: z.string().trim().max(800).default(''),
     confidence: z.number().min(0).max(1).default(0.5),
+    problemBankSearch: learnProblemBankSearchResultSchema.nullable().optional(),
   }),
 );
 

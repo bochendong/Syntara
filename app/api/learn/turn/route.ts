@@ -9,6 +9,8 @@ import {
   learnTurnRequestSchema,
 } from '@/features/learn-core';
 import { createRequestSemanticRouter } from '@/features/learn-core/server/semantic-router-runtime';
+import { prisma } from '@/lib/server/prisma';
+import { searchLearnProblemBankForPractice } from '@/lib/server/problem-bank-practice-search';
 
 export async function POST(request: NextRequest) {
   return runWithRequestContext(
@@ -29,6 +31,14 @@ export async function POST(request: NextRequest) {
 
         const parsed = await decideTeachingTurn(payload.data, {
           semanticRouter: createRequestSemanticRouter(request),
+          searchProblemBank: ({ courseId, query, requestedCount }) =>
+            searchLearnProblemBankForPractice({
+              prisma,
+              userId: auth.userId,
+              courseId,
+              query,
+              requestedCount,
+            }),
         });
 
         return NextResponse.json(learnTurnDecisionToResponse(parsed));

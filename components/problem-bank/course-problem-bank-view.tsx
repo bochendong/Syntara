@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import {
   AlertCircle,
   ArrowRightLeft,
@@ -35,9 +35,11 @@ import {
   getLocalizedProblemContent,
   getLocalizedProblemTitle,
   type NotebookProblemAttemptAnswer,
+  type NotebookProblemAttemptRecord,
   type NotebookProblemPublicContent,
 } from '@/lib/problem-bank';
 import { Button } from '@/components/ui/button';
+import { MessageResponse } from '@/components/ai-elements/message';
 import {
   Dialog,
   DialogContent,
@@ -105,10 +107,12 @@ import {
 } from '@/components/problem-bank/use-course-problem-bank-controller';
 import { CourseProblemImportDialog } from '@/components/problem-bank/course-problem-import-dialog';
 import { ProblemAiHelpButton } from '@/components/problem-bank/problem-ai-help-drawer';
+import type { NotebookProblemClientRecord } from '@/lib/utils/notebook-problem-api';
 
 type PracticePaneId = 'left' | 'right';
 type CodePracticeTab = 'testcase' | 'secret' | 'code' | 'output';
-type PracticePanelTab = ProblemInfoTab | AnswerPanelTab | CodePracticeTab;
+type PracticeAiHelpTab = 'ai-help';
+type PracticePanelTab = ProblemInfoTab | AnswerPanelTab | CodePracticeTab | PracticeAiHelpTab;
 type PracticePaneTabs = Record<PracticePaneId, PracticePanelTab[]>;
 type PracticePaneActive = Record<PracticePaneId, PracticePanelTab>;
 type CodeProblemPublicContent = Extract<NotebookProblemPublicContent, { type: 'code' }>;
@@ -118,7 +122,31 @@ type CodeTestFile = {
   code: string;
 };
 
+export type CourseProblemPracticeHeaderState = {
+  problemId: string;
+  problem: NotebookProblemClientRecord;
+  problemTitle: string;
+  problemContent: NotebookProblemPublicContent | null;
+  currentAnswer: NotebookProblemAttemptAnswer | null;
+  latestAttempt: NotebookProblemAttemptRecord | null;
+  progressLabel: string;
+  progressCurrent: number;
+  progressTotal: number;
+  notebookLabel: string | null;
+  difficultyLabel: string;
+  difficultyClassName: string;
+  previousLabel: string;
+  previousTitle: string;
+  previousDisabled: boolean;
+  nextLabel: string;
+  nextTitle: string;
+  nextDisabled: boolean;
+  onPrevious: (() => void) | null;
+  onNext: (() => void) | null;
+};
+
 const FORMULA_PRACTICE_TAB = 'formula' satisfies PracticePanelTab;
+const AI_HELP_PRACTICE_TAB = 'ai-help' satisfies PracticeAiHelpTab;
 const PROBLEM_INFO_TABS = [
   'description',
   FORMULA_PRACTICE_TAB,
@@ -136,6 +164,31 @@ const DEFAULT_PRACTICE_PANE_TABS: PracticePaneTabs = {
   left: ['description', FORMULA_PRACTICE_TAB, 'edit'],
   right: ['answer', 'preview', 'solution', 'history'],
 };
+
+type PracticeAiHelpState = {
+  problemId: string;
+  title: string;
+  answer: string;
+  status: 'loading' | 'ready' | 'error';
+  error?: string;
+};
+
+type PracticeAiHelpController = {
+  state: PracticeAiHelpState | null;
+  hasHelp: boolean;
+  active: boolean;
+  onActiveChange: (active: boolean) => void;
+};
+
+const practiceAiHelpMarkdownClassName = cn(
+  'max-w-none text-sm leading-7 text-slate-800 dark:text-slate-100',
+  '[&_p]:my-3 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1',
+  '[&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-xl [&_h1]:font-semibold',
+  '[&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-semibold',
+  '[&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold',
+  '[&_code]:rounded [&_code]:bg-white [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono dark:[&_code]:bg-slate-900',
+  '[&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-slate-200 [&_pre]:bg-white [&_pre]:p-3 dark:[&_pre]:border-slate-800 dark:[&_pre]:bg-slate-950',
+);
 
 function isProblemInfoPracticeTab(tab: PracticePanelTab): tab is ProblemInfoTab {
   return (PROBLEM_INFO_TABS as readonly string[]).includes(tab);
@@ -155,6 +208,9 @@ function normalizePracticePaneTabs(
   canEditProblems: boolean,
   supportsPreviewTab: boolean,
   codeTabs: CodePracticeTab[],
+  hideEditTab = false,
+  hideSolutionTab = false,
+  supportsAiHelpTab = false,
 ): PracticePaneTabs {
   const nextTabs: PracticePaneTabs = {
     left: [...tabs.left],
@@ -197,10 +253,14 @@ function normalizePracticePaneTabs(
     removeTab(FORMULA_PRACTICE_TAB);
   }
 
-  if (canEditProblems) {
+  if (canEditProblems && !hideEditTab) {
     ensureLeftTabAfter('edit', hasTab(FORMULA_PRACTICE_TAB) ? FORMULA_PRACTICE_TAB : 'description');
   } else {
     removeTab('edit');
+  }
+
+  if (hideSolutionTab) {
+    removeTab('solution');
   }
 
   if (supportsPreviewTab) {
@@ -233,6 +293,12 @@ function normalizePracticePaneTabs(
     }
   }
 
+  if (supportsAiHelpTab) {
+    ensureRightTabAfter(AI_HELP_PRACTICE_TAB, codeTabs.includes('code') ? 'code' : 'answer');
+  } else {
+    removeTab(AI_HELP_PRACTICE_TAB);
+  }
+
   if (nextTabs.left.length === 0) {
     nextTabs.left = ['description'];
     nextTabs.right = nextTabs.right.filter((tab) => tab !== 'description');
@@ -245,7 +311,10 @@ function normalizePracticePaneTabs(
   return nextTabs;
 }
 
-function normalizePracticePaneActive(active: PracticePaneActive, tabs: PracticePaneTabs) {
+function normalizePracticePaneActive(
+  active: PracticePaneActive,
+  tabs: PracticePaneTabs,
+): PracticePaneActive {
   return {
     left: tabs.left.includes(active.left) ? active.left : (tabs.left[0] ?? 'description'),
     right: tabs.right.includes(active.right) ? active.right : (tabs.right[0] ?? 'answer'),
@@ -763,9 +832,15 @@ export function CourseProblemBankView({
   initialFilters,
   mode = 'bank',
   practiceBackLabel,
+  practiceHeaderPlacement = 'internal',
   practiceProblemIds,
+  initialPracticeAnswers,
   onPracticeBack,
+  onPracticeProblemChange,
+  onPracticeAnswerDraftChange,
   onPracticeAttemptResolved,
+  onPracticeHeaderStateChange,
+  practiceAiHelp,
 }: {
   courseId: string;
   initialNotebookId?: string;
@@ -773,15 +848,26 @@ export function CourseProblemBankView({
   initialFilters?: CourseProblemBankInitialFilters;
   mode?: 'bank' | 'practice';
   practiceBackLabel?: string;
+  practiceHeaderPlacement?: 'internal' | 'external';
   practiceProblemIds?: string[];
+  initialPracticeAnswers?: Record<string, NotebookProblemAttemptAnswer | null | undefined>;
   onPracticeBack?: () => void;
+  onPracticeProblemChange?: (problemId: string) => void;
+  onPracticeAnswerDraftChange?: (
+    problemId: string,
+    answer: NotebookProblemAttemptAnswer | null,
+  ) => void;
   onPracticeAttemptResolved?: (event: CourseProblemPracticeAttemptResolvedEvent) => void;
+  onPracticeHeaderStateChange?: (state: CourseProblemPracticeHeaderState | null) => void;
+  practiceAiHelp?: PracticeAiHelpController;
 }) {
   const view = useCourseProblemBankController({
     courseId,
     initialNotebookId,
     initialProblemId,
     initialFilters,
+    initialPracticeAnswers,
+    practiceProblemIds,
     mode,
     onPracticeAttemptResolved,
   });
@@ -903,22 +989,43 @@ export function CourseProblemBankView({
     (selectedProblem.type !== 'choice' &&
       selectedProblem.type !== 'fill_blank' &&
       selectedProblem.type !== 'code');
-  const selectedProblemCurrentAnswer: NotebookProblemAttemptAnswer | null = selectedProblem
-    ? selectedProblem.type === 'choice'
-      ? { selectedOptionIds: choiceAnswers[selectedProblem.id] ?? [] }
-      : selectedProblem.type === 'fill_blank'
-        ? { blanks: blankAnswers[selectedProblem.id] ?? {} }
-        : selectedProblem.type === 'code'
-          ? {
-              code:
-                codeAnswers[selectedProblem.id] ??
-                (selectedProblemContent?.type === 'code'
-                  ? selectedProblemContent.starterCode
-                  : '') ??
-                '',
-            }
-          : { text: textAnswers[selectedProblem.id] ?? '' }
-    : null;
+  const selectedProblemCurrentAnswer: NotebookProblemAttemptAnswer | null = useMemo(() => {
+    if (!selectedProblem) return null;
+    if (selectedProblem.type === 'choice') {
+      return { selectedOptionIds: choiceAnswers[selectedProblem.id] ?? [] };
+    }
+    if (selectedProblem.type === 'fill_blank') {
+      return { blanks: blankAnswers[selectedProblem.id] ?? {} };
+    }
+    if (selectedProblem.type === 'code') {
+      return {
+        code:
+          codeAnswers[selectedProblem.id] ??
+          (selectedProblemContent?.type === 'code' ? selectedProblemContent.starterCode : '') ??
+          '',
+      };
+    }
+    return { text: textAnswers[selectedProblem.id] ?? '' };
+  }, [blankAnswers, choiceAnswers, codeAnswers, selectedProblem, selectedProblemContent, textAnswers]);
+  const latestPracticeDraftSignatureRef = useRef('');
+
+  useEffect(() => {
+    if (!isPracticeMode || !selectedProblemId) return;
+    onPracticeProblemChange?.(selectedProblemId);
+  }, [isPracticeMode, onPracticeProblemChange, selectedProblemId]);
+
+  useEffect(() => {
+    if (!isPracticeMode || !selectedProblem?.id) return;
+    const signature = `${selectedProblem.id}:${JSON.stringify(selectedProblemCurrentAnswer ?? null)}`;
+    if (latestPracticeDraftSignatureRef.current === signature) return;
+    latestPracticeDraftSignatureRef.current = signature;
+    onPracticeAnswerDraftChange?.(selectedProblem.id, selectedProblemCurrentAnswer);
+  }, [
+    isPracticeMode,
+    onPracticeAnswerDraftChange,
+    selectedProblem?.id,
+    selectedProblemCurrentAnswer,
+  ]);
   const selectedProblemLatestDetailedAttempt = selectedProblemAttempts[0] ?? null;
   const selectedProblemCodeTabs: CodePracticeTab[] =
     selectedProblem?.type === 'code' && selectedProblemContent?.type === 'code'
@@ -932,11 +1039,18 @@ export function CourseProblemBankView({
     canEditProblems,
     selectedProblemSupportsPreviewTab,
     selectedProblemCodeTabs,
+    practiceHeaderPlacement === 'external',
+    practiceHeaderPlacement === 'external',
+    Boolean(practiceAiHelp),
   );
-  const visiblePracticePaneActive = normalizePracticePaneActive(
+  const normalizedPracticePaneActive = normalizePracticePaneActive(
     practicePaneActive,
     visiblePracticePaneTabs,
   );
+  const visiblePracticePaneActive: PracticePaneActive =
+    practiceAiHelp?.active && visiblePracticePaneTabs.right.includes(AI_HELP_PRACTICE_TAB)
+      ? { ...normalizedPracticePaneActive, right: AI_HELP_PRACTICE_TAB }
+      : normalizedPracticePaneActive;
   const visiblePracticePanelTabs = new Set([
     ...visiblePracticePaneTabs.left,
     ...visiblePracticePaneTabs.right,
@@ -971,13 +1085,115 @@ export function CourseProblemBankView({
       : isReviewPracticeMode
         ? null
         : nextPracticeTarget;
-  const handlePracticeTargetChange = (problem: (typeof problems)[number]) => {
+  const practiceHeaderProgressCurrent =
+    isReviewPracticeMode && reviewPracticeIndex >= 0
+      ? reviewPracticeIndex + 1
+      : currentNotebookProblemPosition > 0
+        ? currentNotebookProblemPosition
+        : 0;
+  const practiceHeaderProgressTotal = isReviewPracticeMode
+    ? reviewPracticeProblems.length
+    : practiceNavigationProblemCount;
+  const handlePracticeTargetChange = useCallback(
+    (problem: (typeof problems)[number]) => {
+      if (isReviewPracticeMode) {
+        setSelectedProblemId(problem.id);
+        return;
+      }
+      navigateToPracticeProblem(problem);
+    },
+    [isReviewPracticeMode, navigateToPracticeProblem, setSelectedProblemId],
+  );
+  const practiceHeaderProgressLabel = (() => {
     if (isReviewPracticeMode) {
-      setSelectedProblemId(problem.id);
-      return;
+      return reviewPracticeIndex >= 0
+        ? `${reviewPracticeIndex + 1}/${reviewPracticeProblems.length}`
+        : '1/1';
     }
-    navigateToPracticeProblem(problem);
-  };
+    if (currentNotebookProblemPosition > 0) {
+      return `${currentNotebookProblemPosition}/${practiceNavigationProblemCount}`;
+    }
+    return locale === 'zh-CN' ? '未归类' : 'Unassigned';
+  })();
+  const previousPracticeHeaderLabel =
+    !isReviewPracticeMode && previousPracticeIsChapterJump
+      ? locale === 'zh-CN'
+        ? '上一章'
+        : 'Prev chapter'
+      : locale === 'zh-CN'
+        ? '上一题'
+        : 'Prev';
+  const nextPracticeHeaderLabel =
+    !isReviewPracticeMode && nextPracticeIsChapterJump
+      ? locale === 'zh-CN'
+        ? '下一章'
+        : 'Next chapter'
+      : locale === 'zh-CN'
+        ? '下一题'
+        : 'Next';
+  const practiceHeaderState = useMemo<CourseProblemPracticeHeaderState | null>(() => {
+    if (!isPracticeMode || !selectedProblem) return null;
+    return {
+      problemId: selectedProblem.id,
+      problem: selectedProblem,
+      problemTitle: selectedProblemTitle,
+      problemContent: selectedProblemContent,
+      currentAnswer: selectedProblemCurrentAnswer,
+      latestAttempt: selectedProblemLatestDetailedAttempt,
+      progressLabel: practiceHeaderProgressLabel,
+      progressCurrent: practiceHeaderProgressCurrent,
+      progressTotal: practiceHeaderProgressTotal,
+      notebookLabel: selectedProblemNotebookLabel || null,
+      difficultyLabel: difficultyLabel(selectedProblem.difficulty, locale),
+      difficultyClassName: difficultyTextClassName(selectedProblem.difficulty),
+      previousLabel: previousPracticeHeaderLabel,
+      previousTitle: headerPreviousPracticeTarget
+        ? headerPreviousPracticeTarget.title
+        : locale === 'zh-CN'
+          ? '没有上一题'
+          : 'No previous problem',
+      previousDisabled: !headerPreviousPracticeTarget,
+      nextLabel: nextPracticeHeaderLabel,
+      nextTitle: headerNextPracticeTarget
+        ? headerNextPracticeTarget.title
+        : locale === 'zh-CN'
+          ? '没有下一题'
+          : 'No next problem',
+      nextDisabled: !headerNextPracticeTarget,
+      onPrevious: headerPreviousPracticeTarget
+        ? () => handlePracticeTargetChange(headerPreviousPracticeTarget)
+        : null,
+      onNext: headerNextPracticeTarget
+        ? () => handlePracticeTargetChange(headerNextPracticeTarget)
+        : null,
+    };
+  }, [
+    handlePracticeTargetChange,
+    headerNextPracticeTarget,
+    headerPreviousPracticeTarget,
+    isPracticeMode,
+    locale,
+    nextPracticeHeaderLabel,
+    practiceHeaderProgressCurrent,
+    practiceHeaderProgressLabel,
+    practiceHeaderProgressTotal,
+    previousPracticeHeaderLabel,
+    selectedProblem,
+    selectedProblemContent,
+    selectedProblemCurrentAnswer,
+    selectedProblemLatestDetailedAttempt,
+    selectedProblemNotebookLabel,
+    selectedProblemTitle,
+  ]);
+
+  useEffect(() => {
+    if (!onPracticeHeaderStateChange) return;
+    onPracticeHeaderStateChange(practiceHeaderState);
+    return () => {
+      onPracticeHeaderStateChange(null);
+    };
+  }, [onPracticeHeaderStateChange, practiceHeaderState]);
+
   const handleSubmitAndShowHistory = async () => {
     const submitted = await handleSubmitInlineAnswer();
     if (!submitted) return;
@@ -1029,6 +1245,8 @@ export function CourseProblemBankView({
         return locale === 'zh-CN' ? '题解' : 'Solution';
       case 'history':
         return locale === 'zh-CN' ? '提交历史' : 'History';
+      case AI_HELP_PRACTICE_TAB:
+        return locale === 'zh-CN' ? 'AI 解答' : 'AI answer';
       default:
         return tab;
     }
@@ -1096,6 +1314,12 @@ export function CourseProblemBankView({
           Icon: ChevronUp,
           iconClassName: 'text-slate-500 dark:text-slate-300',
         };
+      case AI_HELP_PRACTICE_TAB:
+        return {
+          label,
+          Icon: Sparkles,
+          iconClassName: 'text-sky-600 dark:text-sky-300',
+        };
       case 'output':
         return {
           label,
@@ -1130,6 +1354,8 @@ export function CourseProblemBankView({
         return 'after:bg-slate-500';
       case 'preview':
         return 'after:bg-blue-500';
+      case AI_HELP_PRACTICE_TAB:
+        return 'after:bg-sky-500';
       case 'solution':
         return 'after:bg-fuchsia-500';
       default:
@@ -1139,6 +1365,13 @@ export function CourseProblemBankView({
   const handlePracticePaneTabSelect = (pane: PracticePaneId, tab: PracticePanelTab) => {
     if (!visiblePracticePanelTabs.has(tab)) return;
     setPracticePaneActive((prev) => ({ ...prev, [pane]: tab }));
+    if (tab === AI_HELP_PRACTICE_TAB) {
+      practiceAiHelp?.onActiveChange(true);
+      return;
+    }
+    if (pane === 'right') {
+      practiceAiHelp?.onActiveChange(false);
+    }
     if (isProblemInfoPracticeTab(tab)) {
       handleProblemInfoTabChange(tab);
       return;
@@ -1233,7 +1466,7 @@ export function CourseProblemBankView({
               <button
                 key={tab}
                 type="button"
-                draggable
+                draggable={tab !== AI_HELP_PRACTICE_TAB}
                 onDragStart={handlePracticeTabDragStart(tab)}
                 onDragEnd={() => setDraggingPracticeTab(null)}
                 onClick={() => handlePracticePaneTabSelect(pane, tab)}
@@ -1706,8 +1939,52 @@ export function CourseProblemBankView({
       />
     );
   };
+  const renderPracticeAiHelpPaneContent = () => {
+    const state = practiceAiHelp?.state;
+    const waitingForSavedHelp = practiceAiHelp?.hasHelp && !state;
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col">
+          {state?.status === 'loading' || waitingForSavedHelp ? (
+            <div className="flex flex-1 items-center justify-center">
+              <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                {waitingForSavedHelp
+                  ? locale === 'zh-CN'
+                    ? '正在读取已保存题解…'
+                    : 'Loading saved answer...'
+                  : locale === 'zh-CN'
+                    ? '正在读取题目、作答和课程记忆…'
+                    : 'Reading the problem, answer, and course memory...'}
+              </div>
+            </div>
+          ) : state?.answer ? (
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+              <MessageResponse className={practiceAiHelpMarkdownClassName} mode="static">
+                {state.answer}
+              </MessageResponse>
+              {state.status === 'error' ? (
+                <p className="mt-4 text-xs text-rose-600 dark:text-rose-300">
+                  {state.error ||
+                    (locale === 'zh-CN' ? '题解生成失败' : 'Failed to generate answer')}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="flex min-h-[180px] flex-1 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+              {locale === 'zh-CN'
+                ? '点击弹窗顶部的 AI 解答生成讲解。'
+                : 'Click AI answer in the popup header to generate an explanation.'}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
   const renderPracticePaneContent = (tab: PracticePanelTab) =>
-    isProblemInfoPracticeTab(tab)
+    tab === AI_HELP_PRACTICE_TAB
+      ? renderPracticeAiHelpPaneContent()
+      : isProblemInfoPracticeTab(tab)
       ? renderProblemInfoPaneContent(tab)
       : isCodePracticeTab(tab)
         ? renderCodePracticePaneContent(tab)
@@ -1717,7 +1994,12 @@ export function CourseProblemBankView({
     <div
       className={cn(
         'flex h-full min-h-0 w-full',
-        isPracticeMode ? 'gap-2 bg-[#f5f5f5] p-2 dark:bg-slate-950' : 'gap-2 p-2 sm:gap-3 sm:p-3',
+        isPracticeMode
+          ? cn(
+              'gap-2 bg-[#f5f5f5] p-2 dark:bg-slate-950',
+              practiceHeaderPlacement === 'external' && 'pt-1',
+            )
+          : 'gap-2 p-2 sm:gap-3 sm:p-3',
       )}
     >
       {!isPracticeMode ? (
@@ -2454,7 +2736,8 @@ export function CourseProblemBankView({
             </div>
           ) : (
             <>
-              <div className="mb-2 flex min-h-11 shrink-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm shadow-slate-950/[0.03] sm:flex-row sm:items-center sm:justify-between sm:px-3 dark:border-slate-800 dark:bg-slate-950">
+              {practiceHeaderPlacement === 'internal' ? (
+                <div className="mb-2 flex min-h-11 shrink-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm shadow-slate-950/[0.03] sm:flex-row sm:items-center sm:justify-between sm:px-3 dark:border-slate-800 dark:bg-slate-950">
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
                   <Button
                     type="button"
@@ -2624,7 +2907,8 @@ export function CourseProblemBankView({
                     </Button>
                   ) : null}
                 </div>
-              </div>
+                </div>
+              ) : null}
 
               <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(24rem,1fr)] lg:overflow-hidden">
                 <section className="flex min-h-[min(34rem,72dvh)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white lg:min-h-0 dark:border-slate-800 dark:bg-slate-950">

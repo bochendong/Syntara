@@ -11,6 +11,7 @@ import {
   getLocalizedProblemTitle,
   hasProblemTranslation,
   notebookProblemImportDraftSchema,
+  type NotebookProblemAttemptAnswer,
   type NotebookProblemAttemptRecord,
   type NotebookProblemAttemptStatus,
   type NotebookProblemImportDraft,
@@ -20,6 +21,7 @@ import {
   commitCourseProblemImport,
   deleteCourseProblem,
   listNotebookProblemAttempts,
+  listCourseProblemsByIds,
   listCourseProblems,
   previewCourseProblemImport,
   runNotebookCodeProblem,
@@ -72,6 +74,8 @@ type CourseProblemBankControllerArgs = {
   initialNotebookId?: string;
   initialProblemId?: string;
   initialFilters?: CourseProblemBankInitialFilters;
+  initialPracticeAnswers?: Record<string, NotebookProblemAttemptAnswer | null | undefined>;
+  practiceProblemIds?: string[];
   mode?: 'bank' | 'practice';
   onPracticeAttemptResolved?: (event: CourseProblemPracticeAttemptResolvedEvent) => void;
 };
@@ -162,11 +166,23 @@ function normalizeInitialStatusFilter(
   return hasStringValue(STATUS_FILTER_VALUES, next) ? next : 'all';
 }
 
+function attemptAnswerHasContent(answer: NotebookProblemAttemptAnswer | null | undefined): boolean {
+  if (!answer) return false;
+  if (typeof answer.text === 'string' && answer.text.trim()) return true;
+  if (Array.isArray(answer.selectedOptionIds) && answer.selectedOptionIds.length > 0) return true;
+  if (answer.blanks && Object.values(answer.blanks).some((value) => value.trim())) return true;
+  if (typeof answer.code === 'string' && answer.code.trim()) return true;
+  if (Array.isArray(answer.images) && answer.images.length > 0) return true;
+  return false;
+}
+
 export function useCourseProblemBankController({
   courseId,
   initialNotebookId,
   initialProblemId,
   initialFilters,
+  initialPracticeAnswers,
+  practiceProblemIds,
   mode = 'bank',
   onPracticeAttemptResolved,
 }: CourseProblemBankControllerArgs) {
@@ -177,6 +193,7 @@ export function useCourseProblemBankController({
   const pdfProvidersConfig = useSettingsStore((state) => state.pdfProvidersConfig);
   const webSearchProviderId = useSettingsStore((state) => state.webSearchProviderId);
   const webSearchProvidersConfig = useSettingsStore((state) => state.webSearchProvidersConfig);
+  const initialPracticeAnswersRef = useRef(initialPracticeAnswers);
 
   const [courseName, setCourseName] = useState('');
   const [courseAccessRole, setCourseAccessRole] = useState<CourseRecord['accessRole']>();
@@ -267,6 +284,14 @@ export function useCourseProblemBankController({
   const [previewNotebookOptions, setPreviewNotebookOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const scopedPracticeProblemIdKey = useMemo(
+    () => Array.from(new Set(practiceProblemIds?.filter(Boolean) ?? [])).join('\u001f'),
+    [practiceProblemIds],
+  );
+  const scopedPracticeProblemIds = useMemo(
+    () => (scopedPracticeProblemIdKey ? scopedPracticeProblemIdKey.split('\u001f') : []),
+    [scopedPracticeProblemIdKey],
+  );
   const loadAll = useCallback(async () => {
     if (!courseId) {
       setLoading(false);
@@ -274,6 +299,32 @@ export function useCourseProblemBankController({
     }
     setLoading(true);
     try {
+      if (isPracticeMode && scopedPracticeProblemIds.length > 0) {
+        const courseProblems = await listCourseProblemsByIds(courseId, scopedPracticeProblemIds);
+        setProblems(courseProblems);
+        setNotebooks([]);
+        const preferred =
+          courseProblems.find((problem) => problem.id === initialProblemId)?.id ??
+          courseProblems.find((problem) =>
+            initialNotebookId ? problem.notebookId === initialNotebookId : true,
+          )?.id ??
+          courseProblems[0]?.id ??
+          null;
+        setSelectedProblemId(preferred);
+        setLoading(false);
+
+        void Promise.all([getCourse(courseId), listStagesByCourse(courseId)])
+          .then(([course, courseNotebooks]) => {
+            setCourseName(course?.name || '');
+            setCourseAccessRole(course?.accessRole);
+            setNotebooks(courseNotebooks);
+          })
+          .catch((error) => {
+            console.warn('Failed to hydrate practice problem bank metadata', error);
+          });
+        return;
+      }
+
       const [course, courseNotebooks, courseProblems] = await Promise.all([
         getCourse(courseId),
         listStagesByCourse(courseId),
@@ -302,11 +353,80 @@ export function useCourseProblemBankController({
     } finally {
       setLoading(false);
     }
-  }, [courseId, initialNotebookId, initialProblemId, isPracticeMode]);
+  }, [
+    courseId,
+    initialNotebookId,
+    initialProblemId,
+    isPracticeMode,
+    scopedPracticeProblemIds,
+  ]);
 
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    initialPracticeAnswersRef.current = initialPracticeAnswers;
+  }, [initialPracticeAnswers]);
+
+  useEffect(() => {
+    if (!isPracticeMode || !initialPracticeAnswers) return;
+    const entries = Object.entries(initialPracticeAnswers).filter(([, answer]) =>
+      attemptAnswerHasContent(answer),
+    );
+    if (entries.length === 0) return;
+
+    setChoiceAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [problemId, answer] of entries) {
+        if (!Array.isArray(answer?.selectedOptionIds)) continue;
+        next[problemId] = answer.selectedOptionIds;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setBlankAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [problemId, answer] of entries) {
+        if (!answer?.blanks) continue;
+        next[problemId] = answer.blanks;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setCodeAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [problemId, answer] of entries) {
+        if (typeof answer?.code !== 'string') continue;
+        next[problemId] = answer.code;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setTextAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [problemId, answer] of entries) {
+        if (typeof answer?.text !== 'string') continue;
+        next[problemId] = answer.text;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setPhotoAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [problemId, answer] of entries) {
+        if (!Array.isArray(answer?.images)) continue;
+        next[problemId] = answer.images;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [initialPracticeAnswers, isPracticeMode]);
 
   const canEditProblems = courseAccessRole === 'owner';
 
@@ -681,7 +801,6 @@ export function useCourseProblemBankController({
       (locale === 'zh-CN' ? '未知笔记本' : 'Unknown notebook')
     );
   }, [locale, selectedProblem, selectedProblemNotebook?.name]);
-  const selectedProblemLatestAttemptId = selectedProblem?.latestAttempt?.id ?? null;
   useEffect(() => {
     selectedProblemRef.current = selectedProblem;
   }, [selectedProblem]);
@@ -847,6 +966,9 @@ export function useCourseProblemBankController({
   const selectedProblemAttempts = selectedProblem
     ? (attemptsByProblemId[selectedProblem.id] ?? [])
     : [];
+  const selectedProblemAttemptsLoaded = selectedProblem
+    ? Object.prototype.hasOwnProperty.call(attemptsByProblemId, selectedProblem.id)
+    : false;
   const selectedProblemAttemptsLoading = selectedProblem
     ? attemptHistoryLoadingProblemId === selectedProblem.id
     : false;
@@ -912,6 +1034,7 @@ export function useCourseProblemBankController({
   );
   useEffect(() => {
     if (!isPracticeMode || !selectedProblemId || !selectedProblemNotebookId) return;
+    if (answerPanelTab !== 'history' || selectedProblemAttemptsLoaded) return;
     const problem = selectedProblemRef.current;
     if (
       !problem ||
@@ -933,6 +1056,9 @@ export function useCourseProblemBankController({
         const latestAttempt = attempts[0];
         if (!latestAttempt) return;
         const answer = latestAttempt.answer;
+        const shouldRestoreAnswer = !attemptAnswerHasContent(
+          initialPracticeAnswersRef.current?.[problem.id],
+        );
 
         setProblems((prev) =>
           prev.map((item) =>
@@ -944,19 +1070,19 @@ export function useCourseProblemBankController({
               : item,
           ),
         );
-        if (Array.isArray(answer.selectedOptionIds)) {
+        if (shouldRestoreAnswer && Array.isArray(answer.selectedOptionIds)) {
           setChoiceAnswers((prev) => ({
             ...prev,
             [problem.id]: answer.selectedOptionIds ?? [],
           }));
         }
-        if (answer.blanks) {
+        if (shouldRestoreAnswer && answer.blanks) {
           setBlankAnswers((prev) => ({
             ...prev,
             [problem.id]: answer.blanks ?? {},
           }));
         }
-        if (typeof answer.code === 'string' && answer.code.trim()) {
+        if (shouldRestoreAnswer && typeof answer.code === 'string' && answer.code.trim()) {
           setCodeAnswers((prev) =>
             Object.prototype.hasOwnProperty.call(prev, problem.id)
               ? prev
@@ -966,13 +1092,13 @@ export function useCourseProblemBankController({
                 },
           );
         }
-        if (typeof answer.text === 'string') {
+        if (shouldRestoreAnswer && typeof answer.text === 'string') {
           setTextAnswers((prev) => ({
             ...prev,
             [problem.id]: answer.text ?? '',
           }));
         }
-        if (Array.isArray(answer.images)) {
+        if (shouldRestoreAnswer && Array.isArray(answer.images)) {
           setPhotoAnswers((prev) => ({
             ...prev,
             [problem.id]: answer.images ?? [],
@@ -1004,10 +1130,11 @@ export function useCourseProblemBankController({
       cancelled = true;
     };
   }, [
+    answerPanelTab,
     isPracticeMode,
     locale,
     selectedProblemId,
-    selectedProblemLatestAttemptId,
+    selectedProblemAttemptsLoaded,
     selectedProblemNotebookId,
   ]);
   const navigateToPracticeProblem = useCallback(

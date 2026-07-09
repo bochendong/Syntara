@@ -9,6 +9,12 @@ import {
 } from '@/features/problems/server/service';
 import { buildLayeredMemoryRecallContext } from '@/features/memory/server/layered-memory-context';
 import { createTeachingDecision } from '@/features/teaching-orchestrator/domain/evidence-ledger';
+import {
+  resolveFixedReviewWorkflow,
+  type ReviewWorkflowId,
+  type ReviewMode,
+  type ReviewTargetKind,
+} from '@/features/teaching-orchestrator/domain/fixed-workflows';
 import type {
   TeachingDecision,
   TeachingEvidence,
@@ -57,6 +63,14 @@ export type EvidenceBasedReviewPlanOutput = {
   targetType: 'course' | 'notebook';
   targetId: string;
   query: string;
+  workflow: {
+    workflowId: ReviewWorkflowId;
+    targetKind: ReviewTargetKind;
+    mode: ReviewMode;
+    needsClarification: boolean;
+    clarificationQuestion?: string;
+    requiredEvidence: string[];
+  };
   summary: string;
   scheduleSummary: string | null;
   estimatedMinutes: number;
@@ -699,6 +713,7 @@ export async function generateEvidenceBasedReviewPlan(args: {
   const questionCount = Math.max(1, Math.min(args.constraints?.questionCount || 5, 20));
   const maxTasks = Math.max(1, Math.min(args.constraints?.maxTasks || 4, 8));
   const query = args.query.trim() || '帮我制定今天的复习计划';
+  const workflow = resolveFixedReviewWorkflow({ query });
 
   const [memoryContext, problems, attemptEvidenceItems] = await Promise.all([
     buildLayeredMemoryRecallContext({
@@ -749,6 +764,14 @@ export async function generateEvidenceBasedReviewPlan(args: {
     targetType: args.targetType,
     targetId: args.targetId,
     query,
+    workflow: {
+      workflowId: workflow.workflowId,
+      targetKind: workflow.targetKind,
+      mode: workflow.mode,
+      needsClarification: workflow.needsClarification,
+      clarificationQuestion: workflow.clarificationQuestion,
+      requiredEvidence: workflow.requiredEvidence,
+    },
     summary:
       tasks.length > 0
         ? `建议用 ${totalMinutes} 分钟完成 ${tasks.length} 个复习环节，并从 ${questions.length} 道题开始校准。`
@@ -762,6 +785,12 @@ export async function generateEvidenceBasedReviewPlan(args: {
   };
 
   const toolCalls: TeachingToolCallRecord[] = [
+    {
+      toolId: 'resolve_fixed_review_workflow',
+      purpose: '套用固定复习状态机，确认范围、模式和必须读取的证据',
+      inputSummary: `${workflow.targetKind}/${workflow.mode}/${workflow.workflowId}`,
+      outputEvidenceIds: [],
+    },
     {
       toolId: 'get_schedule_context',
       purpose: '读取前端传入或记忆里的日程约束',

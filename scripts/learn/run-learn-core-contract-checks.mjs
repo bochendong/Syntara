@@ -134,6 +134,17 @@ function traceSelectedToolIds(decision) {
   return selected.filter(Boolean);
 }
 
+function reviewModeFollowups(decision) {
+  const followups = [];
+  for (const action of asArray(decision?.proposals)) {
+    if (action?.kind !== 'review_mode.request_choice') continue;
+    for (const option of asArray(action?.payload?.options)) {
+      if (option?.followupText) followups.push(String(option.followupText));
+    }
+  }
+  return followups;
+}
+
 function traceStepKinds(decision) {
   return asArray(decision?.trace?.steps)
     .map((step) => (step && typeof step === 'object' ? step.kind : null))
@@ -176,6 +187,7 @@ const REQUIRED_CONFIRMATION_ACTIONS = new Set([
   'calendar.propose_update',
   'calendar.propose_delete',
   'memory.propose_write',
+  'review_mode.request_choice',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',
   'image.propose_generation',
@@ -294,6 +306,15 @@ function validateDecision({ id, decision, events, expect, getLearnCoreTool }) {
       `missing handoff targets ${JSON.stringify(expect.handoffsTo)}, got ${JSON.stringify(handoffTargets)}`,
     );
   }
+  const handoffRequiredBehaviorText = asArray(trace.handoffs)
+    .flatMap((handoff) => asArray(handoff?.requiredBehavior))
+    .map((item) => String(item || ''))
+    .join('\n');
+  for (const requiredHandoffText of asArray(expect.handoffRequiredBehaviorIncludes)) {
+    if (!handoffRequiredBehaviorText.includes(requiredHandoffText)) {
+      failures.push(`handoff requiredBehavior must include ${requiredHandoffText}`);
+    }
+  }
   if (!hasAll(actionKinds(decision, 'directCalls'), expect.directCallsInclude)) {
     failures.push(
       `missing direct calls ${JSON.stringify(expect.directCallsInclude)}, got ${JSON.stringify(actionKinds(decision, 'directCalls'))}`,
@@ -309,6 +330,11 @@ function validateDecision({ id, decision, events, expect, getLearnCoreTool }) {
       `missing artifacts ${JSON.stringify(expect.artifactsInclude)}, got ${JSON.stringify(artifactKinds(decision))}`,
     );
   }
+  if (!hasNone(artifactKinds(decision), expect.artifactsExclude)) {
+    failures.push(
+      `forbidden artifacts ${JSON.stringify(expect.artifactsExclude)}, got ${JSON.stringify(artifactKinds(decision))}`,
+    );
+  }
   if (expect.planningIntent && decision.planningDecision?.intent !== expect.planningIntent) {
     failures.push(
       `expected planning intent ${expect.planningIntent}, got ${decision.planningDecision?.intent}`,
@@ -317,6 +343,14 @@ function validateDecision({ id, decision, events, expect, getLearnCoreTool }) {
   if (expect.scopeHint && decision.planningDecision?.scopeHint !== expect.scopeHint) {
     failures.push(
       `expected planning scopeHint ${expect.scopeHint}, got ${decision.planningDecision?.scopeHint}`,
+    );
+  }
+  if (
+    expect.resolvedPrompt &&
+    String(decision.planningDecision?.resolvedPrompt || '') !== expect.resolvedPrompt
+  ) {
+    failures.push(
+      `expected resolvedPrompt ${expect.resolvedPrompt}, got ${decision.planningDecision?.resolvedPrompt}`,
     );
   }
   if (
@@ -330,6 +364,60 @@ function validateDecision({ id, decision, events, expect, getLearnCoreTool }) {
   if (!hasAll(asArray(decision.planningDecision?.focusTopics), expect.focusTopicsInclude)) {
     failures.push(
       `missing focus topics ${JSON.stringify(expect.focusTopicsInclude)}, got ${JSON.stringify(asArray(decision.planningDecision?.focusTopics))}`,
+    );
+  }
+  if (expect.problemBankSearchMatchIdsInclude?.length) {
+    const matchIds = asArray(decision.planningDecision?.problemBankSearch?.matches).map((match) =>
+      String(match?.problemId || ''),
+    );
+    if (!hasAll(matchIds, expect.problemBankSearchMatchIdsInclude)) {
+      failures.push(
+        `missing problem bank search matches ${JSON.stringify(expect.problemBankSearchMatchIdsInclude)}, got ${JSON.stringify(matchIds)}`,
+      );
+    }
+  }
+  if (expect.problemBankSearchExcludedTitlesInclude?.length) {
+    const excludedTitles = asArray(decision.planningDecision?.problemBankSearch?.excluded).map(
+      (candidate) => String(candidate?.title || ''),
+    );
+    if (!hasAll(excludedTitles, expect.problemBankSearchExcludedTitlesInclude)) {
+      failures.push(
+        `missing problem bank excluded candidates ${JSON.stringify(expect.problemBankSearchExcludedTitlesInclude)}, got ${JSON.stringify(excludedTitles)}`,
+      );
+    }
+  }
+  if (expect.practiceGenerationSource) {
+    const practiceGenerationActions = [
+      ...asArray(decision.proposals),
+      ...asArray(decision.directCalls),
+    ].filter((action) => action?.kind === 'practice.propose_generation');
+    const sources = practiceGenerationActions.map((action) =>
+      String(action?.payload?.source || ''),
+    );
+    if (!sources.includes(expect.practiceGenerationSource)) {
+      failures.push(
+        `expected practice generation source ${expect.practiceGenerationSource}, got ${JSON.stringify(sources)}`,
+      );
+    }
+  }
+  if (expect.practiceGenerationPersistToProblemBank != null) {
+    const practiceGenerationActions = [
+      ...asArray(decision.proposals),
+      ...asArray(decision.directCalls),
+    ].filter((action) => action?.kind === 'practice.propose_generation');
+    const hasPersist = practiceGenerationActions.some(
+      (action) =>
+        action?.payload?.persistToProblemBank === expect.practiceGenerationPersistToProblemBank,
+    );
+    if (!hasPersist) {
+      failures.push(
+        `expected practice generation persistToProblemBank ${expect.practiceGenerationPersistToProblemBank}`,
+      );
+    }
+  }
+  if (!hasAll(reviewModeFollowups(decision), expect.reviewModeFollowupsInclude)) {
+    failures.push(
+      `missing review mode followups ${JSON.stringify(expect.reviewModeFollowupsInclude)}, got ${JSON.stringify(reviewModeFollowups(decision))}`,
     );
   }
 
@@ -435,7 +523,7 @@ async function validateShallowReviewPlanFailure(
   const events = [];
   try {
     await decideTeachingTurn(
-      baseInput('我需要复习 linked list', {
+      baseInput('我想讲解和练题都有：我需要复习 linked list', {
         courseId: 'csc148-local-fixture',
         courseName: 'Introduction to Computer Science',
         courseCode: 'CSC 148',
@@ -499,6 +587,71 @@ async function validateShallowReviewPlanFailure(
     }
     return {
       id: 'shallow-review-plan-rejected',
+      failures,
+      error: message,
+      hookTypes: events.map((event) => event.type),
+    };
+  }
+}
+
+async function validateMissingReviewPlanArtifactFailure(
+  decideTeachingTurn,
+  learnSemanticRouterOutputSchema,
+) {
+  const events = [];
+  try {
+    await decideTeachingTurn(
+      baseInput('我想讲解和练题都有：我需要复习 linked list', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+      }),
+      {
+        runId: 'contract-review-plan-intent-requires-artifact',
+        currentDate: '2026-06-28',
+        hooks: {
+          emit(event) {
+            events.push(JSON.parse(JSON.stringify(event)));
+          },
+        },
+        semanticRouter: async () =>
+          learnSemanticRouterOutputSchema.parse(
+            routeOutput({
+              answerMode: 'none',
+              replyText: '',
+              planningDecision: explicitTopicPlan('linked list'),
+              selectedToolIds: ['semantic_router', 'plan_review'],
+              artifacts: [],
+              reason: 'Fixture intentionally returns a half-built planning decision.',
+            }),
+          ),
+      },
+    );
+    return {
+      id: 'review-plan-intent-requires-artifact',
+      failures: ['expected review_plan intent without artifact to fail validation'],
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const validationError = events.find((event) => event.type === 'validation_error');
+    const validationMetadataError = String(validationError?.metadata?.error || '');
+    const failures = [];
+    if (
+      !/AI semantic router failed to produce a valid decision/.test(message) ||
+      !/review_plan must include a displayable plan artifact/.test(validationMetadataError)
+    ) {
+      failures.push(
+        `expected missing review_plan artifact error, got message=${message}, metadata=${validationMetadataError}`,
+      );
+    }
+    if (!validationError) {
+      failures.push('missing review_plan artifact failure must emit validation_error');
+    }
+    if (events.some((event) => event.type === 'turn_end')) {
+      failures.push('missing review_plan artifact failure must not emit turn_end');
+    }
+    return {
+      id: 'review-plan-intent-requires-artifact',
       failures,
       error: message,
       hookTypes: events.map((event) => event.type),
@@ -577,21 +730,30 @@ async function main() {
     path.join(ROOT, 'features', 'learn-core', 'server', 'semantic-router.ts'),
     'utf8',
   );
+  const fixedWorkflowSource = fs.readFileSync(
+    path.join(ROOT, 'features', 'teaching-orchestrator', 'domain', 'fixed-workflows.ts'),
+    'utf8',
+  );
   for (const requiredSemanticRouterContract of [
     'learnSemanticRouterOutputSchema',
     'handoff',
     'selectedToolIds',
     'explicit topic to review',
+    'Explanation-only concept review is a course_answer handoff',
     'shouldAskProgressFirst=false',
     'Do not use keyword-only routing',
     'learningGoal',
     'focusPoints',
     'selfChecks',
-    'Learning workflow recipes',
-    'Exam preparation',
-    'Review without explicit scope',
+    'walk through the example before code',
+    'teachingWorkflowPromptSections',
+    'Fixed review workflows',
+    'Fixed memory extraction workflows',
   ]) {
-    if (!semanticRouterSource.includes(requiredSemanticRouterContract)) {
+    if (
+      !semanticRouterSource.includes(requiredSemanticRouterContract) &&
+      !fixedWorkflowSource.includes(requiredSemanticRouterContract)
+    ) {
       contractFailures.push(`semantic-router must include ${requiredSemanticRouterContract}`);
     }
   }
@@ -645,8 +807,316 @@ async function main() {
 
   const cases = [
     {
-      id: 'explicit-topic-review-plan',
+      id: 'explicit-topic-review-mode-choice',
       input: baseInput('我需要复习 linked list', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+        hasSyllabus: false,
+        progressKnown: false,
+        calendarEvents: [],
+        problemBank: {
+          available: true,
+          activeCount: 2,
+          samples: [
+            { id: 'csc148-linked-list-1', title: 'Linked list recursion trace' },
+            { id: 'csc148-linked-list-2', title: 'Linked list insert cases' },
+          ],
+        },
+      }),
+      routerOutput: routeOutput({
+        answerMode: 'client_activity_plan',
+        replyText:
+          'This router output should not be used because the fixed workflow asks mode first.',
+        planningDecision: explicitTopicPlan('linked list'),
+        selectedToolIds: ['semantic_router', 'plan_review'],
+        reason: 'Unused fixture.',
+      }),
+      expect: {
+        answerMode: 'action_only',
+        toolsInclude: ['resolve_fixed_review_workflow'],
+        selectedToolsInclude: ['resolve_fixed_review_workflow'],
+        stepsInclude: ['observe_input', 'select_evidence_plan'],
+        proposalsInclude: ['review_mode.request_choice'],
+        planningIntent: 'review_plan',
+        scopeHint: 'explicit_topic',
+        focusTopicsInclude: ['我需要复习 linked list'],
+        reviewModeFollowupsInclude: [
+          '我想听讲解：我需要复习 linked list',
+          '我想练题目：我需要复习 linked list',
+          '我想讲解和练题都有：我需要复习 linked list',
+        ],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'explicit-topic-explanation-review-handoff',
+      input: baseInput('我想听讲解：我需要复习 linked list', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+        hasSyllabus: false,
+        progressKnown: false,
+        calendarEvents: [],
+        problemBank: {
+          available: true,
+          activeCount: 2,
+          samples: [
+            { id: 'csc148-linked-list-1', title: 'Linked list recursion trace' },
+            { id: 'csc148-linked-list-2', title: 'Linked list insert cases' },
+          ],
+        },
+      }),
+      routerOutput: routeOutput({
+        answerMode: 'course_answer',
+        selectedToolIds: [
+          'semantic_router',
+          'search_memory',
+          'search_course_materials',
+          'answer_course_question',
+        ],
+        planningDecision: {
+          ...explicitTopicPlan('linked list'),
+          intent: 'none',
+          resolvedPrompt: '我想听讲解：我需要复习 linked list',
+        },
+        handoff: answerHandoff('The learner chose explanation-only concept review.', [
+          'Teach linked list directly in chat instead of creating a review plan artifact.',
+          'Use Chinese with this internal teaching rhythm: plain intuition -> concrete tiny walk-through -> main operation/state change -> likely confusion -> one short check question.',
+          'For code or data-structure topics, walk through the example before code.',
+          'Do not expose internal labels such as 核心心智模型 or 状态追踪.',
+        ]),
+        reason:
+          'Explanation-only concept review should be handled by the course answerer, not by a review plan card.',
+      }),
+      expect: {
+        answerMode: 'course_answer',
+        selectedToolsInclude: [
+          'search_memory',
+          'search_course_materials',
+          'answer_course_question',
+        ],
+        handoffsTo: ['course_answerer'],
+        artifactsExclude: ['review_plan', 'activity_plan', 'calendar_draft'],
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '我想听讲解：我需要复习 linked list',
+        focusTopicsInclude: ['linked list'],
+        handoffRequiredBehaviorIncludes: [
+          'walk through the example before code',
+          'one short check question',
+          'Do not expose internal labels',
+        ],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'explicit-topic-practice-request-uses-bank-selection',
+      input: baseInput('我想练题目：我需要复习 truth table', {
+        courseId: 'mat102-local-fixture',
+        courseName: 'Mathematical Proofs',
+        courseCode: 'MAT 102',
+        hasSyllabus: false,
+        progressKnown: false,
+        problemBank: {
+          available: true,
+          activeCount: 3,
+          samples: [
+            { id: 'mat102-truth-table-1', title: 'Truth table for implication' },
+            { id: 'mat102-truth-table-2', title: 'Logical equivalence by truth table' },
+            { id: 'mat102-truth-table-3', title: 'Tautology and contradiction' },
+          ],
+        },
+      }),
+      routerOutput: () => {
+        throw new Error('semantic router should not run for explicit bank-backed practice request');
+      },
+      searchProblemBank: async ({ query, requestedCount }) => {
+        if (query !== 'truth table') {
+          throw new Error(`expected cleaned truth table search query, got ${query}`);
+        }
+        return {
+          query,
+          requestedCount,
+          source: 'problem_bank_full_text',
+          strictTopic: 'truth_table',
+          matches: [
+            {
+              problemId: 'mat102-truth-table-1',
+              title: 'Truth table for implication',
+              score: 92,
+              reason: 'The problem asks for a truth table of a compound proposition.',
+              excerpt: 'Construct a truth table for p -> q.',
+              tags: ['truth table', 'propositional logic'],
+              difficulty: 'basic',
+              problemType: 'practice',
+              attemptStatus: 'not_started',
+            },
+          ],
+          excluded: [
+            {
+              problemId: 'mat102-quantifier-1',
+              title: '"并非所有猫都是邪恶"的谓词公式表达',
+              reason: 'Quantifier/predicate expression is not a truth-table exercise.',
+              excerpt: 'Translate the sentence using predicates and quantifiers.',
+            },
+          ],
+          rationale: ['Matched by full problem text, not only tags.'],
+          gaps: [
+            '严格命中「truth table / truth values」的题只有 1 道；没有为了凑数量混入相邻专题。',
+          ],
+          searchedAt: '2026-06-28T00:00:00.000Z',
+        };
+      },
+      expect: {
+        answerMode: 'client_practice_plan',
+        toolsInclude: ['search_problem_bank'],
+        selectedToolsInclude: ['search_problem_bank'],
+        stepsInclude: ['observe_input', 'select_evidence_plan'],
+        artifactsExclude: ['review_plan', 'activity_plan', 'calendar_draft'],
+        planningIntent: 'practice_plan',
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '我想练题目：我需要复习 truth table',
+        focusTopicsInclude: ['truth table'],
+        problemBankSearchMatchIdsInclude: ['mat102-truth-table-1'],
+        problemBankSearchExcludedTitlesInclude: ['"并非所有猫都是邪恶"的谓词公式表达'],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'explicit-topic-practice-with-empty-bank-proposes-course-grounded-generation',
+      input: baseInput('我想练题目：我需要复习 truth table', {
+        courseId: 'mat102-local-fixture',
+        courseName: 'Mathematical Proofs',
+        courseCode: 'MAT 102',
+        hasSyllabus: false,
+        progressKnown: false,
+        problemBank: {
+          available: false,
+          activeCount: 0,
+          samples: [],
+        },
+      }),
+      routerOutput: () => {
+        throw new Error('semantic router should not run when explicit practice has an empty bank');
+      },
+      expect: {
+        answerMode: 'action_only',
+        toolsInclude: ['propose_practice_generation'],
+        selectedToolsInclude: ['propose_practice_generation'],
+        stepsInclude: ['observe_input', 'select_evidence_plan'],
+        proposalsInclude: ['practice.propose_generation'],
+        artifactsExclude: ['review_plan', 'activity_plan', 'calendar_draft'],
+        planningIntent: 'practice_plan',
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '我想练题目：我需要复习 truth table',
+        focusTopicsInclude: ['truth table'],
+        practiceGenerationSource: 'generated_from_course',
+        practiceGenerationPersistToProblemBank: true,
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'semantic-practice-plan-executes-problem-bank-search',
+      input: baseInput('出一组能检查我是否会 truth table 的题', {
+        courseId: 'mat102-local-fixture',
+        courseName: 'Mathematical Proofs',
+        courseCode: 'MAT 102',
+        hasSyllabus: false,
+        progressKnown: false,
+        problemBank: {
+          available: true,
+          activeCount: 4,
+          samples: [
+            { id: 'mat102-truth-table-1', title: 'Truth table for implication' },
+            { id: 'mat102-truth-table-2', title: 'Truth values of logical statements' },
+            { id: 'mat102-quantifier-1', title: '"并非所有猫都是邪恶"的谓词公式表达' },
+          ],
+        },
+      }),
+      routerOutput: routeOutput({
+        answerMode: 'client_practice_plan',
+        planningDecision: {
+          ...explicitTopicPlan('truth table'),
+          intent: 'practice_plan',
+          practiceMode: 'practice',
+          resolvedPrompt: '出一组能检查我是否会 truth table 的题',
+          focusTopics: ['truth table'],
+          constraintsSummary: 'Router selected a practice plan; question selection is unresolved.',
+          reason: 'The learner asks for a truth table practice check.',
+        },
+        selectedToolIds: ['semantic_router'],
+        reason: 'Route to client-side practice plan.',
+      }),
+      searchProblemBank: async ({ query, requestedCount }) => {
+        if (query !== 'truth table') {
+          throw new Error(`expected truth table search query, got ${query}`);
+        }
+        return {
+          query,
+          requestedCount,
+          source: 'problem_bank_full_text',
+          strictTopic: 'truth_table',
+          matches: [
+            {
+              problemId: 'mat102-truth-table-1',
+              title: 'Truth table for implication',
+              score: 91,
+              reason: 'The problem asks for a truth table of a compound proposition.',
+              excerpt: 'Construct a truth table for p -> q and identify when it is false.',
+              tags: ['truth table', 'propositional logic'],
+              difficulty: 'basic',
+              problemType: 'practice',
+              attemptStatus: 'not_started',
+            },
+            {
+              problemId: 'mat102-truth-table-2',
+              title: 'Truth values of logical statements',
+              score: 86,
+              reason: 'The prompt asks for truth values of propositional statements.',
+              excerpt: 'Evaluate truth values for compound logical statements.',
+              tags: ['truth value', 'logic'],
+              difficulty: 'medium',
+              problemType: 'practice',
+              attemptStatus: 'draft',
+            },
+          ],
+          excluded: [
+            {
+              problemId: 'mat102-quantifier-1',
+              title: '"并非所有猫都是邪恶"的谓词公式表达',
+              reason:
+                'Contains quantifier/predicate-formula signals rather than truth-table signals.',
+              excerpt: 'Translate "not all cats are evil" using predicates and quantifiers.',
+            },
+          ],
+          rationale: [
+            'Matched by full problem text and grading metadata, not only visible tags.',
+            'Quantifier-only candidates are excluded from a strict truth table set.',
+          ],
+          gaps: [
+            '严格命中「truth table / truth values」的题只有 2 道；没有为了凑数量混入相邻专题。',
+          ],
+          searchedAt: '2026-06-28T00:00:00.000Z',
+        };
+      },
+      expect: {
+        answerMode: 'client_practice_plan',
+        toolsInclude: ['semantic_router', 'search_problem_bank'],
+        selectedToolsInclude: ['search_problem_bank'],
+        stepsInclude: ['observe_input', 'model_routing', 'select_evidence_plan'],
+        artifactsExclude: ['review_plan', 'activity_plan', 'calendar_draft'],
+        planningIntent: 'practice_plan',
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '出一组能检查我是否会 truth table 的题',
+        focusTopicsInclude: ['truth table'],
+        problemBankSearchMatchIdsInclude: ['mat102-truth-table-1', 'mat102-truth-table-2'],
+        problemBankSearchExcludedTitlesInclude: ['"并非所有猫都是邪恶"的谓词公式表达'],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'explicit-topic-review-plan-after-mode-choice',
+      input: baseInput('我想讲解和练题都有：我需要复习 linked list', {
         courseId: 'csc148-local-fixture',
         courseName: 'Introduction to Computer Science',
         courseCode: 'CSC 148',
@@ -733,6 +1203,169 @@ async function main() {
         selectedToolsInclude: ['plan_review', 'search_problem_bank'],
         planningIntent: 'review_plan',
         scopeHint: 'explicit_topic',
+        focusTopicsInclude: ['linked list'],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'review-mode-short-reply-uses-target',
+      input: baseInput('练题目', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+        recentActions: [
+          {
+            id: 'learn-action-review-mode',
+            kind: 'review_mode.request_choice',
+            label: '选择复习方式',
+            summary: '你这次更想听讲解、练题，还是两者都要？',
+            status: 'proposed',
+            confirmation: 'required',
+            payload: {
+              targetText: '我需要复习 linked list',
+            },
+          },
+        ],
+        problemBank: {
+          available: true,
+          activeCount: 2,
+          samples: [
+            { id: 'csc148-linked-list-1', title: 'Linked list recursion trace' },
+            { id: 'csc148-linked-list-2', title: 'Linked list insert cases' },
+          ],
+        },
+      }),
+      routerOutput(ctx) {
+        throw new Error(
+          `semantic router should not run for short bank-backed practice reply; got ${ctx.input.question}`,
+        );
+      },
+      expect: {
+        answerMode: 'client_practice_plan',
+        toolsInclude: ['search_problem_bank'],
+        selectedToolsInclude: ['search_problem_bank'],
+        stepsInclude: ['observe_input', 'select_evidence_plan'],
+        artifactsExclude: ['review_plan', 'activity_plan', 'calendar_draft'],
+        planningIntent: 'practice_plan',
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '我想练题目：我需要复习 linked list',
+        focusTopicsInclude: ['linked list'],
+        shouldAskProgressFirst: false,
+      },
+    },
+    {
+      id: 'review-mode-short-both-reply-uses-target',
+      input: baseInput('都有', {
+        courseId: 'csc148-local-fixture',
+        courseName: 'Introduction to Computer Science',
+        courseCode: 'CSC 148',
+        recentActions: [
+          {
+            id: 'learn-action-review-mode',
+            kind: 'review_mode.request_choice',
+            label: '选择复习方式',
+            summary: '你这次更想听讲解、练题，还是两者都要？',
+            status: 'proposed',
+            confirmation: 'required',
+            payload: {
+              targetText: '我需要复习 linked list',
+            },
+          },
+        ],
+        problemBank: {
+          available: true,
+          activeCount: 2,
+          samples: [
+            { id: 'csc148-linked-list-1', title: 'Linked list recursion trace' },
+            { id: 'csc148-linked-list-2', title: 'Linked list insert cases' },
+          ],
+        },
+      }),
+      routerOutput(ctx) {
+        const got = ctx.input.question;
+        return routeOutput({
+          answerMode: 'client_activity_plan',
+          replyText:
+            got === '我想讲解和练题都有：我需要复习 linked list'
+              ? '可以，我按 linked list 安排讲解和练题。'
+              : `bad rewrite: ${got}`,
+          planningDecision: {
+            ...explicitTopicPlan('linked list'),
+            resolvedPrompt: got,
+          },
+          selectedToolIds: ['semantic_router', 'plan_review', 'search_problem_bank'],
+          artifacts: [
+            {
+              kind: 'review_plan',
+              id: 'review-linked-list-both',
+              title: 'Linked list 讲解 + 练题',
+              learningGoal: '先讲清 linked list 的节点关系和指针更新，再接到题库小题。',
+              tasks: [
+                {
+                  title: '讲解 linked list 的节点结构、head/tail 和 next 指针',
+                  concepts: ['linked list'],
+                  minutes: 12,
+                  reason: 'The learner chose explanation plus practice.',
+                },
+                {
+                  title: '用题库小题检查插入、删除和遍历边界',
+                  concepts: ['linked list', 'edge cases'],
+                  minutes: 18,
+                  reason: 'Practice should follow the explanation immediately.',
+                  problemIds: ['csc148-linked-list-1', 'csc148-linked-list-2'],
+                },
+              ],
+              focusPoints: [
+                {
+                  title: 'Reference chain',
+                  explanation:
+                    'Linked lists encode order by node references, not by contiguous indexes.',
+                  checkQuestion: '为什么访问第 k 个节点通常要从 head 开始走？',
+                },
+                {
+                  title: 'Pointer rewiring',
+                  explanation:
+                    'Insertion and deletion mainly test whether next references are updated in the right order.',
+                  checkQuestion: '删除中间节点时，前一个节点的 next 应该指向哪里？',
+                },
+              ],
+              selfChecks: [
+                {
+                  question: '头部插入为什么是 O(1)？',
+                  expectedAnswer: '只改新节点的 next 和 head，不需要遍历整条链。',
+                  concept: 'head insertion',
+                  difficulty: 'warmup',
+                },
+                {
+                  question: '没有 tail 时尾部插入为什么通常是 O(n)？',
+                  expectedAnswer: '必须从 head 走到最后一个节点才能接上新节点。',
+                  concept: 'tail insertion',
+                  difficulty: 'core',
+                },
+              ],
+              practiceBridge: {
+                title: '题库练习',
+                summary: '讲解后抽 linked list 题库题检查边界情况。',
+                problemIds: ['csc148-linked-list-1', 'csc148-linked-list-2'],
+                generatedPrompts: [],
+              },
+              nextSteps: ['先看两分钟结构图，再做题库题；答错再回到指针更新。'],
+            },
+          ],
+          reason:
+            got === '我想讲解和练题都有：我需要复习 linked list'
+              ? 'Short both reply was resolved from recent action target.'
+              : `Short both reply was not resolved, got ${got}`,
+          confidence: got === '我想讲解和练题都有：我需要复习 linked list' ? 0.95 : 0.1,
+        });
+      },
+      expect: {
+        answerMode: 'client_activity_plan',
+        selectedToolsInclude: ['plan_review', 'search_problem_bank'],
+        artifactsInclude: ['review_plan'],
+        planningIntent: 'review_plan',
+        scopeHint: 'explicit_topic',
+        resolvedPrompt: '我想讲解和练题都有：我需要复习 linked list',
         focusTopicsInclude: ['linked list'],
         shouldAskProgressFirst: false,
       },
@@ -881,6 +1514,12 @@ async function main() {
   records.push(
     await validateShallowReviewPlanFailure(decideTeachingTurn, learnSemanticRouterOutputSchema),
   );
+  records.push(
+    await validateMissingReviewPlanArtifactFailure(
+      decideTeachingTurn,
+      learnSemanticRouterOutputSchema,
+    ),
+  );
 
   for (const item of cases) {
     const events = [];
@@ -892,7 +1531,11 @@ async function main() {
           events.push(JSON.parse(JSON.stringify(event)));
         },
       },
-      semanticRouter: async () => learnSemanticRouterOutputSchema.parse(item.routerOutput),
+      semanticRouter: async (ctx) =>
+        learnSemanticRouterOutputSchema.parse(
+          typeof item.routerOutput === 'function' ? item.routerOutput(ctx) : item.routerOutput,
+        ),
+      searchProblemBank: item.searchProblemBank,
     });
     records.push(
       validateDecision({

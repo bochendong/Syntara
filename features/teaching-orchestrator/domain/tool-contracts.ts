@@ -14,6 +14,18 @@ export const TEACHING_TOOL_CONTRACTS = [
     outputEvidenceSources: [],
   },
   {
+    id: 'resolve_fixed_review_workflow',
+    namespace: 'openmaic.teaching',
+    title: 'Resolve fixed review workflow',
+    description:
+      'Apply the hard-coded review state machine: resolve concept/range/exam scope, ask explain/practice/both when missing, and select the required evidence steps.',
+    readsFrom: ['user_message', 'conversation_state', 'openmaic.memory'],
+    writesTo: [],
+    sideEffects: ['none'],
+    requiredEvidenceSources: [],
+    outputEvidenceSources: ['control_fact', 'memory', 'schedule', 'problem_bank'],
+  },
+  {
     id: 'get_learning_state',
     namespace: 'openmaic.teaching',
     title: 'Get learning state',
@@ -156,6 +168,54 @@ export const TEACHING_TOOL_CONTRACTS = [
     sideEffects: ['llm', 'database-write'],
     requiredEvidenceSources: ['template'],
     outputEvidenceSources: ['template', 'course_material', 'notebook', 'memory'],
+  },
+  {
+    id: 'classify_memory_extraction_signal',
+    namespace: 'openmaic.teaching',
+    title: 'Classify memory extraction signal',
+    description:
+      'Classify whether a turn contains a student fact, concept diagnosis, practice attempt, mistake pattern, explanation feedback, source memory, problem metadata, cache hit, or correction.',
+    readsFrom: ['user_message', 'conversation_state', 'openmaic.teaching'],
+    writesTo: [],
+    sideEffects: ['none'],
+    requiredEvidenceSources: [],
+    outputEvidenceSources: [
+      'memory',
+      'control_fact',
+      'problem_attempt',
+      'course_material',
+      'problem_bank',
+    ],
+  },
+  {
+    id: 'extract_teaching_memory_signal',
+    namespace: 'openmaic.teaching',
+    title: 'Extract teaching memory signal',
+    description:
+      'Extract typed teaching-control fields such as masteredSignal, stuckPoint, probableCause, nextTeachingMove, deadline, preference, source contract, or problem metadata.',
+    readsFrom: ['openmaic.teaching', 'openmaic.memory', 'openmaic.review', 'openmaic.problem_bank'],
+    writesTo: [],
+    sideEffects: ['llm'],
+    requiredEvidenceSources: ['memory'],
+    outputEvidenceSources: [
+      'memory',
+      'control_fact',
+      'problem_attempt',
+      'course_material',
+      'problem_bank',
+    ],
+  },
+  {
+    id: 'route_teaching_memory_write',
+    namespace: 'openmaic.teaching',
+    title: 'Route teaching memory write',
+    description:
+      'Choose the correct storage layer for extracted memory: control fact, short-term working memory, long-term StudyMemory, RAG/source memory, knowledge cache, or practice attempt.',
+    readsFrom: ['openmaic.teaching'],
+    writesTo: ['openmaic.memory', 'openmaic.review'],
+    sideEffects: ['none'],
+    requiredEvidenceSources: ['memory'],
+    outputEvidenceSources: ['memory', 'control_fact', 'problem_attempt', 'knowledge_cache'],
   },
   {
     id: 'write_teaching_memory',

@@ -9,6 +9,7 @@ export type LearnActionKind =
   | 'memory.search'
   | 'memory.propose_write'
   | 'web.search'
+  | 'review_mode.request_choice'
   | 'learner_progress.request_confirmation'
   | 'practice.propose_generation'
   | 'classroom.propose_temporary_explanation'
@@ -77,6 +78,40 @@ export type LearnScopeResolution = {
   clarificationQuestion?: string;
 } | null;
 
+export type LearnProblemBankMatch = {
+  problemId: string;
+  title: string;
+  score: number;
+  reason: string;
+  excerpt?: string;
+  notebookName?: string | null;
+  tags?: string[];
+  difficulty?: string;
+  problemType?: string;
+  attemptStatus?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export type LearnProblemBankExcludedCandidate = {
+  problemId?: string;
+  title: string;
+  reason: string;
+  excerpt?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type LearnProblemBankSearchResult = {
+  query: string;
+  requestedCount: number;
+  source: 'problem_bank_full_text' | 'problem_bank_summary' | 'none';
+  strictTopic?: string | null;
+  matches: LearnProblemBankMatch[];
+  excluded: LearnProblemBankExcludedCandidate[];
+  rationale: string[];
+  gaps: string[];
+  searchedAt?: string;
+};
+
 export type LearnPlanningDecision = {
   intent: LearnPlanningIntent;
   practiceMode?: 'practice' | 'quiz' | null;
@@ -90,6 +125,7 @@ export type LearnPlanningDecision = {
   constraintsSummary?: string;
   reason?: string;
   confidence?: number;
+  problemBankSearch?: LearnProblemBankSearchResult | null;
 };
 
 export type LearnTurnMessage = {
@@ -191,6 +227,7 @@ export type LearnToolId =
   | 'search_schedule'
   | 'search_course_materials'
   | 'search_problem_bank'
+  | 'resolve_fixed_review_workflow'
   | 'plan_review'
   | 'propose_calendar_change'
   | 'propose_memory_write'

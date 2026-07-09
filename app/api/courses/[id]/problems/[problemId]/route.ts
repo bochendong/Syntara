@@ -52,15 +52,15 @@ function toClientProblem(
   };
 }
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string; problemId: string }> },
-) {
+export async function GET(request: Request, context: { params: Promise<{ id: string; problemId: string }> }) {
   return safeRoute(async () => {
     const auth = await requireUserId();
     if ('response' in auth) return auth.response;
     const { id, problemId } = await context.params;
-    const { problem, secretJudge } = await getCourseProblemForUser(auth.userId, id, problemId);
+    const url = new URL(request.url);
+    const { problem, secretJudge } = await getCourseProblemForUser(auth.userId, id, problemId, {
+      skipMaintenance: url.searchParams.get('lean') === '1',
+    });
     return NextResponse.json({ problem: toClientProblem(problem, secretJudge) });
   });
 }

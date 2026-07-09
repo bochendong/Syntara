@@ -5,6 +5,7 @@ import type {
   LearnHandoffPacket,
   LearnPlanningDecision,
   LearnPlanningScopeHint,
+  LearnProblemBankSearchResult,
   LearnScopeResolution,
   LearnTrace,
   LearnTurnAnswerMode,
@@ -35,6 +36,7 @@ export type LearnClientPlanningDecision = {
   constraintsSummary: string;
   reason: string;
   confidence: number;
+  problemBankSearch: LearnProblemBankSearchResult | null;
 };
 
 export type LearnAnswererHandoffEvidence = {
@@ -117,6 +119,7 @@ export function planningDecisionFromLearnTurn(
     constraintsSummary: decision.constraintsSummary?.trim() || '',
     reason: decision.reason?.trim() || '',
     confidence: typeof decision.confidence === 'number' ? decision.confidence : 0.5,
+    problemBankSearch: decision.problemBankSearch || null,
   };
 }
 

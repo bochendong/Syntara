@@ -25,7 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { createNotebookHref } from '@/lib/constants/course-chat';
+import { createNotebookHref, learnCourseHref } from '@/lib/constants/course-chat';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { useAuthStore } from '@/lib/store/auth';
@@ -187,8 +187,14 @@ export function AppGlobalHeader({ showHomeControls = false }: { showHomeControls
   const courseId = routeCourseId || storedCourseId;
   const encodedCourseId = courseId ? encodeURIComponent(courseId) : null;
   const courseHomeHref = encodedCourseId ? `/course/${encodedCourseId}` : '/my-courses';
+  const chatHref = learnCourseHref(courseId);
   const createNotebookUrl = encodedCourseId ? createNotebookHref(courseId) : '/my-courses';
   const storeHref = encodedCourseId ? '/store' : '/store/courses';
+  const chatActive =
+    pathname === '/learn' ||
+    Boolean(pathname?.startsWith('/learn/')) ||
+    pathname === '/chat' ||
+    Boolean(pathname?.startsWith('/chat/'));
   const storeActive =
     pathname === '/store' ||
     pathname === '/store/courses' ||
@@ -254,8 +260,8 @@ export function AppGlobalHeader({ showHomeControls = false }: { showHomeControls
 
       <nav className="ml-auto flex min-w-0 items-center justify-end gap-1">
         <HeaderLink
-          href="/chat"
-          active={pathname === '/chat' || Boolean(pathname?.startsWith('/chat/'))}
+          href={chatHref}
+          active={chatActive}
           icon={MessagesSquare}
           label="聊天"
         />

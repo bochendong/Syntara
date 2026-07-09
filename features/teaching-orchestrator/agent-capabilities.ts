@@ -59,7 +59,7 @@ export const TEACHING_ORCHESTRATOR_SKILL = {
       title: 'Classify intent',
       description:
         'Decide whether the request is answer, status, review planning, question selection, grading, explanation, generation, or ingestion.',
-      toolIds: ['classify_teaching_intent'],
+      toolIds: ['classify_teaching_intent', 'resolve_fixed_review_workflow'],
       required: true,
     },
     {
@@ -93,6 +93,18 @@ export const TEACHING_ORCHESTRATOR_SKILL = {
       required: true,
     },
     {
+      id: 'memory-extraction',
+      title: 'Extract teaching memory',
+      description:
+        'Classify and extract learner facts, question diagnoses, attempt signals, mistake patterns, source contracts, and corrections before choosing a storage layer.',
+      toolIds: [
+        'classify_memory_extraction_signal',
+        'extract_teaching_memory_signal',
+        'route_teaching_memory_write',
+      ],
+      required: false,
+    },
+    {
       id: 'writeback',
       title: 'Write teaching memory',
       description:
@@ -102,11 +114,15 @@ export const TEACHING_ORCHESTRATOR_SKILL = {
     },
   ],
   qualityGates: [
+    'Review requests use a fixed workflow: resolve scope, ask explain/practice/both if missing, collect evidence, execute the selected branch, then extract memory.',
     'Do not generate a review plan directly from the user prompt; collect schedule, learner-state, attempt, problem-bank, and template evidence first.',
+    'For named concept review, do not silently choose between explanation and practice when the learner did not choose. Ask the fixed mode question.',
+    'For range/exam review, infer days and frequency from syllabus, current date, deadlines, and learner constraints. Ask only when the window cannot be inferred.',
     'Every review plan must explain which schedule/deadline and which weak point or wrong attempt influenced each task. If either is missing, the answer must say so.',
     'Every review question selection must explain whether the question came from a real problem-bank item or was generated as a diagnostic fallback.',
     'Every grading result must cite the submitted attempt plus the problem/rubric/template evidence used for the score.',
     'Every concept explanation must check local template memory before falling back to generic explanation.',
+    'Memory extraction is typed: facts, question diagnoses, attempts, mistake patterns, feedback, source memory, problem metadata, cache hits, and corrections must route to different storage layers.',
     'Memory writes must store mastery, weakness, cause, and next teaching move instead of raw transcript fragments.',
   ],
   outputs: [

@@ -65,10 +65,18 @@ export const AGENT_MCP_RESOURCES = [
     namespace: 'openmaic.teaching',
     title: 'OpenMAIC teaching orchestrator MCP',
     description:
-      'Tool-based teaching mode routing with evidence ledgers for review plans, question selection, explanations, grading, and memory writeback.',
-    owns: ['TeachingIntent', 'TeachingDecision', 'TeachingEvidence', 'TeachingEvidenceLedger'],
+      'Tool-based teaching mode routing with fixed review workflows, typed memory extraction, and evidence ledgers for review plans, question selection, explanations, grading, and memory writeback.',
+    owns: [
+      'TeachingIntent',
+      'TeachingDecision',
+      'TeachingEvidence',
+      'TeachingEvidenceLedger',
+      'ReviewWorkflowPlan',
+      'MemoryExtractionWorkflow',
+    ],
     readToolIds: [
       'classify_teaching_intent',
+      'resolve_fixed_review_workflow',
       'get_learning_state',
       'get_schedule_context',
       'search_teaching_memory',
@@ -81,8 +89,10 @@ export const AGENT_MCP_RESOURCES = [
       'select_evidence_based_review_questions',
       'grade_answer_with_diagnosis',
       'explain_concept_with_templates',
+      'classify_memory_extraction_signal',
+      'extract_teaching_memory_signal',
     ],
-    writeToolIds: ['write_teaching_memory'],
+    writeToolIds: ['route_teaching_memory_write', 'write_teaching_memory'],
     featureDomains: ['teaching', 'memory', 'review', 'problems', 'practice', 'content'],
   },
   {

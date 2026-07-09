@@ -123,6 +123,55 @@ function stripJsonFence(input: string): string {
   return match ? match[1].trim() : trimmed;
 }
 
+function escapeLooseContentQuotes(input: string): string {
+  const target = '"content"';
+  let output = '';
+  let index = 0;
+
+  while (index < input.length) {
+    if (!input.startsWith(target, index)) {
+      output += input[index];
+      index += 1;
+      continue;
+    }
+
+    output += target;
+    index += target.length;
+
+    while (index < input.length && /\s/.test(input[index])) output += input[index++];
+    if (input[index] !== ':') continue;
+    output += input[index++];
+    while (index < input.length && /\s/.test(input[index])) output += input[index++];
+    if (input[index] !== '"') continue;
+
+    output += input[index++];
+    while (index < input.length) {
+      const char = input[index];
+      if (char === '\\') {
+        output += input.slice(index, Math.min(input.length, index + 2));
+        index += 2;
+        continue;
+      }
+      if (char === '"') {
+        let lookahead = index + 1;
+        while (lookahead < input.length && /\s/.test(input[lookahead])) lookahead += 1;
+        if (lookahead >= input.length || input[lookahead] === ',' || input[lookahead] === '}') {
+          output += char;
+          index += 1;
+          break;
+        }
+        output += '\\"';
+        index += 1;
+        continue;
+      }
+      output += char;
+      index += 1;
+    }
+  }
+
+  return output;
+}
+
 function parseCompleteStructuredItems(input: string): Record<string, unknown>[] | null {
   const stripped = stripJsonFence(input);
   const firstArray = stripped.indexOf('[');
@@ -133,9 +182,13 @@ function parseCompleteStructuredItems(input: string): Record<string, unknown>[] 
   const jsonText = stripped.slice(Math.min(...starts)).trim();
   let parsed: unknown;
   try {
-    parsed = JSON.parse(jsonrepair(jsonText));
+    parsed = JSON.parse(jsonrepair(escapeLooseContentQuotes(jsonText)));
   } catch {
-    return null;
+    try {
+      parsed = JSON.parse(jsonrepair(jsonText));
+    } catch {
+      return null;
+    }
   }
 
   const items = Array.isArray(parsed) ? parsed : [parsed];
@@ -179,6 +232,55 @@ function findStructuredArrayStart(buffer: string): number {
   }
 
   return buffer[index] === '[' ? index : -1;
+}
+
+function isStructuredArrayClosed(buffer: string): boolean {
+  let inString = false;
+  let escaped = false;
+  let depth = 0;
+  let started = false;
+
+  for (let index = 0; index < buffer.length; index++) {
+    const char = buffer[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (inString) {
+      if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '[') {
+      depth += 1;
+      started = true;
+      continue;
+    }
+
+    if (char === ']') {
+      depth -= 1;
+      if (depth < 0) return false;
+      if (depth === 0) {
+        for (let restIndex = index + 1; restIndex < buffer.length; restIndex++) {
+          if (!/\s/.test(buffer[restIndex])) return false;
+        }
+        return started;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -226,23 +328,27 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
   }
 
   // Step 2: Check if the array is complete (closing `]` found)
-  const trimmed = state.buffer.trimEnd();
-  const isArrayClosed = trimmed.endsWith(']') && trimmed.length > 1;
+  const isArrayClosed = isStructuredArrayClosed(state.buffer);
 
   // Step 3: Try incremental parse — jsonrepair first (fixes unescaped quotes), fallback to partial-json
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial-json returns any[]
   let parsed: any[];
   try {
-    const repaired = jsonrepair(state.buffer);
+    const repaired = jsonrepair(escapeLooseContentQuotes(state.buffer));
     parsed = JSON.parse(repaired);
   } catch {
     try {
       parsed = parsePartialJson(
-        state.buffer,
+        escapeLooseContentQuotes(state.buffer),
         Allow.ARR | Allow.OBJ | Allow.STR | Allow.NUM | Allow.BOOL | Allow.NULL,
       );
     } catch {
-      return result;
+      try {
+        const repaired = jsonrepair(state.buffer);
+        parsed = JSON.parse(repaired);
+      } catch {
+        return result;
+      }
     }
   }
 

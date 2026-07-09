@@ -10,6 +10,7 @@ export type TeachingIntent =
   | 'source_ingestion';
 
 export type TeachingAction =
+  | 'workflow_routing'
   | 'answer'
   | 'learning_status'
   | 'review_plan'
@@ -17,6 +18,7 @@ export type TeachingAction =
   | 'practice_generation'
   | 'explanation'
   | 'grading_feedback'
+  | 'memory_extraction'
   | 'memory_write'
   | 'notebook_generation';
 
@@ -114,6 +116,7 @@ export type TeachingToolContract = {
 
 export type TeachingToolId =
   | 'classify_teaching_intent'
+  | 'resolve_fixed_review_workflow'
   | 'get_learning_state'
   | 'get_schedule_context'
   | 'search_teaching_memory'
@@ -126,4 +129,7 @@ export type TeachingToolId =
   | 'select_evidence_based_review_questions'
   | 'grade_answer_with_diagnosis'
   | 'explain_concept_with_templates'
+  | 'classify_memory_extraction_signal'
+  | 'extract_teaching_memory_signal'
+  | 'route_teaching_memory_write'
   | 'write_teaching_memory';

@@ -11,6 +11,11 @@ export function createNotebookHref(courseId: string | null | undefined): string 
   return cid ? `/course/${encodeURIComponent(cid)}/create-notebook` : '/my-courses';
 }
 
+export function learnCourseHref(courseId: string | null | undefined): string {
+  const cid = courseId?.trim();
+  return cid ? `/learn?courseId=${encodeURIComponent(cid)}` : '/learn';
+}
+
 /** 历史聊天深链保留兼容；创建笔记本请使用课程内的 `createNotebookHref(courseId)`。 */
 export type CourseOrchestratorComposerTab = 'send-message' | 'generate-notebook';
 

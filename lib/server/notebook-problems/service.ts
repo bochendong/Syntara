@@ -123,8 +123,10 @@ type ProblemCourseSummaryRow = {
   courseId: string | null;
   notebookId: string | null;
   title: string;
+  type: string;
   status: string;
   tags: string[];
+  difficulty: string;
   notebook?: {
     id: string;
     name: string;
@@ -154,8 +156,10 @@ export type CourseProblemListSummary = {
   notebookId: string | null;
   notebookName?: string;
   title: string;
+  type: string;
   status: string;
   tags: string[];
+  difficulty: string;
   latestAttempt: {
     id: string;
     status: string;
@@ -719,6 +723,7 @@ async function listLatestAttemptsForUser(
 async function listLatestAttemptSummariesForUser(
   userId: string,
   problemIds: string[],
+  options: { includeAttemptFallback?: boolean } = {},
 ): Promise<Map<string, ProblemAttemptSummaryRow>> {
   if (problemIds.length === 0) return new Map<string, ProblemAttemptSummaryRow>();
 
@@ -754,7 +759,9 @@ async function listLatestAttemptSummariesForUser(
   }
 
   const missingProblemIds = problemIds.filter((problemId) => !latestByProblemId.has(problemId));
-  if (missingProblemIds.length === 0) return latestByProblemId;
+  if (missingProblemIds.length === 0 || options.includeAttemptFallback === false) {
+    return latestByProblemId;
+  }
 
   const attempts = (await prismaDb.notebookProblemAttempt.findMany({
     where: {
@@ -1015,12 +1022,49 @@ export async function listCourseProblemsForUser(
   );
 }
 
+export async function listCourseProblemsByIdsForUser(
+  userId: string,
+  courseId: string,
+  problemIds: string[],
+  options: { skipMaintenance?: boolean } = {},
+): Promise<NotebookProblemSummaryForUser[]> {
+  const uniqueProblemIds = Array.from(new Set(problemIds.filter(Boolean)));
+  if (uniqueProblemIds.length === 0) return [];
+
+  const accessRole = await requireCourseReadAccess(userId, courseId);
+  if (accessRole === 'owner' && !options.skipMaintenance) {
+    await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
+    await ensureProblemNumbersBackfilledForCourse(userId, courseId);
+  }
+  const problems = await loadProblemsWithNotebook({
+    where: {
+      id: { in: uniqueProblemIds },
+      OR: [{ courseId }, { notebook: { courseId } }],
+    },
+    includeSecret: accessRole === 'owner',
+  });
+  const latestByProblemId = await listLatestAttemptsForUser(
+    userId,
+    problems.map((problem) => problem.id),
+  );
+  const byId = new Map(
+    problems.map((problem) => [
+      problem.id,
+      mapProblemRow(problem, latestByProblemId.get(problem.id) ?? null),
+    ]),
+  );
+  return uniqueProblemIds
+    .map((problemId) => byId.get(problemId))
+    .filter((problem): problem is NotebookProblemSummaryForUser => Boolean(problem));
+}
+
 export async function listCourseProblemSummariesForUser(
   userId: string,
   courseId: string,
+  options: { skipMaintenance?: boolean } = {},
 ): Promise<CourseProblemListSummary[]> {
   const accessRole = await requireCourseReadAccess(userId, courseId);
-  if (accessRole === 'owner') {
+  if (accessRole === 'owner' && !options.skipMaintenance) {
     await ensureProblemNumbersBackfilledForCourse(userId, courseId);
   }
   const notebooks = await listReadableCourseNotebooks(userId, courseId);
@@ -1038,8 +1082,10 @@ export async function listCourseProblemSummariesForUser(
       courseId: true,
       notebookId: true,
       title: true,
+      type: true,
       status: true,
       tags: true,
+      difficulty: true,
       notebook: {
         select: {
           id: true,
@@ -1054,6 +1100,7 @@ export async function listCourseProblemSummariesForUser(
   const latestByProblemId = await listLatestAttemptSummariesForUser(
     userId,
     problems.map((problem) => problem.id),
+    { includeAttemptFallback: false },
   );
   return problems.map((problem) => {
     const latestAttempt = latestByProblemId.get(problem.id) ?? null;
@@ -1063,6 +1110,7 @@ export async function listCourseProblemSummariesForUser(
       notebookId: problem.notebookId,
       notebookName: problem.notebook?.name ?? undefined,
       title: problem.title,
+      type: problem.type,
       status: problem.status,
       tags: normalizeProblemConceptTags({
         courseId: problem.courseId ?? problem.notebook?.courseId ?? courseId,
@@ -1071,6 +1119,7 @@ export async function listCourseProblemSummariesForUser(
         title: problem.title,
         tags: problem.tags ?? [],
       }),
+      difficulty: problem.difficulty,
       latestAttempt: latestAttempt
         ? {
             id: latestAttempt.id,
@@ -1231,13 +1280,14 @@ export async function getCourseProblemForUser(
   userId: string,
   courseId: string,
   problemId: string,
+  options: { skipMaintenance?: boolean } = {},
 ): Promise<{
   problem: NotebookProblemRecord;
   secretJudge?: NotebookProblemSecretJudge;
 }> {
   const accessRole = await requireCourseReadAccess(userId, courseId);
   const canReadSecretJudge = accessRole === 'owner';
-  if (accessRole === 'owner') {
+  if (accessRole === 'owner' && !options.skipMaintenance) {
     await ensureLegacyProblemsBackfilledForCourse(userId, courseId);
     await ensureProblemNumbersBackfilledForCourse(userId, courseId);
   }
@@ -1374,13 +1424,13 @@ export async function createCourseProblemsFromDrafts(args: {
         problemNumber: firstProblemNumber + index,
       });
     }
-    await touchOwnersAfterProblemWriteTx({
-      tx,
-      courseId: args.courseId,
-      notebookIds: args.drafts.map((draft) =>
-        normalizeAssignedNotebookId(draft.notebookId, allowedNotebookIds),
-      ),
-    });
+  });
+
+  await touchOwnersAfterProblemWrite({
+    courseId: args.courseId,
+    notebookIds: args.drafts.map((draft) =>
+      normalizeAssignedNotebookId(draft.notebookId, allowedNotebookIds),
+    ),
   });
 
   return listCourseProblemsForUser(args.userId, args.courseId);

@@ -67,6 +67,7 @@ const CONFIRMATION_REQUIRED_ACTION_KINDS = new Set<LearnActionKind>([
   'calendar.propose_update',
   'calendar.propose_delete',
   'memory.propose_write',
+  'review_mode.request_choice',
   'image.propose_generation',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',

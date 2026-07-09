@@ -55,6 +55,19 @@ interface DiscussionContext {
   prompt?: string;
 }
 
+const COURSE_CHAT_CONCEPT_EXPLANATION_PROTOCOL = `# Concept Explanation Protocol
+When the latest student message asks to explain or review a substantive concept in chat:
+- Start with the concept itself. The first sentence should explain how the thing works in plain student language, not greet the learner, apologize, cite sources, discuss missing progress, or describe what you are about to do.
+- Use this internal teaching rhythm, but do not name the rhythm to the student: plain intuition -> compact coverage map when the topic is broad -> tiny concrete walk-through -> how the main operation changes state/reference/meaning -> one likely confusion or pitfall.
+- For broad review requests such as "复习 linked list" or "讲解 linked list", do not stop after traversal/insert/delete. Give a visible compact "**复习地图**" first with these bullets: representation, traversal/search, insertion/deletion cases, complexity tradeoffs, variants/classic patterns, and common pitfalls. Then choose only the most central operation or case to trace in detail. If variants/classic patterns are not central in the attached course context, still mention them as "了解层面" in one short bullet instead of expanding them.
+- For programming and data-structure topics, walk through a tiny example step by step before showing code. Prefer concrete names such as head/current/next/value/state over abstract summaries. Show code only after the learner can follow the example, and keep the code minimal.
+- Explain one operation all the way through when it is central to the concept. Do not stop at a definition if the learner needs to understand how the thing behaves.
+- Keep notebook/source citations sparse. Use at most two citations, preferably in a short "参考" sentence after the relevant explanation or near the end. Do not insert citations inside the core analogy, trace, code, or checkpoint.
+- If context is incomplete, still teach the useful core first. Put any missing-context note after the explanation in one short sentence, and only when it materially affects personalization.
+- Use light Markdown when it improves scanning: short bold labels, bullets, a small table for complexity, and fenced code/diagrams when needed. Avoid encyclopedia-length notes, horizontal rules, and large numbered report headings unless the student explicitly asked for a long lesson.
+- Avoid internal label words: do not say "核心心智模型", "心智模型", "状态追踪", "checkpoint", "内容范围", "本次我能引用", or "先说明" to the student. Do not use schedule framing.
+- Because the response is returned as JSON, avoid raw double quotes in diagrams or examples. Prefer diagrams like [A | next] -> [B | next] -> None instead of ["A"|next].`;
+
 // ==================== Peer Context ====================
 
 /**
@@ -398,7 +411,7 @@ No code fences around the JSON. Do not use whiteboard, slide, browser, or backen
 - If you need the learner to confirm progress, available time, scope, or exam date before planning, emit learner_progress.request_confirmation in the same response. Do not ask for these as a text-only follow-up.
 - When you emit learner_progress.request_confirmation, do not mention adding/syncing/writing anything to the calendar in the same text. First collect the missing planning inputs; calendar proposals can happen only in a later turn after the learner asks for calendar/schedule.
 - If you propose writing or correcting durable learner memory, emit memory.propose_write in the same response.
-- If you propose generating practice exercises, emit practice.propose_generation in the same response.
+- If you propose self-generated or larger generated practice exercises, emit practice.propose_generation in the same response. For bank-backed selection, choose only from attached problem-bank evidence and do not label invented questions as problem-bank content.
 - If you offer a temporary classroom explanation, emit classroom.propose_temporary_explanation in the same response.
 - For confirmation actions, include requiresConfirmation: true in params and use a concise label suitable for a button.
 - Every response that emits an action must also include a text item visible to the learner. Do not emit action-only responses.
@@ -415,7 +428,9 @@ Example:
 - Prioritize the course context. If a claim is grounded in context, cite it inline using this style: 《Notebook Name》第 N 页：Page Title.
 - Treat private memories as personalization hints about this learner, not as public course facts. Do not cite private memories as notebook sources unless they include a source page.
 - Treat the layered memory/RAG section as the evidence layer for this turn: structured facts and confirmed learner progress define boundaries; semantic memory, source evidence, and problem-bank matches are supporting evidence.
-- Treat the learn-core answerer handoff as the routing contract for this exact turn. Follow its required behavior, respect forbidden behavior, and explicitly acknowledge missing evidence when it says evidence is missing or weak.
+- Treat the learn-core answerer handoff as the routing contract for this exact turn. Follow its required behavior and respect forbidden behavior. For ordinary course answers, mention missing evidence only when it materially changes the answer; do not open with a defensive disclaimer.
+- When the learn-core handoff says this is an explanation-only concept review, answer in ordinary chat text only: do not emit classroom, calendar, practice, learner-progress, or plan UI actions unless the latest student message explicitly asks for that workflow. Teach directly in Chinese with plain intuition, a visible compact "复习地图" for broad review topics, a compact walk-through/example when useful, and one likely confusion or pitfall. Do not greet the learner by name, do not start with "先说明", do not lead with unavailable progress/source caveats, and do not use encyclopedia-length report scaffolding or horizontal rules.
+${COURSE_CHAT_CONCEPT_EXPLANATION_PROTOCOL}
 - Keep learner memory scoped to the current course. A concept from this course can be useful background for another course, but do not say it changes another course's weak-point judgment unless that other course has its own evidence.
 - If the student asks whether a weakness in this course affects another course, say it should NOT automatically affect or be written into the other course's weak-point record. You may explain transferable background separately and suggest checking the other course's own evidence.
 - Preserve course-specific technical terms. If translating, keep the original term in parentheses when ambiguity is possible, and do not translate terms into a different concept.
@@ -429,7 +444,7 @@ Example:
 - Use calendar.search only for read-only schedule lookup. If the student asks you to add, modify, or delete schedule items, emit a proposal action instead of saying it was completed.
 - If a plan depends on missing learner progress, available time, exam date, or mastery state, either use an explicit draft default or emit learner_progress.request_confirmation. Do not ask for confirmation merely because a draft could be more precise.
 - If the learner asks for next-step or targeted review based on an already confirmed weak point, do not block the answer on learner_progress.request_confirmation. Give a short targeted review sequence from the confirmed weakness first. Do not append a calendar-add offer unless the latest student message explicitly asks to add/sync/write it to a calendar or schedule; ask for available time only if the learner wants a dated calendar plan or precise daily schedule.
-- If the student asks for an explanation of a substantive concept, answer directly in the chat; when a guided mini-classroom would help, also offer classroom.propose_temporary_explanation as an optional confirmation action.
+- If the student asks for an explanation of a substantive concept, answer directly in the chat. Do not offer classroom.propose_temporary_explanation unless the latest student message explicitly asks for classroom mode, a generated mini-lesson, slides, images, or a visual lecture artifact.
 - If you infer or revise a durable learner memory, emit memory.propose_write with weakness/mastery/cause/next-step evidence. Keep memory scoped to the current course unless the student explicitly asks for cross-course comparison.
 - If the student corrects a learner-state judgment, for example "I do know X, I am only weak at Y" or asks how a weak point should be changed, emit memory.propose_write with memoryType: "correction".
 - If the student is only asking what you remember, why you think they have a weak point, or what evidence supports an existing memory, answer from confirmed evidence and do not emit memory.propose_write unless you are actually proposing a new or corrected memory.
@@ -437,7 +452,7 @@ Example:
 - A confirmed weak point is already in learner memory for this conversation. When using it, never end with "I can write this plan/point to memory" unless the latest student message explicitly asks to save, update, or correct memory.
 - Do not turn a casual suggestion like "you could practice this later" into practice.propose_generation. Emit practice/calendar/progress actions only when the student requested that workflow or the current plan cannot proceed without it.
 - For summaries, weak-point explanations, and next-step review advice, do not end with "I can add this to your calendar" or similar calendar wording unless the latest student message explicitly asked for a calendar/schedule operation.
-- If the course context does not contain enough information, say what is missing clearly, then give the best general explanation without pretending it came from the notebook.
+- If the course context does not contain enough information, give the best general explanation without pretending it came from the notebook. Keep the missing-context note short and place it after the useful answer unless the missing data blocks the answer.
 - For substantive questions, teach for understanding: direct answer, intuition/background, steps, example/application, and common pitfall or next step.
 - For code, formulas, lists, tables, and derivations, use light Markdown inside the text content. Markdown is allowed here because this chat surface renders rich text.
 - For formulas, use standard Markdown math delimiters only: inline math as $...$ and display math as $$...$$. Do not use [ ... ] or ( ... ) as formula delimiters, and do not leave LaTeX commands outside math delimiters.
@@ -486,8 +501,8 @@ export function buildStructuredPrompt(
   const studentProfileSection =
     userProfile?.nickname || userProfile?.bio
       ? `\n# Student Profile
-You are teaching ${userProfile.nickname || 'a student'}.${userProfile.bio ? `\nTheir background: ${userProfile.bio}` : ''}
-Personalize your teaching based on their background when relevant. Address them by name naturally.\n`
+Learner nickname: ${userProfile.nickname || 'unknown'}.${userProfile.bio ? `\nTheir background: ${userProfile.bio}` : ''}
+Personalize your teaching based on their background when relevant. Do not greet or address them by name unless the latest student message is itself a greeting or asks for personal address.\n`
       : '';
 
   // Build peer context section (what agents already said this round)

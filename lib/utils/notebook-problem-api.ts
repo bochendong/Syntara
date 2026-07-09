@@ -43,7 +43,16 @@ export type NotebookProblemClientRecord = {
 
 export type CourseProblemClientSummary = Pick<
   NotebookProblemClientRecord,
-  'id' | 'courseId' | 'notebookId' | 'notebookName' | 'title' | 'status' | 'tags' | 'latestAttempt'
+  | 'id'
+  | 'courseId'
+  | 'notebookId'
+  | 'notebookName'
+  | 'title'
+  | 'type'
+  | 'status'
+  | 'tags'
+  | 'difficulty'
+  | 'latestAttempt'
 >;
 
 export type ProblemImportBatchClientRecord = {
@@ -81,6 +90,37 @@ export async function listCourseProblems(courseId: string): Promise<NotebookProb
     `/api/courses/${encodeURIComponent(courseId)}/problems`,
   );
   return data.problems;
+}
+
+export async function getCourseProblem(
+  courseId: string,
+  problemId: string,
+  options: { lean?: boolean } = {},
+): Promise<NotebookProblemClientRecord> {
+  const query = options.lean ? '?lean=1' : '';
+  const data = await backendJson<{ problem: NotebookProblemClientRecord }>(
+    `/api/courses/${encodeURIComponent(courseId)}/problems/${encodeURIComponent(problemId)}${query}`,
+  );
+  return data.problem;
+}
+
+export async function listCourseProblemsByIds(
+  courseId: string,
+  problemIds: string[],
+): Promise<NotebookProblemClientRecord[]> {
+  const uniqueIds = Array.from(new Set(problemIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return [];
+  const params = new URLSearchParams({
+    ids: uniqueIds.join(','),
+    lean: '1',
+  });
+  const data = await backendJson<{ problems: NotebookProblemClientRecord[] }>(
+    `/api/courses/${encodeURIComponent(courseId)}/problems?${params.toString()}`,
+  );
+  const problems = data.problems;
+  return uniqueIds
+    .map((problemId) => problems.find((problem) => problem.id === problemId))
+    .filter((problem): problem is NotebookProblemClientRecord => Boolean(problem));
 }
 
 function dedupeProblemsById(
@@ -122,11 +162,59 @@ export async function listReviewNotebookProblems(args: {
 
 export async function listCourseProblemSummaries(
   courseId: string,
+  options?: { lean?: boolean },
 ): Promise<CourseProblemClientSummary[]> {
+  const params = new URLSearchParams({ summary: '1' });
+  if (options?.lean) params.set('lean', '1');
   const data = await backendJson<{ problems: CourseProblemClientSummary[] }>(
-    `/api/courses/${encodeURIComponent(courseId)}/problems?summary=1`,
+    `/api/courses/${encodeURIComponent(courseId)}/problems?${params.toString()}`,
   );
   return data.problems;
+}
+
+export async function generateCourseProblemsFromContent(args: {
+  courseId: string;
+  topic: string;
+  count?: number;
+  courseName?: string;
+  courseCode?: string;
+  sourceSnippets?: string[];
+  commit?: boolean;
+}): Promise<{
+  generatedCount: number;
+  committed: boolean;
+  drafts: NotebookProblemImportDraft[];
+  problems?: NotebookProblemClientRecord[];
+  generation: {
+    agent: string;
+    mode: string;
+    topic: string;
+    runId?: string;
+  };
+}> {
+  return backendJson<{
+    generatedCount: number;
+    committed: boolean;
+    drafts: NotebookProblemImportDraft[];
+    problems?: NotebookProblemClientRecord[];
+    generation: {
+      agent: string;
+      mode: string;
+      topic: string;
+      runId?: string;
+    };
+  }>(`/api/courses/${encodeURIComponent(args.courseId)}/problems/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic: args.topic,
+      count: args.count,
+      courseName: args.courseName,
+      courseCode: args.courseCode,
+      sourceSnippets: args.sourceSnippets || [],
+      commit: args.commit ?? true,
+    }),
+  });
 }
 
 export async function insertNotebookReviewProblems(args: {

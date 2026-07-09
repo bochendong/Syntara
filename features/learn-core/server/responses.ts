@@ -10,6 +10,7 @@ const REQUIRED_CONFIRMATION_ACTIONS = new Set<LearnAction['kind']>([
   'calendar.propose_update',
   'calendar.propose_delete',
   'memory.propose_write',
+  'review_mode.request_choice',
   'practice.propose_generation',
   'classroom.propose_temporary_explanation',
   'image.propose_generation',

@@ -61,9 +61,13 @@ export type DeleteCourseSourceUploadResult = {
 
 export async function listCourseSourceUploads(
   courseId: string,
+  options?: { includeText?: boolean },
 ): Promise<CourseSourceUploadRecord[]> {
+  const params = new URLSearchParams();
+  if (options?.includeText === false) params.set('includeText', '0');
+  const query = params.toString();
   const data = await backendJson<{ uploads: CourseSourceUploadRecord[] }>(
-    `/api/courses/${encodeURIComponent(courseId)}/source-uploads`,
+    `/api/courses/${encodeURIComponent(courseId)}/source-uploads${query ? `?${query}` : ''}`,
   );
   return data.uploads;
 }

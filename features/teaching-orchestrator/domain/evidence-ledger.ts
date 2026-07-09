@@ -17,6 +17,14 @@ type EvidenceRequirement = {
 };
 
 const ACTION_EVIDENCE_REQUIREMENTS: Partial<Record<TeachingAction, EvidenceRequirement[]>> = {
+  workflow_routing: [
+    {
+      anyOf: ['control_fact', 'memory', 'schedule', 'problem_bank'],
+      reason:
+        'Workflow routing should know whether the learner has a target, preferred review mode, schedule window, or practice source.',
+      fallback: 'Ask for the missing scope or mode instead of silently choosing a review branch.',
+    },
+  ],
   learning_status: [
     {
       anyOf: ['control_fact', 'memory', 'problem_attempt'],
@@ -90,6 +98,22 @@ const ACTION_EVIDENCE_REQUIREMENTS: Partial<Record<TeachingAction, EvidenceRequi
       reason: 'Grading feedback should point at the submitted attempt that caused the diagnosis.',
       fallback:
         'State that no persisted attempt evidence was found and only use the submitted answer.',
+    },
+  ],
+  memory_extraction: [
+    {
+      anyOf: ['memory', 'control_fact', 'problem_attempt', 'course_material', 'problem_bank'],
+      reason:
+        'Memory extraction must be grounded in a learner signal, submitted attempt, source document, or problem-bank event.',
+      fallback: 'Skip the memory write when the signal would not change a future teaching action.',
+    },
+  ],
+  memory_write: [
+    {
+      anyOf: ['memory', 'control_fact', 'problem_attempt', 'course_material', 'problem_bank'],
+      reason:
+        'Teaching memory writes must cite the learner signal, attempt, course source, or problem metadata that supports the write.',
+      fallback: 'Do not write memory from unsupported transcript text.',
     },
   ],
   notebook_generation: [

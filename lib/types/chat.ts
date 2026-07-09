@@ -126,6 +126,7 @@ export type LearningActionKind =
   | 'calendar.start_recent'
   | 'memory.search'
   | 'web.search'
+  | 'review_mode.request_choice'
   | 'learner_progress.request_confirmation'
   | 'practice.propose_generation'
   | 'classroom.propose_temporary_explanation'

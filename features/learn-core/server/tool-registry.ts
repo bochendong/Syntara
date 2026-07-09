@@ -84,6 +84,17 @@ export const LEARN_CORE_TOOL_CONTRACTS = [
     outputEvidenceSources: ['problem_bank', 'problem_attempt'],
   },
   {
+    id: 'resolve_fixed_review_workflow',
+    title: 'Resolve fixed review workflow',
+    description:
+      'Apply deterministic review routing before the AI router: resolve scope, ask explain/practice/both when the mode is missing, and expose required evidence reads.',
+    readsFrom: ['user_message', 'conversation_state', 'memory', 'schedule', 'problem_bank'],
+    writesTo: ['decision', 'trace'],
+    sideEffects: ['none'],
+    needsApproval: 'never',
+    outputEvidenceSources: ['user_message', 'conversation', 'memory', 'schedule', 'problem_bank'],
+  },
+  {
     id: 'plan_review',
     title: 'Plan review or preview activity',
     description:

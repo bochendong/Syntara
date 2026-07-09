@@ -32,6 +32,11 @@ import type { UIMessage } from 'ai';
 import { MessageResponse } from '@/components/ai-elements/message';
 import { CreateCourseDialog } from '@/components/courses/create-course-dialog';
 import { CourseMaterialsPanel } from '@/components/courses/course-materials-panel';
+import {
+  CourseProblemBankView,
+  type CourseProblemPracticeHeaderState,
+} from '@/components/problem-bank/course-problem-bank-view';
+import type { CourseProblemPracticeAttemptResolvedEvent } from '@/components/problem-bank/use-course-problem-bank-controller';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -72,6 +77,7 @@ import {
   askCourseOrchestrator,
   type CourseChatImageAttachment,
 } from '@/lib/chat/ask-course-orchestrator';
+import { buildProblemExplainPrompt } from '@/lib/chat/problem-explain-prompt';
 import {
   answererHandoffFromLearnTurn,
   planningDecisionFromLearnTurn,
@@ -96,7 +102,11 @@ import {
   type LearnPendingCourseAction as PendingCourseAction,
   type LearnProgressProposal as ProgressProposal,
 } from '@/features/learn-core/client-progress';
-import type { LearnTurnMessage } from '@/features/learn-core/domain/types';
+import type {
+  LearnProblemBankMatch,
+  LearnProblemBankSearchResult,
+  LearnTurnMessage,
+} from '@/features/learn-core/domain/types';
 import {
   buildCourseReplyProgress,
   dispatchCourseReplyProgress,
@@ -116,7 +126,9 @@ import {
   deletePracticePlan,
   listPracticePlans,
   loadLearnerCourseState,
+  loadPracticePlan,
   previewLearnerProgressCheckpoint,
+  recordPracticeAttemptResult,
   recordLearnerQuestion,
   saveLearnerCourseState,
   savePracticePlan,
@@ -128,9 +140,34 @@ import {
   type LearnerCourseSnapshot,
   type LearnerCourseState,
   type LearnerProgressCheckpointKind,
+  type PracticeAttemptStatus,
   type PracticePlan,
   type PracticePlanMode,
 } from '@/lib/learning/course-learner-state';
+import {
+  normalizePracticeSelectionText,
+  practicePlanTopicFocusLine,
+  practiceProblemMatchScore,
+  practiceProblemReason,
+  practiceSelectionTerms,
+  selectedProblemPracticeRationale,
+} from '@/lib/learning/practice-problem-selection';
+import {
+  deletePracticeSession,
+  ensurePracticeSession,
+  listPracticeSessions,
+  loadPracticeSession,
+  pausePracticeSession,
+  practiceSessionAnswers,
+  practiceSessionSummary,
+  recordPracticeSessionProblemAiHelp,
+  recordPracticeSessionAttempt,
+  updatePracticeSessionAnswerDraft,
+  updatePracticeSessionCurrentProblem,
+  type PracticeSession,
+  type PracticeSessionSummary,
+} from '@/lib/learning/practice-session';
+import type { NotebookProblemAttemptAnswer } from '@/lib/problem-bank';
 import type { ProviderId } from '@/lib/ai/providers';
 import { resolveCourseAvatarDisplayUrl } from '@/lib/constants/course-avatars';
 import { cn } from '@/lib/utils';
@@ -140,6 +177,7 @@ import { backendJson } from '@/lib/utils/backend-api';
 import { deleteCourseAndNotebooks, listCourses, updateCourse } from '@/lib/utils/course-storage';
 import { getCoursePublishBlockReason } from '@/lib/utils/course-publish';
 import {
+  generateCourseProblemsFromContent,
   listCourseProblemSummaries,
   type CourseProblemClientSummary,
 } from '@/lib/utils/notebook-problem-api';
@@ -205,6 +243,15 @@ type LearnImageAttachment = CourseChatImageAttachment & {
   objectUrl: string;
   width?: number;
   height?: number;
+};
+
+type PracticeProblemHelpState = {
+  problemId: string;
+  sessionId: string;
+  title: string;
+  answer: string;
+  status: 'loading' | 'ready' | 'error';
+  error?: string;
 };
 
 type LearnModelOption = {
@@ -470,6 +517,8 @@ const LEARN_LEFT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-left-rail-collapsed
 const LEARN_RIGHT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-right-rail-collapsed';
 const LEARN_SYLLABUS_EVENTS_PREFIX = 'syntara-learn-syllabus-events:v1';
 const LEARN_DELETED_PRACTICE_PLAN_IDS_PREFIX = 'syntara-learn-deleted-practice-plan-ids:v1';
+const LEARN_COURSE_LIST_CACHE_PREFIX = 'syntara-learn-course-list-cache:v1';
+const LEARN_COURSE_LIST_CACHE_TTL_MS = 10 * 60 * 1000;
 
 type LearnChatSession = {
   id: string;
@@ -634,13 +683,14 @@ const RESEARCH_EVENT_KIND_OPTIONS: Array<{ value: SyllabusEventKind; label: stri
 ];
 type StatusCalendarActivity = {
   id: string;
-  source: 'plan' | 'syllabus';
+  source: 'plan' | 'practice_session' | 'syllabus';
   sourceId: string;
   title: string;
   date: string;
   meta: string;
   dotClassName: string;
   actionLabel?: string;
+  session?: PracticeSession;
   event?: SyllabusCalendarEvent;
 };
 
@@ -664,6 +714,44 @@ function getInitialLearnRailCollapsed(storageKey: string): boolean {
     return localStorage.getItem(storageKey) === '1';
   } catch {
     return false;
+  }
+}
+
+function learnCourseListCacheKey(userId: string) {
+  return [LEARN_COURSE_LIST_CACHE_PREFIX, encodeURIComponent(userId)].join(':');
+}
+
+function readLearnCourseListCache(userId: string): CourseRecord[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(learnCourseListCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      savedAt?: number;
+      courses?: CourseRecord[];
+    };
+    if (
+      typeof parsed.savedAt !== 'number' ||
+      Date.now() - parsed.savedAt > LEARN_COURSE_LIST_CACHE_TTL_MS ||
+      !Array.isArray(parsed.courses)
+    ) {
+      return null;
+    }
+    return parsed.courses;
+  } catch {
+    return null;
+  }
+}
+
+function writeLearnCourseListCache(userId: string, courses: CourseRecord[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(
+      learnCourseListCacheKey(userId),
+      JSON.stringify({ savedAt: Date.now(), courses }),
+    );
+  } catch {
+    /* sessionStorage may be unavailable */
   }
 }
 
@@ -1848,12 +1936,17 @@ const courseMarkdownClassName = cn(
   '[&_blockquote]:text-foreground [&_blockquote_p]:my-0',
   '[&_hr]:my-8 [&_hr]:border-border',
   '[&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em]',
-  '[&_[data-streamdown=code-block]]:my-5 [&_[data-streamdown=code-block]]:rounded-lg [&_[data-streamdown=code-block]]:border [&_[data-streamdown=code-block]]:border-border [&_[data-streamdown=code-block]]:bg-muted/60',
+  '[&_[data-streamdown=code-block]]:my-5 [&_[data-streamdown=code-block]]:max-w-full [&_[data-streamdown=code-block]]:overflow-hidden [&_[data-streamdown=code-block]]:rounded-lg [&_[data-streamdown=code-block]]:border [&_[data-streamdown=code-block]]:border-border [&_[data-streamdown=code-block]]:bg-muted/60',
   '[&_[data-streamdown=code-block-body]]:text-sm [&_[data-streamdown=code-block-body]]:leading-6',
-  '[&_table]:my-5 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border [&_table]:border-border',
-  '[&_th]:border-b [&_th]:border-border [&_th]:bg-muted [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold',
-  '[&_td]:border-b [&_td]:border-border/70 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm',
+  '[&_table]:my-5 [&_table]:block [&_table]:w-full [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border [&_table]:border-border [&_table]:border-separate [&_table]:border-spacing-0',
+  '[&_thead]:bg-muted/80',
+  '[&_th]:border-b [&_th]:border-r [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th:last-child]:border-r-0',
+  '[&_td]:border-b [&_td]:border-r [&_td]:border-border/70 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm [&_td:last-child]:border-r-0',
+  '[&_tbody_tr:last-child_td]:border-b-0',
 );
+
+const PRACTICE_PROBLEM_SELECTION_DECISION_ID = 'learn-practice-problem-selection';
+const PRACTICE_PROBLEM_HELP_TIMEOUT_MS = 60_000;
 
 function makeClientId(prefix: string): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -1878,6 +1971,12 @@ function learnMessageHasContent(message: LearnMessage): boolean {
 
 function learnSessionIsBlank(messages: LearnMessage[]): boolean {
   return !messages.some(learnMessageHasContent);
+}
+
+function shouldDisplayPublicTrace(message: LearnMessage): boolean {
+  if (!message.publicTrace?.length) return false;
+  if (message.transient) return true;
+  return message.publicTrace.some((step) => step.status === 'blocked');
 }
 
 function learnSessionUpdatedAtFromMessages(messages: LearnMessage[]): number | null {
@@ -2046,48 +2145,81 @@ function collapseDuplicatedAssistantText(text: string): string {
   return trimmed;
 }
 
-function plainTextMathForLearnChat(text: string): string {
+function normalizeLearnChatMarkdownSegment(text: string): string {
+  return protectLearnChatAsciiDiagrams(text)
+    .split(/(`[^`\n]*`)/g)
+    .map((part) => {
+      if (part.startsWith('`')) return part.replace(/\[blocked\]/gi, '');
+      return sanitizeLearnChatMarkdownText(part);
+    })
+    .join('');
+}
+
+function sanitizeLearnChatMarkdownText(text: string): string {
   return text
-    .replace(/`([^`\n]*)`/g, '$1')
-    .replace(/\$\$([\s\S]*?)\$\$/g, (_, content: string) => content.trim())
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_, content: string) => content.trim())
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_, content: string) => content.trim())
-    .replace(/\$([^$\n]+)\$/g, (_, content: string) => content.trim())
     .replace(/\[blocked\]/gi, '')
-    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1) / ($2)')
-    .replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)')
-    .replace(/\\Delta/g, 'Δ')
-    .replace(/\\cdots/g, '...')
-    .replace(/\\ldots/g, '...')
-    .replace(/\\times/g, '×')
-    .replace(/\\cdot/g, '·')
-    .replace(/\\infty/g, '∞')
-    .replace(/\\int/g, '∫')
-    .replace(/\\sum/g, 'sum')
-    .replace(/\\leq/g, '<=')
-    .replace(/\\geq/g, '>=')
-    .replace(/\\neq/g, '!=')
-    .replace(/\\to/g, '->')
-    .replace(/\\left/g, '')
-    .replace(/\\right/g, '')
-    .replace(/\\,/g, '')
-    .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
-    .replace(/\\text\{([^{}]+)\}/g, '$1')
-    .replace(/\^\{([^{}]+)\}/g, '^$1')
-    .replace(/_\{([^{}]+)\}/g, '_$1')
-    .replace(/\\([A-Za-z]+)/g, '$1')
-    .replace(/`/g, '')
-    .replace(/\$/g, '')
+    .replace(/<(?=\/?[A-Za-z][A-Za-z0-9-]*(?:\s|>|\/>))/g, '&lt;')
     .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+function isLikelyLearnChatAsciiDiagramLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.length > 180) return false;
+  const backtickCount = trimmed.match(/`/g)?.length || 0;
+  if (backtickCount > 0 && backtickCount % 2 === 0) return false;
+  const candidate = trimmed.replace(/`/g, '');
+  if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?$/.test(candidate)) return false;
+  if (candidate.startsWith('|') && candidate.endsWith('|')) return false;
+
+  const hasPointerWord = /\b(?:head|tail|next|prev|node|nodes|null|none)\b/i.test(candidate);
+  const hasStructureMark = /(?:\||->|<-|=>|<->|-->|—>|→|←|↔|⇒|⟶|⟵)/.test(candidate);
+  const looksLikeDiagramText = /^[A-Za-z0-9_$.[\]{}()'"|:;,\s<>=+\-→←↔—–_]+$/.test(candidate);
+  return hasPointerWord && hasStructureMark && looksLikeDiagramText;
+}
+
+function protectLearnChatAsciiDiagrams(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      if (!isLikelyLearnChatAsciiDiagramLine(line)) return line;
+      const leading = line.match(/^\s*/)?.[0] || '';
+      const trailing = line.match(/\s*$/)?.[0] || '';
+      const diagram = repairLearnChatAsciiDiagramLine(line);
+      if (!diagram) return line;
+      const fence = diagram.includes('`') ? '``' : '`';
+      const paddedDiagram = fence === '``' ? ` ${diagram} ` : diagram;
+      return `${leading}${fence}${paddedDiagram}${fence}${trailing}`;
+    })
+    .join('\n');
+}
+
+function repairLearnChatAsciiDiagramLine(line: string): string {
+  const diagram = line
+    .trim()
+    .replace(/\[blocked\]/gi, '')
+    .replace(/`/g, '')
+    .replace(/^\[/, '')
+    .replace(/\]$/, '')
     .trim();
+  const brokenNodeDiagram = diagram.match(/^(head\s*->\s*)?\[?([A-Za-z0-9_$]+)\s*\|\s*next$/i);
+  if (brokenNodeDiagram) {
+    const head = brokenNodeDiagram[2] || 'A';
+    const prefix = brokenNodeDiagram[1] ? 'head -> ' : '';
+    return `${prefix}[${head} | next -> B] -> [B | next -> C] -> [C | next -> None]`;
+  }
+  if (/^[A-Za-z0-9_$]+\s*\|\s*next$/i.test(diagram)) {
+    const head = diagram.match(/^[A-Za-z0-9_$]+/)?.[0] || 'A';
+    return `${head} | next -> B | next -> C | None`;
+  }
+  return diagram;
 }
 
 function normalizeCourseAssistantAnswer(text: string): string {
   const collapsed = collapseDuplicatedAssistantText(text);
   return collapsed
     .split(/(```[\s\S]*?```)/g)
-    .map((part) => (part.startsWith('```') ? part : plainTextMathForLearnChat(part)))
+    .map((part) => (part.startsWith('```') ? part : normalizeLearnChatMarkdownSegment(part)))
     .join('')
     .trim();
 }
@@ -2105,7 +2237,7 @@ function latestAssistantLearningActions(
 function normalizeAssistantMarkdown(text: string): string {
   return collapseDuplicatedAssistantText(text)
     .split(/(```[\s\S]*?```)/g)
-    .map((part) => (part.startsWith('```') ? part : plainTextMathForLearnChat(part)))
+    .map((part) => (part.startsWith('```') ? part : normalizeLearnChatMarkdownSegment(part)))
     .join('')
     .trim();
 }
@@ -2116,6 +2248,71 @@ function isExplicitProblemBankSelectionRequest(text: string): boolean {
     /(题库|题目库|problem\s*bank|question\s*bank)/i.test(normalized) &&
     /(选|挑|抽|找|从|bank|题库|select|choose|pick)/i.test(normalized)
   );
+}
+
+function isSelfGeneratedPracticeRequest(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return /(自生成|临时生成|生成.*(练习|题)|基于.*(资料|笔记|材料).*(生成|出).*题|self[-\s]?generated)/i.test(
+    normalized,
+  );
+}
+
+function isBankBackedPracticeRequest(text: string, source?: string): boolean {
+  if (
+    source === 'self_generated' ||
+    source === 'generated_from_course' ||
+    isSelfGeneratedPracticeRequest(text)
+  ) {
+    return false;
+  }
+  if (source === 'problem_bank' || source === 'mixed') return true;
+  return (
+    isExplicitProblemBankSelectionRequest(text) ||
+    /(练题目?|做题|刷题|练习|题目|小测|practice|quiz|problem|exercise)/i.test(text)
+  );
+}
+
+function compactCourseContentSnippet(value: string, maxLength = 900): string {
+  const text = value.replace(/\s+/g, ' ').trim();
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+}
+
+function courseContentSnippetsForGeneratedPractice(args: {
+  topic: string;
+  course: CourseRecord;
+  notebooks: StageListItem[];
+  sourceUploads: CourseSourceUploadRecord[];
+}): string[] {
+  const topic = args.topic.toLowerCase();
+  const snippets: string[] = [];
+  for (const upload of args.sourceUploads) {
+    for (const section of upload.textSections || []) {
+      const text = [section.title, section.markdown].filter(Boolean).join('\n');
+      if (!text.trim()) continue;
+      const lower = text.toLowerCase();
+      if (topic && !lower.includes(topic)) continue;
+      snippets.push(compactCourseContentSnippet(`${upload.title} / ${section.title}: ${text}`));
+      if (snippets.length >= 6) return snippets;
+    }
+  }
+  for (const notebook of args.notebooks) {
+    const text = [notebook.name, notebook.description, ...(notebook.tags || [])]
+      .filter(Boolean)
+      .join('；');
+    if (!text.trim()) continue;
+    snippets.push(compactCourseContentSnippet(`Notebook: ${text}`, 500));
+    if (snippets.length >= 6) return snippets;
+  }
+  const courseText = [
+    args.course.name,
+    args.course.courseCode,
+    args.course.description,
+    ...(args.course.tags || []),
+  ]
+    .filter(Boolean)
+    .join('；');
+  if (courseText) snippets.push(compactCourseContentSnippet(`Course: ${courseText}`, 500));
+  return snippets.slice(0, 6);
 }
 
 function buildNoCourseProblemBankAnswer(args: {
@@ -2140,6 +2337,25 @@ function buildNoCourseProblemBankAnswer(args: {
     '',
     '如果你要临时练习，可以直接说“基于笔记临时出 3 道题”；如果你要真正的题库选择，需要先导入或发布这门课的题库。',
   ].join('\n');
+}
+
+function buildProblemBankSelectionFailedAnswer(args: {
+  course: CourseRecord;
+  questionText: string;
+  activeProblemCount: number;
+}): string {
+  const courseLabel = args.course.courseCode || args.course.name;
+  const topic =
+    args.questionText
+      .replace(/我想|我要|我需要|帮我|请|练题目?|做题|刷题|练习|复习|题库|题目|：|:|。|，|,/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60) || '这个主题';
+  return [
+    `${courseLabel} 当前有 ${args.activeProblemCount} 道可用题库题，但我没有选出严格适合「${topic}」的题。`,
+    '我没有把这次请求降级成自生成练习，也没有为了凑数量混入相邻专题。',
+    '如果你想放宽范围，可以直接说“范围放宽一点”；如果你想临时生成题，请说“基于资料临时生成一组题”。',
+  ].join('\n\n');
 }
 
 function learnMessagesForPlanningIntent(messages: LearnMessage[]): LearnTurnMessage[] {
@@ -2474,6 +2690,15 @@ function publicTraceFromLearnTurn(
       ),
     );
   }
+  if (toolIds.includes('resolve_fixed_review_workflow')) {
+    addStep(
+      makePublicTraceStep(
+        'review-workflow',
+        '确认复习方式',
+        '识别到明确复习目标，但还需要先选择讲解、练题，还是两者都要。',
+      ),
+    );
+  }
   if (toolIds.includes('search_course_materials')) {
     addStep(
       makePublicTraceStep(
@@ -2590,6 +2815,7 @@ function announceSyllabusScheduleUpdated(label: string) {
 }
 
 function planIntro(plan: PracticePlan): string {
+  if (isProblemSelectionPlan(plan)) return selectedPracticeIntro(plan);
   const noun = plan.mode === 'quiz' ? '测验' : '刷题计划';
   const concepts = plan.targetConcepts.slice(0, 3).join('、') || '当前课程重点';
   const count = plan.problemIds.length > 0 ? `${plan.problemIds.length} 题` : '待补充题目';
@@ -2597,6 +2823,35 @@ function planIntro(plan: PracticePlan): string {
   const rationale = plan.evidence?.rationale?.slice(0, 2) || [];
   if (!rationale.length) return base;
   return `${base}\n\n为什么这样排：\n${rationale.map((line, index) => `${index + 1}. ${line}`).join('\n')}`;
+}
+
+function practiceStatusFromAttempt(status: unknown): PracticeAttemptStatus {
+  if (status === 'passed' || status === 'partial' || status === 'failed') return status;
+  if (status === 'error') return 'failed';
+  return 'partial';
+}
+
+function defaultScoreFromPracticeStatus(status: PracticeAttemptStatus): number {
+  if (status === 'passed') return 1;
+  if (status === 'partial') return 0.5;
+  return 0;
+}
+
+function normalizedPracticeAttemptScore(
+  score: number | null | undefined,
+  status: PracticeAttemptStatus,
+): number {
+  if (typeof score !== 'number' || Number.isNaN(score)) {
+    return defaultScoreFromPracticeStatus(status);
+  }
+  return Math.max(0, Math.min(1, score));
+}
+
+function practiceSessionPlanMeta(plan: PracticePlan, summary?: PracticeSessionSummary | null) {
+  if (!summary || summary.attempted === 0) {
+    return `${plan.estimatedMinutes} 分钟 · ${plan.problemIds.length || 0} 题`;
+  }
+  return summary.meta;
 }
 
 function buildLearnerChatContext(args: {
@@ -2942,7 +3197,7 @@ function buildMiniLectureDeck(prompt: MiniLecturePrompt): MiniLectureDeck {
   const first = sentences[0] || '先把题目的目标翻译成一句可以操作的话。';
   const second = sentences[1] || '再找出关键条件，决定先用定义、公式还是例子。';
   const third = sentences[2] || '最后把推理链条补完整，检查每一步是否回应题目。';
-  const fourth = sentences[3] || sentences[2] || '讲完后做一个小检查，确认自己能复述方法。';
+  const fourth = sentences[3] || sentences[2] || '最后收束成一个容易回看的重点。';
   const title = compactLectureText(prompt.title, 28) || '课堂讲解';
   const pageOneRegions = [
     miniLectureRegion({
@@ -3034,6 +3289,97 @@ function uniquePlanStrings(values: Array<string | undefined | null>, limit = 12)
     if (output.length >= limit) break;
   }
   return output;
+}
+
+function practicePlanDisplayRationale(plan: PracticePlan): string[] {
+  const raw = plan.evidence?.rationale || [];
+  const topicText = normalizePracticeSelectionText(
+    [
+      ...plan.targetConcepts,
+      ...(plan.evidence?.items || []).flatMap((item) => [
+        item.title || '',
+        item.reason || '',
+        item.excerpt || '',
+      ]),
+    ].join(' '),
+  );
+  const isLinkedListPlan = /链表|linked\s*list|linkedlist/.test(topicText);
+  const staleLinkedListLine =
+    /traversal\/current pointer|insertion\/deletion|head\/next|linked\s*list|链表/i;
+  const primaryConcept = plan.targetConcepts[0] || '当前复习点';
+  const repaired = raw.map((line) =>
+    !isLinkedListPlan && staleLinkedListLine.test(line)
+      ? practicePlanTopicFocusLine(topicText, primaryConcept)
+      : line,
+  );
+  return uniquePlanStrings(
+    repaired.length
+      ? repaired
+      : [
+          `优先选择题库里命中「${primaryConcept}」及相关标签/标题的题。`,
+          practicePlanTopicFocusLine(topicText, primaryConcept),
+        ],
+    4,
+  );
+}
+
+function repairStalePracticeSelectionMessageText(text: string): string {
+  if (!text) return text;
+  const staleLine = '先覆盖 traversal/current pointer，再覆盖 insertion/deletion 这类引用变更题。';
+  if (!text.includes(staleLine)) return text;
+  const normalized = normalizePracticeSelectionText(text);
+  if (/链表|linked\s*list|linkedlist/.test(normalized)) return text;
+  const replacement = practicePlanTopicFocusLine(normalized, '当前复习点');
+  return text.replace(staleLine, replacement);
+}
+
+function problemBankSearchNoMatchText(search: LearnProblemBankSearchResult): string {
+  const target = search.query || '这个主题';
+  const excludedLine = search.excluded.length
+    ? `我还排除了 ${search.excluded.length} 个相邻但不合适的候选，例如：${search.excluded
+        .slice(0, 2)
+        .map((item) => `「${item.title}」(${item.reason})`)
+        .join('；')}。`
+    : '';
+  const gaps = search.gaps.length
+    ? search.gaps.join('\n')
+    : `题库里没有严格命中「${target}」的题。`;
+  return [
+    `我查了题库全文，但没有找到严格适合「${target}」的练习题。`,
+    gaps,
+    excludedLine,
+    '我没有为了凑数量混入相邻专题。你可以放宽范围，或让我基于课程资料临时生成一组题并标注为自生成练习。',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function selectedPracticeDifficultyMix(count: number): PracticePlan['difficultyMix'] {
+  if (count <= 0) return { easy: 0, medium: 0, hard: 0 };
+  if (count === 1) return { easy: 1, medium: 0, hard: 0 };
+  if (count === 2) return { easy: 1, medium: 1, hard: 0 };
+  const easy = 1;
+  const hard = count >= 5 ? 1 : 0;
+  return { easy, medium: Math.max(0, count - easy - hard), hard };
+}
+
+function isProblemSelectionPlan(plan: PracticePlan): boolean {
+  return plan.evidence?.decisionId === PRACTICE_PROBLEM_SELECTION_DECISION_ID;
+}
+
+function selectedPracticeIntro(plan: PracticePlan): string {
+  const concepts = plan.targetConcepts.slice(0, 3).join('、') || '当前复习点';
+  const count = plan.problemIds.length;
+  const rationale = practicePlanDisplayRationale(plan).slice(0, 3);
+  return [
+    `我从题库里为你选好了 ${count} 道 ${concepts} 练习。`,
+    rationale.length
+      ? `\n为什么这么选：\n${rationale.map((line, index) => `${index + 1}. ${line}`).join('\n')}`
+      : '',
+    '\n点下面的「开始做题」进入做题页面。',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function reviewPlanScheduleEvents(syllabusEvents: SyllabusCalendarEvent[]): Array<{
@@ -3893,6 +4239,7 @@ function answerEvidenceArtifactFromCourseContext(args: {
 }
 
 function practicePlanCalendarDraftItems(plan: PracticePlan): LearnCalendarDraftItem[] {
+  if (isProblemSelectionPlan(plan)) return [];
   const concepts = plan.targetConcepts.length ? plan.targetConcepts : [plan.title];
   const count = Math.min(7, Math.max(1, concepts.length));
   const minutes = Math.max(20, Math.ceil(plan.estimatedMinutes / count));
@@ -4467,9 +4814,11 @@ function MiniLectureClassroomDialog({
 
 function PlanActionCard({
   plan,
+  sessionSummary,
   onStart,
 }: {
   plan: PracticePlan;
+  sessionSummary?: PracticeSessionSummary | null;
   onStart: (plan: PracticePlan) => void;
 }) {
   const isQuizPlan = plan.mode === 'quiz';
@@ -4482,9 +4831,12 @@ function PlanActionCard({
     : 'border-[#A9F0DC]/70 bg-white/58 text-[#106453] dark:border-[#A9F0DC]/22 dark:bg-white/6 dark:text-[#A9F0DC]';
   const planMetricPillClassName =
     'inline-flex h-8 min-w-[76px] items-center justify-center gap-1.5 rounded-full bg-white/68 px-2.5 text-[11px] shadow-sm ring-1 ring-[#A9E7FF]/35 dark:bg-white/5 dark:ring-white/10';
-  const rationale = plan.evidence?.rationale?.slice(0, 4) || [];
+  const isSelectionPlan = isProblemSelectionPlan(plan);
+  const rationale = practicePlanDisplayRationale(plan).slice(0, 4);
   const gaps = plan.evidence?.gaps?.slice(0, 2) || [];
   const evidenceItems = plan.evidence?.items?.slice(0, 4) || [];
+  const actionLabel = sessionSummary?.actionLabel || '开始做题';
+  const planMeta = practiceSessionPlanMeta(plan, sessionSummary);
 
   return (
     <div
@@ -4509,8 +4861,8 @@ function PlanActionCard({
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">{plan.title}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {plan.mode === 'quiz' ? '课程测验' : '刷题计划'} · {plan.estimatedMinutes} 分钟 ·{' '}
-                {plan.problemIds.length || 0} 题
+                {isSelectionPlan ? '题库选题' : plan.mode === 'quiz' ? '课程测验' : '刷题计划'} ·{' '}
+                {planMeta}
               </p>
             </div>
           </div>
@@ -4520,7 +4872,7 @@ function PlanActionCard({
             className="h-8 shrink-0 gap-1.5 rounded-full bg-[#103832] px-3 text-xs text-white shadow-sm hover:bg-[#15574d] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
             <Play className="size-3.5" />
-            开始
+            {actionLabel}
           </Button>
         </div>
 
@@ -4555,13 +4907,38 @@ function PlanActionCard({
         </div>
         {rationale.length ? (
           <div className="mt-3 border-t border-white/70 pt-3 text-xs leading-5 text-slate-600 dark:border-white/10 dark:text-slate-300">
-            <p className="font-semibold text-slate-900 dark:text-slate-100">计划依据</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">
+              {isSelectionPlan ? '为什么这么选' : '计划依据'}
+            </p>
             <ul className="mt-1.5 list-disc space-y-1 pl-4">
               {rationale.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
-            {evidenceItems.length ? (
+            {isSelectionPlan && evidenceItems.length ? (
+              <div className="mt-2 space-y-1.5">
+                {evidenceItems.map((item, index) => (
+                  <div
+                    key={item.id || `${item.title}-${index}`}
+                    className="rounded-[12px] border border-white/70 bg-white/56 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                  >
+                    <p className="font-medium text-slate-800 dark:text-slate-100">
+                      {index + 1}. {item.title || '题库题目'}
+                    </p>
+                    {item.reason ? (
+                      <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                        {item.reason}
+                      </p>
+                    ) : null}
+                    {item.excerpt ? (
+                      <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                        {item.excerpt}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : evidenceItems.length ? (
               <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 参考来源：
                 {evidenceItems
@@ -4676,6 +5053,8 @@ function learnActionTitle(action: LearningAction): string {
       return '查看学习记忆';
     case 'web.search':
       return '联网搜索';
+    case 'review_mode.request_choice':
+      return '选择复习方式';
     case 'learner_progress.request_confirmation':
       return '确认学习进度';
     case 'practice.propose_generation':
@@ -4708,6 +5087,8 @@ function learnActionButtonLabel(action: LearningAction): string {
       return '确认修改';
     case 'calendar.propose_delete':
       return '确认删除';
+    case 'review_mode.request_choice':
+      return '选择';
     case 'learner_progress.request_confirmation':
       return '确认进度';
     case 'practice.propose_generation':
@@ -4723,14 +5104,43 @@ function learnActionButtonLabel(action: LearningAction): string {
   }
 }
 
+function reviewModeChoiceOptions(action: LearningAction) {
+  const rawOptions = Array.isArray(action.payload?.options) ? action.payload.options : [];
+  const options = rawOptions
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+      const record = item as Record<string, unknown>;
+      const value = payloadString(record.value);
+      const label = payloadString(record.label);
+      const followupText = payloadString(record.followupText);
+      if (!value || !label || !followupText) return null;
+      return { value, label, followupText };
+    })
+    .filter((item): item is { value: string; label: string; followupText: string } =>
+      Boolean(item),
+    );
+  if (options.length) return options;
+  const targetText = payloadString(action.payload?.targetText) || action.summary || action.label;
+  return [
+    { value: 'explain', label: '听讲解', followupText: `我想听讲解：${targetText}` },
+    { value: 'practice', label: '练题目', followupText: `我想练题目：${targetText}` },
+    { value: 'both', label: '讲解 + 练题', followupText: `我想讲解和练题都有：${targetText}` },
+  ];
+}
+
 function LearnLearningActionCards({
   actions,
   onConfirm,
   onCancel,
+  onReviewModeChoice,
 }: {
   actions?: LearningAction[];
   onConfirm: (action: LearningAction) => void;
   onCancel: (action: LearningAction) => void;
+  onReviewModeChoice?: (
+    action: LearningAction,
+    choice: { value: string; label: string; followupText: string },
+  ) => void;
 }) {
   if (!actions?.length) return null;
   return (
@@ -4741,6 +5151,52 @@ function LearnLearningActionCards({
           action.status === 'confirmed' ||
           action.status === 'cancelled';
         const requiresConfirmation = action.confirmation === 'required';
+        if (action.kind === 'review_mode.request_choice') {
+          const options = reviewModeChoiceOptions(action);
+          return (
+            <div
+              key={action.id}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">
+                    {learnActionTitle(action)}
+                  </p>
+                  <p className="mt-1 text-slate-500 dark:text-slate-400">
+                    {action.summary || action.label}
+                  </p>
+                </div>
+                {requiresConfirmation && !completed ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 shrink-0 rounded-[10px] px-3 text-xs"
+                    onClick={() => onCancel(action)}
+                  >
+                    取消
+                  </Button>
+                ) : null}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {options.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    size="sm"
+                    variant={option.value === 'both' ? 'default' : 'outline'}
+                    disabled={completed}
+                    className="h-8 rounded-[10px] px-3 text-xs"
+                    onClick={() => onReviewModeChoice?.(action, option)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          );
+        }
         return (
           <div
             key={action.id}
@@ -5787,6 +6243,16 @@ export function LearnPageClient() {
   const platformMemoryStatusMockTimersRef = useRef<number[]>([]);
   const appliedPlatformMemoryStatusMockModeRef = useRef<PlatformMemoryStatusMockMode>('off');
   const lastSyncedConversationRef = useRef('');
+  const courseAssetCacheRef = useRef(
+    new Map<
+      string,
+      {
+        notebooks?: StageListItem[];
+        problems?: CourseProblemClientSummary[];
+        sourceUploads?: CourseSourceUploadRecord[];
+      }
+    >(),
+  );
   const authHydrated = usePersistHydrated(useAuthStore);
   const courseHydrated = usePersistHydrated(useCurrentCourseStore);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -5819,6 +6285,17 @@ export function LearnPageClient() {
   const [snapshot, setSnapshot] = useState<LearnerCourseSnapshot | null>(null);
   const [, setProgressSelection] = useState('');
   const [recentPlans, setRecentPlans] = useState<PracticePlan[]>([]);
+  const [practiceSessions, setPracticeSessions] = useState<PracticeSession[]>([]);
+  const [practicePopupSessionId, setPracticePopupSessionId] = useState<string | null>(null);
+  const [practiceHeaderState, setPracticeHeaderState] =
+    useState<CourseProblemPracticeHeaderState | null>(null);
+  const [practiceProblemHelp, setPracticeProblemHelp] = useState<PracticeProblemHelpState | null>(
+    null,
+  );
+  const [practiceProblemHelpTabProblemId, setPracticeProblemHelpTabProblemId] = useState<
+    string | null
+  >(null);
+  const [practiceProblemHelpTabActive, setPracticeProblemHelpTabActive] = useState(false);
   const [syllabusEvents, setSyllabusEvents] = useState<SyllabusCalendarEvent[]>([]);
   const [syllabusImportMessage, setSyllabusImportMessage] = useState<string | null>(null);
   const [syllabusDialogOpen, setSyllabusDialogOpen] = useState(false);
@@ -5859,7 +6336,7 @@ export function LearnPageClient() {
   const [publishableMemoryCount, setPublishableMemoryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [learnSessions, setLearnSessions] = useState<LearnChatSession[]>([]);
-  const [deletingLearnSessionId, setDeletingLearnSessionId] = useState<string | null>(null);
+  const [deletingLearnSessionIds, setDeletingLearnSessionIds] = useState<string[]>([]);
   const [messageStoreKey, setMessageStoreKey] = useState('');
   const [remoteConversationReadyKey, setRemoteConversationReadyKey] = useState('');
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(() =>
@@ -5898,6 +6375,30 @@ export function LearnPageClient() {
     () => problems.filter((problem) => problem.status === 'published').length,
     [problems],
   );
+  const refreshPracticeSessions = useCallback(() => {
+    if (!activeCourseId) {
+      setPracticeSessions([]);
+      return;
+    }
+    setPracticeSessions(listPracticeSessions(localUserId, activeCourseId));
+  }, [activeCourseId, localUserId]);
+  const syncPracticeSessionState = useCallback(
+    (session: PracticeSession | null | undefined) => {
+      if (!session || (activeCourseId && session.courseId !== activeCourseId)) return;
+      setPracticeSessions((current) => {
+        const next = [
+          session,
+          ...current.filter((item) => item.id !== session.id && item.courseId === session.courseId),
+        ].sort((a, b) => b.updatedAt - a.updatedAt);
+        return next;
+      });
+    },
+    [activeCourseId],
+  );
+
+  useEffect(() => {
+    refreshPracticeSessions();
+  }, [refreshPracticeSessions]);
   const activeQuickPrompts = isResearchCourse ? researchQuickPrompts : learningQuickPrompts;
   const manualScheduleKindOptions = isResearchCourse
     ? RESEARCH_EVENT_KIND_OPTIONS
@@ -6074,21 +6575,165 @@ export function LearnPageClient() {
     () => formatCalendarMonth(calendarReferenceDate),
     [calendarReferenceDate],
   );
+  const practiceSessionByPlanId = useMemo(() => {
+    const next = new Map<string, PracticeSession>();
+    for (const session of practiceSessions) {
+      const current = next.get(session.planId);
+      if (!current || session.updatedAt > current.updatedAt) next.set(session.planId, session);
+    }
+    return next;
+  }, [practiceSessions]);
+  const practiceSessionSummaryByPlanId = useMemo(() => {
+    const next = new Map<string, PracticeSessionSummary>();
+    for (const [planId, session] of practiceSessionByPlanId.entries()) {
+      next.set(planId, practiceSessionSummary(session));
+    }
+    return next;
+  }, [practiceSessionByPlanId]);
+  const activePracticeSession = useMemo(() => {
+    if (!practicePopupSessionId) return null;
+    return (
+      practiceSessions.find((session) => session.id === practicePopupSessionId) ??
+      loadPracticeSession(practicePopupSessionId)
+    );
+  }, [practicePopupSessionId, practiceSessions]);
+  const activePracticePlan = useMemo(() => {
+    if (!activePracticeSession) return null;
+    return (
+      recentPlans.find((plan) => plan.id === activePracticeSession.planId) ??
+      loadPracticePlan(activePracticeSession.planId)
+    );
+  }, [activePracticeSession, recentPlans]);
+  const activePracticeProblemIds = useMemo(
+    () => Array.from(new Set(activePracticePlan?.problemIds.filter(Boolean) ?? [])),
+    [activePracticePlan],
+  );
+  const activePracticeSummary = useMemo(
+    () => (activePracticeSession ? practiceSessionSummary(activePracticeSession) : null),
+    [activePracticeSession],
+  );
+  const activePracticeAnswers = useMemo(
+    () => practiceSessionAnswers(activePracticeSession),
+    [activePracticeSession],
+  );
+  const practicePopupCompletedCount = activePracticeSummary?.completed ?? 0;
+  const practicePopupTotalCount = activePracticeSummary?.total ?? activePracticeProblemIds.length;
+  const practicePopupProgressPercent = practicePopupTotalCount
+    ? Math.min(
+        100,
+        Math.max(0, Math.round((practicePopupCompletedCount / practicePopupTotalCount) * 100)),
+      )
+    : 0;
+  const practicePopupCurrentQuestionLabel = practiceHeaderState
+    ? practiceHeaderState.progressCurrent > 0
+      ? `第 ${practiceHeaderState.progressCurrent} 题`
+      : practiceHeaderState.progressLabel
+    : null;
+  const practicePopupStatusParts: Array<{ label: string; className: string }> = [];
+  if (activePracticeSummary?.correct) {
+    practicePopupStatusParts.push({
+      label: `正确 ${activePracticeSummary.correct}`,
+      className:
+        'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-300/20',
+    });
+  }
+  if (activePracticeSummary?.partial) {
+    practicePopupStatusParts.push({
+      label: `半会 ${activePracticeSummary.partial}`,
+      className:
+        'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-300/20',
+    });
+  }
+  if (activePracticeSummary?.failed) {
+    practicePopupStatusParts.push({
+      label: `错题 ${activePracticeSummary.failed}`,
+      className:
+        'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-400/10 dark:text-rose-200 dark:ring-rose-300/20',
+    });
+  }
+  if (activePracticeSummary?.stuck) {
+    practicePopupStatusParts.push({
+      label: `不会 ${activePracticeSummary.stuck}`,
+      className:
+        'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-300/20',
+    });
+  }
+  if (activePracticeSummary?.draft) {
+    practicePopupStatusParts.push({
+      label: `草稿 ${activePracticeSummary.draft}`,
+      className:
+        'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-white/10',
+    });
+  }
+  const activePracticeProblemState =
+    activePracticeSession && practiceHeaderState?.problemId
+      ? (activePracticeSession.problemStates[practiceHeaderState.problemId] ?? null)
+      : null;
+  const currentPracticeProblemHelpSessionId =
+    typeof activePracticeProblemState?.aiHelpSessionId === 'string' &&
+    activePracticeProblemState.aiHelpSessionId.trim()
+      ? activePracticeProblemState.aiHelpSessionId.trim()
+      : null;
+  const currentPracticeProblemHelp =
+    practiceProblemHelp &&
+    (!practiceHeaderState?.problemId ||
+      practiceProblemHelp.problemId === practiceHeaderState.problemId)
+      ? practiceProblemHelp
+      : null;
+  const currentPracticeProblemHasAiHelp = Boolean(
+    currentPracticeProblemHelp ||
+    currentPracticeProblemHelpSessionId ||
+    activePracticeProblemState?.stuck,
+  );
+  const currentPracticeProblemHelpTabVisible = Boolean(
+    practiceHeaderState?.problemId &&
+    practiceProblemHelpTabProblemId === practiceHeaderState.problemId,
+  );
+  const currentPracticeProblemHelpTabActive =
+    currentPracticeProblemHelpTabVisible && practiceProblemHelpTabActive;
+  const currentPracticeProblemHelpLoading = currentPracticeProblemHelp?.status === 'loading';
+  const practiceAiHelpHeaderLabel = currentPracticeProblemHelpLoading
+    ? '生成中'
+    : currentPracticeProblemHelpTabVisible
+      ? '重新生成解答'
+      : 'AI 解答';
   const statusCalendarActivities = useMemo<StatusCalendarActivity[]>(() => {
     const todayKey = localDayKey(new Date());
-    const planActivities = recentPlans.map((plan) => {
-      const date = localDayKey(planCalendarTimestamp(plan));
+    const sessionPlanIds = new Set(practiceSessions.map((session) => session.planId));
+    const practiceSessionActivities = practiceSessions.slice(0, 8).map((session) => {
+      const summary = practiceSessionSummary(session);
       return {
-        id: `plan-${plan.id}`,
-        source: 'plan' as const,
-        sourceId: plan.id,
-        title: plan.title,
-        date,
-        meta: `${plan.mode === 'quiz' ? '小测' : '刷题'} · ${plan.estimatedMinutes} 分钟`,
-        dotClassName: plan.mode === 'quiz' ? 'bg-violet-500' : 'bg-emerald-500',
-        actionLabel: plan.mode === 'quiz' ? '开始小测' : '开始刷题',
+        id: `practice-session-${session.id}`,
+        source: 'practice_session' as const,
+        sourceId: session.id,
+        title: session.planTitle,
+        date: localDayKey(session.updatedAt),
+        meta: summary.meta,
+        dotClassName:
+          summary.failed > 0 || summary.stuck > 0
+            ? 'bg-amber-500'
+            : summary.completed >= summary.total && summary.total > 0
+              ? 'bg-sky-500'
+              : 'bg-emerald-500',
+        actionLabel: summary.actionLabel,
+        session,
       };
     });
+    const planActivities = recentPlans
+      .filter((plan) => !sessionPlanIds.has(plan.id))
+      .map((plan) => {
+        const date = localDayKey(planCalendarTimestamp(plan));
+        return {
+          id: `plan-${plan.id}`,
+          source: 'plan' as const,
+          sourceId: plan.id,
+          title: plan.title,
+          date,
+          meta: `${plan.mode === 'quiz' ? '小测' : '刷题'} · ${plan.estimatedMinutes} 分钟`,
+          dotClassName: plan.mode === 'quiz' ? 'bg-violet-500' : 'bg-emerald-500',
+          actionLabel: plan.mode === 'quiz' ? '开始小测' : '开始刷题',
+        };
+      });
     const syllabusActivities = syllabusEvents.map((event) => ({
       id: `syllabus-${event.id}`,
       source: 'syllabus' as const,
@@ -6101,7 +6746,7 @@ export function LearnPageClient() {
         event.origin === 'ai_plan' || event.kind === 'progress' ? '开始活动' : '查看日程',
       event,
     }));
-    const allActivities = [...planActivities, ...syllabusActivities];
+    const allActivities = [...practiceSessionActivities, ...planActivities, ...syllabusActivities];
     const upcoming = allActivities
       .filter((activity) => activity.date >= todayKey)
       .sort(
@@ -6119,7 +6764,7 @@ export function LearnPageClient() {
           a.id.localeCompare(b.id),
       );
     return [...upcoming, ...recentPast].slice(0, 4);
-  }, [isResearchCourse, recentPlans, syllabusEvents]);
+  }, [isResearchCourse, practiceSessions, recentPlans, syllabusEvents]);
   const learningSuggestionItems = useMemo(() => {
     if (!snapshot) return ['先同步课程学习状态，再生成复习或刷题安排。'];
 
@@ -6618,6 +7263,11 @@ export function LearnPageClient() {
     }
     let alive = true;
     setCoursesLoadState('loading');
+    const cachedCourses = readLearnCourseListCache(localUserId);
+    if (cachedCourses?.length) {
+      setCourses(cachedCourses);
+      setCoursesLoadState('ready');
+    }
     if (debugNoCourses) {
       setCourses([]);
       setCoursesLoadState('ready');
@@ -6628,18 +7278,23 @@ export function LearnPageClient() {
     listCourses()
       .then((items) => {
         if (!alive) return;
+        writeLearnCourseListCache(localUserId, items);
         setCourses(items);
         setCoursesLoadState('ready');
       })
       .catch((err) => {
         if (!alive) return;
+        if (cachedCourses?.length) {
+          setCoursesLoadState('ready');
+          return;
+        }
         setCoursesLoadState('error');
         setError(err instanceof Error ? err.message : '课程加载失败');
       });
     return () => {
       alive = false;
     };
-  }, [debugNoCourses, hydrated, isLoggedIn, router]);
+  }, [debugNoCourses, hydrated, isLoggedIn, localUserId, router]);
 
   useEffect(() => {
     if (coursesLoadState !== 'ready') return;
@@ -6661,6 +7316,12 @@ export function LearnPageClient() {
     if (!activeCourse) {
       setCourseSourceUploads([]);
       setPublishableMemoryCount(0);
+      setPracticeSessions([]);
+      setPracticePopupSessionId(null);
+      setNotebooks([]);
+      setProblems([]);
+      setSnapshot(null);
+      setAssetLoadState('idle');
       return;
     }
     setCurrentCourse({
@@ -6669,52 +7330,138 @@ export function LearnPageClient() {
       avatarUrl: activeCourse.avatarUrl,
     });
     let alive = true;
-    setAssetLoadState('loading');
-    Promise.all([
-      listStagesByCourse(activeCourse.id).catch(() => []),
-      listCourseProblemSummaries(activeCourse.id).catch(() => []),
-      listCourseSourceUploads(activeCourse.id).catch(() => []),
-    ])
-      .then(async ([nextNotebooks, nextProblems, nextSourceUploads]) => {
+    const courseId = activeCourse.id;
+    const localCourseUserId = userId || 'anonymous';
+    const cachedAssets = courseAssetCacheRef.current.get(courseId);
+    let loadedNotebooks = cachedAssets?.notebooks ?? [];
+    let loadedProblems = cachedAssets?.problems ?? [];
+    const updateCourseAssetCache = (
+      patch: Partial<{
+        notebooks: StageListItem[];
+        problems: CourseProblemClientSummary[];
+        sourceUploads: CourseSourceUploadRecord[];
+      }>,
+    ) => {
+      courseAssetCacheRef.current.set(courseId, {
+        ...(courseAssetCacheRef.current.get(courseId) ?? {}),
+        ...patch,
+      });
+    };
+    const applySnapshot = (state: LearnerCourseState) => {
+      const nextSnapshot = summarizeLearnerCourseState({
+        state,
+        notebooks: loadedNotebooks,
+        problems: loadedProblems,
+      });
+      setSnapshot(nextSnapshot);
+      setProgressSelection(progressSelectionFromSnapshot(nextSnapshot));
+    };
+
+    setError(null);
+    setSourceLibraryTextCache({});
+    setCourseSourceUploads(cachedAssets?.sourceUploads ?? []);
+    setNotebooks(loadedNotebooks);
+    setProblems(loadedProblems);
+    if (cachedAssets) {
+      setAssetLoadState('ready');
+      applySnapshot(loadLearnerCourseState({ userId: localCourseUserId, courseId }));
+    } else {
+      setAssetLoadState('loading');
+      setSnapshot(null);
+      setProgressSelection('');
+    }
+
+    const deletedPlanIds = readDeletedPracticePlanIds(localCourseUserId, courseId);
+    const localPlans = visiblePracticePlans(
+      listPracticePlans(localCourseUserId, courseId),
+      deletedPlanIds,
+    );
+    setRecentPlans(localPlans.slice(0, 4));
+    setPracticeSessions(listPracticeSessions(localCourseUserId, courseId));
+
+    void listCourseSourceUploads(courseId, { includeText: false })
+      .then((nextSourceUploads) => {
         if (!alive) return;
-        setNotebooks(nextNotebooks);
-        setProblems(nextProblems);
+        updateCourseAssetCache({ sourceUploads: nextSourceUploads });
         setCourseSourceUploads(nextSourceUploads);
-        const localUserId = userId || 'anonymous';
-        const remoteState = await loadRemoteLearnerCourseState(activeCourse.id);
+      })
+      .catch(() => {
+        if (alive) setCourseSourceUploads([]);
+      });
+
+    void listStagesByCourse(courseId)
+      .then((nextNotebooks) => {
         if (!alive) return;
-        if (remoteState) saveLearnerCourseState(remoteState);
+        loadedNotebooks = nextNotebooks;
+        updateCourseAssetCache({ notebooks: nextNotebooks });
+        setNotebooks(nextNotebooks);
         const seeded = seedLearnerCourseStateFromCourse({
-          userId: localUserId,
+          userId: localCourseUserId,
           course: activeCourse,
           notebooks: nextNotebooks,
-          problems: nextProblems,
+          problems: loadedProblems,
         });
-        const nextSnapshot = summarizeLearnerCourseState({
-          state: seeded,
-          notebooks: nextNotebooks,
-          problems: nextProblems,
-        });
-        setSnapshot(nextSnapshot);
-        setProgressSelection(progressSelectionFromSnapshot(nextSnapshot));
-        void saveRemoteLearnerCourseState(seeded);
-        const deletedPlanIds = readDeletedPracticePlanIds(localUserId, activeCourse.id);
-        const localPlans = visiblePracticePlans(
-          listPracticePlans(localUserId, activeCourse.id),
-          deletedPlanIds,
-        );
-        const remotePlans = await listRemotePracticePlans(activeCourse.id);
-        if (!alive) return;
-        const visibleRemotePlans = visiblePracticePlans(remotePlans, deletedPlanIds);
-        visibleRemotePlans.forEach(savePracticePlan);
-        setRecentPlans(mergePlans(localPlans, visibleRemotePlans).slice(0, 4));
+        applySnapshot(seeded);
         setAssetLoadState('ready');
+
+        void loadRemoteLearnerCourseState(courseId)
+          .then((remoteState) => {
+            if (!alive) return;
+            if (!remoteState) {
+              void saveRemoteLearnerCourseState(seeded);
+              return;
+            }
+            saveLearnerCourseState(remoteState);
+            const mergedState = seedLearnerCourseStateFromCourse({
+              userId: localCourseUserId,
+              course: activeCourse,
+              notebooks: loadedNotebooks,
+              problems: loadedProblems,
+            });
+            applySnapshot(mergedState);
+            void saveRemoteLearnerCourseState(mergedState);
+          })
+          .catch(() => {
+            if (!alive) return;
+            void saveRemoteLearnerCourseState(seeded);
+          });
       })
       .catch((err) => {
         if (!alive) return;
         setAssetLoadState('error');
         setError(err instanceof Error ? err.message : '课程材料加载失败');
       });
+
+    void listCourseProblemSummaries(courseId, { lean: true })
+      .then((nextProblems) => {
+        if (!alive) return;
+        loadedProblems = nextProblems;
+        updateCourseAssetCache({ problems: nextProblems });
+        setProblems(nextProblems);
+        applySnapshot(loadLearnerCourseState({ userId: localCourseUserId, courseId }));
+      })
+      .catch(() => {
+        if (!alive) return;
+        loadedProblems = [];
+        updateCourseAssetCache({ problems: [] });
+        setProblems([]);
+      });
+
+    void listRemotePracticePlans(courseId)
+      .then((remotePlans) => {
+        if (!alive) return;
+        const nextDeletedPlanIds = readDeletedPracticePlanIds(localCourseUserId, courseId);
+        const visibleRemotePlans = visiblePracticePlans(remotePlans, nextDeletedPlanIds);
+        visibleRemotePlans.forEach(savePracticePlan);
+        setRecentPlans(
+          mergePlans(visiblePracticePlans(localPlans, nextDeletedPlanIds), visibleRemotePlans).slice(
+            0,
+            4,
+          ),
+        );
+      })
+      .catch(() => {});
+
     return () => {
       alive = false;
     };
@@ -6762,6 +7509,7 @@ export function LearnPageClient() {
       deletedPlanIds,
     );
     setRecentPlans(localPlans.slice(0, 4));
+    setPracticeSessions(listPracticeSessions(localUserId, activeCourse.id));
     void listRemotePracticePlans(activeCourse.id).then((remotePlans) => {
       const nextDeletedPlanIds = readDeletedPracticePlanIds(localUserId, activeCourse.id);
       const visibleRemotePlans = visiblePracticePlans(remotePlans, nextDeletedPlanIds);
@@ -7071,12 +7819,20 @@ export function LearnPageClient() {
         if (didIngestAnyFile) {
           const [nextNotebooks, nextProblems, nextSourceUploads] = await Promise.all([
             listStagesByCourse(activeCourse.id).catch(() => notebooks),
-            listCourseProblemSummaries(activeCourse.id).catch(() => problems),
-            listCourseSourceUploads(activeCourse.id).catch(() => courseSourceUploads),
+            listCourseProblemSummaries(activeCourse.id, { lean: true }).catch(() => problems),
+            listCourseSourceUploads(activeCourse.id, { includeText: false }).catch(
+              () => courseSourceUploads,
+            ),
           ]);
           setNotebooks(nextNotebooks);
           setProblems(nextProblems);
           setCourseSourceUploads(nextSourceUploads);
+          courseAssetCacheRef.current.set(activeCourse.id, {
+            ...(courseAssetCacheRef.current.get(activeCourse.id) ?? {}),
+            notebooks: nextNotebooks,
+            problems: nextProblems,
+            sourceUploads: nextSourceUploads,
+          });
           refreshLearnerSnapshot();
         }
       } finally {
@@ -7103,7 +7859,7 @@ export function LearnPageClient() {
   useEffect(() => {
     if (!sourceUploadPanelOpen || !activeCourse?.id) return;
     let alive = true;
-    void listCourseSourceUploads(activeCourse.id)
+    void listCourseSourceUploads(activeCourse.id, { includeText: false })
       .then((uploads) => {
         if (alive) setCourseSourceUploads(uploads);
       })
@@ -7238,6 +7994,410 @@ export function LearnPageClient() {
     syllabusEvents,
   ]);
 
+  const openPracticePlan = useCallback(
+    (plan: PracticePlan) => {
+      if (plan.problemIds.length === 0) {
+        toast.error('这组练习还没有题目。');
+        return;
+      }
+      const session = ensurePracticeSession({ plan, userId: localUserId });
+      syncPracticeSessionState(session);
+      setPracticePopupSessionId(session.id);
+    },
+    [localUserId, syncPracticeSessionState],
+  );
+
+  const openPracticeSession = useCallback(
+    (sessionId: string) => {
+      const session = loadPracticeSession(sessionId);
+      if (!session) {
+        toast.error('没有找到这组练习进度。');
+        refreshPracticeSessions();
+        return;
+      }
+      syncPracticeSessionState(session);
+      setPracticePopupSessionId(session.id);
+    },
+    [refreshPracticeSessions, syncPracticeSessionState],
+  );
+
+  const handlePracticePopupOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return;
+      if (practicePopupSessionId) {
+        syncPracticeSessionState(pausePracticeSession(practicePopupSessionId));
+      }
+      setPracticeHeaderState(null);
+      setPracticeProblemHelp(null);
+      setPracticeProblemHelpTabProblemId(null);
+      setPracticeProblemHelpTabActive(false);
+      setPracticePopupSessionId(null);
+      refreshPracticeSessions();
+    },
+    [practicePopupSessionId, refreshPracticeSessions, syncPracticeSessionState],
+  );
+
+  const handlePracticeHeaderStateChange = useCallback(
+    (state: CourseProblemPracticeHeaderState | null) => {
+      setPracticeHeaderState(state);
+    },
+    [],
+  );
+
+  const handlePracticeProblemChange = useCallback(
+    (problemId: string) => {
+      if (!practicePopupSessionId) return;
+      setPracticeProblemHelpTabProblemId(null);
+      setPracticeProblemHelpTabActive(false);
+      syncPracticeSessionState(
+        updatePracticeSessionCurrentProblem(practicePopupSessionId, problemId),
+      );
+    },
+    [practicePopupSessionId, syncPracticeSessionState],
+  );
+
+  const handlePracticeAnswerDraftChange = useCallback(
+    (problemId: string, answer: NotebookProblemAttemptAnswer | null) => {
+      if (!practicePopupSessionId) return;
+      syncPracticeSessionState(
+        updatePracticeSessionAnswerDraft(practicePopupSessionId, problemId, answer),
+      );
+    },
+    [practicePopupSessionId, syncPracticeSessionState],
+  );
+
+  const handlePracticeProblemHelpRequest = useCallback(
+    async (options?: { forceRegenerate?: boolean }) => {
+      if (!activeCourse || !activePracticeSession?.id || !practiceHeaderState) return;
+      const forceRegenerate = options?.forceRegenerate ?? false;
+      const problemTitle =
+        practiceHeaderState.problemTitle || practiceHeaderState.problem.title || '这道题';
+      const userText = `我不会这道题，请讲解：${problemTitle}`;
+      const existingHelp =
+        practiceProblemHelp?.problemId === practiceHeaderState.problemId
+          ? practiceProblemHelp
+          : null;
+      if (existingHelp?.status === 'loading') {
+        return;
+      }
+      if (!forceRegenerate && existingHelp?.status === 'ready') {
+        return;
+      }
+      if (!forceRegenerate && existingHelp?.status === 'error') {
+        return;
+      }
+
+      const restoreSavedHelp = (sessionId: string): PracticeProblemHelpState | null => {
+        const trimmedSessionId = sessionId.trim();
+        if (!trimmedSessionId) return null;
+        const savedMessages = readLearnSessionMessages(
+          localUserId,
+          activeCourse.id,
+          trimmedSessionId,
+        );
+        const assistantText =
+          savedMessages
+            .slice()
+            .reverse()
+            .find(
+              (message) =>
+                message.role === 'assistant' &&
+                message.text.trim() &&
+                message.text.trim() !== '正在生成这道题的讲解…',
+            )
+            ?.text.trim() || '';
+        if (!assistantText) return null;
+        const isError =
+          assistantText.includes('题解生成超时') ||
+          assistantText.includes('题解生成失败') ||
+          assistantText.includes('请稍后重试或换一个模型');
+        return {
+          problemId: practiceHeaderState.problemId,
+          sessionId: trimmedSessionId,
+          title: problemTitle,
+          answer: assistantText,
+          status: isError ? 'error' : 'ready',
+          error: isError ? assistantText : undefined,
+        };
+      };
+
+      const persistedHelpSessionId =
+        activePracticeSession.problemStates[
+          practiceHeaderState.problemId
+        ]?.aiHelpSessionId?.trim() || '';
+      const savedHelp = forceRegenerate
+        ? null
+        : (persistedHelpSessionId ? restoreSavedHelp(persistedHelpSessionId) : null) ||
+          learnSessions.reduce<PracticeProblemHelpState | null>((match, session) => {
+            if (match) return match;
+            const savedMessages = readLearnSessionMessages(
+              localUserId,
+              activeCourse.id,
+              session.id,
+            );
+            const hasMatchingQuestion = savedMessages.some(
+              (message) => message.role === 'user' && message.text.trim() === userText,
+            );
+            return hasMatchingQuestion ? restoreSavedHelp(session.id) : null;
+          }, null);
+      if (savedHelp) {
+        setPracticeProblemHelp(savedHelp);
+        setRightRailCollapsed(false);
+        setRightRailView('sessions');
+        if (!persistedHelpSessionId) {
+          syncPracticeSessionState(
+            recordPracticeSessionProblemAiHelp({
+              sessionId: activePracticeSession.id,
+              problemId: practiceHeaderState.problemId,
+              helpSessionId: savedHelp.sessionId,
+              timestamp: Date.now(),
+            }),
+          );
+        }
+        return;
+      }
+
+      if (!practiceHeaderState.problemContent) {
+        toast.error('题目内容还没加载完成，请稍后再试。');
+        return;
+      }
+
+      const now = Date.now();
+      const helpSessionId = makeLearnSessionId();
+      const helpTitle = `题解：${problemTitle}`.slice(0, 48);
+      const userMessage: LearnMessage = {
+        id: makeClientId('user-problem-help'),
+        role: 'user',
+        text: userText,
+        createdAt: now,
+      };
+      const loadingMessage: LearnMessage = {
+        id: makeClientId('assistant-problem-help-loading'),
+        role: 'assistant',
+        text: '正在生成这道题的讲解…',
+        createdAt: now + 1,
+      };
+      const initialMessages = [userMessage, loadingMessage];
+      const nextSession: LearnChatSession = {
+        id: helpSessionId,
+        title: helpTitle,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      writeLearnSessionMessages(localUserId, activeCourse.id, helpSessionId, initialMessages);
+      setLearnSessions((current) => {
+        const next = sortLearnSessionsForList(localUserId, activeCourse.id, [
+          nextSession,
+          ...current,
+        ]);
+        writeLearnSessions(localUserId, activeCourse.id, next);
+        return next;
+      });
+      setRightRailCollapsed(false);
+      setRightRailView('sessions');
+      setPracticeProblemHelp({
+        problemId: practiceHeaderState.problemId,
+        sessionId: helpSessionId,
+        title: problemTitle,
+        answer: '',
+        status: 'loading',
+      });
+
+      syncPracticeSessionState(
+        recordPracticeSessionProblemAiHelp({
+          sessionId: activePracticeSession.id,
+          problemId: practiceHeaderState.problemId,
+          helpSessionId,
+          timestamp: now,
+        }),
+      );
+
+      const questionState = recordLearnerQuestion({
+        userId: userId || 'anonymous',
+        courseId: activeCourse.id,
+        text: userText,
+      });
+      const questionSnapshot = summarizeLearnerCourseState({
+        state: questionState,
+        notebooks,
+        problems,
+      });
+      setSnapshot(questionSnapshot);
+      setProgressSelection(progressSelectionFromSnapshot(questionSnapshot));
+      void saveRemoteLearnerCourseState(questionState);
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        PRACTICE_PROBLEM_HELP_TIMEOUT_MS,
+      );
+      try {
+        const prompt = [
+          buildProblemExplainPrompt({
+            problem: practiceHeaderState.problem,
+            problemTitle,
+            problemContent: practiceHeaderState.problemContent,
+            notebookName:
+              practiceHeaderState.notebookLabel ||
+              practiceHeaderState.problem.notebookName ||
+              activeCourse.name,
+            currentAnswer: practiceHeaderState.currentAnswer,
+            latestAttempt: practiceHeaderState.latestAttempt,
+          }),
+          '',
+          '课程级补充要求：这次回答会展示在做题弹窗里。请直接给题解，不要生成练习计划或跳转建议；最后给一个很短的“我接下来该怎么做”。',
+        ].join('\n');
+        const result = await askCourseOrchestrator({
+          courseId: activeCourse.id,
+          courseName: activeCourse.name,
+          question: prompt,
+          orchestratorAvatarUrl: activeCourse.avatarUrl,
+          signal: controller.signal,
+          learnerContext: buildLearnerChatContext({
+            snapshot: questionSnapshot,
+            state: questionState,
+            plans: recentPlans,
+            syllabusEvents,
+          }),
+          userProfile: { nickname: userName },
+        });
+        const answer = normalizeCourseAssistantAnswer(
+          latestAssistantText(result.messages) ||
+            result.answer ||
+            '这道题暂时没有生成讲解，请稍后再试。',
+        );
+        const finalMessages: LearnMessage[] = [
+          userMessage,
+          {
+            id: makeClientId('assistant-problem-help'),
+            role: 'assistant',
+            text: answer,
+            createdAt: Date.now(),
+          },
+        ];
+        writeLearnSessionMessages(localUserId, activeCourse.id, helpSessionId, finalMessages);
+        setPracticeProblemHelp((current) =>
+          current?.sessionId === helpSessionId
+            ? { ...current, answer, status: 'ready', error: undefined }
+            : current,
+        );
+        const updatedSession: LearnChatSession = {
+          ...nextSession,
+          title: learnSessionTitleFromMessages(finalMessages, helpTitle),
+          updatedAt: Date.now(),
+        };
+        setLearnSessions((current) => {
+          const next = sortLearnSessionsForList(localUserId, activeCourse.id, [
+            updatedSession,
+            ...current.filter((session) => session.id !== helpSessionId),
+          ]);
+          writeLearnSessions(localUserId, activeCourse.id, next);
+          return next;
+        });
+        void syncRemoteLearnConversation({
+          courseId: activeCourse.id,
+          sessionId: helpSessionId,
+          title: updatedSession.title,
+          messages: finalMessages.map(learnMessageToRemotePayload),
+        });
+        refreshLearnerSnapshot();
+      } catch (error) {
+        const message = controller.signal.aborted
+          ? '题解生成超时'
+          : error instanceof Error
+            ? error.message
+            : '题解生成失败';
+        const errorText = `${message}。请稍后重试或换一个模型。`;
+        const finalMessages: LearnMessage[] = [
+          userMessage,
+          {
+            id: makeClientId('assistant-problem-help-error'),
+            role: 'assistant',
+            text: errorText,
+            createdAt: Date.now(),
+          },
+        ];
+        writeLearnSessionMessages(localUserId, activeCourse.id, helpSessionId, finalMessages);
+        setPracticeProblemHelp((current) =>
+          current?.sessionId === helpSessionId
+            ? { ...current, answer: errorText, status: 'error', error: message }
+            : current,
+        );
+        void syncRemoteLearnConversation({
+          courseId: activeCourse.id,
+          sessionId: helpSessionId,
+          title: helpTitle,
+          messages: finalMessages.map(learnMessageToRemotePayload),
+        });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    },
+    [
+      activeCourse,
+      activePracticeSession,
+      learnSessions,
+      localUserId,
+      notebooks,
+      practiceHeaderState,
+      practiceProblemHelp,
+      problems,
+      recentPlans,
+      refreshLearnerSnapshot,
+      syncPracticeSessionState,
+      syllabusEvents,
+      userId,
+      userName,
+    ],
+  );
+
+  const handlePracticeAiHelpHeaderClick = useCallback(() => {
+    if (!practiceHeaderState?.problemId) return;
+    setPracticeProblemHelpTabProblemId(practiceHeaderState.problemId);
+    setPracticeProblemHelpTabActive(true);
+    void handlePracticeProblemHelpRequest({
+      forceRegenerate: currentPracticeProblemHelpTabVisible && !currentPracticeProblemHelpLoading,
+    });
+  }, [
+    currentPracticeProblemHelpLoading,
+    currentPracticeProblemHelpTabVisible,
+    handlePracticeProblemHelpRequest,
+    practiceHeaderState?.problemId,
+  ]);
+
+  const handlePracticeAttemptResolved = useCallback(
+    (event: CourseProblemPracticeAttemptResolvedEvent) => {
+      if (!activePracticeSession) return;
+      const status = practiceStatusFromAttempt(event.status);
+      const title = event.problemTitle || event.problemId;
+      const concepts = event.concepts.length > 0 ? event.concepts : [title];
+      syncPracticeSessionState(
+        recordPracticeSessionAttempt({
+          sessionId: activePracticeSession.id,
+          problemId: event.problemId,
+          status: event.status,
+          score: event.score,
+          feedback: event.feedback,
+        }),
+      );
+      const nextState = recordPracticeAttemptResult({
+        userId: localUserId,
+        courseId: activePracticeSession.courseId,
+        result: {
+          problemId: event.problemId,
+          problemTitle: title,
+          concepts,
+          status,
+          score: normalizedPracticeAttemptScore(event.score, status),
+        },
+      });
+      void saveRemoteLearnerCourseState(nextState);
+      refreshLearnerSnapshot();
+    },
+    [activePracticeSession, localUserId, refreshLearnerSnapshot, syncPracticeSessionState],
+  );
+
   const removeStatusCalendarActivity = useCallback(
     (activity: StatusCalendarActivity) => {
       if (!activeCourseId) return;
@@ -7246,6 +8406,21 @@ export function LearnPageClient() {
         rememberDeletedPracticePlanId(localUserId, activeCourseId, activity.sourceId);
         deletePracticePlan(activity.sourceId, localUserId);
         setRecentPlans((current) => current.filter((plan) => plan.id !== activity.sourceId));
+        return;
+      }
+
+      if (activity.source === 'practice_session') {
+        const session = activity.session ?? loadPracticeSession(activity.sourceId);
+        deletePracticeSession(activity.sourceId, localUserId);
+        if (session?.planId) {
+          rememberDeletedPracticePlanId(localUserId, activeCourseId, session.planId);
+          deletePracticePlan(session.planId, localUserId);
+          setRecentPlans((current) => current.filter((plan) => plan.id !== session.planId));
+        }
+        setPracticeSessions((current) =>
+          current.filter((sessionItem) => sessionItem.id !== activity.sourceId),
+        );
+        if (practicePopupSessionId === activity.sourceId) setPracticePopupSessionId(null);
         return;
       }
 
@@ -7258,14 +8433,23 @@ export function LearnPageClient() {
         );
       }
     },
-    [activeCourseId, localUserId, syllabusDraftEvents, syllabusEvents],
+    [activeCourseId, localUserId, practicePopupSessionId, syllabusDraftEvents, syllabusEvents],
   );
 
   const startStatusCalendarActivity = useCallback(
     async (activity: StatusCalendarActivity) => {
       if (sending) return;
       if (activity.source === 'plan') {
-        router.push(`/practice/${encodeURIComponent(activity.sourceId)}`);
+        const plan = recentPlans.find((item) => item.id === activity.sourceId);
+        if (plan) {
+          openPracticePlan(plan);
+        } else {
+          toast.error('没有找到这组练习计划。');
+        }
+        return;
+      }
+      if (activity.source === 'practice_session') {
+        openPracticeSession(activity.sourceId);
         return;
       }
 
@@ -7399,11 +8583,12 @@ export function LearnPageClient() {
       messages,
       modelId,
       notebooks,
+      openPracticePlan,
+      openPracticeSession,
       problems,
       providerId,
       recentPlans,
       refreshLearnerSnapshot,
-      router,
       sending,
       statusCalendarActivities,
       syllabusEvents,
@@ -7606,10 +8791,18 @@ export function LearnPageClient() {
   ]);
 
   const deleteLearnSession = useCallback(
-    async (session: LearnChatSession) => {
-      if (!activeCourseId || deletingLearnSessionId) return;
+    (session: LearnChatSession) => {
+      if (!activeCourseId) return;
 
-      setDeletingLearnSessionId(session.id);
+      const sessionMessages =
+        session.id === activeSessionId
+          ? messages
+          : readLearnSessionMessages(localUserId, activeCourseId, session.id);
+      if (learnSessions.length <= 1 && learnSessionIsBlank(sessionMessages)) return;
+
+      setDeletingLearnSessionIds((current) =>
+        current.includes(session.id) ? current : [...current, session.id],
+      );
       try {
         const remainingSessions = learnSessions.filter((item) => item.id !== session.id);
         const now = Date.now();
@@ -7638,22 +8831,34 @@ export function LearnPageClient() {
           router.push(learnSessionHref(fallbackSession.id));
         }
 
-        const remoteDeleted = await deleteRemoteLearnConversation(activeCourseId, session.id);
-        toast.success(remoteDeleted ? '会话已删除。' : '本地会话已删除。');
+        toast.success('会话已删除。');
       } catch (deleteError) {
         console.error('[learn] failed to delete session', deleteError);
         toast.error('删除会话失败，请稍后再试。');
-      } finally {
-        setDeletingLearnSessionId(null);
+        setDeletingLearnSessionIds((current) => current.filter((id) => id !== session.id));
+        return;
       }
+
+      void deleteRemoteLearnConversation(activeCourseId, session.id)
+        .then((remoteDeleted) => {
+          if (!remoteDeleted) {
+            console.warn('[learn] remote session delete did not complete', {
+              courseId: activeCourseId,
+              sessionId: session.id,
+            });
+          }
+        })
+        .finally(() => {
+          setDeletingLearnSessionIds((current) => current.filter((id) => id !== session.id));
+        });
     },
     [
       activeCourseId,
       activeSessionId,
-      deletingLearnSessionId,
       learnSessionHref,
       learnSessions,
       localUserId,
+      messages,
       router,
     ],
   );
@@ -7716,6 +8921,158 @@ export function LearnPageClient() {
         stateOverride,
         preferredProblemIds,
       });
+    },
+    [activeCourse, notebooks, problems, userId],
+  );
+
+  const buildSelectedProblemPracticePlan = useCallback(
+    (args: {
+      mode: PracticePlanMode;
+      prompt?: string;
+      targetCount?: number;
+      preferredConcepts?: string[];
+      preferredProblemIds?: string[];
+      stateOverride?: LearnerCourseState;
+      problemBankSearch?: LearnProblemBankSearchResult | null;
+      problemsOverride?: CourseProblemClientSummary[];
+    }): PracticePlan | null => {
+      if (!activeCourse) return null;
+      const availableProblems = args.problemsOverride || problems;
+      const activeProblems = availableProblems.filter((problem) => problem.status !== 'archived');
+      if (!activeProblems.length) return null;
+      const terms = practiceSelectionTerms({
+        prompt: args.prompt,
+        preferredConcepts: args.preferredConcepts,
+        course: activeCourse,
+      });
+      const targetCount = Math.max(1, Math.min(args.targetCount ?? 5, 8));
+      const activeProblemById = new Map(activeProblems.map((problem) => [problem.id, problem]));
+      const preferredProblemIds = new Set(args.preferredProblemIds || []);
+      const selected: Array<{
+        problem: CourseProblemClientSummary;
+        score: number;
+        searchMatch?: LearnProblemBankMatch;
+      }> = args.problemBankSearch
+        ? args.problemBankSearch.matches
+            .map((match) => {
+              const problem = activeProblemById.get(match.problemId);
+              return problem ? { problem, score: match.score, searchMatch: match } : null;
+            })
+            .filter(
+              (
+                item,
+              ): item is {
+                problem: CourseProblemClientSummary;
+                score: number;
+                searchMatch: LearnProblemBankMatch;
+              } => Boolean(item),
+            )
+            .slice(0, targetCount)
+        : (() => {
+            const ranked = activeProblems
+              .map((problem) => ({
+                problem,
+                score:
+                  (preferredProblemIds.has(problem.id) ? 100 : 0) +
+                  practiceProblemMatchScore(problem, terms),
+              }))
+              .sort((a, b) => b.score - a.score || a.problem.title.localeCompare(b.problem.title));
+            return ranked.some((item) => item.score > 0) && terms.length
+              ? ranked.filter((item) => item.score > 0).slice(0, targetCount)
+              : ranked.slice(0, targetCount);
+          })();
+      if (!selected.length) return null;
+
+      const planState =
+        args.stateOverride ||
+        seedLearnerCourseStateFromCourse({
+          userId: userId || 'anonymous',
+          course: activeCourse,
+          notebooks,
+          problems: availableProblems,
+        });
+      const recentProblemIds = new Set(
+        planState.recentProblemAttempts.slice(0, 20).map((item) => item.problemId),
+      );
+      const selectedProblems = selected.map((item) => item.problem);
+      const targetConcepts = uniquePlanStrings(
+        [
+          ...(args.preferredConcepts || []),
+          args.problemBankSearch?.query,
+          ...terms.filter((term) => !/^(node|nodes|next|head|_first|_node)$/i.test(term)),
+          ...selectedProblems.flatMap((problem) => problem.tags),
+          activeCourse.courseCode,
+        ],
+        6,
+      );
+      const primaryConcept =
+        targetConcepts.find((concept) => /linked\s*list|linkedlist/i.test(concept)) ||
+        targetConcepts[0] ||
+        '题库练习';
+      const rationale = selectedProblemPracticeRationale({
+        primaryConcept,
+        selectedProblems,
+        terms,
+      });
+      const searchRationale = args.problemBankSearch
+        ? uniquePlanStrings(
+            [
+              ...args.problemBankSearch.rationale,
+              ...args.problemBankSearch.gaps,
+              args.problemBankSearch.excluded.length
+                ? `已排除 ${args.problemBankSearch.excluded.length} 个相邻但不符合本轮目标的候选。`
+                : '',
+            ],
+            4,
+          )
+        : rationale;
+      const now = Date.now();
+      return {
+        version: 1,
+        id: makeClientId(args.mode === 'quiz' ? 'quiz-selection' : 'practice-selection'),
+        userId: userId || 'anonymous',
+        courseId: activeCourse.id,
+        courseName: activeCourse.name,
+        mode: args.mode,
+        title: `已选好 ${selectedProblems.length} 道 ${primaryConcept} 练习`,
+        targetConcepts: targetConcepts.length ? targetConcepts : [primaryConcept],
+        problemIds: selectedProblems.map((problem) => problem.id),
+        estimatedMinutes:
+          args.mode === 'quiz'
+            ? Math.max(12, selectedProblems.length * 3)
+            : Math.max(10, selectedProblems.length * 2),
+        difficultyMix: selectedPracticeDifficultyMix(selectedProblems.length),
+        createdFrom: {
+          currentNotebookId: undefined,
+          currentNotebookName: undefined,
+          weakPoints: [],
+          recentAttemptProblemIds: Array.from(recentProblemIds).slice(0, 8),
+          prompt: args.prompt?.trim().slice(0, 600),
+        },
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+        evidence: {
+          decisionId: PRACTICE_PROBLEM_SELECTION_DECISION_ID,
+          rationale: searchRationale,
+          gaps: args.problemBankSearch?.gaps || [],
+          items: selected.slice(0, 6).map(({ problem, searchMatch }) => ({
+            id: `problem-${problem.id}`,
+            sourceType: 'problem_bank',
+            sourceId: problem.id,
+            title: problem.title,
+            reason: searchMatch?.reason || practiceProblemReason(problem, terms),
+            excerpt:
+              searchMatch?.excerpt ||
+              [
+                problem.notebookName ? `来源：${problem.notebookName}` : '',
+                problem.tags.length ? `标签：${problem.tags.slice(0, 5).join('、')}` : '',
+              ]
+                .filter(Boolean)
+                .join('；'),
+          })),
+        },
+      };
     },
     [activeCourse, notebooks, problems, userId],
   );
@@ -8122,7 +9479,153 @@ export function LearnPageClient() {
         }
 
         if (action.kind === 'practice.propose_generation') {
-          if (!problems.length && isExplicitProblemBankSelectionRequest(actionSummary(action))) {
+          const activeProblemCount = problems.filter(
+            (problem) => problem.status !== 'archived',
+          ).length;
+          const actionPayloadData = actionPayload(action);
+          const requestedSource = payloadString(actionPayloadData.source);
+          const summaryText = actionSummary(action);
+          const bankBackedRequest = isBankBackedPracticeRequest(summaryText, requestedSource);
+          const shouldGenerateIntoProblemBank =
+            requestedSource === 'generated_from_course' ||
+            actionPayloadData.persistToProblemBank === true;
+          if (shouldGenerateIntoProblemBank) {
+            const topic =
+              payloadString(actionPayloadData.topic) ||
+              learningActionPreferredConcepts(action)[0] ||
+              summaryText ||
+              '课程练习';
+            const requestedCount =
+              typeof actionPayloadData.count === 'number' &&
+              Number.isFinite(actionPayloadData.count)
+                ? Math.max(1, Math.min(Math.round(actionPayloadData.count), 8))
+                : 3;
+            try {
+              const needsSourceText = courseSourceUploads.some(
+                (upload) => upload.sectionIds.length > 0 && upload.textSections.length === 0,
+              );
+              const sourceUploadsForGeneration = needsSourceText
+                ? await listCourseSourceUploads(activeCourseId, { includeText: true }).catch(
+                    () => courseSourceUploads,
+                  )
+                : courseSourceUploads;
+              const generation = await generateCourseProblemsFromContent({
+                courseId: activeCourseId,
+                topic,
+                count: requestedCount,
+                courseName: activeCourse.name,
+                courseCode: activeCourse.courseCode,
+                sourceSnippets: courseContentSnippetsForGeneratedPractice({
+                  topic,
+                  course: activeCourse,
+                  notebooks,
+                  sourceUploads: sourceUploadsForGeneration,
+                }),
+                commit: true,
+              });
+              const generatedProblemIds = (generation.problems || []).map((problem) => problem.id);
+              const nextProblems = await listCourseProblemSummaries(activeCourseId, {
+                lean: true,
+              }).catch(() => [
+                ...problems,
+                ...(generation.problems || []).map((problem) => ({
+                  id: problem.id,
+                  courseId: problem.courseId,
+                  notebookId: problem.notebookId,
+                  notebookName: problem.notebookName,
+                  title: problem.title,
+                  type: problem.type,
+                  status: problem.status,
+                  tags: problem.tags,
+                  difficulty: problem.difficulty,
+                  latestAttempt: problem.latestAttempt,
+                })),
+              ]);
+              setProblems(nextProblems);
+              courseAssetCacheRef.current.set(activeCourseId, {
+                ...(courseAssetCacheRef.current.get(activeCourseId) ?? {}),
+                problems: nextProblems,
+              });
+              const nextState = seedLearnerCourseStateFromCourse({
+                userId: localUserId,
+                course: activeCourse,
+                notebooks,
+                problems: nextProblems,
+              });
+              const nextSnapshot = summarizeLearnerCourseState({
+                state: nextState,
+                notebooks,
+                problems: nextProblems,
+              });
+              setSnapshot(nextSnapshot);
+              setProgressSelection(progressSelectionFromSnapshot(nextSnapshot));
+              void saveRemoteLearnerCourseState(nextState);
+              const selectedPlan = buildSelectedProblemPracticePlan({
+                mode: 'practice',
+                prompt: summaryText,
+                targetCount: generatedProblemIds.length || requestedCount,
+                preferredConcepts: learningActionPreferredConcepts(action).length
+                  ? learningActionPreferredConcepts(action)
+                  : [topic],
+                preferredProblemIds: generatedProblemIds,
+                stateOverride: nextState,
+                problemsOverride: nextProblems,
+              });
+              if (selectedPlan) addAssistantPlan(selectedPlan);
+              setMessages((current) => [
+                ...current,
+                {
+                  id: makeClientId('assistant-generated-course-problems'),
+                  role: 'assistant',
+                  text: selectedPlan
+                    ? `已根据课程内容生成并入库 ${generation.generatedCount} 道「${topic}」题，并为你打开这组练习。`
+                    : `已根据课程内容生成并入库 ${generation.generatedCount} 道「${topic}」题。`,
+                  createdAt: Date.now(),
+                },
+              ]);
+              markLearningActionStatus(
+                action.id,
+                'completed',
+                actionResult(action, {
+                  status: 'completed',
+                  summary: `已生成并入库 ${generation.generatedCount} 道题。`,
+                  input: { payload: action.payload || {} },
+                  output: {
+                    generatedPlan: Boolean(selectedPlan),
+                    source: 'generated_from_course',
+                    persistToProblemBank: true,
+                    planId: selectedPlan?.id,
+                    generatedProblemIds,
+                    topic,
+                  },
+                }),
+              );
+              return;
+            } catch (err) {
+              const message = err instanceof Error ? err.message : '出题入库失败';
+              setMessages((current) => [
+                ...current,
+                {
+                  id: makeClientId('assistant-generated-course-problems-error'),
+                  role: 'assistant',
+                  text: `出题 agent 没有完成入库：${message}。`,
+                  createdAt: Date.now(),
+                },
+              ]);
+              markLearningActionStatus(
+                action.id,
+                'failed',
+                actionResult(action, {
+                  status: 'failed',
+                  summary: '出题入库失败。',
+                  input: { payload: action.payload || {} },
+                  error: message,
+                }),
+              );
+              return;
+            }
+          }
+          if (!activeProblemCount && bankBackedRequest) {
             setMessages((current) => [
               ...current,
               {
@@ -8130,7 +9633,7 @@ export function LearnPageClient() {
                 role: 'assistant',
                 text: buildNoCourseProblemBankAnswer({
                   course: activeCourse,
-                  questionText: actionSummary(action),
+                  questionText: summaryText,
                   notebooks,
                 }),
                 createdAt: Date.now(),
@@ -8144,6 +9647,67 @@ export function LearnPageClient() {
                 summary: '没有可用题库，已改为说明缺失而不是生成题库题。',
                 input: { payload: action.payload || {} },
                 output: { generatedPlan: false, missingEvidence: ['problem_bank'] },
+              }),
+            );
+            return;
+          }
+          if (activeProblemCount > 0 && bankBackedRequest) {
+            const currentState = loadLearnerCourseState({
+              userId: localUserId,
+              courseId: activeCourseId,
+            });
+            const selectedPlan = buildSelectedProblemPracticePlan({
+              mode: 'practice',
+              prompt: summaryText,
+              targetCount:
+                typeof actionPayloadData.count === 'number' ? actionPayloadData.count : undefined,
+              preferredConcepts: learningActionPreferredConcepts(action),
+              stateOverride: currentState,
+            });
+            if (selectedPlan) {
+              addAssistantPlan(selectedPlan);
+              markLearningActionStatus(
+                action.id,
+                'completed',
+                actionResult(action, {
+                  status: 'completed',
+                  summary: `已从题库选择 ${selectedPlan.problemIds.length} 道练习题。`,
+                  input: { payload: action.payload || {} },
+                  output: {
+                    generatedPlan: true,
+                    source: 'problem_bank',
+                    planId: selectedPlan.id,
+                    selectedProblemIds: selectedPlan.problemIds,
+                  },
+                }),
+              );
+              return;
+            }
+            setMessages((current) => [
+              ...current,
+              {
+                id: makeClientId('assistant-practice-bank-no-match'),
+                role: 'assistant',
+                text: buildProblemBankSelectionFailedAnswer({
+                  course: activeCourse,
+                  questionText: summaryText,
+                  activeProblemCount,
+                }),
+                createdAt: Date.now(),
+              },
+            ]);
+            markLearningActionStatus(
+              action.id,
+              'completed',
+              actionResult(action, {
+                status: 'completed',
+                summary: '题库没有严格命中，未降级为自生成练习。',
+                input: { payload: action.payload || {} },
+                output: {
+                  generatedPlan: false,
+                  source: 'problem_bank',
+                  missingEvidence: ['strict_problem_bank_match'],
+                },
               }),
             );
             return;
@@ -8466,6 +10030,7 @@ export function LearnPageClient() {
       actionResult,
       addAssistantPlan,
       buildPlan,
+      buildSelectedProblemPracticePlan,
       imageGenerationEnabled,
       imageModelId,
       imageProviderId,
@@ -8759,9 +10324,9 @@ export function LearnPageClient() {
 
   const startPlan = useCallback(
     (plan: PracticePlan) => {
-      router.push(`/practice/${encodeURIComponent(plan.id)}`);
+      openPracticePlan(plan);
     },
-    [router],
+    [openPracticePlan],
   );
 
   const sendMessage = useCallback(
@@ -8906,7 +10471,47 @@ export function LearnPageClient() {
       const visibleBlockingProposalActions = blockingProposalActions;
       const visibleDirectActions = directActions;
       const visibleArtifacts = visibleActionPlanArtifacts;
-      const actionPlanText = learnTurn?.replyText?.trim() || '';
+      const hasActiveProblemBank = problems.some((problem) => problem.status !== 'archived');
+      const bankPracticeProposalAction =
+        !hasAttachments &&
+        hasActiveProblemBank &&
+        !visibleDirectActions.length &&
+        !visibleArtifacts.length
+          ? visibleBlockingProposalActions.find((action) => {
+              if (action.kind !== 'practice.propose_generation') return false;
+              const source = payloadString(actionPayload(action).source);
+              return source === 'problem_bank' || source === 'mixed';
+            })
+          : null;
+      if (
+        bankPracticeProposalAction &&
+        visibleBlockingProposalActions.every(
+          (action) => action.kind === 'practice.propose_generation',
+        )
+      ) {
+        const payload = actionPayload(bankPracticeProposalAction);
+        const selectedPlan = buildSelectedProblemPracticePlan({
+          mode: 'practice',
+          prompt: actionSummary(bankPracticeProposalAction) || questionText,
+          targetCount: typeof payload.count === 'number' ? payload.count : undefined,
+          preferredConcepts: learningActionPreferredConcepts(bankPracticeProposalAction),
+          stateOverride: questionState,
+        });
+        if (selectedPlan) {
+          if (pendingWorkflowMessageId) {
+            setMessages((current) => removeLearnMessage(current, pendingWorkflowMessageId));
+          }
+          addAssistantPlan(selectedPlan);
+          setSending(false);
+          return;
+        }
+      }
+      const actionPlanText =
+        shouldContinueToCourseAnswer &&
+        !visibleBlockingProposalActions.length &&
+        !visibleArtifacts.length
+          ? ''
+          : learnTurn?.replyText?.trim() || '';
       if (actionPlanText || visibleBlockingProposalActions.length || visibleArtifacts.length) {
         const actionPlanMessage: LearnMessage = {
           id: makeClientId('assistant-action-plan'),
@@ -8981,6 +10586,80 @@ export function LearnPageClient() {
 
       if (!hasAttachments && planningIntent && planningDecision) {
         if (planningIntent.kind === 'practice_plan') {
+          const selectedPlan = buildSelectedProblemPracticePlan({
+            mode: planningIntent.mode,
+            prompt: planningPrompt,
+            preferredConcepts: planningDecision.focusTopics,
+            stateOverride: questionState,
+            problemBankSearch: planningDecision.problemBankSearch,
+          });
+          if (selectedPlan) {
+            if (pendingWorkflowMessageId) {
+              setMessages((current) => removeLearnMessage(current, pendingWorkflowMessageId));
+            }
+            addAssistantPlan(selectedPlan);
+            setSending(false);
+            return;
+          }
+          if (planningDecision.problemBankSearch) {
+            const noMatchMessage: LearnMessage = {
+              id: makeClientId('assistant-practice-no-bank-match'),
+              role: 'assistant',
+              text: problemBankSearchNoMatchText(planningDecision.problemBankSearch),
+              createdAt: Date.now(),
+              publicTrace: publicTraceFromLearnTurn(learnTurn, {
+                question: questionText,
+                progressKnown: questionSnapshot.progressKnown,
+                calendarCount: syllabusEvents.length,
+                problemCount: problems.length,
+              }),
+            };
+            setMessages((current) =>
+              pendingWorkflowMessageId
+                ? replaceLearnMessage(current, pendingWorkflowMessageId, noMatchMessage)
+                : [...current, noMatchMessage],
+            );
+            setSending(false);
+            return;
+          }
+          if (!isSelfGeneratedPracticeRequest(planningPrompt)) {
+            const activeProblemCount = problems.filter(
+              (problem) => problem.status !== 'archived',
+            ).length;
+            const noSearchMessage: LearnMessage = {
+              id: makeClientId('assistant-practice-bank-unresolved'),
+              role: 'assistant',
+              text: activeProblemCount
+                ? [
+                    `我识别到这是题库练习请求，但这次没有拿到可审计的题库检索结果。`,
+                    '我没有把它降级成自生成练习，也没有用普通计划卡替代真实题目。',
+                    '请重试一次；如果你想临时生成题，请明确说“基于资料临时生成一组题”。',
+                  ].join('\n\n')
+                : buildNoCourseProblemBankAnswer({
+                    course: activeCourse,
+                    questionText: planningPrompt,
+                    notebooks,
+                  }),
+              createdAt: Date.now(),
+              publicTrace: publicTraceForBlockedQuestion(
+                questionText,
+                makePublicTraceStep(
+                  'problem-bank-search-missing',
+                  '题库检索结果缺失',
+                  '已经识别为题库练习请求，但 planning decision 没有提供 problemBankSearch，因此停止而不是自生成题。',
+                  undefined,
+                  'blocked',
+                ),
+              ),
+            };
+            setMessages((current) =>
+              pendingWorkflowMessageId
+                ? replaceLearnMessage(current, pendingWorkflowMessageId, noSearchMessage)
+                : [...current, noSearchMessage],
+            );
+            setSending(false);
+            return;
+          }
           const evidencePlan = await buildEvidenceBasedPlan({
             mode: planningIntent.mode,
             prompt: planningPrompt,
@@ -9075,11 +10754,6 @@ export function LearnPageClient() {
           questionText,
         );
         const answer = neutralizeUnconfirmedMemoryWriteClaim(rawAnswer, learningActions);
-        const lecturePrompt = buildMiniLecturePrompt({
-          question: questionText,
-          answer,
-          course: activeCourse,
-        });
         const evidenceArtifact = answerEvidenceArtifactFromCourseContext({
           courseContext: result.courseContext,
           question: questionText,
@@ -9093,15 +10767,8 @@ export function LearnPageClient() {
           role: 'assistant',
           text: answer,
           createdAt: Date.now(),
-          lecturePrompt,
           learningActions: learningActions.length ? learningActions : undefined,
           artifacts: artifacts.length ? artifacts : undefined,
-          publicTrace: publicTraceFromLearnTurn(learnTurn, {
-            question: questionText,
-            progressKnown: questionSnapshot.progressKnown,
-            calendarCount: syllabusEvents.length,
-            problemCount: problems.length,
-          }),
         };
         setMessages((current) =>
           pendingWorkflowMessageId
@@ -9141,6 +10808,7 @@ export function LearnPageClient() {
       addAssistantPlan,
       attachments,
       buildEvidenceBasedPlan,
+      buildSelectedProblemPracticePlan,
       courseSourceUploads,
       draft,
       handleLearningActionConfirm,
@@ -9439,12 +11107,18 @@ export function LearnPageClient() {
         }
         const [nextNotebooks, nextProblems, nextSourceUploads] = await Promise.all([
           listStagesByCourse(activeCourse.id).catch(() => notebooks),
-          listCourseProblemSummaries(activeCourse.id).catch(() => problems),
-          listCourseSourceUploads(activeCourse.id).catch(() => null),
+          listCourseProblemSummaries(activeCourse.id, { lean: true }).catch(() => problems),
+          listCourseSourceUploads(activeCourse.id, { includeText: false }).catch(() => null),
         ]);
         setNotebooks(nextNotebooks);
         setProblems(nextProblems);
         if (nextSourceUploads) setCourseSourceUploads(nextSourceUploads);
+        courseAssetCacheRef.current.set(activeCourse.id, {
+          ...(courseAssetCacheRef.current.get(activeCourse.id) ?? {}),
+          notebooks: nextNotebooks,
+          problems: nextProblems,
+          ...(nextSourceUploads ? { sourceUploads: nextSourceUploads } : {}),
+        });
         toast.success('已删除资料及相关记录');
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '删除资料失败');
@@ -9922,6 +11596,160 @@ export function LearnPageClient() {
         )}
       </div>
     </section>
+  );
+
+  const practicePopupDialog = (
+    <Dialog
+      open={Boolean(activePracticeSession && activePracticePlan)}
+      onOpenChange={handlePracticePopupOpenChange}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-[min(900px,92dvh)] w-[calc(100vw-1rem)] max-w-[1380px] flex-col gap-0 overflow-hidden rounded-[28px] border-border/80 bg-[#f5f5f5] p-0 shadow-2xl dark:bg-slate-950"
+      >
+        <DialogHeader className="relative shrink-0 border-b border-border/80 bg-background/95 px-4 py-3 text-left backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              title="关闭"
+              aria-label="关闭做题弹窗"
+              className="h-9 w-9 shrink-0 rounded-full border border-slate-200 bg-white p-0 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+              onClick={() => handlePracticePopupOpenChange(false)}
+            >
+              <X className="size-3.5" />
+              <span className="sr-only">关闭</span>
+            </Button>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <DialogTitle className="min-w-0 truncate text-[15px] font-semibold leading-5">
+                {activePracticePlan?.title ?? '题库练习'}
+              </DialogTitle>
+              {practicePopupCurrentQuestionLabel ? (
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                  {practicePopupCurrentQuestionLabel}
+                </span>
+              ) : null}
+              <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                已完成 {practicePopupCompletedCount}/{practicePopupTotalCount || 0}
+              </span>
+              {practicePopupStatusParts.length > 0 ? (
+                <span className="hidden shrink-0 items-center gap-1 md:inline-flex">
+                  {practicePopupStatusParts.map((item) => (
+                    <span
+                      key={item.label}
+                      className={cn(
+                        'rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1',
+                        item.className,
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className="hidden shrink-0 text-xs text-muted-foreground md:inline">
+                  还没提交答案
+                </span>
+              )}
+              <DialogDescription className="sr-only">
+                已完成 {practicePopupCompletedCount}/{practicePopupTotalCount || 0}
+              </DialogDescription>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePracticeAiHelpHeaderClick}
+                disabled={
+                  !activePracticeSummary?.currentProblemId ||
+                  currentPracticeProblemHelpLoading ||
+                  !practiceHeaderState ||
+                  (!practiceHeaderState.problemContent && !currentPracticeProblemHelpSessionId)
+                }
+                className={cn(
+                  'h-8 gap-1.5 rounded-full px-3 text-xs font-semibold',
+                  currentPracticeProblemHelpTabVisible
+                    ? 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-300/25 dark:bg-sky-300/10 dark:text-sky-100'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10',
+                )}
+              >
+                {currentPracticeProblemHelpLoading ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Brain className="size-3.5" />
+                )}
+                {practiceAiHelpHeaderLabel}
+              </Button>
+              <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1 shadow-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 rounded-full px-2.5 text-xs"
+                  disabled={!practiceHeaderState || practiceHeaderState.previousDisabled}
+                  title={practiceHeaderState?.previousTitle ?? '没有上一题'}
+                  onClick={() => practiceHeaderState?.onPrevious?.()}
+                >
+                  <ChevronLeft className="size-3.5" />
+                  {practiceHeaderState?.previousLabel ?? '上一题'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 rounded-full px-2.5 text-xs"
+                  disabled={!practiceHeaderState || practiceHeaderState.nextDisabled}
+                  title={practiceHeaderState?.nextTitle ?? '没有下一题'}
+                  onClick={() => practiceHeaderState?.onNext?.()}
+                >
+                  {practiceHeaderState?.nextLabel ?? '下一题'}
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-slate-100 dark:bg-slate-800">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-sky-500 transition-[width] duration-300"
+              style={{ width: `${practicePopupProgressPercent}%` }}
+            />
+          </div>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {activePracticeSession && activePracticePlan ? (
+            <CourseProblemBankView
+              key={activePracticeSession.id}
+              courseId={activePracticeSession.courseId}
+              initialProblemId={
+                activePracticeSession.currentProblemId || activePracticeProblemIds[0]
+              }
+              mode="practice"
+              practiceBackLabel="关闭"
+              practiceHeaderPlacement="external"
+              practiceProblemIds={activePracticeProblemIds}
+              initialPracticeAnswers={activePracticeAnswers}
+              onPracticeBack={() => handlePracticePopupOpenChange(false)}
+              onPracticeHeaderStateChange={handlePracticeHeaderStateChange}
+              onPracticeProblemChange={handlePracticeProblemChange}
+              onPracticeAnswerDraftChange={handlePracticeAnswerDraftChange}
+              onPracticeAttemptResolved={handlePracticeAttemptResolved}
+              practiceAiHelp={
+                currentPracticeProblemHelpTabVisible
+                  ? {
+                      state: currentPracticeProblemHelp,
+                      hasHelp: currentPracticeProblemHasAiHelp,
+                      active: currentPracticeProblemHelpTabActive,
+                      onActiveChange: setPracticeProblemHelpTabActive,
+                    }
+                  : undefined
+              }
+            />
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 
   const syllabusImportDialog = (
@@ -11129,7 +12957,10 @@ export function LearnPageClient() {
                 {hasActiveCourse
                   ? learnSessions.map((session) => {
                       const active = session.id === activeSessionId;
-                      const deleting = deletingLearnSessionId === session.id;
+                      const deleting = deletingLearnSessionIds.includes(session.id);
+                      const onlyBlankSession =
+                        learnSessions.length <= 1 && active && learnSessionIsBlank(messages);
+                      const deleteDisabled = deleting || onlyBlankSession;
                       return (
                         <div
                           key={session.id}
@@ -11154,13 +12985,16 @@ export function LearnPageClient() {
                               event.stopPropagation();
                               void deleteLearnSession(session);
                             }}
-                            disabled={deleting}
+                            disabled={deleteDisabled}
                             className={cn(
                               'grid size-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:pointer-events-none disabled:opacity-60 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
                               active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
+                              onlyBlankSession && 'opacity-35',
                             )}
-                            aria-label={`删除会话：${session.title}`}
-                            title="删除会话"
+                            aria-label={
+                              onlyBlankSession ? '空白新对话无需删除' : `删除会话：${session.title}`
+                            }
+                            title={onlyBlankSession ? '空白新对话无需删除' : '删除会话'}
                           >
                             {deleting ? (
                               <Loader2 className="size-3.5 animate-spin" strokeWidth={1.9} />
@@ -11532,122 +13366,150 @@ export function LearnPageClient() {
                   </div>
                 </div>
               ) : null}
-              {messages.map((message) => (
-                <ContextMenu key={message.id}>
-                  <ContextMenuTrigger asChild>
-                    <div
-                      className={cn(
-                        message.role === 'user'
-                          ? 'ml-auto max-w-[min(78%,680px)] rounded-[24px] bg-slate-950 px-4 py-2.5 text-sm leading-6 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] dark:bg-white dark:text-black'
-                          : 'mr-auto flex w-full max-w-[52rem] items-start gap-3 py-2',
-                      )}
-                    >
-                      {message.role === 'user' ? (
-                        <>
-                          {message.attachments?.length ? (
-                            <div className="mb-2 grid max-w-full grid-cols-2 gap-2">
-                              {message.attachments.map((attachment) => (
-                                <img
-                                  key={attachment.id}
-                                  src={attachment.objectUrl}
-                                  alt={attachment.name}
-                                  className="max-h-40 w-full rounded-lg border border-white/15 object-cover"
+              {messages.map((message) => {
+                const displayText =
+                  message.role === 'assistant' &&
+                  message.plan &&
+                  isProblemSelectionPlan(message.plan)
+                    ? selectedPracticeIntro(message.plan)
+                    : repairStalePracticeSelectionMessageText(message.text);
+
+                return (
+                  <ContextMenu key={message.id}>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className={cn(
+                          message.role === 'user'
+                            ? 'ml-auto max-w-[min(78%,680px)] rounded-[24px] bg-slate-950 px-4 py-2.5 text-sm leading-6 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] dark:bg-white dark:text-black'
+                            : 'mr-auto flex w-full max-w-[52rem] items-start gap-3 py-2',
+                        )}
+                      >
+                        {message.role === 'user' ? (
+                          <>
+                            {message.attachments?.length ? (
+                              <div className="mb-2 grid max-w-full grid-cols-2 gap-2">
+                                {message.attachments.map((attachment) => (
+                                  <img
+                                    key={attachment.id}
+                                    src={attachment.objectUrl}
+                                    alt={attachment.name}
+                                    className="max-h-40 w-full rounded-lg border border-white/15 object-cover"
+                                  />
+                                ))}
+                              </div>
+                            ) : null}
+                            <p className="select-text whitespace-pre-wrap">{message.text}</p>
+                          </>
+                        ) : (
+                          <>
+                            {activeCourse ? (
+                              <CourseAvatar
+                                course={activeCourse}
+                                className="mt-1 size-8 rounded-[10px]"
+                              />
+                            ) : (
+                              <div className="mt-1 grid size-8 shrink-0 place-items-center rounded-[10px] bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
+                                <MessageSquarePlus className="size-4" strokeWidth={1.8} />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1 select-text">
+                              {displayText ? (
+                                <MessageResponse className={courseMarkdownClassName} mode="static">
+                                  {normalizeAssistantMarkdown(displayText)}
+                                </MessageResponse>
+                              ) : null}
+                              {message.plan ? (
+                                <PlanActionCard
+                                  plan={message.plan}
+                                  sessionSummary={practiceSessionSummaryByPlanId.get(
+                                    message.plan.id,
+                                  )}
+                                  onStart={startPlan}
                                 />
-                              ))}
+                              ) : null}
+                              {message.artifacts?.length ? (
+                                <LearnArtifactCards
+                                  artifacts={message.artifacts}
+                                  actions={message.learningActions}
+                                  isResearchCourse={isResearchCourse}
+                                  onConfirmCalendarAction={handleLearningActionConfirm}
+                                />
+                              ) : null}
+                              {shouldDisplayPublicTrace(message) ? (
+                                <LearnPublicTraceCard
+                                  steps={message.publicTrace}
+                                  transient={message.transient}
+                                />
+                              ) : null}
+                              {message.progressProposal ? (
+                                <ProgressConfirmationCard
+                                  proposal={message.progressProposal}
+                                  notebooks={notebooks}
+                                  onSelectionChange={(selection) =>
+                                    updateMessageProgressProposal(message.id, selection)
+                                  }
+                                  onConfirm={() =>
+                                    confirmMessageProgressProposal(
+                                      message.id,
+                                      message.progressProposal?.selection || '',
+                                    )
+                                  }
+                                  onDismiss={() => dismissMessageProgressProposal(message.id)}
+                                />
+                              ) : null}
+                              {message.lecturePrompt || message.lectureDeck ? (
+                                <MiniLectureInviteCard
+                                  prompt={message.lecturePrompt}
+                                  deck={message.lectureDeck}
+                                  generating={generatingMiniLectureMessageId === message.id}
+                                  onGenerate={() => generateMiniLectureForMessage(message.id)}
+                                  onOpen={openMiniLectureDeck}
+                                />
+                              ) : null}
+                              {message.learningActions?.length ? (
+                                <LearnLearningActionCards
+                                  actions={visibleLearningActionsForArtifacts(
+                                    message.learningActions,
+                                    message.artifacts,
+                                  )}
+                                  onConfirm={handleLearningActionConfirm}
+                                  onCancel={handleLearningActionCancel}
+                                  onReviewModeChoice={(action, choice) => {
+                                    markLearningActionStatus(
+                                      action.id,
+                                      'completed',
+                                      actionResult(action, {
+                                        status: 'completed',
+                                        summary: `已选择复习方式：${choice.label}`,
+                                        input: { payload: action.payload || {}, choice },
+                                        output: { followupText: choice.followupText },
+                                      }),
+                                    );
+                                    void sendMessage(choice.followupText);
+                                  }}
+                                />
+                              ) : null}
                             </div>
-                          ) : null}
-                          <p className="select-text whitespace-pre-wrap">{message.text}</p>
-                        </>
-                      ) : (
-                        <>
-                          {activeCourse ? (
-                            <CourseAvatar
-                              course={activeCourse}
-                              className="mt-1 size-8 rounded-[10px]"
-                            />
-                          ) : (
-                            <div className="mt-1 grid size-8 shrink-0 place-items-center rounded-[10px] bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-100 dark:ring-sky-300/15">
-                              <MessageSquarePlus className="size-4" strokeWidth={1.8} />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1 select-text">
-                            {message.text ? (
-                              <MessageResponse className={courseMarkdownClassName}>
-                                {normalizeAssistantMarkdown(message.text)}
-                              </MessageResponse>
-                            ) : null}
-                            {message.plan ? (
-                              <PlanActionCard plan={message.plan} onStart={startPlan} />
-                            ) : null}
-                            {message.artifacts?.length ? (
-                              <LearnArtifactCards
-                                artifacts={message.artifacts}
-                                actions={message.learningActions}
-                                isResearchCourse={isResearchCourse}
-                                onConfirmCalendarAction={handleLearningActionConfirm}
-                              />
-                            ) : null}
-                            {message.publicTrace?.length ? (
-                              <LearnPublicTraceCard
-                                steps={message.publicTrace}
-                                transient={message.transient}
-                              />
-                            ) : null}
-                            {message.progressProposal ? (
-                              <ProgressConfirmationCard
-                                proposal={message.progressProposal}
-                                notebooks={notebooks}
-                                onSelectionChange={(selection) =>
-                                  updateMessageProgressProposal(message.id, selection)
-                                }
-                                onConfirm={() =>
-                                  confirmMessageProgressProposal(
-                                    message.id,
-                                    message.progressProposal?.selection || '',
-                                  )
-                                }
-                                onDismiss={() => dismissMessageProgressProposal(message.id)}
-                              />
-                            ) : null}
-                            {message.lecturePrompt || message.lectureDeck ? (
-                              <MiniLectureInviteCard
-                                prompt={message.lecturePrompt}
-                                deck={message.lectureDeck}
-                                generating={generatingMiniLectureMessageId === message.id}
-                                onGenerate={() => generateMiniLectureForMessage(message.id)}
-                                onOpen={openMiniLectureDeck}
-                              />
-                            ) : null}
-                            {message.learningActions?.length ? (
-                              <LearnLearningActionCards
-                                actions={visibleLearningActionsForArtifacts(
-                                  message.learningActions,
-                                  message.artifacts,
-                                )}
-                                onConfirm={handleLearningActionConfirm}
-                                onCancel={handleLearningActionCancel}
-                              />
-                            ) : null}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent className="w-40">
-                    <ContextMenuItem onSelect={() => void copyLearnMessage(message)}>
-                      <Copy className="size-4" />
-                      复制消息
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      variant="destructive"
-                      onSelect={() => deleteLearnMessage(message.id)}
-                    >
-                      <Trash2 className="size-4" />
-                      删除消息
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              ))}
+                          </>
+                        )}
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-40">
+                      <ContextMenuItem onSelect={() => void copyLearnMessage(message)}>
+                        <Copy className="size-4" />
+                        复制消息
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        variant="destructive"
+                        onSelect={() => deleteLearnMessage(message.id)}
+                      >
+                        <Trash2 className="size-4" />
+                        删除消息
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                );
+              })}
               {sending &&
               !messages.some((message) => message.transient && message.publicTrace?.length) ? (
                 <div className="mr-auto flex items-center gap-2 rounded-full bg-slate-50 px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
@@ -11817,6 +13679,7 @@ export function LearnPageClient() {
         open={miniLectureOpen}
         onOpenChange={setMiniLectureOpen}
       />
+      {practicePopupDialog}
       {syllabusImportDialog}
       {manualScheduleDialog}
       {sourceUploadStatusDialog}

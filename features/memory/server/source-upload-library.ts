@@ -311,11 +311,13 @@ async function collectCourseSourceUploads(args: {
   prisma: PrismaClient;
   userId: string;
   courseId: string;
+  includeTextSections?: boolean;
 }): Promise<SourceUploadCollection> {
   await requireOwnedCourse(args);
   await ensureKnowledgeCacheTable(args.prisma);
 
   const uploads = new Map<string, SourceUploadAccumulator>();
+  const includeTextSections = args.includeTextSections !== false;
 
   const sections = await args.prisma.markdownNotebookSection.findMany({
     where: {
@@ -327,7 +329,7 @@ async function collectCourseSourceUploads(args: {
       notebookId: true,
       title: true,
       order: true,
-      markdown: true,
+      ...(includeTextSections ? { markdown: true } : {}),
       sourceMeta: true,
       createdAt: true,
       updatedAt: true,
@@ -341,13 +343,18 @@ async function collectCourseSourceUploads(args: {
     const acc = ensureSourceUpload(uploads, sourceHash);
     acc.sectionIds.add(section.id);
     acc.notebookIds.add(section.notebookId);
-    acc.textSections.push({
-      id: section.id,
-      notebookId: section.notebookId,
-      title: section.title,
-      order: section.order,
-      markdown: section.markdown,
-    });
+    if (includeTextSections) {
+      acc.textSections.push({
+        id: section.id,
+        notebookId: section.notebookId,
+        title: section.title,
+        order: section.order,
+        markdown:
+          typeof (section as { markdown?: unknown }).markdown === 'string'
+            ? (section as { markdown: string }).markdown
+            : '',
+      });
+    }
     acc.title ||= readJsonString(meta, ['sourceTitle']) || section.title;
     acc.kind ||= readJsonString(meta, ['sourceKind']);
     acc.fileMime ||= readJsonString(meta, ['sourceFileMime']);
@@ -643,6 +650,7 @@ export async function listCourseSourceUploads(args: {
   prisma: PrismaClient;
   userId: string;
   courseId: string;
+  includeTextSections?: boolean;
 }): Promise<CourseSourceUploadRecord[]> {
   const collection = await collectCourseSourceUploads(args);
   return collection.records;

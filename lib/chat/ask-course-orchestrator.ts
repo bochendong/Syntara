@@ -14,6 +14,8 @@ import type { Scene } from '@/lib/types/stage';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { backendJson } from '@/lib/utils/backend-api';
 
+const LAYERED_MEMORY_CONTEXT_TIMEOUT_MS = 6000;
+
 export type AskCourseOrchestratorOptions = {
   courseId: string;
   question: string;
@@ -110,6 +112,7 @@ function buildOrchestratorAgentConfig(
 async function loadLayeredMemoryForCourseChat(args: {
   courseId: string;
   question: string;
+  signal?: AbortSignal;
 }): Promise<CourseChatLayeredMemoryContext | undefined> {
   const question = args.question.trim();
   if (!question) return undefined;
@@ -120,9 +123,16 @@ async function loadLayeredMemoryForCourseChat(args: {
     message: question,
   });
 
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), LAYERED_MEMORY_CONTEXT_TIMEOUT_MS);
+  const abortFromParent = () => controller.abort();
+  args.signal?.addEventListener('abort', abortFromParent, { once: true });
+  if (args.signal?.aborted) controller.abort();
+
   try {
     return await backendJson<CourseChatLayeredMemoryContext>(
       `/api/memory/context?${params.toString()}`,
+      { cache: 'no-store', signal: controller.signal },
     );
   } catch (error) {
     console.warn(
@@ -130,6 +140,9 @@ async function loadLayeredMemoryForCourseChat(args: {
       error instanceof Error ? error.message : error,
     );
     return undefined;
+  } finally {
+    window.clearTimeout(timeoutId);
+    args.signal?.removeEventListener('abort', abortFromParent);
   }
 }
 
@@ -160,6 +173,7 @@ export async function askCourseOrchestrator(
     (await loadLayeredMemoryForCourseChat({
       courseId: options.courseId,
       question: options.question,
+      signal: options.signal,
     }));
   const courseContextWithMemory = layeredMemory
     ? { ...baseCourseContext, layeredMemory }
